@@ -1,0 +1,18 @@
+# secrets & local data
+.env
+deploy/.env
+data/
+deploy/data/
+
+# build output
+/server/bin/
+/server/internal/webui/dist/*
+!/server/internal/webui/dist/index.html
+node_modules/
+web/dist/
+web/test-results/
+web/playwright-report/
+ios/build/
+ios/*.xcodeproj
+*.ipa
+.DS_Store
