@@ -36,7 +36,7 @@ P2 — Biblioteke i scanner (sljedeće). P0 (PR #1) i P1 (PR #4) gotovi i mergea
 
 ## Sljedeći koraci
 1. P2: tipovi biblioteka, putanje (kroz `library.ResolveSafePath`), naming parseri + golden testovi, ffprobe, inkrementalni scan + fsnotify, `seed-big-library.sh`; provedba dozvole `allLibraries`.
-2. Instalirati `streamero-ipa` kroz Feather i spojiti se na https://demo.streamero.net (iOS login dolazi u P7).
+2. Instalirati `streamero-ipa` (artefakt iOS CI-ja) kroz Feather, spojiti se na https://demo.streamero.net i prijaviti (lozinka / Quick Connect).
 3. Zamijeniti placeholder logo službenim s streamero.net.
 4. *arr ekosustav je faza P4b (D-011).
 
