@@ -8,18 +8,97 @@ import (
 
 // Handler handles operations described by OpenAPI v3 specification.
 type Handler interface {
+	// ChangePassword implements changePassword operation.
+	//
+	// Change own password; signs out all other sessions.
+	//
+	// POST /auth/password
+	ChangePassword(ctx context.Context, req *ChangePasswordRequest) error
+	// CompleteSetup implements completeSetup operation.
+	//
+	// Only allowed while `setupCompleted` is false. Requires the one-time setup code the server prints to
+	// its log on start (or STREAMERO_SETUP_CODE). Signs the admin in.
+	//
+	// POST /setup
+	CompleteSetup(ctx context.Context, req *SetupRequest) (*SignedInHeaders, error)
+	// CreateUser implements createUser operation.
+	//
+	// Create a user (admin).
+	//
+	// POST /users
+	CreateUser(ctx context.Context, req *CreateUserRequest) (*User, error)
+	// DeleteUser implements deleteUser operation.
+	//
+	// Delete a user and all of their sessions (admin).
+	//
+	// DELETE /users/{userId}
+	DeleteUser(ctx context.Context, params DeleteUserParams) error
+	// GetMe implements getMe operation.
+	//
+	// The signed-in user.
+	//
+	// GET /auth/me
+	GetMe(ctx context.Context) (*User, error)
+	// GetServerSettings implements getServerSettings operation.
+	//
+	// Server-wide settings (admin).
+	//
+	// GET /settings/server
+	GetServerSettings(ctx context.Context) (*ServerSettings, error)
 	// GetSystemInfo implements getSystemInfo operation.
 	//
 	// Unauthenticated. Used by clients to verify a server URL before login.
 	//
 	// GET /system/info
 	GetSystemInfo(ctx context.Context) (GetSystemInfoRes, error)
+	// ListSessions implements listSessions operation.
+	//
+	// Own sessions; admins see the sessions of all users.
+	//
+	// GET /sessions
+	ListSessions(ctx context.Context) ([]Session, error)
+	// ListUsers implements listUsers operation.
+	//
+	// List users (admin).
+	//
+	// GET /users
+	ListUsers(ctx context.Context) ([]User, error)
+	// Login implements login operation.
+	//
+	// Sign in with username and password.
+	//
+	// POST /auth/login
+	Login(ctx context.Context, req *LoginRequest) (*SignedInHeaders, error)
+	// Logout implements logout operation.
+	//
+	// End the current session.
+	//
+	// POST /auth/logout
+	Logout(ctx context.Context) (*LogoutNoContent, error)
 	// Ping implements ping operation.
 	//
 	// Liveness probe for clients.
 	//
 	// GET /system/ping
 	Ping(ctx context.Context) (*Pong, error)
+	// RevokeSession implements revokeSession operation.
+	//
+	// Own sessions; admins can revoke any session.
+	//
+	// DELETE /sessions/{sessionId}
+	RevokeSession(ctx context.Context, params RevokeSessionParams) error
+	// UpdateServerSettings implements updateServerSettings operation.
+	//
+	// Update server-wide settings (admin).
+	//
+	// PUT /settings/server
+	UpdateServerSettings(ctx context.Context, req *ServerSettings) (*ServerSettings, error)
+	// UpdateUser implements updateUser operation.
+	//
+	// Disabling a user or changing the password signs out all of their sessions.
+	//
+	// PATCH /users/{userId}
+	UpdateUser(ctx context.Context, req *UpdateUserRequest, params UpdateUserParams) (*User, error)
 	// NewError creates *ErrorStatusCode from error returned by handler.
 	//
 	// Used for common default response.
@@ -29,18 +108,20 @@ type Handler interface {
 // Server implements http server based on OpenAPI v3 specification and
 // calls Handler to handle requests.
 type Server struct {
-	h Handler
+	h   Handler
+	sec SecurityHandler
 	baseServer
 }
 
 // NewServer creates new Server.
-func NewServer(h Handler, opts ...ServerOption) (*Server, error) {
+func NewServer(h Handler, sec SecurityHandler, opts ...ServerOption) (*Server, error) {
 	s, err := newServerConfig(opts...).baseServer()
 	if err != nil {
 		return nil, err
 	}
 	return &Server{
 		h:          h,
+		sec:        sec,
 		baseServer: s,
 	}, nil
 }

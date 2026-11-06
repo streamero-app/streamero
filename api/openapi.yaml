@@ -10,6 +10,12 @@ servers:
   - url: /api/v1
 tags:
   - name: system
+  - name: setup
+  - name: auth
+  - name: users
+  - name: sessions
+  - name: settings
+security: []
 paths:
   /system/info:
     get:
@@ -42,8 +48,271 @@ paths:
                 $ref: "#/components/schemas/Pong"
         default:
           $ref: "#/components/responses/Error"
+  /setup:
+    post:
+      operationId: completeSetup
+      summary: "First-run setup: create the first admin account"
+      description: |
+        Only allowed while `setupCompleted` is false. Requires the one-time setup code the
+        server prints to its log on start (or STREAMERO_SETUP_CODE). Signs the admin in.
+      tags: [setup]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetupRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/SignedIn"
+        default:
+          $ref: "#/components/responses/Error"
+  /auth/login:
+    post:
+      operationId: login
+      summary: Sign in with username and password
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/SignedIn"
+        default:
+          $ref: "#/components/responses/Error"
+  /auth/logout:
+    post:
+      operationId: logout
+      summary: End the current session
+      tags: [auth]
+      security:
+        - sessionToken: []
+      responses:
+        "204":
+          description: Signed out
+          headers:
+            Set-Cookie:
+              description: Clears the web session cookie.
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Error"
+  /auth/me:
+    get:
+      operationId: getMe
+      summary: The signed-in user
+      tags: [auth]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        default:
+          $ref: "#/components/responses/Error"
+  /auth/password:
+    post:
+      operationId: changePassword
+      summary: "Change own password; signs out all other sessions"
+      tags: [auth]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordRequest"
+      responses:
+        "204":
+          description: Password changed
+        default:
+          $ref: "#/components/responses/Error"
+  /users:
+    get:
+      operationId: listUsers
+      summary: List users (admin)
+      tags: [users]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createUser
+      summary: Create a user (admin)
+      tags: [users]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        default:
+          $ref: "#/components/responses/Error"
+  /users/{userId}:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    patch:
+      operationId: updateUser
+      summary: Update a user (admin)
+      description: Disabling a user or changing the password signs out all of their sessions.
+      tags: [users]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        default:
+          $ref: "#/components/responses/Error"
+    delete:
+      operationId: deleteUser
+      summary: Delete a user and all of their sessions (admin)
+      tags: [users]
+      security:
+        - sessionToken: []
+      responses:
+        "204":
+          description: Deleted
+        default:
+          $ref: "#/components/responses/Error"
+  /sessions:
+    get:
+      operationId: listSessions
+      summary: Signed-in devices
+      description: Own sessions; admins see the sessions of all users.
+      tags: [sessions]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Session"
+        default:
+          $ref: "#/components/responses/Error"
+  /sessions/{sessionId}:
+    parameters:
+      - name: sessionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    delete:
+      operationId: revokeSession
+      summary: Sign a device out immediately
+      description: Own sessions; admins can revoke any session.
+      tags: [sessions]
+      security:
+        - sessionToken: []
+      responses:
+        "204":
+          description: Revoked
+        default:
+          $ref: "#/components/responses/Error"
+  /settings/server:
+    get:
+      operationId: getServerSettings
+      summary: Server-wide settings (admin)
+      tags: [settings]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerSettings"
+        default:
+          $ref: "#/components/responses/Error"
+    put:
+      operationId: updateServerSettings
+      summary: Update server-wide settings (admin)
+      tags: [settings]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServerSettings"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerSettings"
+        default:
+          $ref: "#/components/responses/Error"
 components:
+  securitySchemes:
+    sessionToken:
+      type: http
+      scheme: bearer
+      description: |
+        Session token from /auth/login or /setup. Web clients get it as the HttpOnly
+        `streamero_session` cookie instead (useCookie: true), which the server accepts too.
+  parameters:
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
   responses:
+    SignedIn:
+      description: Signed in
+      headers:
+        Set-Cookie:
+          description: HttpOnly session cookie, only when useCookie was requested.
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/AuthResult"
     Starting:
       description: Server is starting; retry after the given number of seconds.
       headers:
@@ -61,6 +330,151 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
   schemas:
+    Username:
+      type: string
+      minLength: 1
+      maxLength: 64
+      description: Case-insensitive; letters, digits, space and . _ - @
+    Password:
+      type: string
+      minLength: 8
+      maxLength: 256
+    SetupRequest:
+      type: object
+      required: [setupCode, username, password]
+      properties:
+        setupCode:
+          type: string
+          maxLength: 64
+        serverName:
+          type: string
+          maxLength: 100
+        username:
+          $ref: "#/components/schemas/Username"
+        password:
+          $ref: "#/components/schemas/Password"
+        useCookie:
+          type: boolean
+        device:
+          $ref: "#/components/schemas/DeviceInfo"
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          maxLength: 64
+        password:
+          type: string
+          maxLength: 256
+        useCookie:
+          type: boolean
+          description: Web clients set this to receive an HttpOnly cookie instead of a token.
+        device:
+          $ref: "#/components/schemas/DeviceInfo"
+    DeviceInfo:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          description: e.g. "Safari on iPhone"
+        client:
+          type: string
+          maxLength: 100
+          description: e.g. "Streamero Web 0.1.0"
+    AuthResult:
+      type: object
+      required: [user, sessionId]
+      properties:
+        token:
+          type: string
+          description: Bearer token. Omitted when useCookie was requested.
+        sessionId:
+          type: string
+          format: uuid
+        user:
+          $ref: "#/components/schemas/User"
+    ChangePasswordRequest:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+          maxLength: 256
+        newPassword:
+          $ref: "#/components/schemas/Password"
+    User:
+      type: object
+      required: [id, username, isAdmin, disabled, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        isAdmin:
+          type: boolean
+        disabled:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        lastLoginAt:
+          type: string
+          format: date-time
+    CreateUserRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          $ref: "#/components/schemas/Username"
+        password:
+          $ref: "#/components/schemas/Password"
+        isAdmin:
+          type: boolean
+    UpdateUserRequest:
+      type: object
+      properties:
+        isAdmin:
+          type: boolean
+        disabled:
+          type: boolean
+        password:
+          $ref: "#/components/schemas/Password"
+    Session:
+      type: object
+      required: [id, userId, username, deviceName, client, createdAt, lastSeenAt, current]
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        username:
+          type: string
+        deviceName:
+          type: string
+        client:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        lastSeenAt:
+          type: string
+          format: date-time
+        current:
+          type: boolean
+          description: True for the session making this request.
+    ServerSettings:
+      type: object
+      required: [serverName]
+      properties:
+        serverName:
+          type: string
+          minLength: 1
+          maxLength: 100
     Pong:
       type: object
       required: [ok]

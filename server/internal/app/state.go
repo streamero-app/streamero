@@ -6,12 +6,17 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/streamero-app/streamero/server/internal/auth"
 	"github.com/streamero-app/streamero/server/internal/settings"
 )
 
 // State tracks startup progress and exposes what handlers need.
 type State struct {
+	// SetupCode guards first-run setup; set before Bootstrap.
+	SetupCode string
+
 	ready    atomic.Bool
+	auth     atomic.Pointer[auth.Service]
 	serverID atomic.Pointer[uuid.UUID]
 	settings atomic.Pointer[settings.Store]
 	lastErr  atomic.Pointer[string]
@@ -40,6 +45,12 @@ func (s *State) SetupCompleted(ctx context.Context) bool {
 	}
 	return done
 }
+
+// Auth returns the account service (nil until ready).
+func (s *State) Auth() *auth.Service { return s.auth.Load() }
+
+// Settings returns the settings store (nil until ready).
+func (s *State) Settings() *settings.Store { return s.settings.Load() }
 
 // LastError returns the most recent startup error, if any.
 func (s *State) LastError() string {

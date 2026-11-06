@@ -6,6 +6,19 @@ package gen
 type OperationName = string
 
 const (
-	GetSystemInfoOperation OperationName = "GetSystemInfo"
-	PingOperation          OperationName = "Ping"
+	ChangePasswordOperation       OperationName = "ChangePassword"
+	CompleteSetupOperation        OperationName = "CompleteSetup"
+	CreateUserOperation           OperationName = "CreateUser"
+	DeleteUserOperation           OperationName = "DeleteUser"
+	GetMeOperation                OperationName = "GetMe"
+	GetServerSettingsOperation    OperationName = "GetServerSettings"
+	GetSystemInfoOperation        OperationName = "GetSystemInfo"
+	ListSessionsOperation         OperationName = "ListSessions"
+	ListUsersOperation            OperationName = "ListUsers"
+	LoginOperation                OperationName = "Login"
+	LogoutOperation               OperationName = "Logout"
+	PingOperation                 OperationName = "Ping"
+	RevokeSessionOperation        OperationName = "RevokeSession"
+	UpdateServerSettingsOperation OperationName = "UpdateServerSettings"
+	UpdateUserOperation           OperationName = "UpdateUser"
 )

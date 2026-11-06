@@ -13,6 +13,141 @@ func (s *ErrorStatusCode) Error() string {
 	return fmt.Sprintf("code %d: %+v", s.StatusCode, s.Response)
 }
 
+// Ref: #/components/schemas/AuthResult
+type AuthResult struct {
+	// Bearer token. Omitted when useCookie was requested.
+	Token     OptString `json:"token"`
+	SessionId uuid.UUID `json:"sessionId"`
+	User      User      `json:"user"`
+}
+
+// GetToken returns the value of Token.
+func (s *AuthResult) GetToken() OptString {
+	return s.Token
+}
+
+// GetSessionId returns the value of SessionId.
+func (s *AuthResult) GetSessionId() uuid.UUID {
+	return s.SessionId
+}
+
+// GetUser returns the value of User.
+func (s *AuthResult) GetUser() User {
+	return s.User
+}
+
+// SetToken sets the value of Token.
+func (s *AuthResult) SetToken(val OptString) {
+	s.Token = val
+}
+
+// SetSessionId sets the value of SessionId.
+func (s *AuthResult) SetSessionId(val uuid.UUID) {
+	s.SessionId = val
+}
+
+// SetUser sets the value of User.
+func (s *AuthResult) SetUser(val User) {
+	s.User = val
+}
+
+// ChangePasswordNoContent is response for ChangePassword operation.
+type ChangePasswordNoContent struct{}
+
+// Ref: #/components/schemas/ChangePasswordRequest
+type ChangePasswordRequest struct {
+	CurrentPassword string   `json:"currentPassword"`
+	NewPassword     Password `json:"newPassword"`
+}
+
+// GetCurrentPassword returns the value of CurrentPassword.
+func (s *ChangePasswordRequest) GetCurrentPassword() string {
+	return s.CurrentPassword
+}
+
+// GetNewPassword returns the value of NewPassword.
+func (s *ChangePasswordRequest) GetNewPassword() Password {
+	return s.NewPassword
+}
+
+// SetCurrentPassword sets the value of CurrentPassword.
+func (s *ChangePasswordRequest) SetCurrentPassword(val string) {
+	s.CurrentPassword = val
+}
+
+// SetNewPassword sets the value of NewPassword.
+func (s *ChangePasswordRequest) SetNewPassword(val Password) {
+	s.NewPassword = val
+}
+
+// Ref: #/components/schemas/CreateUserRequest
+type CreateUserRequest struct {
+	Username Username `json:"username"`
+	Password Password `json:"password"`
+	IsAdmin  OptBool  `json:"isAdmin"`
+}
+
+// GetUsername returns the value of Username.
+func (s *CreateUserRequest) GetUsername() Username {
+	return s.Username
+}
+
+// GetPassword returns the value of Password.
+func (s *CreateUserRequest) GetPassword() Password {
+	return s.Password
+}
+
+// GetIsAdmin returns the value of IsAdmin.
+func (s *CreateUserRequest) GetIsAdmin() OptBool {
+	return s.IsAdmin
+}
+
+// SetUsername sets the value of Username.
+func (s *CreateUserRequest) SetUsername(val Username) {
+	s.Username = val
+}
+
+// SetPassword sets the value of Password.
+func (s *CreateUserRequest) SetPassword(val Password) {
+	s.Password = val
+}
+
+// SetIsAdmin sets the value of IsAdmin.
+func (s *CreateUserRequest) SetIsAdmin(val OptBool) {
+	s.IsAdmin = val
+}
+
+// DeleteUserNoContent is response for DeleteUser operation.
+type DeleteUserNoContent struct{}
+
+// Ref: #/components/schemas/DeviceInfo
+type DeviceInfo struct {
+	// E.g. "Safari on iPhone".
+	Name OptString `json:"name"`
+	// E.g. "Streamero Web 0.1.0".
+	Client OptString `json:"client"`
+}
+
+// GetName returns the value of Name.
+func (s *DeviceInfo) GetName() OptString {
+	return s.Name
+}
+
+// GetClient returns the value of Client.
+func (s *DeviceInfo) GetClient() OptString {
+	return s.Client
+}
+
+// SetName sets the value of Name.
+func (s *DeviceInfo) SetName(val OptString) {
+	s.Name = val
+}
+
+// SetClient sets the value of Client.
+func (s *DeviceInfo) SetClient(val OptString) {
+	s.Client = val
+}
+
 // Ref: #/components/schemas/Error
 type Error struct {
 	Code    string `json:"code"`
@@ -65,6 +200,208 @@ func (s *ErrorStatusCode) SetResponse(val Error) {
 	s.Response = val
 }
 
+// Ref: #/components/schemas/LoginRequest
+type LoginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	// Web clients set this to receive an HttpOnly cookie instead of a token.
+	UseCookie OptBool       `json:"useCookie"`
+	Device    OptDeviceInfo `json:"device"`
+}
+
+// GetUsername returns the value of Username.
+func (s *LoginRequest) GetUsername() string {
+	return s.Username
+}
+
+// GetPassword returns the value of Password.
+func (s *LoginRequest) GetPassword() string {
+	return s.Password
+}
+
+// GetUseCookie returns the value of UseCookie.
+func (s *LoginRequest) GetUseCookie() OptBool {
+	return s.UseCookie
+}
+
+// GetDevice returns the value of Device.
+func (s *LoginRequest) GetDevice() OptDeviceInfo {
+	return s.Device
+}
+
+// SetUsername sets the value of Username.
+func (s *LoginRequest) SetUsername(val string) {
+	s.Username = val
+}
+
+// SetPassword sets the value of Password.
+func (s *LoginRequest) SetPassword(val string) {
+	s.Password = val
+}
+
+// SetUseCookie sets the value of UseCookie.
+func (s *LoginRequest) SetUseCookie(val OptBool) {
+	s.UseCookie = val
+}
+
+// SetDevice sets the value of Device.
+func (s *LoginRequest) SetDevice(val OptDeviceInfo) {
+	s.Device = val
+}
+
+// LogoutNoContent is response for Logout operation.
+type LogoutNoContent struct {
+	SetCookie OptString
+}
+
+// GetSetCookie returns the value of SetCookie.
+func (s *LogoutNoContent) GetSetCookie() OptString {
+	return s.SetCookie
+}
+
+// SetSetCookie sets the value of SetCookie.
+func (s *LogoutNoContent) SetSetCookie(val OptString) {
+	s.SetCookie = val
+}
+
+// NewOptBool returns new OptBool with value set to v.
+func NewOptBool(v bool) OptBool {
+	return OptBool{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptBool is optional bool.
+type OptBool struct {
+	Value bool
+	Set   bool
+}
+
+// IsSet returns true if OptBool was set.
+func (o OptBool) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptBool) Reset() {
+	var v bool
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptBool) SetTo(v bool) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptBool) Get() (v bool, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptBool) Or(d bool) bool {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptDateTime returns new OptDateTime with value set to v.
+func NewOptDateTime(v time.Time) OptDateTime {
+	return OptDateTime{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptDateTime is optional time.Time.
+type OptDateTime struct {
+	Value time.Time
+	Set   bool
+}
+
+// IsSet returns true if OptDateTime was set.
+func (o OptDateTime) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptDateTime) Reset() {
+	var v time.Time
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptDateTime) SetTo(v time.Time) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptDateTime) Get() (v time.Time, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptDateTime) Or(d time.Time) time.Time {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptDeviceInfo returns new OptDeviceInfo with value set to v.
+func NewOptDeviceInfo(v DeviceInfo) OptDeviceInfo {
+	return OptDeviceInfo{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptDeviceInfo is optional DeviceInfo.
+type OptDeviceInfo struct {
+	Value DeviceInfo
+	Set   bool
+}
+
+// IsSet returns true if OptDeviceInfo was set.
+func (o OptDeviceInfo) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptDeviceInfo) Reset() {
+	var v DeviceInfo
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptDeviceInfo) SetTo(v DeviceInfo) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptDeviceInfo) Get() (v DeviceInfo, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptDeviceInfo) Or(d DeviceInfo) DeviceInfo {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptInt returns new OptInt with value set to v.
 func NewOptInt(v int) OptInt {
 	return OptInt{
@@ -105,6 +442,52 @@ func (o OptInt) Get() (v int, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptInt) Or(d int) int {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptPassword returns new OptPassword with value set to v.
+func NewOptPassword(v Password) OptPassword {
+	return OptPassword{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptPassword is optional Password.
+type OptPassword struct {
+	Value Password
+	Set   bool
+}
+
+// IsSet returns true if OptPassword was set.
+func (o OptPassword) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptPassword) Reset() {
+	var v Password
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptPassword) SetTo(v Password) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptPassword) Get() (v Password, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptPassword) Or(d Password) Password {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -157,6 +540,8 @@ func (o OptString) Or(d string) string {
 	return d
 }
 
+type Password string
+
 // Ref: #/components/schemas/Pong
 type Pong struct {
 	Ok bool `json:"ok"`
@@ -170,6 +555,238 @@ func (s *Pong) GetOk() bool {
 // SetOk sets the value of Ok.
 func (s *Pong) SetOk(val bool) {
 	s.Ok = val
+}
+
+// RevokeSessionNoContent is response for RevokeSession operation.
+type RevokeSessionNoContent struct{}
+
+// Ref: #/components/schemas/ServerSettings
+type ServerSettings struct {
+	ServerName string `json:"serverName"`
+}
+
+// GetServerName returns the value of ServerName.
+func (s *ServerSettings) GetServerName() string {
+	return s.ServerName
+}
+
+// SetServerName sets the value of ServerName.
+func (s *ServerSettings) SetServerName(val string) {
+	s.ServerName = val
+}
+
+// Ref: #/components/schemas/Session
+type Session struct {
+	ID         uuid.UUID `json:"id"`
+	UserId     uuid.UUID `json:"userId"`
+	Username   string    `json:"username"`
+	DeviceName string    `json:"deviceName"`
+	Client     string    `json:"client"`
+	CreatedAt  time.Time `json:"createdAt"`
+	LastSeenAt time.Time `json:"lastSeenAt"`
+	// True for the session making this request.
+	Current bool `json:"current"`
+}
+
+// GetID returns the value of ID.
+func (s *Session) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetUserId returns the value of UserId.
+func (s *Session) GetUserId() uuid.UUID {
+	return s.UserId
+}
+
+// GetUsername returns the value of Username.
+func (s *Session) GetUsername() string {
+	return s.Username
+}
+
+// GetDeviceName returns the value of DeviceName.
+func (s *Session) GetDeviceName() string {
+	return s.DeviceName
+}
+
+// GetClient returns the value of Client.
+func (s *Session) GetClient() string {
+	return s.Client
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *Session) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetLastSeenAt returns the value of LastSeenAt.
+func (s *Session) GetLastSeenAt() time.Time {
+	return s.LastSeenAt
+}
+
+// GetCurrent returns the value of Current.
+func (s *Session) GetCurrent() bool {
+	return s.Current
+}
+
+// SetID sets the value of ID.
+func (s *Session) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetUserId sets the value of UserId.
+func (s *Session) SetUserId(val uuid.UUID) {
+	s.UserId = val
+}
+
+// SetUsername sets the value of Username.
+func (s *Session) SetUsername(val string) {
+	s.Username = val
+}
+
+// SetDeviceName sets the value of DeviceName.
+func (s *Session) SetDeviceName(val string) {
+	s.DeviceName = val
+}
+
+// SetClient sets the value of Client.
+func (s *Session) SetClient(val string) {
+	s.Client = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *Session) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetLastSeenAt sets the value of LastSeenAt.
+func (s *Session) SetLastSeenAt(val time.Time) {
+	s.LastSeenAt = val
+}
+
+// SetCurrent sets the value of Current.
+func (s *Session) SetCurrent(val bool) {
+	s.Current = val
+}
+
+type SessionToken struct {
+	Token string
+	Roles []string
+}
+
+// GetToken returns the value of Token.
+func (s *SessionToken) GetToken() string {
+	return s.Token
+}
+
+// GetRoles returns the value of Roles.
+func (s *SessionToken) GetRoles() []string {
+	return s.Roles
+}
+
+// SetToken sets the value of Token.
+func (s *SessionToken) SetToken(val string) {
+	s.Token = val
+}
+
+// SetRoles sets the value of Roles.
+func (s *SessionToken) SetRoles(val []string) {
+	s.Roles = val
+}
+
+// Ref: #/components/schemas/SetupRequest
+type SetupRequest struct {
+	SetupCode  string        `json:"setupCode"`
+	ServerName OptString     `json:"serverName"`
+	Username   Username      `json:"username"`
+	Password   Password      `json:"password"`
+	UseCookie  OptBool       `json:"useCookie"`
+	Device     OptDeviceInfo `json:"device"`
+}
+
+// GetSetupCode returns the value of SetupCode.
+func (s *SetupRequest) GetSetupCode() string {
+	return s.SetupCode
+}
+
+// GetServerName returns the value of ServerName.
+func (s *SetupRequest) GetServerName() OptString {
+	return s.ServerName
+}
+
+// GetUsername returns the value of Username.
+func (s *SetupRequest) GetUsername() Username {
+	return s.Username
+}
+
+// GetPassword returns the value of Password.
+func (s *SetupRequest) GetPassword() Password {
+	return s.Password
+}
+
+// GetUseCookie returns the value of UseCookie.
+func (s *SetupRequest) GetUseCookie() OptBool {
+	return s.UseCookie
+}
+
+// GetDevice returns the value of Device.
+func (s *SetupRequest) GetDevice() OptDeviceInfo {
+	return s.Device
+}
+
+// SetSetupCode sets the value of SetupCode.
+func (s *SetupRequest) SetSetupCode(val string) {
+	s.SetupCode = val
+}
+
+// SetServerName sets the value of ServerName.
+func (s *SetupRequest) SetServerName(val OptString) {
+	s.ServerName = val
+}
+
+// SetUsername sets the value of Username.
+func (s *SetupRequest) SetUsername(val Username) {
+	s.Username = val
+}
+
+// SetPassword sets the value of Password.
+func (s *SetupRequest) SetPassword(val Password) {
+	s.Password = val
+}
+
+// SetUseCookie sets the value of UseCookie.
+func (s *SetupRequest) SetUseCookie(val OptBool) {
+	s.UseCookie = val
+}
+
+// SetDevice sets the value of Device.
+func (s *SetupRequest) SetDevice(val OptDeviceInfo) {
+	s.Device = val
+}
+
+// SignedInHeaders wraps AuthResult with response headers.
+type SignedInHeaders struct {
+	SetCookie OptString
+	Response  AuthResult
+}
+
+// GetSetCookie returns the value of SetCookie.
+func (s *SignedInHeaders) GetSetCookie() OptString {
+	return s.SetCookie
+}
+
+// GetResponse returns the value of Response.
+func (s *SignedInHeaders) GetResponse() AuthResult {
+	return s.Response
+}
+
+// SetSetCookie sets the value of SetCookie.
+func (s *SignedInHeaders) SetSetCookie(val OptString) {
+	s.SetCookie = val
+}
+
+// SetResponse sets the value of Response.
+func (s *SignedInHeaders) SetResponse(val AuthResult) {
+	s.Response = val
 }
 
 // StartingHeaders wraps Error with response headers.
@@ -296,3 +913,112 @@ func (s *SystemInfo) SetStartedAt(val time.Time) {
 }
 
 func (*SystemInfo) getSystemInfoRes() {}
+
+// Ref: #/components/schemas/UpdateUserRequest
+type UpdateUserRequest struct {
+	IsAdmin  OptBool     `json:"isAdmin"`
+	Disabled OptBool     `json:"disabled"`
+	Password OptPassword `json:"password"`
+}
+
+// GetIsAdmin returns the value of IsAdmin.
+func (s *UpdateUserRequest) GetIsAdmin() OptBool {
+	return s.IsAdmin
+}
+
+// GetDisabled returns the value of Disabled.
+func (s *UpdateUserRequest) GetDisabled() OptBool {
+	return s.Disabled
+}
+
+// GetPassword returns the value of Password.
+func (s *UpdateUserRequest) GetPassword() OptPassword {
+	return s.Password
+}
+
+// SetIsAdmin sets the value of IsAdmin.
+func (s *UpdateUserRequest) SetIsAdmin(val OptBool) {
+	s.IsAdmin = val
+}
+
+// SetDisabled sets the value of Disabled.
+func (s *UpdateUserRequest) SetDisabled(val OptBool) {
+	s.Disabled = val
+}
+
+// SetPassword sets the value of Password.
+func (s *UpdateUserRequest) SetPassword(val OptPassword) {
+	s.Password = val
+}
+
+// Ref: #/components/schemas/User
+type User struct {
+	ID          uuid.UUID   `json:"id"`
+	Username    string      `json:"username"`
+	IsAdmin     bool        `json:"isAdmin"`
+	Disabled    bool        `json:"disabled"`
+	CreatedAt   time.Time   `json:"createdAt"`
+	LastLoginAt OptDateTime `json:"lastLoginAt"`
+}
+
+// GetID returns the value of ID.
+func (s *User) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetUsername returns the value of Username.
+func (s *User) GetUsername() string {
+	return s.Username
+}
+
+// GetIsAdmin returns the value of IsAdmin.
+func (s *User) GetIsAdmin() bool {
+	return s.IsAdmin
+}
+
+// GetDisabled returns the value of Disabled.
+func (s *User) GetDisabled() bool {
+	return s.Disabled
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *User) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetLastLoginAt returns the value of LastLoginAt.
+func (s *User) GetLastLoginAt() OptDateTime {
+	return s.LastLoginAt
+}
+
+// SetID sets the value of ID.
+func (s *User) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetUsername sets the value of Username.
+func (s *User) SetUsername(val string) {
+	s.Username = val
+}
+
+// SetIsAdmin sets the value of IsAdmin.
+func (s *User) SetIsAdmin(val bool) {
+	s.IsAdmin = val
+}
+
+// SetDisabled sets the value of Disabled.
+func (s *User) SetDisabled(val bool) {
+	s.Disabled = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *User) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetLastLoginAt sets the value of LastLoginAt.
+func (s *User) SetLastLoginAt(val OptDateTime) {
+	s.LastLoginAt = val
+}
+
+type Username string

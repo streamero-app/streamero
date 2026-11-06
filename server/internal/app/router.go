@@ -17,7 +17,8 @@ import (
 
 // NewRouter builds the root HTTP handler.
 func NewRouter(state *State, h *api.Handler) (http.Handler, error) {
-	apiServer, err := gen.NewServer(h, gen.WithPathPrefix("/api/v1"))
+	apiServer, err := gen.NewServer(h, api.Security{Auth: state.Auth},
+		gen.WithPathPrefix("/api/v1"), gen.WithErrorHandler(api.ErrorHandler))
 	if err != nil {
 		return nil, err
 	}
@@ -27,6 +28,7 @@ func NewRouter(state *State, h *api.Handler) (http.Handler, error) {
 	// setting; chi's RealIP trusts spoofable headers and is deliberately not used.
 	r.Use(middleware.RequestID, middleware.Recoverer)
 	r.Use(middleware.Timeout(60 * time.Second))
+	r.Use(securityHeaders, sessionFromCookie)
 
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{"status": "ok"})
@@ -53,6 +55,36 @@ func startingGuard(state *State, next http.Handler) http.Handler {
 			w.Header().Set("Retry-After", strconv.Itoa(api.RetryAfterSeconds))
 			writeJSON(w, http.StatusServiceUnavailable, gen.Error{Code: "starting", Message: "server is starting"})
 			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// sessionFromCookie lets the web client authenticate with the HttpOnly session
+// cookie: it becomes a bearer token unless the request already carries one.
+// It also records whether the client connection is HTTPS (for the Secure flag).
+func sessionFromCookie(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") == "" {
+			if c, err := r.Cookie(api.SessionCookie); err == nil && c.Value != "" {
+				r.Header.Set("Authorization", "Bearer "+c.Value)
+			}
+		}
+		// X-Forwarded-Proto only decides the cookie's Secure attribute, so trusting
+		// it without a known-proxy list cannot weaken authentication.
+		secure := r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https")
+		next.ServeHTTP(w, r.WithContext(api.WithSecure(r.Context(), secure)))
+	})
+}
+
+func securityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := w.Header()
+		h.Set("X-Content-Type-Options", "nosniff")
+		h.Set("Referrer-Policy", "same-origin")
+		h.Set("X-Frame-Options", "DENY")
+		if strings.HasPrefix(r.URL.Path, "/api/") {
+			h.Set("Cache-Control", "no-store")
 		}
 		next.ServeHTTP(w, r)
 	})

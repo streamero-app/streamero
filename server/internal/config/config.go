@@ -18,6 +18,7 @@ type Config struct {
 	CacheDir        string
 	TranscodeDir    string
 	ServerName      string
+	SetupCode       string // optional fixed first-run setup code (otherwise random per start)
 	AutoMigrate     bool
 	LogLevel        string
 	ShutdownTimeout time.Duration
@@ -33,6 +34,7 @@ func Load() (Config, error) {
 		CacheDir:        env("STREAMERO_CACHE_DIR", "/cache"),
 		TranscodeDir:    env("STREAMERO_TRANSCODE_DIR", "/transcode"),
 		ServerName:      env("STREAMERO_SERVER_NAME", "Streamero"),
+		SetupCode:       os.Getenv("STREAMERO_SETUP_CODE"),
 		LogLevel:        env("STREAMERO_LOG_LEVEL", "info"),
 		ShutdownTimeout: 15 * time.Second,
 	}

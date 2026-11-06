@@ -13,6 +13,61 @@ type UnimplementedHandler struct{}
 
 var _ Handler = UnimplementedHandler{}
 
+// ChangePassword implements changePassword operation.
+//
+// Change own password; signs out all other sessions.
+//
+// POST /auth/password
+func (UnimplementedHandler) ChangePassword(ctx context.Context, req *ChangePasswordRequest) error {
+	return ht.ErrNotImplemented
+}
+
+// CompleteSetup implements completeSetup operation.
+//
+// Only allowed while `setupCompleted` is false. Requires the one-time setup code the server prints to
+// its log on start (or STREAMERO_SETUP_CODE). Signs the admin in.
+//
+// POST /setup
+func (UnimplementedHandler) CompleteSetup(ctx context.Context, req *SetupRequest) (r *SignedInHeaders, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// CreateUser implements createUser operation.
+//
+// Create a user (admin).
+//
+// POST /users
+func (UnimplementedHandler) CreateUser(ctx context.Context, req *CreateUserRequest) (r *User, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// DeleteUser implements deleteUser operation.
+//
+// Delete a user and all of their sessions (admin).
+//
+// DELETE /users/{userId}
+func (UnimplementedHandler) DeleteUser(ctx context.Context, params DeleteUserParams) error {
+	return ht.ErrNotImplemented
+}
+
+// GetMe implements getMe operation.
+//
+// The signed-in user.
+//
+// GET /auth/me
+func (UnimplementedHandler) GetMe(ctx context.Context) (r *User, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetServerSettings implements getServerSettings operation.
+//
+// Server-wide settings (admin).
+//
+// GET /settings/server
+func (UnimplementedHandler) GetServerSettings(ctx context.Context) (r *ServerSettings, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetSystemInfo implements getSystemInfo operation.
 //
 // Unauthenticated. Used by clients to verify a server URL before login.
@@ -22,12 +77,75 @@ func (UnimplementedHandler) GetSystemInfo(ctx context.Context) (r GetSystemInfoR
 	return r, ht.ErrNotImplemented
 }
 
+// ListSessions implements listSessions operation.
+//
+// Own sessions; admins see the sessions of all users.
+//
+// GET /sessions
+func (UnimplementedHandler) ListSessions(ctx context.Context) (r []Session, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListUsers implements listUsers operation.
+//
+// List users (admin).
+//
+// GET /users
+func (UnimplementedHandler) ListUsers(ctx context.Context) (r []User, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// Login implements login operation.
+//
+// Sign in with username and password.
+//
+// POST /auth/login
+func (UnimplementedHandler) Login(ctx context.Context, req *LoginRequest) (r *SignedInHeaders, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// Logout implements logout operation.
+//
+// End the current session.
+//
+// POST /auth/logout
+func (UnimplementedHandler) Logout(ctx context.Context) (r *LogoutNoContent, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // Ping implements ping operation.
 //
 // Liveness probe for clients.
 //
 // GET /system/ping
 func (UnimplementedHandler) Ping(ctx context.Context) (r *Pong, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// RevokeSession implements revokeSession operation.
+//
+// Own sessions; admins can revoke any session.
+//
+// DELETE /sessions/{sessionId}
+func (UnimplementedHandler) RevokeSession(ctx context.Context, params RevokeSessionParams) error {
+	return ht.ErrNotImplemented
+}
+
+// UpdateServerSettings implements updateServerSettings operation.
+//
+// Update server-wide settings (admin).
+//
+// PUT /settings/server
+func (UnimplementedHandler) UpdateServerSettings(ctx context.Context, req *ServerSettings) (r *ServerSettings, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateUser implements updateUser operation.
+//
+// Disabling a user or changing the password signs out all of their sessions.
+//
+// PATCH /users/{userId}
+func (UnimplementedHandler) UpdateUser(ctx context.Context, req *UpdateUserRequest, params UpdateUserParams) (r *User, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
