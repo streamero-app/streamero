@@ -8,6 +8,8 @@ x-common: &common
     TZ: ${TZ:-Europe/Zagreb}
     STREAMERO_DB_URL: postgres://streamero:${DB_PASSWORD:?set DB_PASSWORD in .env}@db:5432/streamero?sslmode=disable
     STREAMERO_VALKEY_URL: redis://valkey:6379/0
+    # Optional fixed first-run setup code; otherwise a random one is printed to the log.
+    STREAMERO_SETUP_CODE: ${STREAMERO_SETUP_CODE:-}
   volumes:
     - ${CONFIG_PATH:-./data/config}:/config
     - ${CACHE_PATH:-./data/cache}:/cache

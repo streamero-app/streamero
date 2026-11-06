@@ -1,20 +1,99 @@
 {
   "app": { "name": "Streamero", "tagline": "Your media, beautifully streamed." },
   "language": { "label": "Language", "en": "English", "hr": "Hrvatski" },
+  "common": { "save": "Save", "saved": "Saved." },
+  "nav": { "home": "Home", "settings": "Settings", "logout": "Sign out" },
   "login": {
     "title": "Sign in",
     "username": "Username",
     "password": "Password",
     "submit": "Sign in",
-    "quickConnect": "Use Quick Connect",
-    "notAvailable": "Sign-in arrives in the next release."
+    "signingIn": "Signing in…"
+  },
+  "setup": {
+    "title": "Set up Streamero",
+    "intro": "Welcome! Create the administrator account for this server.",
+    "code": "Setup code",
+    "codeHint": "The server prints it to its log on start, e.g. <code>docker compose logs streamero | grep setup_code</code>.",
+    "serverName": "Server name",
+    "adminAccount": "Administrator account",
+    "confirmPassword": "Confirm password",
+    "submit": "Finish setup"
+  },
+  "home": {
+    "welcome": "Welcome, {{name}}",
+    "librariesTitle": "Libraries",
+    "librariesSoon": "Movie, show and music libraries arrive in the next phase (scanner and metadata).",
+    "settingsTitle": "Settings",
+    "settingsText": "Manage your account, signed-in devices and — as an administrator — users and the server.",
+    "openSettings": "Open settings"
+  },
+  "settings": {
+    "account": "My account",
+    "devices": "Devices",
+    "adminSection": "Administration",
+    "server": "Server",
+    "users": "Users"
+  },
+  "account": {
+    "changePassword": "Change password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "passwordChanged": "Password changed. Other devices were signed out."
+  },
+  "devices": {
+    "intro": "Devices signed in to your account. Signing a device out takes effect immediately.",
+    "introAdmin": "Devices signed in to this server, for all users. Signing a device out takes effect immediately.",
+    "unknown": "Unknown device",
+    "current": "This device",
+    "lastSeen": "last active {{when}}",
+    "signOut": "Sign out"
+  },
+  "users": {
+    "add": "Add user",
+    "role": "Role",
+    "admin": "Administrator",
+    "user": "User",
+    "you": "You",
+    "disabled": "Disabled",
+    "created": "Created",
+    "created_ok": "User created.",
+    "lastLogin": "Last sign-in: {{when}}",
+    "makeAdmin": "Make administrator",
+    "removeAdmin": "Remove administrator",
+    "disable": "Disable",
+    "enable": "Enable",
+    "resetPassword": "Set password",
+    "delete": "Delete",
+    "confirmDelete": "Delete user {{name}}? This cannot be undone.",
+    "passwordHint": "At least 8 characters."
   },
   "server": {
     "checking": "Connecting to server…",
     "starting": "Server is starting. Retrying…",
     "unreachable": "Server is unreachable.",
     "retry": "Retry",
-    "version": "Version {{version}}"
+    "version": "Version {{version}}",
+    "versionLabel": "Version",
+    "about": "About this server",
+    "id": "Server ID"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "invalid_credentials": "Wrong username or password.",
+    "account_locked": "Too many failed sign-ins. The account is locked for 15 minutes.",
+    "unauthenticated": "Your session has expired. Please sign in again.",
+    "forbidden": "Administrator rights are required.",
+    "setup_completed": "This server is already set up. Please sign in.",
+    "invalid_setup_code": "The setup code is not correct.",
+    "setup_throttled": "Too many wrong setup codes. Wait a minute and try again.",
+    "username_taken": "That username is already taken.",
+    "invalid_username": "Usernames may contain letters, digits, spaces and . _ - @",
+    "invalid_request": "Please check the entered values (passwords need at least 8 characters).",
+    "last_admin": "The last administrator cannot be removed, demoted or disabled.",
+    "self": "You cannot delete or disable your own account.",
+    "not_found": "Not found — it may have been removed already.",
+    "password_mismatch": "The passwords do not match."
   },
   "notFound": { "title": "Page not found", "back": "Back to start" }
 }

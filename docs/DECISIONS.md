@@ -61,3 +61,13 @@ Format: `## D-001 Naslov (datum)` → Kontekst → Odluka → Posljedice.
 4. **Prowlarr**: nema integracije s media serverom — ništa se ne implementira osim (opcionalno, P10) prikaza zdravlja *arr servisa na admin dashboardu.
 5. Vlastiti Requests (P13) ostaje, ali Seerr/Jellyseerr mora raditi i bez njega.
 **Posljedice:** Compat sloj se sad održava kao javni ugovor; testira se e2e protiv **stvarnih kontejnera** Seerr, Jellyseerr, Radarr, Sonarr, Lidarr i Bazarr u CI-ju (compose profil `arr`). Podržani podskup je dokumentiran u `docs/INTEGRATIONS.md`; nepodržani endpointi vraćaju 404, ne lažne podatke. P14 „Jellyfin-compat za Infuse/Swiftfin" se nadograđuje na isti sloj.
+
+## D-012 Sesije: Bearer token za aplikacije, HttpOnly cookie za web; setup kod (2026-11-06)
+**Kontekst:** PLAN §5.5 predviđa header `Authorization: Streamero token="…"`. Web klijent ne bi smio držati token u JavaScriptu (XSS), a demo je javno dostupan pa bi prvi posjetitelj mogao „preuzeti" server kroz setup wizard.
+**Odluka:**
+- Standardni `Authorization: Bearer <token>` (OpenAPI `http/bearer`, ogen ga generira) za iOS i integracije; web dobiva isti token kao `streamero_session` cookie (`HttpOnly`, `SameSite=Strict`, `Secure` kad je veza HTTPS, i iza proxyja preko `X-Forwarded-Proto`). Server cookie interno pretvara u Bearer.
+- Token: 32 B random, u bazi samo SHA-256; sesija vrijedi 30 dana i produžuje se korištenjem.
+- Prvi admin se može napraviti samo uz jednokratni **setup kod** koji server ispisuje u log pri startu (`setup_code=XXXX-XXXX`) ili je zadan s `STREAMERO_SETUP_CODE`; 10 pogrešnih kodova → 1 min pauze.
+- Lozinke min. 8 znakova (argon2id); lockout 5 pogrešnih → 15 min, atomično u SQL-u; nepostojeći korisnik odgovara isto kao kriva lozinka.
+- Rate limit po IP-u odgođen do postavke „known proxies" (D-009) — iza nginxa bi svi klijenti imali isti IP.
+**Posljedice:** API ključevi (P1, sljedeći korak) koriste isti Bearer header. CSRF: mutacije su JSON (cross-site forma ih ne može poslati bez CORS preflighta), a cookie je `SameSite=Strict`.
