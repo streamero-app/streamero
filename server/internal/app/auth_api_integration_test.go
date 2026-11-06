@@ -7,8 +7,8 @@ import (
 	"crypto/sha1"
 	"encoding/base32"
 	"encoding/binary"
-	"fmt"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -43,7 +43,7 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 		t.Fatal(err)
 	}
 	t.Cleanup(deps.Close)
-	if _, err := deps.Pool.Exec(ctx, `TRUNCATE users, sessions, audit_log, api_keys, user_totp, recovery_codes, quick_connect, invites;
+	if _, err := deps.Pool.Exec(ctx, `TRUNCATE users, sessions, audit_log, api_keys, user_totp, recovery_codes, quick_connect, invites, profiles;
 		DELETE FROM settings WHERE key IN ('setup.completed', 'server.name')`); err != nil {
 		t.Fatal(err)
 	}
@@ -702,5 +702,80 @@ func TestInvitesIntegration(t *testing.T) {
 	}
 	if s := anon.do("POST", "/invites", map[string]any{"expiresInHours": 1, "maxUses": 1}, nil); s != 403 {
 		t.Fatalf("non-admin create invite: HTTP %d", s)
+	}
+}
+
+func TestProfilesIntegration(t *testing.T) {
+	srv := newAuthTestServer(t)
+	adminC := newClient(t, srv)
+	setupAdmin(t, adminC)
+
+	var kid, mama struct {
+		ID     string `json:"id"`
+		HasPin bool   `json:"hasPin"`
+	}
+	if s := adminC.do("POST", "/profiles", map[string]any{"name": "Lea", "color": "#3DD68C", "isKid": true, "maxRating": 7}, &kid); s != 201 {
+		t.Fatalf("create kid: HTTP %d", s)
+	}
+	if s := adminC.do("POST", "/profiles", map[string]any{"name": "Mama", "color": "#e5484d", "isKid": false, "pin": "1234"}, &mama); s != 201 || !mama.HasPin {
+		t.Fatalf("create pin profile: HTTP %d %+v", s, mama)
+	}
+	var e apiError
+	if s := adminC.do("POST", "/profiles", map[string]any{"name": "x", "color": "red", "isKid": false}, &e); s != 400 {
+		t.Fatalf("bad colour: HTTP %d", s)
+	}
+
+	// PIN protection with lockout.
+	if s := adminC.do("POST", "/profiles/"+mama.ID+"/select", map[string]any{}, &e); s != 401 || e.Code != "pin_required" {
+		t.Fatalf("select without pin: HTTP %d %+v", s, e)
+	}
+	if s := adminC.do("POST", "/profiles/"+mama.ID+"/select", map[string]any{"pin": "1234"}, nil); s != 204 {
+		t.Fatalf("select with pin: HTTP %d", s)
+	}
+	var me struct {
+		Profile *struct {
+			Name string `json:"name"`
+		} `json:"currentProfile"`
+	}
+	if adminC.do("GET", "/auth/me", nil, &me); me.Profile == nil || me.Profile.Name != "Mama" {
+		t.Fatalf("current profile: %+v", me.Profile)
+	}
+
+	// Kids profile: no settings, no admin, leaving needs the password.
+	if s := adminC.do("POST", "/profiles/"+kid.ID+"/select", nil, nil); s != 204 {
+		t.Fatalf("select kid: HTTP %d", s)
+	}
+	for _, c := range []struct{ method, path string }{{"GET", "/users"}, {"GET", "/sessions"}, {"POST", "/apikeys"}, {"POST", "/profiles"}} {
+		var body any
+		if c.method == "POST" {
+			body = map[string]any{"name": "x", "color": "#000000", "isKid": false}
+		}
+		if s := adminC.do(c.method, c.path, body, &e); s != 403 {
+			t.Fatalf("%s %s from kids profile: HTTP %d", c.method, c.path, s)
+		}
+	}
+	if s := adminC.do("POST", "/profiles/main/select", map[string]any{"password": "wrong"}, &e); s != 401 {
+		t.Fatalf("leave kids profile with wrong password: HTTP %d", s)
+	}
+	if s := adminC.do("POST", "/profiles/main/select", map[string]any{"password": "admin-pass-1"}, nil); s != 204 {
+		t.Fatalf("leave kids profile: HTTP %d", s)
+	}
+	me.Profile = nil // json.Unmarshal leaves pointers untouched when the field is absent
+	if adminC.do("GET", "/auth/me", nil, &me); me.Profile != nil {
+		t.Fatalf("still in a profile: %+v", me.Profile)
+	}
+	for i := 0; i < 5; i++ {
+		adminC.do("POST", "/profiles/"+mama.ID+"/select", map[string]any{"pin": "0000"}, &e)
+	}
+	if e.Code != "profile_locked" {
+		t.Fatalf("PIN lockout: %+v", e)
+	}
+	// Deleting a profile drops sessions back to the main profile.
+	if s := adminC.do("DELETE", "/profiles/"+kid.ID, nil, nil); s != 204 {
+		t.Fatalf("delete profile: HTTP %d", s)
+	}
+	var list []map[string]any
+	if adminC.do("GET", "/profiles", nil, &list); len(list) != 1 {
+		t.Fatalf("profiles after delete: %+v", list)
 	}
 }

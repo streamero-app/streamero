@@ -88,6 +88,7 @@ type Principal struct {
 	User      User
 	SessionID uuid.UUID // zero for API keys
 	APIKeyID  uuid.UUID // zero for sessions
+	Profile   *Profile  // nil = main profile (the account itself)
 }
 
 // Device describes the client creating a session.
@@ -301,6 +302,9 @@ func (s *Service) Authenticate(ctx context.Context, token string) (Principal, er
 		return Principal{}, err
 	}
 	p.User.Permissions = parsePermissions(perms)
+	if p.Profile, err = s.loadProfile(ctx, p.SessionID); err != nil {
+		return Principal{}, err
+	}
 	if now := s.now(); now.Sub(lastSeen) > touchInterval {
 		_, _ = s.pool.Exec(ctx, `UPDATE sessions SET last_seen_at = $2, expires_at = $3 WHERE id = $1`,
 			p.SessionID, now, now.Add(SessionTTL))

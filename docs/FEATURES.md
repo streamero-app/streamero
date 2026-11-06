@@ -47,7 +47,7 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [ ] `[JF-P]` SSO preko OIDC (Authentik, Keycloak, Entra ID, Google) — ugrađeno, bez plugina (P13)
 - [x] `[+]` 2FA TOTP + recovery kodovi (P1)
 - [ ] `[+]` Passkeys / WebAuthn za web (P13)
-- [ ] `[+]` Profili unutar korisnika (Netflix-style): avatar, PIN po profilu, dječji profil s vlastitim parental limitom, odvojena watch povijest (P1)
+- [ ] `[+]` Profili unutar korisnika (Netflix-style): avatar, PIN po profilu, dječji profil s vlastitim parental limitom, odvojena watch povijest (P1) — *profili, boja/avatar, PIN (s lockoutom), dječji profil s dobnom granicom i zaključanim postavkama gotovi; odvojena watch povijest i provedba dobne granice stižu s P3/P4*
 - [x] `[+]` Pozivnice (invite link s rokom, unaprijed postavljenim bibliotekama i dozvolama) (P1) — *biblioteke u pozivnici dolaze s P2*
 - [ ] `[+]` Audit log svih admin akcija (P10)
 - [ ] `[+]` Potpisani kratkotrajni stream URL-ovi (HMAC) — AVPlayer/Chromecast mogu fetchati bez headera (P5)

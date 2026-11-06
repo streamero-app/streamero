@@ -230,6 +230,71 @@ func decodeDeleteInviteParams(args [1]string, argsEscaped bool, r *http.Request)
 	return params, nil
 }
 
+// DeleteProfileParams is parameters of deleteProfile operation.
+type DeleteProfileParams struct {
+	ProfileId uuid.UUID
+}
+
+func unpackDeleteProfileParams(packed middleware.Parameters) (params DeleteProfileParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "profileId",
+			In:   "path",
+		}
+		params.ProfileId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeDeleteProfileParams(args [1]string, argsEscaped bool, r *http.Request) (params DeleteProfileParams, _ error) {
+	// Decode path: profileId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "profileId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ProfileId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "profileId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // DeleteUserParams is parameters of deleteUser operation.
 type DeleteUserParams struct {
 	UserId uuid.UUID
@@ -503,6 +568,136 @@ func decodeRevokeSessionParams(args [1]string, argsEscaped bool, r *http.Request
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "sessionId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// SelectProfileParams is parameters of selectProfile operation.
+type SelectProfileParams struct {
+	ProfileId uuid.UUID
+}
+
+func unpackSelectProfileParams(packed middleware.Parameters) (params SelectProfileParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "profileId",
+			In:   "path",
+		}
+		params.ProfileId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeSelectProfileParams(args [1]string, argsEscaped bool, r *http.Request) (params SelectProfileParams, _ error) {
+	// Decode path: profileId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "profileId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ProfileId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "profileId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// UpdateProfileParams is parameters of updateProfile operation.
+type UpdateProfileParams struct {
+	ProfileId uuid.UUID
+}
+
+func unpackUpdateProfileParams(packed middleware.Parameters) (params UpdateProfileParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "profileId",
+			In:   "path",
+		}
+		params.ProfileId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeUpdateProfileParams(args [1]string, argsEscaped bool, r *http.Request) (params UpdateProfileParams, _ error) {
+	// Decode path: profileId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "profileId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ProfileId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "profileId",
 			In:   "path",
 			Err:  err,
 		}

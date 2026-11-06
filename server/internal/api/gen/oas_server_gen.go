@@ -46,6 +46,12 @@ type Handler interface {
 	//
 	// POST /invites
 	CreateInvite(ctx context.Context, req *CreateInviteRequest) (*CreatedInvite, error)
+	// CreateProfile implements createProfile operation.
+	//
+	// Add a profile (not from a kids profile).
+	//
+	// POST /profiles
+	CreateProfile(ctx context.Context, req *ProfileInput) (*Profile, error)
 	// CreateUser implements createUser operation.
 	//
 	// Create a user (admin).
@@ -64,6 +70,12 @@ type Handler interface {
 	//
 	// DELETE /invites/{inviteId}
 	DeleteInvite(ctx context.Context, params DeleteInviteParams) error
+	// DeleteProfile implements deleteProfile operation.
+	//
+	// Delete a profile (not from a kids profile).
+	//
+	// DELETE /profiles/{profileId}
+	DeleteProfile(ctx context.Context, params DeleteProfileParams) error
 	// DeleteUser implements deleteUser operation.
 	//
 	// Delete a user and all of their sessions (admin).
@@ -125,6 +137,12 @@ type Handler interface {
 	//
 	// GET /invites
 	ListInvites(ctx context.Context) ([]Invite, error)
+	// ListProfiles implements listProfiles operation.
+	//
+	// The account itself is the main profile; these are additional profiles (max 6).
+	//
+	// GET /profiles
+	ListProfiles(ctx context.Context) ([]Profile, error)
 	// ListSessions implements listSessions operation.
 	//
 	// Own sessions; admins see the sessions of all users.
@@ -173,12 +191,30 @@ type Handler interface {
 	//
 	// DELETE /sessions/{sessionId}
 	RevokeSession(ctx context.Context, params RevokeSessionParams) error
+	// SelectMainProfile implements selectMainProfile operation.
+	//
+	// From a kids profile this needs the account password.
+	//
+	// POST /profiles/main/select
+	SelectMainProfile(ctx context.Context, req OptPasswordConfirmRequest) error
+	// SelectProfile implements selectProfile operation.
+	//
+	// Switch this device to a profile (PIN if the profile has one).
+	//
+	// POST /profiles/{profileId}/select
+	SelectProfile(ctx context.Context, req OptPinRequest, params SelectProfileParams) error
 	// StartTOTPSetup implements startTOTPSetup operation.
 	//
 	// Creates a new (not yet active) TOTP secret for the signed-in user.
 	//
 	// POST /auth/totp/setup
 	StartTOTPSetup(ctx context.Context) (*TOTPSetup, error)
+	// UpdateProfile implements updateProfile operation.
+	//
+	// Change a profile (not from a kids profile).
+	//
+	// PUT /profiles/{profileId}
+	UpdateProfile(ctx context.Context, req *ProfileInput, params UpdateProfileParams) (*Profile, error)
 	// UpdateServerSettings implements updateServerSettings operation.
 	//
 	// Update server-wide settings (admin).

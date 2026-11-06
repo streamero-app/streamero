@@ -18,6 +18,7 @@ tags:
   - name: apikeys
   - name: quickconnect
   - name: invites
+  - name: profiles
 security: []
 paths:
   /system/info:
@@ -544,6 +545,118 @@ paths:
           $ref: "#/components/responses/SignedIn"
         default:
           $ref: "#/components/responses/Error"
+  /profiles:
+    get:
+      operationId: listProfiles
+      summary: Profiles of the signed-in user
+      description: The account itself is the main profile; these are additional profiles (max 6).
+      tags: [profiles]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Profiles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Profile"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createProfile
+      summary: Add a profile (not from a kids profile)
+      tags: [profiles]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        default:
+          $ref: "#/components/responses/Error"
+  /profiles/{profileId}:
+    parameters:
+      - $ref: "#/components/parameters/ProfileId"
+    put:
+      operationId: updateProfile
+      summary: Change a profile (not from a kids profile)
+      tags: [profiles]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileInput"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        default:
+          $ref: "#/components/responses/Error"
+    delete:
+      operationId: deleteProfile
+      summary: Delete a profile (not from a kids profile)
+      tags: [profiles]
+      security:
+        - sessionToken: []
+      responses:
+        "204":
+          description: Deleted
+        default:
+          $ref: "#/components/responses/Error"
+  /profiles/{profileId}/select:
+    parameters:
+      - $ref: "#/components/parameters/ProfileId"
+    post:
+      operationId: selectProfile
+      summary: Switch this device to a profile (PIN if the profile has one)
+      tags: [profiles]
+      security:
+        - sessionToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PinRequest"
+      responses:
+        "204":
+          description: Switched
+        default:
+          $ref: "#/components/responses/Error"
+  /profiles/main/select:
+    post:
+      operationId: selectMainProfile
+      summary: Switch this device back to the main profile
+      description: From a kids profile this needs the account password.
+      tags: [profiles]
+      security:
+        - sessionToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordConfirmRequest"
+      responses:
+        "204":
+          description: Switched
+        default:
+          $ref: "#/components/responses/Error"
   /settings/server:
     get:
       operationId: getServerSettings
@@ -591,6 +704,13 @@ components:
         Web clients get the session as the HttpOnly `streamero_session` cookie instead
         (useCookie: true), which the server accepts too.
   parameters:
+    ProfileId:
+      name: profileId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
     UserId:
       name: userId
       in: path
@@ -806,6 +926,54 @@ components:
       properties:
         deviceName:
           type: string
+    Profile:
+      type: object
+      required: [id, name, color, hasPin, isKid]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        color:
+          type: string
+          description: Avatar colour, e.g. "#e5484d".
+        hasPin:
+          type: boolean
+        isKid:
+          type: boolean
+        maxRating:
+          type: integer
+          description: Highest age rating allowed (e.g. 12); applies from P3 (ratings) on.
+    ProfileInput:
+      type: object
+      required: [name, color, isKid]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 40
+        color:
+          type: string
+          pattern: "^#[0-9a-fA-F]{6}$"
+        isKid:
+          type: boolean
+        maxRating:
+          type: integer
+          minimum: 0
+          maximum: 21
+        pin:
+          type: string
+          pattern: "^[0-9]{4,6}$"
+          description: Set or change the PIN. Omit to keep it; see removePin.
+        removePin:
+          type: boolean
+    PinRequest:
+      type: object
+      properties:
+        pin:
+          type: string
+          maxLength: 6
     TOTPSetup:
       type: object
       required: [secret, otpauthUri, qrPng]
@@ -896,6 +1064,8 @@ components:
           description: Two-factor authentication is on.
         permissions:
           $ref: "#/components/schemas/UserPermissions"
+        currentProfile:
+          $ref: "#/components/schemas/Profile"
         createdAt:
           type: string
           format: date-time

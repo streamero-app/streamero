@@ -41,8 +41,20 @@ func principal(ctx context.Context) (auth.Principal, error) {
 	return p, nil
 }
 
-func admin(ctx context.Context) (auth.Principal, error) {
+// adult returns the principal unless the caller is in a kids profile.
+func adult(ctx context.Context) (auth.Principal, error) {
 	p, err := principal(ctx)
+	if err != nil {
+		return p, err
+	}
+	if p.IsKid() {
+		return p, auth.ErrKidProfile
+	}
+	return p, nil
+}
+
+func admin(ctx context.Context) (auth.Principal, error) {
+	p, err := adult(ctx)
 	if err != nil {
 		return p, err
 	}
@@ -141,12 +153,15 @@ func (h *Handler) GetMe(ctx context.Context) (*gen.User, error) {
 		return nil, err
 	}
 	u := toUser(p.User)
+	if p.Profile != nil {
+		u.CurrentProfile = gen.NewOptProfile(toProfile(*p.Profile))
+	}
 	return &u, nil
 }
 
 // ChangePassword implements POST /auth/password.
 func (h *Handler) ChangePassword(ctx context.Context, req *gen.ChangePasswordRequest) error {
-	p, err := principal(ctx)
+	p, err := adult(ctx)
 	if err != nil {
 		return err
 	}
@@ -229,7 +244,7 @@ func (h *Handler) DeleteUser(ctx context.Context, params gen.DeleteUserParams) e
 
 // ListSessions implements GET /sessions.
 func (h *Handler) ListSessions(ctx context.Context) ([]gen.Session, error) {
-	p, err := principal(ctx)
+	p, err := adult(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -253,7 +268,7 @@ func (h *Handler) ListSessions(ctx context.Context) ([]gen.Session, error) {
 
 // RevokeSession implements DELETE /sessions/{sessionId}.
 func (h *Handler) RevokeSession(ctx context.Context, params gen.RevokeSessionParams) error {
-	p, err := principal(ctx)
+	p, err := adult(ctx)
 	if err != nil {
 		return err
 	}
@@ -283,7 +298,7 @@ func (h *Handler) PollQuickConnect(ctx context.Context, req *gen.QuickConnectPol
 
 // AuthorizeQuickConnect implements POST /quickconnect/authorize.
 func (h *Handler) AuthorizeQuickConnect(ctx context.Context, req *gen.TOTPCodeRequest) (*gen.QuickConnectApproved, error) {
-	p, err := principal(ctx)
+	p, err := adult(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -296,7 +311,7 @@ func (h *Handler) AuthorizeQuickConnect(ctx context.Context, req *gen.TOTPCodeRe
 
 // StartTOTPSetup implements POST /auth/totp/setup.
 func (h *Handler) StartTOTPSetup(ctx context.Context) (*gen.TOTPSetup, error) {
-	p, err := principal(ctx)
+	p, err := adult(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -309,7 +324,7 @@ func (h *Handler) StartTOTPSetup(ctx context.Context) (*gen.TOTPSetup, error) {
 
 // EnableTOTP implements POST /auth/totp/enable.
 func (h *Handler) EnableTOTP(ctx context.Context, req *gen.TOTPCodeRequest) (*gen.RecoveryCodes, error) {
-	p, err := principal(ctx)
+	p, err := adult(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -322,7 +337,7 @@ func (h *Handler) EnableTOTP(ctx context.Context, req *gen.TOTPCodeRequest) (*ge
 
 // DisableTOTP implements POST /auth/totp/disable.
 func (h *Handler) DisableTOTP(ctx context.Context, req *gen.PasswordConfirmRequest) error {
-	p, err := principal(ctx)
+	p, err := adult(ctx)
 	if err != nil {
 		return err
 	}
@@ -331,7 +346,7 @@ func (h *Handler) DisableTOTP(ctx context.Context, req *gen.PasswordConfirmReque
 
 // RenameSession implements PATCH /sessions/{sessionId}.
 func (h *Handler) RenameSession(ctx context.Context, req *gen.RenameSessionRequest, params gen.RenameSessionParams) error {
-	p, err := principal(ctx)
+	p, err := adult(ctx)
 	if err != nil {
 		return err
 	}
@@ -473,6 +488,16 @@ func mapError(err error) *StatusError {
 		return &StatusError{Status: http.StatusConflict, Code: "totp_enabled", Message: err.Error()}
 	case errors.Is(err, auth.ErrTOTPNotStarted):
 		return &StatusError{Status: http.StatusConflict, Code: "totp_not_started", Message: err.Error()}
+	case errors.Is(err, auth.ErrPinRequired):
+		return &StatusError{Status: http.StatusUnauthorized, Code: "pin_required", Message: err.Error()}
+	case errors.Is(err, auth.ErrInvalidPin):
+		return &StatusError{Status: http.StatusUnauthorized, Code: "invalid_pin", Message: err.Error()}
+	case errors.Is(err, auth.ErrProfileLocked):
+		return &StatusError{Status: http.StatusTooManyRequests, Code: "profile_locked", Message: err.Error()}
+	case errors.Is(err, auth.ErrKidProfile):
+		return &StatusError{Status: http.StatusForbidden, Code: "kid_profile", Message: err.Error()}
+	case errors.Is(err, auth.ErrTooManyProfiles):
+		return &StatusError{Status: http.StatusConflict, Code: "too_many_profiles", Message: err.Error()}
 	case errors.Is(err, auth.ErrInvalidName):
 		return &StatusError{Status: http.StatusBadRequest, Code: "invalid_name", Message: err.Error()}
 	case errors.Is(err, auth.ErrSessionRequired):
@@ -565,4 +590,95 @@ func (h *Handler) AcceptInvite(ctx context.Context, req *gen.AcceptInviteRequest
 func toInvite(i auth.Invite) gen.Invite {
 	return gen.Invite{ID: i.ID, Note: i.Note, CreatedBy: i.CreatedBy, CreatedAt: i.CreatedAt, ExpiresAt: i.ExpiresAt,
 		MaxUses: i.MaxUses, Uses: i.Uses, Permissions: toPermissions(i.Permissions)}
+}
+
+// ListProfiles implements GET /profiles.
+func (h *Handler) ListProfiles(ctx context.Context) ([]gen.Profile, error) {
+	p, err := principal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	profiles, err := h.Auth().ListProfiles(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]gen.Profile, 0, len(profiles))
+	for _, pr := range profiles {
+		out = append(out, toProfile(pr))
+	}
+	return out, nil
+}
+
+// CreateProfile implements POST /profiles.
+func (h *Handler) CreateProfile(ctx context.Context, req *gen.ProfileInput) (*gen.Profile, error) {
+	p, err := principal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	pr, err := h.Auth().CreateProfile(ctx, p, fromProfileInput(req))
+	if err != nil {
+		return nil, err
+	}
+	out := toProfile(pr)
+	return &out, nil
+}
+
+// UpdateProfile implements PUT /profiles/{profileId}.
+func (h *Handler) UpdateProfile(ctx context.Context, req *gen.ProfileInput, params gen.UpdateProfileParams) (*gen.Profile, error) {
+	p, err := principal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	pr, err := h.Auth().UpdateProfile(ctx, p, params.ProfileId, fromProfileInput(req))
+	if err != nil {
+		return nil, err
+	}
+	out := toProfile(pr)
+	return &out, nil
+}
+
+// DeleteProfile implements DELETE /profiles/{profileId}.
+func (h *Handler) DeleteProfile(ctx context.Context, params gen.DeleteProfileParams) error {
+	p, err := principal(ctx)
+	if err != nil {
+		return err
+	}
+	return h.Auth().DeleteProfile(ctx, p, params.ProfileId)
+}
+
+// SelectProfile implements POST /profiles/{profileId}/select.
+func (h *Handler) SelectProfile(ctx context.Context, req gen.OptPinRequest, params gen.SelectProfileParams) error {
+	p, err := principal(ctx)
+	if err != nil {
+		return err
+	}
+	return h.Auth().SelectProfile(ctx, p, params.ProfileId, req.Value.Pin.Value)
+}
+
+// SelectMainProfile implements POST /profiles/main/select.
+func (h *Handler) SelectMainProfile(ctx context.Context, req gen.OptPasswordConfirmRequest) error {
+	p, err := principal(ctx)
+	if err != nil {
+		return err
+	}
+	return h.Auth().SelectMainProfile(ctx, p, req.Value.Password)
+}
+
+func toProfile(pr auth.Profile) gen.Profile {
+	out := gen.Profile{ID: pr.ID, Name: pr.Name, Color: pr.Color, HasPin: pr.HasPin, IsKid: pr.IsKid}
+	if pr.MaxRating != nil {
+		out.MaxRating = gen.NewOptInt(*pr.MaxRating)
+	}
+	return out
+}
+
+func fromProfileInput(req *gen.ProfileInput) auth.ProfileInput {
+	in := auth.ProfileInput{Name: req.Name, Color: req.Color, IsKid: req.IsKid, RemovePin: req.RemovePin.Value}
+	if v, ok := req.MaxRating.Get(); ok {
+		in.MaxRating = &v
+	}
+	if v, ok := req.Pin.Get(); ok {
+		in.Pin = &v
+	}
+	return in
 }

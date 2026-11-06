@@ -51,7 +51,8 @@
     "users": "Korisnici",
     "apiKeys": "API ključevi",
     "quickConnect": "Quick Connect",
-    "invites": "Pozivnice"
+    "invites": "Pozivnice",
+    "profiles": "Profili"
   },
   "account": {
     "changePassword": "Promijeni lozinku",
@@ -121,7 +122,12 @@
     "totp_required": "Upišite kod iz aplikacije za autentifikaciju.",
     "invalid_totp": "Kod nije ispravan ili je već iskorišten.",
     "totp_enabled": "Dvofaktorska autentifikacija je već uključena.",
-    "totp_not_started": "Ponovno pokrenite postavljanje."
+    "totp_not_started": "Ponovno pokrenite postavljanje.",
+    "pin_required": "Upišite PIN profila.",
+    "invalid_pin": "Pogrešan PIN.",
+    "profile_locked": "Previše pogrešnih PIN-ova. Pokušajte za nekoliko minuta.",
+    "kid_profile": "Nije dostupno u dječjem profilu.",
+    "too_many_profiles": "Račun može imati najviše 6 profila."
   },
   "notFound": {
     "title": "Stranica nije pronađena",
@@ -214,5 +220,27 @@
     "joinTitle": "Pridruži se: {{server}}",
     "joinIntro": "Pozvani ste. Odaberite korisničko ime i lozinku za svoj račun.",
     "join": "Napravi račun"
+  },
+  "profiles": {
+    "intro": "Profili omogućuju da više osoba dijeli ovaj račun (do 6). Dječji profil ne može otvoriti postavke; izlazak iz njega traži lozinku računa.",
+    "switch": "Promijeni profil",
+    "kid": "Dječji",
+    "pinProtected": "PIN",
+    "pin": "PIN",
+    "passwordToLeave": "Lozinka računa",
+    "open": "Otvori",
+    "add": "Dodaj profil",
+    "edit": "Uredi",
+    "name": "Ime",
+    "color": "Boja",
+    "kidProfile": "Dječji profil",
+    "maxRating": "Dobna granica",
+    "noLimit": "Bez ograničenja",
+    "upTo": "do {{rating}}+",
+    "pinOptional": "PIN (neobavezno)",
+    "pinHint": "4–6 znamenki. Ostavite prazno da zadržite postojeći PIN.",
+    "removePin": "Ukloni PIN",
+    "confirmDelete": "Obrisati profil {{name}}?",
+    "pinLocked": "Zaštićeno PIN-om"
   }
 }

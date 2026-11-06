@@ -425,6 +425,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Profiles of the signed-in user
+         * @description The account itself is the main profile; these are additional profiles (max 6).
+         */
+        get: operations["listProfiles"];
+        put?: never;
+        /** Add a profile (not from a kids profile) */
+        post: operations["createProfile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profiles/{profileId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profileId: components["parameters"]["ProfileId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a profile (not from a kids profile) */
+        put: operations["updateProfile"];
+        post?: never;
+        /** Delete a profile (not from a kids profile) */
+        delete: operations["deleteProfile"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profiles/{profileId}/select": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profileId: components["parameters"]["ProfileId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Switch this device to a profile (PIN if the profile has one) */
+        post: operations["selectProfile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profiles/main/select": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Switch this device back to the main profile
+         * @description From a kids profile this needs the account password.
+         */
+        post: operations["selectMainProfile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/settings/server": {
         parameters: {
             query?: never;
@@ -538,6 +618,29 @@ export interface components {
         QuickConnectApproved: {
             deviceName: string;
         };
+        Profile: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** @description Avatar colour, e.g. "#e5484d". */
+            color: string;
+            hasPin: boolean;
+            isKid: boolean;
+            /** @description Highest age rating allowed (e.g. 12); applies from P3 (ratings) on. */
+            maxRating?: number;
+        };
+        ProfileInput: {
+            name: string;
+            color: string;
+            isKid: boolean;
+            maxRating?: number;
+            /** @description Set or change the PIN. Omit to keep it; see removePin. */
+            pin?: string;
+            removePin?: boolean;
+        };
+        PinRequest: {
+            pin?: string;
+        };
         TOTPSetup: {
             /** @description Base32 secret for manual entry. */
             secret: string;
@@ -584,6 +687,7 @@ export interface components {
             /** @description Two-factor authentication is on. */
             totpEnabled: boolean;
             permissions: components["schemas"]["UserPermissions"];
+            currentProfile?: components["schemas"]["Profile"];
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -704,6 +808,7 @@ export interface components {
         };
     };
     parameters: {
+        ProfileId: string;
         UserId: string;
     };
     requestBodies: never;
@@ -1331,6 +1436,148 @@ export interface operations {
         };
         responses: {
             200: components["responses"]["SignedIn"];
+            default: components["responses"]["Error"];
+        };
+    };
+    listProfiles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Profiles */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Profile"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Profile"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profileId: components["parameters"]["ProfileId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileInput"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Profile"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profileId: components["parameters"]["ProfileId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    selectProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profileId: components["parameters"]["ProfileId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PinRequest"];
+            };
+        };
+        responses: {
+            /** @description Switched */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    selectMainProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PasswordConfirmRequest"];
+            };
+        };
+        responses: {
+            /** @description Switched */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             default: components["responses"]["Error"];
         };
     };

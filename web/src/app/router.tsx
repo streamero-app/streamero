@@ -15,6 +15,7 @@ import { LoginPage } from "@/routes/LoginPage";
 import { SetupPage } from "@/routes/SetupPage";
 import { InvitePage } from "@/routes/InvitePage";
 import { InvitesSettings } from "@/features/settings/InvitesSettings";
+import { ProfilesSettings } from "@/features/settings/ProfilesSettings";
 import { NotFoundPage } from "@/routes/NotFoundPage";
 
 const rootRoute = createRootRoute({
@@ -41,7 +42,11 @@ function adminOnly(Page: ComponentType) {
   };
 }
 
-const settingsRoute = createRoute({ getParentRoute: () => appRoute, path: "/settings", component: SettingsLayout });
+function AdultsOnlySettings() {
+  const { data: me } = useMe();
+  return me?.currentProfile?.isKid ? <Navigate to="/" /> : <SettingsLayout />;
+}
+const settingsRoute = createRoute({ getParentRoute: () => appRoute, path: "/settings", component: AdultsOnlySettings });
 const settingsIndex = createRoute({
   getParentRoute: () => settingsRoute,
   path: "/",
@@ -50,6 +55,7 @@ const settingsIndex = createRoute({
   },
 });
 const accountRoute = createRoute({ getParentRoute: () => settingsRoute, path: "account", component: AccountSettings });
+const profilesRoute = createRoute({ getParentRoute: () => settingsRoute, path: "profiles", component: ProfilesSettings });
 const devicesRoute = createRoute({ getParentRoute: () => settingsRoute, path: "devices", component: DevicesSettings });
 const quickConnectRoute = createRoute({ getParentRoute: () => settingsRoute, path: "quickconnect", component: QuickConnectSettings });
 const serverRoute = createRoute({ getParentRoute: () => settingsRoute, path: "server", component: adminOnly(ServerSettingsPage) });
@@ -63,7 +69,7 @@ export const routeTree = rootRoute.addChildren([
   inviteRoute,
   appRoute.addChildren([
     homeRoute,
-    settingsRoute.addChildren([settingsIndex, accountRoute, devicesRoute, quickConnectRoute, serverRoute, usersRoute, invitesRoute, apiKeysRoute]),
+    settingsRoute.addChildren([settingsIndex, accountRoute, profilesRoute, devicesRoute, quickConnectRoute, serverRoute, usersRoute, invitesRoute, apiKeysRoute]),
   ]),
 ]);
 export const router = createRouter({ routeTree });

@@ -5,6 +5,7 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Button } from "@/components/ui";
 import { useSystemInfo } from "@/features/server/useSystemInfo";
 import { useLogout, useMe } from "./useAuth";
+import { ProfileSwitcher } from "@/features/profiles/ProfileSwitcher";
 
 const navLink = "rounded-md px-3 py-2 text-sm text-muted hover:text-text [&.active]:bg-surface-2 [&.active]:text-text";
 
@@ -29,11 +30,11 @@ export function AppShell() {
           <Link to="/" className="mr-2"><Logo /></Link>
           <nav className="flex gap-1">
             <Link to="/" className={navLink} activeOptions={{ exact: true }}>{t("nav.home")}</Link>
-            <Link to="/settings" className={navLink}>{t("nav.settings")}</Link>
+            {!me.currentProfile?.isKid && <Link to="/settings" className={navLink}>{t("nav.settings")}</Link>}
           </nav>
           <div className="ml-auto flex items-center gap-3">
             <LanguageSwitcher />
-            <span className="hidden text-sm text-muted sm:inline" data-testid="current-user">{me.username}</span>
+            <ProfileSwitcher />
             <Button variant="secondary" onClick={() => logout.mutate(undefined, { onSettled: () => void navigate({ to: "/login" }) })}>
               {t("nav.logout")}
             </Button>

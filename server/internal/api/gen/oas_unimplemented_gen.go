@@ -69,6 +69,15 @@ func (UnimplementedHandler) CreateInvite(ctx context.Context, req *CreateInviteR
 	return r, ht.ErrNotImplemented
 }
 
+// CreateProfile implements createProfile operation.
+//
+// Add a profile (not from a kids profile).
+//
+// POST /profiles
+func (UnimplementedHandler) CreateProfile(ctx context.Context, req *ProfileInput) (r *Profile, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // CreateUser implements createUser operation.
 //
 // Create a user (admin).
@@ -93,6 +102,15 @@ func (UnimplementedHandler) DeleteAPIKey(ctx context.Context, params DeleteAPIKe
 //
 // DELETE /invites/{inviteId}
 func (UnimplementedHandler) DeleteInvite(ctx context.Context, params DeleteInviteParams) error {
+	return ht.ErrNotImplemented
+}
+
+// DeleteProfile implements deleteProfile operation.
+//
+// Delete a profile (not from a kids profile).
+//
+// DELETE /profiles/{profileId}
+func (UnimplementedHandler) DeleteProfile(ctx context.Context, params DeleteProfileParams) error {
 	return ht.ErrNotImplemented
 }
 
@@ -187,6 +205,15 @@ func (UnimplementedHandler) ListInvites(ctx context.Context) (r []Invite, _ erro
 	return r, ht.ErrNotImplemented
 }
 
+// ListProfiles implements listProfiles operation.
+//
+// The account itself is the main profile; these are additional profiles (max 6).
+//
+// GET /profiles
+func (UnimplementedHandler) ListProfiles(ctx context.Context) (r []Profile, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ListSessions implements listSessions operation.
 //
 // Own sessions; admins see the sessions of all users.
@@ -259,12 +286,39 @@ func (UnimplementedHandler) RevokeSession(ctx context.Context, params RevokeSess
 	return ht.ErrNotImplemented
 }
 
+// SelectMainProfile implements selectMainProfile operation.
+//
+// From a kids profile this needs the account password.
+//
+// POST /profiles/main/select
+func (UnimplementedHandler) SelectMainProfile(ctx context.Context, req OptPasswordConfirmRequest) error {
+	return ht.ErrNotImplemented
+}
+
+// SelectProfile implements selectProfile operation.
+//
+// Switch this device to a profile (PIN if the profile has one).
+//
+// POST /profiles/{profileId}/select
+func (UnimplementedHandler) SelectProfile(ctx context.Context, req OptPinRequest, params SelectProfileParams) error {
+	return ht.ErrNotImplemented
+}
+
 // StartTOTPSetup implements startTOTPSetup operation.
 //
 // Creates a new (not yet active) TOTP secret for the signed-in user.
 //
 // POST /auth/totp/setup
 func (UnimplementedHandler) StartTOTPSetup(ctx context.Context) (r *TOTPSetup, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateProfile implements updateProfile operation.
+//
+// Change a profile (not from a kids profile).
+//
+// PUT /profiles/{profileId}
+func (UnimplementedHandler) UpdateProfile(ctx context.Context, req *ProfileInput, params UpdateProfileParams) (r *Profile, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

@@ -373,6 +373,9 @@ type DeleteAPIKeyNoContent struct{}
 // DeleteInviteNoContent is response for DeleteInvite operation.
 type DeleteInviteNoContent struct{}
 
+// DeleteProfileNoContent is response for DeleteProfile operation.
+type DeleteProfileNoContent struct{}
+
 // DeleteUserNoContent is response for DeleteUser operation.
 type DeleteUserNoContent struct{}
 
@@ -884,6 +887,144 @@ func (o OptPassword) Or(d Password) Password {
 	return d
 }
 
+// NewOptPasswordConfirmRequest returns new OptPasswordConfirmRequest with value set to v.
+func NewOptPasswordConfirmRequest(v PasswordConfirmRequest) OptPasswordConfirmRequest {
+	return OptPasswordConfirmRequest{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptPasswordConfirmRequest is optional PasswordConfirmRequest.
+type OptPasswordConfirmRequest struct {
+	Value PasswordConfirmRequest
+	Set   bool
+}
+
+// IsSet returns true if OptPasswordConfirmRequest was set.
+func (o OptPasswordConfirmRequest) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptPasswordConfirmRequest) Reset() {
+	var v PasswordConfirmRequest
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptPasswordConfirmRequest) SetTo(v PasswordConfirmRequest) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptPasswordConfirmRequest) Get() (v PasswordConfirmRequest, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptPasswordConfirmRequest) Or(d PasswordConfirmRequest) PasswordConfirmRequest {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptPinRequest returns new OptPinRequest with value set to v.
+func NewOptPinRequest(v PinRequest) OptPinRequest {
+	return OptPinRequest{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptPinRequest is optional PinRequest.
+type OptPinRequest struct {
+	Value PinRequest
+	Set   bool
+}
+
+// IsSet returns true if OptPinRequest was set.
+func (o OptPinRequest) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptPinRequest) Reset() {
+	var v PinRequest
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptPinRequest) SetTo(v PinRequest) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptPinRequest) Get() (v PinRequest, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptPinRequest) Or(d PinRequest) PinRequest {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptProfile returns new OptProfile with value set to v.
+func NewOptProfile(v Profile) OptProfile {
+	return OptProfile{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptProfile is optional Profile.
+type OptProfile struct {
+	Value Profile
+	Set   bool
+}
+
+// IsSet returns true if OptProfile was set.
+func (o OptProfile) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptProfile) Reset() {
+	var v Profile
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptProfile) SetTo(v Profile) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptProfile) Get() (v Profile, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptProfile) Or(d Profile) Profile {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptString returns new OptString with value set to v.
 func NewOptString(v string) OptString {
 	return OptString{
@@ -993,6 +1134,21 @@ func (s *PasswordConfirmRequest) SetPassword(val string) {
 	s.Password = val
 }
 
+// Ref: #/components/schemas/PinRequest
+type PinRequest struct {
+	Pin OptString `json:"pin"`
+}
+
+// GetPin returns the value of Pin.
+func (s *PinRequest) GetPin() OptString {
+	return s.Pin
+}
+
+// SetPin sets the value of Pin.
+func (s *PinRequest) SetPin(val OptString) {
+	s.Pin = val
+}
+
 // PollQuickConnectAccepted is response for PollQuickConnect operation.
 type PollQuickConnectAccepted struct{}
 
@@ -1011,6 +1167,149 @@ func (s *Pong) GetOk() bool {
 // SetOk sets the value of Ok.
 func (s *Pong) SetOk(val bool) {
 	s.Ok = val
+}
+
+// Ref: #/components/schemas/Profile
+type Profile struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+	// Avatar colour, e.g. "#e5484d".
+	Color  string `json:"color"`
+	HasPin bool   `json:"hasPin"`
+	IsKid  bool   `json:"isKid"`
+	// Highest age rating allowed (e.g. 12); applies from P3 (ratings) on.
+	MaxRating OptInt `json:"maxRating"`
+}
+
+// GetID returns the value of ID.
+func (s *Profile) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetName returns the value of Name.
+func (s *Profile) GetName() string {
+	return s.Name
+}
+
+// GetColor returns the value of Color.
+func (s *Profile) GetColor() string {
+	return s.Color
+}
+
+// GetHasPin returns the value of HasPin.
+func (s *Profile) GetHasPin() bool {
+	return s.HasPin
+}
+
+// GetIsKid returns the value of IsKid.
+func (s *Profile) GetIsKid() bool {
+	return s.IsKid
+}
+
+// GetMaxRating returns the value of MaxRating.
+func (s *Profile) GetMaxRating() OptInt {
+	return s.MaxRating
+}
+
+// SetID sets the value of ID.
+func (s *Profile) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetName sets the value of Name.
+func (s *Profile) SetName(val string) {
+	s.Name = val
+}
+
+// SetColor sets the value of Color.
+func (s *Profile) SetColor(val string) {
+	s.Color = val
+}
+
+// SetHasPin sets the value of HasPin.
+func (s *Profile) SetHasPin(val bool) {
+	s.HasPin = val
+}
+
+// SetIsKid sets the value of IsKid.
+func (s *Profile) SetIsKid(val bool) {
+	s.IsKid = val
+}
+
+// SetMaxRating sets the value of MaxRating.
+func (s *Profile) SetMaxRating(val OptInt) {
+	s.MaxRating = val
+}
+
+// Ref: #/components/schemas/ProfileInput
+type ProfileInput struct {
+	Name      string `json:"name"`
+	Color     string `json:"color"`
+	IsKid     bool   `json:"isKid"`
+	MaxRating OptInt `json:"maxRating"`
+	// Set or change the PIN. Omit to keep it; see removePin.
+	Pin       OptString `json:"pin"`
+	RemovePin OptBool   `json:"removePin"`
+}
+
+// GetName returns the value of Name.
+func (s *ProfileInput) GetName() string {
+	return s.Name
+}
+
+// GetColor returns the value of Color.
+func (s *ProfileInput) GetColor() string {
+	return s.Color
+}
+
+// GetIsKid returns the value of IsKid.
+func (s *ProfileInput) GetIsKid() bool {
+	return s.IsKid
+}
+
+// GetMaxRating returns the value of MaxRating.
+func (s *ProfileInput) GetMaxRating() OptInt {
+	return s.MaxRating
+}
+
+// GetPin returns the value of Pin.
+func (s *ProfileInput) GetPin() OptString {
+	return s.Pin
+}
+
+// GetRemovePin returns the value of RemovePin.
+func (s *ProfileInput) GetRemovePin() OptBool {
+	return s.RemovePin
+}
+
+// SetName sets the value of Name.
+func (s *ProfileInput) SetName(val string) {
+	s.Name = val
+}
+
+// SetColor sets the value of Color.
+func (s *ProfileInput) SetColor(val string) {
+	s.Color = val
+}
+
+// SetIsKid sets the value of IsKid.
+func (s *ProfileInput) SetIsKid(val bool) {
+	s.IsKid = val
+}
+
+// SetMaxRating sets the value of MaxRating.
+func (s *ProfileInput) SetMaxRating(val OptInt) {
+	s.MaxRating = val
+}
+
+// SetPin sets the value of Pin.
+func (s *ProfileInput) SetPin(val OptString) {
+	s.Pin = val
+}
+
+// SetRemovePin sets the value of RemovePin.
+func (s *ProfileInput) SetRemovePin(val OptBool) {
+	s.RemovePin = val
 }
 
 // Ref: #/components/schemas/QuickConnectApproved
@@ -1128,6 +1427,12 @@ func (s *RenameSessionRequest) SetDeviceName(val string) {
 
 // RevokeSessionNoContent is response for RevokeSession operation.
 type RevokeSessionNoContent struct{}
+
+// SelectMainProfileNoContent is response for SelectMainProfile operation.
+type SelectMainProfileNoContent struct{}
+
+// SelectProfileNoContent is response for SelectProfile operation.
+type SelectProfileNoContent struct{}
 
 // Ref: #/components/schemas/ServerSettings
 type ServerSettings struct {
@@ -1607,10 +1912,11 @@ type User struct {
 	IsAdmin  bool      `json:"isAdmin"`
 	Disabled bool      `json:"disabled"`
 	// Two-factor authentication is on.
-	TotpEnabled bool            `json:"totpEnabled"`
-	Permissions UserPermissions `json:"permissions"`
-	CreatedAt   time.Time       `json:"createdAt"`
-	LastLoginAt OptDateTime     `json:"lastLoginAt"`
+	TotpEnabled    bool            `json:"totpEnabled"`
+	Permissions    UserPermissions `json:"permissions"`
+	CurrentProfile OptProfile      `json:"currentProfile"`
+	CreatedAt      time.Time       `json:"createdAt"`
+	LastLoginAt    OptDateTime     `json:"lastLoginAt"`
 }
 
 // GetID returns the value of ID.
@@ -1641,6 +1947,11 @@ func (s *User) GetTotpEnabled() bool {
 // GetPermissions returns the value of Permissions.
 func (s *User) GetPermissions() UserPermissions {
 	return s.Permissions
+}
+
+// GetCurrentProfile returns the value of CurrentProfile.
+func (s *User) GetCurrentProfile() OptProfile {
+	return s.CurrentProfile
 }
 
 // GetCreatedAt returns the value of CreatedAt.
@@ -1681,6 +1992,11 @@ func (s *User) SetTotpEnabled(val bool) {
 // SetPermissions sets the value of Permissions.
 func (s *User) SetPermissions(val UserPermissions) {
 	s.Permissions = val
+}
+
+// SetCurrentProfile sets the value of CurrentProfile.
+func (s *User) SetCurrentProfile(val OptProfile) {
+	s.CurrentProfile = val
 }
 
 // SetCreatedAt sets the value of CreatedAt.

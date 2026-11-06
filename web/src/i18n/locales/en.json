@@ -51,7 +51,8 @@
     "users": "Users",
     "apiKeys": "API keys",
     "quickConnect": "Quick Connect",
-    "invites": "Invites"
+    "invites": "Invites",
+    "profiles": "Profiles"
   },
   "account": {
     "changePassword": "Change password",
@@ -121,7 +122,12 @@
     "totp_required": "Enter the code from your authenticator app.",
     "invalid_totp": "The code is not correct or was already used.",
     "totp_enabled": "Two-factor authentication is already on.",
-    "totp_not_started": "Start the setup again."
+    "totp_not_started": "Start the setup again.",
+    "pin_required": "Enter the profile PIN.",
+    "invalid_pin": "Wrong PIN.",
+    "profile_locked": "Too many wrong PINs. Try again in a few minutes.",
+    "kid_profile": "Not available in a kids profile.",
+    "too_many_profiles": "An account can have at most 6 profiles."
   },
   "notFound": {
     "title": "Page not found",
@@ -214,5 +220,27 @@
     "joinTitle": "Join {{server}}",
     "joinIntro": "You were invited. Choose a username and password for your account.",
     "join": "Create account"
+  },
+  "profiles": {
+    "intro": "Profiles let several people share this account (up to 6). A kids profile cannot open settings; leaving it needs the account password.",
+    "switch": "Switch profile",
+    "kid": "Kids",
+    "pinProtected": "PIN",
+    "pin": "PIN",
+    "passwordToLeave": "Account password",
+    "open": "Open",
+    "add": "Add profile",
+    "edit": "Edit",
+    "name": "Name",
+    "color": "Colour",
+    "kidProfile": "Kids profile",
+    "maxRating": "Age rating limit",
+    "noLimit": "No limit",
+    "upTo": "up to {{rating}}+",
+    "pinOptional": "PIN (optional)",
+    "pinHint": "4–6 digits. Leave empty to keep the current PIN.",
+    "removePin": "Remove PIN",
+    "confirmDelete": "Delete profile {{name}}?",
+    "pinLocked": "Protected by PIN"
   }
 }

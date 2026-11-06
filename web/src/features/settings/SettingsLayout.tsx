@@ -13,6 +13,7 @@ export function SettingsLayout() {
         <h1 className="mb-4 text-2xl font-semibold">{t("nav.settings")}</h1>
         <nav className="flex gap-1 overflow-x-auto md:flex-col" aria-label={t("nav.settings")}>
           <Link to="/settings/account" className={tab}>{t("settings.account")}</Link>
+          <Link to="/settings/profiles" className={tab}>{t("settings.profiles")}</Link>
           <Link to="/settings/devices" className={tab}>{t("settings.devices")}</Link>
           <Link to="/settings/quickconnect" className={tab}>{t("settings.quickConnect")}</Link>
           {me?.isAdmin && (
