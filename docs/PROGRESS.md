@@ -16,18 +16,18 @@ P0 — Temelji (u tijeku, branch `phase/P0-foundations`)
 - Popravak: Docker kreira bind-mount direktorije kao root → server nije mogao pisati u `/cache` i `/transcode`. Dodan one-shot `init` servis (chown na uid 1000) i `mode: 01777` za transcode tmpfs.
 - Reverse proxy: nginx umjesto Caddyja (D-010), site u `deploy/nginx/demo.streamero.net.conf` (sintaksa provjerena `nginx -t`).
 - Uklonjen stari, nepovezani compose projekt `streamero` (`/opt/streamero`: api/worker/nginx/postgres/redis/s3 + volumeni) na zahtjev korisnika.
+- demo.streamero.net živ preko nginxa + Let's Encrypt (HTTP→HTTPS, `/readyz` 200).
+- Branch pushan, PR #1 (`phase/P0-foundations` → `main`) otvoren; `main` je prazan početni commit spojen u P0 (repo je bio prazan). CI zelen: `server`, `web`, `e2e`, iOS `build` (prvi uspješan iOS build, artefakt `streamero-ipa`).
 - `scripts/gen-fixtures.sh`: filmovi (H.264, 4K HEVC 10-bit, HDR10, AV1, multi-audio + poglavlja + embedded/external SRT/ASS, verzije, trailer), serija sa zajedničkim introm (2×4 ep.), multi-episode, specials, daily, anime absolute, glazba (FLAC/MP3), fotke.
 
 ## Sljedeći koraci
-1. Push brancha i PR → CI zelen (blokirano: vidi dolje).
-2. Instalirati nginx site + `certbot --nginx -d demo.streamero.net` (treba sudo, vidi DEPLOY.md); ukloniti stari `/etc/nginx/sites-enabled/streamero.conf`.
-3. Provjeriti iOS build u CI-ju (`ios.yml`) i instalaciju .ipa kroz Feather → spajanje na demo.streamero.net.
-4. Zamijeniti placeholder logo službenim s streamero.net.
-5. Nakon prihvaćanja P0 → P1 (korisnici i auth).
+1. Review i merge PR #1 (prihvaćanje P0) → `server-image.yml` builda i potpisuje multi-arch image (`edge`) na GHCR-u.
+2. Instalirati `streamero-ipa` kroz Feather i spojiti se na https://demo.streamero.net.
+3. Zamijeniti placeholder logo službenim s streamero.net.
+4. Nakon prihvaćanja P0 → P1 (korisnici i auth).
 
 ## Poznati problemi / blokeri
-- **Push na GitHub odbijen** iz cloud sessiona: Claude GitHub App nije instaliran za org `streamero-app`. Commitovi su lokalni na `phase/P0-foundations`.
-- **nginx/TLS za demo.streamero.net** nije instaliran: sesija nema sudo (lozinka). DNS već pokazuje na server.
 - Vizualna provjera weba u pravom browseru nije napravljena na serveru (nema Chromiuma/Playwrighta na hostu); provjereno preko HTTP-a (SPA + asseti 200, HR/EN stringovi u bundleu).
-- iOS projekt nije kompajliran (nema macOS-a u sandboxu) — prva provjera će biti `ios.yml` u CI-ju.
+- `server-image.yml` ručno pokrenut s feature brancha nema tagova (samo `main`/`v*`) i pao bi; multi-arch (arm64) image još nije buildan.
+- Claude na serveru nema sudo: nginx/certbot/apt promjene radi korisnik.
 - `scripts/seed-big-library.sh` dolazi u P2 (treba scanner/shemu).

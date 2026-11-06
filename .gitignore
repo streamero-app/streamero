@@ -16,3 +16,6 @@ ios/build/
 ios/*.xcodeproj
 *.ipa
 .DS_Store
+
+# personal Claude Code settings
+.claude/settings.local.json
