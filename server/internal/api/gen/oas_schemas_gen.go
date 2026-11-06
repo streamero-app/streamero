@@ -691,6 +691,11 @@ func (s *PasswordConfirmRequest) SetPassword(val string) {
 	s.Password = val
 }
 
+// PollQuickConnectAccepted is response for PollQuickConnect operation.
+type PollQuickConnectAccepted struct{}
+
+func (*PollQuickConnectAccepted) pollQuickConnectRes() {}
+
 // Ref: #/components/schemas/Pong
 type Pong struct {
 	Ok bool `json:"ok"`
@@ -704,6 +709,86 @@ func (s *Pong) GetOk() bool {
 // SetOk sets the value of Ok.
 func (s *Pong) SetOk(val bool) {
 	s.Ok = val
+}
+
+// Ref: #/components/schemas/QuickConnectApproved
+type QuickConnectApproved struct {
+	DeviceName string `json:"deviceName"`
+}
+
+// GetDeviceName returns the value of DeviceName.
+func (s *QuickConnectApproved) GetDeviceName() string {
+	return s.DeviceName
+}
+
+// SetDeviceName sets the value of DeviceName.
+func (s *QuickConnectApproved) SetDeviceName(val string) {
+	s.DeviceName = val
+}
+
+// Ref: #/components/schemas/QuickConnectPollRequest
+type QuickConnectPollRequest struct {
+	Secret    string  `json:"secret"`
+	UseCookie OptBool `json:"useCookie"`
+}
+
+// GetSecret returns the value of Secret.
+func (s *QuickConnectPollRequest) GetSecret() string {
+	return s.Secret
+}
+
+// GetUseCookie returns the value of UseCookie.
+func (s *QuickConnectPollRequest) GetUseCookie() OptBool {
+	return s.UseCookie
+}
+
+// SetSecret sets the value of Secret.
+func (s *QuickConnectPollRequest) SetSecret(val string) {
+	s.Secret = val
+}
+
+// SetUseCookie sets the value of UseCookie.
+func (s *QuickConnectPollRequest) SetUseCookie(val OptBool) {
+	s.UseCookie = val
+}
+
+// Ref: #/components/schemas/QuickConnectStart
+type QuickConnectStart struct {
+	// 6 digits, shown on the new device.
+	Code string `json:"code"`
+	// Kept on the new device and sent to /quickconnect/poll.
+	Secret    string    `json:"secret"`
+	ExpiresAt time.Time `json:"expiresAt"`
+}
+
+// GetCode returns the value of Code.
+func (s *QuickConnectStart) GetCode() string {
+	return s.Code
+}
+
+// GetSecret returns the value of Secret.
+func (s *QuickConnectStart) GetSecret() string {
+	return s.Secret
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *QuickConnectStart) GetExpiresAt() time.Time {
+	return s.ExpiresAt
+}
+
+// SetCode sets the value of Code.
+func (s *QuickConnectStart) SetCode(val string) {
+	s.Code = val
+}
+
+// SetSecret sets the value of Secret.
+func (s *QuickConnectStart) SetSecret(val string) {
+	s.Secret = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *QuickConnectStart) SetExpiresAt(val time.Time) {
+	s.ExpiresAt = val
 }
 
 // Ref: #/components/schemas/RecoveryCodes
@@ -970,6 +1055,8 @@ func (s *SignedInHeaders) SetSetCookie(val OptString) {
 func (s *SignedInHeaders) SetResponse(val AuthResult) {
 	s.Response = val
 }
+
+func (*SignedInHeaders) pollQuickConnectRes() {}
 
 // StartingHeaders wraps Error with response headers.
 type StartingHeaders struct {

@@ -4,3 +4,7 @@ package gen
 type GetSystemInfoRes interface {
 	getSystemInfoRes()
 }
+
+type PollQuickConnectRes interface {
+	pollQuickConnectRes()
+}

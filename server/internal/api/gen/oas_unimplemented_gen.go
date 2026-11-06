@@ -13,6 +13,15 @@ type UnimplementedHandler struct{}
 
 var _ Handler = UnimplementedHandler{}
 
+// AuthorizeQuickConnect implements authorizeQuickConnect operation.
+//
+// The other device is signed in as the calling user.
+//
+// POST /quickconnect/authorize
+func (UnimplementedHandler) AuthorizeQuickConnect(ctx context.Context, req *TOTPCodeRequest) (r *QuickConnectApproved, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ChangePassword implements changePassword operation.
 //
 // Change own password; signs out all other sessions.
@@ -114,6 +123,16 @@ func (UnimplementedHandler) GetSystemInfo(ctx context.Context) (r GetSystemInfoR
 	return r, ht.ErrNotImplemented
 }
 
+// InitiateQuickConnect implements initiateQuickConnect operation.
+//
+// Returns a 6-digit code to show on the new device and a secret to poll with. A signed-in user
+// approves the code (POST /quickconnect/authorize) within 5 minutes.
+//
+// POST /quickconnect/initiate
+func (UnimplementedHandler) InitiateQuickConnect(ctx context.Context, req OptDeviceInfo) (r *QuickConnectStart, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ListAPIKeys implements listAPIKeys operation.
 //
 // API keys for integrations (admin).
@@ -165,6 +184,15 @@ func (UnimplementedHandler) Logout(ctx context.Context) (r *LogoutNoContent, _ e
 //
 // GET /system/ping
 func (UnimplementedHandler) Ping(ctx context.Context) (r *Pong, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// PollQuickConnect implements pollQuickConnect operation.
+//
+// Check whether the code was approved; signs the device in when it was.
+//
+// POST /quickconnect/poll
+func (UnimplementedHandler) PollQuickConnect(ctx context.Context, req *QuickConnectPollRequest) (r PollQuickConnectRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

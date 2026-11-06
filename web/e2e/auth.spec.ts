@@ -13,7 +13,7 @@ async function signIn(page: Page, who: { username: string; password: string }) {
   await page.goto("/login");
   await page.getByLabel("Username").fill(who.username);
   await page.getByLabel("Password").fill(who.password);
-  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(/\/$/);
 }
 
@@ -67,12 +67,31 @@ test("admin adds a user; user signs in; admin signs the device out", async ({ pa
   await ctx.close();
 });
 
+test("Quick Connect signs in a second browser after approval", async ({ page, browser }) => {
+  const ctx = await browser.newContext();
+  const tv = await ctx.newPage();
+  await tv.addInitScript(() => localStorage.setItem("streamero.lang", "en"));
+  await tv.goto("/login");
+  await tv.getByRole("button", { name: "Sign in with Quick Connect" }).click();
+  const code = (await tv.getByLabel("Quick Connect code").textContent())!.trim();
+  expect(code).toMatch(/^\d{6}$/);
+
+  await signIn(page, admin);
+  await page.goto("/settings/quickconnect");
+  await page.getByLabel("Quick Connect code").fill(code);
+  await page.getByRole("button", { name: "Approve" }).click();
+  await expect(page.getByText(/is now signed in/)).toBeVisible();
+
+  await expect(tv.getByRole("heading", { name: `Welcome, ${admin.username}` })).toBeVisible({ timeout: 15_000 });
+  await ctx.close();
+});
+
 test("wrong passwords lock the account", async ({ page }) => {
   await page.goto("/login");
   for (let i = 0; i < 5; i++) {
     await page.getByLabel("Username").fill(user.username);
     await page.getByLabel("Password").fill("not-the-password");
-    await page.getByRole("button", { name: "Sign in" }).click();
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
     await expect(page.getByRole("alert")).toBeVisible();
   }
   await expect(page.getByRole("alert")).toContainText("locked");

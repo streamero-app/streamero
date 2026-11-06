@@ -14,6 +14,19 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+func encodeAuthorizeQuickConnectResponse(response *QuickConnectApproved, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
 func encodeChangePasswordResponse(response *ChangePasswordNoContent, w http.ResponseWriter, span trace.Span) error {
 	w.WriteHeader(204)
 
@@ -188,6 +201,19 @@ func encodeGetSystemInfoResponse(response GetSystemInfoRes, w http.ResponseWrite
 	}
 }
 
+func encodeInitiateQuickConnectResponse(response *QuickConnectStart, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
 func encodeListAPIKeysResponse(response []ApiKey, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
@@ -309,6 +335,50 @@ func encodePingResponse(response *Pong, w http.ResponseWriter, span trace.Span) 
 	}
 
 	return nil
+}
+
+func encodePollQuickConnectResponse(response PollQuickConnectRes, w http.ResponseWriter, span trace.Span) error {
+	switch response := response.(type) {
+	case *SignedInHeaders:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.Header().Set("Access-Control-Expose-Headers", "Set-Cookie")
+		// Encoding response headers.
+		{
+			h := uri.NewHeaderEncoder(w.Header())
+			// Encode "Set-Cookie" header.
+			{
+				cfg := uri.HeaderParameterEncodingConfig{
+					Name:    "Set-Cookie",
+					Explode: false,
+				}
+				if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+					if val, ok := response.SetCookie.Get(); ok {
+						return e.EncodeValue(conv.StringToString(val))
+					}
+					return nil
+				}); err != nil {
+					return errors.Wrap(err, "encode Set-Cookie header")
+				}
+			}
+		}
+		w.WriteHeader(200)
+
+		e := new(jx.Encoder)
+		response.Response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *PollQuickConnectAccepted:
+		w.WriteHeader(202)
+
+		return nil
+
+	default:
+		return errors.Errorf("unexpected response type: %T", response)
+	}
 }
 
 func encodeRenameSessionResponse(response *RenameSessionNoContent, w http.ResponseWriter, span trace.Span) error {

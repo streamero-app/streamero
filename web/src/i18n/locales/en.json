@@ -49,7 +49,8 @@
     "adminSection": "Administration",
     "server": "Server",
     "users": "Users",
-    "apiKeys": "API keys"
+    "apiKeys": "API keys",
+    "quickConnect": "Quick Connect"
   },
   "account": {
     "changePassword": "Change password",
@@ -156,5 +157,17 @@
     "recoveryTitle": "Save these recovery codes",
     "recoveryText": "Each code can be used once instead of an app code, e.g. if you lose your phone. They will not be shown again. Other devices were signed out.",
     "loginHint": "6-digit code from your authenticator app, or a recovery code."
+  },
+  "quickconnect": {
+    "useQuickConnect": "Sign in with Quick Connect",
+    "loginIntro": "On a device where you are already signed in, open Settings → Quick Connect and enter this code:",
+    "code": "Quick Connect code",
+    "waiting": "Waiting for approval… (the code is valid for 5 minutes)",
+    "expired": "The code expired.",
+    "newCode": "Get a new code",
+    "usePassword": "Sign in with password instead",
+    "settingsIntro": "Enter the 6-digit code shown on a new device (TV, phone, another browser) to sign it in with your account.",
+    "approve": "Approve",
+    "approved": "Approved — {{device}} is now signed in."
   }
 }

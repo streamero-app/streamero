@@ -9,6 +9,7 @@ import { DevicesSettings } from "@/features/settings/DevicesSettings";
 import { ServerSettingsPage } from "@/features/settings/ServerSettingsPage";
 import { UsersSettings } from "@/features/settings/UsersSettings";
 import { ApiKeysSettings } from "@/features/settings/ApiKeysSettings";
+import { QuickConnectSettings } from "@/features/settings/QuickConnectSettings";
 import { HomePage } from "@/routes/HomePage";
 import { LoginPage } from "@/routes/LoginPage";
 import { SetupPage } from "@/routes/SetupPage";
@@ -47,6 +48,7 @@ const settingsIndex = createRoute({
 });
 const accountRoute = createRoute({ getParentRoute: () => settingsRoute, path: "account", component: AccountSettings });
 const devicesRoute = createRoute({ getParentRoute: () => settingsRoute, path: "devices", component: DevicesSettings });
+const quickConnectRoute = createRoute({ getParentRoute: () => settingsRoute, path: "quickconnect", component: QuickConnectSettings });
 const serverRoute = createRoute({ getParentRoute: () => settingsRoute, path: "server", component: adminOnly(ServerSettingsPage) });
 const apiKeysRoute = createRoute({ getParentRoute: () => settingsRoute, path: "apikeys", component: adminOnly(ApiKeysSettings) });
 const usersRoute = createRoute({ getParentRoute: () => settingsRoute, path: "users", component: adminOnly(UsersSettings) });
@@ -56,7 +58,7 @@ export const routeTree = rootRoute.addChildren([
   setupRoute,
   appRoute.addChildren([
     homeRoute,
-    settingsRoute.addChildren([settingsIndex, accountRoute, devicesRoute, serverRoute, usersRoute, apiKeysRoute]),
+    settingsRoute.addChildren([settingsIndex, accountRoute, devicesRoute, quickConnectRoute, serverRoute, usersRoute, apiKeysRoute]),
   ]),
 ]);
 export const router = createRouter({ routeTree });

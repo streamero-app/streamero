@@ -33,7 +33,7 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [x] `[JF]` Više korisnika, admin/korisnik uloge (P1)
 - [x] `[JF]` Login korisničkim imenom + lozinkom; imena case-insensitive (P1)
 - [ ] `[JF]` Skriveni korisnici / prikaz korisnika na login ekranu (opcija) (P1)
-- [ ] `[JF]` Quick Connect — prijava na novom uređaju 6-znamenkastim kodom odobrenim s prijavljenog uređaja (P1)
+- [x] `[JF]` Quick Connect — prijava na novom uređaju 6-znamenkastim kodom odobrenim s prijavljenog uređaja (P1)
 - [ ] `[JF]` Reset lozinke (admin + PIN/file flow kao JF; kod nas email ili admin link) (P1)
 - [x] `[JF]` API ključevi (za integracije) (P1)
 - [x] `[JF]` Uređaji: lista, preimenovanje, opoziv pristupa (odmah gasi postojeće sesije) (P1)

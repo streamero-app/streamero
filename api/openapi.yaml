@@ -16,6 +16,7 @@ tags:
   - name: sessions
   - name: settings
   - name: apikeys
+  - name: quickconnect
 security: []
 paths:
   /system/info:
@@ -190,6 +191,69 @@ paths:
       responses:
         "204":
           description: Disabled
+        default:
+          $ref: "#/components/responses/Error"
+  /quickconnect/initiate:
+    post:
+      operationId: initiateQuickConnect
+      summary: Start a Quick Connect sign-in on a new device
+      description: |
+        Returns a 6-digit code to show on the new device and a secret to poll with. A signed-in
+        user approves the code (POST /quickconnect/authorize) within 5 minutes.
+      tags: [quickconnect]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceInfo"
+      responses:
+        "200":
+          description: Code and polling secret
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuickConnectStart"
+        default:
+          $ref: "#/components/responses/Error"
+  /quickconnect/poll:
+    post:
+      operationId: pollQuickConnect
+      summary: Check whether the code was approved; signs the device in when it was
+      tags: [quickconnect]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuickConnectPollRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/SignedIn"
+        "202":
+          description: Not approved yet; poll again in a few seconds.
+        default:
+          $ref: "#/components/responses/Error"
+  /quickconnect/authorize:
+    post:
+      operationId: authorizeQuickConnect
+      summary: Approve a Quick Connect code shown on another device
+      description: The other device is signed in as the calling user.
+      tags: [quickconnect]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TOTPCodeRequest"
+      responses:
+        "200":
+          description: Approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuickConnectApproved"
         default:
           $ref: "#/components/responses/Error"
   /users:
@@ -548,6 +612,34 @@ components:
           maxLength: 256
         newPassword:
           $ref: "#/components/schemas/Password"
+    QuickConnectStart:
+      type: object
+      required: [code, secret, expiresAt]
+      properties:
+        code:
+          type: string
+          description: 6 digits, shown on the new device.
+        secret:
+          type: string
+          description: Kept on the new device and sent to /quickconnect/poll.
+        expiresAt:
+          type: string
+          format: date-time
+    QuickConnectPollRequest:
+      type: object
+      required: [secret]
+      properties:
+        secret:
+          type: string
+          maxLength: 128
+        useCookie:
+          type: boolean
+    QuickConnectApproved:
+      type: object
+      required: [deviceName]
+      properties:
+        deviceName:
+          type: string
     TOTPSetup:
       type: object
       required: [secret, otpauthUri, qrPng]

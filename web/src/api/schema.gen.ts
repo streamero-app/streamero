@@ -184,6 +184,64 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/quickconnect/initiate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start a Quick Connect sign-in on a new device
+         * @description Returns a 6-digit code to show on the new device and a secret to poll with. A signed-in
+         *     user approves the code (POST /quickconnect/authorize) within 5 minutes.
+         */
+        post: operations["initiateQuickConnect"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/quickconnect/poll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check whether the code was approved; signs the device in when it was */
+        post: operations["pollQuickConnect"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/quickconnect/authorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve a Quick Connect code shown on another device
+         * @description The other device is signed in as the calling user.
+         */
+        post: operations["authorizeQuickConnect"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users": {
         parameters: {
             query?: never;
@@ -373,6 +431,21 @@ export interface components {
         ChangePasswordRequest: {
             currentPassword: string;
             newPassword: components["schemas"]["Password"];
+        };
+        QuickConnectStart: {
+            /** @description 6 digits, shown on the new device. */
+            code: string;
+            /** @description Kept on the new device and sent to /quickconnect/poll. */
+            secret: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        QuickConnectPollRequest: {
+            secret: string;
+            useCookie?: boolean;
+        };
+        QuickConnectApproved: {
+            deviceName: string;
         };
         TOTPSetup: {
             /** @description Base32 secret for manual entry. */
@@ -732,6 +805,80 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    initiateQuickConnect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["DeviceInfo"];
+            };
+        };
+        responses: {
+            /** @description Code and polling secret */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuickConnectStart"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    pollQuickConnect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuickConnectPollRequest"];
+            };
+        };
+        responses: {
+            200: components["responses"]["SignedIn"];
+            /** @description Not approved yet; poll again in a few seconds. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    authorizeQuickConnect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TOTPCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Approved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuickConnectApproved"];
+                };
             };
             default: components["responses"]["Error"];
         };

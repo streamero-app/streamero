@@ -251,6 +251,40 @@ func (h *Handler) RevokeSession(ctx context.Context, params gen.RevokeSessionPar
 	return h.Auth().RevokeSession(ctx, p, params.SessionId)
 }
 
+// InitiateQuickConnect implements POST /quickconnect/initiate.
+func (h *Handler) InitiateQuickConnect(ctx context.Context, req gen.OptDeviceInfo) (*gen.QuickConnectStart, error) {
+	st, err := h.Auth().InitiateQuickConnect(ctx, device(req))
+	if err != nil {
+		return nil, err
+	}
+	return &gen.QuickConnectStart{Code: st.Code, Secret: st.Secret, ExpiresAt: st.ExpiresAt}, nil
+}
+
+// PollQuickConnect implements POST /quickconnect/poll.
+func (h *Handler) PollQuickConnect(ctx context.Context, req *gen.QuickConnectPollRequest) (gen.PollQuickConnectRes, error) {
+	p, token, err := h.Auth().PollQuickConnect(ctx, req.Secret)
+	if errors.Is(err, auth.ErrQuickConnectPending) {
+		return &gen.PollQuickConnectAccepted{}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return h.signedIn(ctx, p, token, req.UseCookie.Value), nil
+}
+
+// AuthorizeQuickConnect implements POST /quickconnect/authorize.
+func (h *Handler) AuthorizeQuickConnect(ctx context.Context, req *gen.TOTPCodeRequest) (*gen.QuickConnectApproved, error) {
+	p, err := principal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	dev, err := h.Auth().AuthorizeQuickConnect(ctx, p, req.Code)
+	if err != nil {
+		return nil, err
+	}
+	return &gen.QuickConnectApproved{DeviceName: dev}, nil
+}
+
 // StartTOTPSetup implements POST /auth/totp/setup.
 func (h *Handler) StartTOTPSetup(ctx context.Context) (*gen.TOTPSetup, error) {
 	p, err := principal(ctx)

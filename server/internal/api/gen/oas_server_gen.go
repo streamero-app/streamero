@@ -8,6 +8,12 @@ import (
 
 // Handler handles operations described by OpenAPI v3 specification.
 type Handler interface {
+	// AuthorizeQuickConnect implements authorizeQuickConnect operation.
+	//
+	// The other device is signed in as the calling user.
+	//
+	// POST /quickconnect/authorize
+	AuthorizeQuickConnect(ctx context.Context, req *TOTPCodeRequest) (*QuickConnectApproved, error)
 	// ChangePassword implements changePassword operation.
 	//
 	// Change own password; signs out all other sessions.
@@ -76,6 +82,13 @@ type Handler interface {
 	//
 	// GET /system/info
 	GetSystemInfo(ctx context.Context) (GetSystemInfoRes, error)
+	// InitiateQuickConnect implements initiateQuickConnect operation.
+	//
+	// Returns a 6-digit code to show on the new device and a secret to poll with. A signed-in user
+	// approves the code (POST /quickconnect/authorize) within 5 minutes.
+	//
+	// POST /quickconnect/initiate
+	InitiateQuickConnect(ctx context.Context, req OptDeviceInfo) (*QuickConnectStart, error)
 	// ListAPIKeys implements listAPIKeys operation.
 	//
 	// API keys for integrations (admin).
@@ -112,6 +125,12 @@ type Handler interface {
 	//
 	// GET /system/ping
 	Ping(ctx context.Context) (*Pong, error)
+	// PollQuickConnect implements pollQuickConnect operation.
+	//
+	// Check whether the code was approved; signs the device in when it was.
+	//
+	// POST /quickconnect/poll
+	PollQuickConnect(ctx context.Context, req *QuickConnectPollRequest) (PollQuickConnectRes, error)
 	// RenameSession implements renameSession operation.
 	//
 	// Own sessions; admins can rename any session.

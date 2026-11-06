@@ -6,6 +6,7 @@ import { AuthFrame } from "@/features/auth/AuthFrame";
 import { useLogin, useMe } from "@/features/auth/useAuth";
 import { useSystemInfo } from "@/features/server/useSystemInfo";
 import { ApiError } from "@/api/client";
+import { QuickConnectLogin } from "@/features/auth/QuickConnectLogin";
 
 export function LoginPage() {
   const { t } = useTranslation();
@@ -16,6 +17,7 @@ export function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [totpCode, setTotpCode] = useState("");
+  const [quick, setQuick] = useState(false);
   // The server answers totp_required once the password is right; then we ask for the code.
   const needsCode = login.error instanceof ApiError && ["totp_required", "invalid_totp"].includes(login.error.code)
     || totpCode !== "";
@@ -27,6 +29,14 @@ export function LoginPage() {
     e.preventDefault();
     login.mutate({ username, password, totpCode: totpCode || undefined }, { onSuccess: () => void navigate({ to: "/" }) });
   };
+
+  if (quick) {
+    return (
+      <AuthFrame title={t("settings.quickConnect")}>
+        <QuickConnectLogin onCancel={() => setQuick(false)} />
+      </AuthFrame>
+    );
+  }
 
   return (
     <AuthFrame title={t("login.title")}>
@@ -43,6 +53,7 @@ export function LoginPage() {
         <Button type="submit" className="mt-2" disabled={login.isPending}>
           {login.isPending ? t("login.signingIn") : t("login.submit")}
         </Button>
+        <Button type="button" variant="ghost" onClick={() => setQuick(true)}>{t("quickconnect.useQuickConnect")}</Button>
       </form>
     </AuthFrame>
   );

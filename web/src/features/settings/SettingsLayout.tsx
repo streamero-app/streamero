@@ -14,6 +14,7 @@ export function SettingsLayout() {
         <nav className="flex gap-1 overflow-x-auto md:flex-col" aria-label={t("nav.settings")}>
           <Link to="/settings/account" className={tab}>{t("settings.account")}</Link>
           <Link to="/settings/devices" className={tab}>{t("settings.devices")}</Link>
+          <Link to="/settings/quickconnect" className={tab}>{t("settings.quickConnect")}</Link>
           {me?.isAdmin && (
             <>
               <p className="hidden px-3 pt-4 pb-1 text-xs tracking-wide text-muted uppercase md:block">{t("settings.adminSection")}</p>

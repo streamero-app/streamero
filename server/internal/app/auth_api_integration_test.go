@@ -43,7 +43,7 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 		t.Fatal(err)
 	}
 	t.Cleanup(deps.Close)
-	if _, err := deps.Pool.Exec(ctx, `TRUNCATE users, sessions, audit_log, api_keys, user_totp, recovery_codes;
+	if _, err := deps.Pool.Exec(ctx, `TRUNCATE users, sessions, audit_log, api_keys, user_totp, recovery_codes, quick_connect;
 		DELETE FROM settings WHERE key IN ('setup.completed', 'server.name')`); err != nil {
 		t.Fatal(err)
 	}
@@ -518,5 +518,63 @@ func TestTwoFactorIntegration(t *testing.T) {
 	}
 	if s, e := login(""); s != 200 {
 		t.Fatalf("login after reset: HTTP %d %+v", s, e)
+	}
+}
+
+func TestQuickConnectIntegration(t *testing.T) {
+	srv := newAuthTestServer(t)
+	adminC := newClient(t, srv)
+	setupAdmin(t, adminC)
+
+	tv := newClient(t, srv)
+	var start struct {
+		Code   string `json:"code"`
+		Secret string `json:"secret"`
+	}
+	if s := tv.do("POST", "/quickconnect/initiate", map[string]any{"name": "Dnevni boravak TV", "client": "Streamero iOS"}, &start); s != 200 || len(start.Code) != 6 {
+		t.Fatalf("initiate: HTTP %d %+v", s, start)
+	}
+	if s := tv.do("POST", "/quickconnect/poll", map[string]any{"secret": start.Secret}, nil); s != 202 {
+		t.Fatalf("poll before approval: HTTP %d", s)
+	}
+	if s := tv.do("POST", "/quickconnect/authorize", map[string]any{"code": start.Code}, nil); s != 401 {
+		t.Fatalf("anonymous authorize: HTTP %d", s)
+	}
+	var e apiError
+	if s := adminC.do("POST", "/quickconnect/authorize", map[string]any{"code": "000000x"}, &e); s != 404 {
+		t.Fatalf("unknown code: HTTP %d %+v", s, e)
+	}
+	var ok struct {
+		Device string `json:"deviceName"`
+	}
+	if s := adminC.do("POST", "/quickconnect/authorize", map[string]any{"code": start.Code}, &ok); s != 200 || ok.Device != "Dnevni boravak TV" {
+		t.Fatalf("authorize: HTTP %d %+v", s, ok)
+	}
+	if s := adminC.do("POST", "/quickconnect/authorize", map[string]any{"code": start.Code}, nil); s != 404 {
+		t.Fatalf("approving twice: HTTP %d", s)
+	}
+	var res authResult
+	if s := tv.do("POST", "/quickconnect/poll", map[string]any{"secret": start.Secret}, &res); s != 200 || res.Token == "" || res.User.Username != "Admin" {
+		t.Fatalf("poll after approval: HTTP %d %+v", s, res)
+	}
+	tv.token = res.Token
+	if s := tv.do("GET", "/auth/me", nil, nil); s != 200 {
+		t.Fatalf("quick connect session: HTTP %d", s)
+	}
+	// The secret works only once.
+	if s := newClient(t, srv).do("POST", "/quickconnect/poll", map[string]any{"secret": start.Secret}, nil); s != 404 {
+		t.Fatalf("second poll: HTTP %d", s)
+	}
+	var sessions []struct {
+		Device string `json:"deviceName"`
+		Client string `json:"client"`
+	}
+	tv.do("GET", "/sessions", nil, &sessions)
+	found := false
+	for _, s := range sessions {
+		found = found || (s.Device == "Dnevni boravak TV" && s.Client == "Streamero iOS")
+	}
+	if !found {
+		t.Fatalf("device not in session list: %+v", sessions)
 	}
 }

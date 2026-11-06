@@ -79,3 +79,24 @@ describe("LoginPage two-factor", () => {
     expect(await (fetch.mock.calls[1]![0] as Request).json()).toMatchObject({ totpCode: "123456" });
   });
 });
+
+describe("Quick Connect sign-in", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("shows the code and signs in once approved", async () => {
+    setLanguage("en");
+    let polls = 0;
+    mockApi(({ path }) => {
+      if (path === "/quickconnect/initiate") return { status: 200, body: { code: "042917", secret: "s3cret", expiresAt: new Date(Date.now() + 300_000).toISOString() } };
+      if (path === "/quickconnect/poll") {
+        polls++;
+        return polls < 2 ? { status: 202 } : { status: 200, body: { sessionId: "0190a8b0-0000-7000-8000-0000000000cc", user: testUser() } };
+      }
+      return { status: 404, body: { code: "not_found", message: "" } };
+    });
+    const { router } = renderApp("/login");
+    fireEvent.click(await screen.findByRole("button", { name: "Sign in with Quick Connect" }));
+    expect(await screen.findByLabelText("Quick Connect code")).toHaveTextContent("042917");
+    await waitFor(() => expect(router.state.location.pathname).toBe("/"), { timeout: 8000 });
+  }, 10_000);
+});

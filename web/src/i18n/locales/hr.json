@@ -49,7 +49,8 @@
     "adminSection": "Administracija",
     "server": "Server",
     "users": "Korisnici",
-    "apiKeys": "API ključevi"
+    "apiKeys": "API ključevi",
+    "quickConnect": "Quick Connect"
   },
   "account": {
     "changePassword": "Promijeni lozinku",
@@ -156,5 +157,17 @@
     "recoveryTitle": "Spremite ove kodove za oporavak",
     "recoveryText": "Svaki kod se može jednom upotrijebiti umjesto koda iz aplikacije, npr. ako izgubite mobitel. Više se neće prikazati. Ostali uređaji su odjavljeni.",
     "loginHint": "6-znamenkasti kod iz aplikacije za autentifikaciju ili kod za oporavak."
+  },
+  "quickconnect": {
+    "useQuickConnect": "Prijava s Quick Connectom",
+    "loginIntro": "Na uređaju na kojem ste već prijavljeni otvorite Postavke → Quick Connect i upišite ovaj kod:",
+    "code": "Quick Connect kod",
+    "waiting": "Čekam odobrenje… (kod vrijedi 5 minuta)",
+    "expired": "Kod je istekao.",
+    "newCode": "Novi kod",
+    "usePassword": "Prijava lozinkom",
+    "settingsIntro": "Upišite 6-znamenkasti kod prikazan na novom uređaju (TV, mobitel, drugi preglednik) da ga prijavite svojim računom.",
+    "approve": "Odobri",
+    "approved": "Odobreno — {{device}} je sada prijavljen."
   }
 }
