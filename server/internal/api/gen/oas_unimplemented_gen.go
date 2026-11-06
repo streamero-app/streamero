@@ -13,6 +13,161 @@ type UnimplementedHandler struct{}
 
 var _ Handler = UnimplementedHandler{}
 
+// AcceptInvite implements acceptInvite operation.
+//
+// Create an account from an invite and sign in (public).
+//
+// POST /invite/{token}
+func (UnimplementedHandler) AcceptInvite(ctx context.Context, req *AcceptInviteRequest, params AcceptInviteParams) (r *SignedInHeaders, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// AuthorizeQuickConnect implements authorizeQuickConnect operation.
+//
+// The other device is signed in as the calling user.
+//
+// POST /quickconnect/authorize
+func (UnimplementedHandler) AuthorizeQuickConnect(ctx context.Context, req *TOTPCodeRequest) (r *QuickConnectApproved, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ChangePassword implements changePassword operation.
+//
+// Change own password; signs out all other sessions.
+//
+// POST /auth/password
+func (UnimplementedHandler) ChangePassword(ctx context.Context, req *ChangePasswordRequest) error {
+	return ht.ErrNotImplemented
+}
+
+// CompleteSetup implements completeSetup operation.
+//
+// Only allowed while `setupCompleted` is false. Requires the one-time setup code the server prints to
+// its log on start (or STREAMERO_SETUP_CODE). Signs the admin in.
+//
+// POST /setup
+func (UnimplementedHandler) CompleteSetup(ctx context.Context, req *SetupRequest) (r *SignedInHeaders, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// CreateAPIKey implements createAPIKey operation.
+//
+// The key acts with the rights of the admin who created it and is deleted with that user. Send it as
+// `Authorization: Bearer <key>`. The secret is returned only once.
+//
+// POST /apikeys
+func (UnimplementedHandler) CreateAPIKey(ctx context.Context, req *CreateApiKeyRequest) (r *CreatedApiKey, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// CreateInvite implements createInvite operation.
+//
+// Create an invite link (admin).
+//
+// POST /invites
+func (UnimplementedHandler) CreateInvite(ctx context.Context, req *CreateInviteRequest) (r *CreatedInvite, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// CreateProfile implements createProfile operation.
+//
+// Add a profile (not from a kids profile).
+//
+// POST /profiles
+func (UnimplementedHandler) CreateProfile(ctx context.Context, req *ProfileInput) (r *Profile, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// CreateUser implements createUser operation.
+//
+// Create a user (admin).
+//
+// POST /users
+func (UnimplementedHandler) CreateUser(ctx context.Context, req *CreateUserRequest) (r *User, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// DeleteAPIKey implements deleteAPIKey operation.
+//
+// Revoke an API key immediately (admin).
+//
+// DELETE /apikeys/{apiKeyId}
+func (UnimplementedHandler) DeleteAPIKey(ctx context.Context, params DeleteAPIKeyParams) error {
+	return ht.ErrNotImplemented
+}
+
+// DeleteInvite implements deleteInvite operation.
+//
+// Revoke an invite (admin).
+//
+// DELETE /invites/{inviteId}
+func (UnimplementedHandler) DeleteInvite(ctx context.Context, params DeleteInviteParams) error {
+	return ht.ErrNotImplemented
+}
+
+// DeleteProfile implements deleteProfile operation.
+//
+// Delete a profile (not from a kids profile).
+//
+// DELETE /profiles/{profileId}
+func (UnimplementedHandler) DeleteProfile(ctx context.Context, params DeleteProfileParams) error {
+	return ht.ErrNotImplemented
+}
+
+// DeleteUser implements deleteUser operation.
+//
+// Delete a user and all of their sessions (admin).
+//
+// DELETE /users/{userId}
+func (UnimplementedHandler) DeleteUser(ctx context.Context, params DeleteUserParams) error {
+	return ht.ErrNotImplemented
+}
+
+// DisableTOTP implements disableTOTP operation.
+//
+// Turn 2FA off (requires the password).
+//
+// POST /auth/totp/disable
+func (UnimplementedHandler) DisableTOTP(ctx context.Context, req *PasswordConfirmRequest) error {
+	return ht.ErrNotImplemented
+}
+
+// EnableTOTP implements enableTOTP operation.
+//
+// Confirm a code from the authenticator app and turn 2FA on.
+//
+// POST /auth/totp/enable
+func (UnimplementedHandler) EnableTOTP(ctx context.Context, req *TOTPCodeRequest) (r *RecoveryCodes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetInvite implements getInvite operation.
+//
+// Check an invite link (public).
+//
+// GET /invite/{token}
+func (UnimplementedHandler) GetInvite(ctx context.Context, params GetInviteParams) (r *InviteInfo, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetMe implements getMe operation.
+//
+// The signed-in user.
+//
+// GET /auth/me
+func (UnimplementedHandler) GetMe(ctx context.Context) (r *User, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetServerSettings implements getServerSettings operation.
+//
+// Server-wide settings (admin).
+//
+// GET /settings/server
+func (UnimplementedHandler) GetServerSettings(ctx context.Context) (r *ServerSettings, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetSystemInfo implements getSystemInfo operation.
 //
 // Unauthenticated. Used by clients to verify a server URL before login.
@@ -22,12 +177,166 @@ func (UnimplementedHandler) GetSystemInfo(ctx context.Context) (r GetSystemInfoR
 	return r, ht.ErrNotImplemented
 }
 
+// InitiateQuickConnect implements initiateQuickConnect operation.
+//
+// Returns a 6-digit code to show on the new device and a secret to poll with. A signed-in user
+// approves the code (POST /quickconnect/authorize) within 5 minutes.
+//
+// POST /quickconnect/initiate
+func (UnimplementedHandler) InitiateQuickConnect(ctx context.Context, req OptDeviceInfo) (r *QuickConnectStart, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListAPIKeys implements listAPIKeys operation.
+//
+// API keys for integrations (admin).
+//
+// GET /apikeys
+func (UnimplementedHandler) ListAPIKeys(ctx context.Context) (r []ApiKey, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListInvites implements listInvites operation.
+//
+// Invite links (admin).
+//
+// GET /invites
+func (UnimplementedHandler) ListInvites(ctx context.Context) (r []Invite, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListProfiles implements listProfiles operation.
+//
+// The account itself is the main profile; these are additional profiles (max 6).
+//
+// GET /profiles
+func (UnimplementedHandler) ListProfiles(ctx context.Context) (r []Profile, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListSessions implements listSessions operation.
+//
+// Own sessions; admins see the sessions of all users.
+//
+// GET /sessions
+func (UnimplementedHandler) ListSessions(ctx context.Context) (r []Session, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListUsers implements listUsers operation.
+//
+// List users (admin).
+//
+// GET /users
+func (UnimplementedHandler) ListUsers(ctx context.Context) (r []User, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// Login implements login operation.
+//
+// Sign in with username and password.
+//
+// POST /auth/login
+func (UnimplementedHandler) Login(ctx context.Context, req *LoginRequest) (r *SignedInHeaders, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// Logout implements logout operation.
+//
+// End the current session.
+//
+// POST /auth/logout
+func (UnimplementedHandler) Logout(ctx context.Context) (r *LogoutNoContent, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // Ping implements ping operation.
 //
 // Liveness probe for clients.
 //
 // GET /system/ping
 func (UnimplementedHandler) Ping(ctx context.Context) (r *Pong, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// PollQuickConnect implements pollQuickConnect operation.
+//
+// Check whether the code was approved; signs the device in when it was.
+//
+// POST /quickconnect/poll
+func (UnimplementedHandler) PollQuickConnect(ctx context.Context, req *QuickConnectPollRequest) (r PollQuickConnectRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// RenameSession implements renameSession operation.
+//
+// Own sessions; admins can rename any session.
+//
+// PATCH /sessions/{sessionId}
+func (UnimplementedHandler) RenameSession(ctx context.Context, req *RenameSessionRequest, params RenameSessionParams) error {
+	return ht.ErrNotImplemented
+}
+
+// RevokeSession implements revokeSession operation.
+//
+// Own sessions; admins can revoke any session.
+//
+// DELETE /sessions/{sessionId}
+func (UnimplementedHandler) RevokeSession(ctx context.Context, params RevokeSessionParams) error {
+	return ht.ErrNotImplemented
+}
+
+// SelectMainProfile implements selectMainProfile operation.
+//
+// From a kids profile this needs the account password.
+//
+// POST /profiles/main/select
+func (UnimplementedHandler) SelectMainProfile(ctx context.Context, req OptPasswordConfirmRequest) error {
+	return ht.ErrNotImplemented
+}
+
+// SelectProfile implements selectProfile operation.
+//
+// Switch this device to a profile (PIN if the profile has one).
+//
+// POST /profiles/{profileId}/select
+func (UnimplementedHandler) SelectProfile(ctx context.Context, req OptPinRequest, params SelectProfileParams) error {
+	return ht.ErrNotImplemented
+}
+
+// StartTOTPSetup implements startTOTPSetup operation.
+//
+// Creates a new (not yet active) TOTP secret for the signed-in user.
+//
+// POST /auth/totp/setup
+func (UnimplementedHandler) StartTOTPSetup(ctx context.Context) (r *TOTPSetup, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateProfile implements updateProfile operation.
+//
+// Change a profile (not from a kids profile).
+//
+// PUT /profiles/{profileId}
+func (UnimplementedHandler) UpdateProfile(ctx context.Context, req *ProfileInput, params UpdateProfileParams) (r *Profile, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateServerSettings implements updateServerSettings operation.
+//
+// Update server-wide settings (admin).
+//
+// PUT /settings/server
+func (UnimplementedHandler) UpdateServerSettings(ctx context.Context, req *ServerSettings) (r *ServerSettings, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateUser implements updateUser operation.
+//
+// Disabling a user or changing the password signs out all of their sessions.
+//
+// PATCH /users/{userId}
+func (UnimplementedHandler) UpdateUser(ctx context.Context, req *UpdateUserRequest, params UpdateUserParams) (r *User, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

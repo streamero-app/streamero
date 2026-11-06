@@ -15,6 +15,7 @@ import (
 const (
 	KeyServerID       = "server.id"
 	KeySetupCompleted = "setup.completed"
+	KeyServerName     = "server.name"
 )
 
 // Store is a settings store backed by the settings table.

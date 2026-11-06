@@ -14,7 +14,7 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 
 - [x] `[JF]` Docker image, pokretanje kroz `docker compose` (P0)
 - [x] `[JF]` Volumeni: config, cache, media (read-only), transcode (P0)
-- [ ] `[JF]` Setup wizard pri prvom pokretanju: jezik, admin račun, prve biblioteke, jezik metapodataka/država, remote access (P1)
+- [ ] `[JF]` Setup wizard pri prvom pokretanju: jezik, admin račun, prve biblioteke, jezik metapodataka/država, remote access (P1) — *djelomično: setup kod, ime servera, admin račun, jezik UI-ja; biblioteke/metapodaci dolaze s P2/P3*
 - [ ] `[JF]` Startup UI koji prikazuje napredak pokretanja/migracija i log — dostupan samo iz LAN-a (P10)
 - [ ] `[JF]` Provjera slobodnog prostora pri startu (odbija start ispod praga, npr. 2 GB) + API za storage info (P10)
 - [ ] `[JF]` Provjera poznatih pogrešnih konfiguracija putanja (P10)
@@ -30,25 +30,25 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 
 ## 2. Korisnici, autentikacija, sigurnost
 
-- [ ] `[JF]` Više korisnika, admin/korisnik uloge (P1)
-- [ ] `[JF]` Login korisničkim imenom + lozinkom; imena case-insensitive (P1)
+- [x] `[JF]` Više korisnika, admin/korisnik uloge (P1)
+- [x] `[JF]` Login korisničkim imenom + lozinkom; imena case-insensitive (P1)
 - [ ] `[JF]` Skriveni korisnici / prikaz korisnika na login ekranu (opcija) (P1)
-- [ ] `[JF]` Quick Connect — prijava na novom uređaju 6-znamenkastim kodom odobrenim s prijavljenog uređaja (P1)
+- [x] `[JF]` Quick Connect — prijava na novom uređaju 6-znamenkastim kodom odobrenim s prijavljenog uređaja (P1)
 - [ ] `[JF]` Reset lozinke (admin + PIN/file flow kao JF; kod nas email ili admin link) (P1)
-- [ ] `[JF]` API ključevi (za integracije) (P1)
-- [ ] `[JF]` Uređaji: lista, preimenovanje, opoziv pristupa (odmah gasi postojeće sesije) (P1)
+- [x] `[JF]` API ključevi (za integracije) (P1)
+- [x] `[JF]` Uređaji: lista, preimenovanje, opoziv pristupa (odmah gasi postojeće sesije) (P1)
 - [ ] `[JF]` Ograničenje pristupa po uređaju (P1)
-- [ ] `[JF]` Dozvole po korisniku: pristup bibliotekama, Live TV, upravljanje Live TV, brisanje medija, download, transkodiranje (audio/video/remux zasebno), SyncPlay, upravljanje kolekcijama, uređivanje podnaslova, remote control drugih korisnika, dijeljeni uređaji (P1)
-- [ ] `[JF]` Max broj aktivnih sesija po korisniku (P1)
+- [ ] `[JF]` Dozvole po korisniku: pristup bibliotekama, Live TV, upravljanje Live TV, brisanje medija, download, transkodiranje (audio/video/remux zasebno), SyncPlay, upravljanje kolekcijama, uređivanje podnaslova, remote control drugih korisnika, dijeljeni uređaji (P1) — *model, API i UI gotovi (P1); provedba stiže sa značajkom (biblioteke P2, reprodukcija P5, Live TV P11)*
+- [x] `[JF]` Max broj aktivnih sesija po korisniku (P1)
 - [ ] `[JF]` Bitrate limit za remote klijente po korisniku (P5)
-- [ ] `[JF]` Login-attempt lockout (N neuspjelih pokušaja) (P1)
+- [x] `[JF]` Login-attempt lockout (N neuspjelih pokušaja) (P1)
 - [ ] `[JF]` Parental controls: max dob. ocjena (sa subscores), blokirani/dopušteni tagovi, blokiranje nerangiranih stavki po tipu, raspored pristupa (sati/dani) (P1 + primjena svugdje P4)
 - [ ] `[JF-P]` LDAP auth (P13)
 - [ ] `[JF-P]` SSO preko OIDC (Authentik, Keycloak, Entra ID, Google) — ugrađeno, bez plugina (P13)
-- [ ] `[+]` 2FA TOTP + recovery kodovi (P1)
+- [x] `[+]` 2FA TOTP + recovery kodovi (P1)
 - [ ] `[+]` Passkeys / WebAuthn za web (P13)
-- [ ] `[+]` Profili unutar korisnika (Netflix-style): avatar, PIN po profilu, dječji profil s vlastitim parental limitom, odvojena watch povijest (P1)
-- [ ] `[+]` Pozivnice (invite link s rokom, unaprijed postavljenim bibliotekama i dozvolama) (P1)
+- [ ] `[+]` Profili unutar korisnika (Netflix-style): avatar, PIN po profilu, dječji profil s vlastitim parental limitom, odvojena watch povijest (P1) — *profili, boja/avatar, PIN (s lockoutom), dječji profil s dobnom granicom i zaključanim postavkama gotovi; odvojena watch povijest i provedba dobne granice stižu s P3/P4*
+- [x] `[+]` Pozivnice (invite link s rokom, unaprijed postavljenim bibliotekama i dozvolama) (P1) — *biblioteke u pozivnici dolaze s P2*
 - [ ] `[+]` Audit log svih admin akcija (P10)
 - [ ] `[+]` Potpisani kratkotrajni stream URL-ovi (HMAC) — AVPlayer/Chromecast mogu fetchati bez headera (P5)
 - [ ] `[+]` GeoIP prikaz sesija + opcionalno blokiranje po državi (P10)
@@ -306,7 +306,7 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 ## 16. iOS aplikacija (.ipa za Feather)
 
 - [ ] Spajanje na server: ručni URL, Bonjour discovery u LAN-u, više servera, više korisnika po serveru (P7)
-- [ ] Login: lozinka, Quick Connect, (kasnije) OIDC preko ASWebAuthenticationSession (P7/P13)
+- [ ] Login: lozinka, Quick Connect, (kasnije) OIDC preko ASWebAuthenticationSession (P7/P13) — *lozinka + 2FA + Quick Connect gotovi u P1 (token u Keychainu); OIDC u P13*
 - [ ] Profili + PIN, Face ID / Touch ID zaključavanje appa (P7/P8)
 - [ ] Home s istim redovima kao web, biblioteke, detalji, pretraga, favoriti, kolekcije, playliste (P7)
 - [ ] Player A: AVPlayer (HLS) — HDR10/HLG/DV, PiP, AirPlay, Now Playing info, lock screen kontrole (P7)

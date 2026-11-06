@@ -61,3 +61,23 @@ Format: `## D-001 Naslov (datum)` → Kontekst → Odluka → Posljedice.
 4. **Prowlarr**: nema integracije s media serverom — ništa se ne implementira osim (opcionalno, P10) prikaza zdravlja *arr servisa na admin dashboardu.
 5. Vlastiti Requests (P13) ostaje, ali Seerr/Jellyseerr mora raditi i bez njega.
 **Posljedice:** Compat sloj se sad održava kao javni ugovor; testira se e2e protiv **stvarnih kontejnera** Seerr, Jellyseerr, Radarr, Sonarr, Lidarr i Bazarr u CI-ju (compose profil `arr`). Podržani podskup je dokumentiran u `docs/INTEGRATIONS.md`; nepodržani endpointi vraćaju 404, ne lažne podatke. P14 „Jellyfin-compat za Infuse/Swiftfin" se nadograđuje na isti sloj.
+
+## D-012 Sesije: Bearer token za aplikacije, HttpOnly cookie za web; setup kod (2026-11-06)
+**Kontekst:** PLAN §5.5 predviđa header `Authorization: Streamero token="…"`. Web klijent ne bi smio držati token u JavaScriptu (XSS), a demo je javno dostupan pa bi prvi posjetitelj mogao „preuzeti" server kroz setup wizard.
+**Odluka:**
+- Standardni `Authorization: Bearer <token>` (OpenAPI `http/bearer`, ogen ga generira) za iOS i integracije; web dobiva isti token kao `streamero_session` cookie (`HttpOnly`, `SameSite=Strict`, `Secure` kad je veza HTTPS, i iza proxyja preko `X-Forwarded-Proto`). Server cookie interno pretvara u Bearer.
+- Token: 32 B random, u bazi samo SHA-256; sesija vrijedi 30 dana i produžuje se korištenjem.
+- Prvi admin se može napraviti samo uz jednokratni **setup kod** koji server ispisuje u log pri startu (`setup_code=XXXX-XXXX`) ili je zadan s `STREAMERO_SETUP_CODE`; 10 pogrešnih kodova → 1 min pauze.
+- Lozinke min. 8 znakova (argon2id); lockout 5 pogrešnih → 15 min, atomično u SQL-u; nepostojeći korisnik odgovara isto kao kriva lozinka.
+- Rate limit po IP-u odgođen do postavke „known proxies" (D-009) — iza nginxa bi svi klijenti imali isti IP.
+**Posljedice:** API ključevi (P1, sljedeći korak) koriste isti Bearer header. CSRF: mutacije su JSON (cross-site forma ih ne može poslati bez CORS preflighta), a cookie je `SameSite=Strict`.
+
+## D-013 Dozvole kao jsonb s defaultima u kodu; limit uređaja odjavljuje najstariji (2026-11-06)
+**Kontekst:** P1 traži model dozvola prije nego što postoje biblioteke, reprodukcija i Live TV; Jellyfin pri prekoračenju broja sesija odbija novu prijavu.
+**Odluka:** `users.permissions jsonb`; nedostajući ključevi dobivaju `auth.DefaultPermissions()` pri čitanju, pa nove dozvole ne trebaju migraciju podataka. Admin uvijek smije sve. Kad korisnik s limitom N uđe na N+1. uređaj, odjavljuje se najdulje neaktivna sesija (umjesto odbijanja), jer bi inače korisnik sa zaboravljenom sesijom ostao zaključan.
+**Posljedice:** Svaka buduća značajka mora provjeriti svoju dozvolu (`Principal.User.Permissions`) i imati test za to.
+
+## D-014 Known proxies kao env postavka; rate limit u memoriji (2026-11-06)
+**Kontekst:** D-009 je odgodio pravi IP klijenta do „known proxies". Bez toga rate limit iza nginxa vidi samo jedan IP.
+**Odluka:** `STREAMERO_TRUSTED_PROXIES` (CIDR/IP lista) — `X-Forwarded-For` se čita samo kad je izravni peer na listi, i to zdesna (prvi netrusted hop), pa klijent ne može podmetnuti IP. Token bucket po IP-u u memoriji procesa (20/min, burst 10) na prijavi, setupu, Quick Connect startu, pozivnicama i PIN-u profila; IP ide u audit log. Postavka je env (ne u admin UI-ju) jer pogrešna vrijednost može zaključati sve ili otvoriti spoofing.
+**Posljedice:** Više instanci servera bi trebalo dijeljeni limiter (Valkey) — tek kad bude potrebno. Demo: `172.18.0.1` (gateway compose mreže).

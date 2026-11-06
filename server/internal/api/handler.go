@@ -3,13 +3,16 @@ package api
 
 import (
 	"context"
-	"errors"
+	"encoding/json"
+	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/google/uuid"
 
 	"github.com/streamero-app/streamero/server/internal/api/gen"
+	"github.com/streamero-app/streamero/server/internal/auth"
+	"github.com/streamero-app/streamero/server/internal/settings"
 	"github.com/streamero-app/streamero/server/internal/version"
 )
 
@@ -23,8 +26,12 @@ type SystemState interface {
 // Handler implements gen.Handler.
 type Handler struct {
 	State      SystemState
-	ServerName string
+	ServerName string // default when no name was set by an admin
 	StartedAt  time.Time
+	// Auth and Settings return nil until the server is ready; the router
+	// answers 503 for non-system endpoints until then.
+	Auth     func() *auth.Service
+	Settings func() *settings.Store
 }
 
 var _ gen.Handler = (*Handler)(nil)
@@ -42,7 +49,7 @@ func (h *Handler) GetSystemInfo(ctx context.Context) (gen.GetSystemInfoRes, erro
 	}
 	return &gen.SystemInfo{
 		ID:             h.State.ServerID(),
-		Name:           h.ServerName,
+		Name:           h.serverName(ctx),
 		Product:        "Streamero",
 		Version:        version.Version,
 		Commit:         gen.NewOptString(version.Commit),
@@ -67,13 +74,27 @@ type StatusError struct {
 func (e *StatusError) Error() string { return e.Message }
 
 // NewError maps handler errors to the common error response.
-func (h *Handler) NewError(_ context.Context, err error) *gen.ErrorStatusCode {
-	var se *StatusError
-	if errors.As(err, &se) {
+func (h *Handler) NewError(ctx context.Context, err error) *gen.ErrorStatusCode {
+	if se := mapError(err); se != nil {
 		return &gen.ErrorStatusCode{StatusCode: se.Status, Response: gen.Error{Code: se.Code, Message: se.Message}}
 	}
+	slog.ErrorContext(ctx, "request failed", "err", err)
 	return &gen.ErrorStatusCode{
 		StatusCode: http.StatusInternalServerError,
 		Response:   gen.Error{Code: "internal", Message: "internal server error"},
 	}
+}
+
+// ErrorHandler renders errors the generated server raises outside of handlers
+// (e.g. router-level failures) in the common error format.
+func ErrorHandler(ctx context.Context, w http.ResponseWriter, _ *http.Request, err error) {
+	status, body := http.StatusInternalServerError, gen.Error{Code: "internal", Message: "internal server error"}
+	if se := mapError(err); se != nil {
+		status, body = se.Status, gen.Error{Code: se.Code, Message: se.Message}
+	} else {
+		slog.ErrorContext(ctx, "request failed", "err", err)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(body)
 }

@@ -1,54 +1,60 @@
 import { useState, type FormEvent } from "react";
+import { Navigate, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Logo } from "@/components/Logo";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { Button, ErrorText, TextField } from "@/components/ui";
+import { AuthFrame } from "@/features/auth/AuthFrame";
+import { useLogin, useMe } from "@/features/auth/useAuth";
 import { useSystemInfo } from "@/features/server/useSystemInfo";
+import { ApiError } from "@/api/client";
+import { QuickConnectLogin } from "@/features/auth/QuickConnectLogin";
 
 export function LoginPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { data: info } = useSystemInfo();
-  const [notice, setNotice] = useState(false);
+  const { data: me } = useMe();
+  const login = useLogin();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [totpCode, setTotpCode] = useState("");
+  const [quick, setQuick] = useState(false);
+  // The server answers totp_required once the password is right; then we ask for the code.
+  const needsCode = login.error instanceof ApiError && ["totp_required", "invalid_totp"].includes(login.error.code)
+    || totpCode !== "";
 
-  // Authentication is implemented in P1; the form is a shell for now.
+  if (info && !info.setupCompleted) return <Navigate to="/setup" />;
+  if (me) return <Navigate to="/" />;
+
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
-    setNotice(true);
+    login.mutate({ username, password, totpCode: totpCode || undefined }, { onSuccess: () => void navigate({ to: "/" }) });
   };
 
+  if (quick) {
+    return (
+      <AuthFrame title={t("settings.quickConnect")}>
+        <QuickConnectLogin onCancel={() => setQuick(false)} />
+      </AuthFrame>
+    );
+  }
+
   return (
-    <div className="relative flex min-h-full items-center justify-center bg-[radial-gradient(ellipse_at_top,var(--color-surface-2),var(--color-bg)_60%)] px-4">
-      <div className="absolute top-4 right-4">
-        <LanguageSwitcher />
-      </div>
-      <main className="w-full max-w-sm rounded-card border border-border bg-surface/80 p-8 shadow-2xl backdrop-blur">
-        <Logo className="mb-2 justify-center" />
-        <p className="mb-8 text-center text-sm text-muted">{t("app.tagline")}</p>
-        <h1 className="mb-6 text-2xl font-semibold">{t("login.title")}</h1>
-        <form className="flex flex-col gap-4" onSubmit={onSubmit}>
-          <label className="flex flex-col gap-1 text-sm">
-            {t("login.username")}
-            <input name="username" autoComplete="username" required
-              className="rounded-md border border-border bg-bg px-3 py-2 text-base outline-none focus:border-accent" />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            {t("login.password")}
-            <input name="password" type="password" autoComplete="current-password"
-              className="rounded-md border border-border bg-bg px-3 py-2 text-base outline-none focus:border-accent" />
-          </label>
-          <button type="submit" className="mt-2 rounded-md bg-accent px-4 py-2 font-medium text-accent-contrast hover:opacity-90">
-            {t("login.submit")}
-          </button>
-          <button type="button" className="text-sm text-muted hover:text-text" onClick={() => setNotice(true)}>
-            {t("login.quickConnect")}
-          </button>
-          {notice && <p role="alert" className="text-sm text-muted">{t("login.notAvailable")}</p>}
-        </form>
-        {info && (
-          <p className="mt-8 text-center text-xs text-muted">
-            {info.name} · {t("server.version", { version: info.version })}
-          </p>
+    <AuthFrame title={t("login.title")}>
+      <form className="flex flex-col gap-4" onSubmit={onSubmit}>
+        <TextField label={t("login.username")} name="username" autoComplete="username" required autoFocus
+          value={username} onChange={(e) => setUsername(e.target.value)} />
+        <TextField label={t("login.password")} name="password" type="password" autoComplete="current-password" required
+          value={password} onChange={(e) => setPassword(e.target.value)} />
+        {needsCode && (
+          <TextField label={t("twofa.code")} name="totpCode" inputMode="text" autoComplete="one-time-code" required autoFocus
+            maxLength={32} value={totpCode} onChange={(e) => setTotpCode(e.target.value)} hint={t("twofa.loginHint")} />
         )}
-      </main>
-    </div>
+        {!(login.error instanceof ApiError && login.error.code === "totp_required") && <ErrorText error={login.error} />}
+        <Button type="submit" className="mt-2" disabled={login.isPending}>
+          {login.isPending ? t("login.signingIn") : t("login.submit")}
+        </Button>
+        <Button type="button" variant="ghost" onClick={() => setQuick(true)}>{t("quickconnect.useQuickConnect")}</Button>
+      </form>
+    </AuthFrame>
   );
 }

@@ -30,6 +30,12 @@ sudo nginx -t && sudo systemctl reload nginx
 sudo certbot --nginx -d demo.streamero.net   # adds 443 + HTTP->HTTPS redirect
 ```
 
+### Client IPs behind the proxy
+Set `STREAMERO_TRUSTED_PROXIES` in `deploy/.env` to the address the proxy connects from as the
+container sees it (proxy on the Docker host → the compose network gateway, e.g. `172.18.0.1`).
+Only then is `X-Forwarded-For` used; sign-in endpoints are rate limited per client IP
+(20/min, burst 10) and the audit log records it.
+
 ## Development instance (demo.streamero.net)
 The dev instance builds from source on the server. Port 8787 is taken by another service on that
 host, so `deploy/.env` sets `HTTP_PORT=127.0.0.1:8797` and nginx proxies to it.

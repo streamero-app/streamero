@@ -8,18 +8,225 @@ import (
 
 // Handler handles operations described by OpenAPI v3 specification.
 type Handler interface {
+	// AcceptInvite implements acceptInvite operation.
+	//
+	// Create an account from an invite and sign in (public).
+	//
+	// POST /invite/{token}
+	AcceptInvite(ctx context.Context, req *AcceptInviteRequest, params AcceptInviteParams) (*SignedInHeaders, error)
+	// AuthorizeQuickConnect implements authorizeQuickConnect operation.
+	//
+	// The other device is signed in as the calling user.
+	//
+	// POST /quickconnect/authorize
+	AuthorizeQuickConnect(ctx context.Context, req *TOTPCodeRequest) (*QuickConnectApproved, error)
+	// ChangePassword implements changePassword operation.
+	//
+	// Change own password; signs out all other sessions.
+	//
+	// POST /auth/password
+	ChangePassword(ctx context.Context, req *ChangePasswordRequest) error
+	// CompleteSetup implements completeSetup operation.
+	//
+	// Only allowed while `setupCompleted` is false. Requires the one-time setup code the server prints to
+	// its log on start (or STREAMERO_SETUP_CODE). Signs the admin in.
+	//
+	// POST /setup
+	CompleteSetup(ctx context.Context, req *SetupRequest) (*SignedInHeaders, error)
+	// CreateAPIKey implements createAPIKey operation.
+	//
+	// The key acts with the rights of the admin who created it and is deleted with that user. Send it as
+	// `Authorization: Bearer <key>`. The secret is returned only once.
+	//
+	// POST /apikeys
+	CreateAPIKey(ctx context.Context, req *CreateApiKeyRequest) (*CreatedApiKey, error)
+	// CreateInvite implements createInvite operation.
+	//
+	// Create an invite link (admin).
+	//
+	// POST /invites
+	CreateInvite(ctx context.Context, req *CreateInviteRequest) (*CreatedInvite, error)
+	// CreateProfile implements createProfile operation.
+	//
+	// Add a profile (not from a kids profile).
+	//
+	// POST /profiles
+	CreateProfile(ctx context.Context, req *ProfileInput) (*Profile, error)
+	// CreateUser implements createUser operation.
+	//
+	// Create a user (admin).
+	//
+	// POST /users
+	CreateUser(ctx context.Context, req *CreateUserRequest) (*User, error)
+	// DeleteAPIKey implements deleteAPIKey operation.
+	//
+	// Revoke an API key immediately (admin).
+	//
+	// DELETE /apikeys/{apiKeyId}
+	DeleteAPIKey(ctx context.Context, params DeleteAPIKeyParams) error
+	// DeleteInvite implements deleteInvite operation.
+	//
+	// Revoke an invite (admin).
+	//
+	// DELETE /invites/{inviteId}
+	DeleteInvite(ctx context.Context, params DeleteInviteParams) error
+	// DeleteProfile implements deleteProfile operation.
+	//
+	// Delete a profile (not from a kids profile).
+	//
+	// DELETE /profiles/{profileId}
+	DeleteProfile(ctx context.Context, params DeleteProfileParams) error
+	// DeleteUser implements deleteUser operation.
+	//
+	// Delete a user and all of their sessions (admin).
+	//
+	// DELETE /users/{userId}
+	DeleteUser(ctx context.Context, params DeleteUserParams) error
+	// DisableTOTP implements disableTOTP operation.
+	//
+	// Turn 2FA off (requires the password).
+	//
+	// POST /auth/totp/disable
+	DisableTOTP(ctx context.Context, req *PasswordConfirmRequest) error
+	// EnableTOTP implements enableTOTP operation.
+	//
+	// Confirm a code from the authenticator app and turn 2FA on.
+	//
+	// POST /auth/totp/enable
+	EnableTOTP(ctx context.Context, req *TOTPCodeRequest) (*RecoveryCodes, error)
+	// GetInvite implements getInvite operation.
+	//
+	// Check an invite link (public).
+	//
+	// GET /invite/{token}
+	GetInvite(ctx context.Context, params GetInviteParams) (*InviteInfo, error)
+	// GetMe implements getMe operation.
+	//
+	// The signed-in user.
+	//
+	// GET /auth/me
+	GetMe(ctx context.Context) (*User, error)
+	// GetServerSettings implements getServerSettings operation.
+	//
+	// Server-wide settings (admin).
+	//
+	// GET /settings/server
+	GetServerSettings(ctx context.Context) (*ServerSettings, error)
 	// GetSystemInfo implements getSystemInfo operation.
 	//
 	// Unauthenticated. Used by clients to verify a server URL before login.
 	//
 	// GET /system/info
 	GetSystemInfo(ctx context.Context) (GetSystemInfoRes, error)
+	// InitiateQuickConnect implements initiateQuickConnect operation.
+	//
+	// Returns a 6-digit code to show on the new device and a secret to poll with. A signed-in user
+	// approves the code (POST /quickconnect/authorize) within 5 minutes.
+	//
+	// POST /quickconnect/initiate
+	InitiateQuickConnect(ctx context.Context, req OptDeviceInfo) (*QuickConnectStart, error)
+	// ListAPIKeys implements listAPIKeys operation.
+	//
+	// API keys for integrations (admin).
+	//
+	// GET /apikeys
+	ListAPIKeys(ctx context.Context) ([]ApiKey, error)
+	// ListInvites implements listInvites operation.
+	//
+	// Invite links (admin).
+	//
+	// GET /invites
+	ListInvites(ctx context.Context) ([]Invite, error)
+	// ListProfiles implements listProfiles operation.
+	//
+	// The account itself is the main profile; these are additional profiles (max 6).
+	//
+	// GET /profiles
+	ListProfiles(ctx context.Context) ([]Profile, error)
+	// ListSessions implements listSessions operation.
+	//
+	// Own sessions; admins see the sessions of all users.
+	//
+	// GET /sessions
+	ListSessions(ctx context.Context) ([]Session, error)
+	// ListUsers implements listUsers operation.
+	//
+	// List users (admin).
+	//
+	// GET /users
+	ListUsers(ctx context.Context) ([]User, error)
+	// Login implements login operation.
+	//
+	// Sign in with username and password.
+	//
+	// POST /auth/login
+	Login(ctx context.Context, req *LoginRequest) (*SignedInHeaders, error)
+	// Logout implements logout operation.
+	//
+	// End the current session.
+	//
+	// POST /auth/logout
+	Logout(ctx context.Context) (*LogoutNoContent, error)
 	// Ping implements ping operation.
 	//
 	// Liveness probe for clients.
 	//
 	// GET /system/ping
 	Ping(ctx context.Context) (*Pong, error)
+	// PollQuickConnect implements pollQuickConnect operation.
+	//
+	// Check whether the code was approved; signs the device in when it was.
+	//
+	// POST /quickconnect/poll
+	PollQuickConnect(ctx context.Context, req *QuickConnectPollRequest) (PollQuickConnectRes, error)
+	// RenameSession implements renameSession operation.
+	//
+	// Own sessions; admins can rename any session.
+	//
+	// PATCH /sessions/{sessionId}
+	RenameSession(ctx context.Context, req *RenameSessionRequest, params RenameSessionParams) error
+	// RevokeSession implements revokeSession operation.
+	//
+	// Own sessions; admins can revoke any session.
+	//
+	// DELETE /sessions/{sessionId}
+	RevokeSession(ctx context.Context, params RevokeSessionParams) error
+	// SelectMainProfile implements selectMainProfile operation.
+	//
+	// From a kids profile this needs the account password.
+	//
+	// POST /profiles/main/select
+	SelectMainProfile(ctx context.Context, req OptPasswordConfirmRequest) error
+	// SelectProfile implements selectProfile operation.
+	//
+	// Switch this device to a profile (PIN if the profile has one).
+	//
+	// POST /profiles/{profileId}/select
+	SelectProfile(ctx context.Context, req OptPinRequest, params SelectProfileParams) error
+	// StartTOTPSetup implements startTOTPSetup operation.
+	//
+	// Creates a new (not yet active) TOTP secret for the signed-in user.
+	//
+	// POST /auth/totp/setup
+	StartTOTPSetup(ctx context.Context) (*TOTPSetup, error)
+	// UpdateProfile implements updateProfile operation.
+	//
+	// Change a profile (not from a kids profile).
+	//
+	// PUT /profiles/{profileId}
+	UpdateProfile(ctx context.Context, req *ProfileInput, params UpdateProfileParams) (*Profile, error)
+	// UpdateServerSettings implements updateServerSettings operation.
+	//
+	// Update server-wide settings (admin).
+	//
+	// PUT /settings/server
+	UpdateServerSettings(ctx context.Context, req *ServerSettings) (*ServerSettings, error)
+	// UpdateUser implements updateUser operation.
+	//
+	// Disabling a user or changing the password signs out all of their sessions.
+	//
+	// PATCH /users/{userId}
+	UpdateUser(ctx context.Context, req *UpdateUserRequest, params UpdateUserParams) (*User, error)
 	// NewError creates *ErrorStatusCode from error returned by handler.
 	//
 	// Used for common default response.
@@ -29,18 +236,20 @@ type Handler interface {
 // Server implements http server based on OpenAPI v3 specification and
 // calls Handler to handle requests.
 type Server struct {
-	h Handler
+	h   Handler
+	sec SecurityHandler
 	baseServer
 }
 
 // NewServer creates new Server.
-func NewServer(h Handler, opts ...ServerOption) (*Server, error) {
+func NewServer(h Handler, sec SecurityHandler, opts ...ServerOption) (*Server, error) {
 	s, err := newServerConfig(opts...).baseServer()
 	if err != nil {
 		return nil, err
 	}
 	return &Server{
 		h:          h,
+		sec:        sec,
 		baseServer: s,
 	}, nil
 }

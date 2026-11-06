@@ -13,6 +13,403 @@ func (s *ErrorStatusCode) Error() string {
 	return fmt.Sprintf("code %d: %+v", s.StatusCode, s.Response)
 }
 
+// Ref: #/components/schemas/AcceptInviteRequest
+type AcceptInviteRequest struct {
+	Username  Username      `json:"username"`
+	Password  Password      `json:"password"`
+	UseCookie OptBool       `json:"useCookie"`
+	Device    OptDeviceInfo `json:"device"`
+}
+
+// GetUsername returns the value of Username.
+func (s *AcceptInviteRequest) GetUsername() Username {
+	return s.Username
+}
+
+// GetPassword returns the value of Password.
+func (s *AcceptInviteRequest) GetPassword() Password {
+	return s.Password
+}
+
+// GetUseCookie returns the value of UseCookie.
+func (s *AcceptInviteRequest) GetUseCookie() OptBool {
+	return s.UseCookie
+}
+
+// GetDevice returns the value of Device.
+func (s *AcceptInviteRequest) GetDevice() OptDeviceInfo {
+	return s.Device
+}
+
+// SetUsername sets the value of Username.
+func (s *AcceptInviteRequest) SetUsername(val Username) {
+	s.Username = val
+}
+
+// SetPassword sets the value of Password.
+func (s *AcceptInviteRequest) SetPassword(val Password) {
+	s.Password = val
+}
+
+// SetUseCookie sets the value of UseCookie.
+func (s *AcceptInviteRequest) SetUseCookie(val OptBool) {
+	s.UseCookie = val
+}
+
+// SetDevice sets the value of Device.
+func (s *AcceptInviteRequest) SetDevice(val OptDeviceInfo) {
+	s.Device = val
+}
+
+// Ref: #/components/schemas/ApiKey
+type ApiKey struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+	// First characters of the key, to recognise it.
+	Prefix string `json:"prefix"`
+	// Username of the admin who created the key.
+	CreatedBy  string      `json:"createdBy"`
+	CreatedAt  time.Time   `json:"createdAt"`
+	LastUsedAt OptDateTime `json:"lastUsedAt"`
+}
+
+// GetID returns the value of ID.
+func (s *ApiKey) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetName returns the value of Name.
+func (s *ApiKey) GetName() string {
+	return s.Name
+}
+
+// GetPrefix returns the value of Prefix.
+func (s *ApiKey) GetPrefix() string {
+	return s.Prefix
+}
+
+// GetCreatedBy returns the value of CreatedBy.
+func (s *ApiKey) GetCreatedBy() string {
+	return s.CreatedBy
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *ApiKey) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetLastUsedAt returns the value of LastUsedAt.
+func (s *ApiKey) GetLastUsedAt() OptDateTime {
+	return s.LastUsedAt
+}
+
+// SetID sets the value of ID.
+func (s *ApiKey) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetName sets the value of Name.
+func (s *ApiKey) SetName(val string) {
+	s.Name = val
+}
+
+// SetPrefix sets the value of Prefix.
+func (s *ApiKey) SetPrefix(val string) {
+	s.Prefix = val
+}
+
+// SetCreatedBy sets the value of CreatedBy.
+func (s *ApiKey) SetCreatedBy(val string) {
+	s.CreatedBy = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *ApiKey) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetLastUsedAt sets the value of LastUsedAt.
+func (s *ApiKey) SetLastUsedAt(val OptDateTime) {
+	s.LastUsedAt = val
+}
+
+// Ref: #/components/schemas/AuthResult
+type AuthResult struct {
+	// Bearer token. Omitted when useCookie was requested.
+	Token     OptString `json:"token"`
+	SessionId uuid.UUID `json:"sessionId"`
+	User      User      `json:"user"`
+}
+
+// GetToken returns the value of Token.
+func (s *AuthResult) GetToken() OptString {
+	return s.Token
+}
+
+// GetSessionId returns the value of SessionId.
+func (s *AuthResult) GetSessionId() uuid.UUID {
+	return s.SessionId
+}
+
+// GetUser returns the value of User.
+func (s *AuthResult) GetUser() User {
+	return s.User
+}
+
+// SetToken sets the value of Token.
+func (s *AuthResult) SetToken(val OptString) {
+	s.Token = val
+}
+
+// SetSessionId sets the value of SessionId.
+func (s *AuthResult) SetSessionId(val uuid.UUID) {
+	s.SessionId = val
+}
+
+// SetUser sets the value of User.
+func (s *AuthResult) SetUser(val User) {
+	s.User = val
+}
+
+// ChangePasswordNoContent is response for ChangePassword operation.
+type ChangePasswordNoContent struct{}
+
+// Ref: #/components/schemas/ChangePasswordRequest
+type ChangePasswordRequest struct {
+	CurrentPassword string   `json:"currentPassword"`
+	NewPassword     Password `json:"newPassword"`
+}
+
+// GetCurrentPassword returns the value of CurrentPassword.
+func (s *ChangePasswordRequest) GetCurrentPassword() string {
+	return s.CurrentPassword
+}
+
+// GetNewPassword returns the value of NewPassword.
+func (s *ChangePasswordRequest) GetNewPassword() Password {
+	return s.NewPassword
+}
+
+// SetCurrentPassword sets the value of CurrentPassword.
+func (s *ChangePasswordRequest) SetCurrentPassword(val string) {
+	s.CurrentPassword = val
+}
+
+// SetNewPassword sets the value of NewPassword.
+func (s *ChangePasswordRequest) SetNewPassword(val Password) {
+	s.NewPassword = val
+}
+
+// Ref: #/components/schemas/CreateApiKeyRequest
+type CreateApiKeyRequest struct {
+	// E.g. "Jellyseerr".
+	Name string `json:"name"`
+}
+
+// GetName returns the value of Name.
+func (s *CreateApiKeyRequest) GetName() string {
+	return s.Name
+}
+
+// SetName sets the value of Name.
+func (s *CreateApiKeyRequest) SetName(val string) {
+	s.Name = val
+}
+
+// Ref: #/components/schemas/CreateInviteRequest
+type CreateInviteRequest struct {
+	// E.g. "For my sister".
+	Note           OptString          `json:"note"`
+	ExpiresInHours int                `json:"expiresInHours"`
+	MaxUses        int                `json:"maxUses"`
+	Permissions    OptUserPermissions `json:"permissions"`
+}
+
+// GetNote returns the value of Note.
+func (s *CreateInviteRequest) GetNote() OptString {
+	return s.Note
+}
+
+// GetExpiresInHours returns the value of ExpiresInHours.
+func (s *CreateInviteRequest) GetExpiresInHours() int {
+	return s.ExpiresInHours
+}
+
+// GetMaxUses returns the value of MaxUses.
+func (s *CreateInviteRequest) GetMaxUses() int {
+	return s.MaxUses
+}
+
+// GetPermissions returns the value of Permissions.
+func (s *CreateInviteRequest) GetPermissions() OptUserPermissions {
+	return s.Permissions
+}
+
+// SetNote sets the value of Note.
+func (s *CreateInviteRequest) SetNote(val OptString) {
+	s.Note = val
+}
+
+// SetExpiresInHours sets the value of ExpiresInHours.
+func (s *CreateInviteRequest) SetExpiresInHours(val int) {
+	s.ExpiresInHours = val
+}
+
+// SetMaxUses sets the value of MaxUses.
+func (s *CreateInviteRequest) SetMaxUses(val int) {
+	s.MaxUses = val
+}
+
+// SetPermissions sets the value of Permissions.
+func (s *CreateInviteRequest) SetPermissions(val OptUserPermissions) {
+	s.Permissions = val
+}
+
+// Ref: #/components/schemas/CreateUserRequest
+type CreateUserRequest struct {
+	Username    Username           `json:"username"`
+	Password    Password           `json:"password"`
+	IsAdmin     OptBool            `json:"isAdmin"`
+	Permissions OptUserPermissions `json:"permissions"`
+}
+
+// GetUsername returns the value of Username.
+func (s *CreateUserRequest) GetUsername() Username {
+	return s.Username
+}
+
+// GetPassword returns the value of Password.
+func (s *CreateUserRequest) GetPassword() Password {
+	return s.Password
+}
+
+// GetIsAdmin returns the value of IsAdmin.
+func (s *CreateUserRequest) GetIsAdmin() OptBool {
+	return s.IsAdmin
+}
+
+// GetPermissions returns the value of Permissions.
+func (s *CreateUserRequest) GetPermissions() OptUserPermissions {
+	return s.Permissions
+}
+
+// SetUsername sets the value of Username.
+func (s *CreateUserRequest) SetUsername(val Username) {
+	s.Username = val
+}
+
+// SetPassword sets the value of Password.
+func (s *CreateUserRequest) SetPassword(val Password) {
+	s.Password = val
+}
+
+// SetIsAdmin sets the value of IsAdmin.
+func (s *CreateUserRequest) SetIsAdmin(val OptBool) {
+	s.IsAdmin = val
+}
+
+// SetPermissions sets the value of Permissions.
+func (s *CreateUserRequest) SetPermissions(val OptUserPermissions) {
+	s.Permissions = val
+}
+
+// Ref: #/components/schemas/CreatedApiKey
+type CreatedApiKey struct {
+	// The secret. Shown only once.
+	Key    string `json:"key"`
+	ApiKey ApiKey `json:"apiKey"`
+}
+
+// GetKey returns the value of Key.
+func (s *CreatedApiKey) GetKey() string {
+	return s.Key
+}
+
+// GetApiKey returns the value of ApiKey.
+func (s *CreatedApiKey) GetApiKey() ApiKey {
+	return s.ApiKey
+}
+
+// SetKey sets the value of Key.
+func (s *CreatedApiKey) SetKey(val string) {
+	s.Key = val
+}
+
+// SetApiKey sets the value of ApiKey.
+func (s *CreatedApiKey) SetApiKey(val ApiKey) {
+	s.ApiKey = val
+}
+
+// Ref: #/components/schemas/CreatedInvite
+type CreatedInvite struct {
+	// Goes into the link /invite/. Shown only once.
+	Token  string `json:"token"`
+	Invite Invite `json:"invite"`
+}
+
+// GetToken returns the value of Token.
+func (s *CreatedInvite) GetToken() string {
+	return s.Token
+}
+
+// GetInvite returns the value of Invite.
+func (s *CreatedInvite) GetInvite() Invite {
+	return s.Invite
+}
+
+// SetToken sets the value of Token.
+func (s *CreatedInvite) SetToken(val string) {
+	s.Token = val
+}
+
+// SetInvite sets the value of Invite.
+func (s *CreatedInvite) SetInvite(val Invite) {
+	s.Invite = val
+}
+
+// DeleteAPIKeyNoContent is response for DeleteAPIKey operation.
+type DeleteAPIKeyNoContent struct{}
+
+// DeleteInviteNoContent is response for DeleteInvite operation.
+type DeleteInviteNoContent struct{}
+
+// DeleteProfileNoContent is response for DeleteProfile operation.
+type DeleteProfileNoContent struct{}
+
+// DeleteUserNoContent is response for DeleteUser operation.
+type DeleteUserNoContent struct{}
+
+// Ref: #/components/schemas/DeviceInfo
+type DeviceInfo struct {
+	// E.g. "Safari on iPhone".
+	Name OptString `json:"name"`
+	// E.g. "Streamero Web 0.1.0".
+	Client OptString `json:"client"`
+}
+
+// GetName returns the value of Name.
+func (s *DeviceInfo) GetName() OptString {
+	return s.Name
+}
+
+// GetClient returns the value of Client.
+func (s *DeviceInfo) GetClient() OptString {
+	return s.Client
+}
+
+// SetName sets the value of Name.
+func (s *DeviceInfo) SetName(val OptString) {
+	s.Name = val
+}
+
+// SetClient sets the value of Client.
+func (s *DeviceInfo) SetClient(val OptString) {
+	s.Client = val
+}
+
+// DisableTOTPNoContent is response for DisableTOTP operation.
+type DisableTOTPNoContent struct{}
+
 // Ref: #/components/schemas/Error
 type Error struct {
 	Code    string `json:"code"`
@@ -65,6 +462,339 @@ func (s *ErrorStatusCode) SetResponse(val Error) {
 	s.Response = val
 }
 
+// Ref: #/components/schemas/Invite
+type Invite struct {
+	ID          uuid.UUID       `json:"id"`
+	Note        string          `json:"note"`
+	CreatedBy   string          `json:"createdBy"`
+	CreatedAt   time.Time       `json:"createdAt"`
+	ExpiresAt   time.Time       `json:"expiresAt"`
+	MaxUses     int             `json:"maxUses"`
+	Uses        int             `json:"uses"`
+	Permissions UserPermissions `json:"permissions"`
+}
+
+// GetID returns the value of ID.
+func (s *Invite) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetNote returns the value of Note.
+func (s *Invite) GetNote() string {
+	return s.Note
+}
+
+// GetCreatedBy returns the value of CreatedBy.
+func (s *Invite) GetCreatedBy() string {
+	return s.CreatedBy
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *Invite) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *Invite) GetExpiresAt() time.Time {
+	return s.ExpiresAt
+}
+
+// GetMaxUses returns the value of MaxUses.
+func (s *Invite) GetMaxUses() int {
+	return s.MaxUses
+}
+
+// GetUses returns the value of Uses.
+func (s *Invite) GetUses() int {
+	return s.Uses
+}
+
+// GetPermissions returns the value of Permissions.
+func (s *Invite) GetPermissions() UserPermissions {
+	return s.Permissions
+}
+
+// SetID sets the value of ID.
+func (s *Invite) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetNote sets the value of Note.
+func (s *Invite) SetNote(val string) {
+	s.Note = val
+}
+
+// SetCreatedBy sets the value of CreatedBy.
+func (s *Invite) SetCreatedBy(val string) {
+	s.CreatedBy = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *Invite) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *Invite) SetExpiresAt(val time.Time) {
+	s.ExpiresAt = val
+}
+
+// SetMaxUses sets the value of MaxUses.
+func (s *Invite) SetMaxUses(val int) {
+	s.MaxUses = val
+}
+
+// SetUses sets the value of Uses.
+func (s *Invite) SetUses(val int) {
+	s.Uses = val
+}
+
+// SetPermissions sets the value of Permissions.
+func (s *Invite) SetPermissions(val UserPermissions) {
+	s.Permissions = val
+}
+
+// Ref: #/components/schemas/InviteInfo
+type InviteInfo struct {
+	ServerName string    `json:"serverName"`
+	ExpiresAt  time.Time `json:"expiresAt"`
+}
+
+// GetServerName returns the value of ServerName.
+func (s *InviteInfo) GetServerName() string {
+	return s.ServerName
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *InviteInfo) GetExpiresAt() time.Time {
+	return s.ExpiresAt
+}
+
+// SetServerName sets the value of ServerName.
+func (s *InviteInfo) SetServerName(val string) {
+	s.ServerName = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *InviteInfo) SetExpiresAt(val time.Time) {
+	s.ExpiresAt = val
+}
+
+// Ref: #/components/schemas/LoginRequest
+type LoginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	// Required when the user has 2FA on: a 6-digit code or a recovery code. Without it the server answers
+	// 401 `totp_required` (the password was correct, nothing else is revealed).
+	TotpCode OptString `json:"totpCode"`
+	// Web clients set this to receive an HttpOnly cookie instead of a token.
+	UseCookie OptBool       `json:"useCookie"`
+	Device    OptDeviceInfo `json:"device"`
+}
+
+// GetUsername returns the value of Username.
+func (s *LoginRequest) GetUsername() string {
+	return s.Username
+}
+
+// GetPassword returns the value of Password.
+func (s *LoginRequest) GetPassword() string {
+	return s.Password
+}
+
+// GetTotpCode returns the value of TotpCode.
+func (s *LoginRequest) GetTotpCode() OptString {
+	return s.TotpCode
+}
+
+// GetUseCookie returns the value of UseCookie.
+func (s *LoginRequest) GetUseCookie() OptBool {
+	return s.UseCookie
+}
+
+// GetDevice returns the value of Device.
+func (s *LoginRequest) GetDevice() OptDeviceInfo {
+	return s.Device
+}
+
+// SetUsername sets the value of Username.
+func (s *LoginRequest) SetUsername(val string) {
+	s.Username = val
+}
+
+// SetPassword sets the value of Password.
+func (s *LoginRequest) SetPassword(val string) {
+	s.Password = val
+}
+
+// SetTotpCode sets the value of TotpCode.
+func (s *LoginRequest) SetTotpCode(val OptString) {
+	s.TotpCode = val
+}
+
+// SetUseCookie sets the value of UseCookie.
+func (s *LoginRequest) SetUseCookie(val OptBool) {
+	s.UseCookie = val
+}
+
+// SetDevice sets the value of Device.
+func (s *LoginRequest) SetDevice(val OptDeviceInfo) {
+	s.Device = val
+}
+
+// LogoutNoContent is response for Logout operation.
+type LogoutNoContent struct {
+	SetCookie OptString
+}
+
+// GetSetCookie returns the value of SetCookie.
+func (s *LogoutNoContent) GetSetCookie() OptString {
+	return s.SetCookie
+}
+
+// SetSetCookie sets the value of SetCookie.
+func (s *LogoutNoContent) SetSetCookie(val OptString) {
+	s.SetCookie = val
+}
+
+// NewOptBool returns new OptBool with value set to v.
+func NewOptBool(v bool) OptBool {
+	return OptBool{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptBool is optional bool.
+type OptBool struct {
+	Value bool
+	Set   bool
+}
+
+// IsSet returns true if OptBool was set.
+func (o OptBool) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptBool) Reset() {
+	var v bool
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptBool) SetTo(v bool) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptBool) Get() (v bool, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptBool) Or(d bool) bool {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptDateTime returns new OptDateTime with value set to v.
+func NewOptDateTime(v time.Time) OptDateTime {
+	return OptDateTime{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptDateTime is optional time.Time.
+type OptDateTime struct {
+	Value time.Time
+	Set   bool
+}
+
+// IsSet returns true if OptDateTime was set.
+func (o OptDateTime) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptDateTime) Reset() {
+	var v time.Time
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptDateTime) SetTo(v time.Time) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptDateTime) Get() (v time.Time, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptDateTime) Or(d time.Time) time.Time {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptDeviceInfo returns new OptDeviceInfo with value set to v.
+func NewOptDeviceInfo(v DeviceInfo) OptDeviceInfo {
+	return OptDeviceInfo{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptDeviceInfo is optional DeviceInfo.
+type OptDeviceInfo struct {
+	Value DeviceInfo
+	Set   bool
+}
+
+// IsSet returns true if OptDeviceInfo was set.
+func (o OptDeviceInfo) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptDeviceInfo) Reset() {
+	var v DeviceInfo
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptDeviceInfo) SetTo(v DeviceInfo) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptDeviceInfo) Get() (v DeviceInfo, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptDeviceInfo) Or(d DeviceInfo) DeviceInfo {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptInt returns new OptInt with value set to v.
 func NewOptInt(v int) OptInt {
 	return OptInt{
@@ -105,6 +835,190 @@ func (o OptInt) Get() (v int, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptInt) Or(d int) int {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptPassword returns new OptPassword with value set to v.
+func NewOptPassword(v Password) OptPassword {
+	return OptPassword{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptPassword is optional Password.
+type OptPassword struct {
+	Value Password
+	Set   bool
+}
+
+// IsSet returns true if OptPassword was set.
+func (o OptPassword) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptPassword) Reset() {
+	var v Password
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptPassword) SetTo(v Password) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptPassword) Get() (v Password, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptPassword) Or(d Password) Password {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptPasswordConfirmRequest returns new OptPasswordConfirmRequest with value set to v.
+func NewOptPasswordConfirmRequest(v PasswordConfirmRequest) OptPasswordConfirmRequest {
+	return OptPasswordConfirmRequest{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptPasswordConfirmRequest is optional PasswordConfirmRequest.
+type OptPasswordConfirmRequest struct {
+	Value PasswordConfirmRequest
+	Set   bool
+}
+
+// IsSet returns true if OptPasswordConfirmRequest was set.
+func (o OptPasswordConfirmRequest) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptPasswordConfirmRequest) Reset() {
+	var v PasswordConfirmRequest
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptPasswordConfirmRequest) SetTo(v PasswordConfirmRequest) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptPasswordConfirmRequest) Get() (v PasswordConfirmRequest, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptPasswordConfirmRequest) Or(d PasswordConfirmRequest) PasswordConfirmRequest {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptPinRequest returns new OptPinRequest with value set to v.
+func NewOptPinRequest(v PinRequest) OptPinRequest {
+	return OptPinRequest{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptPinRequest is optional PinRequest.
+type OptPinRequest struct {
+	Value PinRequest
+	Set   bool
+}
+
+// IsSet returns true if OptPinRequest was set.
+func (o OptPinRequest) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptPinRequest) Reset() {
+	var v PinRequest
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptPinRequest) SetTo(v PinRequest) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptPinRequest) Get() (v PinRequest, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptPinRequest) Or(d PinRequest) PinRequest {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptProfile returns new OptProfile with value set to v.
+func NewOptProfile(v Profile) OptProfile {
+	return OptProfile{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptProfile is optional Profile.
+type OptProfile struct {
+	Value Profile
+	Set   bool
+}
+
+// IsSet returns true if OptProfile was set.
+func (o OptProfile) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptProfile) Reset() {
+	var v Profile
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptProfile) SetTo(v Profile) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptProfile) Get() (v Profile, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptProfile) Or(d Profile) Profile {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -157,6 +1071,89 @@ func (o OptString) Or(d string) string {
 	return d
 }
 
+// NewOptUserPermissions returns new OptUserPermissions with value set to v.
+func NewOptUserPermissions(v UserPermissions) OptUserPermissions {
+	return OptUserPermissions{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUserPermissions is optional UserPermissions.
+type OptUserPermissions struct {
+	Value UserPermissions
+	Set   bool
+}
+
+// IsSet returns true if OptUserPermissions was set.
+func (o OptUserPermissions) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUserPermissions) Reset() {
+	var v UserPermissions
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUserPermissions) SetTo(v UserPermissions) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUserPermissions) Get() (v UserPermissions, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUserPermissions) Or(d UserPermissions) UserPermissions {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+type Password string
+
+// Ref: #/components/schemas/PasswordConfirmRequest
+type PasswordConfirmRequest struct {
+	Password string `json:"password"`
+}
+
+// GetPassword returns the value of Password.
+func (s *PasswordConfirmRequest) GetPassword() string {
+	return s.Password
+}
+
+// SetPassword sets the value of Password.
+func (s *PasswordConfirmRequest) SetPassword(val string) {
+	s.Password = val
+}
+
+// Ref: #/components/schemas/PinRequest
+type PinRequest struct {
+	Pin OptString `json:"pin"`
+}
+
+// GetPin returns the value of Pin.
+func (s *PinRequest) GetPin() OptString {
+	return s.Pin
+}
+
+// SetPin sets the value of Pin.
+func (s *PinRequest) SetPin(val OptString) {
+	s.Pin = val
+}
+
+// PollQuickConnectAccepted is response for PollQuickConnect operation.
+type PollQuickConnectAccepted struct{}
+
+func (*PollQuickConnectAccepted) pollQuickConnectRes() {}
+
 // Ref: #/components/schemas/Pong
 type Pong struct {
 	Ok bool `json:"ok"`
@@ -171,6 +1168,502 @@ func (s *Pong) GetOk() bool {
 func (s *Pong) SetOk(val bool) {
 	s.Ok = val
 }
+
+// Ref: #/components/schemas/Profile
+type Profile struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+	// Avatar colour, e.g. "#e5484d".
+	Color  string `json:"color"`
+	HasPin bool   `json:"hasPin"`
+	IsKid  bool   `json:"isKid"`
+	// Highest age rating allowed (e.g. 12); applies from P3 (ratings) on.
+	MaxRating OptInt `json:"maxRating"`
+}
+
+// GetID returns the value of ID.
+func (s *Profile) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetName returns the value of Name.
+func (s *Profile) GetName() string {
+	return s.Name
+}
+
+// GetColor returns the value of Color.
+func (s *Profile) GetColor() string {
+	return s.Color
+}
+
+// GetHasPin returns the value of HasPin.
+func (s *Profile) GetHasPin() bool {
+	return s.HasPin
+}
+
+// GetIsKid returns the value of IsKid.
+func (s *Profile) GetIsKid() bool {
+	return s.IsKid
+}
+
+// GetMaxRating returns the value of MaxRating.
+func (s *Profile) GetMaxRating() OptInt {
+	return s.MaxRating
+}
+
+// SetID sets the value of ID.
+func (s *Profile) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetName sets the value of Name.
+func (s *Profile) SetName(val string) {
+	s.Name = val
+}
+
+// SetColor sets the value of Color.
+func (s *Profile) SetColor(val string) {
+	s.Color = val
+}
+
+// SetHasPin sets the value of HasPin.
+func (s *Profile) SetHasPin(val bool) {
+	s.HasPin = val
+}
+
+// SetIsKid sets the value of IsKid.
+func (s *Profile) SetIsKid(val bool) {
+	s.IsKid = val
+}
+
+// SetMaxRating sets the value of MaxRating.
+func (s *Profile) SetMaxRating(val OptInt) {
+	s.MaxRating = val
+}
+
+// Ref: #/components/schemas/ProfileInput
+type ProfileInput struct {
+	Name      string `json:"name"`
+	Color     string `json:"color"`
+	IsKid     bool   `json:"isKid"`
+	MaxRating OptInt `json:"maxRating"`
+	// Set or change the PIN. Omit to keep it; see removePin.
+	Pin       OptString `json:"pin"`
+	RemovePin OptBool   `json:"removePin"`
+}
+
+// GetName returns the value of Name.
+func (s *ProfileInput) GetName() string {
+	return s.Name
+}
+
+// GetColor returns the value of Color.
+func (s *ProfileInput) GetColor() string {
+	return s.Color
+}
+
+// GetIsKid returns the value of IsKid.
+func (s *ProfileInput) GetIsKid() bool {
+	return s.IsKid
+}
+
+// GetMaxRating returns the value of MaxRating.
+func (s *ProfileInput) GetMaxRating() OptInt {
+	return s.MaxRating
+}
+
+// GetPin returns the value of Pin.
+func (s *ProfileInput) GetPin() OptString {
+	return s.Pin
+}
+
+// GetRemovePin returns the value of RemovePin.
+func (s *ProfileInput) GetRemovePin() OptBool {
+	return s.RemovePin
+}
+
+// SetName sets the value of Name.
+func (s *ProfileInput) SetName(val string) {
+	s.Name = val
+}
+
+// SetColor sets the value of Color.
+func (s *ProfileInput) SetColor(val string) {
+	s.Color = val
+}
+
+// SetIsKid sets the value of IsKid.
+func (s *ProfileInput) SetIsKid(val bool) {
+	s.IsKid = val
+}
+
+// SetMaxRating sets the value of MaxRating.
+func (s *ProfileInput) SetMaxRating(val OptInt) {
+	s.MaxRating = val
+}
+
+// SetPin sets the value of Pin.
+func (s *ProfileInput) SetPin(val OptString) {
+	s.Pin = val
+}
+
+// SetRemovePin sets the value of RemovePin.
+func (s *ProfileInput) SetRemovePin(val OptBool) {
+	s.RemovePin = val
+}
+
+// Ref: #/components/schemas/QuickConnectApproved
+type QuickConnectApproved struct {
+	DeviceName string `json:"deviceName"`
+}
+
+// GetDeviceName returns the value of DeviceName.
+func (s *QuickConnectApproved) GetDeviceName() string {
+	return s.DeviceName
+}
+
+// SetDeviceName sets the value of DeviceName.
+func (s *QuickConnectApproved) SetDeviceName(val string) {
+	s.DeviceName = val
+}
+
+// Ref: #/components/schemas/QuickConnectPollRequest
+type QuickConnectPollRequest struct {
+	Secret    string  `json:"secret"`
+	UseCookie OptBool `json:"useCookie"`
+}
+
+// GetSecret returns the value of Secret.
+func (s *QuickConnectPollRequest) GetSecret() string {
+	return s.Secret
+}
+
+// GetUseCookie returns the value of UseCookie.
+func (s *QuickConnectPollRequest) GetUseCookie() OptBool {
+	return s.UseCookie
+}
+
+// SetSecret sets the value of Secret.
+func (s *QuickConnectPollRequest) SetSecret(val string) {
+	s.Secret = val
+}
+
+// SetUseCookie sets the value of UseCookie.
+func (s *QuickConnectPollRequest) SetUseCookie(val OptBool) {
+	s.UseCookie = val
+}
+
+// Ref: #/components/schemas/QuickConnectStart
+type QuickConnectStart struct {
+	// 6 digits, shown on the new device.
+	Code string `json:"code"`
+	// Kept on the new device and sent to /quickconnect/poll.
+	Secret    string    `json:"secret"`
+	ExpiresAt time.Time `json:"expiresAt"`
+}
+
+// GetCode returns the value of Code.
+func (s *QuickConnectStart) GetCode() string {
+	return s.Code
+}
+
+// GetSecret returns the value of Secret.
+func (s *QuickConnectStart) GetSecret() string {
+	return s.Secret
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *QuickConnectStart) GetExpiresAt() time.Time {
+	return s.ExpiresAt
+}
+
+// SetCode sets the value of Code.
+func (s *QuickConnectStart) SetCode(val string) {
+	s.Code = val
+}
+
+// SetSecret sets the value of Secret.
+func (s *QuickConnectStart) SetSecret(val string) {
+	s.Secret = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *QuickConnectStart) SetExpiresAt(val time.Time) {
+	s.ExpiresAt = val
+}
+
+// Ref: #/components/schemas/RecoveryCodes
+type RecoveryCodes struct {
+	RecoveryCodes []string `json:"recoveryCodes"`
+}
+
+// GetRecoveryCodes returns the value of RecoveryCodes.
+func (s *RecoveryCodes) GetRecoveryCodes() []string {
+	return s.RecoveryCodes
+}
+
+// SetRecoveryCodes sets the value of RecoveryCodes.
+func (s *RecoveryCodes) SetRecoveryCodes(val []string) {
+	s.RecoveryCodes = val
+}
+
+// RenameSessionNoContent is response for RenameSession operation.
+type RenameSessionNoContent struct{}
+
+// Ref: #/components/schemas/RenameSessionRequest
+type RenameSessionRequest struct {
+	DeviceName string `json:"deviceName"`
+}
+
+// GetDeviceName returns the value of DeviceName.
+func (s *RenameSessionRequest) GetDeviceName() string {
+	return s.DeviceName
+}
+
+// SetDeviceName sets the value of DeviceName.
+func (s *RenameSessionRequest) SetDeviceName(val string) {
+	s.DeviceName = val
+}
+
+// RevokeSessionNoContent is response for RevokeSession operation.
+type RevokeSessionNoContent struct{}
+
+// SelectMainProfileNoContent is response for SelectMainProfile operation.
+type SelectMainProfileNoContent struct{}
+
+// SelectProfileNoContent is response for SelectProfile operation.
+type SelectProfileNoContent struct{}
+
+// Ref: #/components/schemas/ServerSettings
+type ServerSettings struct {
+	ServerName string `json:"serverName"`
+}
+
+// GetServerName returns the value of ServerName.
+func (s *ServerSettings) GetServerName() string {
+	return s.ServerName
+}
+
+// SetServerName sets the value of ServerName.
+func (s *ServerSettings) SetServerName(val string) {
+	s.ServerName = val
+}
+
+// Ref: #/components/schemas/Session
+type Session struct {
+	ID         uuid.UUID `json:"id"`
+	UserId     uuid.UUID `json:"userId"`
+	Username   string    `json:"username"`
+	DeviceName string    `json:"deviceName"`
+	Client     string    `json:"client"`
+	CreatedAt  time.Time `json:"createdAt"`
+	LastSeenAt time.Time `json:"lastSeenAt"`
+	// True for the session making this request.
+	Current bool `json:"current"`
+}
+
+// GetID returns the value of ID.
+func (s *Session) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetUserId returns the value of UserId.
+func (s *Session) GetUserId() uuid.UUID {
+	return s.UserId
+}
+
+// GetUsername returns the value of Username.
+func (s *Session) GetUsername() string {
+	return s.Username
+}
+
+// GetDeviceName returns the value of DeviceName.
+func (s *Session) GetDeviceName() string {
+	return s.DeviceName
+}
+
+// GetClient returns the value of Client.
+func (s *Session) GetClient() string {
+	return s.Client
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *Session) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetLastSeenAt returns the value of LastSeenAt.
+func (s *Session) GetLastSeenAt() time.Time {
+	return s.LastSeenAt
+}
+
+// GetCurrent returns the value of Current.
+func (s *Session) GetCurrent() bool {
+	return s.Current
+}
+
+// SetID sets the value of ID.
+func (s *Session) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetUserId sets the value of UserId.
+func (s *Session) SetUserId(val uuid.UUID) {
+	s.UserId = val
+}
+
+// SetUsername sets the value of Username.
+func (s *Session) SetUsername(val string) {
+	s.Username = val
+}
+
+// SetDeviceName sets the value of DeviceName.
+func (s *Session) SetDeviceName(val string) {
+	s.DeviceName = val
+}
+
+// SetClient sets the value of Client.
+func (s *Session) SetClient(val string) {
+	s.Client = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *Session) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetLastSeenAt sets the value of LastSeenAt.
+func (s *Session) SetLastSeenAt(val time.Time) {
+	s.LastSeenAt = val
+}
+
+// SetCurrent sets the value of Current.
+func (s *Session) SetCurrent(val bool) {
+	s.Current = val
+}
+
+type SessionToken struct {
+	Token string
+	Roles []string
+}
+
+// GetToken returns the value of Token.
+func (s *SessionToken) GetToken() string {
+	return s.Token
+}
+
+// GetRoles returns the value of Roles.
+func (s *SessionToken) GetRoles() []string {
+	return s.Roles
+}
+
+// SetToken sets the value of Token.
+func (s *SessionToken) SetToken(val string) {
+	s.Token = val
+}
+
+// SetRoles sets the value of Roles.
+func (s *SessionToken) SetRoles(val []string) {
+	s.Roles = val
+}
+
+// Ref: #/components/schemas/SetupRequest
+type SetupRequest struct {
+	SetupCode  string        `json:"setupCode"`
+	ServerName OptString     `json:"serverName"`
+	Username   Username      `json:"username"`
+	Password   Password      `json:"password"`
+	UseCookie  OptBool       `json:"useCookie"`
+	Device     OptDeviceInfo `json:"device"`
+}
+
+// GetSetupCode returns the value of SetupCode.
+func (s *SetupRequest) GetSetupCode() string {
+	return s.SetupCode
+}
+
+// GetServerName returns the value of ServerName.
+func (s *SetupRequest) GetServerName() OptString {
+	return s.ServerName
+}
+
+// GetUsername returns the value of Username.
+func (s *SetupRequest) GetUsername() Username {
+	return s.Username
+}
+
+// GetPassword returns the value of Password.
+func (s *SetupRequest) GetPassword() Password {
+	return s.Password
+}
+
+// GetUseCookie returns the value of UseCookie.
+func (s *SetupRequest) GetUseCookie() OptBool {
+	return s.UseCookie
+}
+
+// GetDevice returns the value of Device.
+func (s *SetupRequest) GetDevice() OptDeviceInfo {
+	return s.Device
+}
+
+// SetSetupCode sets the value of SetupCode.
+func (s *SetupRequest) SetSetupCode(val string) {
+	s.SetupCode = val
+}
+
+// SetServerName sets the value of ServerName.
+func (s *SetupRequest) SetServerName(val OptString) {
+	s.ServerName = val
+}
+
+// SetUsername sets the value of Username.
+func (s *SetupRequest) SetUsername(val Username) {
+	s.Username = val
+}
+
+// SetPassword sets the value of Password.
+func (s *SetupRequest) SetPassword(val Password) {
+	s.Password = val
+}
+
+// SetUseCookie sets the value of UseCookie.
+func (s *SetupRequest) SetUseCookie(val OptBool) {
+	s.UseCookie = val
+}
+
+// SetDevice sets the value of Device.
+func (s *SetupRequest) SetDevice(val OptDeviceInfo) {
+	s.Device = val
+}
+
+// SignedInHeaders wraps AuthResult with response headers.
+type SignedInHeaders struct {
+	SetCookie OptString
+	Response  AuthResult
+}
+
+// GetSetCookie returns the value of SetCookie.
+func (s *SignedInHeaders) GetSetCookie() OptString {
+	return s.SetCookie
+}
+
+// GetResponse returns the value of Response.
+func (s *SignedInHeaders) GetResponse() AuthResult {
+	return s.Response
+}
+
+// SetSetCookie sets the value of SetCookie.
+func (s *SignedInHeaders) SetSetCookie(val OptString) {
+	s.SetCookie = val
+}
+
+// SetResponse sets the value of Response.
+func (s *SignedInHeaders) SetResponse(val AuthResult) {
+	s.Response = val
+}
+
+func (*SignedInHeaders) pollQuickConnectRes() {}
 
 // StartingHeaders wraps Error with response headers.
 type StartingHeaders struct {
@@ -296,3 +1789,375 @@ func (s *SystemInfo) SetStartedAt(val time.Time) {
 }
 
 func (*SystemInfo) getSystemInfoRes() {}
+
+// Ref: #/components/schemas/TOTPCodeRequest
+type TOTPCodeRequest struct {
+	Code string `json:"code"`
+}
+
+// GetCode returns the value of Code.
+func (s *TOTPCodeRequest) GetCode() string {
+	return s.Code
+}
+
+// SetCode sets the value of Code.
+func (s *TOTPCodeRequest) SetCode(val string) {
+	s.Code = val
+}
+
+// Ref: #/components/schemas/TOTPSetup
+type TOTPSetup struct {
+	// Base32 secret for manual entry.
+	Secret string `json:"secret"`
+	// Otpauth:// link; opens the authenticator app on phones.
+	OtpauthUri string `json:"otpauthUri"`
+	// The otpauth URI as a QR code (PNG, base64).
+	QrPng string `json:"qrPng"`
+}
+
+// GetSecret returns the value of Secret.
+func (s *TOTPSetup) GetSecret() string {
+	return s.Secret
+}
+
+// GetOtpauthUri returns the value of OtpauthUri.
+func (s *TOTPSetup) GetOtpauthUri() string {
+	return s.OtpauthUri
+}
+
+// GetQrPng returns the value of QrPng.
+func (s *TOTPSetup) GetQrPng() string {
+	return s.QrPng
+}
+
+// SetSecret sets the value of Secret.
+func (s *TOTPSetup) SetSecret(val string) {
+	s.Secret = val
+}
+
+// SetOtpauthUri sets the value of OtpauthUri.
+func (s *TOTPSetup) SetOtpauthUri(val string) {
+	s.OtpauthUri = val
+}
+
+// SetQrPng sets the value of QrPng.
+func (s *TOTPSetup) SetQrPng(val string) {
+	s.QrPng = val
+}
+
+// Ref: #/components/schemas/UpdateUserRequest
+type UpdateUserRequest struct {
+	IsAdmin     OptBool            `json:"isAdmin"`
+	Disabled    OptBool            `json:"disabled"`
+	Password    OptPassword        `json:"password"`
+	Permissions OptUserPermissions `json:"permissions"`
+	// Turn the user's 2FA off (e.g. lost phone); signs them out everywhere.
+	ResetTwoFactor OptBool `json:"resetTwoFactor"`
+}
+
+// GetIsAdmin returns the value of IsAdmin.
+func (s *UpdateUserRequest) GetIsAdmin() OptBool {
+	return s.IsAdmin
+}
+
+// GetDisabled returns the value of Disabled.
+func (s *UpdateUserRequest) GetDisabled() OptBool {
+	return s.Disabled
+}
+
+// GetPassword returns the value of Password.
+func (s *UpdateUserRequest) GetPassword() OptPassword {
+	return s.Password
+}
+
+// GetPermissions returns the value of Permissions.
+func (s *UpdateUserRequest) GetPermissions() OptUserPermissions {
+	return s.Permissions
+}
+
+// GetResetTwoFactor returns the value of ResetTwoFactor.
+func (s *UpdateUserRequest) GetResetTwoFactor() OptBool {
+	return s.ResetTwoFactor
+}
+
+// SetIsAdmin sets the value of IsAdmin.
+func (s *UpdateUserRequest) SetIsAdmin(val OptBool) {
+	s.IsAdmin = val
+}
+
+// SetDisabled sets the value of Disabled.
+func (s *UpdateUserRequest) SetDisabled(val OptBool) {
+	s.Disabled = val
+}
+
+// SetPassword sets the value of Password.
+func (s *UpdateUserRequest) SetPassword(val OptPassword) {
+	s.Password = val
+}
+
+// SetPermissions sets the value of Permissions.
+func (s *UpdateUserRequest) SetPermissions(val OptUserPermissions) {
+	s.Permissions = val
+}
+
+// SetResetTwoFactor sets the value of ResetTwoFactor.
+func (s *UpdateUserRequest) SetResetTwoFactor(val OptBool) {
+	s.ResetTwoFactor = val
+}
+
+// Ref: #/components/schemas/User
+type User struct {
+	ID       uuid.UUID `json:"id"`
+	Username string    `json:"username"`
+	IsAdmin  bool      `json:"isAdmin"`
+	Disabled bool      `json:"disabled"`
+	// Two-factor authentication is on.
+	TotpEnabled    bool            `json:"totpEnabled"`
+	Permissions    UserPermissions `json:"permissions"`
+	CurrentProfile OptProfile      `json:"currentProfile"`
+	CreatedAt      time.Time       `json:"createdAt"`
+	LastLoginAt    OptDateTime     `json:"lastLoginAt"`
+}
+
+// GetID returns the value of ID.
+func (s *User) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetUsername returns the value of Username.
+func (s *User) GetUsername() string {
+	return s.Username
+}
+
+// GetIsAdmin returns the value of IsAdmin.
+func (s *User) GetIsAdmin() bool {
+	return s.IsAdmin
+}
+
+// GetDisabled returns the value of Disabled.
+func (s *User) GetDisabled() bool {
+	return s.Disabled
+}
+
+// GetTotpEnabled returns the value of TotpEnabled.
+func (s *User) GetTotpEnabled() bool {
+	return s.TotpEnabled
+}
+
+// GetPermissions returns the value of Permissions.
+func (s *User) GetPermissions() UserPermissions {
+	return s.Permissions
+}
+
+// GetCurrentProfile returns the value of CurrentProfile.
+func (s *User) GetCurrentProfile() OptProfile {
+	return s.CurrentProfile
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *User) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetLastLoginAt returns the value of LastLoginAt.
+func (s *User) GetLastLoginAt() OptDateTime {
+	return s.LastLoginAt
+}
+
+// SetID sets the value of ID.
+func (s *User) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetUsername sets the value of Username.
+func (s *User) SetUsername(val string) {
+	s.Username = val
+}
+
+// SetIsAdmin sets the value of IsAdmin.
+func (s *User) SetIsAdmin(val bool) {
+	s.IsAdmin = val
+}
+
+// SetDisabled sets the value of Disabled.
+func (s *User) SetDisabled(val bool) {
+	s.Disabled = val
+}
+
+// SetTotpEnabled sets the value of TotpEnabled.
+func (s *User) SetTotpEnabled(val bool) {
+	s.TotpEnabled = val
+}
+
+// SetPermissions sets the value of Permissions.
+func (s *User) SetPermissions(val UserPermissions) {
+	s.Permissions = val
+}
+
+// SetCurrentProfile sets the value of CurrentProfile.
+func (s *User) SetCurrentProfile(val OptProfile) {
+	s.CurrentProfile = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *User) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetLastLoginAt sets the value of LastLoginAt.
+func (s *User) SetLastLoginAt(val OptDateTime) {
+	s.LastLoginAt = val
+}
+
+// What a non-admin may do (admins may do everything). Each permission is enforced by the feature it
+// belongs to as that feature ships (libraries P2, playback P5, Live TV P11, ...).
+// Ref: #/components/schemas/UserPermissions
+type UserPermissions struct {
+	AllLibraries      bool `json:"allLibraries"`
+	Download          bool `json:"download"`
+	VideoTranscoding  bool `json:"videoTranscoding"`
+	AudioTranscoding  bool `json:"audioTranscoding"`
+	Remux             bool `json:"remux"`
+	LiveTv            bool `json:"liveTv"`
+	ManageLiveTv      bool `json:"manageLiveTv"`
+	SyncPlay          bool `json:"syncPlay"`
+	DeleteMedia       bool `json:"deleteMedia"`
+	ManageCollections bool `json:"manageCollections"`
+	EditSubtitles     bool `json:"editSubtitles"`
+	RemoteControl     bool `json:"remoteControl"`
+	// Signed-in devices allowed at once; 0 = unlimited. Signing in on one more device signs out the least
+	// recently used one.
+	MaxSessions int `json:"maxSessions"`
+}
+
+// GetAllLibraries returns the value of AllLibraries.
+func (s *UserPermissions) GetAllLibraries() bool {
+	return s.AllLibraries
+}
+
+// GetDownload returns the value of Download.
+func (s *UserPermissions) GetDownload() bool {
+	return s.Download
+}
+
+// GetVideoTranscoding returns the value of VideoTranscoding.
+func (s *UserPermissions) GetVideoTranscoding() bool {
+	return s.VideoTranscoding
+}
+
+// GetAudioTranscoding returns the value of AudioTranscoding.
+func (s *UserPermissions) GetAudioTranscoding() bool {
+	return s.AudioTranscoding
+}
+
+// GetRemux returns the value of Remux.
+func (s *UserPermissions) GetRemux() bool {
+	return s.Remux
+}
+
+// GetLiveTv returns the value of LiveTv.
+func (s *UserPermissions) GetLiveTv() bool {
+	return s.LiveTv
+}
+
+// GetManageLiveTv returns the value of ManageLiveTv.
+func (s *UserPermissions) GetManageLiveTv() bool {
+	return s.ManageLiveTv
+}
+
+// GetSyncPlay returns the value of SyncPlay.
+func (s *UserPermissions) GetSyncPlay() bool {
+	return s.SyncPlay
+}
+
+// GetDeleteMedia returns the value of DeleteMedia.
+func (s *UserPermissions) GetDeleteMedia() bool {
+	return s.DeleteMedia
+}
+
+// GetManageCollections returns the value of ManageCollections.
+func (s *UserPermissions) GetManageCollections() bool {
+	return s.ManageCollections
+}
+
+// GetEditSubtitles returns the value of EditSubtitles.
+func (s *UserPermissions) GetEditSubtitles() bool {
+	return s.EditSubtitles
+}
+
+// GetRemoteControl returns the value of RemoteControl.
+func (s *UserPermissions) GetRemoteControl() bool {
+	return s.RemoteControl
+}
+
+// GetMaxSessions returns the value of MaxSessions.
+func (s *UserPermissions) GetMaxSessions() int {
+	return s.MaxSessions
+}
+
+// SetAllLibraries sets the value of AllLibraries.
+func (s *UserPermissions) SetAllLibraries(val bool) {
+	s.AllLibraries = val
+}
+
+// SetDownload sets the value of Download.
+func (s *UserPermissions) SetDownload(val bool) {
+	s.Download = val
+}
+
+// SetVideoTranscoding sets the value of VideoTranscoding.
+func (s *UserPermissions) SetVideoTranscoding(val bool) {
+	s.VideoTranscoding = val
+}
+
+// SetAudioTranscoding sets the value of AudioTranscoding.
+func (s *UserPermissions) SetAudioTranscoding(val bool) {
+	s.AudioTranscoding = val
+}
+
+// SetRemux sets the value of Remux.
+func (s *UserPermissions) SetRemux(val bool) {
+	s.Remux = val
+}
+
+// SetLiveTv sets the value of LiveTv.
+func (s *UserPermissions) SetLiveTv(val bool) {
+	s.LiveTv = val
+}
+
+// SetManageLiveTv sets the value of ManageLiveTv.
+func (s *UserPermissions) SetManageLiveTv(val bool) {
+	s.ManageLiveTv = val
+}
+
+// SetSyncPlay sets the value of SyncPlay.
+func (s *UserPermissions) SetSyncPlay(val bool) {
+	s.SyncPlay = val
+}
+
+// SetDeleteMedia sets the value of DeleteMedia.
+func (s *UserPermissions) SetDeleteMedia(val bool) {
+	s.DeleteMedia = val
+}
+
+// SetManageCollections sets the value of ManageCollections.
+func (s *UserPermissions) SetManageCollections(val bool) {
+	s.ManageCollections = val
+}
+
+// SetEditSubtitles sets the value of EditSubtitles.
+func (s *UserPermissions) SetEditSubtitles(val bool) {
+	s.EditSubtitles = val
+}
+
+// SetRemoteControl sets the value of RemoteControl.
+func (s *UserPermissions) SetRemoteControl(val bool) {
+	s.RemoteControl = val
+}
+
+// SetMaxSessions sets the value of MaxSessions.
+func (s *UserPermissions) SetMaxSessions(val int) {
+	s.MaxSessions = val
+}
+
+type Username string

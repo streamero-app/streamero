@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 
+	"github.com/streamero-app/streamero/server/internal/auth"
 	"github.com/streamero-app/streamero/server/internal/config"
 	"github.com/streamero-app/streamero/server/internal/db"
 	"github.com/streamero-app/streamero/server/internal/settings"
@@ -89,5 +90,6 @@ func tryBootstrap(ctx context.Context, cfg config.Config, deps *Deps, state *Sta
 	}
 	state.serverID.Store(&id)
 	state.settings.Store(st)
+	state.auth.Store(auth.NewService(deps.Pool, state.SetupCode))
 	return nil
 }

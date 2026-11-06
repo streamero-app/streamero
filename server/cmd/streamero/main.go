@@ -20,9 +20,11 @@ import (
 
 	"github.com/streamero-app/streamero/server/internal/api"
 	"github.com/streamero-app/streamero/server/internal/app"
+	"github.com/streamero-app/streamero/server/internal/auth"
 	"github.com/streamero-app/streamero/server/internal/config"
 	"github.com/streamero-app/streamero/server/internal/db"
 	"github.com/streamero-app/streamero/server/internal/jobs"
+	"github.com/streamero-app/streamero/server/internal/netx"
 	"github.com/streamero-app/streamero/server/internal/storage"
 	"github.com/streamero-app/streamero/server/internal/version"
 )
@@ -79,9 +81,25 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			log.Warn("cache dir unavailable", "dir", dir, "err", err)
 		}
 	}
-	state := &app.State{}
-	h := &api.Handler{State: state, ServerName: cfg.ServerName, StartedAt: time.Now().UTC()}
-	router, err := app.NewRouter(state, h)
+	setupCode := cfg.SetupCode
+	if setupCode == "" {
+		var err error
+		if setupCode, err = auth.NewSetupCode(); err != nil {
+			return err
+		}
+	}
+	state := &app.State{SetupCode: setupCode}
+	h := &api.Handler{State: state, ServerName: cfg.ServerName, StartedAt: time.Now().UTC(),
+		Auth: state.Auth, Settings: state.Settings}
+	proxies, err := netx.ParsePrefixes(cfg.TrustedProxies)
+	if err != nil {
+		return err
+	}
+	opts := app.RouterOptions{TrustedProxies: proxies}
+	if cfg.AuthRatePerMin > 0 {
+		opts.AuthLimiter = netx.NewLimiter(cfg.AuthRatePerMin, cfg.AuthRateBurst)
+	}
+	router, err := app.NewRouter(state, h, opts)
 	if err != nil {
 		return err
 	}
@@ -100,6 +118,10 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	if err == nil {
 		defer deps.Close()
 		log.Info("ready", "server_id", state.ServerID(), "startup", time.Since(h.StartedAt).String())
+		if !state.SetupCompleted(ctx) {
+			// Printed on purpose: whoever can read the server log may create the first admin.
+			log.Warn("setup required: open the web UI and enter this setup code", "setup_code", setupCode)
+		}
 	}
 
 	select {

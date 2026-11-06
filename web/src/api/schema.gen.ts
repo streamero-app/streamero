@@ -41,10 +41,715 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * First-run setup: create the first admin account
+         * @description Only allowed while `setupCompleted` is false. Requires the one-time setup code the
+         *     server prints to its log on start (or STREAMERO_SETUP_CODE). Signs the admin in.
+         */
+        post: operations["completeSetup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sign in with username and password */
+        post: operations["login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** End the current session */
+        post: operations["logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The signed-in user */
+        get: operations["getMe"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change own password; signs out all other sessions */
+        post: operations["changePassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/totp/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start enabling two-factor authentication
+         * @description Creates a new (not yet active) TOTP secret for the signed-in user.
+         */
+        post: operations["startTOTPSetup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/totp/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm a code from the authenticator app and turn 2FA on */
+        post: operations["enableTOTP"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/totp/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Turn 2FA off (requires the password) */
+        post: operations["disableTOTP"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/quickconnect/initiate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start a Quick Connect sign-in on a new device
+         * @description Returns a 6-digit code to show on the new device and a secret to poll with. A signed-in
+         *     user approves the code (POST /quickconnect/authorize) within 5 minutes.
+         */
+        post: operations["initiateQuickConnect"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/quickconnect/poll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check whether the code was approved; signs the device in when it was */
+        post: operations["pollQuickConnect"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/quickconnect/authorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve a Quick Connect code shown on another device
+         * @description The other device is signed in as the calling user.
+         */
+        post: operations["authorizeQuickConnect"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List users (admin) */
+        get: operations["listUsers"];
+        put?: never;
+        /** Create a user (admin) */
+        post: operations["createUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a user and all of their sessions (admin) */
+        delete: operations["deleteUser"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a user (admin)
+         * @description Disabling a user or changing the password signs out all of their sessions.
+         */
+        patch: operations["updateUser"];
+        trace?: never;
+    };
+    "/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Signed-in devices
+         * @description Own sessions; admins see the sessions of all users.
+         */
+        get: operations["listSessions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sessions/{sessionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Sign a device out immediately
+         * @description Own sessions; admins can revoke any session.
+         */
+        delete: operations["revokeSession"];
+        options?: never;
+        head?: never;
+        /**
+         * Rename a signed-in device
+         * @description Own sessions; admins can rename any session.
+         */
+        patch: operations["renameSession"];
+        trace?: never;
+    };
+    "/apikeys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** API keys for integrations (admin) */
+        get: operations["listAPIKeys"];
+        put?: never;
+        /**
+         * Create an API key (admin)
+         * @description The key acts with the rights of the admin who created it and is deleted with that
+         *     user. Send it as `Authorization: Bearer <key>`. The secret is returned only once.
+         */
+        post: operations["createAPIKey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/apikeys/{apiKeyId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                apiKeyId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke an API key immediately (admin) */
+        delete: operations["deleteAPIKey"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/invites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Invite links (admin) */
+        get: operations["listInvites"];
+        put?: never;
+        /** Create an invite link (admin) */
+        post: operations["createInvite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/invites/{inviteId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke an invite (admin) */
+        delete: operations["deleteInvite"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/invite/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        /** Check an invite link (public) */
+        get: operations["getInvite"];
+        put?: never;
+        /** Create an account from an invite and sign in (public) */
+        post: operations["acceptInvite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Profiles of the signed-in user
+         * @description The account itself is the main profile; these are additional profiles (max 6).
+         */
+        get: operations["listProfiles"];
+        put?: never;
+        /** Add a profile (not from a kids profile) */
+        post: operations["createProfile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profiles/{profileId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profileId: components["parameters"]["ProfileId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a profile (not from a kids profile) */
+        put: operations["updateProfile"];
+        post?: never;
+        /** Delete a profile (not from a kids profile) */
+        delete: operations["deleteProfile"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profiles/{profileId}/select": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profileId: components["parameters"]["ProfileId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Switch this device to a profile (PIN if the profile has one) */
+        post: operations["selectProfile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profiles/main/select": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Switch this device back to the main profile
+         * @description From a kids profile this needs the account password.
+         */
+        post: operations["selectMainProfile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/server": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Server-wide settings (admin) */
+        get: operations["getServerSettings"];
+        /** Update server-wide settings (admin) */
+        put: operations["updateServerSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Case-insensitive; letters, digits, space and . _ - @ */
+        Username: string;
+        Password: string;
+        SetupRequest: {
+            setupCode: string;
+            serverName?: string;
+            username: components["schemas"]["Username"];
+            password: components["schemas"]["Password"];
+            useCookie?: boolean;
+            device?: components["schemas"]["DeviceInfo"];
+        };
+        LoginRequest: {
+            username: string;
+            password: string;
+            /**
+             * @description Required when the user has 2FA on: a 6-digit code or a recovery code. Without it the
+             *     server answers 401 `totp_required` (the password was correct, nothing else is revealed).
+             */
+            totpCode?: string;
+            /** @description Web clients set this to receive an HttpOnly cookie instead of a token. */
+            useCookie?: boolean;
+            device?: components["schemas"]["DeviceInfo"];
+        };
+        DeviceInfo: {
+            /** @description e.g. "Safari on iPhone" */
+            name?: string;
+            /** @description e.g. "Streamero Web 0.1.0" */
+            client?: string;
+        };
+        AuthResult: {
+            /** @description Bearer token. Omitted when useCookie was requested. */
+            token?: string;
+            /** Format: uuid */
+            sessionId: string;
+            user: components["schemas"]["User"];
+        };
+        ChangePasswordRequest: {
+            currentPassword: string;
+            newPassword: components["schemas"]["Password"];
+        };
+        Invite: {
+            /** Format: uuid */
+            id: string;
+            note: string;
+            createdBy: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            expiresAt: string;
+            maxUses: number;
+            uses: number;
+            permissions: components["schemas"]["UserPermissions"];
+        };
+        CreateInviteRequest: {
+            /** @description e.g. "For my sister" */
+            note?: string;
+            expiresInHours: number;
+            maxUses: number;
+            permissions?: components["schemas"]["UserPermissions"];
+        };
+        CreatedInvite: {
+            /** @description Goes into the link /invite/<token>. Shown only once. */
+            token: string;
+            invite: components["schemas"]["Invite"];
+        };
+        InviteInfo: {
+            serverName: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        AcceptInviteRequest: {
+            username: components["schemas"]["Username"];
+            password: components["schemas"]["Password"];
+            useCookie?: boolean;
+            device?: components["schemas"]["DeviceInfo"];
+        };
+        QuickConnectStart: {
+            /** @description 6 digits, shown on the new device. */
+            code: string;
+            /** @description Kept on the new device and sent to /quickconnect/poll. */
+            secret: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        QuickConnectPollRequest: {
+            secret: string;
+            useCookie?: boolean;
+        };
+        QuickConnectApproved: {
+            deviceName: string;
+        };
+        Profile: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** @description Avatar colour, e.g. "#e5484d". */
+            color: string;
+            hasPin: boolean;
+            isKid: boolean;
+            /** @description Highest age rating allowed (e.g. 12); applies from P3 (ratings) on. */
+            maxRating?: number;
+        };
+        ProfileInput: {
+            name: string;
+            color: string;
+            isKid: boolean;
+            maxRating?: number;
+            /** @description Set or change the PIN. Omit to keep it; see removePin. */
+            pin?: string;
+            removePin?: boolean;
+        };
+        PinRequest: {
+            pin?: string;
+        };
+        TOTPSetup: {
+            /** @description Base32 secret for manual entry. */
+            secret: string;
+            /** @description otpauth:// link; opens the authenticator app on phones. */
+            otpauthUri: string;
+            /** @description The otpauth URI as a QR code (PNG, base64). */
+            qrPng: string;
+        };
+        TOTPCodeRequest: {
+            code: string;
+        };
+        RecoveryCodes: {
+            recoveryCodes: string[];
+        };
+        PasswordConfirmRequest: {
+            password: string;
+        };
+        /**
+         * @description What a non-admin may do (admins may do everything). Each permission is enforced by the
+         *     feature it belongs to as that feature ships (libraries P2, playback P5, Live TV P11, ...).
+         */
+        UserPermissions: {
+            allLibraries: boolean;
+            download: boolean;
+            videoTranscoding: boolean;
+            audioTranscoding: boolean;
+            remux: boolean;
+            liveTv: boolean;
+            manageLiveTv: boolean;
+            syncPlay: boolean;
+            deleteMedia: boolean;
+            manageCollections: boolean;
+            editSubtitles: boolean;
+            remoteControl: boolean;
+            /** @description Signed-in devices allowed at once; 0 = unlimited. Signing in on one more device signs out the least recently used one. */
+            maxSessions: number;
+        };
+        User: {
+            /** Format: uuid */
+            id: string;
+            username: string;
+            isAdmin: boolean;
+            disabled: boolean;
+            /** @description Two-factor authentication is on. */
+            totpEnabled: boolean;
+            permissions: components["schemas"]["UserPermissions"];
+            currentProfile?: components["schemas"]["Profile"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            lastLoginAt?: string;
+        };
+        CreateUserRequest: {
+            username: components["schemas"]["Username"];
+            password: components["schemas"]["Password"];
+            isAdmin?: boolean;
+            permissions?: components["schemas"]["UserPermissions"];
+        };
+        UpdateUserRequest: {
+            isAdmin?: boolean;
+            disabled?: boolean;
+            password?: components["schemas"]["Password"];
+            permissions?: components["schemas"]["UserPermissions"];
+            /** @description Turn the user's 2FA off (e.g. lost phone); signs them out everywhere. */
+            resetTwoFactor?: boolean;
+        };
+        Session: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            userId: string;
+            username: string;
+            deviceName: string;
+            client: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            lastSeenAt: string;
+            /** @description True for the session making this request. */
+            current: boolean;
+        };
+        RenameSessionRequest: {
+            deviceName: string;
+        };
+        ApiKey: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** @description First characters of the key, to recognise it. */
+            prefix: string;
+            /** @description Username of the admin who created the key. */
+            createdBy: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            lastUsedAt?: string;
+        };
+        CreateApiKeyRequest: {
+            /** @description e.g. "Jellyseerr" */
+            name: string;
+        };
+        CreatedApiKey: {
+            /** @description The secret. Shown only once. */
+            key: string;
+            apiKey: components["schemas"]["ApiKey"];
+        };
+        ServerSettings: {
+            serverName: string;
+        };
         Pong: {
             ok: boolean;
         };
@@ -71,6 +776,17 @@ export interface components {
         };
     };
     responses: {
+        /** @description Signed in */
+        SignedIn: {
+            headers: {
+                /** @description HttpOnly session cookie, only when useCookie was requested. */
+                "Set-Cookie"?: string;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["AuthResult"];
+            };
+        };
         /** @description Server is starting; retry after the given number of seconds. */
         Starting: {
             headers: {
@@ -91,7 +807,10 @@ export interface components {
             };
         };
     };
-    parameters: never;
+    parameters: {
+        ProfileId: string;
+        UserId: string;
+    };
     requestBodies: never;
     headers: never;
     pathItems: never;
@@ -136,6 +855,773 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Pong"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    completeSetup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetupRequest"];
+            };
+        };
+        responses: {
+            200: components["responses"]["SignedIn"];
+            default: components["responses"]["Error"];
+        };
+    };
+    login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginRequest"];
+            };
+        };
+        responses: {
+            200: components["responses"]["SignedIn"];
+            default: components["responses"]["Error"];
+        };
+    };
+    logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Signed out */
+            204: {
+                headers: {
+                    /** @description Clears the web session cookie. */
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    changePassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Password changed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    startTOTPSetup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Secret to add to an authenticator app */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TOTPSetup"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    enableTOTP: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TOTPCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Enabled; one-time recovery codes (shown only now) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryCodes"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    disableTOTP: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordConfirmRequest"];
+            };
+        };
+        responses: {
+            /** @description Disabled */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    initiateQuickConnect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["DeviceInfo"];
+            };
+        };
+        responses: {
+            /** @description Code and polling secret */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuickConnectStart"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    pollQuickConnect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuickConnectPollRequest"];
+            };
+        };
+        responses: {
+            200: components["responses"]["SignedIn"];
+            /** @description Not approved yet; poll again in a few seconds. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    authorizeQuickConnect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TOTPCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Approved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuickConnectApproved"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listUsers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Users */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateUserRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateUserRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listSessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sessions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    revokeSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Revoked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    renameSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenameSessionRequest"];
+            };
+        };
+        responses: {
+            /** @description Renamed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listAPIKeys: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description API keys (the secret is never returned again) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiKey"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createAPIKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateApiKeyRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedApiKey"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteAPIKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                apiKeyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Revoked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listInvites: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Invites (tokens are never returned again) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invite"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createInvite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateInviteRequest"];
+            };
+        };
+        responses: {
+            /** @description Created; the token is shown only once */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedInvite"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteInvite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                inviteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Revoked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getInvite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The invite is valid */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteInfo"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    acceptInvite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcceptInviteRequest"];
+            };
+        };
+        responses: {
+            200: components["responses"]["SignedIn"];
+            default: components["responses"]["Error"];
+        };
+    };
+    listProfiles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Profiles */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Profile"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Profile"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profileId: components["parameters"]["ProfileId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileInput"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Profile"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profileId: components["parameters"]["ProfileId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    selectProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profileId: components["parameters"]["ProfileId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PinRequest"];
+            };
+        };
+        responses: {
+            /** @description Switched */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    selectMainProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PasswordConfirmRequest"];
+            };
+        };
+        responses: {
+            /** @description Switched */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getServerSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateServerSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServerSettings"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerSettings"];
                 };
             };
             default: components["responses"]["Error"];
