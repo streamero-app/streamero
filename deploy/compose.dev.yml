@@ -1,0 +1,21 @@
+# Dev override: build the image locally instead of pulling from GHCR and
+# mount generated test media (scripts/gen-fixtures.sh ./data/fixtures).
+services:
+  streamero:
+    image: streamero:dev
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      args:
+        VERSION: dev
+        FFMPEG_SOURCE: ${FFMPEG_SOURCE:-jellyfin}
+    environment:
+      STREAMERO_LOG_LEVEL: debug
+    volumes:
+      - ../data/fixtures:/media:ro
+  worker:
+    image: streamero:dev
+    environment:
+      STREAMERO_LOG_LEVEL: debug
+    volumes:
+      - ../data/fixtures:/media:ro
