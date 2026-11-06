@@ -12,18 +12,22 @@ P0 — Temelji (u tijeku, branch `phase/P0-foundations`)
 - Deploy: multi-stage `Dockerfile` (jellyfin-ffmpeg8 ili Debian ffmpeg), `docker-compose.yml` + `compose.dev.yml` + GPU overridei, `.env.example`. Stack podignut kroz compose: db/valkey/streamero healthy, worker obrađuje jobove, web i API odgovaraju.
 - iOS: XcodeGen `project.yml`, SwiftUI app s ekranom „Dodaj server" (provjera kroz generirani `getSystemInfo`), HR/EN `Localizable.xcstrings`, dizajn tokeni, unit testovi za normalizaciju URL-a.
 - CI: `ci.yml` (server lint/test s Postgresom, provjera svježine generiranog koda, web typecheck/test/build, e2e protiv compose stacka), `server-image.yml` (amd64+arm64 → GHCR, cosign keyless), `ios.yml` (testovi + unsigned .ipa), `release.yml` (+ `feather/source.json` update).
+- Dev stack podignut na serveru (103.141.79.116): compose projekt `streamero`, `127.0.0.1:8797` (8787 zauzima drugi servis), runtime image s jellyfin-ffmpeg 8.1.3 prvi put buildan; fixtures (30 datoteka, 53 MB) generirani kroz `streamero:dev` image i mountani na `/media`. `/healthz`, `/readyz`, `/api/v1/system/info`, SPA i asseti → 200; worker heartbeat svake minute.
+- Popravak: Docker kreira bind-mount direktorije kao root → server nije mogao pisati u `/cache` i `/transcode`. Dodan one-shot `init` servis (chown na uid 1000) i `mode: 01777` za transcode tmpfs.
+- Reverse proxy: nginx umjesto Caddyja (D-010), site u `deploy/nginx/demo.streamero.net.conf` (sintaksa provjerena `nginx -t`).
+- Uklonjen stari, nepovezani compose projekt `streamero` (`/opt/streamero`: api/worker/nginx/postgres/redis/s3 + volumeni) na zahtjev korisnika.
 - `scripts/gen-fixtures.sh`: filmovi (H.264, 4K HEVC 10-bit, HDR10, AV1, multi-audio + poglavlja + embedded/external SRT/ASS, verzije, trailer), serija sa zajedničkim introm (2×4 ep.), multi-episode, specials, daily, anime absolute, glazba (FLAC/MP3), fotke.
 
 ## Sljedeći koraci
 1. Push brancha i PR → CI zelen (blokirano: vidi dolje).
-2. Provjeriti iOS build u CI-ju (`ios.yml`) i instalaciju .ipa kroz Feather → spajanje na demo.streamero.net.
-3. Deploy dev stacka na demo.streamero.net (Caddy ispred `:8787`).
+2. Instalirati nginx site + `certbot --nginx -d demo.streamero.net` (treba sudo, vidi DEPLOY.md); ukloniti stari `/etc/nginx/sites-enabled/streamero.conf`.
+3. Provjeriti iOS build u CI-ju (`ios.yml`) i instalaciju .ipa kroz Feather → spajanje na demo.streamero.net.
 4. Zamijeniti placeholder logo službenim s streamero.net.
 5. Nakon prihvaćanja P0 → P1 (korisnici i auth).
 
 ## Poznati problemi / blokeri
 - **Push na GitHub odbijen** iz cloud sessiona: Claude GitHub App nije instaliran za org `streamero-app`. Commitovi su lokalni na `phase/P0-foundations`.
-- **streamero.net / demo.streamero.net nedostupni** iz sandboxa (mrežna politika) → logo nije preuzet, deploy na server nije napravljen.
+- **nginx/TLS za demo.streamero.net** nije instaliran: sesija nema sudo (lozinka). DNS već pokazuje na server.
+- Vizualna provjera weba u pravom browseru nije napravljena na serveru (nema Chromiuma/Playwrighta na hostu); provjereno preko HTTP-a (SPA + asseti 200, HR/EN stringovi u bundleu).
 - iOS projekt nije kompajliran (nema macOS-a u sandboxu) — prva provjera će biti `ios.yml` u CI-ju.
-- Runtime stage Dockerfilea (apt: Debian + repo.jellyfin.org) nije buildan u sandboxu (mreža); web i Go stageovi jesu. Compose stack testiran sa sandbox runtime imageom bez ffmpega.
 - `scripts/seed-big-library.sh` dolazi u P2 (treba scanner/shemu).
