@@ -11,7 +11,7 @@ export const testInfo = (over: Partial<SystemInfo> = {}): SystemInfo => ({
 });
 
 export const testUser = (over: Partial<User> = {}): User => ({
-  id: "0190a8b0-0000-7000-8000-000000000001", username: "ana", isAdmin: false, disabled: false,
+  id: "0190a8b0-0000-7000-8000-000000000001", username: "ana", isAdmin: false, disabled: false, totpEnabled: false,
   createdAt: new Date().toISOString(), ...over,
 });
 

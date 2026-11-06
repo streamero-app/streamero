@@ -130,6 +130,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/totp/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start enabling two-factor authentication
+         * @description Creates a new (not yet active) TOTP secret for the signed-in user.
+         */
+        post: operations["startTOTPSetup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/totp/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm a code from the authenticator app and turn 2FA on */
+        post: operations["enableTOTP"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/totp/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Turn 2FA off (requires the password) */
+        post: operations["disableTOTP"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users": {
         parameters: {
             query?: never;
@@ -294,6 +348,11 @@ export interface components {
         LoginRequest: {
             username: string;
             password: string;
+            /**
+             * @description Required when the user has 2FA on: a 6-digit code or a recovery code. Without it the
+             *     server answers 401 `totp_required` (the password was correct, nothing else is revealed).
+             */
+            totpCode?: string;
             /** @description Web clients set this to receive an HttpOnly cookie instead of a token. */
             useCookie?: boolean;
             device?: components["schemas"]["DeviceInfo"];
@@ -315,12 +374,31 @@ export interface components {
             currentPassword: string;
             newPassword: components["schemas"]["Password"];
         };
+        TOTPSetup: {
+            /** @description Base32 secret for manual entry. */
+            secret: string;
+            /** @description otpauth:// link; opens the authenticator app on phones. */
+            otpauthUri: string;
+            /** @description The otpauth URI as a QR code (PNG, base64). */
+            qrPng: string;
+        };
+        TOTPCodeRequest: {
+            code: string;
+        };
+        RecoveryCodes: {
+            recoveryCodes: string[];
+        };
+        PasswordConfirmRequest: {
+            password: string;
+        };
         User: {
             /** Format: uuid */
             id: string;
             username: string;
             isAdmin: boolean;
             disabled: boolean;
+            /** @description Two-factor authentication is on. */
+            totpEnabled: boolean;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -335,6 +413,8 @@ export interface components {
             isAdmin?: boolean;
             disabled?: boolean;
             password?: components["schemas"]["Password"];
+            /** @description Turn the user's 2FA off (e.g. lost phone); signs them out everywhere. */
+            resetTwoFactor?: boolean;
         };
         Session: {
             /** Format: uuid */
@@ -578,6 +658,75 @@ export interface operations {
         };
         responses: {
             /** @description Password changed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    startTOTPSetup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Secret to add to an authenticator app */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TOTPSetup"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    enableTOTP: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TOTPCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description Enabled; one-time recovery codes (shown only now) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryCodes"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    disableTOTP: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordConfirmRequest"];
+            };
+        };
+        responses: {
+            /** @description Disabled */
             204: {
                 headers: {
                     [name: string]: unknown;

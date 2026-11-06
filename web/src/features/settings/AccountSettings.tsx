@@ -5,6 +5,7 @@ import { api, unwrap } from "@/api/client";
 import { Badge, Button, Card, ErrorText, SuccessText, TextField } from "@/components/ui";
 import { useMe } from "@/features/auth/useAuth";
 import { useDateTime } from "./SettingsLayout";
+import { TwoFactorCard } from "./TwoFactorCard";
 
 export function AccountSettings() {
   const { t } = useTranslation();
@@ -50,6 +51,7 @@ export function AccountSettings() {
           <Button type="submit" disabled={change.isPending} className="self-start">{t("account.changePassword")}</Button>
         </form>
       </Card>
+      <TwoFactorCard />
     </div>
   );
 }

@@ -115,7 +115,7 @@ func (h *Handler) CompleteSetup(ctx context.Context, req *gen.SetupRequest) (*ge
 
 // Login implements POST /auth/login.
 func (h *Handler) Login(ctx context.Context, req *gen.LoginRequest) (*gen.SignedInHeaders, error) {
-	p, token, err := h.Auth().Login(ctx, req.Username, req.Password, device(req.Device))
+	p, token, err := h.Auth().Login(ctx, req.Username, req.Password, req.TotpCode.Value, device(req.Device))
 	if err != nil {
 		return nil, err
 	}
@@ -200,6 +200,7 @@ func (h *Handler) UpdateUser(ctx context.Context, req *gen.UpdateUserRequest, pa
 		pw := string(v)
 		upd.Password = &pw
 	}
+	upd.ResetTwoFactor = req.ResetTwoFactor.Value
 	u, err := h.Auth().UpdateUser(ctx, p, params.UserId, upd)
 	if err != nil {
 		return nil, err
@@ -248,6 +249,41 @@ func (h *Handler) RevokeSession(ctx context.Context, params gen.RevokeSessionPar
 		return err
 	}
 	return h.Auth().RevokeSession(ctx, p, params.SessionId)
+}
+
+// StartTOTPSetup implements POST /auth/totp/setup.
+func (h *Handler) StartTOTPSetup(ctx context.Context) (*gen.TOTPSetup, error) {
+	p, err := principal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	st, err := h.Auth().StartTOTPSetup(ctx, p, h.serverName(ctx))
+	if err != nil {
+		return nil, err
+	}
+	return &gen.TOTPSetup{Secret: st.Secret, OtpauthUri: st.OtpauthURI, QrPng: st.QRPNG}, nil
+}
+
+// EnableTOTP implements POST /auth/totp/enable.
+func (h *Handler) EnableTOTP(ctx context.Context, req *gen.TOTPCodeRequest) (*gen.RecoveryCodes, error) {
+	p, err := principal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	codes, err := h.Auth().EnableTOTP(ctx, p, req.Code)
+	if err != nil {
+		return nil, err
+	}
+	return &gen.RecoveryCodes{RecoveryCodes: codes}, nil
+}
+
+// DisableTOTP implements POST /auth/totp/disable.
+func (h *Handler) DisableTOTP(ctx context.Context, req *gen.PasswordConfirmRequest) error {
+	p, err := principal(ctx)
+	if err != nil {
+		return err
+	}
+	return h.Auth().DisableTOTP(ctx, p, req.Password)
 }
 
 // RenameSession implements PATCH /sessions/{sessionId}.
@@ -343,7 +379,7 @@ func (h *Handler) serverName(ctx context.Context) string {
 }
 
 func toUser(u auth.User) gen.User {
-	out := gen.User{ID: u.ID, Username: u.Username, IsAdmin: u.IsAdmin, Disabled: u.Disabled, CreatedAt: u.CreatedAt}
+	out := gen.User{ID: u.ID, Username: u.Username, IsAdmin: u.IsAdmin, Disabled: u.Disabled, TotpEnabled: u.TOTPEnabled, CreatedAt: u.CreatedAt}
 	if u.LastLoginAt != nil {
 		out.LastLoginAt = gen.NewOptDateTime(*u.LastLoginAt)
 	}
@@ -385,6 +421,14 @@ func mapError(err error) *StatusError {
 		return &StatusError{Status: http.StatusNotFound, Code: "not_found", Message: err.Error()}
 	case errors.Is(err, auth.ErrLastAdmin):
 		return &StatusError{Status: http.StatusConflict, Code: "last_admin", Message: err.Error()}
+	case errors.Is(err, auth.ErrTOTPRequired):
+		return &StatusError{Status: http.StatusUnauthorized, Code: "totp_required", Message: err.Error()}
+	case errors.Is(err, auth.ErrInvalidTOTP):
+		return &StatusError{Status: http.StatusUnauthorized, Code: "invalid_totp", Message: err.Error()}
+	case errors.Is(err, auth.ErrTOTPAlreadyOn):
+		return &StatusError{Status: http.StatusConflict, Code: "totp_enabled", Message: err.Error()}
+	case errors.Is(err, auth.ErrTOTPNotStarted):
+		return &StatusError{Status: http.StatusConflict, Code: "totp_not_started", Message: err.Error()}
 	case errors.Is(err, auth.ErrInvalidName):
 		return &StatusError{Status: http.StatusBadRequest, Code: "invalid_name", Message: err.Error()}
 	case errors.Is(err, auth.ErrSessionRequired):

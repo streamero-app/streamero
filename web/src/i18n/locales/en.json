@@ -84,7 +84,9 @@
     "resetPassword": "Set password",
     "delete": "Delete",
     "confirmDelete": "Delete user {{name}}? This cannot be undone.",
-    "passwordHint": "At least 8 characters."
+    "passwordHint": "At least 8 characters.",
+    "reset2fa": "Reset 2FA",
+    "confirmReset2fa": "Turn off two-factor authentication for {{name}} (e.g. lost phone)? They will be signed out everywhere."
   },
   "server": {
     "checking": "Connecting to server…",
@@ -113,7 +115,11 @@
     "not_found": "Not found — it may have been removed already.",
     "password_mismatch": "The passwords do not match.",
     "invalid_name": "Please enter a name.",
-    "session_required": "This action is not available with an API key."
+    "session_required": "This action is not available with an API key.",
+    "totp_required": "Enter the code from your authenticator app.",
+    "invalid_totp": "The code is not correct or was already used.",
+    "totp_enabled": "Two-factor authentication is already on.",
+    "totp_not_started": "Start the setup again."
   },
   "notFound": {
     "title": "Page not found",
@@ -132,5 +138,23 @@
     "never": "never",
     "revoke": "Revoke",
     "confirmRevoke": "Revoke API key {{name}}? Integrations using it stop working immediately."
+  },
+  "twofa": {
+    "title": "Two-factor authentication",
+    "on": "On",
+    "off": "Off",
+    "intro": "Protect your account with a code from an authenticator app (Google Authenticator, Microsoft Authenticator, 1Password, Bitwarden…) in addition to your password.",
+    "enable": "Turn on",
+    "step1": "Scan the QR code with your authenticator app, or on this phone tap the link. Then enter the 6-digit code it shows.",
+    "qrAlt": "QR code for the authenticator app",
+    "openApp": "Open in authenticator app",
+    "manual": "Or enter this key manually:",
+    "code": "Code from the app",
+    "confirm": "Confirm and turn on",
+    "enabledText": "Sign-in asks for a code from your authenticator app. To turn it off, confirm your password.",
+    "disable": "Turn off",
+    "recoveryTitle": "Save these recovery codes",
+    "recoveryText": "Each code can be used once instead of an app code, e.g. if you lose your phone. They will not be shown again. Other devices were signed out.",
+    "loginHint": "6-digit code from your authenticator app, or a recovery code."
   }
 }

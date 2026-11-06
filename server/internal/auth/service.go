@@ -42,6 +42,10 @@ var (
 	ErrUnauthenticated    = errors.New("not signed in")
 	ErrInvalidName        = errors.New("a name is required")
 	ErrSessionRequired    = errors.New("this action needs a signed-in session, not an API key")
+	ErrTOTPRequired       = errors.New("two-factor code required")
+	ErrInvalidTOTP        = errors.New("invalid two-factor code")
+	ErrTOTPAlreadyOn      = errors.New("two-factor authentication is already enabled")
+	ErrTOTPNotStarted     = errors.New("start two-factor setup first")
 )
 
 // LockedError is returned while an account is locked after failed logins.
@@ -57,8 +61,14 @@ type User struct {
 	Username    string
 	IsAdmin     bool
 	Disabled    bool
+	TOTPEnabled bool
 	CreatedAt   time.Time
 	LastLoginAt *time.Time
+}
+
+// totpEnabledSQL is a column expression for users aliased as alias.
+func totpEnabledSQL(alias string) string {
+	return `EXISTS (SELECT 1 FROM user_totp t WHERE t.user_id = ` + alias + `.id AND t.enabled)`
 }
 
 // Session is a signed-in device.
@@ -183,16 +193,17 @@ func (s *Service) Setup(ctx context.Context, code, serverName, username, passwor
 }
 
 // Login verifies credentials and creates a session.
-func (s *Service) Login(ctx context.Context, username, password string, dev Device) (Principal, string, error) {
+func (s *Service) Login(ctx context.Context, username, password, totpCode string, dev Device) (Principal, string, error) {
 	username = strings.TrimSpace(username)
 	var (
 		u           User
 		hash        string
 		lockedUntil *time.Time
 	)
-	err := s.pool.QueryRow(ctx, `SELECT id, username, password_hash, is_admin, disabled, created_at, last_login_at, locked_until
+	err := s.pool.QueryRow(ctx, `SELECT id, username, password_hash, is_admin, disabled, `+totpEnabledSQL("users")+`,
+			created_at, last_login_at, locked_until
 		FROM users WHERE lower(username) = lower($1)`, username).
-		Scan(&u.ID, &u.Username, &hash, &u.IsAdmin, &u.Disabled, &u.CreatedAt, &u.LastLoginAt, &lockedUntil)
+		Scan(&u.ID, &u.Username, &hash, &u.IsAdmin, &u.Disabled, &u.TOTPEnabled, &u.CreatedAt, &u.LastLoginAt, &lockedUntil)
 	if errors.Is(err, pgx.ErrNoRows) {
 		_, _ = VerifyPassword(password, dummyHash) // equalize timing
 		_ = audit(ctx, s.pool, nil, "login.failed", map[string]any{"username": username, "reason": "unknown_user"})
@@ -210,24 +221,23 @@ func (s *Service) Login(ctx context.Context, username, password string, dev Devi
 		return Principal{}, "", err
 	}
 	if !ok {
-		// Atomic so that parallel guesses cannot exceed the limit.
-		var lock *time.Time
-		if err := s.pool.QueryRow(ctx, `UPDATE users SET
-				locked_until  = CASE WHEN failed_logins + 1 >= $2 THEN $3 ELSE locked_until END,
-				failed_logins = CASE WHEN failed_logins + 1 >= $2 THEN 0 ELSE failed_logins + 1 END
-			WHERE id = $1 RETURNING CASE WHEN locked_until > $4 THEN locked_until END`,
-			u.ID, MaxFailedLogins, now.Add(LockoutDuration), now).Scan(&lock); err != nil {
-			return Principal{}, "", err
-		}
-		_ = audit(ctx, s.pool, &u.ID, "login.failed", map[string]any{"reason": "bad_password", "locked": lock != nil})
-		if lock != nil {
-			return Principal{}, "", &LockedError{Until: *lock}
-		}
-		return Principal{}, "", ErrInvalidCredentials
+		return Principal{}, "", s.recordFailedLogin(ctx, u.ID, now, "bad_password", ErrInvalidCredentials)
 	}
 	if u.Disabled {
 		_ = audit(ctx, s.pool, &u.ID, "login.failed", map[string]any{"reason": "disabled"})
 		return Principal{}, "", ErrInvalidCredentials
+	}
+	if u.TOTPEnabled {
+		if strings.TrimSpace(totpCode) == "" {
+			return Principal{}, "", ErrTOTPRequired
+		}
+		ok, err := s.checkSecondFactor(ctx, u.ID, totpCode, now)
+		if err != nil {
+			return Principal{}, "", err
+		}
+		if !ok {
+			return Principal{}, "", s.recordFailedLogin(ctx, u.ID, now, "bad_totp", ErrInvalidTOTP)
+		}
 	}
 	var p Principal
 	var token string
@@ -246,6 +256,24 @@ func (s *Service) Login(ctx context.Context, username, password string, dev Devi
 	return p, token, err
 }
 
+// recordFailedLogin counts a failure (atomically, so parallel guesses cannot
+// exceed the limit) and returns LockedError when the limit is reached, else fail.
+func (s *Service) recordFailedLogin(ctx context.Context, userID uuid.UUID, now time.Time, reason string, fail error) error {
+	var lock *time.Time
+	if err := s.pool.QueryRow(ctx, `UPDATE users SET
+			locked_until  = CASE WHEN failed_logins + 1 >= $2 THEN $3 ELSE locked_until END,
+			failed_logins = CASE WHEN failed_logins + 1 >= $2 THEN 0 ELSE failed_logins + 1 END
+		WHERE id = $1 RETURNING CASE WHEN locked_until > $4 THEN locked_until END`,
+		userID, MaxFailedLogins, now.Add(LockoutDuration), now).Scan(&lock); err != nil {
+		return err
+	}
+	_ = audit(ctx, s.pool, &userID, "login.failed", map[string]any{"reason": reason, "locked": lock != nil})
+	if lock != nil {
+		return &LockedError{Until: *lock}
+	}
+	return fail
+}
+
 // Authenticate resolves a session token. Sessions slide: each use extends expiry.
 func (s *Service) Authenticate(ctx context.Context, token string) (Principal, error) {
 	if token == "" {
@@ -256,10 +284,11 @@ func (s *Service) Authenticate(ctx context.Context, token string) (Principal, er
 	}
 	var p Principal
 	var lastSeen time.Time
-	err := s.pool.QueryRow(ctx, `SELECT s.id, s.last_seen_at, u.id, u.username, u.is_admin, u.disabled, u.created_at, u.last_login_at
+	err := s.pool.QueryRow(ctx, `SELECT s.id, s.last_seen_at, u.id, u.username, u.is_admin, u.disabled, `+totpEnabledSQL("u")+`,
+			u.created_at, u.last_login_at
 		FROM sessions s JOIN users u ON u.id = s.user_id
 		WHERE s.token_hash = $1 AND s.expires_at > now() AND NOT u.disabled`, hashToken(token)).
-		Scan(&p.SessionID, &lastSeen, &p.User.ID, &p.User.Username, &p.User.IsAdmin, &p.User.Disabled,
+		Scan(&p.SessionID, &lastSeen, &p.User.ID, &p.User.Username, &p.User.IsAdmin, &p.User.Disabled, &p.User.TOTPEnabled,
 			&p.User.CreatedAt, &p.User.LastLoginAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Principal{}, ErrUnauthenticated
@@ -316,11 +345,11 @@ func (s *Service) ChangePassword(ctx context.Context, p Principal, current, next
 	})
 }
 
-const userCols = `id, username, is_admin, disabled, created_at, last_login_at`
+var userCols = `id, username, is_admin, disabled, ` + totpEnabledSQL("users") + `, created_at, last_login_at`
 
 func scanUser(row pgx.Row) (User, error) {
 	var u User
-	err := row.Scan(&u.ID, &u.Username, &u.IsAdmin, &u.Disabled, &u.CreatedAt, &u.LastLoginAt)
+	err := row.Scan(&u.ID, &u.Username, &u.IsAdmin, &u.Disabled, &u.TOTPEnabled, &u.CreatedAt, &u.LastLoginAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return u, ErrNotFound
 	}
@@ -368,9 +397,10 @@ func (s *Service) CreateUser(ctx context.Context, actor Principal, username, pas
 
 // UserUpdate holds optional changes to a user.
 type UserUpdate struct {
-	IsAdmin  *bool
-	Disabled *bool
-	Password *string
+	IsAdmin        *bool
+	Disabled       *bool
+	Password       *string
+	ResetTwoFactor bool
 }
 
 // UpdateUser changes a user. Disabling or setting a password signs the user out everywhere.
@@ -409,13 +439,23 @@ func (s *Service) UpdateUser(ctx context.Context, actor Principal, id uuid.UUID,
 		if err != nil {
 			return err
 		}
-		if (upd.Disabled != nil && *upd.Disabled) || hash != nil {
+		if upd.ResetTwoFactor {
+			if _, err := tx.Exec(ctx, `DELETE FROM user_totp WHERE user_id = $1`, id); err != nil {
+				return err
+			}
+			if _, err := tx.Exec(ctx, `DELETE FROM recovery_codes WHERE user_id = $1`, id); err != nil {
+				return err
+			}
+			u.TOTPEnabled = false
+		}
+		if (upd.Disabled != nil && *upd.Disabled) || hash != nil || upd.ResetTwoFactor {
 			if _, err := tx.Exec(ctx, `DELETE FROM sessions WHERE user_id = $1`, id); err != nil {
 				return err
 			}
 		}
 		return audit(ctx, tx, &actor.User.ID, "user.updated", map[string]any{
-			"user_id": id, "is_admin": upd.IsAdmin, "disabled": upd.Disabled, "password_reset": hash != nil})
+			"user_id": id, "is_admin": upd.IsAdmin, "disabled": upd.Disabled, "password_reset": hash != nil,
+			"two_factor_reset": upd.ResetTwoFactor})
 	})
 	return u, err
 }

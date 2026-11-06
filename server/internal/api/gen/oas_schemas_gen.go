@@ -266,6 +266,9 @@ func (s *DeviceInfo) SetClient(val OptString) {
 	s.Client = val
 }
 
+// DisableTOTPNoContent is response for DisableTOTP operation.
+type DisableTOTPNoContent struct{}
+
 // Ref: #/components/schemas/Error
 type Error struct {
 	Code    string `json:"code"`
@@ -322,6 +325,9 @@ func (s *ErrorStatusCode) SetResponse(val Error) {
 type LoginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
+	// Required when the user has 2FA on: a 6-digit code or a recovery code. Without it the server answers
+	// 401 `totp_required` (the password was correct, nothing else is revealed).
+	TotpCode OptString `json:"totpCode"`
 	// Web clients set this to receive an HttpOnly cookie instead of a token.
 	UseCookie OptBool       `json:"useCookie"`
 	Device    OptDeviceInfo `json:"device"`
@@ -335,6 +341,11 @@ func (s *LoginRequest) GetUsername() string {
 // GetPassword returns the value of Password.
 func (s *LoginRequest) GetPassword() string {
 	return s.Password
+}
+
+// GetTotpCode returns the value of TotpCode.
+func (s *LoginRequest) GetTotpCode() OptString {
+	return s.TotpCode
 }
 
 // GetUseCookie returns the value of UseCookie.
@@ -355,6 +366,11 @@ func (s *LoginRequest) SetUsername(val string) {
 // SetPassword sets the value of Password.
 func (s *LoginRequest) SetPassword(val string) {
 	s.Password = val
+}
+
+// SetTotpCode sets the value of TotpCode.
+func (s *LoginRequest) SetTotpCode(val OptString) {
+	s.TotpCode = val
 }
 
 // SetUseCookie sets the value of UseCookie.
@@ -660,6 +676,21 @@ func (o OptString) Or(d string) string {
 
 type Password string
 
+// Ref: #/components/schemas/PasswordConfirmRequest
+type PasswordConfirmRequest struct {
+	Password string `json:"password"`
+}
+
+// GetPassword returns the value of Password.
+func (s *PasswordConfirmRequest) GetPassword() string {
+	return s.Password
+}
+
+// SetPassword sets the value of Password.
+func (s *PasswordConfirmRequest) SetPassword(val string) {
+	s.Password = val
+}
+
 // Ref: #/components/schemas/Pong
 type Pong struct {
 	Ok bool `json:"ok"`
@@ -673,6 +704,21 @@ func (s *Pong) GetOk() bool {
 // SetOk sets the value of Ok.
 func (s *Pong) SetOk(val bool) {
 	s.Ok = val
+}
+
+// Ref: #/components/schemas/RecoveryCodes
+type RecoveryCodes struct {
+	RecoveryCodes []string `json:"recoveryCodes"`
+}
+
+// GetRecoveryCodes returns the value of RecoveryCodes.
+func (s *RecoveryCodes) GetRecoveryCodes() []string {
+	return s.RecoveryCodes
+}
+
+// SetRecoveryCodes sets the value of RecoveryCodes.
+func (s *RecoveryCodes) SetRecoveryCodes(val []string) {
+	s.RecoveryCodes = val
 }
 
 // RenameSessionNoContent is response for RenameSession operation.
@@ -1050,11 +1096,68 @@ func (s *SystemInfo) SetStartedAt(val time.Time) {
 
 func (*SystemInfo) getSystemInfoRes() {}
 
+// Ref: #/components/schemas/TOTPCodeRequest
+type TOTPCodeRequest struct {
+	Code string `json:"code"`
+}
+
+// GetCode returns the value of Code.
+func (s *TOTPCodeRequest) GetCode() string {
+	return s.Code
+}
+
+// SetCode sets the value of Code.
+func (s *TOTPCodeRequest) SetCode(val string) {
+	s.Code = val
+}
+
+// Ref: #/components/schemas/TOTPSetup
+type TOTPSetup struct {
+	// Base32 secret for manual entry.
+	Secret string `json:"secret"`
+	// Otpauth:// link; opens the authenticator app on phones.
+	OtpauthUri string `json:"otpauthUri"`
+	// The otpauth URI as a QR code (PNG, base64).
+	QrPng string `json:"qrPng"`
+}
+
+// GetSecret returns the value of Secret.
+func (s *TOTPSetup) GetSecret() string {
+	return s.Secret
+}
+
+// GetOtpauthUri returns the value of OtpauthUri.
+func (s *TOTPSetup) GetOtpauthUri() string {
+	return s.OtpauthUri
+}
+
+// GetQrPng returns the value of QrPng.
+func (s *TOTPSetup) GetQrPng() string {
+	return s.QrPng
+}
+
+// SetSecret sets the value of Secret.
+func (s *TOTPSetup) SetSecret(val string) {
+	s.Secret = val
+}
+
+// SetOtpauthUri sets the value of OtpauthUri.
+func (s *TOTPSetup) SetOtpauthUri(val string) {
+	s.OtpauthUri = val
+}
+
+// SetQrPng sets the value of QrPng.
+func (s *TOTPSetup) SetQrPng(val string) {
+	s.QrPng = val
+}
+
 // Ref: #/components/schemas/UpdateUserRequest
 type UpdateUserRequest struct {
 	IsAdmin  OptBool     `json:"isAdmin"`
 	Disabled OptBool     `json:"disabled"`
 	Password OptPassword `json:"password"`
+	// Turn the user's 2FA off (e.g. lost phone); signs them out everywhere.
+	ResetTwoFactor OptBool `json:"resetTwoFactor"`
 }
 
 // GetIsAdmin returns the value of IsAdmin.
@@ -1072,6 +1175,11 @@ func (s *UpdateUserRequest) GetPassword() OptPassword {
 	return s.Password
 }
 
+// GetResetTwoFactor returns the value of ResetTwoFactor.
+func (s *UpdateUserRequest) GetResetTwoFactor() OptBool {
+	return s.ResetTwoFactor
+}
+
 // SetIsAdmin sets the value of IsAdmin.
 func (s *UpdateUserRequest) SetIsAdmin(val OptBool) {
 	s.IsAdmin = val
@@ -1087,12 +1195,19 @@ func (s *UpdateUserRequest) SetPassword(val OptPassword) {
 	s.Password = val
 }
 
+// SetResetTwoFactor sets the value of ResetTwoFactor.
+func (s *UpdateUserRequest) SetResetTwoFactor(val OptBool) {
+	s.ResetTwoFactor = val
+}
+
 // Ref: #/components/schemas/User
 type User struct {
-	ID          uuid.UUID   `json:"id"`
-	Username    string      `json:"username"`
-	IsAdmin     bool        `json:"isAdmin"`
-	Disabled    bool        `json:"disabled"`
+	ID       uuid.UUID `json:"id"`
+	Username string    `json:"username"`
+	IsAdmin  bool      `json:"isAdmin"`
+	Disabled bool      `json:"disabled"`
+	// Two-factor authentication is on.
+	TotpEnabled bool        `json:"totpEnabled"`
 	CreatedAt   time.Time   `json:"createdAt"`
 	LastLoginAt OptDateTime `json:"lastLoginAt"`
 }
@@ -1115,6 +1230,11 @@ func (s *User) GetIsAdmin() bool {
 // GetDisabled returns the value of Disabled.
 func (s *User) GetDisabled() bool {
 	return s.Disabled
+}
+
+// GetTotpEnabled returns the value of TotpEnabled.
+func (s *User) GetTotpEnabled() bool {
+	return s.TotpEnabled
 }
 
 // GetCreatedAt returns the value of CreatedAt.
@@ -1145,6 +1265,11 @@ func (s *User) SetIsAdmin(val bool) {
 // SetDisabled sets the value of Disabled.
 func (s *User) SetDisabled(val bool) {
 	s.Disabled = val
+}
+
+// SetTotpEnabled sets the value of TotpEnabled.
+func (s *User) SetTotpEnabled(val bool) {
+	s.TotpEnabled = val
 }
 
 // SetCreatedAt sets the value of CreatedAt.

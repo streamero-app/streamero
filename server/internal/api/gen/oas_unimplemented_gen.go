@@ -69,6 +69,24 @@ func (UnimplementedHandler) DeleteUser(ctx context.Context, params DeleteUserPar
 	return ht.ErrNotImplemented
 }
 
+// DisableTOTP implements disableTOTP operation.
+//
+// Turn 2FA off (requires the password).
+//
+// POST /auth/totp/disable
+func (UnimplementedHandler) DisableTOTP(ctx context.Context, req *PasswordConfirmRequest) error {
+	return ht.ErrNotImplemented
+}
+
+// EnableTOTP implements enableTOTP operation.
+//
+// Confirm a code from the authenticator app and turn 2FA on.
+//
+// POST /auth/totp/enable
+func (UnimplementedHandler) EnableTOTP(ctx context.Context, req *TOTPCodeRequest) (r *RecoveryCodes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetMe implements getMe operation.
 //
 // The signed-in user.
@@ -166,6 +184,15 @@ func (UnimplementedHandler) RenameSession(ctx context.Context, req *RenameSessio
 // DELETE /sessions/{sessionId}
 func (UnimplementedHandler) RevokeSession(ctx context.Context, params RevokeSessionParams) error {
 	return ht.ErrNotImplemented
+}
+
+// StartTOTPSetup implements startTOTPSetup operation.
+//
+// Creates a new (not yet active) TOTP secret for the signed-in user.
+//
+// POST /auth/totp/setup
+func (UnimplementedHandler) StartTOTPSetup(ctx context.Context) (r *TOTPSetup, _ error) {
+	return r, ht.ErrNotImplemented
 }
 
 // UpdateServerSettings implements updateServerSettings operation.

@@ -46,6 +46,18 @@ type Handler interface {
 	//
 	// DELETE /users/{userId}
 	DeleteUser(ctx context.Context, params DeleteUserParams) error
+	// DisableTOTP implements disableTOTP operation.
+	//
+	// Turn 2FA off (requires the password).
+	//
+	// POST /auth/totp/disable
+	DisableTOTP(ctx context.Context, req *PasswordConfirmRequest) error
+	// EnableTOTP implements enableTOTP operation.
+	//
+	// Confirm a code from the authenticator app and turn 2FA on.
+	//
+	// POST /auth/totp/enable
+	EnableTOTP(ctx context.Context, req *TOTPCodeRequest) (*RecoveryCodes, error)
 	// GetMe implements getMe operation.
 	//
 	// The signed-in user.
@@ -112,6 +124,12 @@ type Handler interface {
 	//
 	// DELETE /sessions/{sessionId}
 	RevokeSession(ctx context.Context, params RevokeSessionParams) error
+	// StartTOTPSetup implements startTOTPSetup operation.
+	//
+	// Creates a new (not yet active) TOTP secret for the signed-in user.
+	//
+	// POST /auth/totp/setup
+	StartTOTPSetup(ctx context.Context) (*TOTPSetup, error)
 	// UpdateServerSettings implements updateServerSettings operation.
 	//
 	// Update server-wide settings (admin).

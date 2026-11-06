@@ -84,7 +84,9 @@
     "resetPassword": "Postavi lozinku",
     "delete": "Obriši",
     "confirmDelete": "Obrisati korisnika {{name}}? Ovo se ne može poništiti.",
-    "passwordHint": "Najmanje 8 znakova."
+    "passwordHint": "Najmanje 8 znakova.",
+    "reset2fa": "Poništi 2FA",
+    "confirmReset2fa": "Isključiti dvofaktorsku autentifikaciju za {{name}} (npr. izgubljen mobitel)? Bit će odjavljen sa svih uređaja."
   },
   "server": {
     "checking": "Spajanje na server…",
@@ -113,7 +115,11 @@
     "not_found": "Nije pronađeno — možda je već uklonjeno.",
     "password_mismatch": "Lozinke se ne podudaraju.",
     "invalid_name": "Upišite naziv.",
-    "session_required": "Ova radnja nije dostupna s API ključem."
+    "session_required": "Ova radnja nije dostupna s API ključem.",
+    "totp_required": "Upišite kod iz aplikacije za autentifikaciju.",
+    "invalid_totp": "Kod nije ispravan ili je već iskorišten.",
+    "totp_enabled": "Dvofaktorska autentifikacija je već uključena.",
+    "totp_not_started": "Ponovno pokrenite postavljanje."
   },
   "notFound": {
     "title": "Stranica nije pronađena",
@@ -132,5 +138,23 @@
     "never": "nikad",
     "revoke": "Opozovi",
     "confirmRevoke": "Opozvati API ključ {{name}}? Integracije koje ga koriste odmah prestaju raditi."
+  },
+  "twofa": {
+    "title": "Dvofaktorska autentifikacija",
+    "on": "Uključena",
+    "off": "Isključena",
+    "intro": "Zaštitite račun kodom iz aplikacije za autentifikaciju (Google Authenticator, Microsoft Authenticator, 1Password, Bitwarden…) uz lozinku.",
+    "enable": "Uključi",
+    "step1": "Skenirajte QR kod aplikacijom za autentifikaciju ili na ovom mobitelu dodirnite poveznicu. Zatim upišite 6-znamenkasti kod koji aplikacija prikazuje.",
+    "qrAlt": "QR kod za aplikaciju za autentifikaciju",
+    "openApp": "Otvori u aplikaciji za autentifikaciju",
+    "manual": "Ili ručno upišite ovaj ključ:",
+    "code": "Kod iz aplikacije",
+    "confirm": "Potvrdi i uključi",
+    "enabledText": "Prijava traži kod iz aplikacije za autentifikaciju. Za isključivanje potvrdite lozinku.",
+    "disable": "Isključi",
+    "recoveryTitle": "Spremite ove kodove za oporavak",
+    "recoveryText": "Svaki kod se može jednom upotrijebiti umjesto koda iz aplikacije, npr. ako izgubite mobitel. Više se neće prikazati. Ostali uređaji su odjavljeni.",
+    "loginHint": "6-znamenkasti kod iz aplikacije za autentifikaciju ili kod za oporavak."
   }
 }

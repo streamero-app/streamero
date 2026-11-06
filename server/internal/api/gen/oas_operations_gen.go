@@ -12,6 +12,8 @@ const (
 	CreateUserOperation           OperationName = "CreateUser"
 	DeleteAPIKeyOperation         OperationName = "DeleteAPIKey"
 	DeleteUserOperation           OperationName = "DeleteUser"
+	DisableTOTPOperation          OperationName = "DisableTOTP"
+	EnableTOTPOperation           OperationName = "EnableTOTP"
 	GetMeOperation                OperationName = "GetMe"
 	GetServerSettingsOperation    OperationName = "GetServerSettings"
 	GetSystemInfoOperation        OperationName = "GetSystemInfo"
@@ -23,6 +25,7 @@ const (
 	PingOperation                 OperationName = "Ping"
 	RenameSessionOperation        OperationName = "RenameSession"
 	RevokeSessionOperation        OperationName = "RevokeSession"
+	StartTOTPSetupOperation       OperationName = "StartTOTPSetup"
 	UpdateServerSettingsOperation OperationName = "UpdateServerSettings"
 	UpdateUserOperation           OperationName = "UpdateUser"
 )

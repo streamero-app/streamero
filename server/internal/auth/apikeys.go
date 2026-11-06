@@ -89,10 +89,12 @@ func (s *Service) authenticateAPIKey(ctx context.Context, secret string) (Princi
 	var p Principal
 	var keyID uuid.UUID
 	var lastUsed *time.Time
-	err := s.pool.QueryRow(ctx, `SELECT k.id, k.last_used_at, u.id, u.username, u.is_admin, u.disabled, u.created_at, u.last_login_at
+	err := s.pool.QueryRow(ctx, `SELECT k.id, k.last_used_at, u.id, u.username, u.is_admin, u.disabled, `+totpEnabledSQL("u")+`,
+			u.created_at, u.last_login_at
 		FROM api_keys k JOIN users u ON u.id = k.user_id
 		WHERE k.token_hash = $1 AND u.is_admin AND NOT u.disabled`, hashToken(secret)).
-		Scan(&keyID, &lastUsed, &p.User.ID, &p.User.Username, &p.User.IsAdmin, &p.User.Disabled, &p.User.CreatedAt, &p.User.LastLoginAt)
+		Scan(&keyID, &lastUsed, &p.User.ID, &p.User.Username, &p.User.IsAdmin, &p.User.Disabled, &p.User.TOTPEnabled,
+			&p.User.CreatedAt, &p.User.LastLoginAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Principal{}, ErrUnauthenticated
 	}

@@ -6,7 +6,7 @@ import { Badge, Button, Card, ErrorText, SuccessText, TextField } from "@/compon
 import { useMe } from "@/features/auth/useAuth";
 import { useDateTime } from "./SettingsLayout";
 
-type Patch = { isAdmin?: boolean; disabled?: boolean; password?: string };
+type Patch = { isAdmin?: boolean; disabled?: boolean; password?: string; resetTwoFactor?: boolean };
 
 export function UsersSettings() {
   const { t } = useTranslation();
@@ -88,6 +88,7 @@ function UserRow({ user, isSelf, fmt, busy, onPatch, onDelete }: {
         <span className="font-medium">{user.username}</span>
         {user.isAdmin ? <Badge tone="accent">{t("users.admin")}</Badge> : <Badge>{t("users.user")}</Badge>}
         {user.disabled && <Badge tone="danger">{t("users.disabled")}</Badge>}
+        {user.totpEnabled && <Badge tone="success">2FA</Badge>}
         {isSelf && <Badge tone="success">{t("users.you")}</Badge>}
         <span className="ml-auto text-xs text-muted">{t("users.lastLogin", { when: fmt(user.lastLoginAt) })}</span>
       </div>
@@ -101,6 +102,12 @@ function UserRow({ user, isSelf, fmt, busy, onPatch, onDelete }: {
           </Button>
         )}
         <Button variant="secondary" disabled={busy} onClick={() => setResetting(!resetting)}>{t("users.resetPassword")}</Button>
+        {user.totpEnabled && !isSelf && (
+          <Button variant="secondary" disabled={busy}
+            onClick={() => window.confirm(t("users.confirmReset2fa", { name: user.username })) && onPatch({ resetTwoFactor: true })}>
+            {t("users.reset2fa")}
+          </Button>
+        )}
         {!isSelf && <Button variant="danger" disabled={busy} onClick={onDelete}>{t("users.delete")}</Button>}
       </div>
       {resetting && (

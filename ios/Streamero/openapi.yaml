@@ -135,6 +135,63 @@ paths:
           description: Password changed
         default:
           $ref: "#/components/responses/Error"
+  /auth/totp/setup:
+    post:
+      operationId: startTOTPSetup
+      summary: Start enabling two-factor authentication
+      description: Creates a new (not yet active) TOTP secret for the signed-in user.
+      tags: [auth]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Secret to add to an authenticator app
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TOTPSetup"
+        default:
+          $ref: "#/components/responses/Error"
+  /auth/totp/enable:
+    post:
+      operationId: enableTOTP
+      summary: Confirm a code from the authenticator app and turn 2FA on
+      tags: [auth]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TOTPCodeRequest"
+      responses:
+        "200":
+          description: Enabled; one-time recovery codes (shown only now)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecoveryCodes"
+        default:
+          $ref: "#/components/responses/Error"
+  /auth/totp/disable:
+    post:
+      operationId: disableTOTP
+      summary: Turn 2FA off (requires the password)
+      tags: [auth]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordConfirmRequest"
+      responses:
+        "204":
+          description: Disabled
+        default:
+          $ref: "#/components/responses/Error"
   /users:
     get:
       operationId: listUsers
@@ -448,6 +505,12 @@ components:
         password:
           type: string
           maxLength: 256
+        totpCode:
+          type: string
+          maxLength: 32
+          description: |
+            Required when the user has 2FA on: a 6-digit code or a recovery code. Without it the
+            server answers 401 `totp_required` (the password was correct, nothing else is revealed).
         useCookie:
           type: boolean
           description: Web clients set this to receive an HttpOnly cookie instead of a token.
@@ -485,9 +548,44 @@ components:
           maxLength: 256
         newPassword:
           $ref: "#/components/schemas/Password"
+    TOTPSetup:
+      type: object
+      required: [secret, otpauthUri, qrPng]
+      properties:
+        secret:
+          type: string
+          description: Base32 secret for manual entry.
+        otpauthUri:
+          type: string
+          description: otpauth:// link; opens the authenticator app on phones.
+        qrPng:
+          type: string
+          description: The otpauth URI as a QR code (PNG, base64).
+    TOTPCodeRequest:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          maxLength: 16
+    RecoveryCodes:
+      type: object
+      required: [recoveryCodes]
+      properties:
+        recoveryCodes:
+          type: array
+          items:
+            type: string
+    PasswordConfirmRequest:
+      type: object
+      required: [password]
+      properties:
+        password:
+          type: string
+          maxLength: 256
     User:
       type: object
-      required: [id, username, isAdmin, disabled, createdAt]
+      required: [id, username, isAdmin, disabled, totpEnabled, createdAt]
       properties:
         id:
           type: string
@@ -498,6 +596,9 @@ components:
           type: boolean
         disabled:
           type: boolean
+        totpEnabled:
+          type: boolean
+          description: Two-factor authentication is on.
         createdAt:
           type: string
           format: date-time
@@ -523,6 +624,9 @@ components:
           type: boolean
         password:
           $ref: "#/components/schemas/Password"
+        resetTwoFactor:
+          type: boolean
+          description: Turn the user's 2FA off (e.g. lost phone); signs them out everywhere.
     Session:
       type: object
       required: [id, userId, username, deviceName, client, createdAt, lastSeenAt, current]

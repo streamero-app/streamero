@@ -10,7 +10,7 @@ export function useMe() {
 export function useLogin() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (v: { username: string; password: string }) =>
+    mutationFn: async (v: { username: string; password: string; totpCode?: string }) =>
       unwrap(await api.POST("/auth/login", { body: { ...v, useCookie: true, device: deviceInfo() } })),
     onSuccess: (res) => {
       qc.clear();

@@ -3,6 +3,11 @@ package app
 import (
 	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha1"
+	"encoding/base32"
+	"encoding/binary"
+	"fmt"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -38,7 +43,7 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 		t.Fatal(err)
 	}
 	t.Cleanup(deps.Close)
-	if _, err := deps.Pool.Exec(ctx, `TRUNCATE users, sessions, audit_log, api_keys;
+	if _, err := deps.Pool.Exec(ctx, `TRUNCATE users, sessions, audit_log, api_keys, user_totp, recovery_codes;
 		DELETE FROM settings WHERE key IN ('setup.completed', 'server.name')`); err != nil {
 		t.Fatal(err)
 	}
@@ -403,5 +408,115 @@ func TestAPIKeysAndDeviceRenameIntegration(t *testing.T) {
 	}
 	if s := integ.do("GET", "/auth/me", nil, nil); s != 401 {
 		t.Fatalf("revoked key still works: HTTP %d", s)
+	}
+}
+
+// totpNow independently computes the current RFC 6238 code (and the step) for a base32 secret.
+func totpNow(t *testing.T, secretB32 string, offsetSteps int64) string {
+	t.Helper()
+	secret, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(secretB32)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var msg [8]byte
+	binary.BigEndian.PutUint64(msg[:], uint64(time.Now().Unix()/30+offsetSteps))
+	mac := hmac.New(sha1.New, secret)
+	mac.Write(msg[:])
+	sum := mac.Sum(nil)
+	off := sum[len(sum)-1] & 0x0f
+	return fmt.Sprintf("%06d", (binary.BigEndian.Uint32(sum[off:off+4])&0x7fffffff)%1_000_000)
+}
+
+func TestTwoFactorIntegration(t *testing.T) {
+	srv := newAuthTestServer(t)
+	adminC := newClient(t, srv)
+	setupAdmin(t, adminC)
+	var u struct {
+		ID string `json:"id"`
+	}
+	adminC.do("POST", "/users", map[string]any{"username": "mia", "password": "mia-pass-1"}, &u)
+	mia := newClient(t, srv)
+	var res authResult
+	mia.do("POST", "/auth/login", map[string]any{"username": "mia", "password": "mia-pass-1"}, &res)
+	mia.token = res.Token
+
+	var e apiError
+	if s := mia.do("POST", "/auth/totp/enable", map[string]any{"code": "123456"}, &e); s != 409 || e.Code != "totp_not_started" {
+		t.Fatalf("enable before setup: HTTP %d %+v", s, e)
+	}
+	var setup struct {
+		Secret string `json:"secret"`
+		URI    string `json:"otpauthUri"`
+		QR     string `json:"qrPng"`
+	}
+	if s := mia.do("POST", "/auth/totp/setup", nil, &setup); s != 200 || setup.Secret == "" || setup.QR == "" ||
+		!strings.HasPrefix(setup.URI, "otpauth://totp/Kino:mia?") {
+		t.Fatalf("setup: HTTP %d %+v", s, setup)
+	}
+	if s := mia.do("POST", "/auth/totp/enable", map[string]any{"code": "000000"}, &e); s != 401 || e.Code != "invalid_totp" {
+		t.Fatalf("enable with wrong code: HTTP %d %+v", s, e)
+	}
+	var rc struct {
+		Codes []string `json:"recoveryCodes"`
+	}
+	enableCode := totpNow(t, setup.Secret, 0)
+	if s := mia.do("POST", "/auth/totp/enable", map[string]any{"code": enableCode}, &rc); s != 200 || len(rc.Codes) != 10 {
+		t.Fatalf("enable: HTTP %d %d codes", s, len(rc.Codes))
+	}
+	var me struct {
+		TOTP bool `json:"totpEnabled"`
+	}
+	if mia.do("GET", "/auth/me", nil, &me); !me.TOTP {
+		t.Fatal("me.totpEnabled false after enabling")
+	}
+
+	login := func(code string) (int, apiError) {
+		var e apiError
+		c := newClient(t, srv)
+		body := map[string]any{"username": "mia", "password": "mia-pass-1"}
+		if code != "" {
+			body["totpCode"] = code
+		}
+		return c.do("POST", "/auth/login", body, &e), e
+	}
+	if s, e := login(""); s != 401 || e.Code != "totp_required" {
+		t.Fatalf("login without code: HTTP %d %+v", s, e)
+	}
+	if s, e := login("999999"); s != 401 || e.Code != "invalid_totp" {
+		t.Fatalf("login with wrong code: HTTP %d %+v", s, e)
+	}
+	// The code used to enable 2FA cannot be replayed for a login.
+	if s, _ := login(enableCode); s == 200 {
+		t.Fatal("enable code replayed for login")
+	}
+	// The next step (clock drift tolerance) works once.
+	next := totpNow(t, setup.Secret, 1)
+	if s, e := login(next); s != 200 {
+		t.Fatalf("login with valid code: HTTP %d %+v", s, e)
+	}
+	if s, _ := login(next); s == 200 {
+		t.Fatal("same code accepted twice")
+	}
+	// Recovery codes work once, in any formatting.
+	if s, e := login(strings.ToUpper(rc.Codes[0])); s != 200 {
+		t.Fatalf("recovery code: HTTP %d %+v", s, e)
+	}
+	if s, _ := login(rc.Codes[0]); s == 200 {
+		t.Fatal("recovery code accepted twice")
+	}
+
+	// Disabling needs the password.
+	if s := mia.do("POST", "/auth/totp/disable", map[string]any{"password": "wrong"}, &e); s != 401 {
+		t.Fatalf("disable with wrong password: HTTP %d", s)
+	}
+	// Admin reset (lost phone) turns 2FA off and signs mia out.
+	if s := adminC.do("PATCH", "/users/"+u.ID, map[string]any{"resetTwoFactor": true}, nil); s != 200 {
+		t.Fatalf("admin reset: HTTP %d", s)
+	}
+	if s := mia.do("GET", "/auth/me", nil, nil); s != 401 {
+		t.Fatalf("session survived 2FA reset: HTTP %d", s)
+	}
+	if s, e := login(""); s != 200 {
+		t.Fatalf("login after reset: HTTP %d %+v", s, e)
 	}
 }

@@ -42,6 +42,8 @@ var operationRolesSessionToken = map[string][]string{
 	CreateUserOperation:           []string{},
 	DeleteAPIKeyOperation:         []string{},
 	DeleteUserOperation:           []string{},
+	DisableTOTPOperation:          []string{},
+	EnableTOTPOperation:           []string{},
 	GetMeOperation:                []string{},
 	GetServerSettingsOperation:    []string{},
 	ListAPIKeysOperation:          []string{},
@@ -50,6 +52,7 @@ var operationRolesSessionToken = map[string][]string{
 	LogoutOperation:               []string{},
 	RenameSessionOperation:        []string{},
 	RevokeSessionOperation:        []string{},
+	StartTOTPSetupOperation:       []string{},
 	UpdateServerSettingsOperation: []string{},
 	UpdateUserOperation:           []string{},
 }

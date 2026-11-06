@@ -45,7 +45,7 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [ ] `[JF]` Parental controls: max dob. ocjena (sa subscores), blokirani/dopušteni tagovi, blokiranje nerangiranih stavki po tipu, raspored pristupa (sati/dani) (P1 + primjena svugdje P4)
 - [ ] `[JF-P]` LDAP auth (P13)
 - [ ] `[JF-P]` SSO preko OIDC (Authentik, Keycloak, Entra ID, Google) — ugrađeno, bez plugina (P13)
-- [ ] `[+]` 2FA TOTP + recovery kodovi (P1)
+- [x] `[+]` 2FA TOTP + recovery kodovi (P1)
 - [ ] `[+]` Passkeys / WebAuthn za web (P13)
 - [ ] `[+]` Profili unutar korisnika (Netflix-style): avatar, PIN po profilu, dječji profil s vlastitim parental limitom, odvojena watch povijest (P1)
 - [ ] `[+]` Pozivnice (invite link s rokom, unaprijed postavljenim bibliotekama i dozvolama) (P1)

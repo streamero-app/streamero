@@ -56,3 +56,26 @@ describe("LoginPage", () => {
     setLanguage("en");
   });
 });
+
+describe("LoginPage two-factor", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("asks for the code after a correct password and sends it", async () => {
+    setLanguage("en");
+    const fetch = mockApi(({ body }) => {
+      const b = body as { totpCode?: string };
+      if (!b.totpCode) return { status: 401, body: { code: "totp_required", message: "" } };
+      return { status: 200, body: { sessionId: "0190a8b0-0000-7000-8000-0000000000bb", user: testUser({ totpEnabled: true }) } };
+    });
+    const { router } = renderApp("/login");
+    fireEvent.change(await screen.findByLabelText("Username"), { target: { value: "ana" } });
+    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "secret-pass" } });
+    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+    const codeField = await screen.findByLabelText("Code from the app");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument(); // not an error, just the next step
+    fireEvent.change(codeField, { target: { value: "123456" } });
+    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/"));
+    expect(await (fetch.mock.calls[1]![0] as Request).json()).toMatchObject({ totpCode: "123456" });
+  });
+});
