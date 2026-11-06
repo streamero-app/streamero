@@ -1,0 +1,20 @@
+{
+  "app": { "name": "Streamero", "tagline": "Your media, beautifully streamed." },
+  "language": { "label": "Language", "en": "English", "hr": "Hrvatski" },
+  "login": {
+    "title": "Sign in",
+    "username": "Username",
+    "password": "Password",
+    "submit": "Sign in",
+    "quickConnect": "Use Quick Connect",
+    "notAvailable": "Sign-in arrives in the next release."
+  },
+  "server": {
+    "checking": "Connecting to server…",
+    "starting": "Server is starting. Retrying…",
+    "unreachable": "Server is unreachable.",
+    "retry": "Retry",
+    "version": "Version {{version}}"
+  },
+  "notFound": { "title": "Page not found", "back": "Back to start" }
+}

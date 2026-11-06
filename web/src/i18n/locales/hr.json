@@ -1,0 +1,20 @@
+{
+  "app": { "name": "Streamero", "tagline": "Tvoji mediji, prekrasno streamani." },
+  "language": { "label": "Jezik", "en": "English", "hr": "Hrvatski" },
+  "login": {
+    "title": "Prijava",
+    "username": "Korisničko ime",
+    "password": "Lozinka",
+    "submit": "Prijavi se",
+    "quickConnect": "Koristi Quick Connect",
+    "notAvailable": "Prijava stiže u sljedećem izdanju."
+  },
+  "server": {
+    "checking": "Spajanje na server…",
+    "starting": "Server se pokreće. Pokušavam ponovno…",
+    "unreachable": "Server nije dostupan.",
+    "retry": "Pokušaj ponovno",
+    "version": "Verzija {{version}}"
+  },
+  "notFound": { "title": "Stranica nije pronađena", "back": "Natrag na početak" }
+}

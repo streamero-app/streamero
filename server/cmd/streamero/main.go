@@ -1,0 +1,182 @@
+// Command streamero is the Streamero media server.
+//
+// Subcommands: serve | worker | migrate | healthcheck | version
+package main
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"log/slog"
+	"net/http"
+	"os"
+	"os/signal"
+	"strings"
+	"syscall"
+	"time"
+
+	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/riverdriver/riverpgxv5"
+
+	"github.com/streamero-app/streamero/server/internal/api"
+	"github.com/streamero-app/streamero/server/internal/app"
+	"github.com/streamero-app/streamero/server/internal/config"
+	"github.com/streamero-app/streamero/server/internal/db"
+	"github.com/streamero-app/streamero/server/internal/jobs"
+	"github.com/streamero-app/streamero/server/internal/storage"
+	"github.com/streamero-app/streamero/server/internal/version"
+)
+
+func main() {
+	cmd := "serve"
+	if len(os.Args) > 1 {
+		cmd = os.Args[1]
+	}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	var err error
+	switch cmd {
+	case "serve":
+		err = withConfig(ctx, serve)
+	case "worker":
+		err = withConfig(ctx, worker)
+	case "migrate":
+		err = withConfig(ctx, migrate)
+	case "healthcheck":
+		err = healthcheck()
+	case "version":
+		fmt.Printf("streamero %s (%s)\n", version.Version, version.Commit)
+	default:
+		err = fmt.Errorf("unknown command %q (want serve|worker|migrate|healthcheck|version)", cmd)
+	}
+	if err != nil && !errors.Is(err, context.Canceled) {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+}
+
+func newLogger(level string) *slog.Logger {
+	var l slog.Level
+	_ = l.UnmarshalText([]byte(level))
+	return slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: l}))
+}
+
+func withConfig(ctx context.Context, fn func(context.Context, config.Config, *slog.Logger) error) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
+	log := newLogger(cfg.LogLevel)
+	slog.SetDefault(log)
+	return fn(ctx, cfg, log)
+}
+
+func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
+	for _, dir := range []string{cfg.CacheDir, cfg.TranscodeDir} {
+		if err := storage.EnsureCacheDir(dir); err != nil {
+			// Not fatal: local dev runs often have no /cache. Features needing it will fail loudly.
+			log.Warn("cache dir unavailable", "dir", dir, "err", err)
+		}
+	}
+	state := &app.State{}
+	h := &api.Handler{State: state, ServerName: cfg.ServerName, StartedAt: time.Now().UTC()}
+	router, err := app.NewRouter(state, h)
+	if err != nil {
+		return err
+	}
+	srv := &http.Server{Addr: cfg.HTTPAddr, Handler: router, ReadHeaderTimeout: 10 * time.Second}
+
+	// Listen immediately so health checks answer 503 while dependencies come up.
+	errc := make(chan error, 1)
+	go func() {
+		log.Info("http listening", "addr", cfg.HTTPAddr, "version", version.Version)
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			errc <- err
+		}
+	}()
+
+	deps, err := app.Bootstrap(ctx, cfg, state, log)
+	if err == nil {
+		defer deps.Close()
+		log.Info("ready", "server_id", state.ServerID(), "startup", time.Since(h.StartedAt).String())
+	}
+
+	select {
+	case <-ctx.Done():
+	case err := <-errc:
+		return err
+	}
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
+	defer cancel()
+	return srv.Shutdown(shutdownCtx)
+}
+
+func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
+	// The worker never runs migrations itself: it waits for serve/migrate.
+	cfg.AutoMigrate = false
+	state := &app.State{}
+	deps, err := app.Bootstrap(ctx, cfg, state, log)
+	if err != nil {
+		return err
+	}
+	defer deps.Close()
+
+	workers := river.NewWorkers()
+	jobs.Register(workers, log)
+	client, err := river.NewClient(riverpgxv5.New(deps.Pool), &river.Config{
+		Logger:  log,
+		Queues:  map[string]river.QueueConfig{river.QueueDefault: {MaxWorkers: 10}},
+		Workers: workers,
+		PeriodicJobs: []*river.PeriodicJob{
+			river.NewPeriodicJob(river.PeriodicInterval(time.Minute),
+				func() (river.JobArgs, *river.InsertOpts) { return jobs.HeartbeatArgs{}, nil },
+				&river.PeriodicJobOpts{RunOnStart: true}),
+		},
+	})
+	if err != nil {
+		return err
+	}
+	if err := client.Start(ctx); err != nil {
+		return err
+	}
+	log.Info("worker started")
+	<-ctx.Done()
+	stopCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
+	defer cancel()
+	return client.Stop(stopCtx)
+}
+
+func migrate(ctx context.Context, cfg config.Config, log *slog.Logger) error {
+	pool, err := db.Connect(ctx, cfg.DatabaseURL)
+	if err != nil {
+		return err
+	}
+	defer pool.Close()
+	if err := db.Migrate(ctx, pool); err != nil {
+		return err
+	}
+	log.Info("migrations applied")
+	return nil
+}
+
+func healthcheck() error {
+	addr := os.Getenv("STREAMERO_HTTP_ADDR")
+	if addr == "" {
+		addr = ":8787"
+	}
+	if strings.HasPrefix(addr, ":") {
+		addr = "127.0.0.1" + addr
+	}
+	c := http.Client{Timeout: 3 * time.Second}
+	// Address comes from our own env and always targets the local process.
+	resp, err := c.Get("http://" + addr + "/healthz") //nolint:gosec // G704: loopback health probe
+	if err != nil {
+		return err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("healthz: %s", resp.Status)
+	}
+	return nil
+}

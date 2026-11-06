@@ -1,0 +1,85 @@
+name: streamero
+
+x-common: &common
+  image: ghcr.io/${GH_OWNER:-streamero-app}/streamero:${STREAMERO_VERSION:-latest}
+  restart: unless-stopped
+  env_file: .env
+  environment:
+    TZ: ${TZ:-Europe/Zagreb}
+    STREAMERO_DB_URL: postgres://streamero:${DB_PASSWORD:?set DB_PASSWORD in .env}@db:5432/streamero?sslmode=disable
+    STREAMERO_VALKEY_URL: redis://valkey:6379/0
+  volumes:
+    - ${CONFIG_PATH:-./data/config}:/config
+    - ${CACHE_PATH:-./data/cache}:/cache
+    - ${MEDIA_PATH:-/mnt/media}:/media:ro
+  depends_on:
+    db: { condition: service_healthy }
+    valkey: { condition: service_healthy }
+
+services:
+  # Docker creates missing bind-mount dirs as root; the app runs as uid 1000.
+  init:
+    image: busybox:1.37
+    user: "0:0"
+    restart: "no"
+    command: ["sh", "-c", "chown 1000:1000 /config /cache /recordings"]
+    volumes:
+      - ${CONFIG_PATH:-./data/config}:/config
+      - ${CACHE_PATH:-./data/cache}:/cache
+      - ${RECORDINGS_PATH:-./data/recordings}:/recordings
+
+  streamero:
+    <<: *common
+    command: ["serve"]
+    depends_on:
+      init: { condition: service_completed_successfully }
+      db: { condition: service_healthy }
+      valkey: { condition: service_healthy }
+    ports:
+      - "${HTTP_PORT:-8787}:8787"
+    volumes:
+      - ${CONFIG_PATH:-./data/config}:/config
+      - ${CACHE_PATH:-./data/cache}:/cache
+      - ${MEDIA_PATH:-/mnt/media}:/media:ro
+      - ${RECORDINGS_PATH:-./data/recordings}:/recordings
+      - type: tmpfs            # transcode segments live in RAM
+        target: /transcode
+        tmpfs: { size: 8g, mode: 01777 }
+    healthcheck:
+      test: ["CMD", "/app/streamero", "healthcheck"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    <<: *common
+    command: ["worker"]
+    healthcheck:
+      disable: true   # the worker has no HTTP listener; liveness is visible via River job stats
+    depends_on:
+      db: { condition: service_healthy }
+      valkey: { condition: service_healthy }
+      streamero: { condition: service_healthy }
+
+  db:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: streamero
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      POSTGRES_DB: streamero
+    volumes:
+      - ${DB_PATH:-./data/postgres}:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U streamero"]
+      interval: 10s
+      retries: 5
+    shm_size: 256mb
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    restart: unless-stopped
+    command: ["valkey-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s

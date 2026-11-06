@@ -1,0 +1,8 @@
+# Intel Quick Sync (QSV). Same devices as VA-API; QSV is selected in transcoding settings.
+services:
+  streamero:
+    devices: ["/dev/dri:/dev/dri"]
+    group_add: ["${RENDER_GID:-105}"]
+  worker:
+    devices: ["/dev/dri:/dev/dri"]
+    group_add: ["${RENDER_GID:-105}"]

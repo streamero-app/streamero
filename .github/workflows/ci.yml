@@ -1,0 +1,99 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: streamero
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: streamero
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U streamero" --health-interval 5s --health-retries 10
+      valkey:
+        image: valkey/valkey:8-alpine
+        ports: ["6379:6379"]
+    env:
+      STREAMERO_TEST_DB_URL: postgres://streamero:ci@localhost:5432/streamero?sslmode=disable
+      STREAMERO_TEST_VALKEY_URL: redis://localhost:6379/0
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+      - name: Generated API code is up to date
+        run: |
+          go tool ogen --target internal/api/gen --package gen --clean ../api/openapi.yaml
+          git diff --exit-code -- internal/api/gen
+          cmp ../api/openapi.yaml ../ios/Streamero/openapi.yaml
+      - run: go vet ./...
+      - uses: golangci/golangci-lint-action@v8
+        with:
+          working-directory: server
+      - run: go test ./... -race
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: web/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Generated API types are up to date
+        run: pnpm gen:api && git diff --exit-code -- src/api/schema.gen.ts
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [server, web]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start compose stack
+        working-directory: deploy
+        run: |
+          cp .env.example .env
+          sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=ci-e2e/' .env
+          mkdir -p ../data/fixtures
+          docker compose -f docker-compose.yml -f compose.dev.yml up -d --build --wait
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: web/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - working-directory: web
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium
+          pnpm e2e
+      - name: Compose logs on failure
+        if: failure()
+        working-directory: deploy
+        run: docker compose -f docker-compose.yml -f compose.dev.yml logs

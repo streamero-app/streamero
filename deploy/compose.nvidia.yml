@@ -1,0 +1,12 @@
+# NVIDIA hardware acceleration (requires nvidia-container-toolkit on the host).
+x-gpu: &gpu
+  deploy:
+    resources:
+      reservations:
+        devices:
+          - driver: nvidia
+            count: all
+            capabilities: [gpu, video, compute, utility]
+services:
+  streamero: *gpu
+  worker: *gpu

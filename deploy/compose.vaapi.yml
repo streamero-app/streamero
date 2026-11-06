@@ -1,0 +1,8 @@
+# Intel/AMD hardware acceleration (VA-API / QSV).
+services:
+  streamero:
+    devices: ["/dev/dri:/dev/dri"]
+    group_add: ["${RENDER_GID:-105}"]
+  worker:
+    devices: ["/dev/dri:/dev/dri"]
+    group_add: ["${RENDER_GID:-105}"]

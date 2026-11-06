@@ -1,0 +1,49 @@
+{
+  "permissions": {
+    "allow": [
+      "Edit",
+      "Write",
+      "Read",
+      "Bash(go *)",
+      "Bash(gofmt *)",
+      "Bash(golangci-lint *)",
+      "Bash(sqlc *)",
+      "Bash(pnpm *)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(node *)",
+      "Bash(docker *)",
+      "Bash(git *)",
+      "Bash(gh *)",
+      "Bash(curl *)",
+      "Bash(make *)",
+      "Bash(xcodegen *)",
+      "Bash(./scripts/*)",
+      "Bash(ffmpeg *)",
+      "Bash(ffprobe *)",
+      "Bash(python3 *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(grep *)",
+      "Bash(find *)",
+      "Bash(sed *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(touch *)",
+      "Bash(chmod *)",
+      "Bash(cd *)",
+      "Bash(echo *)",
+      "Bash(sleep *)",
+      "Bash(pkill *)"
+    ],
+    "deny": [
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(rm -rf /*)"
+    ]
+  }
+}

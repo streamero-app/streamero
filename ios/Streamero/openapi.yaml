@@ -1,0 +1,102 @@
+openapi: 3.1.0
+info:
+  title: Streamero API
+  version: 0.1.0
+  description: |
+    Streamero media server API. This file is the single source of truth:
+    server interfaces (ogen), the web client (openapi-typescript) and the iOS
+    client (swift-openapi-generator) are generated from it.
+servers:
+  - url: /api/v1
+tags:
+  - name: system
+paths:
+  /system/info:
+    get:
+      operationId: getSystemInfo
+      summary: Public server information
+      description: Unauthenticated. Used by clients to verify a server URL before login.
+      tags: [system]
+      responses:
+        "200":
+          description: Server information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemInfo"
+        "503":
+          $ref: "#/components/responses/Starting"
+        default:
+          $ref: "#/components/responses/Error"
+  /system/ping:
+    get:
+      operationId: ping
+      summary: Liveness probe for clients
+      tags: [system]
+      responses:
+        "200":
+          description: Pong
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pong"
+        default:
+          $ref: "#/components/responses/Error"
+components:
+  responses:
+    Starting:
+      description: Server is starting; retry after the given number of seconds.
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+  schemas:
+    Pong:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+    SystemInfo:
+      type: object
+      required: [id, name, product, version, apiVersion, setupCompleted, startedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Stable server identifier, generated on first start.
+        name:
+          type: string
+          description: Human readable server name.
+        product:
+          type: string
+          description: Always "Streamero".
+        version:
+          type: string
+        commit:
+          type: string
+        apiVersion:
+          type: string
+        setupCompleted:
+          type: boolean
+        startedAt:
+          type: string
+          format: date-time
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string

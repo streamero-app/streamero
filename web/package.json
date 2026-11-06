@@ -1,0 +1,42 @@
+{
+  "name": "streamero-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build && node -e \"require('fs').writeFileSync('../server/internal/webui/dist/.keep','')\"",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --noEmit",
+    "lint": "tsc -b --noEmit",
+    "test": "vitest run",
+    "e2e": "playwright test",
+    "gen:api": "openapi-typescript ../api/openapi.yaml -o src/api/schema.gen.ts"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.106.1",
+    "@tanstack/react-router": "^1.170.46",
+    "i18next": "^26.7.1",
+    "openapi-fetch": "^0.17.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-i18next": "^17.1.12"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@tailwindcss/vite": "^4.3.4",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@types/node": "^22.20.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.2.1",
+    "jsdom": "^31.0.0",
+    "openapi-typescript": "^7.13.0",
+    "tailwindcss": "^4.3.4",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.6",
+    "vitest": "^5.1.0"
+  },
+  "packageManager": "pnpm@10.28.0"
+}
