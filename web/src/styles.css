@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens. Components use only these variables (via the Tailwind theme below),
+ * so the SCYDE theme from docs/DESIGN.md can later replace this block without touching components.
+ */
+:root {
+  --color-bg: #0b0b10;
+  --color-surface: #15151c;
+  --color-surface-2: #1e1e28;
+  --color-border: #2a2a36;
+  --color-text: #f2f2f5;
+  --color-text-muted: #9a9aab;
+  --color-accent: #e5484d;
+  --color-accent-contrast: #ffffff;
+  --color-danger: #ff6b6b;
+  --color-success: #3dd68c;
+  --radius-card: 14px;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+@theme inline {
+  --color-bg: var(--color-bg);
+  --color-surface: var(--color-surface);
+  --color-surface-2: var(--color-surface-2);
+  --color-border: var(--color-border);
+  --color-text: var(--color-text);
+  --color-muted: var(--color-text-muted);
+  --color-accent: var(--color-accent);
+  --color-accent-contrast: var(--color-accent-contrast);
+  --color-danger: var(--color-danger);
+  --color-success: var(--color-success);
+  --radius-card: var(--radius-card);
+  --font-sans: var(--font-sans);
+}
+
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}

@@ -19,6 +19,12 @@ func Handler() http.Handler {
 		panic(err)
 	}
 	files := http.FileServer(http.FS(sub))
+	if _, err := fs.Stat(sub, "index.html"); err != nil {
+		return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			_, _ = w.Write([]byte(notBuilt))
+		})
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p := strings.TrimPrefix(path.Clean(r.URL.Path), "/")
 		if p == "" {
@@ -38,3 +44,6 @@ func Handler() http.Handler {
 		files.ServeHTTP(w, r)
 	})
 }
+
+const notBuilt = `<!doctype html><html><head><meta charset="utf-8"><title>Streamero</title></head>` +
+	`<body>Web client not built. Run <code>cd web &amp;&amp; pnpm build</code>.</body></html>`
