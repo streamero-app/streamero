@@ -1,0 +1,39 @@
+name: release
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  ipa:
+    uses: ./.github/workflows/ios.yml
+    with:
+      version: ${{ github.ref_name }}
+
+  release:
+    needs: ipa
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/download-artifact@v4
+        with:
+          name: streamero-ipa
+          path: dist
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "${{ github.ref_name }}" dist/*.ipa --generate-notes --verify-tag
+      - name: Update Feather source
+        run: |
+          IPA=$(ls dist/*.ipa)
+          python3 scripts/update-feather-source.py feather/source.json \
+            --version "${GITHUB_REF_NAME#v}" \
+            --url "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/$(basename "$IPA")" \
+            --size "$(stat -c%s "$IPA")"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore(feather): add ${{ github.ref_name }} to source" && git push origin main

@@ -1,0 +1,47 @@
+name: ios
+on:
+  push:
+    branches: [main]
+    paths: ["ios/**", "api/**", ".github/workflows/ios.yml"]
+  pull_request:
+    paths: ["ios/**", "api/**", ".github/workflows/ios.yml"]
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        required: true
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: ios
+    env:
+      VERSION: ${{ inputs.version || format('0.0.0-{0}', github.run_number) }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install xcodegen
+      - run: xcodegen generate
+      - name: Unit tests (simulator)
+        run: |
+          xcodebuild test -project Streamero.xcodeproj -scheme Streamero \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -skipPackagePluginValidation -skipMacroValidation | xcpretty || exit ${PIPESTATUS[0]}
+      - name: Build unsigned .ipa
+        run: |
+          xcodebuild -project Streamero.xcodeproj -scheme Streamero -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
+            -skipPackagePluginValidation -skipMacroValidation \
+            MARKETING_VERSION="${VERSION%%-*}" CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
+          mkdir -p Payload && cp -R build/Build/Products/Release-iphoneos/Streamero.app Payload/
+          zip -qry "Streamero-${VERSION}.ipa" Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: streamero-ipa
+          path: ios/Streamero-*.ipa

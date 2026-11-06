@@ -1,0 +1,20 @@
+{
+  "name": "Streamero",
+  "identifier": "net.scyde.streamero.source",
+  "subtitle": "Streamero by SCYDE",
+  "website": "https://streamero.net",
+  "apps": [
+    {
+      "name": "Streamero",
+      "bundleIdentifier": "net.scyde.streamero",
+      "developerName": "SCYDE",
+      "subtitle": "Your media, beautifully streamed.",
+      "localizedDescription": "Client for the Streamero self-hosted media server.",
+      "iconURL": "https://streamero.net/icon.png",
+      "tintColor": "#E5484D",
+      "category": "entertainment",
+      "versions": []
+    }
+  ],
+  "news": []
+}
