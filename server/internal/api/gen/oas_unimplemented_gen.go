@@ -32,6 +32,16 @@ func (UnimplementedHandler) CompleteSetup(ctx context.Context, req *SetupRequest
 	return r, ht.ErrNotImplemented
 }
 
+// CreateAPIKey implements createAPIKey operation.
+//
+// The key acts with the rights of the admin who created it and is deleted with that user. Send it as
+// `Authorization: Bearer <key>`. The secret is returned only once.
+//
+// POST /apikeys
+func (UnimplementedHandler) CreateAPIKey(ctx context.Context, req *CreateApiKeyRequest) (r *CreatedApiKey, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // CreateUser implements createUser operation.
 //
 // Create a user (admin).
@@ -39,6 +49,15 @@ func (UnimplementedHandler) CompleteSetup(ctx context.Context, req *SetupRequest
 // POST /users
 func (UnimplementedHandler) CreateUser(ctx context.Context, req *CreateUserRequest) (r *User, _ error) {
 	return r, ht.ErrNotImplemented
+}
+
+// DeleteAPIKey implements deleteAPIKey operation.
+//
+// Revoke an API key immediately (admin).
+//
+// DELETE /apikeys/{apiKeyId}
+func (UnimplementedHandler) DeleteAPIKey(ctx context.Context, params DeleteAPIKeyParams) error {
+	return ht.ErrNotImplemented
 }
 
 // DeleteUser implements deleteUser operation.
@@ -74,6 +93,15 @@ func (UnimplementedHandler) GetServerSettings(ctx context.Context) (r *ServerSet
 //
 // GET /system/info
 func (UnimplementedHandler) GetSystemInfo(ctx context.Context) (r GetSystemInfoRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListAPIKeys implements listAPIKeys operation.
+//
+// API keys for integrations (admin).
+//
+// GET /apikeys
+func (UnimplementedHandler) ListAPIKeys(ctx context.Context) (r []ApiKey, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -120,6 +148,15 @@ func (UnimplementedHandler) Logout(ctx context.Context) (r *LogoutNoContent, _ e
 // GET /system/ping
 func (UnimplementedHandler) Ping(ctx context.Context) (r *Pong, _ error) {
 	return r, ht.ErrNotImplemented
+}
+
+// RenameSession implements renameSession operation.
+//
+// Own sessions; admins can rename any session.
+//
+// PATCH /sessions/{sessionId}
+func (UnimplementedHandler) RenameSession(ctx context.Context, req *RenameSessionRequest, params RenameSessionParams) error {
+	return ht.ErrNotImplemented
 }
 
 // RevokeSession implements revokeSession operation.

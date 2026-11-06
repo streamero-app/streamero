@@ -21,12 +21,25 @@ type Handler interface {
 	//
 	// POST /setup
 	CompleteSetup(ctx context.Context, req *SetupRequest) (*SignedInHeaders, error)
+	// CreateAPIKey implements createAPIKey operation.
+	//
+	// The key acts with the rights of the admin who created it and is deleted with that user. Send it as
+	// `Authorization: Bearer <key>`. The secret is returned only once.
+	//
+	// POST /apikeys
+	CreateAPIKey(ctx context.Context, req *CreateApiKeyRequest) (*CreatedApiKey, error)
 	// CreateUser implements createUser operation.
 	//
 	// Create a user (admin).
 	//
 	// POST /users
 	CreateUser(ctx context.Context, req *CreateUserRequest) (*User, error)
+	// DeleteAPIKey implements deleteAPIKey operation.
+	//
+	// Revoke an API key immediately (admin).
+	//
+	// DELETE /apikeys/{apiKeyId}
+	DeleteAPIKey(ctx context.Context, params DeleteAPIKeyParams) error
 	// DeleteUser implements deleteUser operation.
 	//
 	// Delete a user and all of their sessions (admin).
@@ -51,6 +64,12 @@ type Handler interface {
 	//
 	// GET /system/info
 	GetSystemInfo(ctx context.Context) (GetSystemInfoRes, error)
+	// ListAPIKeys implements listAPIKeys operation.
+	//
+	// API keys for integrations (admin).
+	//
+	// GET /apikeys
+	ListAPIKeys(ctx context.Context) ([]ApiKey, error)
 	// ListSessions implements listSessions operation.
 	//
 	// Own sessions; admins see the sessions of all users.
@@ -81,6 +100,12 @@ type Handler interface {
 	//
 	// GET /system/ping
 	Ping(ctx context.Context) (*Pong, error)
+	// RenameSession implements renameSession operation.
+	//
+	// Own sessions; admins can rename any session.
+	//
+	// PATCH /sessions/{sessionId}
+	RenameSession(ctx context.Context, req *RenameSessionRequest, params RenameSessionParams) error
 	// RevokeSession implements revokeSession operation.
 	//
 	// Own sessions; admins can revoke any session.

@@ -13,6 +13,78 @@ func (s *ErrorStatusCode) Error() string {
 	return fmt.Sprintf("code %d: %+v", s.StatusCode, s.Response)
 }
 
+// Ref: #/components/schemas/ApiKey
+type ApiKey struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+	// First characters of the key, to recognise it.
+	Prefix string `json:"prefix"`
+	// Username of the admin who created the key.
+	CreatedBy  string      `json:"createdBy"`
+	CreatedAt  time.Time   `json:"createdAt"`
+	LastUsedAt OptDateTime `json:"lastUsedAt"`
+}
+
+// GetID returns the value of ID.
+func (s *ApiKey) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetName returns the value of Name.
+func (s *ApiKey) GetName() string {
+	return s.Name
+}
+
+// GetPrefix returns the value of Prefix.
+func (s *ApiKey) GetPrefix() string {
+	return s.Prefix
+}
+
+// GetCreatedBy returns the value of CreatedBy.
+func (s *ApiKey) GetCreatedBy() string {
+	return s.CreatedBy
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *ApiKey) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetLastUsedAt returns the value of LastUsedAt.
+func (s *ApiKey) GetLastUsedAt() OptDateTime {
+	return s.LastUsedAt
+}
+
+// SetID sets the value of ID.
+func (s *ApiKey) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetName sets the value of Name.
+func (s *ApiKey) SetName(val string) {
+	s.Name = val
+}
+
+// SetPrefix sets the value of Prefix.
+func (s *ApiKey) SetPrefix(val string) {
+	s.Prefix = val
+}
+
+// SetCreatedBy sets the value of CreatedBy.
+func (s *ApiKey) SetCreatedBy(val string) {
+	s.CreatedBy = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *ApiKey) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetLastUsedAt sets the value of LastUsedAt.
+func (s *ApiKey) SetLastUsedAt(val OptDateTime) {
+	s.LastUsedAt = val
+}
+
 // Ref: #/components/schemas/AuthResult
 type AuthResult struct {
 	// Bearer token. Omitted when useCookie was requested.
@@ -80,6 +152,22 @@ func (s *ChangePasswordRequest) SetNewPassword(val Password) {
 	s.NewPassword = val
 }
 
+// Ref: #/components/schemas/CreateApiKeyRequest
+type CreateApiKeyRequest struct {
+	// E.g. "Jellyseerr".
+	Name string `json:"name"`
+}
+
+// GetName returns the value of Name.
+func (s *CreateApiKeyRequest) GetName() string {
+	return s.Name
+}
+
+// SetName sets the value of Name.
+func (s *CreateApiKeyRequest) SetName(val string) {
+	s.Name = val
+}
+
 // Ref: #/components/schemas/CreateUserRequest
 type CreateUserRequest struct {
 	Username Username `json:"username"`
@@ -116,6 +204,36 @@ func (s *CreateUserRequest) SetPassword(val Password) {
 func (s *CreateUserRequest) SetIsAdmin(val OptBool) {
 	s.IsAdmin = val
 }
+
+// Ref: #/components/schemas/CreatedApiKey
+type CreatedApiKey struct {
+	// The secret. Shown only once.
+	Key    string `json:"key"`
+	ApiKey ApiKey `json:"apiKey"`
+}
+
+// GetKey returns the value of Key.
+func (s *CreatedApiKey) GetKey() string {
+	return s.Key
+}
+
+// GetApiKey returns the value of ApiKey.
+func (s *CreatedApiKey) GetApiKey() ApiKey {
+	return s.ApiKey
+}
+
+// SetKey sets the value of Key.
+func (s *CreatedApiKey) SetKey(val string) {
+	s.Key = val
+}
+
+// SetApiKey sets the value of ApiKey.
+func (s *CreatedApiKey) SetApiKey(val ApiKey) {
+	s.ApiKey = val
+}
+
+// DeleteAPIKeyNoContent is response for DeleteAPIKey operation.
+type DeleteAPIKeyNoContent struct{}
 
 // DeleteUserNoContent is response for DeleteUser operation.
 type DeleteUserNoContent struct{}
@@ -555,6 +673,24 @@ func (s *Pong) GetOk() bool {
 // SetOk sets the value of Ok.
 func (s *Pong) SetOk(val bool) {
 	s.Ok = val
+}
+
+// RenameSessionNoContent is response for RenameSession operation.
+type RenameSessionNoContent struct{}
+
+// Ref: #/components/schemas/RenameSessionRequest
+type RenameSessionRequest struct {
+	DeviceName string `json:"deviceName"`
+}
+
+// GetDeviceName returns the value of DeviceName.
+func (s *RenameSessionRequest) GetDeviceName() string {
+	return s.DeviceName
+}
+
+// SetDeviceName sets the value of DeviceName.
+func (s *RenameSessionRequest) SetDeviceName(val string) {
+	s.DeviceName = val
 }
 
 // RevokeSessionNoContent is response for RevokeSession operation.

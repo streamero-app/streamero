@@ -47,3 +47,28 @@ describe("signed-in area", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 });
+
+describe("API keys", () => {
+  beforeEach(() => setLanguage("en"));
+
+  it("shows a new key once and lists keys without secrets", async () => {
+    const key = { id: "0190a8b0-0000-7000-8000-0000000000k1", name: "Jellyseerr", prefix: "sk_abcdef", createdBy: "admin", createdAt: new Date().toISOString() };
+    let created = false;
+    mockApi(({ method, path }) => {
+      if (method === "POST" && path === "/apikeys") {
+        created = true;
+        return { status: 201, body: { key: "sk_abcdef_SECRET", apiKey: key } };
+      }
+      if (path === "/apikeys") return { status: 200, body: created ? [key] : [] };
+      return { status: 200, body: [] };
+    });
+    renderApp("/settings/apikeys", { me: testUser({ isAdmin: true }) });
+    expect(await screen.findByText("No API keys yet.")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Jellyseerr" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create API key" }));
+    expect(await screen.findByText("sk_abcdef_SECRET")).toBeInTheDocument();
+    expect(await screen.findByTestId("api-key-row")).toHaveTextContent("Jellyseerr");
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+    expect(screen.queryByText("sk_abcdef_SECRET")).not.toBeInTheDocument();
+  });
+});

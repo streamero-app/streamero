@@ -15,6 +15,71 @@ import (
 	"github.com/ogen-go/ogen/validate"
 )
 
+// DeleteAPIKeyParams is parameters of deleteAPIKey operation.
+type DeleteAPIKeyParams struct {
+	ApiKeyId uuid.UUID
+}
+
+func unpackDeleteAPIKeyParams(packed middleware.Parameters) (params DeleteAPIKeyParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "apiKeyId",
+			In:   "path",
+		}
+		params.ApiKeyId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeDeleteAPIKeyParams(args [1]string, argsEscaped bool, r *http.Request) (params DeleteAPIKeyParams, _ error) {
+	// Decode path: apiKeyId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "apiKeyId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ApiKeyId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "apiKeyId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // DeleteUserParams is parameters of deleteUser operation.
 type DeleteUserParams struct {
 	UserId uuid.UUID
@@ -73,6 +138,71 @@ func decodeDeleteUserParams(args [1]string, argsEscaped bool, r *http.Request) (
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "userId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// RenameSessionParams is parameters of renameSession operation.
+type RenameSessionParams struct {
+	SessionId uuid.UUID
+}
+
+func unpackRenameSessionParams(packed middleware.Parameters) (params RenameSessionParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "sessionId",
+			In:   "path",
+		}
+		params.SessionId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeRenameSessionParams(args [1]string, argsEscaped bool, r *http.Request) (params RenameSessionParams, _ error) {
+	// Decode path: sessionId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "sessionId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.SessionId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "sessionId",
 			In:   "path",
 			Err:  err,
 		}

@@ -250,6 +250,61 @@ func (h *Handler) RevokeSession(ctx context.Context, params gen.RevokeSessionPar
 	return h.Auth().RevokeSession(ctx, p, params.SessionId)
 }
 
+// RenameSession implements PATCH /sessions/{sessionId}.
+func (h *Handler) RenameSession(ctx context.Context, req *gen.RenameSessionRequest, params gen.RenameSessionParams) error {
+	p, err := principal(ctx)
+	if err != nil {
+		return err
+	}
+	return h.Auth().RenameSession(ctx, p, params.SessionId, req.DeviceName)
+}
+
+// ListAPIKeys implements GET /apikeys.
+func (h *Handler) ListAPIKeys(ctx context.Context) ([]gen.ApiKey, error) {
+	if _, err := admin(ctx); err != nil {
+		return nil, err
+	}
+	keys, err := h.Auth().ListAPIKeys(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]gen.ApiKey, 0, len(keys))
+	for _, k := range keys {
+		out = append(out, toAPIKey(k))
+	}
+	return out, nil
+}
+
+// CreateAPIKey implements POST /apikeys.
+func (h *Handler) CreateAPIKey(ctx context.Context, req *gen.CreateApiKeyRequest) (*gen.CreatedApiKey, error) {
+	p, err := admin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	k, secret, err := h.Auth().CreateAPIKey(ctx, p, req.Name)
+	if err != nil {
+		return nil, err
+	}
+	return &gen.CreatedApiKey{Key: secret, ApiKey: toAPIKey(k)}, nil
+}
+
+// DeleteAPIKey implements DELETE /apikeys/{apiKeyId}.
+func (h *Handler) DeleteAPIKey(ctx context.Context, params gen.DeleteAPIKeyParams) error {
+	p, err := admin(ctx)
+	if err != nil {
+		return err
+	}
+	return h.Auth().DeleteAPIKey(ctx, p, params.ApiKeyId)
+}
+
+func toAPIKey(k auth.APIKey) gen.ApiKey {
+	out := gen.ApiKey{ID: k.ID, Name: k.Name, Prefix: k.Prefix, CreatedBy: k.CreatedBy, CreatedAt: k.CreatedAt}
+	if k.LastUsedAt != nil {
+		out.LastUsedAt = gen.NewOptDateTime(*k.LastUsedAt)
+	}
+	return out
+}
+
 // GetServerSettings implements GET /settings/server.
 func (h *Handler) GetServerSettings(ctx context.Context) (*gen.ServerSettings, error) {
 	if _, err := admin(ctx); err != nil {
@@ -330,6 +385,10 @@ func mapError(err error) *StatusError {
 		return &StatusError{Status: http.StatusNotFound, Code: "not_found", Message: err.Error()}
 	case errors.Is(err, auth.ErrLastAdmin):
 		return &StatusError{Status: http.StatusConflict, Code: "last_admin", Message: err.Error()}
+	case errors.Is(err, auth.ErrInvalidName):
+		return &StatusError{Status: http.StatusBadRequest, Code: "invalid_name", Message: err.Error()}
+	case errors.Is(err, auth.ErrSessionRequired):
+		return &StatusError{Status: http.StatusForbidden, Code: "session_required", Message: err.Error()}
 	case errors.Is(err, auth.ErrSelf):
 		return &StatusError{Status: http.StatusConflict, Code: "self", Message: err.Error()}
 	}

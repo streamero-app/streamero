@@ -15,6 +15,7 @@ tags:
   - name: users
   - name: sessions
   - name: settings
+  - name: apikeys
 security: []
 paths:
   /system/info:
@@ -236,11 +237,90 @@ paths:
         schema:
           type: string
           format: uuid
+    patch:
+      operationId: renameSession
+      summary: Rename a signed-in device
+      description: Own sessions; admins can rename any session.
+      tags: [sessions]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RenameSessionRequest"
+      responses:
+        "204":
+          description: Renamed
+        default:
+          $ref: "#/components/responses/Error"
     delete:
       operationId: revokeSession
       summary: Sign a device out immediately
       description: Own sessions; admins can revoke any session.
       tags: [sessions]
+      security:
+        - sessionToken: []
+      responses:
+        "204":
+          description: Revoked
+        default:
+          $ref: "#/components/responses/Error"
+  /apikeys:
+    get:
+      operationId: listAPIKeys
+      summary: API keys for integrations (admin)
+      tags: [apikeys]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: API keys (the secret is never returned again)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ApiKey"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createAPIKey
+      summary: Create an API key (admin)
+      description: |
+        The key acts with the rights of the admin who created it and is deleted with that
+        user. Send it as `Authorization: Bearer <key>`. The secret is returned only once.
+      tags: [apikeys]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateApiKeyRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatedApiKey"
+        default:
+          $ref: "#/components/responses/Error"
+  /apikeys/{apiKeyId}:
+    parameters:
+      - name: apiKeyId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    delete:
+      operationId: deleteAPIKey
+      summary: Revoke an API key immediately (admin)
+      tags: [apikeys]
       security:
         - sessionToken: []
       responses:
@@ -291,8 +371,9 @@ components:
       type: http
       scheme: bearer
       description: |
-        Session token from /auth/login or /setup. Web clients get it as the HttpOnly
-        `streamero_session` cookie instead (useCookie: true), which the server accepts too.
+        Session token from /auth/login or /setup, or an API key (`sk_…`) from /apikeys.
+        Web clients get the session as the HttpOnly `streamero_session` cookie instead
+        (useCookie: true), which the server accepts too.
   parameters:
     UserId:
       name: userId
@@ -467,6 +548,53 @@ components:
         current:
           type: boolean
           description: True for the session making this request.
+    RenameSessionRequest:
+      type: object
+      required: [deviceName]
+      properties:
+        deviceName:
+          type: string
+          minLength: 1
+          maxLength: 100
+    ApiKey:
+      type: object
+      required: [id, name, prefix, createdBy, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        prefix:
+          type: string
+          description: First characters of the key, to recognise it.
+        createdBy:
+          type: string
+          description: Username of the admin who created the key.
+        createdAt:
+          type: string
+          format: date-time
+        lastUsedAt:
+          type: string
+          format: date-time
+    CreateApiKeyRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: e.g. "Jellyseerr"
+    CreatedApiKey:
+      type: object
+      required: [key, apiKey]
+      properties:
+        key:
+          type: string
+          description: The secret. Shown only once.
+        apiKey:
+          $ref: "#/components/schemas/ApiKey"
     ServerSettings:
       type: object
       required: [serverName]

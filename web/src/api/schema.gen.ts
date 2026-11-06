@@ -210,6 +210,51 @@ export interface paths {
         delete: operations["revokeSession"];
         options?: never;
         head?: never;
+        /**
+         * Rename a signed-in device
+         * @description Own sessions; admins can rename any session.
+         */
+        patch: operations["renameSession"];
+        trace?: never;
+    };
+    "/apikeys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** API keys for integrations (admin) */
+        get: operations["listAPIKeys"];
+        put?: never;
+        /**
+         * Create an API key (admin)
+         * @description The key acts with the rights of the admin who created it and is deleted with that
+         *     user. Send it as `Authorization: Bearer <key>`. The secret is returned only once.
+         */
+        post: operations["createAPIKey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/apikeys/{apiKeyId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                apiKeyId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke an API key immediately (admin) */
+        delete: operations["deleteAPIKey"];
+        options?: never;
+        head?: never;
         patch?: never;
         trace?: never;
     };
@@ -305,6 +350,31 @@ export interface components {
             lastSeenAt: string;
             /** @description True for the session making this request. */
             current: boolean;
+        };
+        RenameSessionRequest: {
+            deviceName: string;
+        };
+        ApiKey: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** @description First characters of the key, to recognise it. */
+            prefix: string;
+            /** @description Username of the admin who created the key. */
+            createdBy: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            lastUsedAt?: string;
+        };
+        CreateApiKeyRequest: {
+            /** @description e.g. "Jellyseerr" */
+            name: string;
+        };
+        CreatedApiKey: {
+            /** @description The secret. Shown only once. */
+            key: string;
+            apiKey: components["schemas"]["ApiKey"];
         };
         ServerSettings: {
             serverName: string;
@@ -638,6 +708,98 @@ export interface operations {
             header?: never;
             path: {
                 sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Revoked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    renameSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenameSessionRequest"];
+            };
+        };
+        responses: {
+            /** @description Renamed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listAPIKeys: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description API keys (the secret is never returned again) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiKey"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createAPIKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateApiKeyRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedApiKey"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteAPIKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                apiKeyId: string;
             };
             cookie?: never;
         };

@@ -40,6 +40,8 @@ var (
 	ErrLastAdmin          = errors.New("the last enabled admin cannot be removed, demoted or disabled")
 	ErrSelf               = errors.New("you cannot delete or disable your own account")
 	ErrUnauthenticated    = errors.New("not signed in")
+	ErrInvalidName        = errors.New("a name is required")
+	ErrSessionRequired    = errors.New("this action needs a signed-in session, not an API key")
 )
 
 // LockedError is returned while an account is locked after failed logins.
@@ -70,10 +72,11 @@ type Session struct {
 	LastSeenAt time.Time
 }
 
-// Principal is the authenticated caller.
+// Principal is the authenticated caller: a user session or an API key.
 type Principal struct {
 	User      User
-	SessionID uuid.UUID
+	SessionID uuid.UUID // zero for API keys
+	APIKeyID  uuid.UUID // zero for sessions
 }
 
 // Device describes the client creating a session.
@@ -248,6 +251,9 @@ func (s *Service) Authenticate(ctx context.Context, token string) (Principal, er
 	if token == "" {
 		return Principal{}, ErrUnauthenticated
 	}
+	if isAPIKey(token) {
+		return s.authenticateAPIKey(ctx, token)
+	}
 	var p Principal
 	var lastSeen time.Time
 	err := s.pool.QueryRow(ctx, `SELECT s.id, s.last_seen_at, u.id, u.username, u.is_admin, u.disabled, u.created_at, u.last_login_at
@@ -270,6 +276,9 @@ func (s *Service) Authenticate(ctx context.Context, token string) (Principal, er
 
 // Logout deletes the caller's session.
 func (s *Service) Logout(ctx context.Context, p Principal) error {
+	if p.SessionID == uuid.Nil {
+		return ErrSessionRequired
+	}
 	if _, err := s.pool.Exec(ctx, `DELETE FROM sessions WHERE id = $1`, p.SessionID); err != nil {
 		return err
 	}
@@ -278,6 +287,9 @@ func (s *Service) Logout(ctx context.Context, p Principal) error {
 
 // ChangePassword changes the caller's password and signs out their other sessions.
 func (s *Service) ChangePassword(ctx context.Context, p Principal, current, next string) error {
+	if p.SessionID == uuid.Nil {
+		return ErrSessionRequired
+	}
 	var hash string
 	if err := s.pool.QueryRow(ctx, `SELECT password_hash FROM users WHERE id = $1`, p.User.ID).Scan(&hash); err != nil {
 		return err

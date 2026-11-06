@@ -14,8 +14,9 @@ import (
 // SecurityHandler is handler for security parameters.
 type SecurityHandler interface {
 	// HandleSessionToken handles sessionToken security.
-	// Session token from /auth/login or /setup. Web clients get it as the HttpOnly `streamero_session`
-	// cookie instead (useCookie: true), which the server accepts too.
+	// Session token from /auth/login or /setup, or an API key (`sk_…`) from /apikeys. Web clients get
+	// the session as the HttpOnly `streamero_session` cookie instead (useCookie: true), which the server
+	// accepts too.
 	HandleSessionToken(ctx context.Context, operationName OperationName, t SessionToken) (context.Context, error)
 }
 
@@ -37,13 +38,17 @@ func findAuthorization(h http.Header, prefix string) (string, bool) {
 // operationRolesSessionToken is a private map storing roles per operation.
 var operationRolesSessionToken = map[string][]string{
 	ChangePasswordOperation:       []string{},
+	CreateAPIKeyOperation:         []string{},
 	CreateUserOperation:           []string{},
+	DeleteAPIKeyOperation:         []string{},
 	DeleteUserOperation:           []string{},
 	GetMeOperation:                []string{},
 	GetServerSettingsOperation:    []string{},
+	ListAPIKeysOperation:          []string{},
 	ListSessionsOperation:         []string{},
 	ListUsersOperation:            []string{},
 	LogoutOperation:               []string{},
+	RenameSessionOperation:        []string{},
 	RevokeSessionOperation:        []string{},
 	UpdateServerSettingsOperation: []string{},
 	UpdateUserOperation:           []string{},
@@ -90,8 +95,9 @@ func (s *Server) securitySessionToken(ctx context.Context, operationName Operati
 // SecuritySource is provider of security values (tokens, passwords, etc.).
 type SecuritySource interface {
 	// SessionToken provides sessionToken security value.
-	// Session token from /auth/login or /setup. Web clients get it as the HttpOnly `streamero_session`
-	// cookie instead (useCookie: true), which the server accepts too.
+	// Session token from /auth/login or /setup, or an API key (`sk_…`) from /apikeys. Web clients get
+	// the session as the HttpOnly `streamero_session` cookie instead (useCookie: true), which the server
+	// accepts too.
 	SessionToken(ctx context.Context, operationName OperationName) (SessionToken, error)
 }
 

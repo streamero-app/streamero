@@ -38,7 +38,7 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 		t.Fatal(err)
 	}
 	t.Cleanup(deps.Close)
-	if _, err := deps.Pool.Exec(ctx, `TRUNCATE users, sessions, audit_log;
+	if _, err := deps.Pool.Exec(ctx, `TRUNCATE users, sessions, audit_log, api_keys;
 		DELETE FROM settings WHERE key IN ('setup.completed', 'server.name')`); err != nil {
 		t.Fatal(err)
 	}
@@ -312,5 +312,96 @@ func TestLockoutAndUserAdminIntegration(t *testing.T) {
 	}
 	if s := adminC.do("PUT", "/settings/server", map[string]any{"serverName": "  Novi kino "}, &st); s != 200 || st.ServerName != "Novi kino" {
 		t.Fatalf("update settings: HTTP %d %+v", s, st)
+	}
+}
+
+func TestAPIKeysAndDeviceRenameIntegration(t *testing.T) {
+	srv := newAuthTestServer(t)
+	adminC := newClient(t, srv)
+	setupAdmin(t, adminC)
+
+	var created struct {
+		Key    string `json:"key"`
+		APIKey struct {
+			ID     string `json:"id"`
+			Prefix string `json:"prefix"`
+		} `json:"apiKey"`
+	}
+	if s := adminC.do("POST", "/apikeys", map[string]any{"name": "Jellyseerr"}, &created); s != 201 {
+		t.Fatalf("create key: HTTP %d", s)
+	}
+	if !strings.HasPrefix(created.Key, "sk_") || !strings.HasPrefix(created.Key, created.APIKey.Prefix) {
+		t.Fatalf("key %q prefix %q", created.Key, created.APIKey.Prefix)
+	}
+
+	// The key authenticates as the creating admin.
+	integ := newClient(t, srv)
+	integ.token = created.Key
+	var me struct {
+		Username string `json:"username"`
+	}
+	if s := integ.do("GET", "/auth/me", nil, &me); s != 200 || me.Username != "Admin" {
+		t.Fatalf("me via key: HTTP %d %+v", s, me)
+	}
+	if s := integ.do("GET", "/users", nil, nil); s != 200 {
+		t.Fatalf("admin endpoint via key: HTTP %d", s)
+	}
+	var e apiError
+	if s := integ.do("POST", "/auth/password", map[string]any{"currentPassword": "admin-pass-1", "newPassword": "x-pass-123"}, &e); s != 403 || e.Code != "session_required" {
+		t.Fatalf("password change via key: HTTP %d %+v", s, e)
+	}
+
+	// Listing never returns the secret; usage is recorded.
+	var keys []map[string]any
+	adminC.do("GET", "/apikeys", nil, &keys)
+	if len(keys) != 1 || keys[0]["lastUsedAt"] == nil {
+		t.Fatalf("keys: %+v", keys)
+	}
+	for _, v := range keys[0] {
+		if s, ok := v.(string); ok && s == created.Key {
+			t.Fatal("secret leaked in listing")
+		}
+	}
+
+	// Non-admins cannot manage keys.
+	adminC.do("POST", "/users", map[string]any{"username": "eva", "password": "eva-pass-1"}, nil)
+	eva := newClient(t, srv)
+	var res authResult
+	eva.do("POST", "/auth/login", map[string]any{"username": "eva", "password": "eva-pass-1"}, &res)
+	eva.token = res.Token
+	if s := eva.do("POST", "/apikeys", map[string]any{"name": "x"}, nil); s != 403 {
+		t.Fatalf("non-admin create key: HTTP %d", s)
+	}
+
+	// Rename own device; eva cannot rename the admin's device.
+	if s := eva.do("PATCH", "/sessions/"+res.SessionID, map[string]any{"deviceName": "Evin iPhone"}, nil); s != 204 {
+		t.Fatalf("rename own: HTTP %d", s)
+	}
+	var sessions []struct {
+		ID     string `json:"id"`
+		Device string `json:"deviceName"`
+	}
+	eva.do("GET", "/sessions", nil, &sessions)
+	if len(sessions) != 1 || sessions[0].Device != "Evin iPhone" {
+		t.Fatalf("after rename: %+v", sessions)
+	}
+	var adminSessions []struct {
+		ID string `json:"id"`
+	}
+	adminC.do("GET", "/sessions", nil, &adminSessions)
+	for _, s := range adminSessions {
+		if s.ID != res.SessionID {
+			if code := eva.do("PATCH", "/sessions/"+s.ID, map[string]any{"deviceName": "pwned"}, nil); code != 404 {
+				t.Fatalf("rename foreign session: HTTP %d", code)
+			}
+		}
+	}
+
+	// Revoking the key works immediately.
+	if s := adminC.do("DELETE", "/apikeys/"+created.APIKey.ID, nil, nil); s != 204 {
+		t.Fatalf("delete key: HTTP %d", s)
+	}
+	if s := integ.do("GET", "/auth/me", nil, nil); s != 401 {
+		t.Fatalf("revoked key still works: HTTP %d", s)
 	}
 }

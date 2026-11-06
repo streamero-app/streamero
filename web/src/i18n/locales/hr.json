@@ -1,8 +1,23 @@
 {
-  "app": { "name": "Streamero", "tagline": "Tvoji mediji, prekrasno streamani." },
-  "language": { "label": "Jezik", "en": "English", "hr": "Hrvatski" },
-  "common": { "save": "Spremi", "saved": "Spremljeno." },
-  "nav": { "home": "Početna", "settings": "Postavke", "logout": "Odjava" },
+  "app": {
+    "name": "Streamero",
+    "tagline": "Tvoji mediji, prekrasno streamani."
+  },
+  "language": {
+    "label": "Jezik",
+    "en": "English",
+    "hr": "Hrvatski"
+  },
+  "common": {
+    "save": "Spremi",
+    "saved": "Spremljeno.",
+    "cancel": "Odustani"
+  },
+  "nav": {
+    "home": "Početna",
+    "settings": "Postavke",
+    "logout": "Odjava"
+  },
   "login": {
     "title": "Prijava",
     "username": "Korisničko ime",
@@ -33,7 +48,8 @@
     "devices": "Uređaji",
     "adminSection": "Administracija",
     "server": "Server",
-    "users": "Korisnici"
+    "users": "Korisnici",
+    "apiKeys": "API ključevi"
   },
   "account": {
     "changePassword": "Promijeni lozinku",
@@ -47,7 +63,9 @@
     "unknown": "Nepoznat uređaj",
     "current": "Ovaj uređaj",
     "lastSeen": "zadnja aktivnost {{when}}",
-    "signOut": "Odjavi"
+    "signOut": "Odjavi",
+    "rename": "Preimenuj",
+    "name": "Ime uređaja"
   },
   "users": {
     "add": "Dodaj korisnika",
@@ -93,7 +111,26 @@
     "last_admin": "Zadnji administrator se ne može ukloniti, degradirati ni onemogućiti.",
     "self": "Ne možete obrisati ni onemogućiti vlastiti račun.",
     "not_found": "Nije pronađeno — možda je već uklonjeno.",
-    "password_mismatch": "Lozinke se ne podudaraju."
+    "password_mismatch": "Lozinke se ne podudaraju.",
+    "invalid_name": "Upišite naziv.",
+    "session_required": "Ova radnja nije dostupna s API ključem."
   },
-  "notFound": { "title": "Stranica nije pronađena", "back": "Natrag na početak" }
+  "notFound": {
+    "title": "Stranica nije pronađena",
+    "back": "Natrag na početak"
+  },
+  "apikeys": {
+    "intro": "API ključevi omogućuju integracijama poput Jellyseerra, Radarra ili vlastitih skripti da koriste Streamero. Ključ ima prava administratora koji ga je napravio i prestaje raditi ako je taj račun onemogućen ili izgubi administratorska prava.",
+    "name": "Naziv",
+    "create": "Napravi API ključ",
+    "copyNow": "Kopirajte ključ sada — više se neće prikazati.",
+    "copy": "Kopiraj",
+    "copied": "Kopirano",
+    "done": "Gotovo",
+    "none": "Još nema API ključeva.",
+    "meta": "Napravio {{user}} · {{created}} · zadnja upotreba: {{used}}",
+    "never": "nikad",
+    "revoke": "Opozovi",
+    "confirmRevoke": "Opozvati API ključ {{name}}? Integracije koje ga koriste odmah prestaju raditi."
+  }
 }

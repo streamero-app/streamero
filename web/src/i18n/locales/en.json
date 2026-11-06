@@ -1,8 +1,23 @@
 {
-  "app": { "name": "Streamero", "tagline": "Your media, beautifully streamed." },
-  "language": { "label": "Language", "en": "English", "hr": "Hrvatski" },
-  "common": { "save": "Save", "saved": "Saved." },
-  "nav": { "home": "Home", "settings": "Settings", "logout": "Sign out" },
+  "app": {
+    "name": "Streamero",
+    "tagline": "Your media, beautifully streamed."
+  },
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "hr": "Hrvatski"
+  },
+  "common": {
+    "save": "Save",
+    "saved": "Saved.",
+    "cancel": "Cancel"
+  },
+  "nav": {
+    "home": "Home",
+    "settings": "Settings",
+    "logout": "Sign out"
+  },
   "login": {
     "title": "Sign in",
     "username": "Username",
@@ -33,7 +48,8 @@
     "devices": "Devices",
     "adminSection": "Administration",
     "server": "Server",
-    "users": "Users"
+    "users": "Users",
+    "apiKeys": "API keys"
   },
   "account": {
     "changePassword": "Change password",
@@ -47,7 +63,9 @@
     "unknown": "Unknown device",
     "current": "This device",
     "lastSeen": "last active {{when}}",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "rename": "Rename",
+    "name": "Device name"
   },
   "users": {
     "add": "Add user",
@@ -93,7 +111,26 @@
     "last_admin": "The last administrator cannot be removed, demoted or disabled.",
     "self": "You cannot delete or disable your own account.",
     "not_found": "Not found — it may have been removed already.",
-    "password_mismatch": "The passwords do not match."
+    "password_mismatch": "The passwords do not match.",
+    "invalid_name": "Please enter a name.",
+    "session_required": "This action is not available with an API key."
   },
-  "notFound": { "title": "Page not found", "back": "Back to start" }
+  "notFound": {
+    "title": "Page not found",
+    "back": "Back to start"
+  },
+  "apikeys": {
+    "intro": "API keys let integrations such as Jellyseerr, Radarr or your own scripts use Streamero. A key has the rights of the administrator who created it and stops working if that account is disabled or loses admin rights.",
+    "name": "Name",
+    "create": "Create API key",
+    "copyNow": "Copy the key now — it will not be shown again.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "done": "Done",
+    "none": "No API keys yet.",
+    "meta": "Created by {{user}} · {{created}} · last used: {{used}}",
+    "never": "never",
+    "revoke": "Revoke",
+    "confirmRevoke": "Revoke API key {{name}}? Integrations using it stop working immediately."
+  }
 }

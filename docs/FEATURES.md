@@ -35,8 +35,8 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [ ] `[JF]` Skriveni korisnici / prikaz korisnika na login ekranu (opcija) (P1)
 - [ ] `[JF]` Quick Connect — prijava na novom uređaju 6-znamenkastim kodom odobrenim s prijavljenog uređaja (P1)
 - [ ] `[JF]` Reset lozinke (admin + PIN/file flow kao JF; kod nas email ili admin link) (P1)
-- [ ] `[JF]` API ključevi (za integracije) (P1)
-- [ ] `[JF]` Uređaji: lista, preimenovanje, opoziv pristupa (odmah gasi postojeće sesije) (P1) — *lista i opoziv gotovi; preimenovanje slijedi*
+- [x] `[JF]` API ključevi (za integracije) (P1)
+- [x] `[JF]` Uređaji: lista, preimenovanje, opoziv pristupa (odmah gasi postojeće sesije) (P1)
 - [ ] `[JF]` Ograničenje pristupa po uređaju (P1)
 - [ ] `[JF]` Dozvole po korisniku: pristup bibliotekama, Live TV, upravljanje Live TV, brisanje medija, download, transkodiranje (audio/video/remux zasebno), SyncPlay, upravljanje kolekcijama, uređivanje podnaslova, remote control drugih korisnika, dijeljeni uređaji (P1)
 - [ ] `[JF]` Max broj aktivnih sesija po korisniku (P1)
