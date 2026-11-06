@@ -1,7 +1,7 @@
 # PROGRESS
 
 ## Trenutna faza
-P1 — Korisnici i auth (u tijeku, branch `phase/P1-auth`); P0 prihvaćen i mergean (PR #1)
+P2 — Biblioteke i scanner (sljedeće). P0 (PR #1) i P1 (PR #4) gotovi i mergeani.
 
 ## Gotovo
 - Monorepo struktura po PLAN.md §2, `.gitignore`, `.claude/settings.json`.
@@ -20,7 +20,7 @@ P1 — Korisnici i auth (u tijeku, branch `phase/P1-auth`); P0 prihvaćen i merg
 - Branch pushan, PR #1 (`phase/P0-foundations` → `main`) otvoren; `main` je prazan početni commit spojen u P0 (repo je bio prazan). CI zelen: `server`, `web`, `e2e`, iOS `build` (prvi uspješan iOS build, artefakt `streamero-ipa`).
 - `scripts/gen-fixtures.sh`: filmovi (H.264, 4K HEVC 10-bit, HDR10, AV1, multi-audio + poglavlja + embedded/external SRT/ASS, verzije, trailer), serija sa zajedničkim introm (2×4 ep.), multi-episode, specials, daily, anime absolute, glazba (FLAC/MP3), fotke.
 
-## P1 — gotovo (branch `phase/P1-auth`)
+## P1 — gotovo (PR #4)
 - API (spec → ogen): `/setup`, `/auth/{login,logout,me,password}`, `/users`, `/sessions`, `/settings/server`; migracija 00002 (users, sessions, audit_log); D-012.
 - Setup wizard sa setup kodom iz loga, login/odjava (cookie za web, Bearer za aplikacije), lockout, upravljanje korisnicima (admin, onemogući, lozinka, brisanje, zaštita zadnjeg admina), uređaji s trenutnim opozivom, promjena lozinke (odjavljuje ostale uređaje), ime servera.
 - Web: setup, prijava, ljuska aplikacije, Postavke (Moj račun, Uređaji, Server, Korisnici, API ključevi), HR/EN.
@@ -35,10 +35,10 @@ P1 — Korisnici i auth (u tijeku, branch `phase/P1-auth`); P0 prihvaćen i merg
 - Testovi: Go unit + integracijski protiv Postgresa (setup, cookie/bearer, revoke, lockout, zadnji admin, promjena lozinke), Vitest 18, Playwright 9 (setup, korisnici, uređaji, Quick Connect, pozivnice, lockout, odjava — na svježem stacku).
 
 ## Sljedeći koraci
-1. Zatvaranje P1: pregled koda, PR #4 iz drafta u review i merge. Zatim P2 (biblioteke i scanner).
+1. P2: tipovi biblioteka, putanje (kroz `library.ResolveSafePath`), naming parseri + golden testovi, ffprobe, inkrementalni scan + fsnotify, `seed-big-library.sh`; provedba dozvole `allLibraries`.
 2. Instalirati `streamero-ipa` kroz Feather i spojiti se na https://demo.streamero.net (iOS login dolazi u P7).
 3. Zamijeniti placeholder logo službenim s streamero.net.
-4. Nakon P1: P2 (biblioteke i scanner) … *arr ekosustav je nova faza P4b (D-011).
+4. *arr ekosustav je faza P4b (D-011).
 
 ## Poznati problemi / blokeri
 - `server-image.yml` ručno pokrenut s feature brancha nema tagova (samo `main`/`v*`) i pao bi; multi-arch (arm64) image još nije buildan.
