@@ -71,3 +71,8 @@ Format: `## D-001 Naslov (datum)` → Kontekst → Odluka → Posljedice.
 - Lozinke min. 8 znakova (argon2id); lockout 5 pogrešnih → 15 min, atomično u SQL-u; nepostojeći korisnik odgovara isto kao kriva lozinka.
 - Rate limit po IP-u odgođen do postavke „known proxies" (D-009) — iza nginxa bi svi klijenti imali isti IP.
 **Posljedice:** API ključevi (P1, sljedeći korak) koriste isti Bearer header. CSRF: mutacije su JSON (cross-site forma ih ne može poslati bez CORS preflighta), a cookie je `SameSite=Strict`.
+
+## D-013 Dozvole kao jsonb s defaultima u kodu; limit uređaja odjavljuje najstariji (2026-11-06)
+**Kontekst:** P1 traži model dozvola prije nego što postoje biblioteke, reprodukcija i Live TV; Jellyfin pri prekoračenju broja sesija odbija novu prijavu.
+**Odluka:** `users.permissions jsonb`; nedostajući ključevi dobivaju `auth.DefaultPermissions()` pri čitanju, pa nove dozvole ne trebaju migraciju podataka. Admin uvijek smije sve. Kad korisnik s limitom N uđe na N+1. uređaj, odjavljuje se najdulje neaktivna sesija (umjesto odbijanja), jer bi inače korisnik sa zaboravljenom sesijom ostao zaključan.
+**Posljedice:** Svaka buduća značajka mora provjeriti svoju dozvolu (`Principal.User.Permissions`) i imati test za to.

@@ -38,8 +38,8 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [x] `[JF]` API ključevi (za integracije) (P1)
 - [x] `[JF]` Uređaji: lista, preimenovanje, opoziv pristupa (odmah gasi postojeće sesije) (P1)
 - [ ] `[JF]` Ograničenje pristupa po uređaju (P1)
-- [ ] `[JF]` Dozvole po korisniku: pristup bibliotekama, Live TV, upravljanje Live TV, brisanje medija, download, transkodiranje (audio/video/remux zasebno), SyncPlay, upravljanje kolekcijama, uređivanje podnaslova, remote control drugih korisnika, dijeljeni uređaji (P1)
-- [ ] `[JF]` Max broj aktivnih sesija po korisniku (P1)
+- [ ] `[JF]` Dozvole po korisniku: pristup bibliotekama, Live TV, upravljanje Live TV, brisanje medija, download, transkodiranje (audio/video/remux zasebno), SyncPlay, upravljanje kolekcijama, uređivanje podnaslova, remote control drugih korisnika, dijeljeni uređaji (P1) — *model, API i UI gotovi (P1); provedba stiže sa značajkom (biblioteke P2, reprodukcija P5, Live TV P11)*
+- [x] `[JF]` Max broj aktivnih sesija po korisniku (P1)
 - [ ] `[JF]` Bitrate limit za remote klijente po korisniku (P5)
 - [x] `[JF]` Login-attempt lockout (N neuspjelih pokušaja) (P1)
 - [ ] `[JF]` Parental controls: max dob. ocjena (sa subscores), blokirani/dopušteni tagovi, blokiranje nerangiranih stavki po tipu, raspored pristupa (sati/dani) (P1 + primjena svugdje P4)

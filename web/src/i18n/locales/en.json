@@ -169,5 +169,26 @@
     "settingsIntro": "Enter the 6-digit code shown on a new device (TV, phone, another browser) to sign it in with your account.",
     "approve": "Approve",
     "approved": "Approved — {{device}} is now signed in."
+  },
+  "permissions": {
+    "title": "Permissions",
+    "note": "Administrators can always do everything. Each permission takes effect as its feature arrives (libraries, playback, Live TV).",
+    "groupLibrary": "Library",
+    "groupPlayback": "Playback",
+    "groupLiveTv": "Live TV",
+    "allLibraries": "Access to all libraries",
+    "download": "Download",
+    "deleteMedia": "Delete media",
+    "manageCollections": "Manage collections",
+    "editSubtitles": "Edit subtitles",
+    "videoTranscoding": "Video transcoding",
+    "audioTranscoding": "Audio transcoding",
+    "remux": "Remux (change container)",
+    "syncPlay": "Watch party (SyncPlay)",
+    "remoteControl": "Remote control of other devices",
+    "liveTv": "Watch Live TV",
+    "manageLiveTv": "Manage Live TV and recordings",
+    "maxSessions": "Max. signed-in devices",
+    "maxSessionsHint": "0 = unlimited. Signing in on one more device signs out the least recently used one."
   }
 }

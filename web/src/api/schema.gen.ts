@@ -464,6 +464,26 @@ export interface components {
         PasswordConfirmRequest: {
             password: string;
         };
+        /**
+         * @description What a non-admin may do (admins may do everything). Each permission is enforced by the
+         *     feature it belongs to as that feature ships (libraries P2, playback P5, Live TV P11, ...).
+         */
+        UserPermissions: {
+            allLibraries: boolean;
+            download: boolean;
+            videoTranscoding: boolean;
+            audioTranscoding: boolean;
+            remux: boolean;
+            liveTv: boolean;
+            manageLiveTv: boolean;
+            syncPlay: boolean;
+            deleteMedia: boolean;
+            manageCollections: boolean;
+            editSubtitles: boolean;
+            remoteControl: boolean;
+            /** @description Signed-in devices allowed at once; 0 = unlimited. Signing in on one more device signs out the least recently used one. */
+            maxSessions: number;
+        };
         User: {
             /** Format: uuid */
             id: string;
@@ -472,6 +492,7 @@ export interface components {
             disabled: boolean;
             /** @description Two-factor authentication is on. */
             totpEnabled: boolean;
+            permissions: components["schemas"]["UserPermissions"];
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -481,11 +502,13 @@ export interface components {
             username: components["schemas"]["Username"];
             password: components["schemas"]["Password"];
             isAdmin?: boolean;
+            permissions?: components["schemas"]["UserPermissions"];
         };
         UpdateUserRequest: {
             isAdmin?: boolean;
             disabled?: boolean;
             password?: components["schemas"]["Password"];
+            permissions?: components["schemas"]["UserPermissions"];
             /** @description Turn the user's 2FA off (e.g. lost phone); signs them out everywhere. */
             resetTwoFactor?: boolean;
         };

@@ -552,12 +552,19 @@ func (s *CreateUserRequest) encodeFields(e *jx.Encoder) {
 			s.IsAdmin.Encode(e)
 		}
 	}
+	{
+		if s.Permissions.Set {
+			e.FieldStart("permissions")
+			s.Permissions.Encode(e)
+		}
+	}
 }
 
-var jsonFieldsNameOfCreateUserRequest = [3]string{
+var jsonFieldsNameOfCreateUserRequest = [4]string{
 	0: "username",
 	1: "password",
 	2: "isAdmin",
+	3: "permissions",
 }
 
 // Decode decodes CreateUserRequest from json.
@@ -598,6 +605,16 @@ func (s *CreateUserRequest) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"isAdmin\"")
+			}
+		case "permissions":
+			if err := func() error {
+				s.Permissions.Reset()
+				if err := s.Permissions.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"permissions\"")
 			}
 		default:
 			return d.Skip()
@@ -1290,6 +1307,39 @@ func (s OptString) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptString) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UserPermissions as json.
+func (o OptUserPermissions) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes UserPermissions from json.
+func (o *OptUserPermissions) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptUserPermissions to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptUserPermissions) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptUserPermissions) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -3026,6 +3076,12 @@ func (s *UpdateUserRequest) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.Permissions.Set {
+			e.FieldStart("permissions")
+			s.Permissions.Encode(e)
+		}
+	}
+	{
 		if s.ResetTwoFactor.Set {
 			e.FieldStart("resetTwoFactor")
 			s.ResetTwoFactor.Encode(e)
@@ -3033,11 +3089,12 @@ func (s *UpdateUserRequest) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfUpdateUserRequest = [4]string{
+var jsonFieldsNameOfUpdateUserRequest = [5]string{
 	0: "isAdmin",
 	1: "disabled",
 	2: "password",
-	3: "resetTwoFactor",
+	3: "permissions",
+	4: "resetTwoFactor",
 }
 
 // Decode decodes UpdateUserRequest from json.
@@ -3077,6 +3134,16 @@ func (s *UpdateUserRequest) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"password\"")
+			}
+		case "permissions":
+			if err := func() error {
+				s.Permissions.Reset()
+				if err := s.Permissions.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"permissions\"")
 			}
 		case "resetTwoFactor":
 			if err := func() error {
@@ -3142,6 +3209,10 @@ func (s *User) encodeFields(e *jx.Encoder) {
 		e.Bool(s.TotpEnabled)
 	}
 	{
+		e.FieldStart("permissions")
+		s.Permissions.Encode(e)
+	}
+	{
 		e.FieldStart("createdAt")
 		json.EncodeDateTime(e, s.CreatedAt)
 	}
@@ -3153,14 +3224,15 @@ func (s *User) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfUser = [7]string{
+var jsonFieldsNameOfUser = [8]string{
 	0: "id",
 	1: "username",
 	2: "isAdmin",
 	3: "disabled",
 	4: "totpEnabled",
-	5: "createdAt",
-	6: "lastLoginAt",
+	5: "permissions",
+	6: "createdAt",
+	7: "lastLoginAt",
 }
 
 // Decode decodes User from json.
@@ -3232,8 +3304,18 @@ func (s *User) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"totpEnabled\"")
 			}
-		case "createdAt":
+		case "permissions":
 			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				if err := s.Permissions.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"permissions\"")
+			}
+		case "createdAt":
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.CreatedAt = v
@@ -3264,7 +3346,7 @@ func (s *User) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111111,
+		0b01111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -3306,6 +3388,307 @@ func (s *User) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *User) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *UserPermissions) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *UserPermissions) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("allLibraries")
+		e.Bool(s.AllLibraries)
+	}
+	{
+		e.FieldStart("download")
+		e.Bool(s.Download)
+	}
+	{
+		e.FieldStart("videoTranscoding")
+		e.Bool(s.VideoTranscoding)
+	}
+	{
+		e.FieldStart("audioTranscoding")
+		e.Bool(s.AudioTranscoding)
+	}
+	{
+		e.FieldStart("remux")
+		e.Bool(s.Remux)
+	}
+	{
+		e.FieldStart("liveTv")
+		e.Bool(s.LiveTv)
+	}
+	{
+		e.FieldStart("manageLiveTv")
+		e.Bool(s.ManageLiveTv)
+	}
+	{
+		e.FieldStart("syncPlay")
+		e.Bool(s.SyncPlay)
+	}
+	{
+		e.FieldStart("deleteMedia")
+		e.Bool(s.DeleteMedia)
+	}
+	{
+		e.FieldStart("manageCollections")
+		e.Bool(s.ManageCollections)
+	}
+	{
+		e.FieldStart("editSubtitles")
+		e.Bool(s.EditSubtitles)
+	}
+	{
+		e.FieldStart("remoteControl")
+		e.Bool(s.RemoteControl)
+	}
+	{
+		e.FieldStart("maxSessions")
+		e.Int(s.MaxSessions)
+	}
+}
+
+var jsonFieldsNameOfUserPermissions = [13]string{
+	0:  "allLibraries",
+	1:  "download",
+	2:  "videoTranscoding",
+	3:  "audioTranscoding",
+	4:  "remux",
+	5:  "liveTv",
+	6:  "manageLiveTv",
+	7:  "syncPlay",
+	8:  "deleteMedia",
+	9:  "manageCollections",
+	10: "editSubtitles",
+	11: "remoteControl",
+	12: "maxSessions",
+}
+
+// Decode decodes UserPermissions from json.
+func (s *UserPermissions) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UserPermissions to nil")
+	}
+	var requiredBitSet [2]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "allLibraries":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Bool()
+				s.AllLibraries = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"allLibraries\"")
+			}
+		case "download":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Bool()
+				s.Download = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"download\"")
+			}
+		case "videoTranscoding":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Bool()
+				s.VideoTranscoding = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"videoTranscoding\"")
+			}
+		case "audioTranscoding":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Bool()
+				s.AudioTranscoding = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"audioTranscoding\"")
+			}
+		case "remux":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Bool()
+				s.Remux = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"remux\"")
+			}
+		case "liveTv":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Bool()
+				s.LiveTv = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"liveTv\"")
+			}
+		case "manageLiveTv":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Bool()
+				s.ManageLiveTv = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"manageLiveTv\"")
+			}
+		case "syncPlay":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				v, err := d.Bool()
+				s.SyncPlay = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"syncPlay\"")
+			}
+		case "deleteMedia":
+			requiredBitSet[1] |= 1 << 0
+			if err := func() error {
+				v, err := d.Bool()
+				s.DeleteMedia = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"deleteMedia\"")
+			}
+		case "manageCollections":
+			requiredBitSet[1] |= 1 << 1
+			if err := func() error {
+				v, err := d.Bool()
+				s.ManageCollections = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"manageCollections\"")
+			}
+		case "editSubtitles":
+			requiredBitSet[1] |= 1 << 2
+			if err := func() error {
+				v, err := d.Bool()
+				s.EditSubtitles = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"editSubtitles\"")
+			}
+		case "remoteControl":
+			requiredBitSet[1] |= 1 << 3
+			if err := func() error {
+				v, err := d.Bool()
+				s.RemoteControl = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"remoteControl\"")
+			}
+		case "maxSessions":
+			requiredBitSet[1] |= 1 << 4
+			if err := func() error {
+				v, err := d.Int()
+				s.MaxSessions = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"maxSessions\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UserPermissions")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [2]uint8{
+		0b11111111,
+		0b00011111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfUserPermissions) {
+					name = jsonFieldsNameOfUserPermissions[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UserPermissions) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UserPermissions) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

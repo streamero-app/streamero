@@ -578,3 +578,73 @@ func TestQuickConnectIntegration(t *testing.T) {
 		t.Fatalf("device not in session list: %+v", sessions)
 	}
 }
+
+func TestPermissionsAndMaxSessionsIntegration(t *testing.T) {
+	srv := newAuthTestServer(t)
+	adminC := newClient(t, srv)
+	setupAdmin(t, adminC)
+
+	type perms map[string]any
+	var u struct {
+		ID    string `json:"id"`
+		Perms perms  `json:"permissions"`
+	}
+	if s := adminC.do("POST", "/users", map[string]any{"username": "leo", "password": "leo-pass-1"}, &u); s != 201 {
+		t.Fatalf("create: HTTP %d", s)
+	}
+	if u.Perms["download"] != true || u.Perms["deleteMedia"] != false || u.Perms["maxSessions"] != float64(0) {
+		t.Fatalf("defaults: %+v", u.Perms)
+	}
+
+	p := u.Perms
+	p["download"] = false
+	p["maxSessions"] = 2
+	if s := adminC.do("PATCH", "/users/"+u.ID, map[string]any{"permissions": p}, &u); s != 200 || u.Perms["download"] != false {
+		t.Fatalf("update perms: HTTP %d %+v", s, u.Perms)
+	}
+	var e apiError
+	p["maxSessions"] = 1000
+	if s := adminC.do("PATCH", "/users/"+u.ID, map[string]any{"permissions": p}, &e); s != 400 {
+		t.Fatalf("out-of-range maxSessions: HTTP %d", s)
+	}
+
+	login := func(device string) *client {
+		c := newClient(t, srv)
+		var res authResult
+		if s := c.do("POST", "/auth/login", map[string]any{"username": "leo", "password": "leo-pass-1",
+			"device": map[string]any{"name": device}}, &res); s != 200 {
+			t.Fatalf("login %s: HTTP %d", device, s)
+		}
+		c.token = res.Token
+		return c
+	}
+	first := login("first")
+	second := login("second")
+	var me struct {
+		Perms perms `json:"permissions"`
+	}
+	if second.do("GET", "/auth/me", nil, &me); me.Perms["download"] != false {
+		t.Fatalf("me permissions: %+v", me.Perms)
+	}
+	third := login("third") // limit 2: the least recently used session (first) is signed out
+	if s := first.do("GET", "/auth/me", nil, nil); s != 401 {
+		t.Fatalf("oldest session survived: HTTP %d", s)
+	}
+	for _, c := range []*client{second, third} {
+		if s := c.do("GET", "/auth/me", nil, nil); s != 200 {
+			t.Fatalf("recent session lost: HTTP %d", s)
+		}
+	}
+	// Lowering the limit trims existing sessions immediately.
+	p["maxSessions"] = 1
+	adminC.do("PATCH", "/users/"+u.ID, map[string]any{"permissions": p}, nil)
+	alive := 0
+	for _, c := range []*client{second, third} {
+		if c.do("GET", "/auth/me", nil, nil) == 200 {
+			alive++
+		}
+	}
+	if alive != 1 {
+		t.Fatalf("%d sessions alive after lowering limit to 1", alive)
+	}
+}

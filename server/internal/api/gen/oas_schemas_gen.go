@@ -170,9 +170,10 @@ func (s *CreateApiKeyRequest) SetName(val string) {
 
 // Ref: #/components/schemas/CreateUserRequest
 type CreateUserRequest struct {
-	Username Username `json:"username"`
-	Password Password `json:"password"`
-	IsAdmin  OptBool  `json:"isAdmin"`
+	Username    Username           `json:"username"`
+	Password    Password           `json:"password"`
+	IsAdmin     OptBool            `json:"isAdmin"`
+	Permissions OptUserPermissions `json:"permissions"`
 }
 
 // GetUsername returns the value of Username.
@@ -190,6 +191,11 @@ func (s *CreateUserRequest) GetIsAdmin() OptBool {
 	return s.IsAdmin
 }
 
+// GetPermissions returns the value of Permissions.
+func (s *CreateUserRequest) GetPermissions() OptUserPermissions {
+	return s.Permissions
+}
+
 // SetUsername sets the value of Username.
 func (s *CreateUserRequest) SetUsername(val Username) {
 	s.Username = val
@@ -203,6 +209,11 @@ func (s *CreateUserRequest) SetPassword(val Password) {
 // SetIsAdmin sets the value of IsAdmin.
 func (s *CreateUserRequest) SetIsAdmin(val OptBool) {
 	s.IsAdmin = val
+}
+
+// SetPermissions sets the value of Permissions.
+func (s *CreateUserRequest) SetPermissions(val OptUserPermissions) {
+	s.Permissions = val
 }
 
 // Ref: #/components/schemas/CreatedApiKey
@@ -668,6 +679,52 @@ func (o OptString) Get() (v string, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptString) Or(d string) string {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptUserPermissions returns new OptUserPermissions with value set to v.
+func NewOptUserPermissions(v UserPermissions) OptUserPermissions {
+	return OptUserPermissions{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUserPermissions is optional UserPermissions.
+type OptUserPermissions struct {
+	Value UserPermissions
+	Set   bool
+}
+
+// IsSet returns true if OptUserPermissions was set.
+func (o OptUserPermissions) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUserPermissions) Reset() {
+	var v UserPermissions
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUserPermissions) SetTo(v UserPermissions) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUserPermissions) Get() (v UserPermissions, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUserPermissions) Or(d UserPermissions) UserPermissions {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -1240,9 +1297,10 @@ func (s *TOTPSetup) SetQrPng(val string) {
 
 // Ref: #/components/schemas/UpdateUserRequest
 type UpdateUserRequest struct {
-	IsAdmin  OptBool     `json:"isAdmin"`
-	Disabled OptBool     `json:"disabled"`
-	Password OptPassword `json:"password"`
+	IsAdmin     OptBool            `json:"isAdmin"`
+	Disabled    OptBool            `json:"disabled"`
+	Password    OptPassword        `json:"password"`
+	Permissions OptUserPermissions `json:"permissions"`
 	// Turn the user's 2FA off (e.g. lost phone); signs them out everywhere.
 	ResetTwoFactor OptBool `json:"resetTwoFactor"`
 }
@@ -1260,6 +1318,11 @@ func (s *UpdateUserRequest) GetDisabled() OptBool {
 // GetPassword returns the value of Password.
 func (s *UpdateUserRequest) GetPassword() OptPassword {
 	return s.Password
+}
+
+// GetPermissions returns the value of Permissions.
+func (s *UpdateUserRequest) GetPermissions() OptUserPermissions {
+	return s.Permissions
 }
 
 // GetResetTwoFactor returns the value of ResetTwoFactor.
@@ -1282,6 +1345,11 @@ func (s *UpdateUserRequest) SetPassword(val OptPassword) {
 	s.Password = val
 }
 
+// SetPermissions sets the value of Permissions.
+func (s *UpdateUserRequest) SetPermissions(val OptUserPermissions) {
+	s.Permissions = val
+}
+
 // SetResetTwoFactor sets the value of ResetTwoFactor.
 func (s *UpdateUserRequest) SetResetTwoFactor(val OptBool) {
 	s.ResetTwoFactor = val
@@ -1294,9 +1362,10 @@ type User struct {
 	IsAdmin  bool      `json:"isAdmin"`
 	Disabled bool      `json:"disabled"`
 	// Two-factor authentication is on.
-	TotpEnabled bool        `json:"totpEnabled"`
-	CreatedAt   time.Time   `json:"createdAt"`
-	LastLoginAt OptDateTime `json:"lastLoginAt"`
+	TotpEnabled bool            `json:"totpEnabled"`
+	Permissions UserPermissions `json:"permissions"`
+	CreatedAt   time.Time       `json:"createdAt"`
+	LastLoginAt OptDateTime     `json:"lastLoginAt"`
 }
 
 // GetID returns the value of ID.
@@ -1322,6 +1391,11 @@ func (s *User) GetDisabled() bool {
 // GetTotpEnabled returns the value of TotpEnabled.
 func (s *User) GetTotpEnabled() bool {
 	return s.TotpEnabled
+}
+
+// GetPermissions returns the value of Permissions.
+func (s *User) GetPermissions() UserPermissions {
+	return s.Permissions
 }
 
 // GetCreatedAt returns the value of CreatedAt.
@@ -1359,6 +1433,11 @@ func (s *User) SetTotpEnabled(val bool) {
 	s.TotpEnabled = val
 }
 
+// SetPermissions sets the value of Permissions.
+func (s *User) SetPermissions(val UserPermissions) {
+	s.Permissions = val
+}
+
 // SetCreatedAt sets the value of CreatedAt.
 func (s *User) SetCreatedAt(val time.Time) {
 	s.CreatedAt = val
@@ -1367,6 +1446,157 @@ func (s *User) SetCreatedAt(val time.Time) {
 // SetLastLoginAt sets the value of LastLoginAt.
 func (s *User) SetLastLoginAt(val OptDateTime) {
 	s.LastLoginAt = val
+}
+
+// What a non-admin may do (admins may do everything). Each permission is enforced by the feature it
+// belongs to as that feature ships (libraries P2, playback P5, Live TV P11, ...).
+// Ref: #/components/schemas/UserPermissions
+type UserPermissions struct {
+	AllLibraries      bool `json:"allLibraries"`
+	Download          bool `json:"download"`
+	VideoTranscoding  bool `json:"videoTranscoding"`
+	AudioTranscoding  bool `json:"audioTranscoding"`
+	Remux             bool `json:"remux"`
+	LiveTv            bool `json:"liveTv"`
+	ManageLiveTv      bool `json:"manageLiveTv"`
+	SyncPlay          bool `json:"syncPlay"`
+	DeleteMedia       bool `json:"deleteMedia"`
+	ManageCollections bool `json:"manageCollections"`
+	EditSubtitles     bool `json:"editSubtitles"`
+	RemoteControl     bool `json:"remoteControl"`
+	// Signed-in devices allowed at once; 0 = unlimited. Signing in on one more device signs out the least
+	// recently used one.
+	MaxSessions int `json:"maxSessions"`
+}
+
+// GetAllLibraries returns the value of AllLibraries.
+func (s *UserPermissions) GetAllLibraries() bool {
+	return s.AllLibraries
+}
+
+// GetDownload returns the value of Download.
+func (s *UserPermissions) GetDownload() bool {
+	return s.Download
+}
+
+// GetVideoTranscoding returns the value of VideoTranscoding.
+func (s *UserPermissions) GetVideoTranscoding() bool {
+	return s.VideoTranscoding
+}
+
+// GetAudioTranscoding returns the value of AudioTranscoding.
+func (s *UserPermissions) GetAudioTranscoding() bool {
+	return s.AudioTranscoding
+}
+
+// GetRemux returns the value of Remux.
+func (s *UserPermissions) GetRemux() bool {
+	return s.Remux
+}
+
+// GetLiveTv returns the value of LiveTv.
+func (s *UserPermissions) GetLiveTv() bool {
+	return s.LiveTv
+}
+
+// GetManageLiveTv returns the value of ManageLiveTv.
+func (s *UserPermissions) GetManageLiveTv() bool {
+	return s.ManageLiveTv
+}
+
+// GetSyncPlay returns the value of SyncPlay.
+func (s *UserPermissions) GetSyncPlay() bool {
+	return s.SyncPlay
+}
+
+// GetDeleteMedia returns the value of DeleteMedia.
+func (s *UserPermissions) GetDeleteMedia() bool {
+	return s.DeleteMedia
+}
+
+// GetManageCollections returns the value of ManageCollections.
+func (s *UserPermissions) GetManageCollections() bool {
+	return s.ManageCollections
+}
+
+// GetEditSubtitles returns the value of EditSubtitles.
+func (s *UserPermissions) GetEditSubtitles() bool {
+	return s.EditSubtitles
+}
+
+// GetRemoteControl returns the value of RemoteControl.
+func (s *UserPermissions) GetRemoteControl() bool {
+	return s.RemoteControl
+}
+
+// GetMaxSessions returns the value of MaxSessions.
+func (s *UserPermissions) GetMaxSessions() int {
+	return s.MaxSessions
+}
+
+// SetAllLibraries sets the value of AllLibraries.
+func (s *UserPermissions) SetAllLibraries(val bool) {
+	s.AllLibraries = val
+}
+
+// SetDownload sets the value of Download.
+func (s *UserPermissions) SetDownload(val bool) {
+	s.Download = val
+}
+
+// SetVideoTranscoding sets the value of VideoTranscoding.
+func (s *UserPermissions) SetVideoTranscoding(val bool) {
+	s.VideoTranscoding = val
+}
+
+// SetAudioTranscoding sets the value of AudioTranscoding.
+func (s *UserPermissions) SetAudioTranscoding(val bool) {
+	s.AudioTranscoding = val
+}
+
+// SetRemux sets the value of Remux.
+func (s *UserPermissions) SetRemux(val bool) {
+	s.Remux = val
+}
+
+// SetLiveTv sets the value of LiveTv.
+func (s *UserPermissions) SetLiveTv(val bool) {
+	s.LiveTv = val
+}
+
+// SetManageLiveTv sets the value of ManageLiveTv.
+func (s *UserPermissions) SetManageLiveTv(val bool) {
+	s.ManageLiveTv = val
+}
+
+// SetSyncPlay sets the value of SyncPlay.
+func (s *UserPermissions) SetSyncPlay(val bool) {
+	s.SyncPlay = val
+}
+
+// SetDeleteMedia sets the value of DeleteMedia.
+func (s *UserPermissions) SetDeleteMedia(val bool) {
+	s.DeleteMedia = val
+}
+
+// SetManageCollections sets the value of ManageCollections.
+func (s *UserPermissions) SetManageCollections(val bool) {
+	s.ManageCollections = val
+}
+
+// SetEditSubtitles sets the value of EditSubtitles.
+func (s *UserPermissions) SetEditSubtitles(val bool) {
+	s.EditSubtitles = val
+}
+
+// SetRemoteControl sets the value of RemoteControl.
+func (s *UserPermissions) SetRemoteControl(val bool) {
+	s.RemoteControl = val
+}
+
+// SetMaxSessions sets the value of MaxSessions.
+func (s *UserPermissions) SetMaxSessions(val int) {
+	s.MaxSessions = val
 }
 
 type Username string

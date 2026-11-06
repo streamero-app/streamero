@@ -5,8 +5,9 @@ import { api, unwrap, type User } from "@/api/client";
 import { Badge, Button, Card, ErrorText, SuccessText, TextField } from "@/components/ui";
 import { useMe } from "@/features/auth/useAuth";
 import { useDateTime } from "./SettingsLayout";
+import { PermissionsEditor, type Permissions } from "./PermissionsEditor";
 
-type Patch = { isAdmin?: boolean; disabled?: boolean; password?: string; resetTwoFactor?: boolean };
+type Patch = { isAdmin?: boolean; disabled?: boolean; password?: string; resetTwoFactor?: boolean; permissions?: Permissions };
 
 export function UsersSettings() {
   const { t } = useTranslation();
@@ -81,6 +82,7 @@ function UserRow({ user, isSelf, fmt, busy, onPatch, onDelete }: {
 }) {
   const { t } = useTranslation();
   const [resetting, setResetting] = useState(false);
+  const [editingPerms, setEditingPerms] = useState(false);
   const [password, setPassword] = useState("");
   return (
     <li className="flex flex-col gap-3 py-4" data-testid="user-row">
@@ -102,6 +104,9 @@ function UserRow({ user, isSelf, fmt, busy, onPatch, onDelete }: {
           </Button>
         )}
         <Button variant="secondary" disabled={busy} onClick={() => setResetting(!resetting)}>{t("users.resetPassword")}</Button>
+        {!user.isAdmin && (
+          <Button variant="secondary" disabled={busy} onClick={() => setEditingPerms(!editingPerms)}>{t("permissions.title")}</Button>
+        )}
         {user.totpEnabled && !isSelf && (
           <Button variant="secondary" disabled={busy}
             onClick={() => window.confirm(t("users.confirmReset2fa", { name: user.username })) && onPatch({ resetTwoFactor: true })}>
@@ -110,6 +115,12 @@ function UserRow({ user, isSelf, fmt, busy, onPatch, onDelete }: {
         )}
         {!isSelf && <Button variant="danger" disabled={busy} onClick={onDelete}>{t("users.delete")}</Button>}
       </div>
+      {editingPerms && !user.isAdmin && (
+        <PermissionsEditor value={user.permissions} busy={busy} onSave={(permissions) => {
+          onPatch({ permissions });
+          setEditingPerms(false);
+        }} />
+      )}
       {resetting && (
         <form className="flex flex-wrap items-end gap-2" onSubmit={(e) => {
           e.preventDefault();

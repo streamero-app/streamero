@@ -62,6 +62,7 @@ type User struct {
 	IsAdmin     bool
 	Disabled    bool
 	TOTPEnabled bool
+	Permissions Permissions
 	CreatedAt   time.Time
 	LastLoginAt *time.Time
 }
@@ -179,7 +180,7 @@ func (s *Service) Setup(ctx context.Context, code, serverName, username, passwor
 				return err
 			}
 		}
-		u, err := insertUser(ctx, tx, username, hash, true)
+		u, err := insertUser(ctx, tx, username, hash, true, nil)
 		if err != nil {
 			return err
 		}
@@ -199,11 +200,12 @@ func (s *Service) Login(ctx context.Context, username, password, totpCode string
 		u           User
 		hash        string
 		lockedUntil *time.Time
+		perms       []byte
 	)
 	err := s.pool.QueryRow(ctx, `SELECT id, username, password_hash, is_admin, disabled, `+totpEnabledSQL("users")+`,
-			created_at, last_login_at, locked_until
+			created_at, last_login_at, locked_until, permissions
 		FROM users WHERE lower(username) = lower($1)`, username).
-		Scan(&u.ID, &u.Username, &hash, &u.IsAdmin, &u.Disabled, &u.TOTPEnabled, &u.CreatedAt, &u.LastLoginAt, &lockedUntil)
+		Scan(&u.ID, &u.Username, &hash, &u.IsAdmin, &u.Disabled, &u.TOTPEnabled, &u.CreatedAt, &u.LastLoginAt, &lockedUntil, &perms)
 	if errors.Is(err, pgx.ErrNoRows) {
 		_, _ = VerifyPassword(password, dummyHash) // equalize timing
 		_ = audit(ctx, s.pool, nil, "login.failed", map[string]any{"username": username, "reason": "unknown_user"})
@@ -212,6 +214,7 @@ func (s *Service) Login(ctx context.Context, username, password, totpCode string
 	if err != nil {
 		return Principal{}, "", err
 	}
+	u.Permissions = parsePermissions(perms)
 	now := s.now()
 	if lockedUntil != nil && now.Before(*lockedUntil) {
 		return Principal{}, "", &LockedError{Until: *lockedUntil}
@@ -284,18 +287,20 @@ func (s *Service) Authenticate(ctx context.Context, token string) (Principal, er
 	}
 	var p Principal
 	var lastSeen time.Time
+	var perms []byte
 	err := s.pool.QueryRow(ctx, `SELECT s.id, s.last_seen_at, u.id, u.username, u.is_admin, u.disabled, `+totpEnabledSQL("u")+`,
-			u.created_at, u.last_login_at
+			u.created_at, u.last_login_at, u.permissions
 		FROM sessions s JOIN users u ON u.id = s.user_id
 		WHERE s.token_hash = $1 AND s.expires_at > now() AND NOT u.disabled`, hashToken(token)).
 		Scan(&p.SessionID, &lastSeen, &p.User.ID, &p.User.Username, &p.User.IsAdmin, &p.User.Disabled, &p.User.TOTPEnabled,
-			&p.User.CreatedAt, &p.User.LastLoginAt)
+			&p.User.CreatedAt, &p.User.LastLoginAt, &perms)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Principal{}, ErrUnauthenticated
 	}
 	if err != nil {
 		return Principal{}, err
 	}
+	p.User.Permissions = parsePermissions(perms)
 	if now := s.now(); now.Sub(lastSeen) > touchInterval {
 		_, _ = s.pool.Exec(ctx, `UPDATE sessions SET last_seen_at = $2, expires_at = $3 WHERE id = $1`,
 			p.SessionID, now, now.Add(SessionTTL))
@@ -345,11 +350,13 @@ func (s *Service) ChangePassword(ctx context.Context, p Principal, current, next
 	})
 }
 
-var userCols = `id, username, is_admin, disabled, ` + totpEnabledSQL("users") + `, created_at, last_login_at`
+var userCols = `id, username, is_admin, disabled, ` + totpEnabledSQL("users") + `, created_at, last_login_at, permissions`
 
 func scanUser(row pgx.Row) (User, error) {
 	var u User
-	err := row.Scan(&u.ID, &u.Username, &u.IsAdmin, &u.Disabled, &u.TOTPEnabled, &u.CreatedAt, &u.LastLoginAt)
+	var perms []byte
+	err := row.Scan(&u.ID, &u.Username, &u.IsAdmin, &u.Disabled, &u.TOTPEnabled, &u.CreatedAt, &u.LastLoginAt, &perms)
+	u.Permissions = parsePermissions(perms)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return u, ErrNotFound
 	}
@@ -375,7 +382,7 @@ func (s *Service) ListUsers(ctx context.Context) ([]User, error) {
 }
 
 // CreateUser adds a user.
-func (s *Service) CreateUser(ctx context.Context, actor Principal, username, password string, isAdmin bool) (User, error) {
+func (s *Service) CreateUser(ctx context.Context, actor Principal, username, password string, isAdmin bool, perms *Permissions) (User, error) {
 	username, err := NormalizeUsername(username)
 	if err != nil {
 		return User{}, err
@@ -386,7 +393,7 @@ func (s *Service) CreateUser(ctx context.Context, actor Principal, username, pas
 	}
 	var u User
 	err = pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
-		u, err = insertUser(ctx, tx, username, hash, isAdmin)
+		u, err = insertUser(ctx, tx, username, hash, isAdmin, perms)
 		if err != nil {
 			return err
 		}
@@ -400,6 +407,7 @@ type UserUpdate struct {
 	IsAdmin        *bool
 	Disabled       *bool
 	Password       *string
+	Permissions    *Permissions
 	ResetTwoFactor bool
 }
 
@@ -415,6 +423,13 @@ func (s *Service) UpdateUser(ctx context.Context, actor Principal, id uuid.UUID,
 	}
 	if id == actor.User.ID && upd.Disabled != nil && *upd.Disabled {
 		return User{}, ErrSelf
+	}
+	var permsJSON []byte
+	if upd.Permissions != nil {
+		var err error
+		if permsJSON, err = json.Marshal(upd.Permissions); err != nil {
+			return User{}, err
+		}
 	}
 	var u User
 	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
@@ -434,9 +449,13 @@ func (s *Service) UpdateUser(ctx context.Context, actor Principal, id uuid.UUID,
 				disabled = COALESCE($3, disabled),
 				password_hash = COALESCE($4, password_hash),
 				failed_logins = CASE WHEN $4::text IS NULL THEN failed_logins ELSE 0 END,
-				locked_until = CASE WHEN $4::text IS NULL THEN locked_until ELSE NULL END
-			WHERE id = $1 RETURNING `+userCols, id, upd.IsAdmin, upd.Disabled, hash))
+				locked_until = CASE WHEN $4::text IS NULL THEN locked_until ELSE NULL END,
+				permissions = COALESCE($5::jsonb, permissions)
+			WHERE id = $1 RETURNING `+userCols, id, upd.IsAdmin, upd.Disabled, hash, permsJSON))
 		if err != nil {
+			return err
+		}
+		if err := enforceMaxSessions(ctx, tx, u, uuid.Nil); err != nil {
 			return err
 		}
 		if upd.ResetTwoFactor {
@@ -455,7 +474,7 @@ func (s *Service) UpdateUser(ctx context.Context, actor Principal, id uuid.UUID,
 		}
 		return audit(ctx, tx, &actor.User.ID, "user.updated", map[string]any{
 			"user_id": id, "is_admin": upd.IsAdmin, "disabled": upd.Disabled, "password_reset": hash != nil,
-			"two_factor_reset": upd.ResetTwoFactor})
+			"two_factor_reset": upd.ResetTwoFactor, "permissions_changed": upd.Permissions != nil})
 	})
 	return u, err
 }
@@ -535,13 +554,21 @@ func audit(ctx context.Context, db execer, userID *uuid.UUID, action string, det
 	return err
 }
 
-func insertUser(ctx context.Context, tx pgx.Tx, username, hash string, isAdmin bool) (User, error) {
+func insertUser(ctx context.Context, tx pgx.Tx, username, hash string, isAdmin bool, perms *Permissions) (User, error) {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return User{}, err
 	}
-	u, err := scanUser(tx.QueryRow(ctx, `INSERT INTO users (id, username, password_hash, is_admin)
-		VALUES ($1, $2, $3, $4) RETURNING `+userCols, id, username, hash, isAdmin))
+	p := DefaultPermissions()
+	if perms != nil {
+		p = *perms
+	}
+	raw, err := json.Marshal(p)
+	if err != nil {
+		return User{}, err
+	}
+	u, err := scanUser(tx.QueryRow(ctx, `INSERT INTO users (id, username, password_hash, is_admin, permissions)
+		VALUES ($1, $2, $3, $4, $5) RETURNING `+userCols, id, username, hash, isAdmin, raw))
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 		return User{}, ErrUsernameTaken
@@ -561,6 +588,9 @@ func createSession(ctx context.Context, tx pgx.Tx, u User, dev Device, now time.
 	if _, err := tx.Exec(ctx, `INSERT INTO sessions (id, user_id, token_hash, device_name, client, created_at, last_seen_at, expires_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $6, $7)`, id, u.ID, hash, truncate(dev.Name, 100), truncate(dev.Client, 100),
 		now, now.Add(SessionTTL)); err != nil {
+		return Principal{}, "", err
+	}
+	if err := enforceMaxSessions(ctx, tx, u, id); err != nil {
 		return Principal{}, "", err
 	}
 	return Principal{User: u, SessionID: id}, token, nil
@@ -599,4 +629,16 @@ func truncate(s string, n int) string {
 		r = r[:n]
 	}
 	return string(r)
+}
+
+// enforceMaxSessions signs out the least recently used sessions beyond the user's
+// limit, always keeping keep (the session being created, if any). Admins are exempt.
+func enforceMaxSessions(ctx context.Context, tx pgx.Tx, u User, keep uuid.UUID) error {
+	if u.IsAdmin || u.Permissions.MaxSessions <= 0 {
+		return nil
+	}
+	_, err := tx.Exec(ctx, `DELETE FROM sessions WHERE user_id = $1 AND id NOT IN (
+		SELECT id FROM sessions WHERE user_id = $1 ORDER BY (id = $2) DESC, last_seen_at DESC LIMIT $3)`,
+		u.ID, keep, u.Permissions.MaxSessions)
+	return err
 }

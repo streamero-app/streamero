@@ -175,7 +175,12 @@ func (h *Handler) CreateUser(ctx context.Context, req *gen.CreateUserRequest) (*
 	if err != nil {
 		return nil, err
 	}
-	u, err := h.Auth().CreateUser(ctx, p, string(req.Username), string(req.Password), req.IsAdmin.Value)
+	var perms *auth.Permissions
+	if v, ok := req.Permissions.Get(); ok {
+		pp := fromPermissions(v)
+		perms = &pp
+	}
+	u, err := h.Auth().CreateUser(ctx, p, string(req.Username), string(req.Password), req.IsAdmin.Value, perms)
 	if err != nil {
 		return nil, err
 	}
@@ -201,6 +206,10 @@ func (h *Handler) UpdateUser(ctx context.Context, req *gen.UpdateUserRequest, pa
 		upd.Password = &pw
 	}
 	upd.ResetTwoFactor = req.ResetTwoFactor.Value
+	if v, ok := req.Permissions.Get(); ok {
+		pp := fromPermissions(v)
+		upd.Permissions = &pp
+	}
 	u, err := h.Auth().UpdateUser(ctx, p, params.UserId, upd)
 	if err != nil {
 		return nil, err
@@ -413,7 +422,8 @@ func (h *Handler) serverName(ctx context.Context) string {
 }
 
 func toUser(u auth.User) gen.User {
-	out := gen.User{ID: u.ID, Username: u.Username, IsAdmin: u.IsAdmin, Disabled: u.Disabled, TotpEnabled: u.TOTPEnabled, CreatedAt: u.CreatedAt}
+	out := gen.User{ID: u.ID, Username: u.Username, IsAdmin: u.IsAdmin, Disabled: u.Disabled, TotpEnabled: u.TOTPEnabled,
+		Permissions: toPermissions(u.Permissions), CreatedAt: u.CreatedAt}
 	if u.LastLoginAt != nil {
 		out.LastLoginAt = gen.NewOptDateTime(*u.LastLoginAt)
 	}
@@ -471,4 +481,22 @@ func mapError(err error) *StatusError {
 		return &StatusError{Status: http.StatusConflict, Code: "self", Message: err.Error()}
 	}
 	return nil
+}
+
+func toPermissions(p auth.Permissions) gen.UserPermissions {
+	return gen.UserPermissions{
+		AllLibraries: p.AllLibraries, Download: p.Download, VideoTranscoding: p.VideoTranscoding,
+		AudioTranscoding: p.AudioTranscoding, Remux: p.Remux, LiveTv: p.LiveTV, ManageLiveTv: p.ManageLiveTV,
+		SyncPlay: p.SyncPlay, DeleteMedia: p.DeleteMedia, ManageCollections: p.ManageCollections,
+		EditSubtitles: p.EditSubtitles, RemoteControl: p.RemoteControl, MaxSessions: p.MaxSessions,
+	}
+}
+
+func fromPermissions(p gen.UserPermissions) auth.Permissions {
+	return auth.Permissions{
+		AllLibraries: p.AllLibraries, Download: p.Download, VideoTranscoding: p.VideoTranscoding,
+		AudioTranscoding: p.AudioTranscoding, Remux: p.Remux, LiveTV: p.LiveTv, ManageLiveTV: p.ManageLiveTv,
+		SyncPlay: p.SyncPlay, DeleteMedia: p.DeleteMedia, ManageCollections: p.ManageCollections,
+		EditSubtitles: p.EditSubtitles, RemoteControl: p.RemoteControl, MaxSessions: p.MaxSessions,
+	}
 }

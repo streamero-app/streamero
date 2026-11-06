@@ -12,6 +12,8 @@ export const testInfo = (over: Partial<SystemInfo> = {}): SystemInfo => ({
 
 export const testUser = (over: Partial<User> = {}): User => ({
   id: "0190a8b0-0000-7000-8000-000000000001", username: "ana", isAdmin: false, disabled: false, totpEnabled: false,
+  permissions: { allLibraries: true, download: true, videoTranscoding: true, audioTranscoding: true, remux: true, liveTv: true,
+    manageLiveTv: false, syncPlay: true, deleteMedia: false, manageCollections: false, editSubtitles: false, remoteControl: true, maxSessions: 0 },
   createdAt: new Date().toISOString(), ...over,
 });
 

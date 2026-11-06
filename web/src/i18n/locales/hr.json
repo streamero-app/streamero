@@ -169,5 +169,26 @@
     "settingsIntro": "Upišite 6-znamenkasti kod prikazan na novom uređaju (TV, mobitel, drugi preglednik) da ga prijavite svojim računom.",
     "approve": "Odobri",
     "approved": "Odobreno — {{device}} je sada prijavljen."
+  },
+  "permissions": {
+    "title": "Dozvole",
+    "note": "Administratori uvijek smiju sve. Svaka dozvola počinje djelovati kad stigne pripadna značajka (biblioteke, reprodukcija, TV uživo).",
+    "groupLibrary": "Biblioteka",
+    "groupPlayback": "Reprodukcija",
+    "groupLiveTv": "TV uživo",
+    "allLibraries": "Pristup svim bibliotekama",
+    "download": "Preuzimanje",
+    "deleteMedia": "Brisanje medija",
+    "manageCollections": "Upravljanje kolekcijama",
+    "editSubtitles": "Uređivanje podnaslova",
+    "videoTranscoding": "Transkodiranje videa",
+    "audioTranscoding": "Transkodiranje zvuka",
+    "remux": "Remux (promjena kontejnera)",
+    "syncPlay": "Zajedničko gledanje (SyncPlay)",
+    "remoteControl": "Daljinsko upravljanje drugim uređajima",
+    "liveTv": "Gledanje TV-a uživo",
+    "manageLiveTv": "Upravljanje TV-om uživo i snimkama",
+    "maxSessions": "Najviše prijavljenih uređaja",
+    "maxSessionsHint": "0 = neograničeno. Prijava na još jednom uređaju odjavljuje najdulje neaktivan."
   }
 }

@@ -675,9 +675,46 @@ components:
         password:
           type: string
           maxLength: 256
+    UserPermissions:
+      type: object
+      description: |
+        What a non-admin may do (admins may do everything). Each permission is enforced by the
+        feature it belongs to as that feature ships (libraries P2, playback P5, Live TV P11, ...).
+      required: [allLibraries, download, videoTranscoding, audioTranscoding, remux, liveTv, manageLiveTv,
+        syncPlay, deleteMedia, manageCollections, editSubtitles, remoteControl, maxSessions]
+      properties:
+        allLibraries:
+          type: boolean
+        download:
+          type: boolean
+        videoTranscoding:
+          type: boolean
+        audioTranscoding:
+          type: boolean
+        remux:
+          type: boolean
+        liveTv:
+          type: boolean
+        manageLiveTv:
+          type: boolean
+        syncPlay:
+          type: boolean
+        deleteMedia:
+          type: boolean
+        manageCollections:
+          type: boolean
+        editSubtitles:
+          type: boolean
+        remoteControl:
+          type: boolean
+        maxSessions:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Signed-in devices allowed at once; 0 = unlimited. Signing in on one more device signs out the least recently used one.
     User:
       type: object
-      required: [id, username, isAdmin, disabled, totpEnabled, createdAt]
+      required: [id, username, isAdmin, disabled, totpEnabled, permissions, createdAt]
       properties:
         id:
           type: string
@@ -691,6 +728,8 @@ components:
         totpEnabled:
           type: boolean
           description: Two-factor authentication is on.
+        permissions:
+          $ref: "#/components/schemas/UserPermissions"
         createdAt:
           type: string
           format: date-time
@@ -707,6 +746,8 @@ components:
           $ref: "#/components/schemas/Password"
         isAdmin:
           type: boolean
+        permissions:
+          $ref: "#/components/schemas/UserPermissions"
     UpdateUserRequest:
       type: object
       properties:
@@ -716,6 +757,8 @@ components:
           type: boolean
         password:
           $ref: "#/components/schemas/Password"
+        permissions:
+          $ref: "#/components/schemas/UserPermissions"
         resetTwoFactor:
           type: boolean
           description: Turn the user's 2FA off (e.g. lost phone); signs them out everywhere.

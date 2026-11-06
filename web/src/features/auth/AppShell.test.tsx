@@ -72,3 +72,24 @@ describe("API keys", () => {
     expect(screen.queryByText("sk_abcdef_SECRET")).not.toBeInTheDocument();
   });
 });
+
+describe("user permissions", () => {
+  beforeEach(() => setLanguage("en"));
+
+  it("saves edited permissions for a user", async () => {
+    const leo = testUser({ id: "0190a8b0-0000-7000-8000-0000000000dd", username: "leo" });
+    const fetch = mockApi(({ method, path }) => {
+      if (method === "PATCH") return { status: 200, body: leo };
+      if (path === "/users") return { status: 200, body: [leo] };
+      return { status: 200, body: [] };
+    });
+    renderApp("/settings/users", { me: testUser({ isAdmin: true, username: "admin" }) });
+    fireEvent.click(await screen.findByRole("button", { name: "Permissions" }));
+    fireEvent.click(screen.getByLabelText("Download"));
+    fireEvent.change(screen.getByLabelText("Max. signed-in devices"), { target: { value: "3" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(fetch.mock.calls.some(([r]) => (r as Request).method === "PATCH")).toBe(true));
+    const patch = fetch.mock.calls.find(([r]) => (r as Request).method === "PATCH")![0] as Request;
+    expect(await patch.json()).toMatchObject({ permissions: { download: false, maxSessions: 3 } });
+  });
+});
