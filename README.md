@@ -12,7 +12,7 @@ cp .env.example .env        # set DB_PASSWORD and MEDIA_PATH
 docker compose up -d        # add -f compose.vaapi.yml / compose.nvidia.yml for GPU
 ```
 
-Open `http://<host>:8787`. Put a reverse proxy (e.g. Caddy) in front for TLS and remote access.
+Open `http://<host>:8787`. Put a reverse proxy (e.g. nginx, see `deploy/nginx/`) in front for TLS and remote access.
 
 ## Development
 

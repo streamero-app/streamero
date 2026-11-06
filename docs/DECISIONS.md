@@ -17,7 +17,7 @@ Format: `## D-001 Naslov (datum)` → Kontekst → Odluka → Posljedice.
 
 ## D-004 Projektni identitet i infrastruktura (2026-11-06)
 **Kontekst:** Otvorena pitanja iz PLAN.md §10.
-**Odluka:** Repo `streamero-app/streamero` (GHCR `ghcr.io/streamero-app/streamero`); bundle ID `net.scyde.streamero`; reverse proxy Caddy; GPU na serveru još nepoznat → prvi HW put koji testiramo je VA-API. Pristup je clean-room (ne fork Jellyfina). Dev instanca: demo.streamero.net, produkcija streamero.net.
+**Odluka:** Repo `streamero-app/streamero` (GHCR `ghcr.io/streamero-app/streamero`); bundle ID `net.scyde.streamero`; reverse proxy Caddy (zamijenjeno nginxom, vidi D-010); GPU na serveru još nepoznat → prvi HW put koji testiramo je VA-API. Pristup je clean-room (ne fork Jellyfina). Dev instanca: demo.streamero.net, produkcija streamero.net.
 **Posljedice:** `GH_OWNER` default u compose je `streamero-app`. Ako se GPU pokaže NVIDIA, NVENC put ide prvi u P5.
 
 ## D-005 Go 1.26 umjesto 1.25 (2026-11-06)
@@ -43,3 +43,8 @@ Format: `## D-001 Naslov (datum)` → Kontekst → Odluka → Posljedice.
 **Kontekst:** `middleware.RealIP` vjeruje `X-Forwarded-For`/`X-Real-IP` bez obzira na izvor (IP spoofing; staticcheck SA1019).
 **Odluka:** Ne koristimo ga. Pravo rješenje je postavka „known proxies" (FEATURES §1, P10) koja vjeruje forward headerima samo od navedenih proxyja.
 **Posljedice:** Do P10 logovi i rate limit vide IP reverse proxyja.
+
+## D-010 nginx umjesto Caddyja za demo.streamero.net (2026-11-06)
+**Kontekst:** D-004 je predvidio Caddy. Na serveru već radi sistemski nginx (80/443, certbot) za ostale domene, a port 8787 zauzima drugi servis.
+**Odluka:** Reverse proxy je postojeći nginx sa site datotekom `deploy/nginx/demo.streamero.net.conf` (bez bufferinga, 1 h timeout, WebSocket upgrade); TLS kroz `certbot --nginx`. Demo stack sluša samo na `127.0.0.1:8797` (`HTTP_PORT` u `deploy/.env`).
+**Posljedice:** Nema drugog procesa na 80/443. Instalacija sitea i certifikat traže root (sudo) na serveru. Za korisnike ostaje bilo koji reverse proxy; nginx primjer je u repou.
