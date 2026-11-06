@@ -23,7 +23,9 @@ func NewRouter(state *State, h *api.Handler) (http.Handler, error) {
 	}
 
 	r := chi.NewRouter()
-	r.Use(middleware.RequestID, middleware.RealIP, middleware.Recoverer)
+	// Client IP resolution behind reverse proxies is handled later by a trusted-proxy
+	// setting; chi's RealIP trusts spoofable headers and is deliberately not used.
+	r.Use(middleware.RequestID, middleware.Recoverer)
 	r.Use(middleware.Timeout(60 * time.Second))
 
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {

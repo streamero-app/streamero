@@ -24,7 +24,6 @@ func TestBootstrapIntegration(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	cfg := config.Config{DatabaseURL: dbURL, ValkeyURL: vkURL, AutoMigrate: true}
 
-	start := time.Now()
 	state := &State{}
 	deps, err := Bootstrap(ctx, cfg, state, log)
 	if err != nil {
@@ -42,7 +41,7 @@ func TestBootstrapIntegration(t *testing.T) {
 	// Second start without migrations must keep the same server ID and be fast.
 	cfg.AutoMigrate = false
 	state2 := &State{}
-	start = time.Now()
+	start := time.Now()
 	deps2, err := Bootstrap(ctx, cfg, state2, log)
 	if err != nil {
 		t.Fatal(err)

@@ -23,6 +23,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/config"
 	"github.com/streamero-app/streamero/server/internal/db"
 	"github.com/streamero-app/streamero/server/internal/jobs"
+	"github.com/streamero-app/streamero/server/internal/storage"
 	"github.com/streamero-app/streamero/server/internal/version"
 )
 
@@ -72,6 +73,12 @@ func withConfig(ctx context.Context, fn func(context.Context, config.Config, *sl
 }
 
 func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
+	for _, dir := range []string{cfg.CacheDir, cfg.TranscodeDir} {
+		if err := storage.EnsureCacheDir(dir); err != nil {
+			// Not fatal: local dev runs often have no /cache. Features needing it will fail loudly.
+			log.Warn("cache dir unavailable", "dir", dir, "err", err)
+		}
+	}
 	state := &app.State{}
 	h := &api.Handler{State: state, ServerName: cfg.ServerName, StartedAt: time.Now().UTC()}
 	router, err := app.NewRouter(state, h)
@@ -162,11 +169,12 @@ func healthcheck() error {
 		addr = "127.0.0.1" + addr
 	}
 	c := http.Client{Timeout: 3 * time.Second}
-	resp, err := c.Get("http://" + addr + "/healthz")
+	// Address comes from our own env and always targets the local process.
+	resp, err := c.Get("http://" + addr + "/healthz") //nolint:gosec // G704: loopback health probe
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("healthz: %s", resp.Status)
 	}

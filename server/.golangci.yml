@@ -4,3 +4,6 @@ linters:
   enable: [errorlint, misspell, revive, gosec]
   exclusions:
     paths: [internal/api/gen]
+    rules:
+      - path: _test\.go
+        linters: [gosec]

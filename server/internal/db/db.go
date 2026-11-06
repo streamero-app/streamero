@@ -53,7 +53,7 @@ func Migrate(ctx context.Context, pool *pgxpool.Pool) error {
 	if err != nil {
 		return err
 	}
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 	if _, err := p.Up(ctx); err != nil {
 		return fmt.Errorf("goose up: %w", err)
 	}
@@ -73,6 +73,6 @@ func Pending(ctx context.Context, pool *pgxpool.Pool) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 	return p.HasPending(ctx)
 }
