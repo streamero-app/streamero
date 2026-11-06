@@ -17,9 +17,24 @@ x-common: &common
     valkey: { condition: service_healthy }
 
 services:
+  # Docker creates missing bind-mount dirs as root; the app runs as uid 1000.
+  init:
+    image: busybox:1.37
+    user: "0:0"
+    restart: "no"
+    command: ["sh", "-c", "chown 1000:1000 /config /cache /recordings"]
+    volumes:
+      - ${CONFIG_PATH:-./data/config}:/config
+      - ${CACHE_PATH:-./data/cache}:/cache
+      - ${RECORDINGS_PATH:-./data/recordings}:/recordings
+
   streamero:
     <<: *common
     command: ["serve"]
+    depends_on:
+      init: { condition: service_completed_successfully }
+      db: { condition: service_healthy }
+      valkey: { condition: service_healthy }
     ports:
       - "${HTTP_PORT:-8787}:8787"
     volumes:
@@ -29,7 +44,7 @@ services:
       - ${RECORDINGS_PATH:-./data/recordings}:/recordings
       - type: tmpfs            # transcode segments live in RAM
         target: /transcode
-        tmpfs: { size: 8g }
+        tmpfs: { size: 8g, mode: 01777 }
     healthcheck:
       test: ["CMD", "/app/streamero", "healthcheck"]
       interval: 15s
