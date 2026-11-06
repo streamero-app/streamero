@@ -1,0 +1,68 @@
+name: Streamero
+options:
+  bundleIdPrefix: net.scyde
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: ""
+    TARGETED_DEVICE_FAMILY: "1,2"
+packages:
+  OpenAPIRuntime:
+    url: https://github.com/apple/swift-openapi-runtime
+    from: "1.8.0"
+  OpenAPIURLSession:
+    url: https://github.com/apple/swift-openapi-urlsession
+    from: "1.1.0"
+  OpenAPIGenerator:
+    url: https://github.com/apple/swift-openapi-generator
+    from: "1.10.0"
+targets:
+  Streamero:
+    type: application
+    platform: iOS
+    sources:
+      - path: Streamero
+    dependencies:
+      - package: OpenAPIRuntime
+      - package: OpenAPIURLSession
+    buildToolPlugins:
+      - plugin: OpenAPIGenerator
+        package: OpenAPIGenerator
+    info:
+      path: Streamero/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: Streamero
+        CFBundleDevelopmentRegion: en
+        CFBundleLocalizations: [en, hr]
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        UIBackgroundModes: [audio, fetch]
+        NSLocalNetworkUsageDescription: Streamero finds media servers on your local network.
+        NSBonjourServices: [_streamero._tcp]
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true   # self-hosted servers on LAN often use plain HTTP
+        UIUserInterfaceStyle: Dark
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: net.scyde.streamero
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGNING_ALLOWED: "NO"
+  StreameroTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [StreameroTests]
+    dependencies:
+      - target: Streamero
+schemes:
+  Streamero:
+    build:
+      targets:
+        Streamero: all
+    test:
+      targets: [StreameroTests]

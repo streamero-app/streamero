@@ -1,0 +1,182 @@
+{
+  "sourceLanguage": "en",
+  "version": "1.0",
+  "strings": {
+    "app.name": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Streamero"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Streamero"
+          }
+        }
+      }
+    },
+    "addServer.subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect to your media server"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spoji se na svoj media server"
+          }
+        }
+      }
+    },
+    "addServer.address": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Server address"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adresa servera"
+          }
+        }
+      }
+    },
+    "addServer.placeholder": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "e.g. demo.streamero.net"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "npr. demo.streamero.net"
+          }
+        }
+      }
+    },
+    "addServer.connect": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spoji se"
+          }
+        }
+      }
+    },
+    "addServer.error.invalid": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That doesn't look like a valid address."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To ne izgleda kao valjana adresa."
+          }
+        }
+      }
+    },
+    "addServer.error.starting": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The server is starting. Try again in a few seconds."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Server se pokreće. Pokušaj ponovno za nekoliko sekundi."
+          }
+        }
+      }
+    },
+    "addServer.error.notStreamero": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This is not a Streamero server."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ovo nije Streamero server."
+          }
+        }
+      }
+    },
+    "addServer.error.unreachable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't reach the server."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Server nije dostupan."
+          }
+        }
+      }
+    },
+    "server.connected %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connected · version %@"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spojeno · verzija %@"
+          }
+        }
+      }
+    },
+    "server.remove": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove server"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ukloni server"
+          }
+        }
+      }
+    }
+  }
+}
