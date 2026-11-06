@@ -375,6 +375,10 @@ Provider orchestrator (redoslijed po biblioteci, jezik/država), TMDb, TVDB, OMD
 Home (Continue Watching, Next Up, Latest, media bar, prilagodba redova), biblioteke (grid/list/folder), svi filteri/sortovi iz FEATURES §5, A–Z, cursor paginacija, detalji (sve sekcije), akcije, pretraga, favoriti, ocjene, kolekcije, playliste, skrivanje, parental filtriranje svugdje, teme + custom CSS, screensaver, theme songs, gamepad/tipkovnica.
 - **Prihvaćanje:** Lighthouse performance ≥ 90; home < 200 ms TTFB API-ja na 50k biblioteci; Playwright testovi glavnih tokova.
 
+### P4b — *arr ekosustav (D-011)
+Compat API podskup pod `/compat` (po javnoj OpenAPI specifikaciji) za Seerr/Jellyseerr: login, uvoz korisnika, biblioteke, items s TMDB/TVDB/IMDb ID-evima, sezone/epizode, nedavno dodano, refresh. Ulazni webhooks Radarr/Sonarr/Lidarr (generic Webhook + Emby/Jellyfin connect) → ciljani scan. Bazarr: sidecar podnaslovi preko fsnotify + post-processing endpoint. `docs/INTEGRATIONS.md` s uputama korak-po-korak za svaki alat.
+- **Prihvaćanje:** u CI-ju (compose profil `arr`, stvarni kontejneri): Seerr i Jellyseerr se spoje na Streamero, uvezu korisnika i označe fixture film/seriju kao *Available*; Radarr/Sonarr/Lidarr import pokrene scan samo te putanje i stavka se pojavi < 10 s; Bazarr `.srt` se pojavi u stavci bez ručnog scana. Isto ručno provjereno na demo.streamero.net.
+
 ### P5 — Reprodukcija (server + web player)
 Device profili, odluka o reprodukciji (čista funkcija + testovi), direct play (range), HLS remux, HLS transcode, HW accel (VA-API i NVENC obavezno testirani; QSV/AMF/RKMPP/VT kod puta), tonemapping, podnaslovi (sve iz FEATURES §6), audio odabir/normalizacija, potpisani URL-ovi, progress reporting, resume, mark played prag, Next Up autoplay, „Još gledate?", sleep timer, frame-step, info overlay, PiP, queue, cinema mode, transcode cleanup + limiti, razlog transkodiranja.
 - **Prihvaćanje:** matrica fixture × klijent (Chrome, Firefox, Safari) reproducira bez greške; seek u transkodiranom 4K HDR → SDR radi < 3 s; nema zaostalih ffmpeg procesa nakon zatvaranja playera.
@@ -408,11 +412,11 @@ SyncPlay protokol preko WS-a (grupe, ready/buffering stanja, drift korekcija, za
 - **Prihvaćanje:** web + iPhone gledaju zajedno, razlika < 300 ms nakon seeka; pauza na jednom pauzira oba.
 
 ### P13 — Extras (ono što Jellyfin nema ili ima samo kroz plugine)
-OIDC SSO, LDAP, passkeys; OpenSubtitles + auto-sync + Whisper + LLM prijevod; Requests + Radarr/Sonarr/Lidarr; webhooks/notifikacije/newsletter; Trakt/AniList/Last.fm/ListenBrainz; statistike + Wrapped + Prometheus/Grafana; pametne kolekcije; AI semantička pretraga (pgvector + Ollama); media health; media cleaner; OPDS; External providers ugovor; Jellyfin import.
+OIDC SSO, LDAP, passkeys; OpenSubtitles + auto-sync + Whisper + LLM prijevod; Requests (izlazno prema Radarr/Sonarr/Lidarr; ulazni webhooks su u P4b); webhooks/notifikacije/newsletter; Trakt/AniList/Last.fm/ListenBrainz; statistike + Wrapped + Prometheus/Grafana; pametne kolekcije; AI semantička pretraga (pgvector + Ollama); media health; media cleaner; OPDS; External providers ugovor; Jellyfin import.
 - **Prihvaćanje:** svaka stavka ima vlastiti e2e ili integracijski test; Jellyfin import prenese watch status 1:1 na testnom Jellyfin 12 serveru.
 
 ### P14 — Hardening i release
-Security pregled (path traversal fuzz, auth testovi, CSP, dependency audit), perf testovi (50k i 200k stavki, 10 istovremenih transkoda), load test WS-a, backup/restore drill, dokumentacija (`DEPLOY.md`, `IOS.md`, `NAMING.md`), opcionalno: Jellyfin-compat API sloj, DLNA, ABR, widget; open-source priprema (licenca, CONTRIBUTING).
+Security pregled (path traversal fuzz, auth testovi, CSP, dependency audit), perf testovi (50k i 200k stavki, 10 istovremenih transkoda), load test WS-a, backup/restore drill, dokumentacija (`DEPLOY.md`, `IOS.md`, `NAMING.md`), proširenje compat sloja iz P4b za Infuse/Swiftfin/Findroid, DLNA, ABR, widget; open-source priprema (licenca, CONTRIBUTING).
 - **Prihvaćanje:** `v1.0.0` tag → image + `.ipa` + Feather source automatski; čisti install po `DEPLOY.md` uspijeva iz nule za < 10 min.
 
 ---

@@ -48,3 +48,16 @@ Format: `## D-001 Naslov (datum)` → Kontekst → Odluka → Posljedice.
 **Kontekst:** D-004 je predvidio Caddy. Na serveru već radi sistemski nginx (80/443, certbot) za ostale domene, a port 8787 zauzima drugi servis.
 **Odluka:** Reverse proxy je postojeći nginx sa site datotekom `deploy/nginx/demo.streamero.net.conf` (bez bufferinga, 1 h timeout, WebSocket upgrade); TLS kroz `certbot --nginx`. Demo stack sluša samo na `127.0.0.1:8797` (`HTTP_PORT` u `deploy/.env`).
 **Posljedice:** Nema drugog procesa na 80/443. Instalacija sitea i certifikat traže root (sudo) na serveru. Za korisnike ostaje bilo koji reverse proxy; nginx primjer je u repou.
+
+## D-011 *arr ekosustav i Seerr/Jellyseerr kao obavezni, ne „extras" (2026-11-06)
+**Kontekst:** Korisnik traži da Streamero radi s Prowlarr, Radarr, Sonarr, Lidarr, Bazarr, Seerr/Jellyseerr i ostatkom *arr stacka. Plan ih je imao u P13 (requests, webhooks) i P14 (opcionalni Jellyfin-compat sloj). Ti alati se na media server spajaju na tri načina:
+- **Seerr / Jellyseerr / Overseerr-fork** podržavaju samo Plex, Jellyfin i Emby kao media server (login korisnika, uvoz korisnika, sync dostupnosti po TMDB/TVDB ID-u, „Play on" linkovi). Bez Jellyfin-kompatibilnog API-ja ne mogu raditi.
+- **Radarr / Sonarr / Lidarr** (i Whisparr, Readarr-forkovi) u *Connect* imaju „Emby / Jellyfin" (poziv da je putanja promijenjena → refresh) i generički *Webhook* (JSON s putanjama).
+- **Bazarr** piše `.srt`/`.ass` pokraj datoteke i ne zove media server; **Prowlarr** sinkronizira indeksere samo prema *arr aplikacijama i nema nikakvu vezu s media serverom.
+**Odluka:** Nova faza **P4b — *arr ekosustav** (nakon P4, jer treba korisnike iz P1, scanner iz P2, TMDB/TVDB ID-eve iz P3 i stranice detalja iz P4 za „Play on" linkove):
+1. **Compat API podskup** (prije P14 „opcionalno") pod prefiksom `/compat` (konfigurabilno), implementiran isključivo po javnoj OpenAPI specifikaciji i javnoj dokumentaciji klijenata; samo endpointi koje Seerr/Jellyseerr stvarno koriste (auth po imenu, javni system info, korisnici, biblioteke/views, items s ProviderIds, sezone/epizode, nedavno dodano, library refresh). Svugdje u odgovorima ProductName ostaje „Streamero" — nigdje „Jellyfin" u UI-ju ni identifikatorima.
+2. **Ulazni webhooks za *arr**: generički *Webhook* payload Radarra/Sonarra/Lidarra i compat „Emby/Jellyfin" notifikacija → ciljani scan samo zahvaćene putanje (kroz `library.ResolveSafePath`).
+3. **Sidecar podnaslovi (Bazarr)**: fsnotify + periodični lagani scan sidecar datoteka; dodatno API endpoint za Bazarrov post-processing hook.
+4. **Prowlarr**: nema integracije s media serverom — ništa se ne implementira osim (opcionalno, P10) prikaza zdravlja *arr servisa na admin dashboardu.
+5. Vlastiti Requests (P13) ostaje, ali Seerr/Jellyseerr mora raditi i bez njega.
+**Posljedice:** Compat sloj se sad održava kao javni ugovor; testira se e2e protiv **stvarnih kontejnera** Seerr, Jellyseerr, Radarr, Sonarr, Lidarr i Bazarr u CI-ju (compose profil `arr`). Podržani podskup je dokumentiran u `docs/INTEGRATIONS.md`; nepodržani endpointi vraćaju 404, ne lažne podatke. P14 „Jellyfin-compat za Infuse/Swiftfin" se nadograđuje na isti sloj.

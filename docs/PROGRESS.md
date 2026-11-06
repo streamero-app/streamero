@@ -24,7 +24,7 @@ P0 — Temelji (u tijeku, branch `phase/P0-foundations`)
 1. Review i merge PR #1 (prihvaćanje P0) → `server-image.yml` builda i potpisuje multi-arch image (`edge`) na GHCR-u.
 2. Instalirati `streamero-ipa` kroz Feather i spojiti se na https://demo.streamero.net.
 3. Zamijeniti placeholder logo službenim s streamero.net.
-4. Nakon prihvaćanja P0 → P1 (korisnici i auth).
+4. P1 (korisnici i auth) → login na demo.streamero.net. *arr ekosustav (Seerr/Jellyseerr, Radarr/Sonarr/Lidarr, Bazarr) je nova faza P4b (D-011).
 
 ## Poznati problemi / blokeri
 - Vizualna provjera weba u pravom browseru nije napravljena na serveru (nema Chromiuma/Playwrighta na hostu); provjereno preko HTTP-a (SPA + asseti 200, HR/EN stringovi u bundleu).
