@@ -278,7 +278,10 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [ ] `[+]` Statistike: najgledanije, po korisniku, po uređaju, vrijeme gledanja, transcode vs direct, heatmapa po satima (P13)
 - [ ] `[+]` „Streamero Wrapped" — godišnji pregled po korisniku (P13)
 - [ ] `[+]` Requests (Jellyseerr-style): korisnik traži film/seriju → admin odobri → šalje u Radarr/Sonarr; status i notifikacija kad stigne (P13)
-- [ ] `[+]` Radarr/Sonarr/Lidarr webhook → instant scan samo te putanje (P13)
+- [ ] `[+]` Radarr/Sonarr/Lidarr webhook (generic Webhook + Emby/Jellyfin connect) → instant scan samo te putanje (P4b)
+- [ ] `[+]` Seerr / Jellyseerr rade sa Streamerom kao media serverom: login, uvoz korisnika, sync dostupnosti, „Play on" linkovi (P4b, D-011)
+- [ ] `[+]` Bazarr: podnaslovi koje Bazarr spremi pojavljuju se bez ručnog scana (fsnotify + post-processing endpoint) (P4b)
+- [ ] `[+]` `docs/INTEGRATIONS.md`: upute za Prowlarr, Radarr, Sonarr, Lidarr, Bazarr, Seerr, Jellyseerr i ostale *arr alate (P4b)
 
 ## 14. Integracije i ekosustav
 
@@ -290,7 +293,7 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [ ] `[+]` AI podnaslovi: Whisper (faster-whisper kontejner, GPU) generira podnaslove kad ih nema (P13)
 - [ ] `[+]` AI prijevod podnaslova (npr. EN → HR) preko lokalnog LLM-a (Ollama) (P13)
 - [ ] `[+]` Import iz Jellyfina: korisnici, watch povijest, napredak, favoriti, playliste, kolekcije (preko Jellyfin API-ja, uz API ključ) (P13)
-- [ ] `[+]` Jellyfin-kompatibilni API sloj (`/jf/...`) da Infuse, Swiftfin, Findroid itd. rade sa Streamerom (P14, opcionalno)
+- [ ] `[+]` Compat API sloj (`/compat`, osnova iz P4b) proširen da Infuse, Swiftfin, Findroid itd. rade sa Streamerom (P14)
 
 ## 15. API
 
