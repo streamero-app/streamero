@@ -13,6 +13,15 @@ type UnimplementedHandler struct{}
 
 var _ Handler = UnimplementedHandler{}
 
+// AcceptInvite implements acceptInvite operation.
+//
+// Create an account from an invite and sign in (public).
+//
+// POST /invite/{token}
+func (UnimplementedHandler) AcceptInvite(ctx context.Context, req *AcceptInviteRequest, params AcceptInviteParams) (r *SignedInHeaders, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // AuthorizeQuickConnect implements authorizeQuickConnect operation.
 //
 // The other device is signed in as the calling user.
@@ -51,6 +60,15 @@ func (UnimplementedHandler) CreateAPIKey(ctx context.Context, req *CreateApiKeyR
 	return r, ht.ErrNotImplemented
 }
 
+// CreateInvite implements createInvite operation.
+//
+// Create an invite link (admin).
+//
+// POST /invites
+func (UnimplementedHandler) CreateInvite(ctx context.Context, req *CreateInviteRequest) (r *CreatedInvite, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // CreateUser implements createUser operation.
 //
 // Create a user (admin).
@@ -66,6 +84,15 @@ func (UnimplementedHandler) CreateUser(ctx context.Context, req *CreateUserReque
 //
 // DELETE /apikeys/{apiKeyId}
 func (UnimplementedHandler) DeleteAPIKey(ctx context.Context, params DeleteAPIKeyParams) error {
+	return ht.ErrNotImplemented
+}
+
+// DeleteInvite implements deleteInvite operation.
+//
+// Revoke an invite (admin).
+//
+// DELETE /invites/{inviteId}
+func (UnimplementedHandler) DeleteInvite(ctx context.Context, params DeleteInviteParams) error {
 	return ht.ErrNotImplemented
 }
 
@@ -93,6 +120,15 @@ func (UnimplementedHandler) DisableTOTP(ctx context.Context, req *PasswordConfir
 //
 // POST /auth/totp/enable
 func (UnimplementedHandler) EnableTOTP(ctx context.Context, req *TOTPCodeRequest) (r *RecoveryCodes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetInvite implements getInvite operation.
+//
+// Check an invite link (public).
+//
+// GET /invite/{token}
+func (UnimplementedHandler) GetInvite(ctx context.Context, params GetInviteParams) (r *InviteInfo, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -139,6 +175,15 @@ func (UnimplementedHandler) InitiateQuickConnect(ctx context.Context, req OptDev
 //
 // GET /apikeys
 func (UnimplementedHandler) ListAPIKeys(ctx context.Context) (r []ApiKey, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListInvites implements listInvites operation.
+//
+// Invite links (admin).
+//
+// GET /invites
+func (UnimplementedHandler) ListInvites(ctx context.Context) (r []Invite, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

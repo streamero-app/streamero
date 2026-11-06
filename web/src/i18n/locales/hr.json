@@ -50,7 +50,8 @@
     "server": "Server",
     "users": "Korisnici",
     "apiKeys": "API ključevi",
-    "quickConnect": "Quick Connect"
+    "quickConnect": "Quick Connect",
+    "invites": "Pozivnice"
   },
   "account": {
     "changePassword": "Promijeni lozinku",
@@ -190,5 +191,28 @@
     "manageLiveTv": "Upravljanje TV-om uživo i snimkama",
     "maxSessions": "Najviše prijavljenih uređaja",
     "maxSessionsHint": "0 = neograničeno. Prijava na još jednom uređaju odjavljuje najdulje neaktivan."
+  },
+  "invites": {
+    "create": "Napravi pozivnicu",
+    "intro": "Tko otvori poveznicu može napraviti običan (ne-admin) račun sa zadanim dozvolama, dok pozivnica ne istekne ili se ne potroši.",
+    "note": "Napomena (neobavezno)",
+    "expires": "Vrijedi",
+    "expiry_24": "1 dan",
+    "expiry_168": "7 dana",
+    "expiry_720": "30 dana",
+    "maxUses": "Broj računa",
+    "copyNow": "Podijelite ovu poveznicu sada — više se neće prikazati.",
+    "share": "Podijeli ili kopiraj",
+    "none": "Još nema pozivnica.",
+    "untitled": "Pozivnica",
+    "active": "Aktivna",
+    "inactive": "Iskorištena ili istekla",
+    "meta": "Iskorišteno {{uses}}/{{max}} · vrijedi do {{expires}} · {{user}}",
+    "revoke": "Opozovi",
+    "invalidTitle": "Pozivnica nije važeća",
+    "invalidText": "Ova pozivnica je istekla, potrošena je ili opozvana. Zatražite novu.",
+    "joinTitle": "Pridruži se: {{server}}",
+    "joinIntro": "Pozvani ste. Odaberite korisničko ime i lozinku za svoj račun.",
+    "join": "Napravi račun"
   }
 }

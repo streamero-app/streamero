@@ -500,3 +500,69 @@ func fromPermissions(p gen.UserPermissions) auth.Permissions {
 		EditSubtitles: p.EditSubtitles, RemoteControl: p.RemoteControl, MaxSessions: p.MaxSessions,
 	}
 }
+
+// ListInvites implements GET /invites.
+func (h *Handler) ListInvites(ctx context.Context) ([]gen.Invite, error) {
+	if _, err := admin(ctx); err != nil {
+		return nil, err
+	}
+	invites, err := h.Auth().ListInvites(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]gen.Invite, 0, len(invites))
+	for _, i := range invites {
+		out = append(out, toInvite(i))
+	}
+	return out, nil
+}
+
+// CreateInvite implements POST /invites.
+func (h *Handler) CreateInvite(ctx context.Context, req *gen.CreateInviteRequest) (*gen.CreatedInvite, error) {
+	p, err := admin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var perms *auth.Permissions
+	if v, ok := req.Permissions.Get(); ok {
+		pp := fromPermissions(v)
+		perms = &pp
+	}
+	inv, token, err := h.Auth().CreateInvite(ctx, p, req.Note.Value, time.Duration(req.ExpiresInHours)*time.Hour, req.MaxUses, perms)
+	if err != nil {
+		return nil, err
+	}
+	return &gen.CreatedInvite{Token: token, Invite: toInvite(inv)}, nil
+}
+
+// DeleteInvite implements DELETE /invites/{inviteId}.
+func (h *Handler) DeleteInvite(ctx context.Context, params gen.DeleteInviteParams) error {
+	p, err := admin(ctx)
+	if err != nil {
+		return err
+	}
+	return h.Auth().DeleteInvite(ctx, p, params.InviteId)
+}
+
+// GetInvite implements GET /invite/{token}.
+func (h *Handler) GetInvite(ctx context.Context, params gen.GetInviteParams) (*gen.InviteInfo, error) {
+	exp, err := h.Auth().CheckInvite(ctx, params.Token)
+	if err != nil {
+		return nil, err
+	}
+	return &gen.InviteInfo{ServerName: h.serverName(ctx), ExpiresAt: exp}, nil
+}
+
+// AcceptInvite implements POST /invite/{token}.
+func (h *Handler) AcceptInvite(ctx context.Context, req *gen.AcceptInviteRequest, params gen.AcceptInviteParams) (*gen.SignedInHeaders, error) {
+	p, token, err := h.Auth().AcceptInvite(ctx, params.Token, string(req.Username), string(req.Password), device(req.Device))
+	if err != nil {
+		return nil, err
+	}
+	return h.signedIn(ctx, p, token, req.UseCookie.Value), nil
+}
+
+func toInvite(i auth.Invite) gen.Invite {
+	return gen.Invite{ID: i.ID, Note: i.Note, CreatedBy: i.CreatedBy, CreatedAt: i.CreatedAt, ExpiresAt: i.ExpiresAt,
+		MaxUses: i.MaxUses, Uses: i.Uses, Permissions: toPermissions(i.Permissions)}
+}

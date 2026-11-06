@@ -50,7 +50,8 @@
     "server": "Server",
     "users": "Users",
     "apiKeys": "API keys",
-    "quickConnect": "Quick Connect"
+    "quickConnect": "Quick Connect",
+    "invites": "Invites"
   },
   "account": {
     "changePassword": "Change password",
@@ -190,5 +191,28 @@
     "manageLiveTv": "Manage Live TV and recordings",
     "maxSessions": "Max. signed-in devices",
     "maxSessionsHint": "0 = unlimited. Signing in on one more device signs out the least recently used one."
+  },
+  "invites": {
+    "create": "Create invite link",
+    "intro": "Whoever opens the link can create an ordinary (non-admin) account with default permissions until it expires or runs out of uses.",
+    "note": "Note (optional)",
+    "expires": "Valid for",
+    "expiry_24": "1 day",
+    "expiry_168": "7 days",
+    "expiry_720": "30 days",
+    "maxUses": "Number of accounts",
+    "copyNow": "Share this link now — it will not be shown again.",
+    "share": "Share or copy",
+    "none": "No invites yet.",
+    "untitled": "Invite",
+    "active": "Active",
+    "inactive": "Used or expired",
+    "meta": "Used {{uses}}/{{max}} · valid until {{expires}} · by {{user}}",
+    "revoke": "Revoke",
+    "invalidTitle": "Invite not valid",
+    "invalidText": "This invite link has expired, was used up or was revoked. Ask for a new one.",
+    "joinTitle": "Join {{server}}",
+    "joinIntro": "You were invited. Choose a username and password for your account.",
+    "join": "Create account"
   }
 }

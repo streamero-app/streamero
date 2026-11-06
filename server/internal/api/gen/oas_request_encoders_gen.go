@@ -10,6 +10,20 @@ import (
 	ht "github.com/ogen-go/ogen/http"
 )
 
+func encodeAcceptInviteRequest(
+	req *AcceptInviteRequest,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeAuthorizeQuickConnectRequest(
 	req *TOTPCodeRequest,
 	r *http.Request,
@@ -54,6 +68,20 @@ func encodeCompleteSetupRequest(
 
 func encodeCreateAPIKeyRequest(
 	req *CreateApiKeyRequest,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeCreateInviteRequest(
+	req *CreateInviteRequest,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"

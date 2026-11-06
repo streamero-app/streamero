@@ -17,6 +17,7 @@ tags:
   - name: settings
   - name: apikeys
   - name: quickconnect
+  - name: invites
 security: []
 paths:
   /system/info:
@@ -449,6 +450,100 @@ paths:
           description: Revoked
         default:
           $ref: "#/components/responses/Error"
+  /invites:
+    get:
+      operationId: listInvites
+      summary: Invite links (admin)
+      tags: [invites]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Invites (tokens are never returned again)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Invite"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createInvite
+      summary: Create an invite link (admin)
+      tags: [invites]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInviteRequest"
+      responses:
+        "201":
+          description: Created; the token is shown only once
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatedInvite"
+        default:
+          $ref: "#/components/responses/Error"
+  /invites/{inviteId}:
+    delete:
+      operationId: deleteInvite
+      summary: Revoke an invite (admin)
+      tags: [invites]
+      security:
+        - sessionToken: []
+      parameters:
+        - name: inviteId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Revoked
+        default:
+          $ref: "#/components/responses/Error"
+  /invite/{token}:
+    parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 128
+    get:
+      operationId: getInvite
+      summary: Check an invite link (public)
+      tags: [invites]
+      responses:
+        "200":
+          description: The invite is valid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InviteInfo"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: acceptInvite
+      summary: Create an account from an invite and sign in (public)
+      tags: [invites]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AcceptInviteRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/SignedIn"
+        default:
+          $ref: "#/components/responses/Error"
   /settings/server:
     get:
       operationId: getServerSettings
@@ -612,6 +707,77 @@ components:
           maxLength: 256
         newPassword:
           $ref: "#/components/schemas/Password"
+    Invite:
+      type: object
+      required: [id, note, createdBy, createdAt, expiresAt, maxUses, uses, permissions]
+      properties:
+        id:
+          type: string
+          format: uuid
+        note:
+          type: string
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        maxUses:
+          type: integer
+        uses:
+          type: integer
+        permissions:
+          $ref: "#/components/schemas/UserPermissions"
+    CreateInviteRequest:
+      type: object
+      required: [expiresInHours, maxUses]
+      properties:
+        note:
+          type: string
+          maxLength: 100
+          description: e.g. "For my sister"
+        expiresInHours:
+          type: integer
+          minimum: 1
+          maximum: 720
+        maxUses:
+          type: integer
+          minimum: 1
+          maximum: 100
+        permissions:
+          $ref: "#/components/schemas/UserPermissions"
+    CreatedInvite:
+      type: object
+      required: [token, invite]
+      properties:
+        token:
+          type: string
+          description: Goes into the link /invite/<token>. Shown only once.
+        invite:
+          $ref: "#/components/schemas/Invite"
+    InviteInfo:
+      type: object
+      required: [serverName, expiresAt]
+      properties:
+        serverName:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+    AcceptInviteRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          $ref: "#/components/schemas/Username"
+        password:
+          $ref: "#/components/schemas/Password"
+        useCookie:
+          type: boolean
+        device:
+          $ref: "#/components/schemas/DeviceInfo"
     QuickConnectStart:
       type: object
       required: [code, secret, expiresAt]

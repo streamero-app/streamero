@@ -24,14 +24,15 @@ P1 — Korisnici i auth (u tijeku, branch `phase/P1-auth`); P0 prihvaćen i merg
 - API (spec → ogen): `/setup`, `/auth/{login,logout,me,password}`, `/users`, `/sessions`, `/settings/server`; migracija 00002 (users, sessions, audit_log); D-012.
 - Setup wizard sa setup kodom iz loga, login/odjava (cookie za web, Bearer za aplikacije), lockout, upravljanje korisnicima (admin, onemogući, lozinka, brisanje, zaštita zadnjeg admina), uređaji s trenutnim opozivom, promjena lozinke (odjavljuje ostale uređaje), ime servera.
 - Web: setup, prijava, ljuska aplikacije, Postavke (Moj račun, Uređaji, Server, Korisnici, API ključevi), HR/EN.
+- Pozivnice: admin napravi poveznicu (rok, broj računa, dozvole), primatelj napravi običan račun i odmah je prijavljen; potrošnja je atomična; migracija 00007.
 - Dozvole po korisniku (model + API + UI, zadane vrijednosti za nove ključeve; provedba po značajci) i max broj prijavljenih uređaja (prijava preko limita odjavljuje najdulje neaktivan uređaj); migracija 00006.
 - Quick Connect: novi uređaj prikaže 6-znamenkasti kod (5 min), prijavljeni korisnik ga odobri u Postavkama → uređaj se prijavi tim računom; tajna za polling samo jednom; migracija 00005.
 - 2FA (TOTP, RFC 6238 bez vanjske biblioteke; QR + otpauth link; 10 jednokratnih kodova za oporavak; zaštita od ponovne upotrebe koda; pogrešni kodovi ulaze u lockout; admin može poništiti 2FA); migracija 00004.
 - API ključevi (`sk_…`, Bearer; rade s pravima admina koji ih je napravio, gase se ako izgubi admin prava), preimenovanje uređaja; migracija 00003.
-- Testovi: Go unit + integracijski protiv Postgresa (setup, cookie/bearer, revoke, lockout, zadnji admin, promjena lozinke), Vitest 12, Playwright 7 (cijeli tok na svježem stacku).
+- Testovi: Go unit + integracijski protiv Postgresa (setup, cookie/bearer, revoke, lockout, zadnji admin, promjena lozinke), Vitest 18, Playwright 9 (setup, korisnici, uređaji, Quick Connect, pozivnice, lockout, odjava — na svježem stacku).
 
 ## Sljedeći koraci
-1. P1 nastavak: pozivnice, profili s PIN-om, parental postavke (model), rate limit + known proxies.
+1. P1 nastavak: profili s PIN-om, parental postavke (model), rate limit + known proxies.
 2. Instalirati `streamero-ipa` kroz Feather i spojiti se na https://demo.streamero.net (iOS login dolazi u P7).
 3. Zamijeniti placeholder logo službenim s streamero.net.
 4. Nakon P1: P2 (biblioteke i scanner) … *arr ekosustav je nova faza P4b (D-011).

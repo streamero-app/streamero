@@ -43,7 +43,7 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 		t.Fatal(err)
 	}
 	t.Cleanup(deps.Close)
-	if _, err := deps.Pool.Exec(ctx, `TRUNCATE users, sessions, audit_log, api_keys, user_totp, recovery_codes, quick_connect;
+	if _, err := deps.Pool.Exec(ctx, `TRUNCATE users, sessions, audit_log, api_keys, user_totp, recovery_codes, quick_connect, invites;
 		DELETE FROM settings WHERE key IN ('setup.completed', 'server.name')`); err != nil {
 		t.Fatal(err)
 	}
@@ -646,5 +646,61 @@ func TestPermissionsAndMaxSessionsIntegration(t *testing.T) {
 	}
 	if alive != 1 {
 		t.Fatalf("%d sessions alive after lowering limit to 1", alive)
+	}
+}
+
+func TestInvitesIntegration(t *testing.T) {
+	srv := newAuthTestServer(t)
+	adminC := newClient(t, srv)
+	setupAdmin(t, adminC)
+
+	perms := map[string]any{"allLibraries": true, "download": false, "videoTranscoding": true, "audioTranscoding": true,
+		"remux": true, "liveTv": false, "manageLiveTv": false, "syncPlay": true, "deleteMedia": false,
+		"manageCollections": false, "editSubtitles": false, "remoteControl": true, "maxSessions": 2}
+	var created struct {
+		Token  string `json:"token"`
+		Invite struct {
+			ID string `json:"id"`
+		} `json:"invite"`
+	}
+	if s := adminC.do("POST", "/invites", map[string]any{"note": "obitelj", "expiresInHours": 24, "maxUses": 1, "permissions": perms}, &created); s != 201 || created.Token == "" {
+		t.Fatalf("create invite: HTTP %d", s)
+	}
+	anon := newClient(t, srv)
+	var info struct {
+		ServerName string `json:"serverName"`
+	}
+	if s := anon.do("GET", "/invite/"+created.Token, nil, &info); s != 200 || info.ServerName != "Kino" {
+		t.Fatalf("check invite: HTTP %d %+v", s, info)
+	}
+	if s := anon.do("GET", "/invite/not-a-token", nil, nil); s != 404 {
+		t.Fatalf("bad token: HTTP %d", s)
+	}
+	var res authResult
+	if s := anon.do("POST", "/invite/"+created.Token, map[string]any{"username": "Teta", "password": "teta-pass-1"}, &res); s != 200 || res.User.IsAdmin {
+		t.Fatalf("accept: HTTP %d %+v", s, res)
+	}
+	anon.token = res.Token
+	var me struct {
+		Perms map[string]any `json:"permissions"`
+	}
+	if anon.do("GET", "/auth/me", nil, &me); me.Perms["download"] != false || me.Perms["maxSessions"] != float64(2) {
+		t.Fatalf("invite permissions not applied: %+v", me.Perms)
+	}
+	// Single use: the link is now spent.
+	if s := newClient(t, srv).do("POST", "/invite/"+created.Token, map[string]any{"username": "Drugi", "password": "drugi-pass-1"}, nil); s != 404 {
+		t.Fatalf("second use: HTTP %d", s)
+	}
+	var list []struct {
+		Uses int `json:"uses"`
+	}
+	if adminC.do("GET", "/invites", nil, &list); len(list) != 1 || list[0].Uses != 1 {
+		t.Fatalf("invite list: %+v", list)
+	}
+	if s := adminC.do("DELETE", "/invites/"+created.Invite.ID, nil, nil); s != 204 {
+		t.Fatalf("delete invite: HTTP %d", s)
+	}
+	if s := anon.do("POST", "/invites", map[string]any{"expiresInHours": 1, "maxUses": 1}, nil); s != 403 {
+		t.Fatalf("non-admin create invite: HTTP %d", s)
 	}
 }

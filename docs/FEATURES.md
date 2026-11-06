@@ -48,7 +48,7 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [x] `[+]` 2FA TOTP + recovery kodovi (P1)
 - [ ] `[+]` Passkeys / WebAuthn za web (P13)
 - [ ] `[+]` Profili unutar korisnika (Netflix-style): avatar, PIN po profilu, dječji profil s vlastitim parental limitom, odvojena watch povijest (P1)
-- [ ] `[+]` Pozivnice (invite link s rokom, unaprijed postavljenim bibliotekama i dozvolama) (P1)
+- [x] `[+]` Pozivnice (invite link s rokom, unaprijed postavljenim bibliotekama i dozvolama) (P1) — *biblioteke u pozivnici dolaze s P2*
 - [ ] `[+]` Audit log svih admin akcija (P10)
 - [ ] `[+]` Potpisani kratkotrajni stream URL-ovi (HMAC) — AVPlayer/Chromecast mogu fetchati bez headera (P5)
 - [ ] `[+]` GeoIP prikaz sesija + opcionalno blokiranje po državi (P10)

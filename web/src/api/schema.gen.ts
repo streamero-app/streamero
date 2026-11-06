@@ -370,6 +370,61 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/invites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Invite links (admin) */
+        get: operations["listInvites"];
+        put?: never;
+        /** Create an invite link (admin) */
+        post: operations["createInvite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/invites/{inviteId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke an invite (admin) */
+        delete: operations["deleteInvite"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/invite/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        /** Check an invite link (public) */
+        get: operations["getInvite"];
+        put?: never;
+        /** Create an account from an invite and sign in (public) */
+        post: operations["acceptInvite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/settings/server": {
         parameters: {
             query?: never;
@@ -431,6 +486,42 @@ export interface components {
         ChangePasswordRequest: {
             currentPassword: string;
             newPassword: components["schemas"]["Password"];
+        };
+        Invite: {
+            /** Format: uuid */
+            id: string;
+            note: string;
+            createdBy: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            expiresAt: string;
+            maxUses: number;
+            uses: number;
+            permissions: components["schemas"]["UserPermissions"];
+        };
+        CreateInviteRequest: {
+            /** @description e.g. "For my sister" */
+            note?: string;
+            expiresInHours: number;
+            maxUses: number;
+            permissions?: components["schemas"]["UserPermissions"];
+        };
+        CreatedInvite: {
+            /** @description Goes into the link /invite/<token>. Shown only once. */
+            token: string;
+            invite: components["schemas"]["Invite"];
+        };
+        InviteInfo: {
+            serverName: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        AcceptInviteRequest: {
+            username: components["schemas"]["Username"];
+            password: components["schemas"]["Password"];
+            useCookie?: boolean;
+            device?: components["schemas"]["DeviceInfo"];
         };
         QuickConnectStart: {
             /** @description 6 digits, shown on the new device. */
@@ -1131,6 +1222,115 @@ export interface operations {
                 };
                 content?: never;
             };
+            default: components["responses"]["Error"];
+        };
+    };
+    listInvites: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Invites (tokens are never returned again) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invite"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createInvite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateInviteRequest"];
+            };
+        };
+        responses: {
+            /** @description Created; the token is shown only once */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedInvite"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteInvite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                inviteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Revoked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getInvite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The invite is valid */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteInfo"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    acceptInvite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcceptInviteRequest"];
+            };
+        };
+        responses: {
+            200: components["responses"]["SignedIn"];
             default: components["responses"]["Error"];
         };
     };

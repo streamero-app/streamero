@@ -13,6 +13,54 @@ func (s *ErrorStatusCode) Error() string {
 	return fmt.Sprintf("code %d: %+v", s.StatusCode, s.Response)
 }
 
+// Ref: #/components/schemas/AcceptInviteRequest
+type AcceptInviteRequest struct {
+	Username  Username      `json:"username"`
+	Password  Password      `json:"password"`
+	UseCookie OptBool       `json:"useCookie"`
+	Device    OptDeviceInfo `json:"device"`
+}
+
+// GetUsername returns the value of Username.
+func (s *AcceptInviteRequest) GetUsername() Username {
+	return s.Username
+}
+
+// GetPassword returns the value of Password.
+func (s *AcceptInviteRequest) GetPassword() Password {
+	return s.Password
+}
+
+// GetUseCookie returns the value of UseCookie.
+func (s *AcceptInviteRequest) GetUseCookie() OptBool {
+	return s.UseCookie
+}
+
+// GetDevice returns the value of Device.
+func (s *AcceptInviteRequest) GetDevice() OptDeviceInfo {
+	return s.Device
+}
+
+// SetUsername sets the value of Username.
+func (s *AcceptInviteRequest) SetUsername(val Username) {
+	s.Username = val
+}
+
+// SetPassword sets the value of Password.
+func (s *AcceptInviteRequest) SetPassword(val Password) {
+	s.Password = val
+}
+
+// SetUseCookie sets the value of UseCookie.
+func (s *AcceptInviteRequest) SetUseCookie(val OptBool) {
+	s.UseCookie = val
+}
+
+// SetDevice sets the value of Device.
+func (s *AcceptInviteRequest) SetDevice(val OptDeviceInfo) {
+	s.Device = val
+}
+
 // Ref: #/components/schemas/ApiKey
 type ApiKey struct {
 	ID   uuid.UUID `json:"id"`
@@ -168,6 +216,55 @@ func (s *CreateApiKeyRequest) SetName(val string) {
 	s.Name = val
 }
 
+// Ref: #/components/schemas/CreateInviteRequest
+type CreateInviteRequest struct {
+	// E.g. "For my sister".
+	Note           OptString          `json:"note"`
+	ExpiresInHours int                `json:"expiresInHours"`
+	MaxUses        int                `json:"maxUses"`
+	Permissions    OptUserPermissions `json:"permissions"`
+}
+
+// GetNote returns the value of Note.
+func (s *CreateInviteRequest) GetNote() OptString {
+	return s.Note
+}
+
+// GetExpiresInHours returns the value of ExpiresInHours.
+func (s *CreateInviteRequest) GetExpiresInHours() int {
+	return s.ExpiresInHours
+}
+
+// GetMaxUses returns the value of MaxUses.
+func (s *CreateInviteRequest) GetMaxUses() int {
+	return s.MaxUses
+}
+
+// GetPermissions returns the value of Permissions.
+func (s *CreateInviteRequest) GetPermissions() OptUserPermissions {
+	return s.Permissions
+}
+
+// SetNote sets the value of Note.
+func (s *CreateInviteRequest) SetNote(val OptString) {
+	s.Note = val
+}
+
+// SetExpiresInHours sets the value of ExpiresInHours.
+func (s *CreateInviteRequest) SetExpiresInHours(val int) {
+	s.ExpiresInHours = val
+}
+
+// SetMaxUses sets the value of MaxUses.
+func (s *CreateInviteRequest) SetMaxUses(val int) {
+	s.MaxUses = val
+}
+
+// SetPermissions sets the value of Permissions.
+func (s *CreateInviteRequest) SetPermissions(val OptUserPermissions) {
+	s.Permissions = val
+}
+
 // Ref: #/components/schemas/CreateUserRequest
 type CreateUserRequest struct {
 	Username    Username           `json:"username"`
@@ -243,8 +340,38 @@ func (s *CreatedApiKey) SetApiKey(val ApiKey) {
 	s.ApiKey = val
 }
 
+// Ref: #/components/schemas/CreatedInvite
+type CreatedInvite struct {
+	// Goes into the link /invite/. Shown only once.
+	Token  string `json:"token"`
+	Invite Invite `json:"invite"`
+}
+
+// GetToken returns the value of Token.
+func (s *CreatedInvite) GetToken() string {
+	return s.Token
+}
+
+// GetInvite returns the value of Invite.
+func (s *CreatedInvite) GetInvite() Invite {
+	return s.Invite
+}
+
+// SetToken sets the value of Token.
+func (s *CreatedInvite) SetToken(val string) {
+	s.Token = val
+}
+
+// SetInvite sets the value of Invite.
+func (s *CreatedInvite) SetInvite(val Invite) {
+	s.Invite = val
+}
+
 // DeleteAPIKeyNoContent is response for DeleteAPIKey operation.
 type DeleteAPIKeyNoContent struct{}
+
+// DeleteInviteNoContent is response for DeleteInvite operation.
+type DeleteInviteNoContent struct{}
 
 // DeleteUserNoContent is response for DeleteUser operation.
 type DeleteUserNoContent struct{}
@@ -330,6 +457,124 @@ func (s *ErrorStatusCode) SetStatusCode(val int) {
 // SetResponse sets the value of Response.
 func (s *ErrorStatusCode) SetResponse(val Error) {
 	s.Response = val
+}
+
+// Ref: #/components/schemas/Invite
+type Invite struct {
+	ID          uuid.UUID       `json:"id"`
+	Note        string          `json:"note"`
+	CreatedBy   string          `json:"createdBy"`
+	CreatedAt   time.Time       `json:"createdAt"`
+	ExpiresAt   time.Time       `json:"expiresAt"`
+	MaxUses     int             `json:"maxUses"`
+	Uses        int             `json:"uses"`
+	Permissions UserPermissions `json:"permissions"`
+}
+
+// GetID returns the value of ID.
+func (s *Invite) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetNote returns the value of Note.
+func (s *Invite) GetNote() string {
+	return s.Note
+}
+
+// GetCreatedBy returns the value of CreatedBy.
+func (s *Invite) GetCreatedBy() string {
+	return s.CreatedBy
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *Invite) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *Invite) GetExpiresAt() time.Time {
+	return s.ExpiresAt
+}
+
+// GetMaxUses returns the value of MaxUses.
+func (s *Invite) GetMaxUses() int {
+	return s.MaxUses
+}
+
+// GetUses returns the value of Uses.
+func (s *Invite) GetUses() int {
+	return s.Uses
+}
+
+// GetPermissions returns the value of Permissions.
+func (s *Invite) GetPermissions() UserPermissions {
+	return s.Permissions
+}
+
+// SetID sets the value of ID.
+func (s *Invite) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetNote sets the value of Note.
+func (s *Invite) SetNote(val string) {
+	s.Note = val
+}
+
+// SetCreatedBy sets the value of CreatedBy.
+func (s *Invite) SetCreatedBy(val string) {
+	s.CreatedBy = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *Invite) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *Invite) SetExpiresAt(val time.Time) {
+	s.ExpiresAt = val
+}
+
+// SetMaxUses sets the value of MaxUses.
+func (s *Invite) SetMaxUses(val int) {
+	s.MaxUses = val
+}
+
+// SetUses sets the value of Uses.
+func (s *Invite) SetUses(val int) {
+	s.Uses = val
+}
+
+// SetPermissions sets the value of Permissions.
+func (s *Invite) SetPermissions(val UserPermissions) {
+	s.Permissions = val
+}
+
+// Ref: #/components/schemas/InviteInfo
+type InviteInfo struct {
+	ServerName string    `json:"serverName"`
+	ExpiresAt  time.Time `json:"expiresAt"`
+}
+
+// GetServerName returns the value of ServerName.
+func (s *InviteInfo) GetServerName() string {
+	return s.ServerName
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *InviteInfo) GetExpiresAt() time.Time {
+	return s.ExpiresAt
+}
+
+// SetServerName sets the value of ServerName.
+func (s *InviteInfo) SetServerName(val string) {
+	s.ServerName = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *InviteInfo) SetExpiresAt(val time.Time) {
+	s.ExpiresAt = val
 }
 
 // Ref: #/components/schemas/LoginRequest

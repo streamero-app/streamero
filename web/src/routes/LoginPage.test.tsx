@@ -100,3 +100,30 @@ describe("Quick Connect sign-in", () => {
     await waitFor(() => expect(router.state.location.pathname).toBe("/"), { timeout: 8000 });
   }, 10_000);
 });
+
+describe("InvitePage", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("creates the account from a valid invite and opens home", async () => {
+    setLanguage("en");
+    const fetch = mockApi(({ method }) => method === "GET"
+      ? { status: 200, body: { serverName: "Kino", expiresAt: new Date(Date.now() + 86_400_000).toISOString() } }
+      : { status: 200, body: { sessionId: "0190a8b0-0000-7000-8000-0000000000ee", user: testUser({ username: "teta" }) } });
+    const { router } = renderApp("/invite/tok123");
+    expect(await screen.findByRole("heading", { name: "Join Kino" })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Username"), { target: { value: "teta" } });
+    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "teta-pass-1" } });
+    fireEvent.change(screen.getByLabelText("Confirm password"), { target: { value: "teta-pass-1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create account" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/"));
+    const post = fetch.mock.calls.map(([r]) => r as Request).find((r) => r.method === "POST")!;
+    expect(post.url).toMatch(/\/api\/v1\/invite\/tok123$/);
+  });
+
+  it("explains an invalid invite", async () => {
+    setLanguage("en");
+    mockApi(() => ({ status: 404, body: { code: "not_found", message: "" } }));
+    renderApp("/invite/expired");
+    expect(await screen.findByRole("heading", { name: "Invite not valid" })).toBeInTheDocument();
+  });
+});

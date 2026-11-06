@@ -86,6 +86,29 @@ test("Quick Connect signs in a second browser after approval", async ({ page, br
   await ctx.close();
 });
 
+test("an invite link creates an account", async ({ page, browser }) => {
+  await signIn(page, admin);
+  await page.goto("/settings/invites");
+  await page.getByLabel("Note (optional)").fill("e2e");
+  await page.getByRole("button", { name: "Create invite link" }).click();
+  const link = (await page.getByTestId("new-invite").locator("code").textContent())!.trim();
+  expect(link).toMatch(/\/invite\/[\w-]+$/);
+
+  const ctx = await browser.newContext();
+  const guest = await ctx.newPage();
+  await guest.addInitScript(() => localStorage.setItem("streamero.lang", "en"));
+  await guest.goto(new URL(link).pathname);
+  await guest.getByLabel("Username").fill("e2e-guest");
+  await guest.getByLabel("Password", { exact: true }).fill("e2e-guest-pass");
+  await guest.getByLabel("Confirm password").fill("e2e-guest-pass");
+  await guest.getByRole("button", { name: "Create account" }).click();
+  await expect(guest.getByRole("heading", { name: "Welcome, e2e-guest" })).toBeVisible();
+  // Single use by default.
+  await guest.goto(new URL(link).pathname);
+  await expect(guest.getByRole("heading", { name: "Invite not valid" })).toBeVisible();
+  await ctx.close();
+});
+
 test("wrong passwords lock the account", async ({ page }) => {
   await page.goto("/login");
   for (let i = 0; i < 5; i++) {

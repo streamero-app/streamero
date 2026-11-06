@@ -8,6 +8,12 @@ import (
 
 // Handler handles operations described by OpenAPI v3 specification.
 type Handler interface {
+	// AcceptInvite implements acceptInvite operation.
+	//
+	// Create an account from an invite and sign in (public).
+	//
+	// POST /invite/{token}
+	AcceptInvite(ctx context.Context, req *AcceptInviteRequest, params AcceptInviteParams) (*SignedInHeaders, error)
 	// AuthorizeQuickConnect implements authorizeQuickConnect operation.
 	//
 	// The other device is signed in as the calling user.
@@ -34,6 +40,12 @@ type Handler interface {
 	//
 	// POST /apikeys
 	CreateAPIKey(ctx context.Context, req *CreateApiKeyRequest) (*CreatedApiKey, error)
+	// CreateInvite implements createInvite operation.
+	//
+	// Create an invite link (admin).
+	//
+	// POST /invites
+	CreateInvite(ctx context.Context, req *CreateInviteRequest) (*CreatedInvite, error)
 	// CreateUser implements createUser operation.
 	//
 	// Create a user (admin).
@@ -46,6 +58,12 @@ type Handler interface {
 	//
 	// DELETE /apikeys/{apiKeyId}
 	DeleteAPIKey(ctx context.Context, params DeleteAPIKeyParams) error
+	// DeleteInvite implements deleteInvite operation.
+	//
+	// Revoke an invite (admin).
+	//
+	// DELETE /invites/{inviteId}
+	DeleteInvite(ctx context.Context, params DeleteInviteParams) error
 	// DeleteUser implements deleteUser operation.
 	//
 	// Delete a user and all of their sessions (admin).
@@ -64,6 +82,12 @@ type Handler interface {
 	//
 	// POST /auth/totp/enable
 	EnableTOTP(ctx context.Context, req *TOTPCodeRequest) (*RecoveryCodes, error)
+	// GetInvite implements getInvite operation.
+	//
+	// Check an invite link (public).
+	//
+	// GET /invite/{token}
+	GetInvite(ctx context.Context, params GetInviteParams) (*InviteInfo, error)
 	// GetMe implements getMe operation.
 	//
 	// The signed-in user.
@@ -95,6 +119,12 @@ type Handler interface {
 	//
 	// GET /apikeys
 	ListAPIKeys(ctx context.Context) ([]ApiKey, error)
+	// ListInvites implements listInvites operation.
+	//
+	// Invite links (admin).
+	//
+	// GET /invites
+	ListInvites(ctx context.Context) ([]Invite, error)
 	// ListSessions implements listSessions operation.
 	//
 	// Own sessions; admins see the sessions of all users.
