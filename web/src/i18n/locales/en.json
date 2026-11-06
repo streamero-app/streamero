@@ -127,7 +127,8 @@
     "invalid_pin": "Wrong PIN.",
     "profile_locked": "Too many wrong PINs. Try again in a few minutes.",
     "kid_profile": "Not available in a kids profile.",
-    "too_many_profiles": "An account can have at most 6 profiles."
+    "too_many_profiles": "An account can have at most 6 profiles.",
+    "rate_limited": "Too many attempts from your network. Wait a moment and try again."
   },
   "notFound": {
     "title": "Page not found",

@@ -95,7 +95,11 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	if err != nil {
 		return err
 	}
-	router, err := app.NewRouter(state, h, app.RouterOptions{TrustedProxies: proxies, AuthLimiter: netx.NewLimiter(20, 10)})
+	opts := app.RouterOptions{TrustedProxies: proxies}
+	if cfg.AuthRatePerMin > 0 {
+		opts.AuthLimiter = netx.NewLimiter(cfg.AuthRatePerMin, cfg.AuthRateBurst)
+	}
+	router, err := app.NewRouter(state, h, opts)
 	if err != nil {
 		return err
 	}

@@ -306,7 +306,7 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 ## 16. iOS aplikacija (.ipa za Feather)
 
 - [ ] Spajanje na server: ručni URL, Bonjour discovery u LAN-u, više servera, više korisnika po serveru (P7)
-- [ ] Login: lozinka, Quick Connect, (kasnije) OIDC preko ASWebAuthenticationSession (P7/P13)
+- [ ] Login: lozinka, Quick Connect, (kasnije) OIDC preko ASWebAuthenticationSession (P7/P13) — *lozinka + 2FA + Quick Connect gotovi u P1 (token u Keychainu); OIDC u P13*
 - [ ] Profili + PIN, Face ID / Touch ID zaključavanje appa (P7/P8)
 - [ ] Home s istim redovima kao web, biblioteke, detalji, pretraga, favoriti, kolekcije, playliste (P7)
 - [ ] Player A: AVPlayer (HLS) — HDR10/HLG/DV, PiP, AirPlay, Now Playing info, lock screen kontrole (P7)

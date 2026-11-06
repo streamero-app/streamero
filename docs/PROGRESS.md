@@ -24,7 +24,8 @@ P1 — Korisnici i auth (u tijeku, branch `phase/P1-auth`); P0 prihvaćen i merg
 - API (spec → ogen): `/setup`, `/auth/{login,logout,me,password}`, `/users`, `/sessions`, `/settings/server`; migracija 00002 (users, sessions, audit_log); D-012.
 - Setup wizard sa setup kodom iz loga, login/odjava (cookie za web, Bearer za aplikacije), lockout, upravljanje korisnicima (admin, onemogući, lozinka, brisanje, zaštita zadnjeg admina), uređaji s trenutnim opozivom, promjena lozinke (odjavljuje ostale uređaje), ime servera.
 - Web: setup, prijava, ljuska aplikacije, Postavke (Moj račun, Uređaji, Server, Korisnici, API ključevi), HR/EN.
-- Pravi IP klijenta iza proxyja (`STREAMERO_TRUSTED_PROXIES`, D-014), rate limit po IP-u na prijavi/setupu/Quick Connectu/pozivnicama/PIN-u, IP u audit logu.
+- iOS: prijava lozinkom (+ 2FA korak) i Quick Connectom, token u Keychainu (preživi Feather resign), obnova sesije pri pokretanju, odjava; iOS CI build + testovi zeleni.
+- Pravi IP klijenta iza proxyja (`STREAMERO_TRUSTED_PROXIES`, D-014), rate limit po IP-u (`STREAMERO_AUTH_RATE_LIMIT`, zadano 20/min, burst 10) na prijavi/setupu/Quick Connectu/pozivnicama/PIN-u, IP u audit logu.
 - Profili (do 6 po računu): ime, boja, PIN (5 pogrešnih → 5 min), dječji profil (bez postavki/admina, izlaz traži lozinku računa), dobna granica (model; provedba s ocjenama u P3); profil po sesiji; migracija 00008.
 - Pozivnice: admin napravi poveznicu (rok, broj računa, dozvole), primatelj napravi običan račun i odmah je prijavljen; potrošnja je atomična; migracija 00007.
 - Dozvole po korisniku (model + API + UI, zadane vrijednosti za nove ključeve; provedba po značajci) i max broj prijavljenih uređaja (prijava preko limita odjavljuje najdulje neaktivan uređaj); migracija 00006.

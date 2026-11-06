@@ -79,6 +79,8 @@ jobs:
           cp .env.example .env
           sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=ci-e2e/' .env
           echo "STREAMERO_SETUP_CODE=E2E-SETUP" >> .env
+          # The e2e suite signs in many times from one IP; the limiter itself has unit tests.
+          echo "STREAMERO_AUTH_RATE_LIMIT=1000,1000" >> .env
           mkdir -p ../data/fixtures
           docker compose -f docker-compose.yml -f compose.dev.yml up -d --build --wait
       - uses: pnpm/action-setup@v4

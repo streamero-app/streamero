@@ -12,6 +12,7 @@ x-common: &common
     STREAMERO_SETUP_CODE: ${STREAMERO_SETUP_CODE:-}
     # Reverse proxies whose X-Forwarded-For is trusted (see docs/DEPLOY.md).
     STREAMERO_TRUSTED_PROXIES: ${STREAMERO_TRUSTED_PROXIES:-}
+    STREAMERO_AUTH_RATE_LIMIT: ${STREAMERO_AUTH_RATE_LIMIT:-20,10}
   volumes:
     - ${CONFIG_PATH:-./data/config}:/config
     - ${CACHE_PATH:-./data/cache}:/cache

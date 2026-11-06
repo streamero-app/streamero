@@ -127,7 +127,8 @@
     "invalid_pin": "Pogrešan PIN.",
     "profile_locked": "Previše pogrešnih PIN-ova. Pokušajte za nekoliko minuta.",
     "kid_profile": "Nije dostupno u dječjem profilu.",
-    "too_many_profiles": "Račun može imati najviše 6 profila."
+    "too_many_profiles": "Račun može imati najviše 6 profila.",
+    "rate_limited": "Previše pokušaja s vaše mreže. Pričekajte trenutak pa pokušajte ponovno."
   },
   "notFound": {
     "title": "Stranica nije pronađena",
