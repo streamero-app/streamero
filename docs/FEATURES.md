@@ -12,20 +12,20 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 
 ## 1. Instalacija, deployment, platforma
 
-- [ ] `[JF]` Docker image, pokretanje kroz `docker compose` (P0)
-- [ ] `[JF]` Volumeni: config, cache, media (read-only), transcode (P0)
+- [x] `[JF]` Docker image, pokretanje kroz `docker compose` (P0)
+- [x] `[JF]` Volumeni: config, cache, media (read-only), transcode (P0)
 - [ ] `[JF]` Setup wizard pri prvom pokretanju: jezik, admin račun, prve biblioteke, jezik metapodataka/država, remote access (P1)
 - [ ] `[JF]` Startup UI koji prikazuje napredak pokretanja/migracija i log — dostupan samo iz LAN-a (P10)
 - [ ] `[JF]` Provjera slobodnog prostora pri startu (odbija start ispod praga, npr. 2 GB) + API za storage info (P10)
 - [ ] `[JF]` Provjera poznatih pogrešnih konfiguracija putanja (P10)
-- [ ] `[JF]` Mode `migrate` — pokreni DB migracije i izađi (`streamero migrate`) (P0)
-- [ ] `[JF]` Baza na prilagodljivoj lokaciji (P0)
-- [ ] `[JF]` `CACHEDIR.TAG` u cache direktorijima (backup alati ih preskaču) (P0)
-- [ ] `[JF]` 503 + `Retry-After` za vrijeme starta/gašenja/restarta (P0)
+- [x] `[JF]` Mode `migrate` — pokreni DB migracije i izađi (`streamero migrate`) (P0)
+- [x] `[JF]` Baza na prilagodljivoj lokaciji (P0)
+- [x] `[JF]` `CACHEDIR.TAG` u cache direktorijima (backup alati ih preskaču) (P0)
+- [x] `[JF]` 503 + `Retry-After` za vrijeme starta/gašenja/restarta (P0)
 - [ ] `[JF]` Reverse-proxy friendly: base URL, known proxies, `X-Forwarded-*` (P10)
 - [ ] `[+]` Multi-arch image (amd64 + arm64) na GHCR, potpisan (cosign) (P0)
 - [ ] `[+]` Compose override datoteke za GPU: `compose.nvidia.yml`, `compose.vaapi.yml` (Intel/AMD), `compose.qsv.yml` (P5)
-- [ ] `[+]` Healthcheck endpointi `/healthz` (live) i `/readyz` (DB+cache spremni) (P0)
+- [x] `[+]` Healthcheck endpointi `/healthz` (live) i `/readyz` (DB+cache spremni) (P0)
 - [ ] `[+]` Prometheus `/metrics` + gotov Grafana dashboard JSON u repou (P13)
 
 ## 2. Korisnici, autentikacija, sigurnost
