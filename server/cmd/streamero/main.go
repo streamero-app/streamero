@@ -24,6 +24,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/config"
 	"github.com/streamero-app/streamero/server/internal/db"
 	"github.com/streamero-app/streamero/server/internal/jobs"
+	"github.com/streamero-app/streamero/server/internal/netx"
 	"github.com/streamero-app/streamero/server/internal/storage"
 	"github.com/streamero-app/streamero/server/internal/version"
 )
@@ -90,7 +91,11 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	state := &app.State{SetupCode: setupCode}
 	h := &api.Handler{State: state, ServerName: cfg.ServerName, StartedAt: time.Now().UTC(),
 		Auth: state.Auth, Settings: state.Settings}
-	router, err := app.NewRouter(state, h)
+	proxies, err := netx.ParsePrefixes(cfg.TrustedProxies)
+	if err != nil {
+		return err
+	}
+	router, err := app.NewRouter(state, h, app.RouterOptions{TrustedProxies: proxies, AuthLimiter: netx.NewLimiter(20, 10)})
 	if err != nil {
 		return err
 	}

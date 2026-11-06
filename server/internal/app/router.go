@@ -3,6 +3,7 @@ package app
 import (
 	"encoding/json"
 	"net/http"
+	"net/netip"
 	"strconv"
 	"strings"
 	"time"
@@ -12,11 +13,38 @@ import (
 
 	"github.com/streamero-app/streamero/server/internal/api"
 	"github.com/streamero-app/streamero/server/internal/api/gen"
+	"github.com/streamero-app/streamero/server/internal/netx"
 	"github.com/streamero-app/streamero/server/internal/webui"
 )
 
+// RouterOptions configure client IP resolution and rate limiting.
+type RouterOptions struct {
+	TrustedProxies []netip.Prefix
+	// AuthLimiter limits sign-in style endpoints per client IP (nil = no limit).
+	AuthLimiter *netx.Limiter
+}
+
+// rateLimited lists the endpoints that accept secrets from anonymous or
+// low-privilege callers (passwords, setup codes, invite tokens, PINs).
+func rateLimited(r *http.Request) bool {
+	p := r.URL.Path
+	switch {
+	case r.Method == http.MethodPost && (p == "/api/v1/auth/login" || p == "/api/v1/setup" || p == "/api/v1/quickconnect/initiate"):
+		return true
+	case strings.HasPrefix(p, "/api/v1/invite/"):
+		return true
+	case r.Method == http.MethodPost && strings.HasPrefix(p, "/api/v1/profiles/") && strings.HasSuffix(p, "/select"):
+		return true
+	}
+	return false
+}
+
 // NewRouter builds the root HTTP handler.
-func NewRouter(state *State, h *api.Handler) (http.Handler, error) {
+func NewRouter(state *State, h *api.Handler, opts ...RouterOptions) (http.Handler, error) {
+	var o RouterOptions
+	if len(opts) > 0 {
+		o = opts[0]
+	}
 	apiServer, err := gen.NewServer(h, api.Security{Auth: state.Auth},
 		gen.WithPathPrefix("/api/v1"), gen.WithErrorHandler(api.ErrorHandler))
 	if err != nil {
@@ -28,7 +56,10 @@ func NewRouter(state *State, h *api.Handler) (http.Handler, error) {
 	// setting; chi's RealIP trusts spoofable headers and is deliberately not used.
 	r.Use(middleware.RequestID, middleware.Recoverer)
 	r.Use(middleware.Timeout(60 * time.Second))
-	r.Use(securityHeaders, sessionFromCookie)
+	r.Use(securityHeaders, netx.Middleware(o.TrustedProxies), sessionFromCookie)
+	if o.AuthLimiter != nil {
+		r.Use(netx.Limit(o.AuthLimiter, rateLimited))
+	}
 
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{"status": "ok"})

@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/streamero-app/streamero/server/internal/netx"
 	"github.com/streamero-app/streamero/server/internal/settings"
 )
 
@@ -549,6 +550,9 @@ type execer interface {
 func audit(ctx context.Context, db execer, userID *uuid.UUID, action string, detail map[string]any) error {
 	if detail == nil {
 		detail = map[string]any{}
+	}
+	if ip := netx.FromContext(ctx); ip.IsValid() {
+		detail["ip"] = ip.String()
 	}
 	raw, err := json.Marshal(detail)
 	if err != nil {

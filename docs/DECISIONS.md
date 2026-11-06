@@ -76,3 +76,8 @@ Format: `## D-001 Naslov (datum)` → Kontekst → Odluka → Posljedice.
 **Kontekst:** P1 traži model dozvola prije nego što postoje biblioteke, reprodukcija i Live TV; Jellyfin pri prekoračenju broja sesija odbija novu prijavu.
 **Odluka:** `users.permissions jsonb`; nedostajući ključevi dobivaju `auth.DefaultPermissions()` pri čitanju, pa nove dozvole ne trebaju migraciju podataka. Admin uvijek smije sve. Kad korisnik s limitom N uđe na N+1. uređaj, odjavljuje se najdulje neaktivna sesija (umjesto odbijanja), jer bi inače korisnik sa zaboravljenom sesijom ostao zaključan.
 **Posljedice:** Svaka buduća značajka mora provjeriti svoju dozvolu (`Principal.User.Permissions`) i imati test za to.
+
+## D-014 Known proxies kao env postavka; rate limit u memoriji (2026-11-06)
+**Kontekst:** D-009 je odgodio pravi IP klijenta do „known proxies". Bez toga rate limit iza nginxa vidi samo jedan IP.
+**Odluka:** `STREAMERO_TRUSTED_PROXIES` (CIDR/IP lista) — `X-Forwarded-For` se čita samo kad je izravni peer na listi, i to zdesna (prvi netrusted hop), pa klijent ne može podmetnuti IP. Token bucket po IP-u u memoriji procesa (20/min, burst 10) na prijavi, setupu, Quick Connect startu, pozivnicama i PIN-u profila; IP ide u audit log. Postavka je env (ne u admin UI-ju) jer pogrešna vrijednost može zaključati sve ili otvoriti spoofing.
+**Posljedice:** Više instanci servera bi trebalo dijeljeni limiter (Valkey) — tek kad bude potrebno. Demo: `172.18.0.1` (gateway compose mreže).
