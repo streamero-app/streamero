@@ -30,6 +30,9 @@ cd server && sqlc generate && go run ./cmd/streamero migrate
 # web
 cd web && pnpm i && pnpm dev && pnpm typecheck && pnpm test && pnpm e2e
 
+# demo: build trenutnog brancha + provjera na https://demo.streamero.net
+./scripts/deploy-demo.sh
+
 # test mediji
 ./scripts/gen-fixtures.sh ./data/fixtures
 ./scripts/seed-big-library.sh 50000
@@ -44,8 +47,9 @@ cd ios && xcodegen generate
 3. Prije implementacije napiši kratak plan koraka; za veće odluke dodaj zapis u `docs/DECISIONS.md` (kontekst → odluka → posljedice).
 4. Svaki feature dolazi s testovima: unit (Go/TS/Swift), integracijski protiv stvarnog Postgresa (testcontainers ili compose), e2e (Playwright) za korisničke tokove.
 5. Feature se označava `[x]` u `FEATURES.md` tek kad radi end-to-end i testovi prolaze.
-6. Na kraju sesije: ažuriraj `PROGRESS.md` (što je gotovo, što je sljedeće, poznati problemi).
-7. Ako nešto iz plana nije izvedivo ili postoji bolji pristup — napiši zašto u `DECISIONS.md` i nastavi s boljim pristupom; ne tiho odstupaj.
+6. Svaka izmjena mora biti vidljiva na https://demo.streamero.net: nakon svakog commita pokreni `./scripts/deploy-demo.sh` (builda trenutni branch i provjerava da demo vraća taj commit u `/api/v1/system/info`). Ne javljaj da je nešto gotovo dok skripta ne prođe.
+7. Na kraju sesije: ažuriraj `PROGRESS.md` (što je gotovo, što je sljedeće, poznati problemi).
+8. Ako nešto iz plana nije izvedivo ili postoji bolji pristup — napiši zašto u `DECISIONS.md` i nastavi s boljim pristupom; ne tiho odstupaj.
 
 ## Performanse (ciljevi koji se testiraju)
 - Home API < 200 ms, lista biblioteke (100 stavki) < 100 ms na 50k stavki.

@@ -38,8 +38,10 @@ git pull
 # test media (ffmpeg on the host, or via the built image):
 docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/w" -w /w --entrypoint bash streamero:dev \
   scripts/gen-fixtures.sh ./data/fixtures
-docker compose -f deploy/docker-compose.yml -f deploy/compose.dev.yml up -d --build
+./scripts/deploy-demo.sh   # = compose up --build with version/commit, then checks the public URL
 ```
+Every change is deployed this way; `GET /api/v1/system/info` on the demo shows the branch
+(`version: dev-<branch>`) and commit it was built from (`-dirty` = uncommitted changes).
 
 ## Update (production)
 ```bash
