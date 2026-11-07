@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 
@@ -163,9 +164,15 @@ func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	if err != nil {
 		return err
 	}
+	// The library service queues scans through this worker's own River client (set below).
+	var client *river.Client[pgx.Tx]
+	libraries := &library.Service{Pool: deps.Pool, Roots: roots, Enqueue: func(ctx context.Context, id uuid.UUID) error {
+		_, err := client.Insert(ctx, jobs.LibraryScanArgs{LibraryID: id}, nil)
+		return err
+	}}
 	workers := river.NewWorkers()
-	jobs.Register(workers, log, &library.Scanner{Pool: deps.Pool, Roots: roots, Probe: library.FFprobe(cfg.FFprobePath), Log: log})
-	client, err := river.NewClient(riverpgxv5.New(deps.Pool), &river.Config{
+	jobs.Register(workers, log, &library.Scanner{Pool: deps.Pool, Roots: roots, Probe: library.FFprobe(cfg.FFprobePath), Log: log}, libraries)
+	client, err = river.NewClient(riverpgxv5.New(deps.Pool), &river.Config{
 		Logger:  log,
 		Queues:  map[string]river.QueueConfig{river.QueueDefault: {MaxWorkers: 10}},
 		Workers: workers,
@@ -173,6 +180,8 @@ func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			river.NewPeriodicJob(river.PeriodicInterval(time.Minute),
 				func() (river.JobArgs, *river.InsertOpts) { return jobs.HeartbeatArgs{}, nil },
 				&river.PeriodicJobOpts{RunOnStart: true}),
+			river.NewPeriodicJob(river.PeriodicInterval(6*time.Hour),
+				func() (river.JobArgs, *river.InsertOpts) { return jobs.LibraryScanAllArgs{}, nil }, nil),
 		},
 	})
 	if err != nil {
@@ -182,6 +191,12 @@ func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		return err
 	}
 	log.Info("worker started")
+	go func() {
+		w := &library.Watcher{Pool: deps.Pool, Roots: roots, Log: log, Trigger: libraries.Scan}
+		if err := w.Run(ctx); err != nil {
+			log.Warn("file watcher stopped; periodic scans still run", "err", err)
+		}
+	}()
 	<-ctx.Done()
 	stopCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 	defer cancel()

@@ -104,7 +104,7 @@ func collect(ctx context.Context, root string) (map[string]*dirContent, error) {
 		}
 		name := d.Name()
 		if d.IsDir() {
-			if path != root && (IgnoredName(name) || IsExtraDir(name)) {
+			if path != root && (IgnoredName(name) || IsExtraDir(name) || hasIgnoreMarker(path)) {
 				return filepath.SkipDir
 			}
 			return nil
@@ -178,6 +178,16 @@ func (s *Scanner) planFolder(ctx context.Context, root, kind string, plan map[st
 		planShows(root, dirs, plan, shows)
 	}
 	return nil
+}
+
+// hasIgnoreMarker reports a ".streameroignore" (or ".ignore") file that hides a folder.
+func hasIgnoreMarker(dir string) bool {
+	for _, m := range []string{".streameroignore", ".ignore"} {
+		if _, err := os.Stat(filepath.Join(dir, m)); err == nil {
+			return true
+		}
+	}
+	return false
 }
 
 // topLevel returns the first folder below root that contains dir ("" for root itself).

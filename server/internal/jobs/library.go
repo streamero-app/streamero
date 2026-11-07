@@ -47,3 +47,30 @@ func (w *LibraryScanWorker) Work(ctx context.Context, job *river.Job[LibraryScan
 		"removed", res.Removed, "took", time.Since(start).String())
 	return nil
 }
+
+// LibraryScanAllArgs queues a scan of every library (periodic safety net for
+// shares that do not deliver file events).
+type LibraryScanAllArgs struct{}
+
+// Kind implements river.JobArgs.
+func (LibraryScanAllArgs) Kind() string { return "library.scan_all" }
+
+// LibraryScanAllWorker queues scans.
+type LibraryScanAllWorker struct {
+	river.WorkerDefaults[LibraryScanAllArgs]
+	Libraries *library.Service
+}
+
+// Work implements river.Worker.
+func (w *LibraryScanAllWorker) Work(ctx context.Context, _ *river.Job[LibraryScanAllArgs]) error {
+	libs, err := w.Libraries.List(ctx)
+	if err != nil {
+		return err
+	}
+	for _, l := range libs {
+		if err := w.Libraries.Scan(ctx, l.ID); err != nil {
+			return err
+		}
+	}
+	return nil
+}

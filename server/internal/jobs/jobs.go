@@ -29,7 +29,8 @@ func (w *HeartbeatWorker) Work(_ context.Context, job *river.Job[HeartbeatArgs])
 }
 
 // Register adds all workers to the registry.
-func Register(workers *river.Workers, log *slog.Logger, scanner *library.Scanner) {
+func Register(workers *river.Workers, log *slog.Logger, scanner *library.Scanner, libraries *library.Service) {
 	river.AddWorker(workers, &HeartbeatWorker{Log: log})
 	river.AddWorker(workers, &LibraryScanWorker{Scanner: scanner, Log: log})
+	river.AddWorker(workers, &LibraryScanAllWorker{Libraries: libraries})
 }
