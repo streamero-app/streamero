@@ -20,6 +20,12 @@ type Handler interface {
 	//
 	// POST /quickconnect/authorize
 	AuthorizeQuickConnect(ctx context.Context, req *TOTPCodeRequest) (*QuickConnectApproved, error)
+	// BrowseDirectories implements browseDirectories operation.
+	//
+	// Without `path`, returns the configured media roots.
+	//
+	// GET /fs/directories
+	BrowseDirectories(ctx context.Context, params BrowseDirectoriesParams) (*DirectoryListing, error)
 	// ChangePassword implements changePassword operation.
 	//
 	// Change own password; signs out all other sessions.
@@ -46,6 +52,12 @@ type Handler interface {
 	//
 	// POST /invites
 	CreateInvite(ctx context.Context, req *CreateInviteRequest) (*CreatedInvite, error)
+	// CreateLibrary implements createLibrary operation.
+	//
+	// Add a library and start scanning it (admin).
+	//
+	// POST /libraries
+	CreateLibrary(ctx context.Context, req *LibraryInput) (*Library, error)
 	// CreateProfile implements createProfile operation.
 	//
 	// Add a profile (not from a kids profile).
@@ -70,6 +82,12 @@ type Handler interface {
 	//
 	// DELETE /invites/{inviteId}
 	DeleteInvite(ctx context.Context, params DeleteInviteParams) error
+	// DeleteLibrary implements deleteLibrary operation.
+	//
+	// Remove a library from Streamero (admin). Media files are never touched.
+	//
+	// DELETE /libraries/{libraryId}
+	DeleteLibrary(ctx context.Context, params DeleteLibraryParams) error
 	// DeleteProfile implements deleteProfile operation.
 	//
 	// Delete a profile (not from a kids profile).
@@ -100,6 +118,12 @@ type Handler interface {
 	//
 	// GET /invite/{token}
 	GetInvite(ctx context.Context, params GetInviteParams) (*InviteInfo, error)
+	// GetItem implements getItem operation.
+	//
+	// An item with its files and children (seasons/episodes).
+	//
+	// GET /items/{itemId}
+	GetItem(ctx context.Context, params GetItemParams) (*ItemDetail, error)
 	// GetMe implements getMe operation.
 	//
 	// The signed-in user.
@@ -137,6 +161,18 @@ type Handler interface {
 	//
 	// GET /invites
 	ListInvites(ctx context.Context) ([]Invite, error)
+	// ListLibraries implements listLibraries operation.
+	//
+	// Libraries the caller may see.
+	//
+	// GET /libraries
+	ListLibraries(ctx context.Context) ([]Library, error)
+	// ListLibraryItems implements listLibraryItems operation.
+	//
+	// Top-level items of a library (movies, series), paged.
+	//
+	// GET /libraries/{libraryId}/items
+	ListLibraryItems(ctx context.Context, params ListLibraryItemsParams) (*ItemPage, error)
 	// ListProfiles implements listProfiles operation.
 	//
 	// The account itself is the main profile; these are additional profiles (max 6).
@@ -191,6 +227,12 @@ type Handler interface {
 	//
 	// DELETE /sessions/{sessionId}
 	RevokeSession(ctx context.Context, params RevokeSessionParams) error
+	// ScanLibrary implements scanLibrary operation.
+	//
+	// Scan a library for new, changed and removed files (admin).
+	//
+	// POST /libraries/{libraryId}/scan
+	ScanLibrary(ctx context.Context, params ScanLibraryParams) error
 	// SelectMainProfile implements selectMainProfile operation.
 	//
 	// From a kids profile this needs the account password.
@@ -209,6 +251,12 @@ type Handler interface {
 	//
 	// POST /auth/totp/setup
 	StartTOTPSetup(ctx context.Context) (*TOTPSetup, error)
+	// UpdateLibrary implements updateLibrary operation.
+	//
+	// Change a library (admin); changed folders are rescanned.
+	//
+	// PUT /libraries/{libraryId}
+	UpdateLibrary(ctx context.Context, req *LibraryInput, params UpdateLibraryParams) (*Library, error)
 	// UpdateProfile implements updateProfile operation.
 	//
 	// Change a profile (not from a kids profile).

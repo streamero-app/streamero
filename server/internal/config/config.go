@@ -21,7 +21,9 @@ type Config struct {
 	ServerName      string
 	SetupCode       string // optional fixed first-run setup code (otherwise random per start)
 	TrustedProxies  string // CIDRs/IPs whose X-Forwarded-For is trusted, comma-separated
-	AuthRatePerMin  int    // sign-in style requests per client IP per minute (0 = no limit)
+	MediaRoots      string // folders libraries may use, comma-separated
+	FFprobePath     string
+	AuthRatePerMin  int // sign-in style requests per client IP per minute (0 = no limit)
 	AuthRateBurst   int
 	AutoMigrate     bool
 	LogLevel        string
@@ -40,6 +42,8 @@ func Load() (Config, error) {
 		ServerName:      env("STREAMERO_SERVER_NAME", "Streamero"),
 		SetupCode:       os.Getenv("STREAMERO_SETUP_CODE"),
 		TrustedProxies:  os.Getenv("STREAMERO_TRUSTED_PROXIES"),
+		MediaRoots:      env("STREAMERO_MEDIA_ROOTS", "/media"),
+		FFprobePath:     env("STREAMERO_FFPROBE", "ffprobe"),
 		LogLevel:        env("STREAMERO_LOG_LEVEL", "info"),
 		ShutdownTimeout: 15 * time.Second,
 	}

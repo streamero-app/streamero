@@ -60,6 +60,19 @@ func encodeAuthorizeQuickConnectResponse(response *QuickConnectApproved, w http.
 	return nil
 }
 
+func encodeBrowseDirectoriesResponse(response *DirectoryListing, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
 func encodeChangePasswordResponse(response *ChangePasswordNoContent, w http.ResponseWriter, span trace.Span) error {
 	w.WriteHeader(204)
 
@@ -125,6 +138,19 @@ func encodeCreateInviteResponse(response *CreatedInvite, w http.ResponseWriter, 
 	return nil
 }
 
+func encodeCreateLibraryResponse(response *Library, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(201)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
 func encodeCreateProfileResponse(response *Profile, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(201)
@@ -163,6 +189,12 @@ func encodeDeleteInviteResponse(response *DeleteInviteNoContent, w http.Response
 	return nil
 }
 
+func encodeDeleteLibraryResponse(response *DeleteLibraryNoContent, w http.ResponseWriter, span trace.Span) error {
+	w.WriteHeader(204)
+
+	return nil
+}
+
 func encodeDeleteProfileResponse(response *DeleteProfileNoContent, w http.ResponseWriter, span trace.Span) error {
 	w.WriteHeader(204)
 
@@ -195,6 +227,19 @@ func encodeEnableTOTPResponse(response *RecoveryCodes, w http.ResponseWriter, sp
 }
 
 func encodeGetInviteResponse(response *InviteInfo, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
+func encodeGetItemResponse(response *ItemDetail, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
 
@@ -325,6 +370,36 @@ func encodeListInvitesResponse(response []Invite, w http.ResponseWriter, span tr
 		elem.Encode(e)
 	}
 	e.ArrEnd()
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
+func encodeListLibrariesResponse(response []Library, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	e.ArrStart()
+	for _, elem := range response {
+		elem.Encode(e)
+	}
+	e.ArrEnd()
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
+func encodeListLibraryItemsResponse(response *ItemPage, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
 	if _, err := e.WriteTo(w); err != nil {
 		return errors.Wrap(err, "write")
 	}
@@ -511,6 +586,12 @@ func encodeRevokeSessionResponse(response *RevokeSessionNoContent, w http.Respon
 	return nil
 }
 
+func encodeScanLibraryResponse(response *ScanLibraryAccepted, w http.ResponseWriter, span trace.Span) error {
+	w.WriteHeader(202)
+
+	return nil
+}
+
 func encodeSelectMainProfileResponse(response *SelectMainProfileNoContent, w http.ResponseWriter, span trace.Span) error {
 	w.WriteHeader(204)
 
@@ -524,6 +605,19 @@ func encodeSelectProfileResponse(response *SelectProfileNoContent, w http.Respon
 }
 
 func encodeStartTOTPSetupResponse(response *TOTPSetup, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
+func encodeUpdateLibraryResponse(response *Library, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
 

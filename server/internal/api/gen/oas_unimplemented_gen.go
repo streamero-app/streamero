@@ -31,6 +31,15 @@ func (UnimplementedHandler) AuthorizeQuickConnect(ctx context.Context, req *TOTP
 	return r, ht.ErrNotImplemented
 }
 
+// BrowseDirectories implements browseDirectories operation.
+//
+// Without `path`, returns the configured media roots.
+//
+// GET /fs/directories
+func (UnimplementedHandler) BrowseDirectories(ctx context.Context, params BrowseDirectoriesParams) (r *DirectoryListing, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ChangePassword implements changePassword operation.
 //
 // Change own password; signs out all other sessions.
@@ -69,6 +78,15 @@ func (UnimplementedHandler) CreateInvite(ctx context.Context, req *CreateInviteR
 	return r, ht.ErrNotImplemented
 }
 
+// CreateLibrary implements createLibrary operation.
+//
+// Add a library and start scanning it (admin).
+//
+// POST /libraries
+func (UnimplementedHandler) CreateLibrary(ctx context.Context, req *LibraryInput) (r *Library, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // CreateProfile implements createProfile operation.
 //
 // Add a profile (not from a kids profile).
@@ -102,6 +120,15 @@ func (UnimplementedHandler) DeleteAPIKey(ctx context.Context, params DeleteAPIKe
 //
 // DELETE /invites/{inviteId}
 func (UnimplementedHandler) DeleteInvite(ctx context.Context, params DeleteInviteParams) error {
+	return ht.ErrNotImplemented
+}
+
+// DeleteLibrary implements deleteLibrary operation.
+//
+// Remove a library from Streamero (admin). Media files are never touched.
+//
+// DELETE /libraries/{libraryId}
+func (UnimplementedHandler) DeleteLibrary(ctx context.Context, params DeleteLibraryParams) error {
 	return ht.ErrNotImplemented
 }
 
@@ -147,6 +174,15 @@ func (UnimplementedHandler) EnableTOTP(ctx context.Context, req *TOTPCodeRequest
 //
 // GET /invite/{token}
 func (UnimplementedHandler) GetInvite(ctx context.Context, params GetInviteParams) (r *InviteInfo, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetItem implements getItem operation.
+//
+// An item with its files and children (seasons/episodes).
+//
+// GET /items/{itemId}
+func (UnimplementedHandler) GetItem(ctx context.Context, params GetItemParams) (r *ItemDetail, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -202,6 +238,24 @@ func (UnimplementedHandler) ListAPIKeys(ctx context.Context) (r []ApiKey, _ erro
 //
 // GET /invites
 func (UnimplementedHandler) ListInvites(ctx context.Context) (r []Invite, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListLibraries implements listLibraries operation.
+//
+// Libraries the caller may see.
+//
+// GET /libraries
+func (UnimplementedHandler) ListLibraries(ctx context.Context) (r []Library, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListLibraryItems implements listLibraryItems operation.
+//
+// Top-level items of a library (movies, series), paged.
+//
+// GET /libraries/{libraryId}/items
+func (UnimplementedHandler) ListLibraryItems(ctx context.Context, params ListLibraryItemsParams) (r *ItemPage, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -286,6 +340,15 @@ func (UnimplementedHandler) RevokeSession(ctx context.Context, params RevokeSess
 	return ht.ErrNotImplemented
 }
 
+// ScanLibrary implements scanLibrary operation.
+//
+// Scan a library for new, changed and removed files (admin).
+//
+// POST /libraries/{libraryId}/scan
+func (UnimplementedHandler) ScanLibrary(ctx context.Context, params ScanLibraryParams) error {
+	return ht.ErrNotImplemented
+}
+
 // SelectMainProfile implements selectMainProfile operation.
 //
 // From a kids profile this needs the account password.
@@ -310,6 +373,15 @@ func (UnimplementedHandler) SelectProfile(ctx context.Context, req OptPinRequest
 //
 // POST /auth/totp/setup
 func (UnimplementedHandler) StartTOTPSetup(ctx context.Context) (r *TOTPSetup, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateLibrary implements updateLibrary operation.
+//
+// Change a library (admin); changed folders are rescanned.
+//
+// PUT /libraries/{libraryId}
+func (UnimplementedHandler) UpdateLibrary(ctx context.Context, req *LibraryInput, params UpdateLibraryParams) (r *Library, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

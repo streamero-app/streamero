@@ -451,6 +451,9 @@ func mapError(err error) *StatusError {
 	if errors.As(err, &se) {
 		return se
 	}
+	if le := mapLibraryError(err); le != nil {
+		return le
+	}
 	var locked *auth.LockedError
 	var secErr *ogenerrors.SecurityError
 	var decReq *ogenerrors.DecodeRequestError

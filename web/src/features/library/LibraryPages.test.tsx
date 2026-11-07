@@ -1,0 +1,72 @@
+import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { afterEach, vi } from "vitest";
+import { setLanguage } from "@/i18n";
+import { mockApi, renderApp, testUser } from "@/test-utils";
+
+afterEach(() => vi.unstubAllGlobals());
+
+const lib = { id: "0190a8b0-0000-7000-8000-00000000aaaa", name: "Filmovi", kind: "movies", paths: ["/media/movies"], itemCount: 2,
+  scan: { state: "idle", filesSeen: 3 } };
+const movie = { id: "0190a8b0-0000-7000-8000-00000000bbbb", kind: "movie", title: "Big Test Movie", year: 2021, addedAt: new Date().toISOString() };
+
+describe("library pages", () => {
+  beforeEach(() => setLanguage("en"));
+
+  it("shows libraries on home and the grid of a library", async () => {
+    mockApi(({ path }) => {
+      if (path === "/libraries") return { status: 200, body: [lib] };
+      if (path === `/libraries/${lib.id}/items`) return { status: 200, body: { items: [movie], total: 1 } };
+      return { status: 200, body: [] };
+    });
+    const { router } = renderApp("/", { me: testUser() });
+    fireEvent.click(await screen.findByTestId("library-card"));
+    await waitFor(() => expect(router.state.location.pathname).toBe(`/library/${lib.id}`));
+    expect(await screen.findByTestId("item-card")).toHaveTextContent("Big Test Movie");
+    expect(screen.getByText("1 item")).toBeInTheDocument();
+  });
+
+  it("shows versions with resolution, HDR, audio and subtitles", async () => {
+    mockApi(({ path }) => path === `/items/${movie.id}`
+      ? { status: 200, body: { item: movie, libraryId: lib.id, providerIds: { tmdb: "1" }, children: [], files: [
+          { id: "f1", path: "/media/movies/Big/a.mkv", size: 1024 ** 3, container: "mkv", width: 3840, height: 2160, videoCodec: "hevc",
+            hdr: "HDR10", label: "2160p", durationMs: 5_400_000, audio: [{ codec: "eac3", language: "eng", channels: 6 }],
+            subtitles: [{ codec: "srt", language: "hr", forced: true, external: true }] },
+          { id: "f2", path: "/media/movies/Big/b.mkv", size: 2048, container: "mkv", width: 1920, height: 1080, videoCodec: "h264" }] } }
+      : { status: 200, body: [] });
+    renderApp(`/item/${movie.id}`, { me: testUser() });
+    expect(await screen.findByText("2 versions")).toBeInTheDocument();
+    const files = screen.getAllByTestId("media-file");
+    expect(files[0]).toHaveTextContent("4K");
+    expect(files[0]).toHaveTextContent("HDR10");
+    expect(files[0]).toHaveTextContent("ENG EAC3 5.1");
+    expect(files[0]).toHaveTextContent("HR forced external");
+    expect(files[1]).toHaveTextContent("1080p");
+  });
+
+  it("lets an admin add a library with the folder picker", async () => {
+    let created: unknown;
+    mockApi(({ method, path, body, query }) => {
+      if (path === "/fs/directories") {
+        return query.get("path") === "/media"
+          ? { status: 200, body: { path: "/media", directories: ["/media/movies"] } }
+          : { status: 200, body: { directories: ["/media"] } };
+      }
+      if (method === "POST" && path === "/libraries") {
+        created = body;
+        return { status: 201, body: { ...lib, scan: { state: "queued" } } };
+      }
+      if (path === "/libraries") return { status: 200, body: created ? [lib] : [] };
+      return { status: 200, body: [] };
+    });
+    renderApp("/settings/libraries", { me: testUser({ isAdmin: true }) });
+    fireEvent.click(await screen.findByRole("button", { name: "Add library" }));
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Filmovi" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add folder" }));
+    fireEvent.click(await screen.findByRole("button", { name: /\/media/ }));
+    fireEvent.click(await screen.findByRole("button", { name: "Use this folder" }));
+    expect(await screen.findByTestId("library-folder")).toHaveTextContent("/media");
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(created).toEqual({ name: "Filmovi", kind: "movies", paths: ["/media"] }));
+    expect(await screen.findByTestId("library-row")).toHaveTextContent("Filmovi");
+  });
+});

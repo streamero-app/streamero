@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 
@@ -24,6 +25,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/config"
 	"github.com/streamero-app/streamero/server/internal/db"
 	"github.com/streamero-app/streamero/server/internal/jobs"
+	"github.com/streamero-app/streamero/server/internal/library"
 	"github.com/streamero-app/streamero/server/internal/netx"
 	"github.com/streamero-app/streamero/server/internal/storage"
 	"github.com/streamero-app/streamero/server/internal/version"
@@ -89,8 +91,12 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		}
 	}
 	state := &app.State{SetupCode: setupCode}
+	roots, err := library.ParseRoots(cfg.MediaRoots)
+	if err != nil {
+		return err
+	}
 	h := &api.Handler{State: state, ServerName: cfg.ServerName, StartedAt: time.Now().UTC(),
-		Auth: state.Auth, Settings: state.Settings}
+		Auth: state.Auth, Settings: state.Settings, Library: state.Library}
 	proxies, err := netx.ParsePrefixes(cfg.TrustedProxies)
 	if err != nil {
 		return err
@@ -117,6 +123,15 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	deps, err := app.Bootstrap(ctx, cfg, state, log)
 	if err == nil {
 		defer deps.Close()
+		// Insert-only River client: the worker process runs the jobs.
+		inserter, ierr := river.NewClient(riverpgxv5.New(deps.Pool), &river.Config{})
+		if ierr != nil {
+			return ierr
+		}
+		state.SetLibrary(&library.Service{Pool: deps.Pool, Roots: roots, Enqueue: func(ctx context.Context, id uuid.UUID) error {
+			_, err := inserter.Insert(ctx, jobs.LibraryScanArgs{LibraryID: id}, nil)
+			return err
+		}})
 		log.Info("ready", "server_id", state.ServerID(), "startup", time.Since(h.StartedAt).String())
 		if !state.SetupCompleted(ctx) {
 			// Printed on purpose: whoever can read the server log may create the first admin.
@@ -144,8 +159,12 @@ func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	}
 	defer deps.Close()
 
+	roots, err := library.ParseRoots(cfg.MediaRoots)
+	if err != nil {
+		return err
+	}
 	workers := river.NewWorkers()
-	jobs.Register(workers, log)
+	jobs.Register(workers, log, &library.Scanner{Pool: deps.Pool, Roots: roots, Probe: library.FFprobe(cfg.FFprobePath), Log: log})
 	client, err := river.NewClient(riverpgxv5.New(deps.Pool), &river.Config{
 		Logger:  log,
 		Queues:  map[string]river.QueueConfig{river.QueueDefault: {MaxWorkers: 10}},

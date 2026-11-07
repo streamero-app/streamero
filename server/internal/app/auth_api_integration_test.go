@@ -19,12 +19,18 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/streamero-app/streamero/server/internal/api"
 	"github.com/streamero-app/streamero/server/internal/auth"
 	"github.com/streamero-app/streamero/server/internal/config"
+	"github.com/streamero-app/streamero/server/internal/library"
 )
 
 const testSetupCode = "TEST-CODE"
+
+// mediaRoot is the media folder of the most recent test server.
+var mediaRoot string
 
 // newAuthTestServer starts the full router on a clean database.
 // Integration: needs STREAMERO_TEST_DB_URL / STREAMERO_TEST_VALKEY_URL.
@@ -47,7 +53,11 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 		DELETE FROM settings WHERE key IN ('setup.completed', 'server.name')`); err != nil {
 		t.Fatal(err)
 	}
-	h := &api.Handler{State: state, ServerName: "Default", StartedAt: time.Now(), Auth: state.Auth, Settings: state.Settings}
+	mediaRoot = t.TempDir()
+	state.SetLibrary(&library.Service{Pool: deps.Pool, Roots: library.Roots{mediaRoot},
+		Enqueue: func(context.Context, uuid.UUID) error { return nil }})
+	h := &api.Handler{State: state, ServerName: "Default", StartedAt: time.Now(), Auth: state.Auth, Settings: state.Settings,
+		Library: state.Library}
 	router, err := NewRouter(state, h)
 	if err != nil {
 		t.Fatal(err)
@@ -777,5 +787,96 @@ func TestProfilesIntegration(t *testing.T) {
 	var list []map[string]any
 	if adminC.do("GET", "/profiles", nil, &list); len(list) != 1 {
 		t.Fatalf("profiles after delete: %+v", list)
+	}
+}
+
+func TestLibrariesAPIIntegration(t *testing.T) {
+	srv := newAuthTestServer(t)
+	adminC := newClient(t, srv)
+	setupAdmin(t, adminC)
+	movies := mediaRoot + "/movies"
+	if err := os.MkdirAll(movies+"/Some Movie (2020)", 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	var listing struct {
+		Path        string   `json:"path"`
+		Directories []string `json:"directories"`
+	}
+	if s := adminC.do("GET", "/fs/directories", nil, &listing); s != 200 || len(listing.Directories) != 1 || listing.Directories[0] != mediaRoot {
+		t.Fatalf("roots: HTTP %d %+v", s, listing)
+	}
+	if s := adminC.do("GET", "/fs/directories?path="+mediaRoot, nil, &listing); s != 200 || len(listing.Directories) != 1 {
+		t.Fatalf("browse: HTTP %d %+v", s, listing)
+	}
+	var e apiError
+	if s := adminC.do("GET", "/fs/directories?path=/etc", nil, &e); s != 400 || e.Code != "invalid_path" {
+		t.Fatalf("browse outside roots: HTTP %d %+v", s, e)
+	}
+	if s := adminC.do("GET", "/fs/directories?path="+mediaRoot+"/../../etc", nil, &e); s != 400 {
+		t.Fatalf("traversal: HTTP %d", s)
+	}
+	if s := adminC.do("POST", "/libraries", map[string]any{"name": "X", "kind": "movies", "paths": []string{"/etc"}}, &e); s != 400 || e.Code != "invalid_path" {
+		t.Fatalf("library outside roots: HTTP %d %+v", s, e)
+	}
+	if s := adminC.do("POST", "/libraries", map[string]any{"name": "X", "kind": "music", "paths": []string{movies}}, &e); s != 400 || e.Code != "unsupported_kind" {
+		t.Fatalf("music library: HTTP %d %+v", s, e)
+	}
+	var lib struct {
+		ID   string `json:"id"`
+		Scan struct {
+			State string `json:"state"`
+		} `json:"scan"`
+	}
+	if s := adminC.do("POST", "/libraries", map[string]any{"name": "Filmovi", "kind": "movies", "paths": []string{movies}}, &lib); s != 201 || lib.Scan.State != "queued" {
+		t.Fatalf("create: HTTP %d %+v", s, lib)
+	}
+	if s := adminC.do("POST", "/libraries/"+lib.ID+"/scan", nil, nil); s != 202 {
+		t.Fatalf("scan: HTTP %d", s)
+	}
+	var page struct {
+		Total int `json:"total"`
+	}
+	if s := adminC.do("GET", "/libraries/"+lib.ID+"/items?limit=10&sort=added", nil, &page); s != 200 {
+		t.Fatalf("items: HTTP %d", s)
+	}
+
+	// A user without the "all libraries" permission sees nothing.
+	perms := map[string]any{"allLibraries": false, "download": true, "videoTranscoding": true, "audioTranscoding": true,
+		"remux": true, "liveTv": true, "manageLiveTv": false, "syncPlay": true, "deleteMedia": false,
+		"manageCollections": false, "editSubtitles": false, "remoteControl": true, "maxSessions": 0}
+	adminC.do("POST", "/users", map[string]any{"username": "kid", "password": "kid-pass-1", "permissions": perms}, nil)
+	adminC.do("POST", "/users", map[string]any{"username": "eva", "password": "eva-pass-1"}, nil)
+	// Other packages may create libraries in the same database concurrently: check by ID.
+	for name, wantOurs := range map[string]bool{"kid": false, "eva": true} {
+		c := newClient(t, srv)
+		var res authResult
+		c.do("POST", "/auth/login", map[string]any{"username": name, "password": name + "-pass-1"}, &res)
+		c.token = res.Token
+		var libs []map[string]any
+		if s := c.do("GET", "/libraries", nil, &libs); s != 200 {
+			t.Fatalf("%s libraries: HTTP %d", name, s)
+		}
+		sees := false
+		for _, l := range libs {
+			sees = sees || l["id"] == lib.ID
+		}
+		if sees != wantOurs || (!wantOurs && len(libs) != 0) {
+			t.Fatalf("%s sees our library: %v (total %d), want %v", name, sees, len(libs), wantOurs)
+		}
+		if name == "kid" {
+			if s := c.do("GET", "/libraries/"+lib.ID+"/items", nil, nil); s != 404 {
+				t.Fatalf("kid items: HTTP %d", s)
+			}
+		}
+		if s := c.do("POST", "/libraries/"+lib.ID+"/scan", nil, nil); s != 403 {
+			t.Fatalf("%s scan: HTTP %d", name, s)
+		}
+	}
+	if s := adminC.do("DELETE", "/libraries/"+lib.ID, nil, nil); s != 204 {
+		t.Fatalf("delete: HTTP %d", s)
+	}
+	if _, err := os.Stat(movies + "/Some Movie (2020)"); err != nil {
+		t.Fatal("deleting a library touched the files")
 	}
 }

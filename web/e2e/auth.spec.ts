@@ -109,6 +109,31 @@ test("an invite link creates an account", async ({ page, browser }) => {
   await ctx.close();
 });
 
+test("admin adds a library; the scan finds real movies with versions", async ({ page }) => {
+  await signIn(page, admin);
+  await page.goto("/settings/libraries");
+  await page.getByRole("button", { name: "Add library" }).click();
+  await page.getByLabel("Name").fill("Fixture Movies");
+  await page.getByRole("button", { name: "Add folder" }).click();
+  const picker = page.getByTestId("folder-picker");
+  await picker.getByRole("button", { name: /\/fixtures$/ }).click();
+  await picker.getByRole("button", { name: /movies$/ }).click();
+  await picker.getByRole("button", { name: "Use this folder" }).click();
+  await expect(page.getByTestId("library-folder")).toHaveText(/\/fixtures\/movies/);
+  await page.getByRole("button", { name: "Save" }).click();
+
+  // Scan runs in the worker with real ffprobe.
+  const row = page.getByTestId("library-row").filter({ hasText: "Fixture Movies" });
+  await expect(row).toContainText(/[1-9]\d* items/, { timeout: 90_000 });
+
+  await page.goto("/");
+  await page.getByTestId("library-card").filter({ hasText: "Fixture Movies" }).click();
+  await page.getByTestId("item-card").filter({ hasText: "Big Test Movie" }).click();
+  await expect(page.getByText("2 versions")).toBeVisible();
+  await expect(page.getByTestId("media-file").filter({ hasText: "4K" })).toBeVisible();
+  await expect(page.getByTestId("media-file").first()).toContainText("Subtitles");
+});
+
 test("wrong passwords lock the account", async ({ page }) => {
   await page.goto("/login");
   for (let i = 0; i < 5; i++) {

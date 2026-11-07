@@ -12,6 +12,7 @@ import (
 
 	"github.com/streamero-app/streamero/server/internal/api/gen"
 	"github.com/streamero-app/streamero/server/internal/auth"
+	"github.com/streamero-app/streamero/server/internal/library"
 	"github.com/streamero-app/streamero/server/internal/settings"
 	"github.com/streamero-app/streamero/server/internal/version"
 )
@@ -32,6 +33,7 @@ type Handler struct {
 	// answers 503 for non-system endpoints until then.
 	Auth     func() *auth.Service
 	Settings func() *settings.Store
+	Library  func() *library.Service
 }
 
 var _ gen.Handler = (*Handler)(nil)
