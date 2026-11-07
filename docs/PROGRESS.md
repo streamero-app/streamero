@@ -1,7 +1,7 @@
 # PROGRESS
 
 ## Trenutna faza
-P2 — Biblioteke i scanner (sljedeće). P0 (PR #1) i P1 (PR #4) gotovi i mergeani.
+P2 — Biblioteke i scanner (u tijeku). P0 (PR #1) i P1 (PR #4) gotovi; prvi dio P2 (PR #5) mergean i objavljen kao **v0.2.0** (prvo izdanje za stabilni server).
 
 ## Gotovo
 - Monorepo struktura po PLAN.md §2, `.gitignore`, `.claude/settings.json`.
@@ -20,7 +20,7 @@ P2 — Biblioteke i scanner (sljedeće). P0 (PR #1) i P1 (PR #4) gotovi i mergea
 - Branch pushan, PR #1 (`phase/P0-foundations` → `main`) otvoren; `main` je prazan početni commit spojen u P0 (repo je bio prazan). CI zelen: `server`, `web`, `e2e`, iOS `build` (prvi uspješan iOS build, artefakt `streamero-ipa`).
 - `scripts/gen-fixtures.sh`: filmovi (H.264, 4K HEVC 10-bit, HDR10, AV1, multi-audio + poglavlja + embedded/external SRT/ASS, verzije, trailer), serija sa zajedničkim introm (2×4 ep.), multi-episode, specials, daily, anime absolute, glazba (FLAC/MP3), fotke.
 
-## P2 — u tijeku (branch `phase/P2-libraries`)
+## P2 — prvi dio (PR #5, izdanje v0.2.0)
 - Biblioteke (filmovi, serije, mješovito; više mapa), API + admin UI s preglednikom mapa; svaka putanja kroz `library.ResolveSafePath` unutar `STREAMERO_MEDIA_ROOTS`; migracija 00009.
 - Skener kao River job: parsiranje imena (naslov/godina, release tagovi, provider ID, verzije, extras/sample/trailer, skrivene/NAS mape), epizode (SxxEyy, multi, NxNN, specijali, daily, anime absolute), ffprobe (rezolucija, kodek, HDR10/HLG/DV, zvuk, podnaslovi) + vanjski podnaslovi (dijele ih sve verzije), paralelno probanje, inkrementalno; nedostupna mapa = scan pada bez brisanja.
 - Web: biblioteke na početnoj, mreža s poretkom i straničenjem, stranica stavke (verzije, tehnički podaci, sezone/epizode).
