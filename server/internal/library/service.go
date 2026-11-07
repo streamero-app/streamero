@@ -35,8 +35,13 @@ type Library struct {
 	FilesSeen  int
 }
 
+// Person is a cast or crew member.
+type Person struct{ Name, Role string }
+
 // Item is a movie, series, season or episode.
 type Item struct {
+	HasPoster                         bool
+	Rating                            *float64
 	ID                                uuid.UUID
 	LibraryID                         uuid.UUID
 	ParentID                          *uuid.UUID
@@ -66,6 +71,10 @@ type Service struct {
 	Pool    *pgxpool.Pool
 	Roots   Roots
 	Enqueue func(ctx context.Context, libraryID uuid.UUID) error // queue a scan job
+	// EnqueueMetadata queues a metadata refresh (force = refetch everything).
+	EnqueueMetadata func(ctx context.Context, libraryID uuid.UUID, force bool) error
+	// ImageDir holds cached artwork (<dir>/<item id>/<kind>.jpg).
+	ImageDir string
 }
 
 const libCols = `l.id, l.name, l.kind, l.paths, l.scan_state, COALESCE(l.scan_error, ''), l.last_scan_at, l.files_seen,
@@ -195,15 +204,15 @@ func (s *Service) Scan(ctx context.Context, id uuid.UUID) error {
 	return s.Enqueue(ctx, id)
 }
 
-const itemCols = `i.id, i.library_id, i.parent_id, i.kind, i.title, i.year, i.season_number, i.episode_number,
-	i.episode_number_end, i.added_at, i.provider_ids,
-	(SELECT max(f.duration_ms) FROM media_files f WHERE f.item_id = i.id)`
+const itemCols = `i.id, i.library_id, i.parent_id, i.kind, COALESCE(i.metadata_title, i.title), i.year, i.season_number,
+	i.episode_number, i.episode_number_end, i.added_at, i.provider_ids,
+	(SELECT max(f.duration_ms) FROM media_files f WHERE f.item_id = i.id), i.has_poster, i.community_rating`
 
 func scanItem(row pgx.Row) (Item, error) {
 	var it Item
 	var ids []byte
 	err := row.Scan(&it.ID, &it.LibraryID, &it.ParentID, &it.Kind, &it.Title, &it.Year, &it.Season, &it.Episode,
-		&it.EpisodeEnd, &it.AddedAt, &ids, &it.DurationMS)
+		&it.EpisodeEnd, &it.AddedAt, &ids, &it.DurationMS, &it.HasPoster, &it.Rating)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return it, ErrNotFound
 	}
@@ -317,4 +326,46 @@ func (s *Service) Browse(path string) (string, string, []string, error) {
 		}
 	}
 	return resolved, parent, dirs, nil
+}
+
+// ItemMetadata is the descriptive part of an item.
+type ItemMetadata struct {
+	Overview, Tagline, OriginalTitle, OfficialRating, Error string
+	Genres                                                  []string
+	Premiere                                                *time.Time
+	HasBackdrop                                             bool
+	Cast, Crew                                              []Person
+}
+
+// GetMetadata returns the description, people and artwork flags of an item.
+func (s *Service) GetMetadata(ctx context.Context, id uuid.UUID) (ItemMetadata, error) {
+	var m ItemMetadata
+	err := s.Pool.QueryRow(ctx, `SELECT COALESCE(overview, ''), COALESCE(tagline, ''), COALESCE(original_title, ''),
+			COALESCE(official_rating, ''), COALESCE(metadata_error, ''), genres, premiere_date, has_backdrop
+		FROM items WHERE id = $1`, id).Scan(&m.Overview, &m.Tagline, &m.OriginalTitle, &m.OfficialRating, &m.Error,
+		&m.Genres, &m.Premiere, &m.HasBackdrop)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return m, ErrNotFound
+	}
+	if err != nil {
+		return m, err
+	}
+	rows, err := s.Pool.Query(ctx, `SELECT kind, name, role FROM item_people WHERE item_id = $1 ORDER BY kind, position`, id)
+	if err != nil {
+		return m, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var kind string
+		var p Person
+		if err := rows.Scan(&kind, &p.Name, &p.Role); err != nil {
+			return m, err
+		}
+		if kind == "cast" {
+			m.Cast = append(m.Cast, p)
+		} else {
+			m.Crew = append(m.Crew, p)
+		}
+	}
+	return m, rows.Err()
 }

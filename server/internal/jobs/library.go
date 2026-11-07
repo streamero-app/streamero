@@ -2,6 +2,7 @@ package jobs
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/riverqueue/river"
 
 	"github.com/streamero-app/streamero/server/internal/library"
+	"github.com/streamero-app/streamero/server/internal/metadata"
 )
 
 // LibraryScanArgs scans one library.
@@ -29,6 +31,8 @@ type LibraryScanWorker struct {
 	river.WorkerDefaults[LibraryScanArgs]
 	Scanner *library.Scanner
 	Log     *slog.Logger
+	// AfterScan queues follow-up work (metadata for new items).
+	AfterScan func(ctx context.Context, libraryID uuid.UUID) error
 }
 
 // Timeout allows long first scans of big libraries.
@@ -45,6 +49,9 @@ func (w *LibraryScanWorker) Work(ctx context.Context, job *river.Job[LibraryScan
 	}
 	w.Log.Info("library scanned", "library", job.Args.LibraryID, "files", res.Files, "probed", res.Probed,
 		"removed", res.Removed, "took", time.Since(start).String())
+	if w.AfterScan != nil {
+		return w.AfterScan(ctx, job.Args.LibraryID)
+	}
 	return nil
 }
 
@@ -73,4 +80,43 @@ func (w *LibraryScanAllWorker) Work(ctx context.Context, _ *river.Job[LibrarySca
 		}
 	}
 	return nil
+}
+
+// MetadataRefreshArgs fetches metadata for a library (missing items, or all when Force).
+type MetadataRefreshArgs struct {
+	LibraryID uuid.UUID `json:"library_id"`
+	Force     bool      `json:"force"`
+}
+
+// Kind implements river.JobArgs.
+func (MetadataRefreshArgs) Kind() string { return "metadata.refresh_library" }
+
+// InsertOpts keeps one pending refresh per library and mode.
+func (MetadataRefreshArgs) InsertOpts() river.InsertOpts {
+	return river.InsertOpts{MaxAttempts: 3, UniqueOpts: river.UniqueOpts{ByArgs: true}}
+}
+
+// MetadataRefreshWorker runs metadata refreshes.
+type MetadataRefreshWorker struct {
+	river.WorkerDefaults[MetadataRefreshArgs]
+	Refresher *metadata.Refresher
+	Log       *slog.Logger
+}
+
+// Timeout allows large libraries (TMDb is paced at ~30 requests/s).
+func (w *MetadataRefreshWorker) Timeout(*river.Job[MetadataRefreshArgs]) time.Duration {
+	return 12 * time.Hour
+}
+
+// Work implements river.Worker.
+func (w *MetadataRefreshWorker) Work(ctx context.Context, job *river.Job[MetadataRefreshArgs]) error {
+	n, err := w.Refresher.RefreshLibrary(ctx, job.Args.LibraryID, job.Args.Force)
+	if err != nil {
+		if errors.Is(err, metadata.ErrInvalidKey) {
+			return river.JobCancel(err) // retrying will not help until an admin fixes the key
+		}
+		return err
+	}
+	w.Log.Info("metadata refreshed", "library", job.Args.LibraryID, "items", n)
+	return w.Refresher.CleanupImages(ctx)
 }

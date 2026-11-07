@@ -4,15 +4,28 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/streamero-app/streamero/server/internal/api/gen"
 	"github.com/streamero-app/streamero/server/internal/auth"
 	"github.com/streamero-app/streamero/server/internal/library"
+	"github.com/streamero-app/streamero/server/internal/metadata"
 )
 
 // canSeeLibraries: admins always; others need the allLibraries permission
 // (per-library access lists come with the library picker in invites/users).
 func canSeeLibraries(p auth.Principal) bool { return p.User.IsAdmin || p.User.Permissions.AllLibraries }
+
+var errStarting = &StatusError{Status: http.StatusServiceUnavailable, Code: "starting", Message: "server is starting"}
+
+// lib returns the library service; it is installed just after start-up.
+func (h *Handler) lib() *library.Service {
+	if h.Library == nil {
+		return nil
+	}
+	return h.Library()
+}
 
 func viewer(ctx context.Context) (auth.Principal, error) {
 	p, err := principal(ctx)
@@ -27,6 +40,9 @@ func viewer(ctx context.Context) (auth.Principal, error) {
 
 // ListLibraries implements GET /libraries.
 func (h *Handler) ListLibraries(ctx context.Context) ([]gen.Library, error) {
+	if h.lib() == nil {
+		return nil, errStarting
+	}
 	p, err := principal(ctx)
 	if err != nil {
 		return nil, err
@@ -35,7 +51,7 @@ func (h *Handler) ListLibraries(ctx context.Context) ([]gen.Library, error) {
 	if !canSeeLibraries(p) {
 		return out, nil
 	}
-	libs, err := h.Library().List(ctx)
+	libs, err := h.lib().List(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -47,10 +63,13 @@ func (h *Handler) ListLibraries(ctx context.Context) ([]gen.Library, error) {
 
 // CreateLibrary implements POST /libraries.
 func (h *Handler) CreateLibrary(ctx context.Context, req *gen.LibraryInput) (*gen.Library, error) {
+	if h.lib() == nil {
+		return nil, errStarting
+	}
 	if _, err := admin(ctx); err != nil {
 		return nil, err
 	}
-	l, err := h.Library().Create(ctx, req.Name, string(req.Kind), req.Paths)
+	l, err := h.lib().Create(ctx, req.Name, string(req.Kind), req.Paths)
 	if err != nil {
 		return nil, err
 	}
@@ -60,10 +79,13 @@ func (h *Handler) CreateLibrary(ctx context.Context, req *gen.LibraryInput) (*ge
 
 // UpdateLibrary implements PUT /libraries/{libraryId}.
 func (h *Handler) UpdateLibrary(ctx context.Context, req *gen.LibraryInput, params gen.UpdateLibraryParams) (*gen.Library, error) {
+	if h.lib() == nil {
+		return nil, errStarting
+	}
 	if _, err := admin(ctx); err != nil {
 		return nil, err
 	}
-	l, err := h.Library().Update(ctx, params.LibraryId, req.Name, string(req.Kind), req.Paths)
+	l, err := h.lib().Update(ctx, params.LibraryId, req.Name, string(req.Kind), req.Paths)
 	if err != nil {
 		return nil, err
 	}
@@ -73,29 +95,38 @@ func (h *Handler) UpdateLibrary(ctx context.Context, req *gen.LibraryInput, para
 
 // DeleteLibrary implements DELETE /libraries/{libraryId}.
 func (h *Handler) DeleteLibrary(ctx context.Context, params gen.DeleteLibraryParams) error {
+	if h.lib() == nil {
+		return errStarting
+	}
 	if _, err := admin(ctx); err != nil {
 		return err
 	}
-	return h.Library().Delete(ctx, params.LibraryId)
+	return h.lib().Delete(ctx, params.LibraryId)
 }
 
 // ScanLibrary implements POST /libraries/{libraryId}/scan.
 func (h *Handler) ScanLibrary(ctx context.Context, params gen.ScanLibraryParams) error {
+	if h.lib() == nil {
+		return errStarting
+	}
 	if _, err := admin(ctx); err != nil {
 		return err
 	}
-	return h.Library().Scan(ctx, params.LibraryId)
+	return h.lib().Scan(ctx, params.LibraryId)
 }
 
 // ListLibraryItems implements GET /libraries/{libraryId}/items.
 func (h *Handler) ListLibraryItems(ctx context.Context, params gen.ListLibraryItemsParams) (*gen.ItemPage, error) {
+	if h.lib() == nil {
+		return nil, errStarting
+	}
 	if _, err := viewer(ctx); err != nil {
 		return nil, err
 	}
-	if _, err := h.Library().Get(ctx, params.LibraryId); err != nil {
+	if _, err := h.lib().Get(ctx, params.LibraryId); err != nil {
 		return nil, err
 	}
-	items, total, err := h.Library().ListItems(ctx, params.LibraryId, string(params.Sort.Or(gen.ListLibraryItemsSortTitle)),
+	items, total, err := h.lib().ListItems(ctx, params.LibraryId, string(params.Sort.Or(gen.ListLibraryItemsSortTitle)),
 		params.Limit.Or(100), params.Offset.Or(0))
 	if err != nil {
 		return nil, err
@@ -109,10 +140,13 @@ func (h *Handler) ListLibraryItems(ctx context.Context, params gen.ListLibraryIt
 
 // GetItem implements GET /items/{itemId}.
 func (h *Handler) GetItem(ctx context.Context, params gen.GetItemParams) (*gen.ItemDetail, error) {
+	if h.lib() == nil {
+		return nil, errStarting
+	}
 	if _, err := viewer(ctx); err != nil {
 		return nil, err
 	}
-	it, files, children, err := h.Library().GetItem(ctx, params.ItemId)
+	it, files, children, err := h.lib().GetItem(ctx, params.ItemId)
 	if err != nil {
 		return nil, err
 	}
@@ -123,6 +157,28 @@ func (h *Handler) GetItem(ctx context.Context, params gen.GetItemParams) (*gen.I
 	}
 	if it.ParentID != nil {
 		out.ParentId = gen.NewOptUUID(*it.ParentID)
+	}
+	m, err := h.lib().GetMetadata(ctx, it.ID)
+	if err != nil {
+		return nil, err
+	}
+	out.Genres, out.HasBackdrop = m.Genres, m.HasBackdrop
+	if out.Genres == nil {
+		out.Genres = []string{}
+	}
+	out.Cast, out.Crew = toPeople(m.Cast), toPeople(m.Crew)
+	setOpt := func(dst *gen.OptString, v string) {
+		if v != "" {
+			*dst = gen.NewOptString(v)
+		}
+	}
+	setOpt(&out.Overview, m.Overview)
+	setOpt(&out.Tagline, m.Tagline)
+	setOpt(&out.OriginalTitle, m.OriginalTitle)
+	setOpt(&out.OfficialRating, m.OfficialRating)
+	setOpt(&out.MetadataError, m.Error)
+	if m.Premiere != nil {
+		out.PremiereDate = gen.NewOptDate(*m.Premiere)
 	}
 	for _, f := range files {
 		out.Files = append(out.Files, toMediaFile(f))
@@ -135,10 +191,13 @@ func (h *Handler) GetItem(ctx context.Context, params gen.GetItemParams) (*gen.I
 
 // BrowseDirectories implements GET /fs/directories.
 func (h *Handler) BrowseDirectories(ctx context.Context, params gen.BrowseDirectoriesParams) (*gen.DirectoryListing, error) {
+	if h.lib() == nil {
+		return nil, errStarting
+	}
 	if _, err := admin(ctx); err != nil {
 		return nil, err
 	}
-	path, parent, dirs, err := h.Library().Browse(params.Path.Value)
+	path, parent, dirs, err := h.lib().Browse(params.Path.Value)
 	if err != nil {
 		return nil, err
 	}
@@ -178,11 +237,26 @@ func optInt(p *int) gen.OptInt {
 	return gen.NewOptInt(*p)
 }
 
+func toPeople(ps []library.Person) []gen.Person {
+	out := make([]gen.Person, 0, len(ps))
+	for _, p := range ps {
+		gp := gen.Person{Name: p.Name}
+		if p.Role != "" {
+			gp.Role = gen.NewOptString(p.Role)
+		}
+		out = append(out, gp)
+	}
+	return out
+}
+
 func toItemSummary(it library.Item) gen.ItemSummary {
-	out := gen.ItemSummary{ID: it.ID, Kind: gen.ItemKind(it.Kind), Title: it.Title, AddedAt: it.AddedAt,
+	out := gen.ItemSummary{ID: it.ID, Kind: gen.ItemKind(it.Kind), Title: it.Title, AddedAt: it.AddedAt, HasPoster: it.HasPoster,
 		Year: optInt(it.Year), SeasonNumber: optInt(it.Season), EpisodeNumber: optInt(it.Episode), EpisodeNumberEnd: optInt(it.EpisodeEnd)}
 	if it.DurationMS != nil {
 		out.DurationMs = gen.NewOptInt64(*it.DurationMS)
+	}
+	if it.Rating != nil {
+		out.Rating = gen.NewOptFloat64(*it.Rating)
 	}
 	return out
 }
@@ -237,4 +311,84 @@ func mapLibraryError(err error) *StatusError {
 		return &StatusError{Status: http.StatusBadRequest, Code: "unsupported_kind", Message: err.Error()}
 	}
 	return nil
+}
+
+// RefreshLibraryMetadata implements POST /libraries/{libraryId}/refresh-metadata.
+func (h *Handler) RefreshLibraryMetadata(ctx context.Context, params gen.RefreshLibraryMetadataParams) error {
+	if h.lib() == nil || h.lib().EnqueueMetadata == nil {
+		return errStarting
+	}
+	if _, err := admin(ctx); err != nil {
+		return err
+	}
+	if _, err := h.lib().Get(ctx, params.LibraryId); err != nil {
+		return err
+	}
+	return h.lib().EnqueueMetadata(ctx, params.LibraryId, true)
+}
+
+// GetItemImage implements GET /items/{itemId}/images/{imageType}.
+func (h *Handler) GetItemImage(ctx context.Context, params gen.GetItemImageParams) (*gen.GetItemImageOKHeaders, error) {
+	if h.lib() == nil {
+		return nil, errStarting
+	}
+	if _, err := viewer(ctx); err != nil {
+		return nil, err
+	}
+	// The path is built from a UUID and an enum, never from client text.
+	f, err := os.Open(metadata.ImagePath(h.lib().ImageDir, params.ItemId, string(params.ImageType)))
+	if err != nil {
+		return nil, library.ErrNotFound
+	}
+	return &gen.GetItemImageOKHeaders{CacheControl: gen.NewOptString("private, max-age=86400"),
+		Response: gen.GetItemImageOK{Data: f}}, nil
+}
+
+// GetMetadataSettings implements GET /settings/metadata.
+func (h *Handler) GetMetadataSettings(ctx context.Context) (*gen.MetadataSettings, error) {
+	if _, err := admin(ctx); err != nil {
+		return nil, err
+	}
+	s, err := metadata.LoadSettings(ctx, h.Settings())
+	if err != nil {
+		return nil, err
+	}
+	return &gen.MetadataSettings{TmdbConfigured: s.TMDbKey != "", Language: s.Language, Country: s.Country}, nil
+}
+
+// UpdateMetadataSettings implements PUT /settings/metadata.
+func (h *Handler) UpdateMetadataSettings(ctx context.Context, req *gen.MetadataSettingsInput) (*gen.MetadataSettings, error) {
+	if _, err := admin(ctx); err != nil {
+		return nil, err
+	}
+	s, err := metadata.LoadSettings(ctx, h.Settings())
+	if err != nil {
+		return nil, err
+	}
+	s.Language, s.Country = req.Language, req.Country
+	newKey := false
+	if req.RemoveTmdbKey.Value {
+		s.TMDbKey = ""
+	} else if k := strings.TrimSpace(req.TmdbApiKey.Value); k != "" {
+		c := h.NewTMDb(k)
+		if err := c.Verify(ctx); err != nil {
+			if errors.Is(err, metadata.ErrInvalidKey) {
+				return nil, &StatusError{Status: http.StatusBadRequest, Code: "invalid_tmdb_key", Message: err.Error()}
+			}
+			return nil, &StatusError{Status: http.StatusBadGateway, Code: "tmdb_unreachable", Message: err.Error()}
+		}
+		s.TMDbKey, newKey = k, true
+	}
+	if err := metadata.SaveSettings(ctx, h.Settings(), s); err != nil {
+		return nil, err
+	}
+	// A new key: fetch metadata for everything that has none yet.
+	if newKey && h.lib() != nil && h.lib().EnqueueMetadata != nil {
+		if libs, err := h.lib().List(ctx); err == nil {
+			for _, l := range libs {
+				_ = h.lib().EnqueueMetadata(ctx, l.ID, false)
+			}
+		}
+	}
+	return &gen.MetadataSettings{TmdbConfigured: s.TMDbKey != "", Language: s.Language, Country: s.Country}, nil
 }

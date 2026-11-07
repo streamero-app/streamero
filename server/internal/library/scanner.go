@@ -506,7 +506,10 @@ func (s *Scanner) upsertItem(ctx context.Context, libID uuid.UUID, it *planItem,
 			season_number, episode_number, episode_number_end, provider_ids)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		ON CONFLICT (library_id, path) DO UPDATE SET parent_id = EXCLUDED.parent_id, kind = EXCLUDED.kind,
-			title = EXCLUDED.title, sort_title = EXCLUDED.sort_title, year = EXCLUDED.year,
+			title = EXCLUDED.title,
+			-- once metadata named the item, its title decides the sort order
+			sort_title = CASE WHEN items.metadata_title IS NULL THEN EXCLUDED.sort_title ELSE items.sort_title END,
+			year = COALESCE(EXCLUDED.year, items.year),
 			season_number = EXCLUDED.season_number, episode_number = EXCLUDED.episode_number,
 			episode_number_end = EXCLUDED.episode_number_end, provider_ids = EXCLUDED.provider_ids, updated_at = now()
 		RETURNING id`, newID, libID, parent, it.kind, it.key, it.title, SortTitle(it.title), year,

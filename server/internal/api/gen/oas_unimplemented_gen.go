@@ -186,12 +186,30 @@ func (UnimplementedHandler) GetItem(ctx context.Context, params GetItemParams) (
 	return r, ht.ErrNotImplemented
 }
 
+// GetItemImage implements getItemImage operation.
+//
+// Cached artwork of an item (JPEG).
+//
+// GET /items/{itemId}/images/{imageType}
+func (UnimplementedHandler) GetItemImage(ctx context.Context, params GetItemImageParams) (r *GetItemImageOKHeaders, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetMe implements getMe operation.
 //
 // The signed-in user.
 //
 // GET /auth/me
 func (UnimplementedHandler) GetMe(ctx context.Context) (r *User, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetMetadataSettings implements getMetadataSettings operation.
+//
+// Metadata provider settings (admin); the TMDb key itself is never returned.
+//
+// GET /settings/metadata
+func (UnimplementedHandler) GetMetadataSettings(ctx context.Context) (r *MetadataSettings, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -322,6 +340,15 @@ func (UnimplementedHandler) PollQuickConnect(ctx context.Context, req *QuickConn
 	return r, ht.ErrNotImplemented
 }
 
+// RefreshLibraryMetadata implements refreshLibraryMetadata operation.
+//
+// Fetch metadata again for every item of a library (admin).
+//
+// POST /libraries/{libraryId}/refresh-metadata
+func (UnimplementedHandler) RefreshLibraryMetadata(ctx context.Context, params RefreshLibraryMetadataParams) error {
+	return ht.ErrNotImplemented
+}
+
 // RenameSession implements renameSession operation.
 //
 // Own sessions; admins can rename any session.
@@ -382,6 +409,15 @@ func (UnimplementedHandler) StartTOTPSetup(ctx context.Context) (r *TOTPSetup, _
 //
 // PUT /libraries/{libraryId}
 func (UnimplementedHandler) UpdateLibrary(ctx context.Context, req *LibraryInput, params UpdateLibraryParams) (r *Library, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateMetadataSettings implements updateMetadataSettings operation.
+//
+// Save metadata settings (admin); a new TMDb key is verified with TMDb first.
+//
+// PUT /settings/metadata
+func (UnimplementedHandler) UpdateMetadataSettings(ctx context.Context, req *MetadataSettingsInput) (r *MetadataSettings, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
