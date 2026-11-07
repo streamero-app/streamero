@@ -54,7 +54,8 @@
     "quickConnect": "Quick Connect",
     "invites": "Pozivnice",
     "profiles": "Profili",
-    "libraries": "Biblioteke"
+    "libraries": "Biblioteke",
+    "metadata": "Metapodaci"
   },
   "account": {
     "changePassword": "Promijeni lozinku",
@@ -132,7 +133,9 @@
     "too_many_profiles": "Račun može imati najviše 6 profila.",
     "rate_limited": "Previše pokušaja s vaše mreže. Pričekajte trenutak pa pokušajte ponovno.",
     "invalid_path": "Ta mapa ne postoji ili je izvan mapa s medijima.",
-    "unsupported_kind": "Glazbene biblioteke stižu u kasnijoj fazi."
+    "unsupported_kind": "Glazbene biblioteke stižu u kasnijoj fazi.",
+    "invalid_tmdb_key": "TMDb je odbio ovaj ključ. Ponovno ga kopirajte s themoviedb.org/settings/api.",
+    "tmdb_unreachable": "Server ne može doći do TMDb-a. Pokušajte kasnije."
   },
   "notFound": {
     "title": "Stranica nije pronađena",
@@ -276,7 +279,9 @@
     "confirmDelete": "Ukloniti biblioteku {{name}} iz Streamera? Datoteke ostaju netaknute.",
     "meta": "{{count}} stavki · {{files}} datoteka · skenirano {{when}}",
     "items_one": "{{count}} stavka",
-    "items_other": "{{count}} stavki"
+    "items_other": "{{count}} stavki",
+    "refreshMetadata": "Osvježi metapodatke",
+    "metadataQueued": "Osvježavanje metapodataka je pokrenuto."
   },
   "library": {
     "sort": "Poredaj",
@@ -302,6 +307,24 @@
     "subtitles": "Podnaslovi",
     "forced": "prisilni",
     "external": "vanjski",
-    "playbackSoon": "Posteri i opisi stižu s metapodacima (P3), reprodukcija u P5."
+    "playbackSoon": "Reprodukcija stiže u P5.",
+    "cast": "Uloge",
+    "directedBy": "Režija",
+    "writtenBy": "Scenarij",
+    "noMetadata": "Još nema podudaranja na TMDb-u — provjerite ime mape (npr. \"Naslov (Godina)\" ili dodajte [tmdbid-…])."
+  },
+  "metadata": {
+    "connected": "TMDb povezan",
+    "notConnected": "Nije povezano",
+    "intro": "Posteri, opisi, glumci i dobne oznake dolaze s TMDb-a (The Movie Database). Upišite svoj besplatni TMDb API ključ; nove stavke dobivaju metapodatke automatski nakon svakog skeniranja.",
+    "key": "TMDb API ključ ili Read Access Token",
+    "replaceKey": "Novi TMDb ključ (ostavite prazno da zadržite postojeći)",
+    "keyHint": "Besplatno ga napravite na",
+    "language": "Jezik metapodataka",
+    "country": "Država za dobne oznake",
+    "checking": "Provjeravam ključ…",
+    "saved": "Spremljeno. Metapodaci se dohvaćaju za vaše biblioteke.",
+    "removeKey": "Ukloni ključ",
+    "confirmRemove": "Ukloniti TMDb ključ? Postojeći metapodaci ostaju."
   }
 }

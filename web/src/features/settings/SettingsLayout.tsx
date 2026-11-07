@@ -21,6 +21,7 @@ export function SettingsLayout() {
               <p className="hidden px-3 pt-4 pb-1 text-xs tracking-wide text-muted uppercase md:block">{t("settings.adminSection")}</p>
               <Link to="/settings/server" className={tab}>{t("settings.server")}</Link>
               <Link to="/settings/libraries" className={tab}>{t("settings.libraries")}</Link>
+              <Link to="/settings/metadata" className={tab}>{t("settings.metadata")}</Link>
               <Link to="/settings/users" className={tab}>{t("settings.users")}</Link>
               <Link to="/settings/invites" className={tab}>{t("settings.invites")}</Link>
               <Link to="/settings/apikeys" className={tab}>{t("settings.apiKeys")}</Link>

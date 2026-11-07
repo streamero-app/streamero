@@ -70,8 +70,8 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 
 ### Opcije biblioteke (po biblioteci)
 - [x] `[JF]` Više putanja po biblioteci, uključujući mrežne (SMB/NFS montirane u kontejner) (P2)
-- [ ] `[JF]` Preferirani jezik i država metapodataka (P3)
-- [ ] `[JF]` Real-time monitoring (fsnotify) + periodični scan; fallback polling za NFS/SMB (P2)
+- [x] `[JF]` Preferirani jezik i država metapodataka (P3)
+- [x] `[JF]` Real-time monitoring (fsnotify) + periodični scan; fallback polling za NFS/SMB (P2)
 - [ ] `[JF]` Redoslijed i on/off metadata providera i image fetchera po tipu (P3)
 - [ ] `[JF]` Spremanje slika/NFO pokraj medija (opcija) (P3)
 - [ ] `[JF]` Automatske kolekcije (TMDb box sets) (P3)
@@ -79,7 +79,7 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [ ] `[JF]` Provider ID u imenu foldera/datoteke: `[tmdbid-123]`, `{tmdb-123}`, `(imdb-tt…)`, aliasi `tmdb/imdb/tvdb` — i na folderima sezona i epizoda (P2) — *film/serija gotovi; sezone/epizode slijede*
 - [x] `[JF]` Prepoznavanje release tagova (WEB-DL, BluRay, 2160p, HDR, DV, Remux…) (P2)
 - [ ] `[JF]` Extras: trailers, featurettes, behind the scenes, deleted scenes, interviews, scenes, shorts, samples, theme songs, theme videos (folderi i sufiksi) (P2) — *prepoznaju se i ne miješaju s filmom; prikaz extra sadržaja slijedi*
-- [ ] `[JF]` Ignore datoteke: `.ignore` + gitignore-style pravila (kod nas `.streameroignore`) (P2)
+- [ ] `[JF]` Ignore datoteke: `.ignore` + gitignore-style pravila (kod nas `.streameroignore`) (P2) — *marker datoteka `.streameroignore`/`.ignore` skriva mapu; gitignore pravila slijede*
 - [x] `[JF]` Epizode: SxxEyy, multi-episode datoteke (S01E01-E03), datumske epizode (daily shows), apsolutno numeriranje (anime), specials (P2)
 - [ ] `[JF]` Redoslijed epizoda: aired, DVD, absolute, alternativni (TVDB orders) (P3)
 - [ ] `[JF]` Prikaz nedostajućih epizoda i neemitiranih (missing/unaired) (P3)
@@ -96,7 +96,7 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 
 ## 4. Metapodaci i slike
 
-- [ ] `[JF]` TMDb (filmovi, serije, ljudi, kolekcije) (P3)
+- [ ] `[JF]` TMDb (filmovi, serije, ljudi, kolekcije) (P3) — *filmovi, serije, sezone, epizode, glumci (imena) gotovi; slike osoba i kolekcije slijede*
 - [ ] `[JF]` TVDB (uklj. TVDB ID za filmove) (P3)
 - [ ] `[JF]` OMDb (IMDb ocjene, Rotten Tomatoes) (P3)
 - [ ] `[JF]` MusicBrainz (otporni lookupi, rate limit 1 req/s) (P9)

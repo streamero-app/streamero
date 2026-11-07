@@ -11,11 +11,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 
@@ -26,6 +28,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/db"
 	"github.com/streamero-app/streamero/server/internal/jobs"
 	"github.com/streamero-app/streamero/server/internal/library"
+	"github.com/streamero-app/streamero/server/internal/metadata"
 	"github.com/streamero-app/streamero/server/internal/netx"
 	"github.com/streamero-app/streamero/server/internal/storage"
 	"github.com/streamero-app/streamero/server/internal/version"
@@ -96,7 +99,8 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		return err
 	}
 	h := &api.Handler{State: state, ServerName: cfg.ServerName, StartedAt: time.Now().UTC(),
-		Auth: state.Auth, Settings: state.Settings, Library: state.Library}
+		Auth: state.Auth, Settings: state.Settings, Library: state.Library,
+		NewTMDb: func(key string) *metadata.TMDb { return &metadata.TMDb{Key: key} }}
 	proxies, err := netx.ParsePrefixes(cfg.TrustedProxies)
 	if err != nil {
 		return err
@@ -128,10 +132,15 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		if ierr != nil {
 			return ierr
 		}
-		state.SetLibrary(&library.Service{Pool: deps.Pool, Roots: roots, Enqueue: func(ctx context.Context, id uuid.UUID) error {
-			_, err := inserter.Insert(ctx, jobs.LibraryScanArgs{LibraryID: id}, nil)
-			return err
-		}})
+		state.SetLibrary(&library.Service{Pool: deps.Pool, Roots: roots, ImageDir: filepath.Join(cfg.CacheDir, "images"),
+			Enqueue: func(ctx context.Context, id uuid.UUID) error {
+				_, err := inserter.Insert(ctx, jobs.LibraryScanArgs{LibraryID: id}, nil)
+				return err
+			},
+			EnqueueMetadata: func(ctx context.Context, id uuid.UUID, force bool) error {
+				_, err := inserter.Insert(ctx, jobs.MetadataRefreshArgs{LibraryID: id, Force: force}, nil)
+				return err
+			}})
 		log.Info("ready", "server_id", state.ServerID(), "startup", time.Since(h.StartedAt).String())
 		if !state.SetupCompleted(ctx) {
 			// Printed on purpose: whoever can read the server log may create the first admin.
@@ -163,9 +172,20 @@ func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	if err != nil {
 		return err
 	}
+	// The library service queues scans through this worker's own River client (set below).
+	var client *river.Client[pgx.Tx]
+	libraries := &library.Service{Pool: deps.Pool, Roots: roots, Enqueue: func(ctx context.Context, id uuid.UUID) error {
+		_, err := client.Insert(ctx, jobs.LibraryScanArgs{LibraryID: id}, nil)
+		return err
+	}}
 	workers := river.NewWorkers()
-	jobs.Register(workers, log, &library.Scanner{Pool: deps.Pool, Roots: roots, Probe: library.FFprobe(cfg.FFprobePath), Log: log})
-	client, err := river.NewClient(riverpgxv5.New(deps.Pool), &river.Config{
+	refresher := &metadata.Refresher{Pool: deps.Pool, Settings: state.Settings(), ImageDir: filepath.Join(cfg.CacheDir, "images"), Log: log}
+	jobs.Register(workers, log, &library.Scanner{Pool: deps.Pool, Roots: roots, Probe: library.FFprobe(cfg.FFprobePath), Log: log},
+		libraries, refresher, func(ctx context.Context, id uuid.UUID) error {
+			_, err := client.Insert(ctx, jobs.MetadataRefreshArgs{LibraryID: id}, nil)
+			return err
+		})
+	client, err = river.NewClient(riverpgxv5.New(deps.Pool), &river.Config{
 		Logger:  log,
 		Queues:  map[string]river.QueueConfig{river.QueueDefault: {MaxWorkers: 10}},
 		Workers: workers,
@@ -173,6 +193,8 @@ func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			river.NewPeriodicJob(river.PeriodicInterval(time.Minute),
 				func() (river.JobArgs, *river.InsertOpts) { return jobs.HeartbeatArgs{}, nil },
 				&river.PeriodicJobOpts{RunOnStart: true}),
+			river.NewPeriodicJob(river.PeriodicInterval(6*time.Hour),
+				func() (river.JobArgs, *river.InsertOpts) { return jobs.LibraryScanAllArgs{}, nil }, nil),
 		},
 	})
 	if err != nil {
@@ -182,6 +204,12 @@ func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		return err
 	}
 	log.Info("worker started")
+	go func() {
+		w := &library.Watcher{Pool: deps.Pool, Roots: roots, Log: log, Trigger: libraries.Scan}
+		if err := w.Run(ctx); err != nil {
+			log.Warn("file watcher stopped; periodic scans still run", "err", err)
+		}
+	}()
 	<-ctx.Done()
 	stopCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 	defer cancel()

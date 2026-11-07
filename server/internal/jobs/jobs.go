@@ -5,9 +5,11 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/google/uuid"
 	"github.com/riverqueue/river"
 
 	"github.com/streamero-app/streamero/server/internal/library"
+	"github.com/streamero-app/streamero/server/internal/metadata"
 )
 
 // HeartbeatArgs is a periodic no-op job that proves the worker is alive.
@@ -29,7 +31,10 @@ func (w *HeartbeatWorker) Work(_ context.Context, job *river.Job[HeartbeatArgs])
 }
 
 // Register adds all workers to the registry.
-func Register(workers *river.Workers, log *slog.Logger, scanner *library.Scanner) {
+func Register(workers *river.Workers, log *slog.Logger, scanner *library.Scanner, libraries *library.Service,
+	refresher *metadata.Refresher, afterScan func(context.Context, uuid.UUID) error) {
 	river.AddWorker(workers, &HeartbeatWorker{Log: log})
-	river.AddWorker(workers, &LibraryScanWorker{Scanner: scanner, Log: log})
+	river.AddWorker(workers, &LibraryScanWorker{Scanner: scanner, Log: log, AfterScan: afterScan})
+	river.AddWorker(workers, &MetadataRefreshWorker{Refresher: refresher, Log: log})
+	river.AddWorker(workers, &LibraryScanAllWorker{Libraries: libraries})
 }

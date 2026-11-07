@@ -76,6 +76,10 @@ export function LibrariesSettings() {
     mutationFn: async (id: string) => unwrap(await api.POST("/libraries/{libraryId}/scan", { params: { path: { libraryId: id } } })),
     onSuccess: () => void refresh(),
   });
+  const refreshMeta = useMutation({
+    mutationFn: async (id: string) =>
+      unwrap(await api.POST("/libraries/{libraryId}/refresh-metadata", { params: { path: { libraryId: id } } })),
+  });
   const remove = useMutation({
     mutationFn: async (id: string) => unwrap(await api.DELETE("/libraries/{libraryId}", { params: { path: { libraryId: id } } })),
     onSuccess: () => void refresh(),
@@ -98,7 +102,8 @@ export function LibrariesSettings() {
     <div className="flex flex-col gap-6">
       <Card title={t("settings.libraries")}>
         <p className="mb-4 text-sm text-muted">{t("libraries.intro")}</p>
-        <ErrorText error={libraries.error ?? scan.error ?? remove.error} />
+        <ErrorText error={libraries.error ?? scan.error ?? remove.error ?? refreshMeta.error} />
+        {refreshMeta.isSuccess && <p role="status" className="mb-2 text-sm text-success">{t("libraries.metadataQueued")}</p>}
         {libraries.data?.length === 0 && <p className="text-sm text-muted">{t("libraries.none")}</p>}
         <ul className="divide-y divide-border">
           {libraries.data?.map((l) => (
@@ -116,6 +121,9 @@ export function LibrariesSettings() {
               <div className="flex flex-wrap gap-2">
                 <Button variant="secondary" disabled={busyStates.has(l.scan.state) || scan.isPending} onClick={() => scan.mutate(l.id)}>
                   {t("libraries.scan")}
+                </Button>
+                <Button variant="secondary" disabled={refreshMeta.isPending} onClick={() => refreshMeta.mutate(l.id)}>
+                  {t("libraries.refreshMetadata")}
                 </Button>
                 <Button variant="secondary" onClick={() => setForm({ id: l.id, name: l.name, kind: l.kind, paths: l.paths })}>
                   {t("profiles.edit")}

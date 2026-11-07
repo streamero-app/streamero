@@ -261,10 +261,10 @@ func TestLibraryQueriesUseIndexes(t *testing.T) {
 	}
 	id := uuid.New()
 	for query, index := range map[string]string{
-		`SELECT id FROM items i WHERE i.library_id = $1 AND i.parent_id IS NULL ORDER BY i.sort_title LIMIT 100`:   "items_top_title_idx",
+		`SELECT id FROM items i WHERE i.library_id = $1 AND i.parent_id IS NULL ORDER BY i.sort_title LIMIT 100`:    "items_top_title_idx",
 		`SELECT id FROM items i WHERE i.library_id = $1 AND i.parent_id IS NULL ORDER BY i.added_at DESC LIMIT 100`: "items_top_added_idx",
 		`SELECT id FROM items i WHERE i.parent_id = $1 ORDER BY i.season_number, i.episode_number`:                  "items_parent_idx",
-		`SELECT id FROM media_files WHERE item_id = $1`:                                                              "media_files_item_idx",
+		`SELECT id FROM media_files WHERE item_id = $1`:                                                             "media_files_item_idx",
 	} {
 		var plan string
 		rows, err := conn.Query(ctx, "EXPLAIN "+query, id)
@@ -280,5 +280,63 @@ func TestLibraryQueriesUseIndexes(t *testing.T) {
 		if !strings.Contains(plan, index) {
 			t.Errorf("%s\ndoes not use %s:\n%s", query, index, plan)
 		}
+	}
+}
+
+func TestWatcherQueuesScanOnNewFilesIntegration(t *testing.T) {
+	root := t.TempDir()
+	movies := filepath.Join(root, "movies")
+	touch(t, movies, "Old (2000)/Old (2000).mkv")
+	f := newFixture(t, root)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	lib, err := f.svc.Create(ctx, "W", "movies", []string{movies})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = f.svc.Delete(context.Background(), lib.ID) })
+
+	triggered := make(chan uuid.UUID, 10)
+	w := &Watcher{Pool: f.pool, Roots: Roots{root}, Log: f.scanner.Log, Debounce: 300 * time.Millisecond, Refresh: time.Hour,
+		Trigger: func(_ context.Context, id uuid.UUID) error { triggered <- id; return nil }}
+	go func() { _ = w.Run(ctx) }()
+	time.Sleep(500 * time.Millisecond) // watches installed
+
+	// A new folder with a movie copied in (events in a fresh sub-folder must be seen too).
+	if err := os.MkdirAll(filepath.Join(movies, "New (2024)"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(200 * time.Millisecond)
+	touch(t, movies, "New (2024)/New (2024).mkv")
+	select {
+	case id := <-triggered:
+		if id != lib.ID {
+			t.Fatalf("triggered %s, want %s", id, lib.ID)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("no scan queued after adding a file")
+	}
+	// Debounced: one trigger for the burst of events.
+	select {
+	case <-triggered:
+		t.Fatal("more than one scan for one change")
+	case <-time.After(800 * time.Millisecond):
+	}
+}
+
+func TestIgnoreMarkerIntegration(t *testing.T) {
+	root := t.TempDir()
+	movies := filepath.Join(root, "movies")
+	touch(t, movies, "Keep (2020)/Keep (2020).mkv", "Private (2021)/Private (2021).mkv", "Private (2021)/.streameroignore")
+	f := newFixture(t, root)
+	lib, err := f.svc.Create(context.Background(), "I", "movies", []string{movies})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = f.svc.Delete(context.Background(), lib.ID) })
+	f.scan(t, lib.ID)
+	items, _, _ := f.svc.ListItems(context.Background(), lib.ID, "title", 10, 0)
+	if got := titles(items); len(got) != 1 || got[0] != "Keep" {
+		t.Fatalf("ignored folder scanned: %v", got)
 	}
 }

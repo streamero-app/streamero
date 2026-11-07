@@ -17,6 +17,7 @@ import { InvitePage } from "@/routes/InvitePage";
 import { InvitesSettings } from "@/features/settings/InvitesSettings";
 import { ProfilesSettings } from "@/features/settings/ProfilesSettings";
 import { LibrariesSettings } from "@/features/settings/LibrariesSettings";
+import { MetadataSettings } from "@/features/settings/MetadataSettings";
 import { ItemPage, LibraryPage } from "@/features/library/LibraryPages";
 import { NotFoundPage } from "@/routes/NotFoundPage";
 
@@ -63,6 +64,7 @@ const profilesRoute = createRoute({ getParentRoute: () => settingsRoute, path: "
 const devicesRoute = createRoute({ getParentRoute: () => settingsRoute, path: "devices", component: DevicesSettings });
 const quickConnectRoute = createRoute({ getParentRoute: () => settingsRoute, path: "quickconnect", component: QuickConnectSettings });
 const librariesRoute = createRoute({ getParentRoute: () => settingsRoute, path: "libraries", component: adminOnly(LibrariesSettings) });
+const metadataRoute = createRoute({ getParentRoute: () => settingsRoute, path: "metadata", component: adminOnly(MetadataSettings) });
 const serverRoute = createRoute({ getParentRoute: () => settingsRoute, path: "server", component: adminOnly(ServerSettingsPage) });
 const apiKeysRoute = createRoute({ getParentRoute: () => settingsRoute, path: "apikeys", component: adminOnly(ApiKeysSettings) });
 const invitesRoute = createRoute({ getParentRoute: () => settingsRoute, path: "invites", component: adminOnly(InvitesSettings) });
@@ -76,7 +78,7 @@ export const routeTree = rootRoute.addChildren([
     homeRoute,
     libraryRoute,
     itemRoute,
-    settingsRoute.addChildren([settingsIndex, accountRoute, profilesRoute, devicesRoute, quickConnectRoute, serverRoute, librariesRoute, usersRoute, invitesRoute, apiKeysRoute]),
+    settingsRoute.addChildren([settingsIndex, accountRoute, profilesRoute, devicesRoute, quickConnectRoute, serverRoute, librariesRoute, metadataRoute, usersRoute, invitesRoute, apiKeysRoute]),
   ]),
 ]);
 export const router = createRouter({ routeTree });

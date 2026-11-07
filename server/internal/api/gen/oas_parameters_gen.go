@@ -666,6 +666,132 @@ func decodeGetItemParams(args [1]string, argsEscaped bool, r *http.Request) (par
 	return params, nil
 }
 
+// GetItemImageParams is parameters of getItemImage operation.
+type GetItemImageParams struct {
+	ItemId    uuid.UUID
+	ImageType GetItemImageImageType
+}
+
+func unpackGetItemImageParams(packed middleware.Parameters) (params GetItemImageParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "itemId",
+			In:   "path",
+		}
+		params.ItemId = packed[key].(uuid.UUID)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "imageType",
+			In:   "path",
+		}
+		params.ImageType = packed[key].(GetItemImageImageType)
+	}
+	return params
+}
+
+func decodeGetItemImageParams(args [2]string, argsEscaped bool, r *http.Request) (params GetItemImageParams, _ error) {
+	// Decode path: itemId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "itemId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ItemId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "itemId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode path: imageType.
+	if err := func() error {
+		param := args[1]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[1])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "imageType",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.ImageType = GetItemImageImageType(c)
+				return nil
+			}(); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := params.ImageType.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "imageType",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // ListLibraryItemsParams is parameters of listLibraryItems operation.
 type ListLibraryItemsParams struct {
 	LibraryId uuid.UUID
@@ -959,6 +1085,71 @@ func decodeListLibraryItemsParams(args [1]string, argsEscaped bool, r *http.Requ
 		return params, &ogenerrors.DecodeParamError{
 			Name: "sort",
 			In:   "query",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// RefreshLibraryMetadataParams is parameters of refreshLibraryMetadata operation.
+type RefreshLibraryMetadataParams struct {
+	LibraryId uuid.UUID
+}
+
+func unpackRefreshLibraryMetadataParams(packed middleware.Parameters) (params RefreshLibraryMetadataParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "libraryId",
+			In:   "path",
+		}
+		params.LibraryId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeRefreshLibraryMetadataParams(args [1]string, argsEscaped bool, r *http.Request) (params RefreshLibraryMetadataParams, _ error) {
+	// Decode path: libraryId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "libraryId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.LibraryId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "libraryId",
+			In:   "path",
 			Err:  err,
 		}
 	}

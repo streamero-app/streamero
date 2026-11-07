@@ -4,6 +4,7 @@ package gen
 
 import (
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/go-faster/errors"
@@ -553,6 +554,94 @@ func (s *ErrorStatusCode) SetResponse(val Error) {
 	s.Response = val
 }
 
+type GetItemImageImageType string
+
+const (
+	GetItemImageImageTypePoster   GetItemImageImageType = "poster"
+	GetItemImageImageTypeBackdrop GetItemImageImageType = "backdrop"
+	GetItemImageImageTypeStill    GetItemImageImageType = "still"
+)
+
+// AllValues returns all GetItemImageImageType values.
+func (GetItemImageImageType) AllValues() []GetItemImageImageType {
+	return []GetItemImageImageType{
+		GetItemImageImageTypePoster,
+		GetItemImageImageTypeBackdrop,
+		GetItemImageImageTypeStill,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s GetItemImageImageType) MarshalText() ([]byte, error) {
+	switch s {
+	case GetItemImageImageTypePoster:
+		return []byte(s), nil
+	case GetItemImageImageTypeBackdrop:
+		return []byte(s), nil
+	case GetItemImageImageTypeStill:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *GetItemImageImageType) UnmarshalText(data []byte) error {
+	switch GetItemImageImageType(data) {
+	case GetItemImageImageTypePoster:
+		*s = GetItemImageImageTypePoster
+		return nil
+	case GetItemImageImageTypeBackdrop:
+		*s = GetItemImageImageTypeBackdrop
+		return nil
+	case GetItemImageImageTypeStill:
+		*s = GetItemImageImageTypeStill
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type GetItemImageOK struct {
+	Data io.Reader
+}
+
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s GetItemImageOK) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
+}
+
+// GetItemImageOKHeaders wraps GetItemImageOK with response headers.
+type GetItemImageOKHeaders struct {
+	CacheControl OptString
+	Response     GetItemImageOK
+}
+
+// GetCacheControl returns the value of CacheControl.
+func (s *GetItemImageOKHeaders) GetCacheControl() OptString {
+	return s.CacheControl
+}
+
+// GetResponse returns the value of Response.
+func (s *GetItemImageOKHeaders) GetResponse() GetItemImageOK {
+	return s.Response
+}
+
+// SetCacheControl sets the value of CacheControl.
+func (s *GetItemImageOKHeaders) SetCacheControl(val OptString) {
+	s.CacheControl = val
+}
+
+// SetResponse sets the value of Response.
+func (s *GetItemImageOKHeaders) SetResponse(val GetItemImageOK) {
+	s.Response = val
+}
+
 // Ref: #/components/schemas/Invite
 type Invite struct {
 	ID          uuid.UUID       `json:"id"`
@@ -673,13 +762,75 @@ func (s *InviteInfo) SetExpiresAt(val time.Time) {
 
 // Ref: #/components/schemas/ItemDetail
 type ItemDetail struct {
-	Item      ItemSummary `json:"item"`
-	LibraryId uuid.UUID   `json:"libraryId"`
-	ParentId  OptUUID     `json:"parentId"`
+	Overview      OptString `json:"overview"`
+	Tagline       OptString `json:"tagline"`
+	OriginalTitle OptString `json:"originalTitle"`
+	Genres        []string  `json:"genres"`
+	// Age rating for the configured country, e.g. "12" or "PG-13".
+	OfficialRating OptString `json:"officialRating"`
+	PremiereDate   OptDate   `json:"premiereDate"`
+	Cast           []Person  `json:"cast"`
+	Crew           []Person  `json:"crew"`
+	HasBackdrop    bool      `json:"hasBackdrop"`
+	// Why metadata could not be fetched (e.g. no match), if so.
+	MetadataError OptString   `json:"metadataError"`
+	Item          ItemSummary `json:"item"`
+	LibraryId     uuid.UUID   `json:"libraryId"`
+	ParentId      OptUUID     `json:"parentId"`
 	// Provider IDs from file/folder names, e.g. tmdb=603, imdb=tt0133093.
 	ProviderIds ItemDetailProviderIds `json:"providerIds"`
 	Files       []MediaFile           `json:"files"`
 	Children    []ItemSummary         `json:"children"`
+}
+
+// GetOverview returns the value of Overview.
+func (s *ItemDetail) GetOverview() OptString {
+	return s.Overview
+}
+
+// GetTagline returns the value of Tagline.
+func (s *ItemDetail) GetTagline() OptString {
+	return s.Tagline
+}
+
+// GetOriginalTitle returns the value of OriginalTitle.
+func (s *ItemDetail) GetOriginalTitle() OptString {
+	return s.OriginalTitle
+}
+
+// GetGenres returns the value of Genres.
+func (s *ItemDetail) GetGenres() []string {
+	return s.Genres
+}
+
+// GetOfficialRating returns the value of OfficialRating.
+func (s *ItemDetail) GetOfficialRating() OptString {
+	return s.OfficialRating
+}
+
+// GetPremiereDate returns the value of PremiereDate.
+func (s *ItemDetail) GetPremiereDate() OptDate {
+	return s.PremiereDate
+}
+
+// GetCast returns the value of Cast.
+func (s *ItemDetail) GetCast() []Person {
+	return s.Cast
+}
+
+// GetCrew returns the value of Crew.
+func (s *ItemDetail) GetCrew() []Person {
+	return s.Crew
+}
+
+// GetHasBackdrop returns the value of HasBackdrop.
+func (s *ItemDetail) GetHasBackdrop() bool {
+	return s.HasBackdrop
+}
+
+// GetMetadataError returns the value of MetadataError.
+func (s *ItemDetail) GetMetadataError() OptString {
+	return s.MetadataError
 }
 
 // GetItem returns the value of Item.
@@ -710,6 +861,56 @@ func (s *ItemDetail) GetFiles() []MediaFile {
 // GetChildren returns the value of Children.
 func (s *ItemDetail) GetChildren() []ItemSummary {
 	return s.Children
+}
+
+// SetOverview sets the value of Overview.
+func (s *ItemDetail) SetOverview(val OptString) {
+	s.Overview = val
+}
+
+// SetTagline sets the value of Tagline.
+func (s *ItemDetail) SetTagline(val OptString) {
+	s.Tagline = val
+}
+
+// SetOriginalTitle sets the value of OriginalTitle.
+func (s *ItemDetail) SetOriginalTitle(val OptString) {
+	s.OriginalTitle = val
+}
+
+// SetGenres sets the value of Genres.
+func (s *ItemDetail) SetGenres(val []string) {
+	s.Genres = val
+}
+
+// SetOfficialRating sets the value of OfficialRating.
+func (s *ItemDetail) SetOfficialRating(val OptString) {
+	s.OfficialRating = val
+}
+
+// SetPremiereDate sets the value of PremiereDate.
+func (s *ItemDetail) SetPremiereDate(val OptDate) {
+	s.PremiereDate = val
+}
+
+// SetCast sets the value of Cast.
+func (s *ItemDetail) SetCast(val []Person) {
+	s.Cast = val
+}
+
+// SetCrew sets the value of Crew.
+func (s *ItemDetail) SetCrew(val []Person) {
+	s.Crew = val
+}
+
+// SetHasBackdrop sets the value of HasBackdrop.
+func (s *ItemDetail) SetHasBackdrop(val bool) {
+	s.HasBackdrop = val
+}
+
+// SetMetadataError sets the value of MetadataError.
+func (s *ItemDetail) SetMetadataError(val OptString) {
+	s.MetadataError = val
 }
 
 // SetItem sets the value of Item.
@@ -847,6 +1048,9 @@ type ItemSummary struct {
 	EpisodeNumberEnd OptInt    `json:"episodeNumberEnd"`
 	DurationMs       OptInt64  `json:"durationMs"`
 	AddedAt          time.Time `json:"addedAt"`
+	HasPoster        bool      `json:"hasPoster"`
+	// Community rating 0–10.
+	Rating OptFloat64 `json:"rating"`
 }
 
 // GetID returns the value of ID.
@@ -894,6 +1098,16 @@ func (s *ItemSummary) GetAddedAt() time.Time {
 	return s.AddedAt
 }
 
+// GetHasPoster returns the value of HasPoster.
+func (s *ItemSummary) GetHasPoster() bool {
+	return s.HasPoster
+}
+
+// GetRating returns the value of Rating.
+func (s *ItemSummary) GetRating() OptFloat64 {
+	return s.Rating
+}
+
 // SetID sets the value of ID.
 func (s *ItemSummary) SetID(val uuid.UUID) {
 	s.ID = val
@@ -937,6 +1151,16 @@ func (s *ItemSummary) SetDurationMs(val OptInt64) {
 // SetAddedAt sets the value of AddedAt.
 func (s *ItemSummary) SetAddedAt(val time.Time) {
 	s.AddedAt = val
+}
+
+// SetHasPoster sets the value of HasPoster.
+func (s *ItemSummary) SetHasPoster(val bool) {
+	s.HasPoster = val
+}
+
+// SetRating sets the value of Rating.
+func (s *ItemSummary) SetRating(val OptFloat64) {
+	s.Rating = val
 }
 
 // Ref: #/components/schemas/Library
@@ -1366,6 +1590,94 @@ func (s *MediaFile) SetSubtitles(val []SubtitleStream) {
 	s.Subtitles = val
 }
 
+// Ref: #/components/schemas/MetadataSettings
+type MetadataSettings struct {
+	TmdbConfigured bool `json:"tmdbConfigured"`
+	// Preferred metadata language, e.g. "hr-HR" (English is the fallback).
+	Language string `json:"language"`
+	// Country for age ratings and release dates, e.g. "HR".
+	Country string `json:"country"`
+}
+
+// GetTmdbConfigured returns the value of TmdbConfigured.
+func (s *MetadataSettings) GetTmdbConfigured() bool {
+	return s.TmdbConfigured
+}
+
+// GetLanguage returns the value of Language.
+func (s *MetadataSettings) GetLanguage() string {
+	return s.Language
+}
+
+// GetCountry returns the value of Country.
+func (s *MetadataSettings) GetCountry() string {
+	return s.Country
+}
+
+// SetTmdbConfigured sets the value of TmdbConfigured.
+func (s *MetadataSettings) SetTmdbConfigured(val bool) {
+	s.TmdbConfigured = val
+}
+
+// SetLanguage sets the value of Language.
+func (s *MetadataSettings) SetLanguage(val string) {
+	s.Language = val
+}
+
+// SetCountry sets the value of Country.
+func (s *MetadataSettings) SetCountry(val string) {
+	s.Country = val
+}
+
+// Ref: #/components/schemas/MetadataSettingsInput
+type MetadataSettingsInput struct {
+	// TMDb API key (v3) or API Read Access Token (v4). Omit to keep the current key.
+	TmdbApiKey    OptString `json:"tmdbApiKey"`
+	RemoveTmdbKey OptBool   `json:"removeTmdbKey"`
+	Language      string    `json:"language"`
+	Country       string    `json:"country"`
+}
+
+// GetTmdbApiKey returns the value of TmdbApiKey.
+func (s *MetadataSettingsInput) GetTmdbApiKey() OptString {
+	return s.TmdbApiKey
+}
+
+// GetRemoveTmdbKey returns the value of RemoveTmdbKey.
+func (s *MetadataSettingsInput) GetRemoveTmdbKey() OptBool {
+	return s.RemoveTmdbKey
+}
+
+// GetLanguage returns the value of Language.
+func (s *MetadataSettingsInput) GetLanguage() string {
+	return s.Language
+}
+
+// GetCountry returns the value of Country.
+func (s *MetadataSettingsInput) GetCountry() string {
+	return s.Country
+}
+
+// SetTmdbApiKey sets the value of TmdbApiKey.
+func (s *MetadataSettingsInput) SetTmdbApiKey(val OptString) {
+	s.TmdbApiKey = val
+}
+
+// SetRemoveTmdbKey sets the value of RemoveTmdbKey.
+func (s *MetadataSettingsInput) SetRemoveTmdbKey(val OptBool) {
+	s.RemoveTmdbKey = val
+}
+
+// SetLanguage sets the value of Language.
+func (s *MetadataSettingsInput) SetLanguage(val string) {
+	s.Language = val
+}
+
+// SetCountry sets the value of Country.
+func (s *MetadataSettingsInput) SetCountry(val string) {
+	s.Country = val
+}
+
 // NewOptBool returns new OptBool with value set to v.
 func NewOptBool(v bool) OptBool {
 	return OptBool{
@@ -1406,6 +1718,52 @@ func (o OptBool) Get() (v bool, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptBool) Or(d bool) bool {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptDate returns new OptDate with value set to v.
+func NewOptDate(v time.Time) OptDate {
+	return OptDate{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptDate is optional time.Time.
+type OptDate struct {
+	Value time.Time
+	Set   bool
+}
+
+// IsSet returns true if OptDate was set.
+func (o OptDate) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptDate) Reset() {
+	var v time.Time
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptDate) SetTo(v time.Time) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptDate) Get() (v time.Time, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptDate) Or(d time.Time) time.Time {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -1498,6 +1856,52 @@ func (o OptDeviceInfo) Get() (v DeviceInfo, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptDeviceInfo) Or(d DeviceInfo) DeviceInfo {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptFloat64 returns new OptFloat64 with value set to v.
+func NewOptFloat64(v float64) OptFloat64 {
+	return OptFloat64{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptFloat64 is optional float64.
+type OptFloat64 struct {
+	Value float64
+	Set   bool
+}
+
+// IsSet returns true if OptFloat64 was set.
+func (o OptFloat64) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptFloat64) Reset() {
+	var v float64
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptFloat64) SetTo(v float64) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptFloat64) Get() (v float64, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptFloat64) Or(d float64) float64 {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -1981,6 +2385,33 @@ func (s *PasswordConfirmRequest) SetPassword(val string) {
 	s.Password = val
 }
 
+// Ref: #/components/schemas/Person
+type Person struct {
+	Name string `json:"name"`
+	// Character name for actors, job for crew (e.g. "Director").
+	Role OptString `json:"role"`
+}
+
+// GetName returns the value of Name.
+func (s *Person) GetName() string {
+	return s.Name
+}
+
+// GetRole returns the value of Role.
+func (s *Person) GetRole() OptString {
+	return s.Role
+}
+
+// SetName sets the value of Name.
+func (s *Person) SetName(val string) {
+	s.Name = val
+}
+
+// SetRole sets the value of Role.
+func (s *Person) SetRole(val OptString) {
+	s.Role = val
+}
+
 // Ref: #/components/schemas/PinRequest
 type PinRequest struct {
 	Pin OptString `json:"pin"`
@@ -2253,6 +2684,9 @@ func (s *RecoveryCodes) GetRecoveryCodes() []string {
 func (s *RecoveryCodes) SetRecoveryCodes(val []string) {
 	s.RecoveryCodes = val
 }
+
+// RefreshLibraryMetadataAccepted is response for RefreshLibraryMetadata operation.
+type RefreshLibraryMetadataAccepted struct{}
 
 // RenameSessionNoContent is response for RenameSession operation.
 type RenameSessionNoContent struct{}

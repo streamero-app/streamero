@@ -20,6 +20,18 @@ P2 — Biblioteke i scanner (u tijeku). P0 (PR #1) i P1 (PR #4) gotovi; prvi dio
 - Branch pushan, PR #1 (`phase/P0-foundations` → `main`) otvoren; `main` je prazan početni commit spojen u P0 (repo je bio prazan). CI zelen: `server`, `web`, `e2e`, iOS `build` (prvi uspješan iOS build, artefakt `streamero-ipa`).
 - `scripts/gen-fixtures.sh`: filmovi (H.264, 4K HEVC 10-bit, HDR10, AV1, multi-audio + poglavlja + embedded/external SRT/ASS, verzije, trailer), serija sa zajedničkim introm (2×4 ep.), multi-episode, specials, daily, anime absolute, glazba (FLAC/MP3), fotke.
 
+## P3 — metapodaci, prvi dio (branch `phase/P3-metadata`, uključuje P2 watch)
+- TMDb ključ (v3 ili v4) u Postavke → Metapodaci (provjeren prije spremanja, nikad se ne vraća), jezik (hr-HR, fallback EN opis) i država (dobne oznake).
+- Automatski nakon scana: podudaranje (TMDb ID iz imena → IMDb /find → pretraga naslov+godina), naslov/izvorni naslov, opis, slogan, žanrovi, ocjena, dobna oznaka, premijera, glumci, režija/scenarij; sezone i epizode (nazivi, opisi, datumi, stillovi).
+- Posteri/pozadine/stillovi u `/cache/images`, `GET /items/{id}/images/{type}`; čišćenje osirotjelih slika; migracija 00010.
+- Web: posteri u mreži, hero s pozadinom, opisom i ulogama; Postavke → Metapodaci; „Osvježi metapodatke" po biblioteci.
+- Testovi: integracijski s lažnim TMDb serverom (film, ID iz imena, serija/epizode, bez podudaranja, re-scan čuva naslov, čišćenje slika), Vitest 26, Playwright 10.
+- Još u P3: Identify (ručni odabir), zaključavanje polja, slike osoba, AVIF/WebP + blurhash, OMDb/Fanart/NFO, automatske kolekcije.
+
+## P2 — drugi dio (branch `phase/P2-watch`)
+- Praćenje mapa (fsnotify, rekurzivno, nove podmape, debounce 15 s) → automatski scan; periodični scan svih biblioteka svakih 6 h (NFS/SMB); `.streameroignore`/`.ignore` marker.
+- Odluka korisnika: TMDb API ključ se upisuje u Postavke aplikacije (baza), ne u `.env`.
+
 ## P2 — prvi dio (PR #5, izdanje v0.2.0)
 - Biblioteke (filmovi, serije, mješovito; više mapa), API + admin UI s preglednikom mapa; svaka putanja kroz `library.ResolveSafePath` unutar `STREAMERO_MEDIA_ROOTS`; migracija 00009.
 - Skener kao River job: parsiranje imena (naslov/godina, release tagovi, provider ID, verzije, extras/sample/trailer, skrivene/NAS mape), epizode (SxxEyy, multi, NxNN, specijali, daily, anime absolute), ffprobe (rezolucija, kodek, HDR10/HLG/DV, zvuk, podnaslovi) + vanjski podnaslovi (dijele ih sve verzije), paralelno probanje, inkrementalno; nedostupna mapa = scan pada bez brisanja.
@@ -42,7 +54,7 @@ P2 — Biblioteke i scanner (u tijeku). P0 (PR #1) i P1 (PR #4) gotovi; prvi dio
 - Testovi: Go unit + integracijski protiv Postgresa (setup, cookie/bearer, revoke, lockout, zadnji admin, promjena lozinke), Vitest 18, Playwright 9 (setup, korisnici, uređaji, Quick Connect, pozivnice, lockout, odjava — na svježem stacku).
 
 ## Sljedeći koraci
-1. P2 nastavak: fsnotify + periodični scan, `.streameroignore`, watch status kroz preimenovanje (inode/hash), golden testovi do 300+, `seed-big-library.sh` + 50k benchmark, provider ID na sezonama/epizodama, verzije epizoda.
+1. Redoslijed (korisnik: što prije): P3 metapodaci (TMDb ključ u Postavkama) → P5 reprodukcija → P4 pregledavanje → P4b *arr → ostalo. P2 ostatak: watch status kroz preimenovanje (inode/hash), golden testovi do 300+, `seed-big-library.sh` + 50k benchmark, provider ID na sezonama/epizodama, verzije epizoda.
 2. Instalirati `streamero-ipa` (artefakt iOS CI-ja) kroz Feather, spojiti se na https://demo.streamero.net i prijaviti (lozinka / Quick Connect).
 3. Zamijeniti placeholder logo službenim s streamero.net.
 4. *arr ekosustav je faza P4b (D-011).

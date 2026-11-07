@@ -124,12 +124,24 @@ type Handler interface {
 	//
 	// GET /items/{itemId}
 	GetItem(ctx context.Context, params GetItemParams) (*ItemDetail, error)
+	// GetItemImage implements getItemImage operation.
+	//
+	// Cached artwork of an item (JPEG).
+	//
+	// GET /items/{itemId}/images/{imageType}
+	GetItemImage(ctx context.Context, params GetItemImageParams) (*GetItemImageOKHeaders, error)
 	// GetMe implements getMe operation.
 	//
 	// The signed-in user.
 	//
 	// GET /auth/me
 	GetMe(ctx context.Context) (*User, error)
+	// GetMetadataSettings implements getMetadataSettings operation.
+	//
+	// Metadata provider settings (admin); the TMDb key itself is never returned.
+	//
+	// GET /settings/metadata
+	GetMetadataSettings(ctx context.Context) (*MetadataSettings, error)
 	// GetServerSettings implements getServerSettings operation.
 	//
 	// Server-wide settings (admin).
@@ -215,6 +227,12 @@ type Handler interface {
 	//
 	// POST /quickconnect/poll
 	PollQuickConnect(ctx context.Context, req *QuickConnectPollRequest) (PollQuickConnectRes, error)
+	// RefreshLibraryMetadata implements refreshLibraryMetadata operation.
+	//
+	// Fetch metadata again for every item of a library (admin).
+	//
+	// POST /libraries/{libraryId}/refresh-metadata
+	RefreshLibraryMetadata(ctx context.Context, params RefreshLibraryMetadataParams) error
 	// RenameSession implements renameSession operation.
 	//
 	// Own sessions; admins can rename any session.
@@ -257,6 +275,12 @@ type Handler interface {
 	//
 	// PUT /libraries/{libraryId}
 	UpdateLibrary(ctx context.Context, req *LibraryInput, params UpdateLibraryParams) (*Library, error)
+	// UpdateMetadataSettings implements updateMetadataSettings operation.
+	//
+	// Save metadata settings (admin); a new TMDb key is verified with TMDb first.
+	//
+	// PUT /settings/metadata
+	UpdateMetadataSettings(ctx context.Context, req *MetadataSettingsInput) (*MetadataSettings, error)
 	// UpdateProfile implements updateProfile operation.
 	//
 	// Change a profile (not from a kids profile).
