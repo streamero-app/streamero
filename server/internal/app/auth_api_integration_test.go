@@ -14,7 +14,9 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
+	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -999,6 +1001,139 @@ func TestPlaybackIntegration(t *testing.T) {
 	detail.Item.Played = false // absent fields keep old values when decoding
 	if adminC.do("GET", "/items/"+item, nil, &detail); detail.Item.Played {
 		t.Fatal("watched state leaked into another profile")
+	}
+	_ = adminC.do("DELETE", "/libraries/"+lib.ID, nil, nil)
+}
+
+func TestBrowseIntegration(t *testing.T) {
+	srv := newAuthTestServer(t)
+	adminC := newClient(t, srv)
+	setupAdmin(t, adminC)
+	root := mediaRoot + "/m"
+	for _, f := range []string{"The Matrix (1999)/The Matrix (1999).mkv", "Amelie (2001)/Amelie (2001).mkv",
+		"Show (2020)/Season 01/Show S01E01.mkv", "Show (2020)/Season 01/Show S01E02.mkv"} {
+		if err := os.MkdirAll(filepath.Dir(root+"/"+f), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(root+"/"+f, []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var lib struct {
+		ID string `json:"id"`
+	}
+	// Search is global: remove leftovers of earlier failed runs and always clean up.
+	if _, err := testPool.Exec(context.Background(), `DELETE FROM libraries WHERE name = 'browse-test'`); err != nil {
+		t.Fatal(err)
+	}
+	adminC.do("POST", "/libraries", map[string]any{"name": "browse-test", "kind": "mixed", "paths": []string{root}}, &lib)
+	libID := uuid.MustParse(lib.ID)
+	t.Cleanup(func() { _, _ = testPool.Exec(context.Background(), `DELETE FROM libraries WHERE id = $1`, libID) })
+	scanner := &library.Scanner{Pool: testPool, Roots: library.Roots{mediaRoot}, Log: slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Probe: func(context.Context, string) (library.ProbeResult, error) {
+			return library.ProbeResult{Container: "mkv"}, nil
+		}}
+	if _, err := scanner.Scan(context.Background(), libID); err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	exec := func(sql string, args ...any) {
+		if _, err := testPool.Exec(ctx, sql, args...); err != nil {
+			t.Fatal(err)
+		}
+	}
+	exec(`UPDATE items SET genres = '{Action,"Science Fiction"}', community_rating = 8.7 WHERE library_id = $1 AND title = 'The Matrix'`, libID)
+	exec(`UPDATE items SET genres = '{Comedy,Romance}', community_rating = 7.9, metadata_title = 'Amélie' WHERE library_id = $1 AND title = 'Amelie'`, libID)
+	exec(`INSERT INTO item_people (item_id, position, kind, name, role) SELECT id, 0, 'cast', 'Keanu Reeves', 'Neo' FROM items WHERE library_id = $1 AND title = 'The Matrix'`, libID)
+
+	type sum struct {
+		ID       string `json:"id"`
+		Title    string `json:"title"`
+		Kind     string `json:"kind"`
+		Played   bool   `json:"played"`
+		Favorite bool   `json:"favorite"`
+	}
+	search := func(q string) []sum {
+		var out []sum
+		if s := adminC.do("GET", "/search?q="+url.QueryEscape(q), nil, &out); s != 200 {
+			t.Fatalf("search %q: HTTP %d", q, s)
+		}
+		return out
+	}
+	if r := search("matirx"); len(r) == 0 || r[0].Title != "The Matrix" {
+		t.Fatalf("typo search: %+v", r)
+	}
+	if r := search("keanu"); len(r) != 1 || r[0].Title != "The Matrix" {
+		t.Fatalf("person search: %+v", r)
+	}
+	if r := search("amélie"); len(r) == 0 || r[0].Title != "Amélie" {
+		t.Fatalf("metadata title search: %+v", r)
+	}
+	if r := search("%_%"); len(r) != 0 { // only a literal % in a title could match
+		t.Fatalf("wildcards not escaped: %+v", r)
+	}
+
+	var genres []string
+	adminC.do("GET", "/libraries/"+lib.ID+"/genres", nil, &genres)
+	if strings.Join(genres, ",") != "Action,Comedy,Romance,Science Fiction" {
+		t.Fatalf("genres: %v", genres)
+	}
+	var page struct {
+		Items []sum `json:"items"`
+		Total int   `json:"total"`
+	}
+	adminC.do("GET", "/libraries/"+lib.ID+"/items?genre="+url.QueryEscape("Science Fiction"), nil, &page)
+	if page.Total != 1 || page.Items[0].Title != "The Matrix" {
+		t.Fatalf("genre filter: %+v", page)
+	}
+	adminC.do("GET", "/libraries/"+lib.ID+"/items?sort=rating", nil, &page)
+	if page.Items[0].Title != "The Matrix" || page.Items[1].Title != "Amélie" {
+		t.Fatalf("rating sort: %+v", page.Items)
+	}
+
+	// Mark the series watched: its episodes follow; the unplayed filter hides it.
+	var showID, matrixID string
+	for _, it := range page.Items {
+		switch it.Title {
+		case "Show":
+			showID = it.ID
+		case "The Matrix":
+			matrixID = it.ID
+		}
+	}
+	if s := adminC.do("PUT", "/items/"+showID+"/user-data", map[string]any{"played": true}, nil); s != 204 {
+		t.Fatalf("mark played: HTTP %d", s)
+	}
+	var detail struct {
+		Children []sum `json:"children"`
+	}
+	adminC.do("GET", "/items/"+showID, nil, &detail)
+	var seasonDetail struct {
+		Children []sum `json:"children"`
+	}
+	adminC.do("GET", "/items/"+detail.Children[0].ID, nil, &seasonDetail)
+	if len(seasonDetail.Children) != 2 || !seasonDetail.Children[0].Played || !seasonDetail.Children[1].Played {
+		t.Fatalf("episodes not marked: %+v", seasonDetail.Children)
+	}
+	adminC.do("GET", "/libraries/"+lib.ID+"/items?unplayed=true", nil, &page)
+	if page.Total != 2 {
+		t.Fatalf("unplayed filter: %+v", page.Items)
+	}
+
+	// Favorites and recently added.
+	adminC.do("PUT", "/items/"+matrixID+"/user-data", map[string]any{"favorite": true}, nil)
+	var favs []sum
+	if adminC.do("GET", "/home/favorites", nil, &favs); len(favs) != 1 || favs[0].Title != "The Matrix" || !favs[0].Favorite {
+		t.Fatalf("favorites: %+v", favs)
+	}
+	adminC.do("PUT", "/items/"+matrixID+"/user-data", map[string]any{"favorite": false}, nil)
+	favs = nil
+	if adminC.do("GET", "/home/favorites", nil, &favs); len(favs) != 0 {
+		t.Fatalf("unfavorite: %+v", favs)
+	}
+	var latest []sum
+	if adminC.do("GET", "/home/latest", nil, &latest); len(latest) < 3 {
+		t.Fatalf("recently added: %+v", latest)
 	}
 	_ = adminC.do("DELETE", "/libraries/"+lib.ID, nil, nil)
 }

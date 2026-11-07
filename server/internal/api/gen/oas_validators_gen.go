@@ -871,6 +871,8 @@ func (s ListLibraryItemsSort) Validate() error {
 		return nil
 	case "added":
 		return nil
+	case "rating":
+		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
 	}

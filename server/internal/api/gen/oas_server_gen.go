@@ -173,6 +173,12 @@ type Handler interface {
 	//
 	// GET /apikeys
 	ListAPIKeys(ctx context.Context) ([]ApiKey, error)
+	// ListFavorites implements listFavorites operation.
+	//
+	// Favorites of the current profile.
+	//
+	// GET /home/favorites
+	ListFavorites(ctx context.Context) ([]ItemSummary, error)
 	// ListInvites implements listInvites operation.
 	//
 	// Invite links (admin).
@@ -185,6 +191,12 @@ type Handler interface {
 	//
 	// GET /libraries
 	ListLibraries(ctx context.Context) ([]Library, error)
+	// ListLibraryGenres implements listLibraryGenres operation.
+	//
+	// Genres used in a library (for filters).
+	//
+	// GET /libraries/{libraryId}/genres
+	ListLibraryGenres(ctx context.Context, params ListLibraryGenresParams) ([]string, error)
 	// ListLibraryItems implements listLibraryItems operation.
 	//
 	// Top-level items of a library (movies, series), paged.
@@ -233,6 +245,12 @@ type Handler interface {
 	//
 	// POST /quickconnect/poll
 	PollQuickConnect(ctx context.Context, req *QuickConnectPollRequest) (PollQuickConnectRes, error)
+	// RecentlyAdded implements recentlyAdded operation.
+	//
+	// Recently added movies and series across visible libraries.
+	//
+	// GET /home/latest
+	RecentlyAdded(ctx context.Context) ([]ItemSummary, error)
 	// RefreshLibraryMetadata implements refreshLibraryMetadata operation.
 	//
 	// Fetch metadata again for every item of a library (admin).
@@ -263,6 +281,12 @@ type Handler interface {
 	//
 	// POST /libraries/{libraryId}/scan
 	ScanLibrary(ctx context.Context, params ScanLibraryParams) error
+	// Search implements search operation.
+	//
+	// Search titles (typo tolerant) and people across visible libraries.
+	//
+	// GET /search
+	Search(ctx context.Context, params SearchParams) ([]ItemSummary, error)
 	// SelectMainProfile implements selectMainProfile operation.
 	//
 	// From a kids profile this needs the account password.
@@ -319,6 +343,12 @@ type Handler interface {
 	//
 	// PATCH /users/{userId}
 	UpdateUser(ctx context.Context, req *UpdateUserRequest, params UpdateUserParams) (*User, error)
+	// UpdateUserData implements updateUserData operation.
+	//
+	// Watching a series or season marks all its episodes.
+	//
+	// PUT /items/{itemId}/user-data
+	UpdateUserData(ctx context.Context, req *UserDataUpdate, params UpdateUserDataParams) error
 	// NewError creates *ErrorStatusCode from error returned by handler.
 	//
 	// Used for common default response.

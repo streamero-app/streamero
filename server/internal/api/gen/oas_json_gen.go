@@ -2909,9 +2909,15 @@ func (s *ItemSummary) encodeFields(e *jx.Encoder) {
 			s.Played.Encode(e)
 		}
 	}
+	{
+		if s.Favorite.Set {
+			e.FieldStart("favorite")
+			s.Favorite.Encode(e)
+		}
+	}
 }
 
-var jsonFieldsNameOfItemSummary = [13]string{
+var jsonFieldsNameOfItemSummary = [14]string{
 	0:  "id",
 	1:  "kind",
 	2:  "title",
@@ -2925,6 +2931,7 @@ var jsonFieldsNameOfItemSummary = [13]string{
 	10: "rating",
 	11: "positionMs",
 	12: "played",
+	13: "favorite",
 }
 
 // Decode decodes ItemSummary from json.
@@ -3073,6 +3080,16 @@ func (s *ItemSummary) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"played\"")
+			}
+		case "favorite":
+			if err := func() error {
+				s.Favorite.Reset()
+				if err := s.Favorite.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"favorite\"")
 			}
 		default:
 			return d.Skip()
@@ -8397,6 +8414,86 @@ func (s *User) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *User) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *UserDataUpdate) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *UserDataUpdate) encodeFields(e *jx.Encoder) {
+	{
+		if s.Favorite.Set {
+			e.FieldStart("favorite")
+			s.Favorite.Encode(e)
+		}
+	}
+	{
+		if s.Played.Set {
+			e.FieldStart("played")
+			s.Played.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfUserDataUpdate = [2]string{
+	0: "favorite",
+	1: "played",
+}
+
+// Decode decodes UserDataUpdate from json.
+func (s *UserDataUpdate) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UserDataUpdate to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "favorite":
+			if err := func() error {
+				s.Favorite.Reset()
+				if err := s.Favorite.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"favorite\"")
+			}
+		case "played":
+			if err := func() error {
+				s.Played.Reset()
+				if err := s.Played.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"played\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UserDataUpdate")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UserDataUpdate) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UserDataUpdate) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

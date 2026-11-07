@@ -792,12 +792,80 @@ func decodeGetItemImageParams(args [2]string, argsEscaped bool, r *http.Request)
 	return params, nil
 }
 
+// ListLibraryGenresParams is parameters of listLibraryGenres operation.
+type ListLibraryGenresParams struct {
+	LibraryId uuid.UUID
+}
+
+func unpackListLibraryGenresParams(packed middleware.Parameters) (params ListLibraryGenresParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "libraryId",
+			In:   "path",
+		}
+		params.LibraryId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeListLibraryGenresParams(args [1]string, argsEscaped bool, r *http.Request) (params ListLibraryGenresParams, _ error) {
+	// Decode path: libraryId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "libraryId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.LibraryId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "libraryId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // ListLibraryItemsParams is parameters of listLibraryItems operation.
 type ListLibraryItemsParams struct {
 	LibraryId uuid.UUID
 	Limit     OptInt                  `json:",omitempty,omitzero"`
 	Offset    OptInt                  `json:",omitempty,omitzero"`
 	Sort      OptListLibraryItemsSort `json:",omitempty,omitzero"`
+	Genre     OptString               `json:",omitempty,omitzero"`
+	// Only items the current profile has not watched.
+	Unplayed OptBool `json:",omitempty,omitzero"`
 }
 
 func unpackListLibraryItemsParams(packed middleware.Parameters) (params ListLibraryItemsParams) {
@@ -833,6 +901,24 @@ func unpackListLibraryItemsParams(packed middleware.Parameters) (params ListLibr
 		}
 		if v, ok := packed[key]; ok {
 			params.Sort = v.(OptListLibraryItemsSort)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "genre",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Genre = v.(OptString)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "unplayed",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Unplayed = v.(OptBool)
 		}
 	}
 	return params
@@ -1084,6 +1170,115 @@ func decodeListLibraryItemsParams(args [1]string, argsEscaped bool, r *http.Requ
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "sort",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: genre.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "genre",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotGenreVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotGenreVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Genre.SetTo(paramsDotGenreVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.Genre.Get(); ok {
+					if err := func() error {
+						if err := (validate.String{
+							MinLength:     0,
+							MinLengthSet:  false,
+							MaxLength:     100,
+							MaxLengthSet:  true,
+							Email:         false,
+							Hostname:      false,
+							Regex:         nil,
+							MinNumeric:    0,
+							MinNumericSet: false,
+							MaxNumeric:    0,
+							MaxNumericSet: false,
+						}).Validate(string(value)); err != nil {
+							return errors.Wrap(err, "string")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "genre",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: unplayed.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "unplayed",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotUnplayedVal bool
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToBool(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotUnplayedVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Unplayed.SetTo(paramsDotUnplayedVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "unplayed",
 			In:   "query",
 			Err:  err,
 		}
@@ -1416,6 +1611,164 @@ func decodeScanLibraryParams(args [1]string, argsEscaped bool, r *http.Request) 
 	return params, nil
 }
 
+// SearchParams is parameters of search operation.
+type SearchParams struct {
+	Q     string
+	Limit OptInt `json:",omitempty,omitzero"`
+}
+
+func unpackSearchParams(packed middleware.Parameters) (params SearchParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "q",
+			In:   "query",
+		}
+		params.Q = packed[key].(string)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "limit",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Limit = v.(OptInt)
+		}
+	}
+	return params
+}
+
+func decodeSearchParams(args [0]string, argsEscaped bool, r *http.Request) (params SearchParams, _ error) {
+	q := uri.NewQueryDecoder(r.URL.Query())
+	// Decode query: q.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "q",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.Q = c
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     1,
+					MinLengthSet:  true,
+					MaxLength:     200,
+					MaxLengthSet:  true,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(params.Q)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "q",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Set default value for query: limit.
+	{
+		val := int(40)
+		params.Limit.SetTo(val)
+	}
+	// Decode query: limit.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "limit",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotLimitVal int
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToInt(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotLimitVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Limit.SetTo(paramsDotLimitVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.Limit.Get(); ok {
+					if err := func() error {
+						if err := (validate.Int{
+							MinSet:        true,
+							Min:           1,
+							MaxSet:        true,
+							Max:           100,
+							MinExclusive:  false,
+							MaxExclusive:  false,
+							MultipleOfSet: false,
+							MultipleOf:    0,
+							Pattern:       nil,
+						}).Validate(int64(value)); err != nil {
+							return errors.Wrap(err, "int")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "limit",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // SelectProfileParams is parameters of selectProfile operation.
 type SelectProfileParams struct {
 	ProfileId uuid.UUID
@@ -1734,6 +2087,71 @@ func decodeUpdateUserParams(args [1]string, argsEscaped bool, r *http.Request) (
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "userId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// UpdateUserDataParams is parameters of updateUserData operation.
+type UpdateUserDataParams struct {
+	ItemId uuid.UUID
+}
+
+func unpackUpdateUserDataParams(packed middleware.Parameters) (params UpdateUserDataParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "itemId",
+			In:   "path",
+		}
+		params.ItemId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeUpdateUserDataParams(args [1]string, argsEscaped bool, r *http.Request) (params UpdateUserDataParams, _ error) {
+	// Decode path: itemId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "itemId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ItemId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "itemId",
 			In:   "path",
 			Err:  err,
 		}

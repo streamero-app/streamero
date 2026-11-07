@@ -122,7 +122,7 @@ func TestMovieLibraryScanIntegration(t *testing.T) {
 	if res.Files != 4 || res.Probed != 4 {
 		t.Fatalf("first scan: %+v", res)
 	}
-	items, total, err := f.svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 100, 0)
+	items, total, err := f.svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 100, 0, ItemFilter{})
 	if err != nil || total != 3 {
 		t.Fatalf("items: %d %v", total, err)
 	}
@@ -172,7 +172,7 @@ func TestMovieLibraryScanIntegration(t *testing.T) {
 	if res := f.scan(t, lib.ID); res.Probed != 1 || res.Removed != 1 {
 		t.Fatalf("after changes: %+v", res)
 	}
-	if _, total, _ := f.svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 100, 0); total != 2 {
+	if _, total, _ := f.svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 100, 0, ItemFilter{}); total != 2 {
 		t.Fatalf("items after removal: %d", total)
 	}
 
@@ -183,7 +183,7 @@ func TestMovieLibraryScanIntegration(t *testing.T) {
 	if _, err := f.scanner.Scan(ctx, lib.ID); err == nil {
 		t.Fatal("scan of a missing folder succeeded")
 	}
-	if _, total, _ := f.svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 100, 0); total != 2 {
+	if _, total, _ := f.svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 100, 0, ItemFilter{}); total != 2 {
 		t.Fatalf("items deleted while folder offline: %d", total)
 	}
 	if l, _ := f.svc.Get(ctx, lib.ID); l.ScanState != "failed" || l.ScanError == "" {
@@ -212,7 +212,7 @@ func TestShowLibraryScanIntegration(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = f.svc.Delete(context.Background(), lib.ID) })
 	f.scan(t, lib.ID)
-	series, total, _ := f.svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 100, 0)
+	series, total, _ := f.svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 100, 0, ItemFilter{})
 	if total != 3 {
 		t.Fatalf("series: %v", titles(series))
 	}
@@ -259,7 +259,20 @@ func TestLibraryQueriesUseIndexes(t *testing.T) {
 	if _, err := conn.Exec(ctx, `SET enable_seqscan = off`); err != nil {
 		t.Fatal(err)
 	}
+	// Realistic statistics: a library with thousands of items (tiny tables make any index "cheapest").
 	id := uuid.New()
+	if _, err := conn.Exec(ctx, `INSERT INTO libraries (id, name, kind, paths) VALUES ($1, 'explain-test', 'movies', '{/x}')`, id); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _, _ = pool.Exec(context.Background(), `DELETE FROM libraries WHERE id = $1`, id) }()
+	if _, err := conn.Exec(ctx, `INSERT INTO items (id, library_id, kind, path, title, sort_title, added_at)
+		SELECT gen_random_uuid(), $1, 'movie', '/x/' || g, 'Movie ' || g, 'movie ' || g, now() - g * interval '1 minute'
+		FROM generate_series(1, 3000) g`, id); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := conn.Exec(ctx, `ANALYZE items`); err != nil {
+		t.Fatal(err)
+	}
 	for query, index := range map[string]string{
 		`SELECT id FROM items i WHERE i.library_id = $1 AND i.parent_id IS NULL ORDER BY i.sort_title LIMIT 100`:    "items_top_title_idx",
 		`SELECT id FROM items i WHERE i.library_id = $1 AND i.parent_id IS NULL ORDER BY i.added_at DESC LIMIT 100`: "items_top_added_idx",
@@ -335,7 +348,7 @@ func TestIgnoreMarkerIntegration(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = f.svc.Delete(context.Background(), lib.ID) })
 	f.scan(t, lib.ID)
-	items, _, _ := f.svc.ListItems(context.Background(), lib.ID, uuid.Nil, "title", 10, 0)
+	items, _, _ := f.svc.ListItems(context.Background(), lib.ID, uuid.Nil, "title", 10, 0, ItemFilter{})
 	if got := titles(items); len(got) != 1 || got[0] != "Keep" {
 		t.Fatalf("ignored folder scanned: %v", got)
 	}
