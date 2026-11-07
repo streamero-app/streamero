@@ -19,6 +19,7 @@ import { ProfilesSettings } from "@/features/settings/ProfilesSettings";
 import { LibrariesSettings } from "@/features/settings/LibrariesSettings";
 import { MetadataSettings } from "@/features/settings/MetadataSettings";
 import { ItemPage, LibraryPage } from "@/features/library/LibraryPages";
+import { PlayerPage } from "@/features/player/PlayerPage";
 import { NotFoundPage } from "@/routes/NotFoundPage";
 
 const rootRoute = createRootRoute({
@@ -39,6 +40,13 @@ const appRoute = createRoute({ getParentRoute: () => rootRoute, id: "app", compo
 const homeRoute = createRoute({ getParentRoute: () => appRoute, path: "/", component: HomePage });
 const libraryRoute = createRoute({ getParentRoute: () => appRoute, path: "/library/$libraryId", component: LibraryPage });
 const itemRoute = createRoute({ getParentRoute: () => appRoute, path: "/item/$itemId", component: ItemPage });
+const watchRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/watch/$itemId",
+  component: PlayerPage,
+  validateSearch: (s: Record<string, unknown>): { start?: number } =>
+    s.start === undefined || Number.isNaN(Number(s.start)) ? {} : { start: Number(s.start) },
+});
 
 function adminOnly(Page: ComponentType) {
   return function AdminPage() {
@@ -78,6 +86,7 @@ export const routeTree = rootRoute.addChildren([
     homeRoute,
     libraryRoute,
     itemRoute,
+    watchRoute,
     settingsRoute.addChildren([settingsIndex, accountRoute, profilesRoute, devicesRoute, quickConnectRoute, serverRoute, librariesRoute, metadataRoute, usersRoute, invitesRoute, apiKeysRoute]),
   ]),
 ]);

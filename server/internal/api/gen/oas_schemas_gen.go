@@ -460,6 +460,82 @@ func (s *DeviceInfo) SetClient(val OptString) {
 	s.Client = val
 }
 
+// What the client can decode natively.
+// Ref: #/components/schemas/DeviceProfile
+type DeviceProfile struct {
+	// E.g. ["mp4", "webm"].
+	Containers []string `json:"containers"`
+	// Ffprobe codec names, e.g. ["h264", "hevc", "av1", "vp9"].
+	VideoCodecs []string `json:"videoCodecs"`
+	// E.g. ["aac", "mp3", "opus", "flac", "ac3", "eac3"].
+	AudioCodecs []string `json:"audioCodecs"`
+	// The client plays HLS with fMP4 segments.
+	Hls       OptBool `json:"hls"`
+	MaxHeight OptInt  `json:"maxHeight"`
+	// Bits per second; lower values force transcoding.
+	MaxBitrate OptInt `json:"maxBitrate"`
+}
+
+// GetContainers returns the value of Containers.
+func (s *DeviceProfile) GetContainers() []string {
+	return s.Containers
+}
+
+// GetVideoCodecs returns the value of VideoCodecs.
+func (s *DeviceProfile) GetVideoCodecs() []string {
+	return s.VideoCodecs
+}
+
+// GetAudioCodecs returns the value of AudioCodecs.
+func (s *DeviceProfile) GetAudioCodecs() []string {
+	return s.AudioCodecs
+}
+
+// GetHls returns the value of Hls.
+func (s *DeviceProfile) GetHls() OptBool {
+	return s.Hls
+}
+
+// GetMaxHeight returns the value of MaxHeight.
+func (s *DeviceProfile) GetMaxHeight() OptInt {
+	return s.MaxHeight
+}
+
+// GetMaxBitrate returns the value of MaxBitrate.
+func (s *DeviceProfile) GetMaxBitrate() OptInt {
+	return s.MaxBitrate
+}
+
+// SetContainers sets the value of Containers.
+func (s *DeviceProfile) SetContainers(val []string) {
+	s.Containers = val
+}
+
+// SetVideoCodecs sets the value of VideoCodecs.
+func (s *DeviceProfile) SetVideoCodecs(val []string) {
+	s.VideoCodecs = val
+}
+
+// SetAudioCodecs sets the value of AudioCodecs.
+func (s *DeviceProfile) SetAudioCodecs(val []string) {
+	s.AudioCodecs = val
+}
+
+// SetHls sets the value of Hls.
+func (s *DeviceProfile) SetHls(val OptBool) {
+	s.Hls = val
+}
+
+// SetMaxHeight sets the value of MaxHeight.
+func (s *DeviceProfile) SetMaxHeight(val OptInt) {
+	s.MaxHeight = val
+}
+
+// SetMaxBitrate sets the value of MaxBitrate.
+func (s *DeviceProfile) SetMaxBitrate(val OptInt) {
+	s.MaxBitrate = val
+}
+
 // Ref: #/components/schemas/DirectoryListing
 type DirectoryListing struct {
 	// The listed folder (absent for the list of media roots).
@@ -1051,6 +1127,10 @@ type ItemSummary struct {
 	HasPoster        bool      `json:"hasPoster"`
 	// Community rating 0–10.
 	Rating OptFloat64 `json:"rating"`
+	// Resume position for the current profile.
+	PositionMs OptInt64 `json:"positionMs"`
+	// Watched by the current profile.
+	Played OptBool `json:"played"`
 }
 
 // GetID returns the value of ID.
@@ -1108,6 +1188,16 @@ func (s *ItemSummary) GetRating() OptFloat64 {
 	return s.Rating
 }
 
+// GetPositionMs returns the value of PositionMs.
+func (s *ItemSummary) GetPositionMs() OptInt64 {
+	return s.PositionMs
+}
+
+// GetPlayed returns the value of Played.
+func (s *ItemSummary) GetPlayed() OptBool {
+	return s.Played
+}
+
 // SetID sets the value of ID.
 func (s *ItemSummary) SetID(val uuid.UUID) {
 	s.ID = val
@@ -1161,6 +1251,16 @@ func (s *ItemSummary) SetHasPoster(val bool) {
 // SetRating sets the value of Rating.
 func (s *ItemSummary) SetRating(val OptFloat64) {
 	s.Rating = val
+}
+
+// SetPositionMs sets the value of PositionMs.
+func (s *ItemSummary) SetPositionMs(val OptInt64) {
+	s.PositionMs = val
+}
+
+// SetPlayed sets the value of Played.
+func (s *ItemSummary) SetPlayed(val OptBool) {
+	s.Played = val
 }
 
 // Ref: #/components/schemas/Library
@@ -2427,6 +2527,271 @@ func (s *PinRequest) SetPin(val OptString) {
 	s.Pin = val
 }
 
+// Ref: #/components/schemas/PlaybackInfo
+type PlaybackInfo struct {
+	FileId uuid.UUID          `json:"fileId"`
+	Method PlaybackInfoMethod `json:"method"`
+	// Signed URL (relative to the server) for the video element / player.
+	URL string `json:"url"`
+	// Position the stream starts at; for HLS the stream itself starts there.
+	StartMs    int64              `json:"startMs"`
+	DurationMs OptInt64           `json:"durationMs"`
+	Audio      []AudioStream      `json:"audio"`
+	AudioIndex OptInt             `json:"audioIndex"`
+	Subtitles  []PlaybackSubtitle `json:"subtitles"`
+	// Why the stream is not direct play (e.g. "audio codec dts").
+	Reason OptString `json:"reason"`
+}
+
+// GetFileId returns the value of FileId.
+func (s *PlaybackInfo) GetFileId() uuid.UUID {
+	return s.FileId
+}
+
+// GetMethod returns the value of Method.
+func (s *PlaybackInfo) GetMethod() PlaybackInfoMethod {
+	return s.Method
+}
+
+// GetURL returns the value of URL.
+func (s *PlaybackInfo) GetURL() string {
+	return s.URL
+}
+
+// GetStartMs returns the value of StartMs.
+func (s *PlaybackInfo) GetStartMs() int64 {
+	return s.StartMs
+}
+
+// GetDurationMs returns the value of DurationMs.
+func (s *PlaybackInfo) GetDurationMs() OptInt64 {
+	return s.DurationMs
+}
+
+// GetAudio returns the value of Audio.
+func (s *PlaybackInfo) GetAudio() []AudioStream {
+	return s.Audio
+}
+
+// GetAudioIndex returns the value of AudioIndex.
+func (s *PlaybackInfo) GetAudioIndex() OptInt {
+	return s.AudioIndex
+}
+
+// GetSubtitles returns the value of Subtitles.
+func (s *PlaybackInfo) GetSubtitles() []PlaybackSubtitle {
+	return s.Subtitles
+}
+
+// GetReason returns the value of Reason.
+func (s *PlaybackInfo) GetReason() OptString {
+	return s.Reason
+}
+
+// SetFileId sets the value of FileId.
+func (s *PlaybackInfo) SetFileId(val uuid.UUID) {
+	s.FileId = val
+}
+
+// SetMethod sets the value of Method.
+func (s *PlaybackInfo) SetMethod(val PlaybackInfoMethod) {
+	s.Method = val
+}
+
+// SetURL sets the value of URL.
+func (s *PlaybackInfo) SetURL(val string) {
+	s.URL = val
+}
+
+// SetStartMs sets the value of StartMs.
+func (s *PlaybackInfo) SetStartMs(val int64) {
+	s.StartMs = val
+}
+
+// SetDurationMs sets the value of DurationMs.
+func (s *PlaybackInfo) SetDurationMs(val OptInt64) {
+	s.DurationMs = val
+}
+
+// SetAudio sets the value of Audio.
+func (s *PlaybackInfo) SetAudio(val []AudioStream) {
+	s.Audio = val
+}
+
+// SetAudioIndex sets the value of AudioIndex.
+func (s *PlaybackInfo) SetAudioIndex(val OptInt) {
+	s.AudioIndex = val
+}
+
+// SetSubtitles sets the value of Subtitles.
+func (s *PlaybackInfo) SetSubtitles(val []PlaybackSubtitle) {
+	s.Subtitles = val
+}
+
+// SetReason sets the value of Reason.
+func (s *PlaybackInfo) SetReason(val OptString) {
+	s.Reason = val
+}
+
+type PlaybackInfoMethod string
+
+const (
+	PlaybackInfoMethodDirect    PlaybackInfoMethod = "direct"
+	PlaybackInfoMethodRemux     PlaybackInfoMethod = "remux"
+	PlaybackInfoMethodTranscode PlaybackInfoMethod = "transcode"
+)
+
+// AllValues returns all PlaybackInfoMethod values.
+func (PlaybackInfoMethod) AllValues() []PlaybackInfoMethod {
+	return []PlaybackInfoMethod{
+		PlaybackInfoMethodDirect,
+		PlaybackInfoMethodRemux,
+		PlaybackInfoMethodTranscode,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s PlaybackInfoMethod) MarshalText() ([]byte, error) {
+	switch s {
+	case PlaybackInfoMethodDirect:
+		return []byte(s), nil
+	case PlaybackInfoMethodRemux:
+		return []byte(s), nil
+	case PlaybackInfoMethodTranscode:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *PlaybackInfoMethod) UnmarshalText(data []byte) error {
+	switch PlaybackInfoMethod(data) {
+	case PlaybackInfoMethodDirect:
+		*s = PlaybackInfoMethodDirect
+		return nil
+	case PlaybackInfoMethodRemux:
+		*s = PlaybackInfoMethodRemux
+		return nil
+	case PlaybackInfoMethodTranscode:
+		*s = PlaybackInfoMethodTranscode
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/PlaybackRequest
+type PlaybackRequest struct {
+	// Version to play (default the best one).
+	FileId OptUUID `json:"fileId"`
+	// Index into the file's audio tracks (default the first).
+	AudioIndex OptInt `json:"audioIndex"`
+	// Start position (default the saved resume position).
+	StartMs OptInt64      `json:"startMs"`
+	Device  DeviceProfile `json:"device"`
+}
+
+// GetFileId returns the value of FileId.
+func (s *PlaybackRequest) GetFileId() OptUUID {
+	return s.FileId
+}
+
+// GetAudioIndex returns the value of AudioIndex.
+func (s *PlaybackRequest) GetAudioIndex() OptInt {
+	return s.AudioIndex
+}
+
+// GetStartMs returns the value of StartMs.
+func (s *PlaybackRequest) GetStartMs() OptInt64 {
+	return s.StartMs
+}
+
+// GetDevice returns the value of Device.
+func (s *PlaybackRequest) GetDevice() DeviceProfile {
+	return s.Device
+}
+
+// SetFileId sets the value of FileId.
+func (s *PlaybackRequest) SetFileId(val OptUUID) {
+	s.FileId = val
+}
+
+// SetAudioIndex sets the value of AudioIndex.
+func (s *PlaybackRequest) SetAudioIndex(val OptInt) {
+	s.AudioIndex = val
+}
+
+// SetStartMs sets the value of StartMs.
+func (s *PlaybackRequest) SetStartMs(val OptInt64) {
+	s.StartMs = val
+}
+
+// SetDevice sets the value of Device.
+func (s *PlaybackRequest) SetDevice(val DeviceProfile) {
+	s.Device = val
+}
+
+// Ref: #/components/schemas/PlaybackSubtitle
+type PlaybackSubtitle struct {
+	Index    int       `json:"index"`
+	Language OptString `json:"language"`
+	Forced   OptBool   `json:"forced"`
+	External bool      `json:"external"`
+	// Signed WebVTT URL.
+	URL string `json:"url"`
+}
+
+// GetIndex returns the value of Index.
+func (s *PlaybackSubtitle) GetIndex() int {
+	return s.Index
+}
+
+// GetLanguage returns the value of Language.
+func (s *PlaybackSubtitle) GetLanguage() OptString {
+	return s.Language
+}
+
+// GetForced returns the value of Forced.
+func (s *PlaybackSubtitle) GetForced() OptBool {
+	return s.Forced
+}
+
+// GetExternal returns the value of External.
+func (s *PlaybackSubtitle) GetExternal() bool {
+	return s.External
+}
+
+// GetURL returns the value of URL.
+func (s *PlaybackSubtitle) GetURL() string {
+	return s.URL
+}
+
+// SetIndex sets the value of Index.
+func (s *PlaybackSubtitle) SetIndex(val int) {
+	s.Index = val
+}
+
+// SetLanguage sets the value of Language.
+func (s *PlaybackSubtitle) SetLanguage(val OptString) {
+	s.Language = val
+}
+
+// SetForced sets the value of Forced.
+func (s *PlaybackSubtitle) SetForced(val OptBool) {
+	s.Forced = val
+}
+
+// SetExternal sets the value of External.
+func (s *PlaybackSubtitle) SetExternal(val bool) {
+	s.External = val
+}
+
+// SetURL sets the value of URL.
+func (s *PlaybackSubtitle) SetURL(val string) {
+	s.URL = val
+}
+
 // PollQuickConnectAccepted is response for PollQuickConnect operation.
 type PollQuickConnectAccepted struct{}
 
@@ -2590,6 +2955,44 @@ func (s *ProfileInput) SetRemovePin(val OptBool) {
 	s.RemovePin = val
 }
 
+// Ref: #/components/schemas/ProgressReport
+type ProgressReport struct {
+	PositionMs int64    `json:"positionMs"`
+	DurationMs OptInt64 `json:"durationMs"`
+	// Mark as watched (set automatically past 90%).
+	Played OptBool `json:"played"`
+}
+
+// GetPositionMs returns the value of PositionMs.
+func (s *ProgressReport) GetPositionMs() int64 {
+	return s.PositionMs
+}
+
+// GetDurationMs returns the value of DurationMs.
+func (s *ProgressReport) GetDurationMs() OptInt64 {
+	return s.DurationMs
+}
+
+// GetPlayed returns the value of Played.
+func (s *ProgressReport) GetPlayed() OptBool {
+	return s.Played
+}
+
+// SetPositionMs sets the value of PositionMs.
+func (s *ProgressReport) SetPositionMs(val int64) {
+	s.PositionMs = val
+}
+
+// SetDurationMs sets the value of DurationMs.
+func (s *ProgressReport) SetDurationMs(val OptInt64) {
+	s.DurationMs = val
+}
+
+// SetPlayed sets the value of Played.
+func (s *ProgressReport) SetPlayed(val OptBool) {
+	s.Played = val
+}
+
 // Ref: #/components/schemas/QuickConnectApproved
 type QuickConnectApproved struct {
 	DeviceName string `json:"deviceName"`
@@ -2705,6 +3108,9 @@ func (s *RenameSessionRequest) GetDeviceName() string {
 func (s *RenameSessionRequest) SetDeviceName(val string) {
 	s.DeviceName = val
 }
+
+// ReportProgressNoContent is response for ReportProgress operation.
+type ReportProgressNoContent struct{}
 
 // RevokeSessionNoContent is response for RevokeSession operation.
 type RevokeSessionNoContent struct{}

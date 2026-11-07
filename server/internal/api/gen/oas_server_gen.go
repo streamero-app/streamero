@@ -39,6 +39,12 @@ type Handler interface {
 	//
 	// POST /setup
 	CompleteSetup(ctx context.Context, req *SetupRequest) (*SignedInHeaders, error)
+	// ContinueWatching implements continueWatching operation.
+	//
+	// Started but unfinished items of the current profile, most recent first.
+	//
+	// GET /home/continue
+	ContinueWatching(ctx context.Context) ([]ItemSummary, error)
 	// CreateAPIKey implements createAPIKey operation.
 	//
 	// The key acts with the rights of the admin who created it and is deleted with that user. Send it as
@@ -239,6 +245,12 @@ type Handler interface {
 	//
 	// PATCH /sessions/{sessionId}
 	RenameSession(ctx context.Context, req *RenameSessionRequest, params RenameSessionParams) error
+	// ReportProgress implements reportProgress operation.
+	//
+	// Save the playback position (per profile).
+	//
+	// PUT /items/{itemId}/progress
+	ReportProgress(ctx context.Context, req *ProgressReport, params ReportProgressParams) error
 	// RevokeSession implements revokeSession operation.
 	//
 	// Own sessions; admins can revoke any session.
@@ -263,6 +275,14 @@ type Handler interface {
 	//
 	// POST /profiles/{profileId}/select
 	SelectProfile(ctx context.Context, req OptPinRequest, params SelectProfileParams) error
+	// StartPlayback implements startPlayback operation.
+	//
+	// Returns direct play when the device supports the file as is, otherwise an HLS stream (remux or
+	// transcode). Stream, HLS and subtitle URLs are HMAC-signed and short-lived; they are served outside
+	// this API (byte ranges, HLS segments) — see D-015.
+	//
+	// POST /items/{itemId}/playback
+	StartPlayback(ctx context.Context, req *PlaybackRequest, params StartPlaybackParams) (*PlaybackInfo, error)
 	// StartTOTPSetup implements startTOTPSetup operation.
 	//
 	// Creates a new (not yet active) TOTP secret for the signed-in user.

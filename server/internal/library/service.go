@@ -42,6 +42,8 @@ type Person struct{ Name, Role string }
 type Item struct {
 	HasPoster                         bool
 	Rating                            *float64
+	PositionMS                        int64
+	Played                            bool
 	ID                                uuid.UUID
 	LibraryID                         uuid.UUID
 	ParentID                          *uuid.UUID
@@ -206,13 +208,19 @@ func (s *Service) Scan(ctx context.Context, id uuid.UUID) error {
 
 const itemCols = `i.id, i.library_id, i.parent_id, i.kind, COALESCE(i.metadata_title, i.title), i.year, i.season_number,
 	i.episode_number, i.episode_number_end, i.added_at, i.provider_ids,
-	(SELECT max(f.duration_ms) FROM media_files f WHERE f.item_id = i.id), i.has_poster, i.community_rating`
+	(SELECT max(f.duration_ms) FROM media_files f WHERE f.item_id = i.id), i.has_poster, i.community_rating,
+	COALESCE(u.position_ms, 0), COALESCE(u.played, false)`
+
+// userJoin attaches the viewer's playback state ($owner is the profile or user id).
+func userJoin(owner string) string {
+	return ` LEFT JOIN user_item_data u ON u.item_id = i.id AND u.owner_id = ` + owner + ` `
+}
 
 func scanItem(row pgx.Row) (Item, error) {
 	var it Item
 	var ids []byte
 	err := row.Scan(&it.ID, &it.LibraryID, &it.ParentID, &it.Kind, &it.Title, &it.Year, &it.Season, &it.Episode,
-		&it.EpisodeEnd, &it.AddedAt, &ids, &it.DurationMS, &it.HasPoster, &it.Rating)
+		&it.EpisodeEnd, &it.AddedAt, &ids, &it.DurationMS, &it.HasPoster, &it.Rating, &it.PositionMS, &it.Played)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return it, ErrNotFound
 	}
@@ -221,7 +229,7 @@ func scanItem(row pgx.Row) (Item, error) {
 }
 
 // ListItems returns a page of top-level items (movies, series).
-func (s *Service) ListItems(ctx context.Context, libID uuid.UUID, sortBy string, limit, offset int) ([]Item, int, error) {
+func (s *Service) ListItems(ctx context.Context, libID, owner uuid.UUID, sortBy string, limit, offset int) ([]Item, int, error) {
 	order := "i.sort_title, i.year NULLS LAST"
 	switch sortBy {
 	case "year":
@@ -234,8 +242,8 @@ func (s *Service) ListItems(ctx context.Context, libID uuid.UUID, sortBy string,
 		return nil, 0, err
 	}
 	// #nosec G202 -- order is one of three constants above
-	rows, err := s.Pool.Query(ctx, `SELECT `+itemCols+` FROM items i WHERE i.library_id = $1 AND i.parent_id IS NULL
-		ORDER BY `+order+` LIMIT $2 OFFSET $3`, libID, limit, offset)
+	rows, err := s.Pool.Query(ctx, `SELECT `+itemCols+` FROM items i`+userJoin("$4")+`WHERE i.library_id = $1 AND i.parent_id IS NULL
+		ORDER BY `+order+` LIMIT $2 OFFSET $3`, libID, limit, offset, owner)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -252,8 +260,8 @@ func (s *Service) ListItems(ctx context.Context, libID uuid.UUID, sortBy string,
 }
 
 // GetItem returns an item with its files and children.
-func (s *Service) GetItem(ctx context.Context, id uuid.UUID) (Item, []MediaFile, []Item, error) {
-	it, err := scanItem(s.Pool.QueryRow(ctx, `SELECT `+itemCols+` FROM items i WHERE i.id = $1`, id))
+func (s *Service) GetItem(ctx context.Context, id, owner uuid.UUID) (Item, []MediaFile, []Item, error) {
+	it, err := scanItem(s.Pool.QueryRow(ctx, `SELECT `+itemCols+` FROM items i`+userJoin("$2")+`WHERE i.id = $1`, id, owner))
 	if err != nil {
 		return it, nil, nil, err
 	}
@@ -276,8 +284,8 @@ func (s *Service) GetItem(ctx context.Context, id uuid.UUID) (Item, []MediaFile,
 		files = append(files, f)
 	}
 	rows.Close()
-	rows, err = s.Pool.Query(ctx, `SELECT `+itemCols+` FROM items i WHERE i.parent_id = $1
-		ORDER BY i.season_number NULLS LAST, i.episode_number NULLS LAST, i.sort_title`, id)
+	rows, err = s.Pool.Query(ctx, `SELECT `+itemCols+` FROM items i`+userJoin("$2")+`WHERE i.parent_id = $1
+		ORDER BY i.season_number NULLS LAST, i.episode_number NULLS LAST, i.sort_title`, id, owner)
 	if err != nil {
 		return it, nil, nil, err
 	}
@@ -368,4 +376,53 @@ func (s *Service) GetMetadata(ctx context.Context, id uuid.UUID) (ItemMetadata, 
 		}
 	}
 	return m, rows.Err()
+}
+
+// SaveProgress records a playback position for owner (profile or user). Past 90%
+// of the duration the item counts as watched and the position resets.
+func (s *Service) SaveProgress(ctx context.Context, owner, itemID uuid.UUID, positionMS int64, durationMS *int64, played bool) error {
+	var dur int64
+	if durationMS != nil {
+		dur = *durationMS
+	} else {
+		_ = s.Pool.QueryRow(ctx, `SELECT COALESCE(max(duration_ms), 0) FROM media_files WHERE item_id = $1`, itemID).Scan(&dur)
+	}
+	if dur > 0 && positionMS >= dur*9/10 {
+		played = true
+	}
+	if played {
+		positionMS = 0
+	}
+	tag, err := s.Pool.Exec(ctx, `INSERT INTO user_item_data (owner_id, item_id, position_ms, played, play_count, last_played_at)
+		SELECT $1, $2, $3, $4, CASE WHEN $4 THEN 1 ELSE 0 END, now() WHERE EXISTS (SELECT 1 FROM items WHERE id = $2)
+		ON CONFLICT (owner_id, item_id) DO UPDATE SET position_ms = EXCLUDED.position_ms, last_played_at = now(),
+			play_count = user_item_data.play_count + CASE WHEN EXCLUDED.played AND NOT user_item_data.played THEN 1 ELSE 0 END,
+			played = EXCLUDED.played`, owner, itemID, positionMS, played)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// ContinueWatching returns started, unfinished movies and episodes of owner.
+func (s *Service) ContinueWatching(ctx context.Context, owner uuid.UUID, limit int) ([]Item, error) {
+	rows, err := s.Pool.Query(ctx, `SELECT `+itemCols+` FROM user_item_data u JOIN items i ON i.id = u.item_id
+		WHERE u.owner_id = $1 AND u.position_ms > 0 AND NOT u.played
+		ORDER BY u.last_played_at DESC LIMIT $2`, owner, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []Item
+	for rows.Next() {
+		it, err := scanItem(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, it)
+	}
+	return out, rows.Err()
 }

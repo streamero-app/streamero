@@ -1221,6 +1221,71 @@ func decodeRenameSessionParams(args [1]string, argsEscaped bool, r *http.Request
 	return params, nil
 }
 
+// ReportProgressParams is parameters of reportProgress operation.
+type ReportProgressParams struct {
+	ItemId uuid.UUID
+}
+
+func unpackReportProgressParams(packed middleware.Parameters) (params ReportProgressParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "itemId",
+			In:   "path",
+		}
+		params.ItemId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeReportProgressParams(args [1]string, argsEscaped bool, r *http.Request) (params ReportProgressParams, _ error) {
+	// Decode path: itemId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "itemId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ItemId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "itemId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // RevokeSessionParams is parameters of revokeSession operation.
 type RevokeSessionParams struct {
 	SessionId uuid.UUID
@@ -1409,6 +1474,71 @@ func decodeSelectProfileParams(args [1]string, argsEscaped bool, r *http.Request
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "profileId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// StartPlaybackParams is parameters of startPlayback operation.
+type StartPlaybackParams struct {
+	ItemId uuid.UUID
+}
+
+func unpackStartPlaybackParams(packed middleware.Parameters) (params StartPlaybackParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "itemId",
+			In:   "path",
+		}
+		params.ItemId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeStartPlaybackParams(args [1]string, argsEscaped bool, r *http.Request) (params StartPlaybackParams, _ error) {
+	// Decode path: itemId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "itemId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ItemId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "itemId",
 			In:   "path",
 			Err:  err,
 		}

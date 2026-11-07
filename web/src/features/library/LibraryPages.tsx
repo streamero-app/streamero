@@ -27,13 +27,33 @@ export function ItemCard({ item }: { item: ItemSummary }) {
           <span className="line-clamp-3 text-lg leading-tight font-semibold text-white drop-shadow">{item.title}</span>
         </div>
       )}
+      {item.positionMs && item.durationMs ? (
+        <div className="-mt-1 h-1 overflow-hidden rounded-full bg-surface-2" aria-hidden>
+          <div className="h-full bg-accent" style={{ width: `${Math.min(100, (item.positionMs / item.durationMs) * 100)}%` }} />
+        </div>
+      ) : null}
       <div className="min-w-0">
-        <p className="truncate text-sm font-medium">{item.title}</p>
+        <p className="truncate text-sm font-medium">{item.played ? "✓ " : ""}{item.title}</p>
         <p className="text-xs text-muted">
           {item.year ?? "—"}{item.rating ? ` · ★ ${item.rating.toFixed(1)}` : ""}
         </p>
       </div>
     </Link>
+  );
+}
+
+/** "Continue watching" row on the home page. */
+export function ContinueShelf() {
+  const { t } = useTranslation();
+  const items = useQuery({ queryKey: ["continue"], queryFn: async () => unwrap(await api.GET("/home/continue")) });
+  if (!items.data?.length) return null;
+  return (
+    <section className="flex flex-col gap-3" data-testid="continue">
+      <h2 className="text-xl font-semibold">{t("home.continue")}</h2>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        {items.data.map((it) => <ItemCard key={it.id} item={it} />)}
+      </div>
+    </section>
   );
 }
 
@@ -119,6 +139,14 @@ export function LibraryPage() {
   );
 }
 
+function formatClock(ms: number): string {
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = String(s % 60).padStart(2, "0");
+  return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${m}:${sec}`;
+}
+
 function episodeLabel(it: ItemSummary): string {
   if (it.episodeNumber === undefined) return "";
   const e = String(it.episodeNumber).padStart(2, "0");
@@ -169,6 +197,18 @@ export function ItemPage() {
             {directors.length > 0 && <p className="text-sm"><span className="text-muted">{t("library.directedBy")}:</span> {directors.join(", ")}</p>}
             {writers.length > 0 && <p className="text-sm"><span className="text-muted">{t("library.writtenBy")}:</span> {writers.join(", ")}</p>}
             {d.metadataError && <p className="text-xs text-muted">{t("library.noMetadata")}</p>}
+            {d.files.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Link to="/watch/$itemId" params={{ itemId: it.id }} data-testid="play"
+                  className="rounded-md bg-accent px-5 py-2.5 font-semibold text-accent-contrast hover:opacity-90">
+                  ▶ {it.positionMs ? t("player.resume", { time: formatClock(it.positionMs) }) : t("player.play")}
+                </Link>
+                {it.positionMs ? (
+                  <Link to="/watch/$itemId" params={{ itemId: it.id }} search={{ start: 0 }}
+                    className="rounded-md bg-surface-2 px-4 py-2.5 text-sm hover:bg-border">{t("player.fromStart")}</Link>
+                ) : null}
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -231,7 +271,6 @@ export function ItemPage() {
           </ul>
         </Card>
       )}
-      <p className="text-xs text-muted">{t("library.playbackSoon")}</p>
     </div>
   );
 }

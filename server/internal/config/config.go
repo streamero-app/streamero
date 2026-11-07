@@ -23,6 +23,7 @@ type Config struct {
 	TrustedProxies  string // CIDRs/IPs whose X-Forwarded-For is trusted, comma-separated
 	MediaRoots      string // folders libraries may use, comma-separated
 	FFprobePath     string
+	FFmpegPath      string
 	AuthRatePerMin  int // sign-in style requests per client IP per minute (0 = no limit)
 	AuthRateBurst   int
 	AutoMigrate     bool
@@ -44,6 +45,7 @@ func Load() (Config, error) {
 		TrustedProxies:  os.Getenv("STREAMERO_TRUSTED_PROXIES"),
 		MediaRoots:      env("STREAMERO_MEDIA_ROOTS", "/media"),
 		FFprobePath:     env("STREAMERO_FFPROBE", "ffprobe"),
+		FFmpegPath:      env("STREAMERO_FFMPEG", "ffmpeg"),
 		LogLevel:        env("STREAMERO_LOG_LEVEL", "info"),
 		ShutdownTimeout: 15 * time.Second,
 	}

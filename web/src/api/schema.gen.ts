@@ -604,6 +604,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/items/{itemId}/playback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide how to play an item on this device and get signed stream URLs
+         * @description Returns direct play when the device supports the file as is, otherwise an HLS stream
+         *     (remux or transcode). Stream, HLS and subtitle URLs are HMAC-signed and short-lived;
+         *     they are served outside this API (byte ranges, HLS segments) — see D-015.
+         */
+        post: operations["startPlayback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/items/{itemId}/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Save the playback position (per profile) */
+        put: operations["reportProgress"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/home/continue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Started but unfinished items of the current profile, most recent first */
+        get: operations["continueWatching"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/fs/directories": {
         parameters: {
             query?: never;
@@ -820,6 +880,71 @@ export interface components {
         };
         /** @enum {string} */
         ItemKind: "movie" | "series" | "season" | "episode";
+        /** @description What the client can decode natively. */
+        DeviceProfile: {
+            /** @description e.g. ["mp4", "webm"] */
+            containers: string[];
+            /** @description ffprobe codec names, e.g. ["h264", "hevc", "av1", "vp9"] */
+            videoCodecs: string[];
+            /** @description e.g. ["aac", "mp3", "opus", "flac", "ac3", "eac3"] */
+            audioCodecs: string[];
+            /** @description The client plays HLS with fMP4 segments. */
+            hls?: boolean;
+            maxHeight?: number;
+            /** @description Bits per second; lower values force transcoding. */
+            maxBitrate?: number;
+        };
+        PlaybackRequest: {
+            /**
+             * Format: uuid
+             * @description Version to play (default the best one).
+             */
+            fileId?: string;
+            /** @description Index into the file's audio tracks (default the first). */
+            audioIndex?: number;
+            /**
+             * Format: int64
+             * @description Start position (default the saved resume position).
+             */
+            startMs?: number;
+            device: components["schemas"]["DeviceProfile"];
+        };
+        PlaybackInfo: {
+            /** Format: uuid */
+            fileId: string;
+            /** @enum {string} */
+            method: "direct" | "remux" | "transcode";
+            /** @description Signed URL (relative to the server) for the video element / player. */
+            url: string;
+            /**
+             * Format: int64
+             * @description Position the stream starts at; for HLS the stream itself starts there.
+             */
+            startMs: number;
+            /** Format: int64 */
+            durationMs?: number;
+            audio: components["schemas"]["AudioStream"][];
+            audioIndex?: number;
+            subtitles: components["schemas"]["PlaybackSubtitle"][];
+            /** @description Why the stream is not direct play (e.g. "audio codec dts"). */
+            reason?: string;
+        };
+        PlaybackSubtitle: {
+            index: number;
+            language?: string;
+            forced?: boolean;
+            external: boolean;
+            /** @description Signed WebVTT URL. */
+            url: string;
+        };
+        ProgressReport: {
+            /** Format: int64 */
+            positionMs: number;
+            /** Format: int64 */
+            durationMs?: number;
+            /** @description Mark as watched (set automatically past 90%). */
+            played?: boolean;
+        };
         MetadataSettings: {
             tmdbConfigured: boolean;
             /** @description Preferred metadata language, e.g. "hr-HR" (English is the fallback). */
@@ -855,6 +980,13 @@ export interface components {
             hasPoster: boolean;
             /** @description Community rating 0–10. */
             rating?: number;
+            /**
+             * Format: int64
+             * @description Resume position for the current profile.
+             */
+            positionMs?: number;
+            /** @description Watched by the current profile. */
+            played?: boolean;
         };
         ItemPage: {
             items: components["schemas"]["ItemSummary"][];
@@ -2049,6 +2181,79 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ItemDetail"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    startPlayback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlaybackRequest"];
+            };
+        };
+        responses: {
+            /** @description How to play */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaybackInfo"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    reportProgress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProgressReport"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    continueWatching: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Items */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemSummary"][];
                 };
             };
             default: components["responses"]["Error"];

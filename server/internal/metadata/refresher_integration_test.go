@@ -151,7 +151,7 @@ func TestRefreshLibraryIntegration(t *testing.T) {
 		t.Fatalf("refreshed %d items, want 3 (one has no match)", n)
 	}
 
-	items, _, err := svc.ListItems(ctx, lib.ID, "title", 10, 0)
+	items, _, err := svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 10, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -182,8 +182,8 @@ func TestRefreshLibraryIntegration(t *testing.T) {
 	if !ok {
 		t.Fatalf("series not matched: %v", byTitle)
 	}
-	_, _, seasons, _ := svc.GetItem(ctx, show.ID)
-	_, _, eps, _ := svc.GetItem(ctx, seasons[0].ID)
+	_, _, seasons, _ := svc.GetItem(ctx, show.ID, uuid.Nil)
+	_, _, eps, _ := svc.GetItem(ctx, seasons[0].ID, uuid.Nil)
 	if !seasons[0].HasPoster || len(eps) != 1 || eps[0].Title != "Pilot" || !eps[0].HasPoster {
 		t.Fatalf("episodes: %+v / %+v", seasons, eps)
 	}
@@ -195,7 +195,7 @@ func TestRefreshLibraryIntegration(t *testing.T) {
 	if _, err := scanner.Scan(ctx, lib.ID); err != nil {
 		t.Fatal(err)
 	}
-	items, _, _ = svc.ListItems(ctx, lib.ID, "title", 10, 0)
+	items, _, _ = svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 10, 0)
 	found := false
 	for _, it := range items {
 		found = found || it.Title == "Veliki testni film"

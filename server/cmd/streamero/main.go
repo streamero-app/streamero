@@ -31,6 +31,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/metadata"
 	"github.com/streamero-app/streamero/server/internal/netx"
 	"github.com/streamero-app/streamero/server/internal/storage"
+	"github.com/streamero-app/streamero/server/internal/stream"
 	"github.com/streamero-app/streamero/server/internal/version"
 )
 
@@ -99,7 +100,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		return err
 	}
 	h := &api.Handler{State: state, ServerName: cfg.ServerName, StartedAt: time.Now().UTC(),
-		Auth: state.Auth, Settings: state.Settings, Library: state.Library,
+		Auth: state.Auth, Settings: state.Settings, Library: state.Library, Stream: state.Stream,
 		NewTMDb: func(key string) *metadata.TMDb { return &metadata.TMDb{Key: key} }}
 	proxies, err := netx.ParsePrefixes(cfg.TrustedProxies)
 	if err != nil {
@@ -132,6 +133,13 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		if ierr != nil {
 			return ierr
 		}
+		key, kerr := stream.LoadKey(ctx, state.Settings())
+		if kerr != nil {
+			return kerr
+		}
+		hls := &stream.Manager{Dir: cfg.TranscodeDir, FFmpeg: cfg.FFmpegPath, Log: log}
+		go hls.Reap(ctx)
+		state.SetStream(&stream.Server{Pool: deps.Pool, Roots: roots, Signer: stream.Signer{Key: key}, HLS: hls, FFmpeg: cfg.FFmpegPath})
 		state.SetLibrary(&library.Service{Pool: deps.Pool, Roots: roots, ImageDir: filepath.Join(cfg.CacheDir, "images"),
 			Enqueue: func(ctx context.Context, id uuid.UUID) error {
 				_, err := inserter.Insert(ctx, jobs.LibraryScanArgs{LibraryID: id}, nil)

@@ -74,6 +74,16 @@ func NewRouter(state *State, h *api.Handler, opts ...RouterOptions) (http.Handle
 	})
 
 	r.Mount("/api/v1", startingGuard(state, apiServer))
+	// Media bytes (direct play, HLS, subtitles) behind signed URLs; outside OpenAPI (D-015).
+	r.Mount("/stream", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		s := state.Stream()
+		if s == nil {
+			w.Header().Set("Retry-After", strconv.Itoa(api.RetryAfterSeconds))
+			http.Error(w, "server is starting", http.StatusServiceUnavailable)
+			return
+		}
+		http.StripPrefix("/stream", s.Routes()).ServeHTTP(w, req)
+	}))
 	r.Handle("/*", webui.Handler())
 	return r, nil
 }

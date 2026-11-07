@@ -15,6 +15,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/library"
 	"github.com/streamero-app/streamero/server/internal/metadata"
 	"github.com/streamero-app/streamero/server/internal/settings"
+	"github.com/streamero-app/streamero/server/internal/stream"
 	"github.com/streamero-app/streamero/server/internal/version"
 )
 
@@ -35,6 +36,8 @@ type Handler struct {
 	Auth     func() *auth.Service
 	Settings func() *settings.Store
 	Library  func() *library.Service
+	// Stream serves playback (nil until ready).
+	Stream func() *stream.Server
 	// NewTMDb builds a TMDb client (tests use a fake server).
 	NewTMDb func(key string) *metadata.TMDb
 }

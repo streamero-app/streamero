@@ -134,6 +134,40 @@ test("admin adds a library; the scan finds real movies with versions", async ({ 
   await expect(page.getByTestId("media-file").first()).toContainText("Subtitles");
 });
 
+test("playback: player opens the real file; forced transcode serves HLS", async ({ page }) => {
+  await signIn(page, admin);
+  await page.goto("/");
+  await page.getByTestId("library-card").filter({ hasText: "Fixture Movies" }).click();
+  await page.getByTestId("item-card").filter({ hasText: "Big Test Movie" }).click();
+  await page.getByTestId("play").click();
+  await expect(page.getByTestId("player")).toBeVisible();
+  await expect(page.getByTestId("play-method")).toHaveText(/Direct play|Direct stream|Transcoding/, { timeout: 45_000 });
+  const itemId = page.url().split("/watch/")[1]!.split("?")[0]!;
+
+  // API: a device that supports nothing natively forces an H.264 transcode via ffmpeg.
+  const res = await page.request.post(`/api/v1/items/${itemId}/playback`, {
+    data: { device: { containers: [], videoCodecs: [], audioCodecs: [], hls: true }, startMs: 2000 },
+  });
+  expect(res.ok()).toBeTruthy();
+  const info = await res.json();
+  expect(info.method).toBe("transcode");
+  expect(info.startMs).toBe(2000);
+  const playlist = await (await page.request.get(info.url)).text();
+  expect(playlist).toContain("#EXTINF");
+  const init = playlist.match(/URI="([^"]+)"/)![1]!;
+  const base = info.url.slice(0, info.url.lastIndexOf("/") + 1).split("?")[0];
+  expect((await page.request.get(base + init)).status()).toBe(200);
+  const firstSegment = playlist.split("\n").find((l: string) => l && !l.startsWith("#"))!;
+  const seg = await page.request.get(base + firstSegment);
+  expect(seg.status()).toBe(200);
+  expect((await seg.body()).length).toBeGreaterThan(1000);
+  // Without the signature the same URL is refused.
+  expect((await page.request.get((base + firstSegment).split("?")[0]!)).status()).toBe(403);
+
+  await page.getByRole("link", { name: /Back/ }).click();
+  await page.goto("/");
+});
+
 test("wrong passwords lock the account", async ({ page }) => {
   await page.goto("/login");
   for (let i = 0; i < 5; i++) {

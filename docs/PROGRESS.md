@@ -20,6 +20,13 @@ P2 — Biblioteke i scanner (u tijeku). P0 (PR #1) i P1 (PR #4) gotovi; prvi dio
 - Branch pushan, PR #1 (`phase/P0-foundations` → `main`) otvoren; `main` je prazan početni commit spojen u P0 (repo je bio prazan). CI zelen: `server`, `web`, `e2e`, iOS `build` (prvi uspješan iOS build, artefakt `streamero-ipa`).
 - `scripts/gen-fixtures.sh`: filmovi (H.264, 4K HEVC 10-bit, HDR10, AV1, multi-audio + poglavlja + embedded/external SRT/ASS, verzije, trailer), serija sa zajedničkim introm (2×4 ep.), multi-episode, specials, daily, anime absolute, glazba (FLAC/MP3), fotke.
 
+## P5 — reprodukcija, prvi dio (branch `phase/P5-playback`)
+- `POST /items/{id}/playback`: direct play / remux / transcode po profilu uređaja i dozvolama; potpisani URL-ovi (D-015); `/stream/file` (Range), `/stream/hls` (fMP4 HLS iz ffmpega: copy ili x264, HDR→SDR tonemap, skaliranje), `/stream/sub` (WebVTT); gašenje neaktivnih sesija.
+- Napredak po profilu (migracija 00011), nastavak gledanja, „Nastavi gledati", odgledano iznad 90 %.
+- Web player (hls.js / nativni HLS), izbor zvuka i podnaslova, gumbi Pokreni / Nastavi / Od početka, trake napretka.
+- Testovi: unit (potpisi, odluka), API integracijski (Range, potpis, napredak po profilu), Vitest 29, Playwright 11 (pravi ffmpeg transcode s potpisanim segmentima); HDR tonemap provjeren ručno.
+- Još u P5: HW ubrzanje (VA-API/QSV/NVENC), burn-in bitmap podnaslova, premotavanje izvan već transkodiranog dijela, bitrate/kvaliteta izbornik, trickplay (P6).
+
 ## P3 — metapodaci, prvi dio (branch `phase/P3-metadata`, uključuje P2 watch)
 - TMDb ključ (v3 ili v4) u Postavke → Metapodaci (provjeren prije spremanja, nikad se ne vraća), jezik (hr-HR, fallback EN opis) i država (dobne oznake).
 - Automatski nakon scana: podudaranje (TMDb ID iz imena → IMDb /find → pretraga naslov+godina), naslov/izvorni naslov, opis, slogan, žanrovi, ocjena, dobna oznaka, premijera, glumci, režija/scenarij; sezone i epizode (nazivi, opisi, datumi, stillovi).
