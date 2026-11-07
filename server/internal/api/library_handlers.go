@@ -11,6 +11,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/auth"
 	"github.com/streamero-app/streamero/server/internal/library"
 	"github.com/streamero-app/streamero/server/internal/metadata"
+	"github.com/streamero-app/streamero/server/internal/stream"
 )
 
 // canSeeLibraries: admins always; others need the allLibraries permission
@@ -120,13 +121,14 @@ func (h *Handler) ListLibraryItems(ctx context.Context, params gen.ListLibraryIt
 	if h.lib() == nil {
 		return nil, errStarting
 	}
-	if _, err := viewer(ctx); err != nil {
+	p, err := viewer(ctx)
+	if err != nil {
 		return nil, err
 	}
 	if _, err := h.lib().Get(ctx, params.LibraryId); err != nil {
 		return nil, err
 	}
-	items, total, err := h.lib().ListItems(ctx, params.LibraryId, string(params.Sort.Or(gen.ListLibraryItemsSortTitle)),
+	items, total, err := h.lib().ListItems(ctx, params.LibraryId, stream.Owner(p), string(params.Sort.Or(gen.ListLibraryItemsSortTitle)),
 		params.Limit.Or(100), params.Offset.Or(0))
 	if err != nil {
 		return nil, err
@@ -143,10 +145,11 @@ func (h *Handler) GetItem(ctx context.Context, params gen.GetItemParams) (*gen.I
 	if h.lib() == nil {
 		return nil, errStarting
 	}
-	if _, err := viewer(ctx); err != nil {
+	p, err := viewer(ctx)
+	if err != nil {
 		return nil, err
 	}
-	it, files, children, err := h.lib().GetItem(ctx, params.ItemId)
+	it, files, children, err := h.lib().GetItem(ctx, params.ItemId, stream.Owner(p))
 	if err != nil {
 		return nil, err
 	}
@@ -257,6 +260,12 @@ func toItemSummary(it library.Item) gen.ItemSummary {
 	}
 	if it.Rating != nil {
 		out.Rating = gen.NewOptFloat64(*it.Rating)
+	}
+	if it.PositionMS > 0 {
+		out.PositionMs = gen.NewOptInt64(it.PositionMS)
+	}
+	if it.Played {
+		out.Played = gen.NewOptBool(true)
 	}
 	return out
 }
@@ -391,4 +400,98 @@ func (h *Handler) UpdateMetadataSettings(ctx context.Context, req *gen.MetadataS
 		}
 	}
 	return &gen.MetadataSettings{TmdbConfigured: s.TMDbKey != "", Language: s.Language, Country: s.Country}, nil
+}
+
+// StartPlayback implements POST /items/{itemId}/playback.
+func (h *Handler) StartPlayback(ctx context.Context, req *gen.PlaybackRequest, params gen.StartPlaybackParams) (*gen.PlaybackInfo, error) {
+	if h.lib() == nil || h.Stream == nil || h.Stream() == nil {
+		return nil, errStarting
+	}
+	p, err := viewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+	r := stream.Request{Device: stream.Device{Containers: req.Device.Containers, VideoCodecs: req.Device.VideoCodecs,
+		AudioCodecs: req.Device.AudioCodecs, HLS: req.Device.Hls.Value, MaxHeight: req.Device.MaxHeight.Value,
+		MaxBitrate: req.Device.MaxBitrate.Value}}
+	if v, ok := req.FileId.Get(); ok {
+		r.FileID = &v
+	}
+	if v, ok := req.AudioIndex.Get(); ok {
+		r.AudioIndex = &v
+	}
+	if v, ok := req.StartMs.Get(); ok {
+		r.StartMS = &v
+	}
+	info, err := h.Stream().Start(ctx, h.lib(), p, params.ItemId, r)
+	if err != nil {
+		switch {
+		case errors.Is(err, stream.ErrNotPlayable):
+			return nil, &StatusError{Status: http.StatusConflict, Code: "not_playable", Message: err.Error()}
+		case errors.Is(err, stream.ErrTranscodeDenied):
+			return nil, &StatusError{Status: http.StatusForbidden, Code: "transcode_not_allowed", Message: err.Error()}
+		case errors.Is(err, stream.ErrTranscoderFailure):
+			return nil, &StatusError{Status: http.StatusBadGateway, Code: "transcode_failed", Message: err.Error()}
+		}
+		return nil, err
+	}
+	out := &gen.PlaybackInfo{FileId: info.FileID, Method: gen.PlaybackInfoMethod(info.Method), URL: info.URL,
+		StartMs: info.StartMS, AudioIndex: gen.NewOptInt(info.AudioIndex), Audio: []gen.AudioStream{}, Subtitles: []gen.PlaybackSubtitle{}}
+	if info.DurationMS != nil {
+		out.DurationMs = gen.NewOptInt64(*info.DurationMS)
+	}
+	if info.Reason != "" {
+		out.Reason = gen.NewOptString(info.Reason)
+	}
+	out.Audio = toMediaFile(library.MediaFile{Audio: info.Audio}).Audio
+	if out.Audio == nil {
+		out.Audio = []gen.AudioStream{}
+	}
+	for _, s := range info.Subtitles {
+		ps := gen.PlaybackSubtitle{Index: s.Index, External: s.External, URL: s.URL, Forced: gen.NewOptBool(s.Forced)}
+		if s.Language != "" {
+			ps.Language = gen.NewOptString(s.Language)
+		}
+		out.Subtitles = append(out.Subtitles, ps)
+	}
+	return out, nil
+}
+
+// ReportProgress implements PUT /items/{itemId}/progress.
+func (h *Handler) ReportProgress(ctx context.Context, req *gen.ProgressReport, params gen.ReportProgressParams) error {
+	if h.lib() == nil {
+		return errStarting
+	}
+	p, err := viewer(ctx)
+	if err != nil {
+		return err
+	}
+	var dur *int64
+	if v, ok := req.DurationMs.Get(); ok && v > 0 {
+		dur = &v
+	}
+	return h.lib().SaveProgress(ctx, stream.Owner(p), params.ItemId, req.PositionMs, dur, req.Played.Value)
+}
+
+// ContinueWatching implements GET /home/continue.
+func (h *Handler) ContinueWatching(ctx context.Context) ([]gen.ItemSummary, error) {
+	if h.lib() == nil {
+		return nil, errStarting
+	}
+	p, err := principal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := []gen.ItemSummary{}
+	if !canSeeLibraries(p) {
+		return out, nil
+	}
+	items, err := h.lib().ContinueWatching(ctx, stream.Owner(p), 20)
+	if err != nil {
+		return nil, err
+	}
+	for _, it := range items {
+		out = append(out, toItemSummary(it))
+	}
+	return out, nil
 }

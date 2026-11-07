@@ -20,17 +20,22 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/streamero-app/streamero/server/internal/api"
 	"github.com/streamero-app/streamero/server/internal/auth"
 	"github.com/streamero-app/streamero/server/internal/config"
 	"github.com/streamero-app/streamero/server/internal/library"
+	"github.com/streamero-app/streamero/server/internal/stream"
 )
 
 const testSetupCode = "TEST-CODE"
 
 // mediaRoot is the media folder of the most recent test server.
 var mediaRoot string
+
+// testPool is the database pool of the most recent test server.
+var testPool *pgxpool.Pool
 
 // newAuthTestServer starts the full router on a clean database.
 // Integration: needs STREAMERO_TEST_DB_URL / STREAMERO_TEST_VALKEY_URL.
@@ -56,8 +61,11 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 	mediaRoot = t.TempDir()
 	state.SetLibrary(&library.Service{Pool: deps.Pool, Roots: library.Roots{mediaRoot},
 		Enqueue: func(context.Context, uuid.UUID) error { return nil }})
+	testPool = deps.Pool
+	state.SetStream(&stream.Server{Pool: deps.Pool, Roots: library.Roots{mediaRoot}, Signer: stream.Signer{Key: []byte("test-key")},
+		HLS: &stream.Manager{Dir: t.TempDir(), FFmpeg: "ffmpeg-not-installed", Log: log}, FFmpeg: "ffmpeg-not-installed"})
 	h := &api.Handler{State: state, ServerName: "Default", StartedAt: time.Now(), Auth: state.Auth, Settings: state.Settings,
-		Library: state.Library}
+		Library: state.Library, Stream: state.Stream}
 	router, err := NewRouter(state, h)
 	if err != nil {
 		t.Fatal(err)
@@ -879,4 +887,118 @@ func TestLibrariesAPIIntegration(t *testing.T) {
 	if _, err := os.Stat(movies + "/Some Movie (2020)"); err != nil {
 		t.Fatal("deleting a library touched the files")
 	}
+}
+
+func TestPlaybackIntegration(t *testing.T) {
+	srv := newAuthTestServer(t)
+	adminC := newClient(t, srv)
+	setupAdmin(t, adminC)
+	movies := mediaRoot + "/movies"
+	payload := []byte("0123456789abcdefghij")
+	if err := os.MkdirAll(movies+"/Film (2020)", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(movies+"/Film (2020)/Film (2020).mp4", payload, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var lib struct {
+		ID string `json:"id"`
+	}
+	adminC.do("POST", "/libraries", map[string]any{"name": "P", "kind": "movies", "paths": []string{movies}}, &lib)
+	libID := uuid.MustParse(lib.ID)
+	scanner := &library.Scanner{Pool: testPool, Roots: library.Roots{mediaRoot}, Log: slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Probe: func(context.Context, string) (library.ProbeResult, error) {
+			return library.ProbeResult{Container: "mp4", VideoCodec: "h264", Width: 1920, Height: 1080, DurationMS: 100_000,
+				Audio: []library.AudioStream{{Codec: "aac", Channels: 2}}}, nil
+		}}
+	if _, err := scanner.Scan(context.Background(), libID); err != nil {
+		t.Fatal(err)
+	}
+	var page struct {
+		Items []struct {
+			ID string `json:"id"`
+		} `json:"items"`
+	}
+	adminC.do("GET", "/libraries/"+lib.ID+"/items", nil, &page)
+	item := page.Items[0].ID
+
+	web := map[string]any{"containers": []string{"mp4", "webm"}, "videoCodecs": []string{"h264"}, "audioCodecs": []string{"aac"}, "hls": true}
+	var info struct {
+		Method  string `json:"method"`
+		URL     string `json:"url"`
+		StartMs int64  `json:"startMs"`
+	}
+	if s := adminC.do("POST", "/items/"+item+"/playback", map[string]any{"device": web}, &info); s != 200 || info.Method != "direct" {
+		t.Fatalf("playback: HTTP %d %+v", s, info)
+	}
+	get := func(u string, rng string) (int, string) {
+		req, _ := http.NewRequest("GET", srv.URL+u, nil)
+		if rng != "" {
+			req.Header.Set("Range", rng)
+		}
+		resp, err := http.DefaultClient.Do(req) // no cookie, no token: the URL itself authorises
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() { _ = resp.Body.Close() }()
+		b, _ := io.ReadAll(resp.Body)
+		return resp.StatusCode, string(b)
+	}
+	if code, body := get(info.URL, "bytes=10-13"); code != 206 || body != "abcd" {
+		t.Fatalf("range request: %d %q", code, body)
+	}
+	if code, _ := get(strings.Replace(info.URL, "sig=", "sig=x", 1), ""); code != 403 {
+		t.Fatalf("tampered signature: %d", code)
+	}
+	// A signature for one file does not open another.
+	other := strings.Replace(info.URL, "/stream/file/", "/stream/file/00000000-0000-0000-0000-000000000000/x/../", 1)
+	if code, _ := get(other, ""); code != 403 && code != 404 {
+		t.Fatalf("signature reused for another path: %d", code)
+	}
+
+	// mkv needs remux: without ffmpeg the transcoder fails cleanly.
+	var e apiError
+	mkvOnly := map[string]any{"containers": []string{"webm"}, "videoCodecs": []string{"h264"}, "audioCodecs": []string{"aac"}, "hls": true}
+	if s := adminC.do("POST", "/items/"+item+"/playback", map[string]any{"device": mkvOnly}, &e); s != 502 || e.Code != "transcode_failed" {
+		t.Fatalf("remux without ffmpeg: HTTP %d %+v", s, e)
+	}
+
+	// Progress → continue watching → resume position; >90% marks as watched.
+	if s := adminC.do("PUT", "/items/"+item+"/progress", map[string]any{"positionMs": 30_000}, nil); s != 204 {
+		t.Fatalf("progress: HTTP %d", s)
+	}
+	var cont []struct {
+		ID         string `json:"id"`
+		PositionMs int64  `json:"positionMs"`
+	}
+	if adminC.do("GET", "/home/continue", nil, &cont); len(cont) != 1 || cont[0].PositionMs != 30_000 {
+		t.Fatalf("continue watching: %+v", cont)
+	}
+	adminC.do("POST", "/items/"+item+"/playback", map[string]any{"device": web}, &info)
+	if info.StartMs != 30_000 {
+		t.Fatalf("resume position: %d", info.StartMs)
+	}
+	adminC.do("PUT", "/items/"+item+"/progress", map[string]any{"positionMs": 95_000}, nil)
+	if adminC.do("GET", "/home/continue", nil, &cont); len(cont) != 0 {
+		t.Fatalf("watched item still in continue: %+v", cont)
+	}
+	var detail struct {
+		Item struct {
+			Played bool `json:"played"`
+		} `json:"item"`
+	}
+	if adminC.do("GET", "/items/"+item, nil, &detail); !detail.Item.Played {
+		t.Fatal("item not marked as played")
+	}
+	// Progress is per profile: a new profile starts fresh.
+	var prof struct {
+		ID string `json:"id"`
+	}
+	adminC.do("POST", "/profiles", map[string]any{"name": "Lea", "color": "#3dd68c", "isKid": false}, &prof)
+	adminC.do("POST", "/profiles/"+prof.ID+"/select", nil, nil)
+	detail.Item.Played = false // absent fields keep old values when decoding
+	if adminC.do("GET", "/items/"+item, nil, &detail); detail.Item.Played {
+		t.Fatal("watched state leaked into another profile")
+	}
+	_ = adminC.do("DELETE", "/libraries/"+lib.ID, nil, nil)
 }

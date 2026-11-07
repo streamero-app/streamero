@@ -59,6 +59,15 @@ func (UnimplementedHandler) CompleteSetup(ctx context.Context, req *SetupRequest
 	return r, ht.ErrNotImplemented
 }
 
+// ContinueWatching implements continueWatching operation.
+//
+// Started but unfinished items of the current profile, most recent first.
+//
+// GET /home/continue
+func (UnimplementedHandler) ContinueWatching(ctx context.Context) (r []ItemSummary, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // CreateAPIKey implements createAPIKey operation.
 //
 // The key acts with the rights of the admin who created it and is deleted with that user. Send it as
@@ -358,6 +367,15 @@ func (UnimplementedHandler) RenameSession(ctx context.Context, req *RenameSessio
 	return ht.ErrNotImplemented
 }
 
+// ReportProgress implements reportProgress operation.
+//
+// Save the playback position (per profile).
+//
+// PUT /items/{itemId}/progress
+func (UnimplementedHandler) ReportProgress(ctx context.Context, req *ProgressReport, params ReportProgressParams) error {
+	return ht.ErrNotImplemented
+}
+
 // RevokeSession implements revokeSession operation.
 //
 // Own sessions; admins can revoke any session.
@@ -392,6 +410,17 @@ func (UnimplementedHandler) SelectMainProfile(ctx context.Context, req OptPasswo
 // POST /profiles/{profileId}/select
 func (UnimplementedHandler) SelectProfile(ctx context.Context, req OptPinRequest, params SelectProfileParams) error {
 	return ht.ErrNotImplemented
+}
+
+// StartPlayback implements startPlayback operation.
+//
+// Returns direct play when the device supports the file as is, otherwise an HLS stream (remux or
+// transcode). Stream, HLS and subtitle URLs are HMAC-signed and short-lived; they are served outside
+// this API (byte ranges, HLS segments) — see D-015.
+//
+// POST /items/{itemId}/playback
+func (UnimplementedHandler) StartPlayback(ctx context.Context, req *PlaybackRequest, params StartPlaybackParams) (r *PlaybackInfo, _ error) {
+	return r, ht.ErrNotImplemented
 }
 
 // StartTOTPSetup implements startTOTPSetup operation.

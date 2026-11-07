@@ -122,7 +122,7 @@ func TestMovieLibraryScanIntegration(t *testing.T) {
 	if res.Files != 4 || res.Probed != 4 {
 		t.Fatalf("first scan: %+v", res)
 	}
-	items, total, err := f.svc.ListItems(ctx, lib.ID, "title", 100, 0)
+	items, total, err := f.svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 100, 0)
 	if err != nil || total != 3 {
 		t.Fatalf("items: %d %v", total, err)
 	}
@@ -138,7 +138,7 @@ func TestMovieLibraryScanIntegration(t *testing.T) {
 			t.Fatalf("dune ids: %+v", it.ProviderIDs)
 		}
 	}
-	_, files, _, err := f.svc.GetItem(ctx, big.ID)
+	_, files, _, err := f.svc.GetItem(ctx, big.ID, uuid.Nil)
 	if err != nil || len(files) != 2 {
 		t.Fatalf("versions: %d %v", len(files), err)
 	}
@@ -172,7 +172,7 @@ func TestMovieLibraryScanIntegration(t *testing.T) {
 	if res := f.scan(t, lib.ID); res.Probed != 1 || res.Removed != 1 {
 		t.Fatalf("after changes: %+v", res)
 	}
-	if _, total, _ := f.svc.ListItems(ctx, lib.ID, "title", 100, 0); total != 2 {
+	if _, total, _ := f.svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 100, 0); total != 2 {
 		t.Fatalf("items after removal: %d", total)
 	}
 
@@ -183,7 +183,7 @@ func TestMovieLibraryScanIntegration(t *testing.T) {
 	if _, err := f.scanner.Scan(ctx, lib.ID); err == nil {
 		t.Fatal("scan of a missing folder succeeded")
 	}
-	if _, total, _ := f.svc.ListItems(ctx, lib.ID, "title", 100, 0); total != 2 {
+	if _, total, _ := f.svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 100, 0); total != 2 {
 		t.Fatalf("items deleted while folder offline: %d", total)
 	}
 	if l, _ := f.svc.Get(ctx, lib.ID); l.ScanState != "failed" || l.ScanError == "" {
@@ -212,12 +212,12 @@ func TestShowLibraryScanIntegration(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = f.svc.Delete(context.Background(), lib.ID) })
 	f.scan(t, lib.ID)
-	series, total, _ := f.svc.ListItems(ctx, lib.ID, "title", 100, 0)
+	series, total, _ := f.svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 100, 0)
 	if total != 3 {
 		t.Fatalf("series: %v", titles(series))
 	}
 	for _, s := range series {
-		_, _, seasons, err := f.svc.GetItem(ctx, s.ID)
+		_, _, seasons, err := f.svc.GetItem(ctx, s.ID, uuid.Nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -226,17 +226,17 @@ func TestShowLibraryScanIntegration(t *testing.T) {
 			if s.Year == nil || *s.Year != 2020 || len(seasons) != 3 || *seasons[0].Season != 0 || seasons[0].Title != "Specials" {
 				t.Fatalf("test show seasons: %+v", seasons)
 			}
-			_, _, eps, _ := f.svc.GetItem(ctx, seasons[1].ID)
+			_, _, eps, _ := f.svc.GetItem(ctx, seasons[1].ID, uuid.Nil)
 			if len(eps) != 3 || eps[1].Title != "The Second One" || eps[2].EpisodeEnd == nil || *eps[2].EpisodeEnd != 6 {
 				t.Fatalf("season 1 episodes: %+v", eps)
 			}
 		case "Daily Show":
-			_, _, eps, _ := f.svc.GetItem(ctx, seasons[0].ID)
+			_, _, eps, _ := f.svc.GetItem(ctx, seasons[0].ID, uuid.Nil)
 			if *seasons[0].Season != 2024 || len(eps) != 1 || eps[0].Title != "2024-03-15" {
 				t.Fatalf("daily: %+v %+v", seasons, eps)
 			}
 		case "Anime Absolute":
-			_, _, eps, _ := f.svc.GetItem(ctx, seasons[0].ID)
+			_, _, eps, _ := f.svc.GetItem(ctx, seasons[0].ID, uuid.Nil)
 			if *seasons[0].Season != 3 || len(eps) != 1 || *eps[0].Episode != 101 {
 				t.Fatalf("anime: %+v %+v", seasons, eps)
 			}
@@ -335,7 +335,7 @@ func TestIgnoreMarkerIntegration(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = f.svc.Delete(context.Background(), lib.ID) })
 	f.scan(t, lib.ID)
-	items, _, _ := f.svc.ListItems(context.Background(), lib.ID, "title", 10, 0)
+	items, _, _ := f.svc.ListItems(context.Background(), lib.ID, uuid.Nil, "title", 10, 0)
 	if got := titles(items); len(got) != 1 || got[0] != "Keep" {
 		t.Fatalf("ignored folder scanned: %v", got)
 	}
