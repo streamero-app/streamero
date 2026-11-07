@@ -58,7 +58,8 @@
     "invites": "Pozivnice",
     "profiles": "Profili",
     "libraries": "Biblioteke",
-    "metadata": "Metapodaci"
+    "metadata": "Metapodaci",
+    "integrations": "Integracije"
   },
   "account": {
     "changePassword": "Promijeni lozinku",
@@ -356,5 +357,18 @@
     "placeholder": "Pretraži…",
     "resultsFor": "Rezultati za „{{q}}”",
     "none": "Ništa nije pronađeno. Pokušajte drugi pravopis ili ime glumca."
+  },
+  "integrations": {
+    "host": "Host",
+    "port": "Port",
+    "ssl": "SSL",
+    "urlBase": "URL base",
+    "on": "uključeno",
+    "off": "isključeno",
+    "seerrIntro": "U Seerr/Jellyseerru odaberite \"Jellyfin\" kao media server i upišite:",
+    "seerrAccount": "Prijavite se Streamero administratorskim računom bez dvofaktorske prijave, zatim sinkronizirajte i uključite biblioteke i pokrenite puni scan. Podudaranje ide preko TMDb ID-eva, pa prvo postavite Postavke → Metapodaci.",
+    "arrIntro": "U Settings → Connect dodajte \"Emby / Jellyfin\" s ovim vrijednostima, isključite \"Send Notifications\" i uključite \"Update Library\":",
+    "arrKey": "API ključ: napravite po jedan za svaku aplikaciju u",
+    "bazarr": "Ništa se ne podešava: podnaslovi koje Bazarr spremi pokraj videa pojave se u Streameru sami za oko 15 sekundi."
   }
 }
