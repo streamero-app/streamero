@@ -1223,6 +1223,17 @@ func TestCompatAPIIntegration(t *testing.T) {
 	if s := call("GET", "/Users", tok, nil, &users); s != 200 || len(users) == 0 {
 		t.Fatalf("users: %d %v", s, users)
 	}
+	// Sonarr's connection test.
+	var conf map[string]any
+	if s := call("GET", "/System/Configuration", tok, nil, &conf); s != 200 || conf["ServerName"] != "Kino" {
+		t.Fatalf("configuration: %d %v", s, conf)
+	}
+	if s := call("GET", "/System/Configuration", "", nil, nil); s != 401 {
+		t.Fatalf("anonymous configuration: %d", s)
+	}
+	if s := call("POST", "/Notifications/Admin", tok, map[string]any{"Name": "Test", "Description": "x"}, nil); s != 204 {
+		t.Fatalf("admin notification: %d", s)
+	}
 	var views struct {
 		Items []struct {
 			ID             string `json:"Id"`
