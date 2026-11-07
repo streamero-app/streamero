@@ -56,8 +56,8 @@ struct MediaClient {
         audioCodecs: ["aac", "ac3", "eac3", "mp3", "alac", "flac"],
         hls: true)
 
-    func startPlayback(item id: String, startMs: Int64? = nil) async throws -> PlaybackInfo {
-        let body = Components.Schemas.PlaybackRequest(startMs: startMs, device: Self.device)
+    func startPlayback(item id: String, startMs: Int64? = nil, audioIndex: Int? = nil) async throws -> PlaybackInfo {
+        let body = Components.Schemas.PlaybackRequest(audioIndex: audioIndex, startMs: startMs, device: Self.device)
         switch try await client.startPlayback(path: .init(itemId: id), body: .json(body)) {
         case .ok(let ok): return try ok.body.json
         case .default(let status, let r): throw Self.fail(status, code: try? r.body.json.code)
@@ -67,6 +67,14 @@ struct MediaClient {
     func reportProgress(item id: String, positionMs: Int64, durationMs: Int64?) async {
         _ = try? await client.reportProgress(path: .init(itemId: id),
                                              body: .json(.init(positionMs: positionMs, durationMs: durationMs)))
+    }
+
+    /// Approves a Quick Connect code shown on another device (TV, browser).
+    func authorizeQuickConnect(code: String) async throws -> String {
+        switch try await client.authorizeQuickConnect(body: .json(.init(code: code))) {
+        case .ok(let ok): return try ok.body.json.deviceName
+        case .default(let status, let r): throw Self.fail(status, code: try? r.body.json.code)
+        }
     }
 
     /// Absolute URL for a server-relative link (signed stream URLs, images).

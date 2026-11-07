@@ -641,6 +641,86 @@
           }
         }
       }
+    },
+    "quickConnect.approveTitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Approve Quick Connect"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odobri Quick Connect"
+          }
+        }
+      }
+    },
+    "quickConnect.approveHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter the 6-digit code shown on the TV or browser to sign it in with your account."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upišite 6-znamenkasti kod s TV-a ili preglednika da ga prijavite svojim računom."
+          }
+        }
+      }
+    },
+    "quickConnect.approve": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Approve"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odobri"
+          }
+        }
+      }
+    },
+    "quickConnect.approved %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Approved — %@ is now signed in."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odobreno — %@ je sada prijavljen."
+          }
+        }
+      }
+    },
+    "player.audio": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio track"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio zapis"
+          }
+        }
+      }
     }
   }
 }
