@@ -43,3 +43,20 @@ final class AuthTests: XCTestCase {
         XCTAssertEqual(AuthClient.device.client?.hasPrefix("Streamero iOS"), true)
     }
 }
+
+final class MediaClientTests: XCTestCase {
+    func testDeviceProfileAsksForHLSAndHEVC() {
+        let d = MediaClient.device
+        XCTAssertTrue(d.hls ?? false)
+        XCTAssertTrue(d.videoCodecs.contains("hevc"))
+        XCTAssertTrue(d.containers.contains("mp4"))
+    }
+
+    func testAbsoluteURLsKeepTheSignature() {
+        let c = MediaClient(baseURL: URL(string: "https://demo.example.com")!, token: "t")
+        XCTAssertEqual(c.absolute("/stream/file/x/video.mp4?exp=1&sig=a%2Bb")?.absoluteString,
+                       "https://demo.example.com/stream/file/x/video.mp4?exp=1&sig=a%2Bb")
+        XCTAssertEqual(c.imageURL(item: "abc", type: "poster")?.absoluteString,
+                       "https://demo.example.com/api/v1/items/abc/images/poster")
+    }
+}
