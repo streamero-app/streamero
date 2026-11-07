@@ -10,6 +10,7 @@ struct HomeView: View {
     @State private var libraries: [Library] = []
     @State private var continueItems: [ItemSummary] = []
     @State private var error: LocalizedStringKey?
+    @State private var showQuickConnect = false
 
     var body: some View {
         NavigationStack {
@@ -54,6 +55,7 @@ struct HomeView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Text(user.username)
+                        Button("quickConnect.approveTitle") { showQuickConnect = true }
                         Button("nav.logout", role: .destructive) { Task { await session.signOut(server: server) } }
                     } label: { Image(systemName: "person.crop.circle") }
                 }
@@ -62,6 +64,7 @@ struct HomeView: View {
             .navigationDestination(for: String.self) { ItemView(itemID: $0, client: client) }
             .task { await load() }
             .refreshable { await load() }
+            .sheet(isPresented: $showQuickConnect) { QuickConnectApproveView(client: client) }
         }
     }
 
@@ -214,10 +217,27 @@ struct PlayerView: View {
             } else {
                 ProgressView().tint(.white).frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            Button { close() } label: {
-                Image(systemName: "xmark.circle.fill").font(.title).foregroundStyle(.white.opacity(0.8)).padding()
+            HStack {
+                Button { close() } label: {
+                    Image(systemName: "xmark.circle.fill").font(.title).foregroundStyle(.white.opacity(0.8)).padding()
+                }
+                .accessibilityLabel(Text("player.back"))
+                Spacer()
+                if let tracks = info?.audio, tracks.count > 1 {
+                    Menu {
+                        ForEach(Array(tracks.enumerated()), id: \.offset) { idx, a in
+                            Button {
+                                Task { await restart(audioIndex: idx) }
+                            } label: {
+                                Text([a.language?.uppercased() ?? "#\(idx + 1)", a.codec.uppercased(), a.title].compactMap { $0 }.joined(separator: " "))
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "speaker.wave.2.circle.fill").font(.title).foregroundStyle(.white.opacity(0.8)).padding()
+                    }
+                    .accessibilityLabel(Text("player.audio"))
+                }
             }
-            .accessibilityLabel(Text("player.back"))
         }
         .task { await start() }
     }
@@ -230,9 +250,19 @@ struct PlayerView: View {
         return seconds.isFinite ? offsetMs + Int64(seconds * 1000) : 0
     }
 
-    private func start() async {
+    /// Switches the audio track: a new stream from the current position.
+    private func restart(audioIndex: Int) async {
+        let pos = positionMs()
+        if let observer { player?.removeTimeObserver(observer) }
+        observer = nil
+        player?.pause()
+        player = nil
+        await start(startMs: pos, audioIndex: audioIndex)
+    }
+
+    private func start(startMs: Int64? = nil, audioIndex: Int? = nil) async {
         do {
-            let info = try await client.startPlayback(item: itemID)
+            let info = try await client.startPlayback(item: itemID, startMs: startMs, audioIndex: audioIndex)
             guard let url = client.absolute(info.url) else { throw APIError(status: 0, code: "bad_url") }
             self.info = info
             let p = AVPlayer(url: url)
@@ -260,6 +290,56 @@ struct PlayerView: View {
             if let observer { player?.removeTimeObserver(observer) }
             player?.pause()
             dismiss()
+        }
+    }
+}
+
+
+/// Approve a Quick Connect code shown on a TV or browser with this phone's account.
+struct QuickConnectApproveView: View {
+    let client: MediaClient
+    @Environment(\.dismiss) private var dismiss
+    @State private var code = ""
+    @State private var busy = false
+    @State private var message: String?
+    @State private var failed = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField("quickConnect.code", text: $code)
+                        .keyboardType(.numberPad)
+                        .font(.title2.monospaced())
+                } footer: {
+                    Text("quickConnect.approveHint")
+                }
+                if let message {
+                    Text(message).foregroundStyle(failed ? .red : Theme.accent)
+                }
+                Button {
+                    Task { await approve() }
+                } label: {
+                    if busy { ProgressView() } else { Text("quickConnect.approve").bold() }
+                }
+                .disabled(busy || code.count < 6)
+            }
+            .navigationTitle(Text("quickConnect.approveTitle"))
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("player.back") { dismiss() } } }
+        }
+    }
+
+    private func approve() async {
+        busy = true
+        defer { busy = false }
+        do {
+            let device = try await client.authorizeQuickConnect(code: code.trimmingCharacters(in: .whitespaces))
+            failed = false
+            message = String(localized: "quickConnect.approved \(device)")
+            code = ""
+        } catch {
+            failed = true
+            message = String(localized: "quickConnect.expired")
         }
     }
 }
