@@ -47,8 +47,22 @@ func gooseProvider(pool *pgxpool.Pool) (*goose.Provider, *sql.DB, error) {
 	return p, sqlDB, nil
 }
 
+// migrateLockID is the advisory lock that serialises migrations across processes
+// (two servers, or serve + migrate, starting at the same moment).
+const migrateLockID int64 = 0x5354524d4d494752 // "STRMMIGR"
+
 // Migrate applies all pending application and River (job queue) migrations.
 func Migrate(ctx context.Context, pool *pgxpool.Pool) error {
+	conn, err := pool.Acquire(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Release()
+	if _, err := conn.Exec(ctx, `SELECT pg_advisory_lock($1)`, migrateLockID); err != nil {
+		return fmt.Errorf("migration lock: %w", err)
+	}
+	defer func() { _, _ = conn.Exec(context.WithoutCancel(ctx), `SELECT pg_advisory_unlock($1)`, migrateLockID) }()
+
 	p, sqlDB, err := gooseProvider(pool)
 	if err != nil {
 		return err
