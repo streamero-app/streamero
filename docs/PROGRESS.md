@@ -20,6 +20,13 @@ P2 — Biblioteke i scanner (sljedeće). P0 (PR #1) i P1 (PR #4) gotovi i mergea
 - Branch pushan, PR #1 (`phase/P0-foundations` → `main`) otvoren; `main` je prazan početni commit spojen u P0 (repo je bio prazan). CI zelen: `server`, `web`, `e2e`, iOS `build` (prvi uspješan iOS build, artefakt `streamero-ipa`).
 - `scripts/gen-fixtures.sh`: filmovi (H.264, 4K HEVC 10-bit, HDR10, AV1, multi-audio + poglavlja + embedded/external SRT/ASS, verzije, trailer), serija sa zajedničkim introm (2×4 ep.), multi-episode, specials, daily, anime absolute, glazba (FLAC/MP3), fotke.
 
+## P2 — u tijeku (branch `phase/P2-libraries`)
+- Biblioteke (filmovi, serije, mješovito; više mapa), API + admin UI s preglednikom mapa; svaka putanja kroz `library.ResolveSafePath` unutar `STREAMERO_MEDIA_ROOTS`; migracija 00009.
+- Skener kao River job: parsiranje imena (naslov/godina, release tagovi, provider ID, verzije, extras/sample/trailer, skrivene/NAS mape), epizode (SxxEyy, multi, NxNN, specijali, daily, anime absolute), ffprobe (rezolucija, kodek, HDR10/HLG/DV, zvuk, podnaslovi) + vanjski podnaslovi (dijele ih sve verzije), paralelno probanje, inkrementalno; nedostupna mapa = scan pada bez brisanja.
+- Web: biblioteke na početnoj, mreža s poretkom i straničenjem, stranica stavke (verzije, tehnički podaci, sezone/epizode).
+- Demo: `MEDIA_PATH=/mnt/mediarr/streamero-media` (u kontejneru `/media`), test mediji na `/fixtures`.
+- Testovi: golden parseri, ffprobe parser, integracijski scan (filmovi, serije, promjene, offline mapa), EXPLAIN indeksi, API (putanje, dozvole), Vitest 25, Playwright 10 (pravi scan s ffprobeom).
+
 ## P1 — gotovo (PR #4)
 - API (spec → ogen): `/setup`, `/auth/{login,logout,me,password}`, `/users`, `/sessions`, `/settings/server`; migracija 00002 (users, sessions, audit_log); D-012.
 - Setup wizard sa setup kodom iz loga, login/odjava (cookie za web, Bearer za aplikacije), lockout, upravljanje korisnicima (admin, onemogući, lozinka, brisanje, zaštita zadnjeg admina), uređaji s trenutnim opozivom, promjena lozinke (odjavljuje ostale uređaje), ime servera.
@@ -35,7 +42,7 @@ P2 — Biblioteke i scanner (sljedeće). P0 (PR #1) i P1 (PR #4) gotovi i mergea
 - Testovi: Go unit + integracijski protiv Postgresa (setup, cookie/bearer, revoke, lockout, zadnji admin, promjena lozinke), Vitest 18, Playwright 9 (setup, korisnici, uređaji, Quick Connect, pozivnice, lockout, odjava — na svježem stacku).
 
 ## Sljedeći koraci
-1. P2: tipovi biblioteka, putanje (kroz `library.ResolveSafePath`), naming parseri + golden testovi, ffprobe, inkrementalni scan + fsnotify, `seed-big-library.sh`; provedba dozvole `allLibraries`.
+1. P2 nastavak: fsnotify + periodični scan, `.streameroignore`, watch status kroz preimenovanje (inode/hash), golden testovi do 300+, `seed-big-library.sh` + 50k benchmark, provider ID na sezonama/epizodama, verzije epizoda.
 2. Instalirati `streamero-ipa` (artefakt iOS CI-ja) kroz Feather, spojiti se na https://demo.streamero.net i prijaviti (lozinka / Quick Connect).
 3. Zamijeniti placeholder logo službenim s streamero.net.
 4. *arr ekosustav je faza P4b (D-011).

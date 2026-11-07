@@ -38,10 +38,11 @@
   "home": {
     "welcome": "Dobro došli, {{name}}",
     "librariesTitle": "Biblioteke",
-    "librariesSoon": "Biblioteke filmova, serija i glazbe stižu u sljedećoj fazi (skener i metapodaci).",
     "settingsTitle": "Postavke",
     "settingsText": "Upravljajte svojim računom, prijavljenim uređajima i — kao administrator — korisnicima i serverom.",
-    "openSettings": "Otvori postavke"
+    "openSettings": "Otvori postavke",
+    "noLibraries": "Još nema biblioteka. Zamolite administratora da doda biblioteku.",
+    "noLibrariesAdmin": "Dodajte biblioteku sa svojim filmovima ili serijama."
   },
   "settings": {
     "account": "Moj račun",
@@ -52,7 +53,8 @@
     "apiKeys": "API ključevi",
     "quickConnect": "Quick Connect",
     "invites": "Pozivnice",
-    "profiles": "Profili"
+    "profiles": "Profili",
+    "libraries": "Biblioteke"
   },
   "account": {
     "changePassword": "Promijeni lozinku",
@@ -128,7 +130,9 @@
     "profile_locked": "Previše pogrešnih PIN-ova. Pokušajte za nekoliko minuta.",
     "kid_profile": "Nije dostupno u dječjem profilu.",
     "too_many_profiles": "Račun može imati najviše 6 profila.",
-    "rate_limited": "Previše pokušaja s vaše mreže. Pričekajte trenutak pa pokušajte ponovno."
+    "rate_limited": "Previše pokušaja s vaše mreže. Pričekajte trenutak pa pokušajte ponovno.",
+    "invalid_path": "Ta mapa ne postoji ili je izvan mapa s medijima.",
+    "unsupported_kind": "Glazbene biblioteke stižu u kasnijoj fazi."
   },
   "notFound": {
     "title": "Stranica nije pronađena",
@@ -243,5 +247,61 @@
     "removePin": "Ukloni PIN",
     "confirmDelete": "Obrisati profil {{name}}?",
     "pinLocked": "Zaštićeno PIN-om"
+  },
+  "libraries": {
+    "intro": "Biblioteke pokazuju na mape na serveru. Streamero ih samo čita; ništa se u tim mapama nikad ne mijenja ni ne briše.",
+    "none": "Još nema biblioteka.",
+    "add": "Dodaj biblioteku",
+    "editTitle": "Uredi biblioteku",
+    "name": "Naziv",
+    "namePlaceholder": "Filmovi",
+    "kind": "Vrsta",
+    "kind_movies": "Filmovi",
+    "kind_shows": "Serije",
+    "kind_mixed": "Filmovi i serije",
+    "kind_music": "Glazba",
+    "folders": "Mape",
+    "noFolders": "Još nije odabrana nijedna mapa.",
+    "addFolder": "Dodaj mapu",
+    "chooseFolder": "Odaberi ovu mapu",
+    "up": "Gore",
+    "mediaRoots": "Mape s medijima",
+    "noSubfolders": "Nema podmapa.",
+    "foldersHint": "Kopirajte medije u /mnt/mediarr/streamero-media na serveru (ovdje se vidi kao /media). Jedan film po mapi, npr. \"Filmovi/Dune (2021)/Dune (2021).mkv\"; serije kao \"Serije/Ime (Godina)/Season 01/Ime S01E01.mkv\".",
+    "queued": "Čeka skeniranje",
+    "scanning": "Skeniranje…",
+    "failed": "Skeniranje nije uspjelo",
+    "scan": "Skeniraj",
+    "remove": "Ukloni",
+    "confirmDelete": "Ukloniti biblioteku {{name}} iz Streamera? Datoteke ostaju netaknute.",
+    "meta": "{{count}} stavki · {{files}} datoteka · skenirano {{when}}",
+    "items_one": "{{count}} stavka",
+    "items_other": "{{count}} stavki"
+  },
+  "library": {
+    "sort": "Poredaj",
+    "sortTitle": "Naslov",
+    "sortYear": "Godina",
+    "sortAdded": "Nedavno dodano",
+    "more": "Prikaži više",
+    "empty": "Ovdje još nema ničega. Provjerite raspored mapa ili ponovno skenirajte.",
+    "scanning": "Skeniram mape…",
+    "back": "Natrag",
+    "kind_movie": "Film",
+    "kind_series": "Serija",
+    "kind_season": "Sezona",
+    "kind_episode": "Epizoda",
+    "seasons": "Sezone",
+    "episodes": "Epizode",
+    "season": "Sezona {{n}}",
+    "specials": "Specijali",
+    "file": "Datoteka",
+    "versions_one": "{{count}} verzija",
+    "versions_other": "{{count}} verzija",
+    "audio": "Zvuk",
+    "subtitles": "Podnaslovi",
+    "forced": "prisilni",
+    "external": "vanjski",
+    "playbackSoon": "Posteri i opisi stižu s metapodacima (P3), reprodukcija u P5."
   }
 }

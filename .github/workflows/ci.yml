@@ -81,8 +81,11 @@ jobs:
           echo "STREAMERO_SETUP_CODE=E2E-SETUP" >> .env
           # The e2e suite signs in many times from one IP; the limiter itself has unit tests.
           echo "STREAMERO_AUTH_RATE_LIMIT=1000,1000" >> .env
-          mkdir -p ../data/fixtures
-          docker compose -f docker-compose.yml -f compose.dev.yml up -d --build --wait
+          docker compose -f docker-compose.yml -f compose.dev.yml build
+          # Test media for the library e2e test, generated with the image's ffmpeg (short clips).
+          docker run --rm --user 0 -e FIXTURE_DURATION=3 -v "$PWD/..:/w" -w /w --entrypoint bash streamero:dev \
+            scripts/gen-fixtures.sh ./data/fixtures
+          docker compose -f docker-compose.yml -f compose.dev.yml up -d --wait
       - uses: pnpm/action-setup@v4
         with:
           package_json_file: web/package.json

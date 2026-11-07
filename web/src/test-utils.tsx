@@ -17,7 +17,7 @@ export const testUser = (over: Partial<User> = {}): User => ({
   createdAt: new Date().toISOString(), ...over,
 });
 
-type Handler = (req: { method: string; path: string; body: unknown }) => { status: number; body?: unknown };
+type Handler = (req: { method: string; path: string; body: unknown; query: URLSearchParams }) => { status: number; body?: unknown };
 
 /** Replaces fetch with a tiny router over API paths; returns the mock for assertions. */
 export function mockApi(handler: Handler) {
@@ -25,7 +25,8 @@ export function mockApi(handler: Handler) {
     const req = input instanceof Request ? input : new Request(String(input), init);
     const url = new URL(req.url, "http://localhost");
     const text = await req.clone().text();
-    const res = handler({ method: req.method, path: url.pathname.replace(/^\/api\/v1/, ""), body: text ? JSON.parse(text) : undefined });
+    const res = handler({ method: req.method, path: url.pathname.replace(/^\/api\/v1/, ""), body: text ? JSON.parse(text) : undefined,
+      query: url.searchParams });
     return new Response(res.body === undefined ? null : JSON.stringify(res.body), {
       status: res.status, headers: { "Content-Type": "application/json" },
     });

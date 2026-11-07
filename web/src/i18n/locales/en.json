@@ -38,10 +38,11 @@
   "home": {
     "welcome": "Welcome, {{name}}",
     "librariesTitle": "Libraries",
-    "librariesSoon": "Movie, show and music libraries arrive in the next phase (scanner and metadata).",
     "settingsTitle": "Settings",
     "settingsText": "Manage your account, signed-in devices and — as an administrator — users and the server.",
-    "openSettings": "Open settings"
+    "openSettings": "Open settings",
+    "noLibraries": "No libraries yet. Ask an administrator to add one.",
+    "noLibrariesAdmin": "Add a library with your movies or shows to start."
   },
   "settings": {
     "account": "My account",
@@ -52,7 +53,8 @@
     "apiKeys": "API keys",
     "quickConnect": "Quick Connect",
     "invites": "Invites",
-    "profiles": "Profiles"
+    "profiles": "Profiles",
+    "libraries": "Libraries"
   },
   "account": {
     "changePassword": "Change password",
@@ -128,7 +130,9 @@
     "profile_locked": "Too many wrong PINs. Try again in a few minutes.",
     "kid_profile": "Not available in a kids profile.",
     "too_many_profiles": "An account can have at most 6 profiles.",
-    "rate_limited": "Too many attempts from your network. Wait a moment and try again."
+    "rate_limited": "Too many attempts from your network. Wait a moment and try again.",
+    "invalid_path": "That folder does not exist or is outside the media folders.",
+    "unsupported_kind": "Music libraries arrive in a later phase."
   },
   "notFound": {
     "title": "Page not found",
@@ -243,5 +247,61 @@
     "removePin": "Remove PIN",
     "confirmDelete": "Delete profile {{name}}?",
     "pinLocked": "Protected by PIN"
+  },
+  "libraries": {
+    "intro": "Libraries point at folders on the server. Streamero only reads them; nothing in these folders is ever changed or deleted.",
+    "none": "No libraries yet.",
+    "add": "Add library",
+    "editTitle": "Edit library",
+    "name": "Name",
+    "namePlaceholder": "Movies",
+    "kind": "Type",
+    "kind_movies": "Movies",
+    "kind_shows": "Shows",
+    "kind_mixed": "Movies and shows",
+    "kind_music": "Music",
+    "folders": "Folders",
+    "noFolders": "No folder chosen yet.",
+    "addFolder": "Add folder",
+    "chooseFolder": "Use this folder",
+    "up": "Up",
+    "mediaRoots": "Media folders",
+    "noSubfolders": "No sub-folders.",
+    "foldersHint": "Copy media to /mnt/mediarr/streamero-media on the server (it appears here as /media). One movie per folder, e.g. \"Movies/Dune (2021)/Dune (2021).mkv\"; shows as \"Shows/Name (Year)/Season 01/Name S01E01.mkv\".",
+    "queued": "Waiting to scan",
+    "scanning": "Scanning…",
+    "failed": "Scan failed",
+    "scan": "Scan now",
+    "remove": "Remove",
+    "confirmDelete": "Remove library {{name}} from Streamero? The files stay untouched.",
+    "meta": "{{count}} items · {{files}} files · scanned {{when}}",
+    "items_one": "{{count}} item",
+    "items_other": "{{count}} items"
+  },
+  "library": {
+    "sort": "Sort",
+    "sortTitle": "Title",
+    "sortYear": "Year",
+    "sortAdded": "Recently added",
+    "more": "Show more",
+    "empty": "Nothing here yet. Check the folder layout or scan again.",
+    "scanning": "Scanning the folders…",
+    "back": "Back",
+    "kind_movie": "Movie",
+    "kind_series": "Series",
+    "kind_season": "Season",
+    "kind_episode": "Episode",
+    "seasons": "Seasons",
+    "episodes": "Episodes",
+    "season": "Season {{n}}",
+    "specials": "Specials",
+    "file": "File",
+    "versions_one": "{{count}} version",
+    "versions_other": "{{count}} versions",
+    "audio": "Audio",
+    "subtitles": "Subtitles",
+    "forced": "forced",
+    "external": "external",
+    "playbackSoon": "Posters and descriptions arrive with metadata (P3), playback in P5."
   }
 }

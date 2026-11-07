@@ -18,6 +18,18 @@ docker compose -f docker-compose.yml -f compose.vaapi.yml up -d   # Intel/AMD (s
 docker compose -f docker-compose.yml -f compose.nvidia.yml up -d  # NVIDIA (nvidia-container-toolkit)
 ```
 
+## Media folders
+`MEDIA_PATH` (in `deploy/.env`) is mounted read-only at `/media`; libraries can only use folders
+below `STREAMERO_MEDIA_ROOTS` (default `/media`). Streamero never writes to or deletes from them.
+Suggested layout:
+```
+Movies/Dune (2021)/Dune (2021).mkv            # versions: "Dune (2021) - 2160p.mkv"
+Movies/Dune (2021)/Dune (2021).hr.srt         # sidecar subtitles (lang, .forced)
+Shows/Severance (2022)/Season 01/Severance S01E01.mkv
+```
+Demo server: copy media to `/mnt/mediarr/streamero-media` (e.g. `rsync -av Movies/ server:/mnt/mediarr/streamero-media/movies/`),
+then Settings → Libraries → Add library.
+
 ## Reverse proxy (nginx)
 `deploy/nginx/demo.streamero.net.conf` is a ready site file: buffering off (streaming and range
 requests), 1 h timeouts and WebSocket upgrade. Bind Streamero to localhost only

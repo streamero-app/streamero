@@ -16,6 +16,8 @@ import { SetupPage } from "@/routes/SetupPage";
 import { InvitePage } from "@/routes/InvitePage";
 import { InvitesSettings } from "@/features/settings/InvitesSettings";
 import { ProfilesSettings } from "@/features/settings/ProfilesSettings";
+import { LibrariesSettings } from "@/features/settings/LibrariesSettings";
+import { ItemPage, LibraryPage } from "@/features/library/LibraryPages";
 import { NotFoundPage } from "@/routes/NotFoundPage";
 
 const rootRoute = createRootRoute({
@@ -34,6 +36,8 @@ const inviteRoute = createRoute({ getParentRoute: () => rootRoute, path: "/invit
 // Everything below requires a signed-in user (AppShell redirects otherwise).
 const appRoute = createRoute({ getParentRoute: () => rootRoute, id: "app", component: AppShell });
 const homeRoute = createRoute({ getParentRoute: () => appRoute, path: "/", component: HomePage });
+const libraryRoute = createRoute({ getParentRoute: () => appRoute, path: "/library/$libraryId", component: LibraryPage });
+const itemRoute = createRoute({ getParentRoute: () => appRoute, path: "/item/$itemId", component: ItemPage });
 
 function adminOnly(Page: ComponentType) {
   return function AdminPage() {
@@ -58,6 +62,7 @@ const accountRoute = createRoute({ getParentRoute: () => settingsRoute, path: "a
 const profilesRoute = createRoute({ getParentRoute: () => settingsRoute, path: "profiles", component: ProfilesSettings });
 const devicesRoute = createRoute({ getParentRoute: () => settingsRoute, path: "devices", component: DevicesSettings });
 const quickConnectRoute = createRoute({ getParentRoute: () => settingsRoute, path: "quickconnect", component: QuickConnectSettings });
+const librariesRoute = createRoute({ getParentRoute: () => settingsRoute, path: "libraries", component: adminOnly(LibrariesSettings) });
 const serverRoute = createRoute({ getParentRoute: () => settingsRoute, path: "server", component: adminOnly(ServerSettingsPage) });
 const apiKeysRoute = createRoute({ getParentRoute: () => settingsRoute, path: "apikeys", component: adminOnly(ApiKeysSettings) });
 const invitesRoute = createRoute({ getParentRoute: () => settingsRoute, path: "invites", component: adminOnly(InvitesSettings) });
@@ -69,7 +74,9 @@ export const routeTree = rootRoute.addChildren([
   inviteRoute,
   appRoute.addChildren([
     homeRoute,
-    settingsRoute.addChildren([settingsIndex, accountRoute, profilesRoute, devicesRoute, quickConnectRoute, serverRoute, usersRoute, invitesRoute, apiKeysRoute]),
+    libraryRoute,
+    itemRoute,
+    settingsRoute.addChildren([settingsIndex, accountRoute, profilesRoute, devicesRoute, quickConnectRoute, serverRoute, librariesRoute, usersRoute, invitesRoute, apiKeysRoute]),
   ]),
 ]);
 export const router = createRouter({ routeTree });

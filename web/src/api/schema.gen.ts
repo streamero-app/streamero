@@ -505,6 +505,125 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/libraries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Libraries the caller may see */
+        get: operations["listLibraries"];
+        put?: never;
+        /** Add a library and start scanning it (admin) */
+        post: operations["createLibrary"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/libraries/{libraryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                libraryId: components["parameters"]["LibraryId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a library (admin); changed folders are rescanned */
+        put: operations["updateLibrary"];
+        post?: never;
+        /** Remove a library from Streamero (admin). Media files are never touched. */
+        delete: operations["deleteLibrary"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/libraries/{libraryId}/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                libraryId: components["parameters"]["LibraryId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Scan a library for new, changed and removed files (admin) */
+        post: operations["scanLibrary"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/libraries/{libraryId}/items": {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+                sort?: "title" | "year" | "added";
+            };
+            header?: never;
+            path: {
+                libraryId: components["parameters"]["LibraryId"];
+            };
+            cookie?: never;
+        };
+        /** Top-level items of a library (movies, series), paged */
+        get: operations["listLibraryItems"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/items/{itemId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        /** An item with its files and children (seasons/episodes) */
+        get: operations["getItem"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/fs/directories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Sub-folders of a media folder, for choosing library folders (admin)
+         * @description Without `path`, returns the configured media roots.
+         */
+        get: operations["browseDirectories"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/settings/server": {
         parameters: {
             query?: never;
@@ -617,6 +736,102 @@ export interface components {
         };
         QuickConnectApproved: {
             deviceName: string;
+        };
+        /** @enum {string} */
+        LibraryKind: "movies" | "shows" | "music" | "mixed";
+        LibraryInput: {
+            name: string;
+            kind: components["schemas"]["LibraryKind"];
+            paths: string[];
+        };
+        Library: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            kind: components["schemas"]["LibraryKind"];
+            paths: string[];
+            itemCount: number;
+            scan: components["schemas"]["ScanStatus"];
+        };
+        ScanStatus: {
+            /** @enum {string} */
+            state: "idle" | "queued" | "scanning" | "failed";
+            /** Format: date-time */
+            lastScanAt?: string;
+            error?: string;
+            filesSeen?: number;
+        };
+        /** @enum {string} */
+        ItemKind: "movie" | "series" | "season" | "episode";
+        ItemSummary: {
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["ItemKind"];
+            title: string;
+            year?: number;
+            seasonNumber?: number;
+            episodeNumber?: number;
+            episodeNumberEnd?: number;
+            /** Format: int64 */
+            durationMs?: number;
+            /** Format: date-time */
+            addedAt: string;
+        };
+        ItemPage: {
+            items: components["schemas"]["ItemSummary"][];
+            total: number;
+        };
+        MediaFile: {
+            /** Format: uuid */
+            id: string;
+            /** @description Path inside the server's media folders. */
+            path: string;
+            /** @description Version label from the file name, e.g. "4K" or "Director's Cut". */
+            label?: string;
+            /** Format: int64 */
+            size: number;
+            container: string;
+            /** Format: int64 */
+            durationMs?: number;
+            width?: number;
+            height?: number;
+            videoCodec?: string;
+            /** @description e.g. "HDR10", "HLG", "Dolby Vision" (empty for SDR). */
+            hdr?: string;
+            audio?: components["schemas"]["AudioStream"][];
+            subtitles?: components["schemas"]["SubtitleStream"][];
+        };
+        AudioStream: {
+            codec: string;
+            language?: string;
+            channels?: number;
+            title?: string;
+        };
+        SubtitleStream: {
+            codec: string;
+            language?: string;
+            forced?: boolean;
+            external: boolean;
+        };
+        ItemDetail: {
+            item: components["schemas"]["ItemSummary"];
+            /** Format: uuid */
+            libraryId: string;
+            /** Format: uuid */
+            parentId?: string;
+            /** @description Provider IDs from file/folder names, e.g. tmdb=603, imdb=tt0133093. */
+            providerIds: {
+                [key: string]: string;
+            };
+            files: components["schemas"]["MediaFile"][];
+            children: components["schemas"]["ItemSummary"][];
+        };
+        DirectoryListing: {
+            /** @description The listed folder (absent for the list of media roots). */
+            path?: string;
+            parent?: string;
+            /** @description Absolute paths of sub-folders. */
+            directories: string[];
         };
         Profile: {
             /** Format: uuid */
@@ -808,6 +1023,7 @@ export interface components {
         };
     };
     parameters: {
+        LibraryId: string;
         ProfileId: string;
         UserId: string;
     };
@@ -1577,6 +1793,194 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listLibraries: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Libraries */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Library"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createLibrary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Library"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateLibrary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                libraryId: components["parameters"]["LibraryId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryInput"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Library"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteLibrary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                libraryId: components["parameters"]["LibraryId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    scanLibrary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                libraryId: components["parameters"]["LibraryId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Scan queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listLibraryItems: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+                sort?: "title" | "year" | "added";
+            };
+            header?: never;
+            path: {
+                libraryId: components["parameters"]["LibraryId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Items */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemPage"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Item */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemDetail"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    browseDirectories: {
+        parameters: {
+            query?: {
+                path?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Folders */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DirectoryListing"];
+                };
             };
             default: components["responses"]["Error"];
         };

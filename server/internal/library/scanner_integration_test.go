@@ -153,7 +153,7 @@ func TestMovieLibraryScanIntegration(t *testing.T) {
 		}
 	}
 	sort.Strings(labels)
-	if labels[0] != "" || labels[1] != "2160p" || external != 2 {
+	if labels[0] != "" || labels[1] != "2160p" || external != 4 { // both versions get both sidecar subtitles
 		t.Fatalf("labels %v external subs %d", labels, external)
 	}
 

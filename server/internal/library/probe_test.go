@@ -48,4 +48,12 @@ func TestExternalSubtitle(t *testing.T) {
 	if _, ok := ExternalSubtitle(v, "/m/Big Test Movie (2021)/Other.en.srt"); ok {
 		t.Error("unrelated subtitle matched")
 	}
+	// Versions share the subtitles of the base name.
+	if s, ok := ExternalSubtitle("/m/X (2021)/X (2021) - 2160p.mkv", "/m/X (2021)/X (2021).hr.srt"); !ok || s.Language != "hr" {
+		t.Errorf("version did not get base subtitle: %+v %v", s, ok)
+	}
+	// Name boundary.
+	if _, ok := ExternalSubtitle("/m/Movie 20.mkv", "/m/Movie 2.srt"); ok {
+		t.Error("Movie 2.srt matched Movie 20.mkv")
+	}
 }

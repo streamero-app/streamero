@@ -137,17 +137,34 @@ func containerName(format, path string) string {
 	return strings.SplitN(format, ",", 2)[0]
 }
 
+// versionBase strips a version label: "Movie (2021) - 2160p" → "Movie (2021)".
+func versionBase(stem string) string {
+	if i := strings.LastIndex(stem, " - "); i > 0 {
+		return stem[:i]
+	}
+	return ""
+}
+
 // ExternalSubtitle describes a sidecar file like "Movie (2021).hr.forced.srt" for video "Movie (2021).mkv".
 func ExternalSubtitle(videoPath, subPath string) (SubtitleStream, bool) {
 	vbase := strings.TrimSuffix(filepath.Base(videoPath), filepath.Ext(videoPath))
 	sbase := filepath.Base(subPath)
 	ext := filepath.Ext(sbase)
 	stem := strings.TrimSuffix(sbase, ext)
-	if !strings.HasPrefix(stem, vbase) {
+	// "Movie (2021).en.srt" belongs to "Movie (2021).mkv" and to its versions like
+	// "Movie (2021) - 2160p.mkv"; the name must end at a dot ("Movie 2" ≠ "Movie 20").
+	base := ""
+	for _, cand := range []string{vbase, versionBase(vbase)} {
+		if cand != "" && strings.HasPrefix(stem, cand) && (len(stem) == len(cand) || stem[len(cand)] == '.') {
+			base = cand
+			break
+		}
+	}
+	if base == "" {
 		return SubtitleStream{}, false
 	}
 	s := SubtitleStream{Codec: strings.TrimPrefix(strings.ToLower(ext), "."), External: true, Path: subPath}
-	for _, part := range strings.Split(strings.TrimPrefix(stem[len(vbase):], "."), ".") {
+	for _, part := range strings.Split(strings.TrimPrefix(stem[len(base):], "."), ".") {
 		switch p := strings.ToLower(part); {
 		case p == "forced":
 			s.Forced = true

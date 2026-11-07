@@ -57,30 +57,30 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 ## 3. Biblioteke i skeniranje
 
 ### Tipovi biblioteka
-- [ ] `[JF]` Filmovi (P2)
-- [ ] `[JF]` Serije (Show → Season → Episode, specials Season 0) (P2)
+- [x] `[JF]` Filmovi (P2)
+- [x] `[JF]` Serije (Show → Season → Episode, specials Season 0) (P2)
 - [ ] `[JF]` Glazba (Artist / Album Artist → Album → Track, diskovi) (P9)
 - [ ] `[JF]` Glazbeni spotovi (P9)
 - [ ] `[JF]` Kućni videi i fotografije (folder view, default tab opcije) (P9)
 - [ ] `[JF]` Knjige: EPUB, PDF, MOBI/AZW3, CBZ/CBR/CB7/CBT (comics) (P9)
 - [ ] `[JF]` Audioknjige (M4B, MP3 folderi, poglavlja) (P9)
-- [ ] `[JF]` Mješoviti sadržaj (mixed) (P2)
+- [x] `[JF]` Mješoviti sadržaj (mixed) (P2)
 - [ ] `[JF]` Kolekcije (box sets) i playliste kao virtualne biblioteke (P4)
 - [ ] `[JF]` Live TV kao biblioteka (P11)
 
 ### Opcije biblioteke (po biblioteci)
-- [ ] `[JF]` Više putanja po biblioteci, uključujući mrežne (SMB/NFS montirane u kontejner) (P2)
+- [x] `[JF]` Više putanja po biblioteci, uključujući mrežne (SMB/NFS montirane u kontejner) (P2)
 - [ ] `[JF]` Preferirani jezik i država metapodataka (P3)
 - [ ] `[JF]` Real-time monitoring (fsnotify) + periodični scan; fallback polling za NFS/SMB (P2)
 - [ ] `[JF]` Redoslijed i on/off metadata providera i image fetchera po tipu (P3)
 - [ ] `[JF]` Spremanje slika/NFO pokraj medija (opcija) (P3)
 - [ ] `[JF]` Automatske kolekcije (TMDb box sets) (P3)
-- [ ] `[JF]` Automatsko grupiranje alternativnih verzija (film I epizode) + ručno spajanje/razdvajanje (P2)
-- [ ] `[JF]` Provider ID u imenu foldera/datoteke: `[tmdbid-123]`, `{tmdb-123}`, `(imdb-tt…)`, aliasi `tmdb/imdb/tvdb` — i na folderima sezona i epizoda (P2)
-- [ ] `[JF]` Prepoznavanje release tagova (WEB-DL, BluRay, 2160p, HDR, DV, Remux…) (P2)
-- [ ] `[JF]` Extras: trailers, featurettes, behind the scenes, deleted scenes, interviews, scenes, shorts, samples, theme songs, theme videos (folderi i sufiksi) (P2)
+- [ ] `[JF]` Automatsko grupiranje alternativnih verzija (film I epizode) + ručno spajanje/razdvajanje (P2) — *automatsko grupiranje filmova gotovo; epizode i ručno spajanje slijede*
+- [ ] `[JF]` Provider ID u imenu foldera/datoteke: `[tmdbid-123]`, `{tmdb-123}`, `(imdb-tt…)`, aliasi `tmdb/imdb/tvdb` — i na folderima sezona i epizoda (P2) — *film/serija gotovi; sezone/epizode slijede*
+- [x] `[JF]` Prepoznavanje release tagova (WEB-DL, BluRay, 2160p, HDR, DV, Remux…) (P2)
+- [ ] `[JF]` Extras: trailers, featurettes, behind the scenes, deleted scenes, interviews, scenes, shorts, samples, theme songs, theme videos (folderi i sufiksi) (P2) — *prepoznaju se i ne miješaju s filmom; prikaz extra sadržaja slijedi*
 - [ ] `[JF]` Ignore datoteke: `.ignore` + gitignore-style pravila (kod nas `.streameroignore`) (P2)
-- [ ] `[JF]` Epizode: SxxEyy, multi-episode datoteke (S01E01-E03), datumske epizode (daily shows), apsolutno numeriranje (anime), specials (P2)
+- [x] `[JF]` Epizode: SxxEyy, multi-episode datoteke (S01E01-E03), datumske epizode (daily shows), apsolutno numeriranje (anime), specials (P2)
 - [ ] `[JF]` Redoslijed epizoda: aired, DVD, absolute, alternativni (TVDB orders) (P3)
 - [ ] `[JF]` Prikaz nedostajućih epizoda i neemitiranih (missing/unaired) (P3)
 - [ ] `[JF]` Grupiranje serija u kolekcije u prikazu biblioteke (P4)
@@ -91,7 +91,7 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [ ] `[JF]` Symlinkovi rezolvirani u trenutku reprodukcije (P2)
 - [ ] `[JF]` Kad se datoteka zamijeni: brisanje zastarjelih poglavlja, trickplaya, ekstrahiranih podnaslova/attachmenta (P2)
 - [ ] `[JF]` Watch status preživljava preimenovanje/premještanje datoteke (P2)
-- [ ] `[+]` Inkrementalni scan po (mtime, size, inode) — scan biblioteke od 50k stavki bez promjena < 30 s (P2)
+- [ ] `[+]` Inkrementalni scan po (mtime, size, inode) — scan biblioteke od 50k stavki bez promjena < 30 s (P2) — *inkrementalno po (mtime, size) gotovo; 50k benchmark čeka `seed-big-library.sh`*
 - [ ] `[+]` Media health: detekcija oštećenih datoteka (ffprobe greške), duplikata, krivo imenovanih datoteka s prijedlogom ispravnog imena (P13)
 
 ## 4. Metapodaci i slike
