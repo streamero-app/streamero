@@ -267,7 +267,7 @@
     "up": "Gore",
     "mediaRoots": "Mape s medijima",
     "noSubfolders": "Nema podmapa.",
-    "foldersHint": "Kopirajte medije u /mnt/mediarr/streamero-media na serveru (ovdje se vidi kao /media). Jedan film po mapi, npr. \"Filmovi/Dune (2021)/Dune (2021).mkv\"; serije kao \"Serije/Ime (Godina)/Season 01/Ime S01E01.mkv\".",
+    "foldersHint": "Mapa postavljena kao MEDIA_PATH u .env datoteci servera ovdje se vidi kao /media. Jedan film po mapi, npr. \"Filmovi/Dune (2021)/Dune (2021).mkv\"; serije kao \"Serije/Ime (Godina)/Season 01/Ime S01E01.mkv\".",
     "queued": "Čeka skeniranje",
     "scanning": "Skeniranje…",
     "failed": "Skeniranje nije uspjelo",

@@ -24,7 +24,7 @@ P2 — Biblioteke i scanner (sljedeće). P0 (PR #1) i P1 (PR #4) gotovi i mergea
 - Biblioteke (filmovi, serije, mješovito; više mapa), API + admin UI s preglednikom mapa; svaka putanja kroz `library.ResolveSafePath` unutar `STREAMERO_MEDIA_ROOTS`; migracija 00009.
 - Skener kao River job: parsiranje imena (naslov/godina, release tagovi, provider ID, verzije, extras/sample/trailer, skrivene/NAS mape), epizode (SxxEyy, multi, NxNN, specijali, daily, anime absolute), ffprobe (rezolucija, kodek, HDR10/HLG/DV, zvuk, podnaslovi) + vanjski podnaslovi (dijele ih sve verzije), paralelno probanje, inkrementalno; nedostupna mapa = scan pada bez brisanja.
 - Web: biblioteke na početnoj, mreža s poretkom i straničenjem, stranica stavke (verzije, tehnički podaci, sezone/epizode).
-- Demo: `MEDIA_PATH=/mnt/mediarr/streamero-media` (u kontejneru `/media`), test mediji na `/fixtures`.
+- Ovaj server je samo dev (demo.streamero.net): `MEDIA_PATH=../data/media` (prazno), test mediji na `/fixtures`. Stabilna verzija ide na zaseban server preko `deploy/docker-compose.yml` + GHCR imagea (DEPLOY.md).
 - Testovi: golden parseri, ffprobe parser, integracijski scan (filmovi, serije, promjene, offline mapa), EXPLAIN indeksi, API (putanje, dozvole), Vitest 25, Playwright 10 (pravi scan s ffprobeom).
 
 ## P1 — gotovo (PR #4)

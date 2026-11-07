@@ -4,13 +4,38 @@
 - Docker Engine with the Compose plugin
 - ~2 GB RAM free (more for 4K transcoding); optional GPU (Intel/AMD VA-API or NVIDIA)
 
-## Install
+## Servers
+- **Development** (demo.streamero.net): builds from source (`compose.dev.yml`), test media only.
+- **Stable / production**: a separate server running the published image from GHCR with
+  `docker-compose.yml` alone — no source checkout, no build.
+
+## Install (stable server)
+Only two files are needed:
 ```bash
-git clone https://github.com/streamero-app/streamero && cd streamero/deploy
-cp .env.example .env
-# edit .env: DB_PASSWORD, MEDIA_PATH, TZ, HTTP_PORT
-docker compose up -d
+mkdir -p /opt/streamero && cd /opt/streamero
+curl -fsSLO https://raw.githubusercontent.com/streamero-app/streamero/main/deploy/docker-compose.yml
+curl -fsSL  https://raw.githubusercontent.com/streamero-app/streamero/main/deploy/.env.example -o .env
 ```
+Edit `.env`:
+| Key | Value |
+|---|---|
+| `DB_PASSWORD` | a long random string (`openssl rand -hex 24`) |
+| `MEDIA_PATH` | your media folder on this server, e.g. `/srv/media` (mounted read-only at `/media`) |
+| `STREAMERO_VERSION` | a release such as `0.2.0` (or `edge` = latest `main`); `latest` = newest release |
+| `HTTP_PORT` | `8787`, or `127.0.0.1:8787` behind a reverse proxy |
+| `STREAMERO_TRUSTED_PROXIES` | only behind a reverse proxy (see below) |
+| `TZ` | e.g. `Europe/Zagreb` |
+
+Start and create the admin:
+```bash
+docker compose up -d
+docker compose logs streamero | grep setup_code   # one-time setup code
+```
+Open `http://<server>:8787`, enter the setup code and create the admin account.
+Data (database, config, cache) lives in `./data` next to the compose file — back it up.
+
+Update: change `STREAMERO_VERSION` if pinned, then `docker compose pull && docker compose up -d`
+(migrations run automatically).
 
 GPU:
 ```bash
@@ -27,8 +52,8 @@ Movies/Dune (2021)/Dune (2021).mkv            # versions: "Dune (2021) - 2160p.m
 Movies/Dune (2021)/Dune (2021).hr.srt         # sidecar subtitles (lang, .forced)
 Shows/Severance (2022)/Season 01/Severance S01E01.mkv
 ```
-Demo server: copy media to `/mnt/mediarr/streamero-media` (e.g. `rsync -av Movies/ server:/mnt/mediarr/streamero-media/movies/`),
-then Settings → Libraries → Add library.
+Copy media to `MEDIA_PATH` (e.g. `rsync -av Movies/ server:/srv/media/movies/`), then
+Settings → Libraries → Add library → `/media/movies`.
 
 ## Reverse proxy (nginx)
 `deploy/nginx/demo.streamero.net.conf` is a ready site file: buffering off (streaming and range
@@ -61,10 +86,6 @@ docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/w" -w /w --entrypoint bash 
 Every change is deployed this way; `GET /api/v1/system/info` on the demo shows the branch
 (`version: dev-<branch>`) and commit it was built from (`-dirty` = uncommitted changes).
 
-## Update (production)
-```bash
-docker compose pull && docker compose up -d
-```
 
 ## Health
 - `GET /healthz` — process is alive

@@ -267,7 +267,7 @@
     "up": "Up",
     "mediaRoots": "Media folders",
     "noSubfolders": "No sub-folders.",
-    "foldersHint": "Copy media to /mnt/mediarr/streamero-media on the server (it appears here as /media). One movie per folder, e.g. \"Movies/Dune (2021)/Dune (2021).mkv\"; shows as \"Shows/Name (Year)/Season 01/Name S01E01.mkv\".",
+    "foldersHint": "The folder set as MEDIA_PATH in the server's .env appears here as /media. One movie per folder, e.g. \"Movies/Dune (2021)/Dune (2021).mkv\"; shows as \"Shows/Name (Year)/Season 01/Name S01E01.mkv\".",
     "queued": "Waiting to scan",
     "scanning": "Scanning…",
     "failed": "Scan failed",
