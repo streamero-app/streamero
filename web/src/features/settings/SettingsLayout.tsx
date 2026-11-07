@@ -24,6 +24,7 @@ export function SettingsLayout() {
               <Link to="/settings/metadata" className={tab}>{t("settings.metadata")}</Link>
               <Link to="/settings/users" className={tab}>{t("settings.users")}</Link>
               <Link to="/settings/invites" className={tab}>{t("settings.invites")}</Link>
+              <Link to="/settings/integrations" className={tab}>{t("settings.integrations")}</Link>
               <Link to="/settings/apikeys" className={tab}>{t("settings.apiKeys")}</Link>
             </>
           )}

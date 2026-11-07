@@ -58,7 +58,8 @@
     "invites": "Invites",
     "profiles": "Profiles",
     "libraries": "Libraries",
-    "metadata": "Metadata"
+    "metadata": "Metadata",
+    "integrations": "Integrations"
   },
   "account": {
     "changePassword": "Change password",
@@ -356,5 +357,18 @@
     "placeholder": "Search…",
     "resultsFor": "Results for “{{q}}”",
     "none": "Nothing found. Try another spelling or an actor's name."
+  },
+  "integrations": {
+    "host": "Host",
+    "port": "Port",
+    "ssl": "Use SSL",
+    "urlBase": "URL base",
+    "on": "on",
+    "off": "off",
+    "seerrIntro": "In Seerr/Jellyseerr choose \"Jellyfin\" as the media server and enter:",
+    "seerrAccount": "Sign in with a Streamero administrator account without two-factor sign-in, then sync and enable the libraries and run the full scan. Matching uses TMDb IDs, so set up Settings → Metadata first.",
+    "arrIntro": "In Settings → Connect add \"Emby / Jellyfin\" with these values, turn \"Send Notifications\" off and \"Update Library\" on:",
+    "arrKey": "API key: create one for each app under",
+    "bazarr": "Nothing to set up: subtitles that Bazarr saves next to the video appear in Streamero automatically within about 15 seconds."
   }
 }

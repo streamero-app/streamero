@@ -20,6 +20,11 @@ P4 — Web pregledavanje (u tijeku); izdanja v0.2.0 i **v0.3.0** objavljena. P0 
 - Branch pushan, PR #1 (`phase/P0-foundations` → `main`) otvoren; `main` je prazan početni commit spojen u P0 (repo je bio prazan). CI zelen: `server`, `web`, `e2e`, iOS `build` (prvi uspješan iOS build, artefakt `streamero-ipa`).
 - `scripts/gen-fixtures.sh`: filmovi (H.264, 4K HEVC 10-bit, HDR10, AV1, multi-audio + poglavlja + embedded/external SRT/ASS, verzije, trailer), serija sa zajedničkim introm (2×4 ep.), multi-episode, specials, daily, anime absolute, glazba (FLAC/MP3), fotke.
 
+## P4b — *arr ekosustav (branch `phase/P4b-arr`)
+- Compat API pod `/compat` (D-016): prijava, korisnici, biblioteke, stavke s ProviderIds/4K, sezone/epizode, latest, slike, `/Auth/Keys`, `/Library/Media/Updated`, „Play on" preusmjerenje.
+- Provjereno sa stvarnim Jellyseerr 2.7.3 (prijava, sync biblioteka, film dostupan, serija djelomično po sezonama) i Radarr 5.26 (Emby/Jellyfin veza). Bazarr radi preko watchera.
+- Web: Postavke → Integracije s gotovim vrijednostima; `docs/INTEGRATIONS.md`.
+
 ## P4 — pregledavanje, prvi dio (branch `phase/P4-browse`)
 - Pretraga (tipfeleri preko pg_trgm word_similarity, glumci/redatelji), favoriti, odgledano/neodgledano (serija/sezona → sve epizode), „Nedavno dodano", „Favoriti", filtri po žanru i neodgledano, sortiranje po ocjeni; migracija 00012.
 - Testovi: API integracijski (tipfeler, osobe, wildcards, žanr, kaskada odgledano, favoriti), EXPLAIN s realnom veličinom tablice, Vitest 31, Playwright 11.
@@ -66,7 +71,7 @@ P4 — Web pregledavanje (u tijeku); izdanja v0.2.0 i **v0.3.0** objavljena. P0 
 - Testovi: Go unit + integracijski protiv Postgresa (setup, cookie/bearer, revoke, lockout, zadnji admin, promjena lozinke), Vitest 18, Playwright 9 (setup, korisnici, uređaji, Quick Connect, pozivnice, lockout, odjava — na svježem stacku).
 
 ## Sljedeći koraci
-1. Redoslijed (korisnik: što prije): P3 metapodaci (TMDb ključ u Postavkama) → P5 reprodukcija → P4 pregledavanje → P4b *arr → ostalo. P2 ostatak: watch status kroz preimenovanje (inode/hash), golden testovi do 300+, `seed-big-library.sh` + 50k benchmark, provider ID na sezonama/epizodama, verzije epizoda.
+1. Redoslijed (dogovoren s korisnikom): iOS player (P7) → ostatak P2/P3/P5 → P6 → P8–P14. P2 ostatak: watch status kroz preimenovanje (inode/hash), golden testovi do 300+, `seed-big-library.sh` + 50k benchmark, provider ID na sezonama/epizodama, verzije epizoda.
 2. Instalirati `streamero-ipa` (artefakt iOS CI-ja) kroz Feather, spojiti se na https://demo.streamero.net i prijaviti (lozinka / Quick Connect).
 3. Zamijeniti placeholder logo službenim s streamero.net.
 4. *arr ekosustav je faza P4b (D-011).

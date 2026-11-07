@@ -18,6 +18,7 @@ import { InvitesSettings } from "@/features/settings/InvitesSettings";
 import { ProfilesSettings } from "@/features/settings/ProfilesSettings";
 import { LibrariesSettings } from "@/features/settings/LibrariesSettings";
 import { MetadataSettings } from "@/features/settings/MetadataSettings";
+import { IntegrationsSettings } from "@/features/settings/IntegrationsSettings";
 import { ItemPage, LibraryPage } from "@/features/library/LibraryPages";
 import { PlayerPage } from "@/features/player/PlayerPage";
 import { SearchPage } from "@/features/library/SearchPage";
@@ -80,6 +81,7 @@ const devicesRoute = createRoute({ getParentRoute: () => settingsRoute, path: "d
 const quickConnectRoute = createRoute({ getParentRoute: () => settingsRoute, path: "quickconnect", component: QuickConnectSettings });
 const librariesRoute = createRoute({ getParentRoute: () => settingsRoute, path: "libraries", component: adminOnly(LibrariesSettings) });
 const metadataRoute = createRoute({ getParentRoute: () => settingsRoute, path: "metadata", component: adminOnly(MetadataSettings) });
+const integrationsRoute = createRoute({ getParentRoute: () => settingsRoute, path: "integrations", component: adminOnly(IntegrationsSettings) });
 const serverRoute = createRoute({ getParentRoute: () => settingsRoute, path: "server", component: adminOnly(ServerSettingsPage) });
 const apiKeysRoute = createRoute({ getParentRoute: () => settingsRoute, path: "apikeys", component: adminOnly(ApiKeysSettings) });
 const invitesRoute = createRoute({ getParentRoute: () => settingsRoute, path: "invites", component: adminOnly(InvitesSettings) });
@@ -95,7 +97,7 @@ export const routeTree = rootRoute.addChildren([
     itemRoute,
     watchRoute,
     searchRoute,
-    settingsRoute.addChildren([settingsIndex, accountRoute, profilesRoute, devicesRoute, quickConnectRoute, serverRoute, librariesRoute, metadataRoute, usersRoute, invitesRoute, apiKeysRoute]),
+    settingsRoute.addChildren([settingsIndex, accountRoute, profilesRoute, devicesRoute, quickConnectRoute, serverRoute, librariesRoute, metadataRoute, integrationsRoute, usersRoute, invitesRoute, apiKeysRoute]),
   ]),
 ]);
 export const router = createRouter({ routeTree });

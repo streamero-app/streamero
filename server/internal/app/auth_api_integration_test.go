@@ -26,6 +26,7 @@ import (
 
 	"github.com/streamero-app/streamero/server/internal/api"
 	"github.com/streamero-app/streamero/server/internal/auth"
+	"github.com/streamero-app/streamero/server/internal/compat"
 	"github.com/streamero-app/streamero/server/internal/config"
 	"github.com/streamero-app/streamero/server/internal/library"
 	"github.com/streamero-app/streamero/server/internal/stream"
@@ -66,6 +67,8 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 	testPool = deps.Pool
 	state.SetStream(&stream.Server{Pool: deps.Pool, Roots: library.Roots{mediaRoot}, Signer: stream.Signer{Key: []byte("test-key")},
 		HLS: &stream.Manager{Dir: t.TempDir(), FFmpeg: "ffmpeg-not-installed", Log: log}, FFmpeg: "ffmpeg-not-installed"})
+	state.SetCompat(&compat.Server{Pool: deps.Pool, Auth: state.Auth(), Libraries: state.Library(), ServerID: state.ServerID(),
+		Log: log, ServerName: func(context.Context) string { return "Kino" }})
 	h := &api.Handler{State: state, ServerName: "Default", StartedAt: time.Now(), Auth: state.Auth, Settings: state.Settings,
 		Library: state.Library, Stream: state.Stream}
 	router, err := NewRouter(state, h)
@@ -1136,4 +1139,179 @@ func TestBrowseIntegration(t *testing.T) {
 		t.Fatalf("recently added: %+v", latest)
 	}
 	_ = adminC.do("DELETE", "/libraries/"+lib.ID, nil, nil)
+}
+
+func TestCompatAPIIntegration(t *testing.T) {
+	srv := newAuthTestServer(t)
+	adminC := newClient(t, srv)
+	setupAdmin(t, adminC)
+	root := mediaRoot + "/c"
+	for _, f := range []string{"Dune (2021) [tmdbid-438631]/Dune (2021) - 2160p.mkv", "Show (2020)/Season 01/Show S01E01.mkv",
+		"Show (2020)/Season 01/Show S01E02.mkv"} {
+		if err := os.MkdirAll(filepath.Dir(root+"/"+f), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(root+"/"+f, []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var lib struct {
+		ID string `json:"id"`
+	}
+	adminC.do("POST", "/libraries", map[string]any{"name": "compat-test", "kind": "mixed", "paths": []string{root}}, &lib)
+	libID := uuid.MustParse(lib.ID)
+	t.Cleanup(func() { _, _ = testPool.Exec(context.Background(), `DELETE FROM libraries WHERE id = $1`, libID) })
+	scanner := &library.Scanner{Pool: testPool, Roots: library.Roots{mediaRoot}, Log: slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Probe: func(_ context.Context, p string) (library.ProbeResult, error) {
+			if strings.Contains(p, "2160p") {
+				return library.ProbeResult{Container: "mkv", Width: 3840, Height: 2160, DurationMS: 60_000}, nil
+			}
+			return library.ProbeResult{Container: "mkv", Width: 1920, Height: 1080}, nil
+		}}
+	if _, err := scanner.Scan(context.Background(), libID); err != nil {
+		t.Fatal(err)
+	}
+
+	call := func(method, path, token string, body any, out any) int {
+		t.Helper()
+		var rd io.Reader
+		if body != nil {
+			raw, _ := json.Marshal(body)
+			rd = bytes.NewReader(raw)
+		}
+		req, _ := http.NewRequest(method, srv.URL+"/compat"+path, rd)
+		req.Header.Set("Content-Type", "application/json")
+		auth := `MediaBrowser Client="Jellyseerr", Device="Server", DeviceId="abc", Version="2.0"`
+		if token != "" {
+			auth += `, Token="` + token + `"`
+		}
+		req.Header.Set("Authorization", auth)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() { _ = resp.Body.Close() }()
+		if out != nil {
+			_ = json.NewDecoder(resp.Body).Decode(out)
+		}
+		return resp.StatusCode
+	}
+
+	var pub map[string]any
+	if s := call("GET", "/System/Info/Public", "", nil, &pub); s != 200 || pub["ProductName"] != "Streamero" || pub["ServerName"] != "Kino" || pub["Version"] == "" {
+		t.Fatalf("public info: %d %v", s, pub)
+	}
+	if s := call("POST", "/Users/AuthenticateByName", "", map[string]any{"Username": "admin", "Pw": "wrong"}, nil); s != 401 {
+		t.Fatalf("bad password: %d", s)
+	}
+	var login struct {
+		AccessToken string
+		User        struct {
+			ID     string `json:"Id"`
+			Policy struct{ IsAdministrator bool }
+		}
+	}
+	if s := call("POST", "/Users/AuthenticateByName", "", map[string]any{"Username": "Admin", "Pw": "admin-pass-1"}, &login); s != 200 ||
+		login.AccessToken == "" || !login.User.Policy.IsAdministrator || len(login.User.ID) != 32 {
+		t.Fatalf("login: %d %+v", s, login)
+	}
+	tok := login.AccessToken
+	if s := call("GET", "/Users/Me", "", nil, nil); s != 401 {
+		t.Fatalf("anonymous me: %d", s)
+	}
+	var users []map[string]any
+	if s := call("GET", "/Users", tok, nil, &users); s != 200 || len(users) == 0 {
+		t.Fatalf("users: %d %v", s, users)
+	}
+	var views struct {
+		Items []struct {
+			ID             string `json:"Id"`
+			Name           string
+			CollectionType string
+		}
+	}
+	call("GET", "/Library/MediaFolders", tok, nil, &views)
+	found := ""
+	for _, v := range views.Items {
+		if v.Name == "compat-test" {
+			found = v.ID
+		}
+	}
+	if found != strings.ReplaceAll(lib.ID, "-", "") {
+		t.Fatalf("views: %+v", views)
+	}
+	type dto struct {
+		ID           string `json:"Id"`
+		Name         string
+		Type         string
+		ProviderIDs  map[string]string `json:"ProviderIds"`
+		MediaSources []struct {
+			MediaStreams []struct {
+				Type   string
+				Height int
+			}
+		}
+		IndexNumber int
+	}
+	var items struct {
+		Items            []dto
+		TotalRecordCount int
+	}
+	call("GET", "/Users/"+login.User.ID+"/Items?ParentId="+found+"&Recursive=true&IncludeItemTypes=Movie,Series&Fields=ProviderIds,MediaSources", tok, nil, &items)
+	if items.TotalRecordCount != 2 {
+		t.Fatalf("items: %+v", items)
+	}
+	var seriesID string
+	for _, it := range items.Items {
+		switch it.Type {
+		case "Movie":
+			if it.ProviderIDs["Tmdb"] != "438631" || it.MediaSources[0].MediaStreams[0].Height != 2160 {
+				t.Fatalf("movie dto: %+v", it)
+			}
+		case "Series":
+			seriesID = it.ID
+		}
+	}
+	var seasons, episodes struct{ Items []dto }
+	call("GET", "/Shows/"+seriesID+"/Seasons", tok, nil, &seasons)
+	call("GET", "/Shows/"+seriesID+"/Episodes?SeasonId="+seasons.Items[0].ID, tok, nil, &episodes)
+	if len(seasons.Items) != 1 || seasons.Items[0].IndexNumber != 1 || len(episodes.Items) != 2 || episodes.Items[1].IndexNumber != 2 {
+		t.Fatalf("seasons/episodes: %+v %+v", seasons, episodes)
+	}
+
+	// API keys work as tokens (the *arr connection uses one) and may trigger targeted scans.
+	var key struct {
+		Key string `json:"key"`
+	}
+	adminC.do("POST", "/apikeys", map[string]any{"name": "Radarr"}, &key)
+	if _, err := testPool.Exec(context.Background(), `UPDATE libraries SET scan_state = 'idle' WHERE id = $1`, libID); err != nil {
+		t.Fatal(err)
+	}
+	if s := call("POST", "/Library/Media/Updated", key.Key, map[string]any{"Updates": []map[string]any{{"Path": root + "/Dune (2021) [tmdbid-438631]", "UpdateType": "Created"}}}, nil); s != 204 {
+		t.Fatalf("media updated: %d", s)
+	}
+	var state string
+	_ = testPool.QueryRow(context.Background(), `SELECT scan_state FROM libraries WHERE id = $1`, libID).Scan(&state)
+	if state != "queued" {
+		t.Fatalf("scan not queued: %s", state)
+	}
+
+	// Non-admins can sign in and read, but not trigger scans.
+	adminC.do("POST", "/users", map[string]any{"username": "eva", "password": "eva-pass-1"}, nil)
+	var evaLogin struct{ AccessToken string }
+	call("POST", "/Users/AuthenticateByName", "", map[string]any{"Username": "eva", "Pw": "eva-pass-1"}, &evaLogin)
+	if s := call("POST", "/Library/Refresh", evaLogin.AccessToken, nil, nil); s != 403 {
+		t.Fatalf("non-admin refresh: %d", s)
+	}
+
+	// "Play on" links open the Streamero item page.
+	resp, err := http.Get(srv.URL + "/compat/web/index.html")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	_ = resp.Body.Close()
+	if !strings.Contains(string(body), `location.replace("/item/"`) || !strings.Contains(resp.Header.Get("Content-Security-Policy"), "sha256-") {
+		t.Fatalf("web redirect: %s %s", resp.Header.Get("Content-Security-Policy"), body)
+	}
 }
