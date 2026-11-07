@@ -42,7 +42,8 @@
     "settingsText": "Upravljajte svojim računom, prijavljenim uređajima i — kao administrator — korisnicima i serverom.",
     "openSettings": "Otvori postavke",
     "noLibraries": "Još nema biblioteka. Zamolite administratora da doda biblioteku.",
-    "noLibrariesAdmin": "Dodajte biblioteku sa svojim filmovima ili serijama."
+    "noLibrariesAdmin": "Dodajte biblioteku sa svojim filmovima ili serijama.",
+    "continue": "Nastavi gledati"
   },
   "settings": {
     "account": "Moj račun",
@@ -135,7 +136,10 @@
     "invalid_path": "Ta mapa ne postoji ili je izvan mapa s medijima.",
     "unsupported_kind": "Glazbene biblioteke stižu u kasnijoj fazi.",
     "invalid_tmdb_key": "TMDb je odbio ovaj ključ. Ponovno ga kopirajte s themoviedb.org/settings/api.",
-    "tmdb_unreachable": "Server ne može doći do TMDb-a. Pokušajte kasnije."
+    "tmdb_unreachable": "Server ne može doći do TMDb-a. Pokušajte kasnije.",
+    "transcode_not_allowed": "Ova datoteka treba transkodiranje, koje vaš račun ne smije koristiti.",
+    "transcode_failed": "Server nije mogao pripremiti ovu datoteku za reprodukciju.",
+    "not_playable": "Ova stavka nema datoteku za reprodukciju."
   },
   "notFound": {
     "title": "Stranica nije pronađena",
@@ -307,7 +311,6 @@
     "subtitles": "Podnaslovi",
     "forced": "prisilni",
     "external": "vanjski",
-    "playbackSoon": "Reprodukcija stiže u P5.",
     "cast": "Uloge",
     "directedBy": "Režija",
     "writtenBy": "Scenarij",
@@ -326,5 +329,16 @@
     "saved": "Spremljeno. Metapodaci se dohvaćaju za vaše biblioteke.",
     "removeKey": "Ukloni ključ",
     "confirmRemove": "Ukloniti TMDb ključ? Postojeći metapodaci ostaju."
+  },
+  "player": {
+    "play": "Pokreni",
+    "resume": "Nastavi od {{time}}",
+    "fromStart": "Od početka",
+    "back": "Natrag",
+    "off": "Isključeno",
+    "preparing": "Pripremam stream…",
+    "method_direct": "Izravna reprodukcija",
+    "method_remux": "Izravni stream",
+    "method_transcode": "Transkodiranje"
   }
 }

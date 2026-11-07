@@ -42,7 +42,8 @@
     "settingsText": "Manage your account, signed-in devices and — as an administrator — users and the server.",
     "openSettings": "Open settings",
     "noLibraries": "No libraries yet. Ask an administrator to add one.",
-    "noLibrariesAdmin": "Add a library with your movies or shows to start."
+    "noLibrariesAdmin": "Add a library with your movies or shows to start.",
+    "continue": "Continue watching"
   },
   "settings": {
     "account": "My account",
@@ -135,7 +136,10 @@
     "invalid_path": "That folder does not exist or is outside the media folders.",
     "unsupported_kind": "Music libraries arrive in a later phase.",
     "invalid_tmdb_key": "TMDb rejected this key. Copy it again from themoviedb.org/settings/api.",
-    "tmdb_unreachable": "TMDb could not be reached from the server. Try again later."
+    "tmdb_unreachable": "TMDb could not be reached from the server. Try again later.",
+    "transcode_not_allowed": "This file needs transcoding, which your account is not allowed to use.",
+    "transcode_failed": "The server could not prepare this file for playback.",
+    "not_playable": "This item has no playable file."
   },
   "notFound": {
     "title": "Page not found",
@@ -307,7 +311,6 @@
     "subtitles": "Subtitles",
     "forced": "forced",
     "external": "external",
-    "playbackSoon": "Playback arrives in P5.",
     "cast": "Cast",
     "directedBy": "Directed by",
     "writtenBy": "Written by",
@@ -326,5 +329,16 @@
     "saved": "Saved. Metadata is being fetched for your libraries.",
     "removeKey": "Remove key",
     "confirmRemove": "Remove the TMDb key? Existing metadata stays."
+  },
+  "player": {
+    "play": "Play",
+    "resume": "Resume from {{time}}",
+    "fromStart": "From the beginning",
+    "back": "Back",
+    "off": "Off",
+    "preparing": "Preparing the stream…",
+    "method_direct": "Direct play",
+    "method_remux": "Direct stream",
+    "method_transcode": "Transcoding"
   }
 }

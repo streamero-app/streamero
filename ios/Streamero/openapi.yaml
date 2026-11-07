@@ -21,6 +21,7 @@ tags:
   - name: profiles
   - name: libraries
   - name: items
+  - name: playback
 security: []
 paths:
   /system/info:
@@ -807,6 +808,82 @@ paths:
                 $ref: "#/components/schemas/ItemDetail"
         default:
           $ref: "#/components/responses/Error"
+  /items/{itemId}/playback:
+    parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: startPlayback
+      summary: Decide how to play an item on this device and get signed stream URLs
+      description: |
+        Returns direct play when the device supports the file as is, otherwise an HLS stream
+        (remux or transcode). Stream, HLS and subtitle URLs are HMAC-signed and short-lived;
+        they are served outside this API (byte ranges, HLS segments) — see D-015.
+      tags: [playback]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaybackRequest"
+      responses:
+        "200":
+          description: How to play
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaybackInfo"
+        default:
+          $ref: "#/components/responses/Error"
+  /items/{itemId}/progress:
+    parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    put:
+      operationId: reportProgress
+      summary: Save the playback position (per profile)
+      tags: [playback]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProgressReport"
+      responses:
+        "204":
+          description: Saved
+        default:
+          $ref: "#/components/responses/Error"
+  /home/continue:
+    get:
+      operationId: continueWatching
+      summary: Started but unfinished items of the current profile, most recent first
+      tags: [playback]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ItemSummary"
+        default:
+          $ref: "#/components/responses/Error"
   /fs/directories:
     get:
       operationId: browseDirectories
@@ -1247,6 +1324,113 @@ components:
     ItemKind:
       type: string
       enum: [movie, series, season, episode]
+    DeviceProfile:
+      type: object
+      description: What the client can decode natively.
+      required: [containers, videoCodecs, audioCodecs]
+      properties:
+        containers:
+          type: array
+          items:
+            type: string
+          description: e.g. ["mp4", "webm"]
+        videoCodecs:
+          type: array
+          items:
+            type: string
+          description: ffprobe codec names, e.g. ["h264", "hevc", "av1", "vp9"]
+        audioCodecs:
+          type: array
+          items:
+            type: string
+          description: e.g. ["aac", "mp3", "opus", "flac", "ac3", "eac3"]
+        hls:
+          type: boolean
+          description: The client plays HLS with fMP4 segments.
+        maxHeight:
+          type: integer
+        maxBitrate:
+          type: integer
+          description: Bits per second; lower values force transcoding.
+    PlaybackRequest:
+      type: object
+      required: [device]
+      properties:
+        fileId:
+          type: string
+          format: uuid
+          description: Version to play (default the best one).
+        audioIndex:
+          type: integer
+          description: Index into the file's audio tracks (default the first).
+        startMs:
+          type: integer
+          format: int64
+          description: Start position (default the saved resume position).
+        device:
+          $ref: "#/components/schemas/DeviceProfile"
+    PlaybackInfo:
+      type: object
+      required: [fileId, method, url, startMs, subtitles, audio]
+      properties:
+        fileId:
+          type: string
+          format: uuid
+        method:
+          type: string
+          enum: [direct, remux, transcode]
+        url:
+          type: string
+          description: Signed URL (relative to the server) for the video element / player.
+        startMs:
+          type: integer
+          format: int64
+          description: Position the stream starts at; for HLS the stream itself starts there.
+        durationMs:
+          type: integer
+          format: int64
+        audio:
+          type: array
+          items:
+            $ref: "#/components/schemas/AudioStream"
+        audioIndex:
+          type: integer
+        subtitles:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlaybackSubtitle"
+        reason:
+          type: string
+          description: Why the stream is not direct play (e.g. "audio codec dts").
+    PlaybackSubtitle:
+      type: object
+      required: [index, url, external]
+      properties:
+        index:
+          type: integer
+        language:
+          type: string
+        forced:
+          type: boolean
+        external:
+          type: boolean
+        url:
+          type: string
+          description: Signed WebVTT URL.
+    ProgressReport:
+      type: object
+      required: [positionMs]
+      properties:
+        positionMs:
+          type: integer
+          format: int64
+          minimum: 0
+        durationMs:
+          type: integer
+          format: int64
+        played:
+          type: boolean
+          description: Mark as watched (set automatically past 90%).
     MetadataSettings:
       type: object
       required: [tmdbConfigured, language, country]
@@ -1314,6 +1498,13 @@ components:
         rating:
           type: number
           description: Community rating 0–10.
+        positionMs:
+          type: integer
+          format: int64
+          description: Resume position for the current profile.
+        played:
+          type: boolean
+          description: Watched by the current profile.
     ItemPage:
       type: object
       required: [items, total]
