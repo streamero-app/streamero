@@ -44,6 +44,7 @@ type Item struct {
 	Rating                            *float64
 	PositionMS                        int64
 	Played                            bool
+	Favorite                          bool
 	ID                                uuid.UUID
 	LibraryID                         uuid.UUID
 	ParentID                          *uuid.UUID
@@ -209,7 +210,7 @@ func (s *Service) Scan(ctx context.Context, id uuid.UUID) error {
 const itemCols = `i.id, i.library_id, i.parent_id, i.kind, COALESCE(i.metadata_title, i.title), i.year, i.season_number,
 	i.episode_number, i.episode_number_end, i.added_at, i.provider_ids,
 	(SELECT max(f.duration_ms) FROM media_files f WHERE f.item_id = i.id), i.has_poster, i.community_rating,
-	COALESCE(u.position_ms, 0), COALESCE(u.played, false)`
+	COALESCE(u.position_ms, 0), COALESCE(u.played, false), COALESCE(u.favorite, false)`
 
 // userJoin attaches the viewer's playback state ($owner is the profile or user id).
 func userJoin(owner string) string {
@@ -220,7 +221,7 @@ func scanItem(row pgx.Row) (Item, error) {
 	var it Item
 	var ids []byte
 	err := row.Scan(&it.ID, &it.LibraryID, &it.ParentID, &it.Kind, &it.Title, &it.Year, &it.Season, &it.Episode,
-		&it.EpisodeEnd, &it.AddedAt, &ids, &it.DurationMS, &it.HasPoster, &it.Rating, &it.PositionMS, &it.Played)
+		&it.EpisodeEnd, &it.AddedAt, &ids, &it.DurationMS, &it.HasPoster, &it.Rating, &it.PositionMS, &it.Played, &it.Favorite)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return it, ErrNotFound
 	}
@@ -228,22 +229,32 @@ func scanItem(row pgx.Row) (Item, error) {
 	return it, err
 }
 
-// ListItems returns a page of top-level items (movies, series).
-func (s *Service) ListItems(ctx context.Context, libID, owner uuid.UUID, sortBy string, limit, offset int) ([]Item, int, error) {
+// ItemFilter narrows a library listing.
+type ItemFilter struct {
+	Genre    string
+	Unplayed bool
+}
+
+// ListItems returns a filtered page of top-level items (movies, series) with the viewer's state.
+func (s *Service) ListItems(ctx context.Context, libID, owner uuid.UUID, sortBy string, limit, offset int, f ItemFilter) ([]Item, int, error) {
 	order := "i.sort_title, i.year NULLS LAST"
 	switch sortBy {
 	case "year":
 		order = "i.year DESC NULLS LAST, i.sort_title"
 	case "added":
 		order = "i.added_at DESC, i.sort_title"
+	case "rating":
+		order = "i.community_rating DESC NULLS LAST, i.sort_title"
 	}
+	where := ` WHERE i.library_id = $1 AND i.parent_id IS NULL
+		AND ($2 = '' OR i.genres @> ARRAY[$2]::text[]) AND (NOT $3 OR NOT COALESCE(u.played, false))`
 	var total int
-	if err := s.Pool.QueryRow(ctx, `SELECT count(*) FROM items i WHERE i.library_id = $1 AND i.parent_id IS NULL`, libID).Scan(&total); err != nil {
+	if err := s.Pool.QueryRow(ctx, `SELECT count(*) FROM items i`+userJoin("$4")+where, libID, f.Genre, f.Unplayed, owner).Scan(&total); err != nil {
 		return nil, 0, err
 	}
-	// #nosec G202 -- order is one of three constants above
-	rows, err := s.Pool.Query(ctx, `SELECT `+itemCols+` FROM items i`+userJoin("$4")+`WHERE i.library_id = $1 AND i.parent_id IS NULL
-		ORDER BY `+order+` LIMIT $2 OFFSET $3`, libID, limit, offset, owner)
+	// #nosec G202 -- order is one of the constants above
+	rows, err := s.Pool.Query(ctx, `SELECT `+itemCols+` FROM items i`+userJoin("$4")+where+`
+		ORDER BY `+order+` LIMIT $5 OFFSET $6`, libID, f.Genre, f.Unplayed, owner, limit, offset)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -425,4 +436,105 @@ func (s *Service) ContinueWatching(ctx context.Context, owner uuid.UUID, limit i
 		out = append(out, it)
 	}
 	return out, rows.Err()
+}
+
+func (s *Service) queryItems(ctx context.Context, sql string, args ...any) ([]Item, error) {
+	rows, err := s.Pool.Query(ctx, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []Item
+	for rows.Next() {
+		it, err := scanItem(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, it)
+	}
+	return out, rows.Err()
+}
+
+// Genres lists the genres used by top-level items of a library.
+func (s *Service) Genres(ctx context.Context, libID uuid.UUID) ([]string, error) {
+	rows, err := s.Pool.Query(ctx, `SELECT DISTINCT g FROM items, unnest(genres) g
+		WHERE library_id = $1 AND parent_id IS NULL ORDER BY g`, libID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []string{}
+	for rows.Next() {
+		var g string
+		if err := rows.Scan(&g); err != nil {
+			return nil, err
+		}
+		out = append(out, g)
+	}
+	return out, rows.Err()
+}
+
+// Search finds movies, series and episodes by title (typo tolerant) or person.
+func (s *Service) Search(ctx context.Context, owner uuid.UUID, q string, limit int) ([]Item, error) {
+	q = strings.ToLower(strings.TrimSpace(q))
+	if q == "" {
+		return []Item{}, nil
+	}
+	like := "%" + strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`).Replace(q) + "%"
+	return s.queryItems(ctx, `SELECT `+itemCols+` FROM items i`+userJoin("$3")+`
+		WHERE i.kind IN ('movie', 'series', 'episode') AND (
+			lower(COALESCE(i.metadata_title, i.title)) LIKE $2
+			-- typo tolerance: 0.35 keeps swapped letters ("matirx") and drops unrelated titles
+			OR word_similarity($1, lower(COALESCE(i.metadata_title, i.title))) >= 0.35
+			OR EXISTS (SELECT 1 FROM item_people p WHERE p.item_id = i.id AND lower(p.name) LIKE $2))
+		ORDER BY (lower(COALESCE(i.metadata_title, i.title)) LIKE $2) DESC,
+			word_similarity($1, lower(COALESCE(i.metadata_title, i.title))) DESC,
+			(i.kind = 'episode'), i.sort_title
+		LIMIT $4`, q, like, owner, limit)
+}
+
+// RecentlyAdded returns the newest movies and series.
+func (s *Service) RecentlyAdded(ctx context.Context, owner uuid.UUID, limit int) ([]Item, error) {
+	return s.queryItems(ctx, `SELECT `+itemCols+` FROM items i`+userJoin("$1")+`
+		WHERE i.parent_id IS NULL ORDER BY i.added_at DESC LIMIT $2`, owner, limit)
+}
+
+// Favorites returns the owner's favorites, most recently marked first.
+func (s *Service) Favorites(ctx context.Context, owner uuid.UUID, limit int) ([]Item, error) {
+	return s.queryItems(ctx, `SELECT `+itemCols+` FROM user_item_data u JOIN items i ON i.id = u.item_id
+		WHERE u.owner_id = $1 AND u.favorite ORDER BY u.last_played_at DESC LIMIT $2`, owner, limit)
+}
+
+// SetUserData marks an item favorite and/or watched. Watching a series or season
+// applies to all its episodes (and their seasons).
+func (s *Service) SetUserData(ctx context.Context, owner, itemID uuid.UUID, favorite, played *bool) error {
+	return pgx.BeginFunc(ctx, s.Pool, func(tx pgx.Tx) error {
+		var exists bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM items WHERE id = $1)`, itemID).Scan(&exists); err != nil {
+			return err
+		}
+		if !exists {
+			return ErrNotFound
+		}
+		if favorite != nil {
+			if _, err := tx.Exec(ctx, `INSERT INTO user_item_data (owner_id, item_id, favorite) VALUES ($1, $2, $3)
+				ON CONFLICT (owner_id, item_id) DO UPDATE SET favorite = EXCLUDED.favorite, last_played_at = now()`,
+				owner, itemID, *favorite); err != nil {
+				return err
+			}
+		}
+		if played != nil {
+			if _, err := tx.Exec(ctx, `WITH RECURSIVE tree AS (
+					SELECT id FROM items WHERE id = $2
+					UNION ALL SELECT i.id FROM items i JOIN tree t ON i.parent_id = t.id)
+				INSERT INTO user_item_data (owner_id, item_id, played, position_ms, play_count)
+				SELECT $1, id, $3, 0, CASE WHEN $3 THEN 1 ELSE 0 END FROM tree
+				ON CONFLICT (owner_id, item_id) DO UPDATE SET played = EXCLUDED.played, position_ms = 0,
+					play_count = user_item_data.play_count + CASE WHEN EXCLUDED.played AND NOT user_item_data.played THEN 1 ELSE 0 END`,
+				owner, itemID, *played); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }

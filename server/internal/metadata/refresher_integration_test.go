@@ -151,7 +151,7 @@ func TestRefreshLibraryIntegration(t *testing.T) {
 		t.Fatalf("refreshed %d items, want 3 (one has no match)", n)
 	}
 
-	items, _, err := svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 10, 0)
+	items, _, err := svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 10, 0, library.ItemFilter{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,7 +195,7 @@ func TestRefreshLibraryIntegration(t *testing.T) {
 	if _, err := scanner.Scan(ctx, lib.ID); err != nil {
 		t.Fatal(err)
 	}
-	items, _, _ = svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 10, 0)
+	items, _, _ = svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 10, 0, library.ItemFilter{})
 	found := false
 	for _, it := range items {
 		found = found || it.Title == "Veliki testni film"

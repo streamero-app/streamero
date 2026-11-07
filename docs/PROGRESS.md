@@ -1,7 +1,7 @@
 # PROGRESS
 
 ## Trenutna faza
-P2 — Biblioteke i scanner (u tijeku). P0 (PR #1) i P1 (PR #4) gotovi; prvi dio P2 (PR #5) mergean i objavljen kao **v0.2.0** (prvo izdanje za stabilni server).
+P4 — Web pregledavanje (u tijeku); izdanja v0.2.0 i **v0.3.0** objavljena. P0 (PR #1) i P1 (PR #4) gotovi; prvi dio P2 (PR #5) mergean i objavljen kao **v0.2.0** (prvo izdanje za stabilni server).
 
 ## Gotovo
 - Monorepo struktura po PLAN.md §2, `.gitignore`, `.claude/settings.json`.
@@ -19,6 +19,11 @@ P2 — Biblioteke i scanner (u tijeku). P0 (PR #1) i P1 (PR #4) gotovi; prvi dio
 - demo.streamero.net živ preko nginxa + Let's Encrypt (HTTP→HTTPS, `/readyz` 200).
 - Branch pushan, PR #1 (`phase/P0-foundations` → `main`) otvoren; `main` je prazan početni commit spojen u P0 (repo je bio prazan). CI zelen: `server`, `web`, `e2e`, iOS `build` (prvi uspješan iOS build, artefakt `streamero-ipa`).
 - `scripts/gen-fixtures.sh`: filmovi (H.264, 4K HEVC 10-bit, HDR10, AV1, multi-audio + poglavlja + embedded/external SRT/ASS, verzije, trailer), serija sa zajedničkim introm (2×4 ep.), multi-episode, specials, daily, anime absolute, glazba (FLAC/MP3), fotke.
+
+## P4 — pregledavanje, prvi dio (branch `phase/P4-browse`)
+- Pretraga (tipfeleri preko pg_trgm word_similarity, glumci/redatelji), favoriti, odgledano/neodgledano (serija/sezona → sve epizode), „Nedavno dodano", „Favoriti", filtri po žanru i neodgledano, sortiranje po ocjeni; migracija 00012.
+- Testovi: API integracijski (tipfeler, osobe, wildcards, žanr, kaskada odgledano, favoriti), EXPLAIN s realnom veličinom tablice, Vitest 31, Playwright 11.
+- Još u P4: playliste, kolekcije, stranice glumaca, prilagodba početne.
 
 ## P5 — reprodukcija, prvi dio (branch `phase/P5-playback`)
 - `POST /items/{id}/playback`: direct play / remux / transcode po profilu uređaja i dozvolama; potpisani URL-ovi (D-015); `/stream/file` (Range), `/stream/hls` (fMP4 HLS iz ffmpega: copy ili x264, HDR→SDR tonemap, skaliranje), `/stream/sub` (WebVTT); gašenje neaktivnih sesija.

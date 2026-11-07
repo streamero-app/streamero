@@ -567,7 +567,10 @@ export interface paths {
             query?: {
                 limit?: number;
                 offset?: number;
-                sort?: "title" | "year" | "added";
+                sort?: "title" | "year" | "added" | "rating";
+                genre?: string;
+                /** @description Only items the current profile has not watched. */
+                unplayed?: boolean;
             };
             header?: never;
             path: {
@@ -578,6 +581,98 @@ export interface paths {
         /** Top-level items of a library (movies, series), paged */
         get: operations["listLibraryItems"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/libraries/{libraryId}/genres": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                libraryId: components["parameters"]["LibraryId"];
+            };
+            cookie?: never;
+        };
+        /** Genres used in a library (for filters) */
+        get: operations["listLibraryGenres"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search titles (typo tolerant) and people across visible libraries */
+        get: operations["search"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/home/latest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recently added movies and series across visible libraries */
+        get: operations["recentlyAdded"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/home/favorites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Favorites of the current profile */
+        get: operations["listFavorites"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/items/{itemId}/user-data": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Mark favorite and/or watched for the current profile
+         * @description Watching a series or season marks all its episodes.
+         */
+        put: operations["updateUserData"];
         post?: never;
         delete?: never;
         options?: never;
@@ -937,6 +1032,10 @@ export interface components {
             /** @description Signed WebVTT URL. */
             url: string;
         };
+        UserDataUpdate: {
+            favorite?: boolean;
+            played?: boolean;
+        };
         ProgressReport: {
             /** Format: int64 */
             positionMs: number;
@@ -987,6 +1086,7 @@ export interface components {
             positionMs?: number;
             /** @description Watched by the current profile. */
             played?: boolean;
+            favorite?: boolean;
         };
         ItemPage: {
             items: components["schemas"]["ItemSummary"][];
@@ -2141,7 +2241,10 @@ export interface operations {
             query?: {
                 limit?: number;
                 offset?: number;
-                sort?: "title" | "year" | "added";
+                sort?: "title" | "year" | "added" | "rating";
+                genre?: string;
+                /** @description Only items the current profile has not watched. */
+                unplayed?: boolean;
             };
             header?: never;
             path: {
@@ -2159,6 +2262,120 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ItemPage"];
                 };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listLibraryGenres: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                libraryId: components["parameters"]["LibraryId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Genres by name */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    search: {
+        parameters: {
+            query: {
+                q: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Matching items, best first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemSummary"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    recentlyAdded: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Items */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemSummary"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listFavorites: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Items */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemSummary"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateUserData: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserDataUpdate"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             default: components["responses"]["Error"];
         };

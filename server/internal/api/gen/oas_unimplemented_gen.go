@@ -259,6 +259,15 @@ func (UnimplementedHandler) ListAPIKeys(ctx context.Context) (r []ApiKey, _ erro
 	return r, ht.ErrNotImplemented
 }
 
+// ListFavorites implements listFavorites operation.
+//
+// Favorites of the current profile.
+//
+// GET /home/favorites
+func (UnimplementedHandler) ListFavorites(ctx context.Context) (r []ItemSummary, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ListInvites implements listInvites operation.
 //
 // Invite links (admin).
@@ -274,6 +283,15 @@ func (UnimplementedHandler) ListInvites(ctx context.Context) (r []Invite, _ erro
 //
 // GET /libraries
 func (UnimplementedHandler) ListLibraries(ctx context.Context) (r []Library, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListLibraryGenres implements listLibraryGenres operation.
+//
+// Genres used in a library (for filters).
+//
+// GET /libraries/{libraryId}/genres
+func (UnimplementedHandler) ListLibraryGenres(ctx context.Context, params ListLibraryGenresParams) (r []string, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -349,6 +367,15 @@ func (UnimplementedHandler) PollQuickConnect(ctx context.Context, req *QuickConn
 	return r, ht.ErrNotImplemented
 }
 
+// RecentlyAdded implements recentlyAdded operation.
+//
+// Recently added movies and series across visible libraries.
+//
+// GET /home/latest
+func (UnimplementedHandler) RecentlyAdded(ctx context.Context) (r []ItemSummary, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // RefreshLibraryMetadata implements refreshLibraryMetadata operation.
 //
 // Fetch metadata again for every item of a library (admin).
@@ -392,6 +419,15 @@ func (UnimplementedHandler) RevokeSession(ctx context.Context, params RevokeSess
 // POST /libraries/{libraryId}/scan
 func (UnimplementedHandler) ScanLibrary(ctx context.Context, params ScanLibraryParams) error {
 	return ht.ErrNotImplemented
+}
+
+// Search implements search operation.
+//
+// Search titles (typo tolerant) and people across visible libraries.
+//
+// GET /search
+func (UnimplementedHandler) Search(ctx context.Context, params SearchParams) (r []ItemSummary, _ error) {
+	return r, ht.ErrNotImplemented
 }
 
 // SelectMainProfile implements selectMainProfile operation.
@@ -475,6 +511,15 @@ func (UnimplementedHandler) UpdateServerSettings(ctx context.Context, req *Serve
 // PATCH /users/{userId}
 func (UnimplementedHandler) UpdateUser(ctx context.Context, req *UpdateUserRequest, params UpdateUserParams) (r *User, _ error) {
 	return r, ht.ErrNotImplemented
+}
+
+// UpdateUserData implements updateUserData operation.
+//
+// Watching a series or season marks all its episodes.
+//
+// PUT /items/{itemId}/user-data
+func (UnimplementedHandler) UpdateUserData(ctx context.Context, req *UserDataUpdate, params UpdateUserDataParams) error {
+	return ht.ErrNotImplemented
 }
 
 // NewError creates *ErrorStatusCode from error returned by handler.

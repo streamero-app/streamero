@@ -43,7 +43,9 @@
     "openSettings": "Open settings",
     "noLibraries": "No libraries yet. Ask an administrator to add one.",
     "noLibrariesAdmin": "Add a library with your movies or shows to start.",
-    "continue": "Continue watching"
+    "continue": "Continue watching",
+    "latest": "Recently added",
+    "favorites": "Favorites"
   },
   "settings": {
     "account": "My account",
@@ -314,7 +316,15 @@
     "cast": "Cast",
     "directedBy": "Directed by",
     "writtenBy": "Written by",
-    "noMetadata": "No match on TMDb yet — check the folder name (e.g. \"Title (Year)\" or add [tmdbid-…])."
+    "noMetadata": "No match on TMDb yet — check the folder name (e.g. \"Title (Year)\" or add [tmdbid-…]).",
+    "sortRating": "Rating",
+    "genre": "Genre",
+    "allGenres": "All genres",
+    "unplayedOnly": "Unwatched only",
+    "favorite": "Favorite",
+    "favorited": "Favorite",
+    "markPlayed": "Mark as watched",
+    "markUnplayed": "Watched — mark as unwatched"
   },
   "metadata": {
     "connected": "TMDb connected",
@@ -340,5 +350,11 @@
     "method_direct": "Direct play",
     "method_remux": "Direct stream",
     "method_transcode": "Transcoding"
+  },
+  "search": {
+    "title": "Search",
+    "placeholder": "Search…",
+    "resultsFor": "Results for “{{q}}”",
+    "none": "Nothing found. Try another spelling or an actor's name."
   }
 }

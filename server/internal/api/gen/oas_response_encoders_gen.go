@@ -425,6 +425,23 @@ func encodeListAPIKeysResponse(response []ApiKey, w http.ResponseWriter, span tr
 	return nil
 }
 
+func encodeListFavoritesResponse(response []ItemSummary, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	e.ArrStart()
+	for _, elem := range response {
+		elem.Encode(e)
+	}
+	e.ArrEnd()
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
 func encodeListInvitesResponse(response []Invite, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
@@ -450,6 +467,23 @@ func encodeListLibrariesResponse(response []Library, w http.ResponseWriter, span
 	e.ArrStart()
 	for _, elem := range response {
 		elem.Encode(e)
+	}
+	e.ArrEnd()
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
+func encodeListLibraryGenresResponse(response []string, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	e.ArrStart()
+	for _, elem := range response {
+		e.Str(elem)
 	}
 	e.ArrEnd()
 	if _, err := e.WriteTo(w); err != nil {
@@ -639,6 +673,23 @@ func encodePollQuickConnectResponse(response PollQuickConnectRes, w http.Respons
 	}
 }
 
+func encodeRecentlyAddedResponse(response []ItemSummary, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	e.ArrStart()
+	for _, elem := range response {
+		elem.Encode(e)
+	}
+	e.ArrEnd()
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
 func encodeRefreshLibraryMetadataResponse(response *RefreshLibraryMetadataAccepted, w http.ResponseWriter, span trace.Span) error {
 	w.WriteHeader(202)
 
@@ -665,6 +716,23 @@ func encodeRevokeSessionResponse(response *RevokeSessionNoContent, w http.Respon
 
 func encodeScanLibraryResponse(response *ScanLibraryAccepted, w http.ResponseWriter, span trace.Span) error {
 	w.WriteHeader(202)
+
+	return nil
+}
+
+func encodeSearchResponse(response []ItemSummary, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	e.ArrStart()
+	for _, elem := range response {
+		elem.Encode(e)
+	}
+	e.ArrEnd()
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
 
 	return nil
 }
@@ -768,6 +836,12 @@ func encodeUpdateUserResponse(response *User, w http.ResponseWriter, span trace.
 	if _, err := e.WriteTo(w); err != nil {
 		return errors.Wrap(err, "write")
 	}
+
+	return nil
+}
+
+func encodeUpdateUserDataResponse(response *UpdateUserDataNoContent, w http.ResponseWriter, span trace.Span) error {
+	w.WriteHeader(204)
 
 	return nil
 }

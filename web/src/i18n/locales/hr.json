@@ -43,7 +43,9 @@
     "openSettings": "Otvori postavke",
     "noLibraries": "Još nema biblioteka. Zamolite administratora da doda biblioteku.",
     "noLibrariesAdmin": "Dodajte biblioteku sa svojim filmovima ili serijama.",
-    "continue": "Nastavi gledati"
+    "continue": "Nastavi gledati",
+    "latest": "Nedavno dodano",
+    "favorites": "Favoriti"
   },
   "settings": {
     "account": "Moj račun",
@@ -314,7 +316,15 @@
     "cast": "Uloge",
     "directedBy": "Režija",
     "writtenBy": "Scenarij",
-    "noMetadata": "Još nema podudaranja na TMDb-u — provjerite ime mape (npr. \"Naslov (Godina)\" ili dodajte [tmdbid-…])."
+    "noMetadata": "Još nema podudaranja na TMDb-u — provjerite ime mape (npr. \"Naslov (Godina)\" ili dodajte [tmdbid-…]).",
+    "sortRating": "Ocjena",
+    "genre": "Žanr",
+    "allGenres": "Svi žanrovi",
+    "unplayedOnly": "Samo neodgledano",
+    "favorite": "Favorit",
+    "favorited": "Favorit",
+    "markPlayed": "Označi kao odgledano",
+    "markUnplayed": "Odgledano — označi kao neodgledano"
   },
   "metadata": {
     "connected": "TMDb povezan",
@@ -340,5 +350,11 @@
     "method_direct": "Izravna reprodukcija",
     "method_remux": "Izravni stream",
     "method_transcode": "Transkodiranje"
+  },
+  "search": {
+    "title": "Pretraga",
+    "placeholder": "Pretraži…",
+    "resultsFor": "Rezultati za „{{q}}”",
+    "none": "Ništa nije pronađeno. Pokušajte drugi pravopis ili ime glumca."
   }
 }

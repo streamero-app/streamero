@@ -1130,7 +1130,8 @@ type ItemSummary struct {
 	// Resume position for the current profile.
 	PositionMs OptInt64 `json:"positionMs"`
 	// Watched by the current profile.
-	Played OptBool `json:"played"`
+	Played   OptBool `json:"played"`
+	Favorite OptBool `json:"favorite"`
 }
 
 // GetID returns the value of ID.
@@ -1198,6 +1199,11 @@ func (s *ItemSummary) GetPlayed() OptBool {
 	return s.Played
 }
 
+// GetFavorite returns the value of Favorite.
+func (s *ItemSummary) GetFavorite() OptBool {
+	return s.Favorite
+}
+
 // SetID sets the value of ID.
 func (s *ItemSummary) SetID(val uuid.UUID) {
 	s.ID = val
@@ -1261,6 +1267,11 @@ func (s *ItemSummary) SetPositionMs(val OptInt64) {
 // SetPlayed sets the value of Played.
 func (s *ItemSummary) SetPlayed(val OptBool) {
 	s.Played = val
+}
+
+// SetFavorite sets the value of Favorite.
+func (s *ItemSummary) SetFavorite(val OptBool) {
+	s.Favorite = val
 }
 
 // Ref: #/components/schemas/Library
@@ -1429,9 +1440,10 @@ func (s *LibraryKind) UnmarshalText(data []byte) error {
 type ListLibraryItemsSort string
 
 const (
-	ListLibraryItemsSortTitle ListLibraryItemsSort = "title"
-	ListLibraryItemsSortYear  ListLibraryItemsSort = "year"
-	ListLibraryItemsSortAdded ListLibraryItemsSort = "added"
+	ListLibraryItemsSortTitle  ListLibraryItemsSort = "title"
+	ListLibraryItemsSortYear   ListLibraryItemsSort = "year"
+	ListLibraryItemsSortAdded  ListLibraryItemsSort = "added"
+	ListLibraryItemsSortRating ListLibraryItemsSort = "rating"
 )
 
 // AllValues returns all ListLibraryItemsSort values.
@@ -1440,6 +1452,7 @@ func (ListLibraryItemsSort) AllValues() []ListLibraryItemsSort {
 		ListLibraryItemsSortTitle,
 		ListLibraryItemsSortYear,
 		ListLibraryItemsSortAdded,
+		ListLibraryItemsSortRating,
 	}
 }
 
@@ -1451,6 +1464,8 @@ func (s ListLibraryItemsSort) MarshalText() ([]byte, error) {
 	case ListLibraryItemsSortYear:
 		return []byte(s), nil
 	case ListLibraryItemsSortAdded:
+		return []byte(s), nil
+	case ListLibraryItemsSortRating:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -1468,6 +1483,9 @@ func (s *ListLibraryItemsSort) UnmarshalText(data []byte) error {
 		return nil
 	case ListLibraryItemsSortAdded:
 		*s = ListLibraryItemsSortAdded
+		return nil
+	case ListLibraryItemsSortRating:
+		*s = ListLibraryItemsSortRating
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -3686,6 +3704,9 @@ func (s *TOTPSetup) SetQrPng(val string) {
 	s.QrPng = val
 }
 
+// UpdateUserDataNoContent is response for UpdateUserData operation.
+type UpdateUserDataNoContent struct{}
+
 // Ref: #/components/schemas/UpdateUserRequest
 type UpdateUserRequest struct {
 	IsAdmin     OptBool            `json:"isAdmin"`
@@ -3848,6 +3869,32 @@ func (s *User) SetCreatedAt(val time.Time) {
 // SetLastLoginAt sets the value of LastLoginAt.
 func (s *User) SetLastLoginAt(val OptDateTime) {
 	s.LastLoginAt = val
+}
+
+// Ref: #/components/schemas/UserDataUpdate
+type UserDataUpdate struct {
+	Favorite OptBool `json:"favorite"`
+	Played   OptBool `json:"played"`
+}
+
+// GetFavorite returns the value of Favorite.
+func (s *UserDataUpdate) GetFavorite() OptBool {
+	return s.Favorite
+}
+
+// GetPlayed returns the value of Played.
+func (s *UserDataUpdate) GetPlayed() OptBool {
+	return s.Played
+}
+
+// SetFavorite sets the value of Favorite.
+func (s *UserDataUpdate) SetFavorite(val OptBool) {
+	s.Favorite = val
+}
+
+// SetPlayed sets the value of Played.
+func (s *UserDataUpdate) SetPlayed(val OptBool) {
+	s.Played = val
 }
 
 // What a non-admin may do (admins may do everything). Each permission is enforced by the feature it

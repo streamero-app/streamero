@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/google/uuid"
+
 	"github.com/streamero-app/streamero/server/internal/api/gen"
 	"github.com/streamero-app/streamero/server/internal/auth"
 	"github.com/streamero-app/streamero/server/internal/library"
@@ -129,7 +131,7 @@ func (h *Handler) ListLibraryItems(ctx context.Context, params gen.ListLibraryIt
 		return nil, err
 	}
 	items, total, err := h.lib().ListItems(ctx, params.LibraryId, stream.Owner(p), string(params.Sort.Or(gen.ListLibraryItemsSortTitle)),
-		params.Limit.Or(100), params.Offset.Or(0))
+		params.Limit.Or(100), params.Offset.Or(0), library.ItemFilter{Genre: params.Genre.Value, Unplayed: params.Unplayed.Value})
 	if err != nil {
 		return nil, err
 	}
@@ -266,6 +268,9 @@ func toItemSummary(it library.Item) gen.ItemSummary {
 	}
 	if it.Played {
 		out.Played = gen.NewOptBool(true)
+	}
+	if it.Favorite {
+		out.Favorite = gen.NewOptBool(true)
 	}
 	return out
 }
@@ -494,4 +499,78 @@ func (h *Handler) ContinueWatching(ctx context.Context) ([]gen.ItemSummary, erro
 		out = append(out, toItemSummary(it))
 	}
 	return out, nil
+}
+
+func summaries(items []library.Item) []gen.ItemSummary {
+	out := make([]gen.ItemSummary, 0, len(items))
+	for _, it := range items {
+		out = append(out, toItemSummary(it))
+	}
+	return out
+}
+
+// listFor runs a per-viewer listing; viewers without library access get an empty list.
+func (h *Handler) listFor(ctx context.Context, fn func(owner uuid.UUID) ([]library.Item, error)) ([]gen.ItemSummary, error) {
+	if h.lib() == nil {
+		return nil, errStarting
+	}
+	p, err := principal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if !canSeeLibraries(p) {
+		return []gen.ItemSummary{}, nil
+	}
+	items, err := fn(stream.Owner(p))
+	if err != nil {
+		return nil, err
+	}
+	return summaries(items), nil
+}
+
+// Search implements GET /search.
+func (h *Handler) Search(ctx context.Context, params gen.SearchParams) ([]gen.ItemSummary, error) {
+	return h.listFor(ctx, func(owner uuid.UUID) ([]library.Item, error) {
+		return h.lib().Search(ctx, owner, params.Q, params.Limit.Or(40))
+	})
+}
+
+// RecentlyAdded implements GET /home/latest.
+func (h *Handler) RecentlyAdded(ctx context.Context) ([]gen.ItemSummary, error) {
+	return h.listFor(ctx, func(owner uuid.UUID) ([]library.Item, error) { return h.lib().RecentlyAdded(ctx, owner, 18) })
+}
+
+// ListFavorites implements GET /home/favorites.
+func (h *Handler) ListFavorites(ctx context.Context) ([]gen.ItemSummary, error) {
+	return h.listFor(ctx, func(owner uuid.UUID) ([]library.Item, error) { return h.lib().Favorites(ctx, owner, 50) })
+}
+
+// ListLibraryGenres implements GET /libraries/{libraryId}/genres.
+func (h *Handler) ListLibraryGenres(ctx context.Context, params gen.ListLibraryGenresParams) ([]string, error) {
+	if h.lib() == nil {
+		return nil, errStarting
+	}
+	if _, err := viewer(ctx); err != nil {
+		return nil, err
+	}
+	return h.lib().Genres(ctx, params.LibraryId)
+}
+
+// UpdateUserData implements PUT /items/{itemId}/user-data.
+func (h *Handler) UpdateUserData(ctx context.Context, req *gen.UserDataUpdate, params gen.UpdateUserDataParams) error {
+	if h.lib() == nil {
+		return errStarting
+	}
+	p, err := viewer(ctx)
+	if err != nil {
+		return err
+	}
+	var fav, played *bool
+	if v, ok := req.Favorite.Get(); ok {
+		fav = &v
+	}
+	if v, ok := req.Played.Get(); ok {
+		played = &v
+	}
+	return h.lib().SetUserData(ctx, stream.Owner(p), params.ItemId, fav, played)
 }

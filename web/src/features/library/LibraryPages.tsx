@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { api, unwrap } from "@/api/client";
@@ -40,6 +40,31 @@ export function ItemCard({ item }: { item: ItemSummary }) {
       </div>
     </Link>
   );
+}
+
+/** A titled row of item cards on the home page (hidden when empty). */
+function Shelf({ title, testId, items }: { title: string; testId: string; items?: ItemSummary[] }) {
+  if (!items?.length) return null;
+  return (
+    <section className="flex flex-col gap-3" data-testid={testId}>
+      <h2 className="text-xl font-semibold">{title}</h2>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        {items.map((it) => <ItemCard key={it.id} item={it} />)}
+      </div>
+    </section>
+  );
+}
+
+export function LatestShelf() {
+  const { t } = useTranslation();
+  const items = useQuery({ queryKey: ["latest"], queryFn: async () => unwrap(await api.GET("/home/latest")) });
+  return <Shelf title={t("home.latest")} testId="latest" items={items.data} />;
+}
+
+export function FavoritesShelf() {
+  const { t } = useTranslation();
+  const items = useQuery({ queryKey: ["favorites"], queryFn: async () => unwrap(await api.GET("/home/favorites")) });
+  return <Shelf title={t("home.favorites")} testId="favorites" items={items.data} />;
 }
 
 /** "Continue watching" row on the home page. */
@@ -92,12 +117,20 @@ export function LibraryPage() {
   const { libraryId } = useParams({ from: "/app/library/$libraryId" });
   const libraries = useLibraries();
   const lib = libraries.data?.find((l) => l.id === libraryId);
-  const [sort, setSort] = useState<"title" | "year" | "added">("title");
+  const [sort, setSort] = useState<"title" | "year" | "added" | "rating">("title");
+  const [genre, setGenre] = useState("");
+  const [unplayed, setUnplayed] = useState(false);
+  const genres = useQuery({
+    queryKey: ["genres", libraryId],
+    queryFn: async () => unwrap(await api.GET("/libraries/{libraryId}/genres", { params: { path: { libraryId } } })),
+  });
   const items = useInfiniteQuery({
-    queryKey: ["library-items", libraryId, sort],
+    queryKey: ["library-items", libraryId, sort, genre, unplayed],
     initialPageParam: 0,
     queryFn: async ({ pageParam }) =>
-      unwrap(await api.GET("/libraries/{libraryId}/items", { params: { path: { libraryId }, query: { limit: PAGE, offset: pageParam, sort } } })),
+      unwrap(await api.GET("/libraries/{libraryId}/items", {
+        params: { path: { libraryId }, query: { limit: PAGE, offset: pageParam, sort, genre: genre || undefined, unplayed: unplayed || undefined } },
+      })),
     getNextPageParam: (last, pages) => {
       const loaded = pages.reduce((n, p) => n + p.items.length, 0);
       return loaded < last.total ? loaded : undefined;
@@ -120,7 +153,22 @@ export function LibraryPage() {
             <option value="title">{t("library.sortTitle")}</option>
             <option value="year">{t("library.sortYear")}</option>
             <option value="added">{t("library.sortAdded")}</option>
+            <option value="rating">{t("library.sortRating")}</option>
           </select>
+        </label>
+        {(genres.data?.length ?? 0) > 0 && (
+          <label className="flex items-center gap-2 text-sm text-muted">
+            {t("library.genre")}
+            <select value={genre} onChange={(e) => setGenre(e.target.value)}
+              className="rounded-md border border-border bg-surface px-2 py-1 text-text">
+              <option value="">{t("library.allGenres")}</option>
+              {genres.data?.map((g) => <option key={g} value={g}>{g}</option>)}
+            </select>
+          </label>
+        )}
+        <label className="flex items-center gap-2 text-sm text-muted">
+          <input type="checkbox" checked={unplayed} onChange={(e) => setUnplayed(e.target.checked)} />
+          {t("library.unplayedOnly")}
         </label>
       </div>
       <ErrorText error={items.error} />
@@ -135,6 +183,31 @@ export function LibraryPage() {
           {t("library.more")}
         </Button>
       )}
+    </div>
+  );
+}
+
+/** Favorite and watched toggles for the current profile. */
+function UserDataButtons({ item }: { item: ItemSummary }) {
+  const { t } = useTranslation();
+  const qc = useQueryClient();
+  const update = useMutation({
+    mutationFn: async (body: { favorite?: boolean; played?: boolean }) =>
+      unwrap(await api.PUT("/items/{itemId}/user-data", { params: { path: { itemId: item.id } }, body })),
+    onSuccess: () => {
+      for (const key of [["item"], ["library-items"], ["favorites"], ["continue"], ["latest"]]) void qc.invalidateQueries({ queryKey: key });
+    },
+  });
+  return (
+    <div className="flex flex-wrap gap-2">
+      <Button variant="secondary" disabled={update.isPending} aria-pressed={!!item.favorite} data-testid="favorite"
+        onClick={() => update.mutate({ favorite: !item.favorite })}>
+        {item.favorite ? "♥ " + t("library.favorited") : "♡ " + t("library.favorite")}
+      </Button>
+      <Button variant="secondary" disabled={update.isPending} data-testid="played"
+        onClick={() => update.mutate({ played: !item.played })}>
+        {item.played ? "✓ " + t("library.markUnplayed") : t("library.markPlayed")}
+      </Button>
     </div>
   );
 }
@@ -209,6 +282,7 @@ export function ItemPage() {
                 ) : null}
               </div>
             )}
+            <UserDataButtons item={it} />
           </div>
         </div>
       </section>

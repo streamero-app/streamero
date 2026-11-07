@@ -32,7 +32,15 @@ export function AppShell() {
             <Link to="/" className={navLink} activeOptions={{ exact: true }}>{t("nav.home")}</Link>
             {!me.currentProfile?.isKid && <Link to="/settings" className={navLink}>{t("nav.settings")}</Link>}
           </nav>
-          <div className="ml-auto flex items-center gap-3">
+          <form className="ml-auto" role="search" onSubmit={(e) => {
+            e.preventDefault();
+            const q = new FormData(e.currentTarget).get("q")?.toString().trim();
+            if (q) void navigate({ to: "/search", search: { q } });
+          }}>
+            <input name="q" type="search" placeholder={t("search.placeholder")} aria-label={t("search.title")}
+              className="w-36 rounded-md border border-border bg-surface px-3 py-1.5 text-sm outline-none focus:border-accent sm:w-56" />
+          </form>
+          <div className="flex items-center gap-3">
             <LanguageSwitcher />
             <ProfileSwitcher />
             <Button variant="secondary" onClick={() => logout.mutate(undefined, { onSettled: () => void navigate({ to: "/login" }) })}>
