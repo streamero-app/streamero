@@ -41,6 +41,7 @@ type Person struct{ Name, Role string }
 // Item is a movie, series, season or episode.
 type Item struct {
 	HasPoster                         bool
+	HasBackdrop                       bool
 	Rating                            *float64
 	PositionMS                        int64
 	Played                            bool
@@ -209,7 +210,7 @@ func (s *Service) Scan(ctx context.Context, id uuid.UUID) error {
 
 const itemCols = `i.id, i.library_id, i.parent_id, i.kind, COALESCE(i.metadata_title, i.title), i.year, i.season_number,
 	i.episode_number, i.episode_number_end, i.added_at, i.provider_ids,
-	(SELECT max(f.duration_ms) FROM media_files f WHERE f.item_id = i.id), i.has_poster, i.community_rating,
+	(SELECT max(f.duration_ms) FROM media_files f WHERE f.item_id = i.id), i.has_poster, i.has_backdrop, i.community_rating,
 	COALESCE(u.position_ms, 0), COALESCE(u.played, false), COALESCE(u.favorite, false)`
 
 // userJoin attaches the viewer's playback state ($owner is the profile or user id).
@@ -221,7 +222,7 @@ func scanItem(row pgx.Row) (Item, error) {
 	var it Item
 	var ids []byte
 	err := row.Scan(&it.ID, &it.LibraryID, &it.ParentID, &it.Kind, &it.Title, &it.Year, &it.Season, &it.Episode,
-		&it.EpisodeEnd, &it.AddedAt, &ids, &it.DurationMS, &it.HasPoster, &it.Rating, &it.PositionMS, &it.Played, &it.Favorite)
+		&it.EpisodeEnd, &it.AddedAt, &ids, &it.DurationMS, &it.HasPoster, &it.HasBackdrop, &it.Rating, &it.PositionMS, &it.Played, &it.Favorite)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return it, ErrNotFound
 	}

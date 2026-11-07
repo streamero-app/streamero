@@ -1077,6 +1077,8 @@ export interface components {
             /** Format: date-time */
             addedAt: string;
             hasPoster: boolean;
+            /** @description A wide backdrop image is available (images/backdrop). */
+            hasBackdrop?: boolean;
             /** @description Community rating 0–10. */
             rating?: number;
             /**

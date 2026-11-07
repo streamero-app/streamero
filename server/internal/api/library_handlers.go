@@ -256,7 +256,8 @@ func toPeople(ps []library.Person) []gen.Person {
 
 func toItemSummary(it library.Item) gen.ItemSummary {
 	out := gen.ItemSummary{ID: it.ID, Kind: gen.ItemKind(it.Kind), Title: it.Title, AddedAt: it.AddedAt, HasPoster: it.HasPoster,
-		Year: optInt(it.Year), SeasonNumber: optInt(it.Season), EpisodeNumber: optInt(it.Episode), EpisodeNumberEnd: optInt(it.EpisodeEnd)}
+		HasBackdrop: gen.NewOptBool(it.HasBackdrop),
+		Year:        optInt(it.Year), SeasonNumber: optInt(it.Season), EpisodeNumber: optInt(it.Episode), EpisodeNumberEnd: optInt(it.EpisodeEnd)}
 	if it.DurationMS != nil {
 		out.DurationMs = gen.NewOptInt64(*it.DurationMS)
 	}
