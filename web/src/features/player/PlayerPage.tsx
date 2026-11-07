@@ -5,7 +5,8 @@ import { useTranslation } from "react-i18next";
 import type Hls from "hls.js";
 import { api, unwrap } from "@/api/client";
 import type { components } from "@/api/schema.gen";
-import { ErrorText } from "@/components/ui";
+import { ErrorText, Spinner } from "@/components/ui";
+import { ArrowLeft } from "lucide-react";
 import { detectDeviceProfile } from "./deviceProfile";
 
 type PlaybackInfo = components["schemas"]["PlaybackInfo"];
@@ -117,15 +118,15 @@ export function PlayerPage() {
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black" data-testid="player">
       <div className="flex items-center gap-3 bg-gradient-to-b from-black/80 to-transparent px-4 py-3 text-white">
-        <Link to="/item/$itemId" params={{ itemId }} className="rounded-md px-2 py-1 text-sm hover:bg-white/10" onClick={() => save(true)}>
-          ← {t("player.back")}
+        <Link to="/item/$itemId" params={{ itemId }} className="inline-flex h-9 items-center gap-1.5 rounded-full pr-3 pl-2 text-sm transition-colors hover:bg-white/10" onClick={() => save(true)}>
+          <ArrowLeft className="size-4" aria-hidden />{t("player.back")}
         </Link>
-        <span className="truncate font-medium">{it?.title}</span>
+        <span className="truncate font-display text-xl">{it?.title}</span>
         <div className="ml-auto flex items-center gap-3 text-sm">
           {info && info.audio.length > 1 && (
             <label className="flex items-center gap-1">
               {t("library.audio")}
-              <select className="rounded bg-white/10 px-2 py-1" value={audioIndex ?? info.audioIndex ?? 0}
+              <select className="h-8 rounded-full bg-white/10 px-3 ring-1 ring-white/10" value={audioIndex ?? info.audioIndex ?? 0}
                 onChange={(e) => changeAudio(Number(e.target.value))} aria-label={t("library.audio")}>
                 {info.audio.map((a, i) => (
                   <option key={i} value={i} className="text-black">
@@ -138,7 +139,7 @@ export function PlayerPage() {
           {info && info.subtitles.length > 0 && (
             <label className="flex items-center gap-1">
               {t("library.subtitles")}
-              <select className="rounded bg-white/10 px-2 py-1" value={subtitle} onChange={(e) => setSubtitle(Number(e.target.value))}
+              <select className="h-8 rounded-full bg-white/10 px-3 ring-1 ring-white/10" value={subtitle} onChange={(e) => setSubtitle(Number(e.target.value))}
                 aria-label={t("library.subtitles")}>
                 <option value={-1} className="text-black">{t("player.off")}</option>
                 {info.subtitles.map((s, i) => (
@@ -159,7 +160,7 @@ export function PlayerPage() {
             <track key={s.index} kind="subtitles" src={s.url} srcLang={s.language ?? "und"} label={s.language ?? String(s.index)} />
           ))}
         </video>
-        {start.isPending && <p role="status" className="absolute text-white/80">{t("player.preparing")}</p>}
+        {start.isPending && <p role="status" className="absolute flex items-center gap-3 text-white/80"><Spinner />{t("player.preparing")}</p>}
         {start.error && <div className="absolute max-w-md rounded-card bg-surface p-4"><ErrorText error={start.error} /></div>}
       </div>
     </div>

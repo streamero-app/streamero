@@ -45,7 +45,7 @@ describe("library pages", () => {
     expect(files[1]).toHaveTextContent("1080p");
     expect(screen.getByTestId("overview")).toHaveTextContent("Opis filma.");
     expect(screen.getByTestId("cast")).toHaveTextContent("Ana Glumica");
-    expect(screen.getByTestId("item-hero")).toHaveTextContent("★ 7.4");
+    expect(screen.getByTestId("item-hero")).toHaveTextContent("7.4");
     expect(screen.getByText(/Directed by/).parentElement).toHaveTextContent("Ivo");
   });
 

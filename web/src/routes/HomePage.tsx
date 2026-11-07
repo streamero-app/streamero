@@ -1,23 +1,21 @@
-import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Card } from "@/components/ui";
 import { useMe } from "@/features/auth/useAuth";
-import { ContinueShelf, FavoritesShelf, LatestShelf, LibraryShelf } from "@/features/library/LibraryPages";
+import { ContinueShelf, FavoritesShelf, HomeHero, LatestShelf, LibraryShelf } from "@/features/library/LibraryPages";
 
 export function HomePage() {
   const { t } = useTranslation();
   const { data: me } = useMe();
+  const name = me?.currentProfile?.name ?? me?.username;
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-3xl font-semibold">{t("home.welcome", { name: me?.username })}</h1>
+    <div className="flex flex-col gap-10 pb-6">
+      <HomeHero />
+      <h1 className="enter px-4 pt-20 font-display text-3xl text-text/90 first:pt-20 sm:px-6 lg:px-10 [section+&]:pt-0">
+        {t("home.welcome", { name })}
+      </h1>
       <ContinueShelf />
       <LatestShelf />
       <FavoritesShelf />
       <LibraryShelf />
-      <Card title={t("home.settingsTitle")}>
-        <p className="mb-3 text-sm text-muted">{t("home.settingsText")}</p>
-        <Link to="/settings" className="text-sm font-medium text-accent">{t("home.openSettings")} →</Link>
-      </Card>
     </div>
   );
 }
