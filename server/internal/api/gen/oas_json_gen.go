@@ -2892,6 +2892,12 @@ func (s *ItemSummary) encodeFields(e *jx.Encoder) {
 		e.Bool(s.HasPoster)
 	}
 	{
+		if s.HasBackdrop.Set {
+			e.FieldStart("hasBackdrop")
+			s.HasBackdrop.Encode(e)
+		}
+	}
+	{
 		if s.Rating.Set {
 			e.FieldStart("rating")
 			s.Rating.Encode(e)
@@ -2917,7 +2923,7 @@ func (s *ItemSummary) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfItemSummary = [14]string{
+var jsonFieldsNameOfItemSummary = [15]string{
 	0:  "id",
 	1:  "kind",
 	2:  "title",
@@ -2928,10 +2934,11 @@ var jsonFieldsNameOfItemSummary = [14]string{
 	7:  "durationMs",
 	8:  "addedAt",
 	9:  "hasPoster",
-	10: "rating",
-	11: "positionMs",
-	12: "played",
-	13: "favorite",
+	10: "hasBackdrop",
+	11: "rating",
+	12: "positionMs",
+	13: "played",
+	14: "favorite",
 }
 
 // Decode decodes ItemSummary from json.
@@ -3050,6 +3057,16 @@ func (s *ItemSummary) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"hasPoster\"")
+			}
+		case "hasBackdrop":
+			if err := func() error {
+				s.HasBackdrop.Reset()
+				if err := s.HasBackdrop.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"hasBackdrop\"")
 			}
 		case "rating":
 			if err := func() error {

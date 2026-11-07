@@ -11,12 +11,17 @@
   "common": {
     "save": "Save",
     "saved": "Saved.",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "close": "Close"
   },
   "nav": {
     "home": "Home",
     "settings": "Settings",
-    "logout": "Sign out"
+    "logout": "Sign out",
+    "search": "Search",
+    "libraries": "Libraries",
+    "menu": "Menu",
+    "account": "Account"
   },
   "login": {
     "title": "Sign in",
@@ -45,7 +50,13 @@
     "noLibrariesAdmin": "Add a library with your movies or shows to start.",
     "continue": "Continue watching",
     "latest": "Recently added",
-    "favorites": "Favorites"
+    "favorites": "Favorites",
+    "moreInfo": "More info",
+    "featured": "Featured",
+    "emptyTitle": "Your screen is ready",
+    "scrollLeft": "Scroll left",
+    "scrollRight": "Scroll right",
+    "nextUp": "Up next"
   },
   "settings": {
     "account": "My account",
@@ -325,7 +336,18 @@
     "favorite": "Favorite",
     "favorited": "Favorite",
     "markPlayed": "Mark as watched",
-    "markUnplayed": "Watched — mark as unwatched"
+    "markUnplayed": "Watched — mark as unwatched",
+    "watched": "Watched",
+    "inProgress": "{{left}} left",
+    "details": "Details",
+    "mediaInfo": "Media info",
+    "filters": "Filters",
+    "people": "Cast & crew",
+    "episodeCount_one": "{{count}} episode",
+    "episodeCount_other": "{{count}} episodes",
+    "removeFavorite": "Remove from favorites",
+    "addFavorite": "Add to favorites",
+    "episodeCount_few": "{{count}} episodes"
   },
   "metadata": {
     "connected": "TMDb connected",
@@ -356,7 +378,9 @@
     "title": "Search",
     "placeholder": "Search…",
     "resultsFor": "Results for “{{q}}”",
-    "none": "Nothing found. Try another spelling or an actor's name."
+    "none": "Nothing found. Try another spelling or an actor's name.",
+    "hint": "Movies, shows, episodes and people.",
+    "start": "Type a title, a year or an actor."
   },
   "integrations": {
     "host": "Host",

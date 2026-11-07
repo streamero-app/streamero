@@ -1627,6 +1627,9 @@ components:
           format: date-time
         hasPoster:
           type: boolean
+        hasBackdrop:
+          type: boolean
+          description: A wide backdrop image is available (images/backdrop).
         rating:
           type: number
           description: Community rating 0–10.

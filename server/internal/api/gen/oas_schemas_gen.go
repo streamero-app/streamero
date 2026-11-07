@@ -1125,6 +1125,8 @@ type ItemSummary struct {
 	DurationMs       OptInt64  `json:"durationMs"`
 	AddedAt          time.Time `json:"addedAt"`
 	HasPoster        bool      `json:"hasPoster"`
+	// A wide backdrop image is available (images/backdrop).
+	HasBackdrop OptBool `json:"hasBackdrop"`
 	// Community rating 0–10.
 	Rating OptFloat64 `json:"rating"`
 	// Resume position for the current profile.
@@ -1182,6 +1184,11 @@ func (s *ItemSummary) GetAddedAt() time.Time {
 // GetHasPoster returns the value of HasPoster.
 func (s *ItemSummary) GetHasPoster() bool {
 	return s.HasPoster
+}
+
+// GetHasBackdrop returns the value of HasBackdrop.
+func (s *ItemSummary) GetHasBackdrop() OptBool {
+	return s.HasBackdrop
 }
 
 // GetRating returns the value of Rating.
@@ -1252,6 +1259,11 @@ func (s *ItemSummary) SetAddedAt(val time.Time) {
 // SetHasPoster sets the value of HasPoster.
 func (s *ItemSummary) SetHasPoster(val bool) {
 	s.HasPoster = val
+}
+
+// SetHasBackdrop sets the value of HasBackdrop.
+func (s *ItemSummary) SetHasBackdrop(val OptBool) {
+	s.HasBackdrop = val
 }
 
 // SetRating sets the value of Rating.

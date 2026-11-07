@@ -49,6 +49,35 @@ struct MediaClient {
         }
     }
 
+    func latest() async throws -> [ItemSummary] {
+        switch try await client.recentlyAdded() {
+        case .ok(let ok): return try ok.body.json
+        case .default(let status, let r): throw Self.fail(status, code: try? r.body.json.code)
+        }
+    }
+
+    func favorites() async throws -> [ItemSummary] {
+        switch try await client.listFavorites() {
+        case .ok(let ok): return try ok.body.json
+        case .default(let status, let r): throw Self.fail(status, code: try? r.body.json.code)
+        }
+    }
+
+    func search(_ q: String) async throws -> [ItemSummary] {
+        switch try await client.search(query: .init(q: q)) {
+        case .ok(let ok): return try ok.body.json
+        case .default(let status, let r): throw Self.fail(status, code: try? r.body.json.code)
+        }
+    }
+
+    /// Favorite / watched for the current profile.
+    func setUserData(item id: String, favorite: Bool? = nil, played: Bool? = nil) async throws {
+        switch try await client.updateUserData(path: .init(itemId: id), body: .json(.init(favorite: favorite, played: played))) {
+        case .noContent: return
+        case .default(let status, let r): throw Self.fail(status, code: try? r.body.json.code)
+        }
+    }
+
     /// What iOS plays natively: AVPlayer handles MP4/MOV, HEVC (incl. HDR) and HLS with fMP4.
     static let device = Components.Schemas.DeviceProfile(
         containers: ["mp4", "m4v", "mov"],

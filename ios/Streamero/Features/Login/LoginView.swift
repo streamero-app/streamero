@@ -30,7 +30,11 @@ struct LoginView: View {
         ScrollView {
             VStack(spacing: 20) {
                 VStack(spacing: 6) {
-                    Text(server.name).font(.largeTitle.bold())
+                    Image("AppMark").resizable().frame(width: 60, height: 60)
+                        .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+                        .shadow(color: Theme.accent.opacity(0.35), radius: 20, y: 8)
+                        .padding(.bottom, 10)
+                    Text(server.name).font(Theme.display(38))
                     Text(server.url.host() ?? server.url.absoluteString).foregroundStyle(Theme.textMuted)
                 }
                 .padding(.top, 48)
@@ -49,12 +53,18 @@ struct LoginView: View {
             .frame(maxWidth: 480)
             .frame(maxWidth: .infinity)
         }
-        .background(Theme.background)
+        .background {
+            ZStack {
+                Theme.background
+                RadialGradient(colors: [Theme.accent.opacity(0.16), .clear], center: .bottom, startRadius: 0, endRadius: 420)
+            }
+            .ignoresSafeArea()
+        }
     }
 
     private var form: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("login.title").font(.title2.bold())
+            Text("login.title").font(Theme.display(28))
             field("login.username", text: $username, content: .username)
             SecureField("login.password", text: $password)
                 .textContentType(.password)
@@ -74,9 +84,8 @@ struct LoginView: View {
                     if busy { ProgressView() } else { Text("login.submit").bold() }
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(PrimaryButtonStyle())
             .disabled(busy || username.isEmpty || password.isEmpty)
             Button("quickConnect.use") { quickConnect = true }
                 .frame(maxWidth: .infinity)

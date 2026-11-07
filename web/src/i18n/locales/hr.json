@@ -11,12 +11,17 @@
   "common": {
     "save": "Spremi",
     "saved": "Spremljeno.",
-    "cancel": "Odustani"
+    "cancel": "Odustani",
+    "close": "Zatvori"
   },
   "nav": {
     "home": "Početna",
     "settings": "Postavke",
-    "logout": "Odjava"
+    "logout": "Odjava",
+    "search": "Pretraga",
+    "libraries": "Biblioteke",
+    "menu": "Izbornik",
+    "account": "Račun"
   },
   "login": {
     "title": "Prijava",
@@ -45,7 +50,13 @@
     "noLibrariesAdmin": "Dodajte biblioteku sa svojim filmovima ili serijama.",
     "continue": "Nastavi gledati",
     "latest": "Nedavno dodano",
-    "favorites": "Favoriti"
+    "favorites": "Favoriti",
+    "moreInfo": "Više",
+    "featured": "Izdvojeno",
+    "emptyTitle": "Ekran je spreman",
+    "scrollLeft": "Pomakni lijevo",
+    "scrollRight": "Pomakni desno",
+    "nextUp": "Sljedeće"
   },
   "settings": {
     "account": "Moj račun",
@@ -325,7 +336,18 @@
     "favorite": "Favorit",
     "favorited": "Favorit",
     "markPlayed": "Označi kao odgledano",
-    "markUnplayed": "Odgledano — označi kao neodgledano"
+    "markUnplayed": "Odgledano — označi kao neodgledano",
+    "watched": "Pogledano",
+    "inProgress": "Još {{left}}",
+    "details": "Detalji",
+    "mediaInfo": "Tehnički podaci",
+    "filters": "Filtri",
+    "people": "Glumci i ekipa",
+    "episodeCount_one": "{{count}} epizoda",
+    "episodeCount_few": "{{count}} epizode",
+    "episodeCount_other": "{{count}} epizoda",
+    "removeFavorite": "Ukloni iz favorita",
+    "addFavorite": "Dodaj u favorite"
   },
   "metadata": {
     "connected": "TMDb povezan",
@@ -356,7 +378,9 @@
     "title": "Pretraga",
     "placeholder": "Pretraži…",
     "resultsFor": "Rezultati za „{{q}}”",
-    "none": "Ništa nije pronađeno. Pokušajte drugi pravopis ili ime glumca."
+    "none": "Ništa nije pronađeno. Pokušajte drugi pravopis ili ime glumca.",
+    "hint": "Filmovi, serije, epizode i osobe.",
+    "start": "Upiši naslov, godinu ili ime glumca."
   },
   "integrations": {
     "host": "Host",

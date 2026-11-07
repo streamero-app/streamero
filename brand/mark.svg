@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="glow" cx="0.28" cy="0.78" r="0.9">
+      <stop offset="0" stop-color="#4a2a0e"/>
+      <stop offset="0.5" stop-color="#18120c"/>
+      <stop offset="1" stop-color="#0b0907"/>
+    </radialGradient>
+    <linearGradient id="amber" x1="0.1" y1="0" x2="0.9" y2="1">
+      <stop offset="0" stop-color="#ffdc8a"/>
+      <stop offset="0.5" stop-color="#ffab3d"/>
+      <stop offset="1" stop-color="#ef6a24"/>
+    </linearGradient>
+    <path id="t" d="M340 300 C340 252 392 222 434 246 L792 452 C834 476 834 536 792 560 L434 766 C392 790 340 760 340 712 Z"/>
+    <clipPath id="upper"><path d="M0 0 H1024 V420 L0 604 Z"/></clipPath>
+    <clipPath id="lower"><path d="M0 1024 H1024 V454 L0 638 Z"/></clipPath>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#glow)"/>
+  <g clip-path="url(#upper)"><use href="#t" fill="url(#amber)" transform="translate(-16 -12)"/></g>
+  <g clip-path="url(#lower)"><use href="#t" fill="url(#amber)" transform="translate(18 12)"/></g>
+</svg>
