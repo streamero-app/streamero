@@ -97,3 +97,48 @@ describe("library pages", () => {
     expect(await screen.findByTestId("library-row")).toHaveTextContent("Filmovi");
   });
 });
+
+describe("browse", () => {
+  beforeEach(() => setLanguage("en"));
+
+  it("searches from the header", async () => {
+    mockApi(({ path, query }) => path === "/search"
+      ? { status: 200, body: query.get("q") === "matirx" ? [{ ...movie, title: "The Matrix" }] : [] }
+      : { status: 200, body: [] });
+    const { router } = renderApp("/", { me: testUser() });
+    const box = await screen.findByLabelText("Search");
+    fireEvent.change(box, { target: { value: "matirx" } });
+    fireEvent.submit(box.closest("form")!);
+    await waitFor(() => expect(router.state.location.pathname).toBe("/search"));
+    expect(await screen.findByTestId("item-card")).toHaveTextContent("The Matrix");
+  });
+
+  it("toggles favorite and filters by genre", async () => {
+    const puts: unknown[] = [];
+    const queries: string[] = [];
+    mockApi(({ method, path, body, query }) => {
+      if (method === "PUT") {
+        puts.push(body);
+        return { status: 204 };
+      }
+      if (path === `/items/${movie.id}`) {
+        return { status: 200, body: { item: movie, libraryId: lib.id, providerIds: {}, children: [], files: [], genres: [], cast: [], crew: [], hasBackdrop: false } };
+      }
+      if (path === "/libraries") return { status: 200, body: [lib] };
+      if (path.endsWith("/genres")) return { status: 200, body: ["Drama", "Komedija"] };
+      if (path.endsWith("/items")) {
+        queries.push(query.toString());
+        return { status: 200, body: { items: [movie], total: 1 } };
+      }
+      return { status: 200, body: [] };
+    });
+    renderApp(`/item/${movie.id}`, { me: testUser() });
+    fireEvent.click(await screen.findByTestId("favorite"));
+    await waitFor(() => expect(puts).toContainEqual({ favorite: true }));
+
+    renderApp(`/library/${lib.id}`, { me: testUser() });
+    fireEvent.change(await screen.findByLabelText("Genre"), { target: { value: "Drama" } });
+    fireEvent.click(screen.getByLabelText("Unwatched only"));
+    await waitFor(() => expect(queries.some((q) => q.includes("genre=Drama") && q.includes("unplayed=true"))).toBe(true));
+  });
+});

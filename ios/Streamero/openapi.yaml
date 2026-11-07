@@ -768,8 +768,18 @@ paths:
         in: query
         schema:
           type: string
-          enum: [title, year, added]
+          enum: [title, year, added, rating]
           default: title
+      - name: genre
+        in: query
+        schema:
+          type: string
+          maxLength: 100
+      - name: unplayed
+        in: query
+        description: Only items the current profile has not watched.
+        schema:
+          type: boolean
     get:
       operationId: listLibraryItems
       summary: Top-level items of a library (movies, series), paged
@@ -783,6 +793,121 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ItemPage"
+        default:
+          $ref: "#/components/responses/Error"
+  /libraries/{libraryId}/genres:
+    parameters:
+      - $ref: "#/components/parameters/LibraryId"
+    get:
+      operationId: listLibraryGenres
+      summary: Genres used in a library (for filters)
+      tags: [items]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Genres by name
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        default:
+          $ref: "#/components/responses/Error"
+  /search:
+    get:
+      operationId: search
+      summary: Search titles (typo tolerant) and people across visible libraries
+      tags: [items]
+      security:
+        - sessionToken: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 40
+      responses:
+        "200":
+          description: Matching items, best first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ItemSummary"
+        default:
+          $ref: "#/components/responses/Error"
+  /home/latest:
+    get:
+      operationId: recentlyAdded
+      summary: Recently added movies and series across visible libraries
+      tags: [items]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ItemSummary"
+        default:
+          $ref: "#/components/responses/Error"
+  /home/favorites:
+    get:
+      operationId: listFavorites
+      summary: Favorites of the current profile
+      tags: [items]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ItemSummary"
+        default:
+          $ref: "#/components/responses/Error"
+  /items/{itemId}/user-data:
+    parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    put:
+      operationId: updateUserData
+      summary: Mark favorite and/or watched for the current profile
+      description: Watching a series or season marks all its episodes.
+      tags: [items]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserDataUpdate"
+      responses:
+        "204":
+          description: Saved
         default:
           $ref: "#/components/responses/Error"
   /items/{itemId}:
@@ -1417,6 +1542,13 @@ components:
         url:
           type: string
           description: Signed WebVTT URL.
+    UserDataUpdate:
+      type: object
+      properties:
+        favorite:
+          type: boolean
+        played:
+          type: boolean
     ProgressReport:
       type: object
       required: [positionMs]
@@ -1505,6 +1637,8 @@ components:
         played:
           type: boolean
           description: Watched by the current profile.
+        favorite:
+          type: boolean
     ItemPage:
       type: object
       required: [items, total]

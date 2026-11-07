@@ -20,6 +20,7 @@ import { LibrariesSettings } from "@/features/settings/LibrariesSettings";
 import { MetadataSettings } from "@/features/settings/MetadataSettings";
 import { ItemPage, LibraryPage } from "@/features/library/LibraryPages";
 import { PlayerPage } from "@/features/player/PlayerPage";
+import { SearchPage } from "@/features/library/SearchPage";
 import { NotFoundPage } from "@/routes/NotFoundPage";
 
 const rootRoute = createRootRoute({
@@ -40,6 +41,12 @@ const appRoute = createRoute({ getParentRoute: () => rootRoute, id: "app", compo
 const homeRoute = createRoute({ getParentRoute: () => appRoute, path: "/", component: HomePage });
 const libraryRoute = createRoute({ getParentRoute: () => appRoute, path: "/library/$libraryId", component: LibraryPage });
 const itemRoute = createRoute({ getParentRoute: () => appRoute, path: "/item/$itemId", component: ItemPage });
+const searchRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/search",
+  component: SearchPage,
+  validateSearch: (s: Record<string, unknown>): { q?: string } => (typeof s.q === "string" && s.q ? { q: s.q } : {}),
+});
 const watchRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/watch/$itemId",
@@ -87,6 +94,7 @@ export const routeTree = rootRoute.addChildren([
     libraryRoute,
     itemRoute,
     watchRoute,
+    searchRoute,
     settingsRoute.addChildren([settingsIndex, accountRoute, profilesRoute, devicesRoute, quickConnectRoute, serverRoute, librariesRoute, metadataRoute, usersRoute, invitesRoute, apiKeysRoute]),
   ]),
 ]);
