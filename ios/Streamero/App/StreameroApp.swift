@@ -29,7 +29,11 @@ struct RootView: View {
                 case .signedOut:
                     LoginView(server: server)
                 case .signedIn(let user):
-                    SignedInView(server: server, user: user)
+                    if let token = session.token(for: server) {
+                        HomeView(server: server, user: user, client: MediaClient(baseURL: server.url, token: token))
+                    } else {
+                        SignedInView(server: server, user: user)
+                    }
                 }
             }
             .task(id: server.id) { await session.restore(server: server) }
