@@ -53,7 +53,9 @@ srt "$M/Big Test Movie (2021)/Big Test Movie (2021).hr.forced.srt" "Prisilni hrv
 
 # Multi-audio + embedded subtitles + chapters.
 CHAP="$(mktemp)"; trap 'rm -f "$CHAP"' EXIT
-printf ';FFMETADATA1\n[CHAPTER]\nTIMEBASE=1/1000\nSTART=0\nEND=4000\ntitle=Intro\n[CHAPTER]\nTIMEBASE=1/1000\nSTART=4000\nEND=%d\ntitle=Main\n' "$((DUR*1000))" > "$CHAP"
+# Chapter boundary at a third of the clip, so short clips (FIXTURE_DURATION=3) stay valid.
+SPLIT=$((DUR * 1000 / 3))
+printf ';FFMETADATA1\n[CHAPTER]\nTIMEBASE=1/1000\nSTART=0\nEND=%d\ntitle=Intro\n[CHAPTER]\nTIMEBASE=1/1000\nSTART=%d\nEND=%d\ntitle=Main\n' "$SPLIT" "$SPLIT" "$((DUR*1000))" > "$CHAP"
 SUB_TMP="$(mktemp --suffix=.srt)"; srt_tmp_text="Embedded subtitle"
 printf '1\n00:00:01,000 --> 00:00:04,000\n%s\n' "$srt_tmp_text" > "$SUB_TMP"
 make "$M/Multi Audio Film (2019)/Multi Audio Film (2019).mkv" "${SRC_V[@]}" "${SRC_A[@]}" \
