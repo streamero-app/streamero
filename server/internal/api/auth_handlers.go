@@ -422,6 +422,9 @@ func (h *Handler) UpdateServerSettings(ctx context.Context, req *gen.ServerSetti
 	return &gen.ServerSettings{ServerName: name}, nil
 }
 
+// ServerNameFor returns the server's display name (admin-set or default).
+func (h *Handler) ServerNameFor(ctx context.Context) string { return h.serverName(ctx) }
+
 // serverName returns the admin-set name, falling back to the configured default.
 func (h *Handler) serverName(ctx context.Context) string {
 	if h.Settings == nil {

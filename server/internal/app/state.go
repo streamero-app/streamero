@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/streamero-app/streamero/server/internal/auth"
+	"github.com/streamero-app/streamero/server/internal/compat"
 	"github.com/streamero-app/streamero/server/internal/library"
 	"github.com/streamero-app/streamero/server/internal/settings"
 	"github.com/streamero-app/streamero/server/internal/stream"
@@ -20,6 +21,7 @@ type State struct {
 	// Library is set by the caller after Bootstrap (needs roots and a job inserter).
 	library  atomic.Pointer[library.Service]
 	stream   atomic.Pointer[stream.Server]
+	compat   atomic.Pointer[compat.Server]
 	ready    atomic.Bool
 	auth     atomic.Pointer[auth.Service]
 	serverID atomic.Pointer[uuid.UUID]
@@ -59,6 +61,12 @@ func (s *State) Stream() *stream.Server { return s.stream.Load() }
 
 // SetStream installs the stream server.
 func (s *State) SetStream(v *stream.Server) { s.stream.Store(v) }
+
+// Compat returns the compat API server (nil until ready).
+func (s *State) Compat() *compat.Server { return s.compat.Load() }
+
+// SetCompat installs the compat API server.
+func (s *State) SetCompat(v *compat.Server) { s.compat.Store(v) }
 
 // SetLibrary installs the library service.
 func (s *State) SetLibrary(l *library.Service) { s.library.Store(l) }

@@ -33,6 +33,8 @@ func rateLimited(r *http.Request) bool {
 		return true
 	case strings.HasPrefix(p, "/api/v1/invite/"):
 		return true
+	case r.Method == http.MethodPost && strings.EqualFold(p, "/compat/Users/AuthenticateByName"):
+		return true
 	case r.Method == http.MethodPost && strings.HasPrefix(p, "/api/v1/profiles/") && strings.HasSuffix(p, "/select"):
 		return true
 	}
@@ -74,6 +76,16 @@ func NewRouter(state *State, h *api.Handler, opts ...RouterOptions) (http.Handle
 	})
 
 	r.Mount("/api/v1", startingGuard(state, apiServer))
+	// Compatibility API for request managers and *arr notifications (D-016).
+	r.Mount("/compat", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		c := state.Compat()
+		if c == nil {
+			w.Header().Set("Retry-After", strconv.Itoa(api.RetryAfterSeconds))
+			http.Error(w, "server is starting", http.StatusServiceUnavailable)
+			return
+		}
+		http.StripPrefix("/compat", c.Routes()).ServeHTTP(w, req)
+	}))
 	// Media bytes (direct play, HLS, subtitles) behind signed URLs; outside OpenAPI (D-015).
 	r.Mount("/stream", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		s := state.Stream()

@@ -24,6 +24,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/api"
 	"github.com/streamero-app/streamero/server/internal/app"
 	"github.com/streamero-app/streamero/server/internal/auth"
+	"github.com/streamero-app/streamero/server/internal/compat"
 	"github.com/streamero-app/streamero/server/internal/config"
 	"github.com/streamero-app/streamero/server/internal/db"
 	"github.com/streamero-app/streamero/server/internal/jobs"
@@ -140,7 +141,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		hls := &stream.Manager{Dir: cfg.TranscodeDir, FFmpeg: cfg.FFmpegPath, Log: log}
 		go hls.Reap(ctx)
 		state.SetStream(&stream.Server{Pool: deps.Pool, Roots: roots, Signer: stream.Signer{Key: key}, HLS: hls, FFmpeg: cfg.FFmpegPath})
-		state.SetLibrary(&library.Service{Pool: deps.Pool, Roots: roots, ImageDir: filepath.Join(cfg.CacheDir, "images"),
+		libs := &library.Service{Pool: deps.Pool, Roots: roots, ImageDir: filepath.Join(cfg.CacheDir, "images"),
 			Enqueue: func(ctx context.Context, id uuid.UUID) error {
 				_, err := inserter.Insert(ctx, jobs.LibraryScanArgs{LibraryID: id}, nil)
 				return err
@@ -148,7 +149,10 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			EnqueueMetadata: func(ctx context.Context, id uuid.UUID, force bool) error {
 				_, err := inserter.Insert(ctx, jobs.MetadataRefreshArgs{LibraryID: id, Force: force}, nil)
 				return err
-			}})
+			}}
+		state.SetLibrary(libs)
+		state.SetCompat(&compat.Server{Pool: deps.Pool, Auth: state.Auth(), Libraries: libs, ServerID: state.ServerID(), Log: log,
+			ServerName: h.ServerNameFor})
 		log.Info("ready", "server_id", state.ServerID(), "startup", time.Since(h.StartedAt).String())
 		if !state.SetupCompleted(ctx) {
 			// Printed on purpose: whoever can read the server log may create the first admin.
