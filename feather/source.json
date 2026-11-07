@@ -13,7 +13,17 @@
       "iconURL": "https://streamero.net/icon.png",
       "tintColor": "#E5484D",
       "category": "entertainment",
-      "versions": []
+      "versions": [
+        {
+          "version": "0.2.0",
+          "buildVersion": "0.2.0",
+          "date": "2026-11-07",
+          "downloadURL": "https://github.com/streamero-app/streamero/releases/download/v0.2.0/Streamero-v0.2.0.ipa",
+          "size": 1055292,
+          "localizedDescription": "Streamero 0.2.0",
+          "minOSVersion": "17.0"
+        }
+      ]
     }
   ],
   "news": []
