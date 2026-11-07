@@ -1,70 +1,130 @@
 import AVKit
 import SwiftUI
 
-/// Signed-in home: continue watching and libraries.
+/// What the player cover is showing.
+struct PlayTarget: Identifiable, Hashable { let id: String }
+
+struct LibraryRoute: Hashable {
+    let id: String
+    let name: String
+}
+
+/// Signed-in root: Home and Search tabs.
 struct HomeView: View {
+    let server: SavedServer
+    let user: Components.Schemas.User
+    let client: MediaClient
+
+    var body: some View {
+        TabView {
+            HomeTab(server: server, user: user, client: client)
+                .tabItem { Label("nav.home", systemImage: "house.fill") }
+            SearchTab(client: client)
+                .tabItem { Label("nav.search", systemImage: "magnifyingglass") }
+        }
+        .tint(Theme.accent)
+    }
+}
+
+/// Home: spotlight hero, shelves and libraries.
+struct HomeTab: View {
     let server: SavedServer
     let user: Components.Schemas.User
     let client: MediaClient
     @Environment(SessionStore.self) private var session
     @State private var libraries: [Library] = []
     @State private var continueItems: [ItemSummary] = []
+    @State private var latest: [ItemSummary] = []
+    @State private var favorites: [ItemSummary] = []
     @State private var error: LocalizedStringKey?
     @State private var showQuickConnect = false
+    @State private var playing: PlayTarget?
+
+    private var featured: ItemSummary? {
+        latest.first { $0.hasBackdrop == true } ?? latest.first { $0.hasPoster } ?? latest.first
+    }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 30) {
+                    if let featured {
+                        HeroView(item: featured, client: client) { playing = PlayTarget(id: featured.id) }
+                    } else {
+                        Color.clear.frame(height: 100)
+                    }
+                    Text("home.welcome \(user.username)").font(Theme.display(28)).foregroundStyle(Theme.text.opacity(0.9))
+                        .padding(.horizontal, 20)
                     if !continueItems.isEmpty {
-                        Text("home.continue").font(.title2.bold())
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            LazyHStack(spacing: 12) {
-                                ForEach(continueItems, id: \.id) { item in
-                                    NavigationLink(value: item.id) { PosterCard(item: item, client: client).frame(width: 120) }
-                                }
+                        Shelf(title: "home.continue") {
+                            ForEach(continueItems, id: \.id) { item in
+                                Button { playing = PlayTarget(id: item.id) } label: { WideCard(item: item, client: client) }
+                                    .buttonStyle(CardPressStyle())
                             }
                         }
                     }
-                    Text("home.libraries").font(.title2.bold())
-                    if libraries.isEmpty {
-                        Text("home.noLibraries").foregroundStyle(Theme.textMuted)
-                    }
-                    ForEach(libraries, id: \.id) { lib in
-                        NavigationLink(value: LibraryRoute(id: lib.id, name: lib.name)) {
-                            HStack {
-                                VStack(alignment: .leading) {
-                                    Text(lib.name).font(.headline)
-                                    Text("home.items \(lib.itemCount)").font(.subheadline).foregroundStyle(Theme.textMuted)
-                                }
-                                Spacer()
-                                Image(systemName: "chevron.right").foregroundStyle(Theme.textMuted)
+                    if !latest.isEmpty {
+                        Shelf(title: "home.latest") {
+                            ForEach(latest, id: \.id) { item in
+                                NavigationLink(value: item.id) { PosterCard(item: item, client: client).frame(width: 128) }
+                                    .buttonStyle(CardPressStyle())
                             }
-                            .padding()
-                            .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.cornerRadius))
                         }
-                        .buttonStyle(.plain)
                     }
-                    if let error { Text(error).foregroundStyle(.red) }
+                    if !favorites.isEmpty {
+                        Shelf(title: "home.favorites") {
+                            ForEach(favorites, id: \.id) { item in
+                                NavigationLink(value: item.id) { PosterCard(item: item, client: client).frame(width: 128) }
+                                    .buttonStyle(CardPressStyle())
+                            }
+                        }
+                    }
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("home.libraries").font(.title3.bold())
+                        if libraries.isEmpty {
+                            Text("home.noLibraries").foregroundStyle(Theme.textMuted)
+                        }
+                        ForEach(libraries, id: \.id) { lib in
+                            NavigationLink(value: LibraryRoute(id: lib.id, name: lib.name)) { LibraryTile(library: lib) }
+                                .buttonStyle(CardPressStyle())
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    if let error { Text(error).foregroundStyle(.red).padding(.horizontal, 20) }
                 }
-                .padding()
+                .padding(.bottom, 24)
             }
+            .ignoresSafeArea(edges: .top)
             .background(Theme.background)
-            .navigationTitle(server.name)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    HStack(spacing: 8) {
+                        Image("AppMark").resizable().frame(width: 26, height: 26).clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                        Text(server.name).font(.headline)
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Text(user.username)
-                        Button("quickConnect.approveTitle") { showQuickConnect = true }
-                        Button("nav.logout", role: .destructive) { Task { await session.signOut(server: server) } }
-                    } label: { Image(systemName: "person.crop.circle") }
+                        Button("quickConnect.approveTitle", systemImage: "qrcode") { showQuickConnect = true }
+                        Button("nav.logout", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive) {
+                            Task { await session.signOut(server: server) }
+                        }
+                    } label: {
+                        Text(String(user.username.prefix(1)).uppercased())
+                            .font(.subheadline.bold()).foregroundStyle(Theme.accentContrast)
+                            .frame(width: 32, height: 32).background(Theme.accent, in: Circle())
+                    }
+                    .accessibilityLabel(Text(user.username))
                 }
             }
+            .toolbarBackground(.hidden, for: .navigationBar)
             .navigationDestination(for: LibraryRoute.self) { LibraryView(route: $0, client: client) }
             .navigationDestination(for: String.self) { ItemView(itemID: $0, client: client) }
             .task { await load() }
             .refreshable { await load() }
             .sheet(isPresented: $showQuickConnect) { QuickConnectApproveView(client: client) }
+            .fullScreenCover(item: $playing, onDismiss: { Task { await load() } }) { PlayerView(itemID: $0.id, client: client) }
         }
     }
 
@@ -72,8 +132,12 @@ struct HomeView: View {
         do {
             async let libs = client.libraries()
             async let cont = client.continueWatching()
+            async let new = client.latest()
+            async let favs = client.favorites()
             libraries = try await libs
             continueItems = (try? await cont) ?? []
+            latest = (try? await new) ?? []
+            favorites = (try? await favs) ?? []
             error = nil
         } catch {
             self.error = "addServer.error.unreachable"
@@ -81,9 +145,104 @@ struct HomeView: View {
     }
 }
 
-struct LibraryRoute: Hashable {
-    let id: String
-    let name: String
+/// Full-bleed spotlight: backdrop, scrims, serif title and actions.
+struct HeroView: View {
+    let item: ItemSummary
+    let client: MediaClient
+    let onPlay: () -> Void
+
+    private var playable: Bool { item.kind == .movie || item.kind == .episode }
+
+    var body: some View {
+        ZStack(alignment: .bottomLeading) {
+            Group {
+                if item.hasBackdrop == true {
+                    AuthImage(url: client.imageURL(item: item.id, type: "backdrop"), token: client.token)
+                } else if item.hasPoster {
+                    AuthImage(url: client.imageURL(item: item.id, type: "poster"), token: client.token).blur(radius: 40).saturation(1.3)
+                } else {
+                    PosterPlaceholder(title: "")
+                }
+            }
+            .frame(height: 560).frame(maxWidth: .infinity).clipped()
+            LinearGradient(colors: [Theme.background.opacity(0.7), .clear, Theme.background.opacity(0.6), Theme.background],
+                           startPoint: .top, endPoint: .bottom)
+            VStack(alignment: .leading, spacing: 12) {
+                Text("home.latest").font(.footnote.weight(.semibold)).foregroundStyle(Theme.accent)
+                Text(item.title).font(Theme.display(44)).foregroundStyle(Theme.text).lineLimit(3).minimumScaleFactor(0.6)
+                MetaLine(item: item)
+                HStack(spacing: 12) {
+                    if playable {
+                        Button(action: onPlay) { Label("player.play", systemImage: "play.fill") }.buttonStyle(PrimaryButtonStyle())
+                    }
+                    NavigationLink(value: item.id) {
+                        Label("home.moreInfo", systemImage: "info.circle")
+                            .font(.body.weight(.semibold)).foregroundStyle(Theme.text)
+                            .padding(.horizontal, 20).frame(height: 50)
+                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Theme.border))
+                    }
+                    .buttonStyle(CardPressStyle())
+                }
+                .padding(.top, 4)
+            }
+            .padding(.horizontal, 20).padding(.bottom, 8)
+        }
+        .frame(height: 560)
+    }
+}
+
+struct MetaLine: View {
+    let item: ItemSummary
+
+    var body: some View {
+        HStack(spacing: 10) {
+            if let r = item.rating {
+                Label { Text(r, format: .number.precision(.fractionLength(1))) } icon: { Image(systemName: "star.fill").foregroundStyle(Theme.accent) }
+                    .labelStyle(.titleAndIcon).fontWeight(.semibold)
+            }
+            if let y = item.year { Text(String(y)) }
+            if let d = item.durationMs, d > 0 { Text(Duration.milliseconds(d), format: .units(allowed: [.hours, .minutes], width: .narrow)) }
+        }
+        .font(.subheadline.monospacedDigit())
+        .foregroundStyle(Theme.text.opacity(0.75))
+    }
+}
+
+/// Titled horizontal row.
+struct Shelf<Content: View>: View {
+    let title: LocalizedStringKey
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title).font(.title3.bold()).padding(.horizontal, 20)
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(alignment: .top, spacing: 14) { content() }
+                    .padding(.horizontal, 20)
+                    .scrollTargetLayout()
+            }
+            .scrollTargetBehavior(.viewAligned)
+        }
+    }
+}
+
+private func progress(_ item: ItemSummary) -> Double? {
+    guard let pos = item.positionMs, let dur = item.durationMs, dur > 0, pos > 0 else { return nil }
+    return min(1, Double(pos) / Double(dur))
+}
+
+struct ProgressStrip: View {
+    let value: Double
+    var body: some View {
+        GeometryReader { g in
+            ZStack(alignment: .leading) {
+                Capsule().fill(.black.opacity(0.55))
+                Capsule().fill(Theme.accent).frame(width: g.size.width * value)
+            }
+        }
+        .frame(height: 4)
+    }
 }
 
 struct PosterCard: View {
@@ -91,16 +250,89 @@ struct PosterCard: View {
     let client: MediaClient
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            AuthImage(url: item.hasPoster ? client.imageURL(item: item.id, type: "poster") : nil, token: client.token, title: item.title)
-                .aspectRatio(2 / 3, contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-            if let pos = item.positionMs, let dur = item.durationMs, dur > 0 {
-                ProgressView(value: Double(pos), total: Double(dur)).tint(Theme.accent)
+        VStack(alignment: .leading, spacing: 8) {
+            ZStack(alignment: .topTrailing) {
+                AuthImage(url: item.hasPoster ? client.imageURL(item: item.id, type: item.kind == .episode ? "still" : "poster") : nil,
+                          token: client.token, title: item.title, year: item.year)
+                    .aspectRatio(2 / 3, contentMode: .fill)
+                if item.played == true {
+                    Image(systemName: "checkmark").font(.caption.bold()).foregroundStyle(Theme.accentContrast)
+                        .frame(width: 22, height: 22).background(Theme.accent, in: Circle()).padding(7)
+                } else if item.favorite == true {
+                    Image(systemName: "heart.fill").font(.caption2).foregroundStyle(Theme.accent)
+                        .frame(width: 22, height: 22).background(.black.opacity(0.55), in: Circle()).padding(7)
+                }
             }
-            Text(item.title).font(.caption.weight(.medium)).lineLimit(1)
-            Text(item.year.map(String.init) ?? " ").font(.caption2).foregroundStyle(Theme.textMuted)
+            .overlay(alignment: .bottom) {
+                if let p = progress(item) { ProgressStrip(value: p).padding(8) }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: Theme.posterRadius, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: Theme.posterRadius, style: .continuous).strokeBorder(Theme.border))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.title).font(.footnote.weight(.medium)).foregroundStyle(Theme.text).lineLimit(1)
+                Text(item.year.map(String.init) ?? " ").font(.caption2.monospacedDigit()).foregroundStyle(Theme.textMuted)
+            }
         }
+    }
+}
+
+/// Landscape card for continue watching.
+struct WideCard: View {
+    let item: ItemSummary
+    let client: MediaClient
+
+    private var art: URL? {
+        if item.hasBackdrop == true { return client.imageURL(item: item.id, type: "backdrop") }
+        if item.kind == .episode && item.hasPoster { return client.imageURL(item: item.id, type: "still") }
+        return nil
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ZStack(alignment: .bottomLeading) {
+                AuthImage(url: art, token: client.token, title: item.title)
+                    .aspectRatio(16 / 9, contentMode: .fill)
+                LinearGradient(colors: [.clear, .black.opacity(0.6)], startPoint: .center, endPoint: .bottom)
+                Image(systemName: "play.fill").font(.callout).foregroundStyle(.black)
+                    .frame(width: 36, height: 36).background(.white.opacity(0.9), in: Circle()).padding(10).padding(.bottom, 8)
+                if let p = progress(item) { ProgressStrip(value: p).padding(8) }
+            }
+            .frame(width: 270, height: 152)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.posterRadius, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: Theme.posterRadius, style: .continuous).strokeBorder(Theme.border))
+            Text(item.title).font(.footnote.weight(.medium)).foregroundStyle(Theme.text).lineLimit(1).frame(width: 270, alignment: .leading)
+        }
+    }
+}
+
+struct LibraryTile: View {
+    let library: Library
+
+    private var icon: String {
+        switch library.kind.rawValue {
+        case "movies": "film"
+        case "shows": "tv"
+        case "music": "music.note"
+        default: "film.stack"
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(library.name).font(Theme.display(28)).foregroundStyle(Theme.text)
+                Text("home.items \(library.itemCount)").font(.subheadline).foregroundStyle(Theme.textMuted)
+            }
+            Spacer()
+            Image(systemName: icon).font(.title2).foregroundStyle(Theme.accent.opacity(0.8))
+        }
+        .padding(20)
+        .frame(height: 110)
+        .background(
+            RadialGradient(colors: [Color(hue: Theme.hue(for: library.name), saturation: 0.25, brightness: 0.16), Theme.surface],
+                           center: .bottomLeading, startRadius: 0, endRadius: 360),
+            in: RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous).strokeBorder(Theme.border))
     }
 }
 
@@ -109,22 +341,30 @@ struct LibraryView: View {
     let client: MediaClient
     @State private var items: [ItemSummary] = []
     @State private var total = 0
+    @State private var loaded = false
 
-    private let columns = [GridItem(.adaptive(minimum: 110), spacing: 12)]
+    private let columns = [GridItem(.adaptive(minimum: 108), spacing: 14)]
 
     var body: some View {
         ScrollView {
-            LazyVGrid(columns: columns, spacing: 16) {
-                ForEach(items, id: \.id) { item in
-                    NavigationLink(value: item.id) { PosterCard(item: item, client: client) }
-                        .buttonStyle(.plain)
-                        .task { if item.id == items.last?.id && items.count < total { await loadMore() } }
+            VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(route.name).font(Theme.display(40)).foregroundStyle(Theme.text)
+                    if loaded { Text("home.items \(total)").font(.subheadline).foregroundStyle(Theme.textMuted) }
                 }
+                LazyVGrid(columns: columns, spacing: 22) {
+                    ForEach(items, id: \.id) { item in
+                        NavigationLink(value: item.id) { PosterCard(item: item, client: client) }
+                            .buttonStyle(CardPressStyle())
+                            .task { if item.id == items.last?.id && items.count < total { await loadMore() } }
+                    }
+                }
+                if !loaded { ProgressView().frame(maxWidth: .infinity).padding(40) }
             }
-            .padding()
+            .padding(.horizontal, 20)
         }
         .background(Theme.background)
-        .navigationTitle(route.name)
+        .navigationBarTitleDisplayMode(.inline)
         .task { if items.isEmpty { await loadMore() } }
     }
 
@@ -132,6 +372,7 @@ struct LibraryView: View {
         guard let page = try? await client.items(library: route.id, offset: items.count) else { return }
         items.append(contentsOf: page.items)
         total = page.total
+        loaded = true
     }
 }
 
@@ -139,60 +380,209 @@ struct ItemView: View {
     let itemID: String
     let client: MediaClient
     @State private var detail: ItemDetail?
-    @State private var playing = false
+    @State private var playing: PlayTarget?
 
     var body: some View {
         ScrollView {
             if let d = detail {
-                VStack(alignment: .leading, spacing: 16) {
-                    HStack(alignment: .top, spacing: 16) {
-                        if d.item.hasPoster {
-                            AuthImage(url: client.imageURL(item: d.item.id, type: d.item.kind == .episode ? "still" : "poster"),
-                                      token: client.token)
-                                .frame(width: 120, height: d.item.kind == .episode ? 68 : 180)
-                                .clipShape(RoundedRectangle(cornerRadius: 10))
-                        }
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(d.item.title).font(.title2.bold())
-                            if let year = d.item.year { Text(String(year)).foregroundStyle(Theme.textMuted) }
-                            if let rating = d.item.rating { Text("★ \(rating, specifier: "%.1f")").foregroundStyle(Theme.accent) }
-                        }
-                    }
-                    if !d.files.isEmpty {
-                        Button { playing = true } label: {
-                            Label(d.item.positionMs != nil ? "player.resume" : "player.play", systemImage: "play.fill")
-                                .frame(maxWidth: .infinity).padding(.vertical, 12).bold()
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-                    if let overview = d.overview { Text(overview) }
-                    if !d.cast.isEmpty {
-                        Text("library.cast").font(.headline)
-                        Text(d.cast.prefix(10).map(\.name).joined(separator: ", ")).foregroundStyle(Theme.textMuted)
-                    }
-                    ForEach(d.children, id: \.id) { child in
-                        NavigationLink(value: child.id) {
-                            HStack {
-                                if let e = child.episodeNumber { Text("E\(e)").font(.caption.monospaced()).foregroundStyle(Theme.textMuted) }
-                                Text(child.title)
-                                Spacer()
-                                if child.played == true { Image(systemName: "checkmark").foregroundStyle(Theme.accent) }
-                            }
-                            .padding(.vertical, 8)
-                        }
-                        .buttonStyle(.plain)
-                    }
+                VStack(alignment: .leading, spacing: 28) {
+                    header(d)
+                    content(d).padding(.horizontal, 20)
                 }
-                .padding()
+                .padding(.bottom, 32)
             } else {
-                ProgressView().padding(40)
+                ProgressView().frame(maxWidth: .infinity).padding(.top, 200)
             }
         }
+        .ignoresSafeArea(edges: .top)
         .background(Theme.background)
         .navigationBarTitleDisplayMode(.inline)
-        .task { detail = try? await client.item(itemID) }
-        .fullScreenCover(isPresented: $playing, onDismiss: { Task { detail = try? await client.item(itemID) } }) {
-            PlayerView(itemID: itemID, client: client)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .task { await reload() }
+        .fullScreenCover(item: $playing, onDismiss: { Task { await reload() } }) { PlayerView(itemID: $0.id, client: client) }
+    }
+
+    private func reload() async { detail = try? await client.item(itemID) }
+
+    @ViewBuilder private func header(_ d: ItemDetail) -> some View {
+        let it = d.item
+        let isEpisode = it.kind == .episode
+        ZStack(alignment: .bottomLeading) {
+            Group {
+                if d.hasBackdrop {
+                    AuthImage(url: client.imageURL(item: it.id, type: "backdrop"), token: client.token)
+                } else if it.hasPoster {
+                    AuthImage(url: client.imageURL(item: it.id, type: isEpisode ? "still" : "poster"), token: client.token)
+                        .blur(radius: isEpisode ? 0 : 40)
+                } else {
+                    PosterPlaceholder(title: "")
+                }
+            }
+            .frame(height: 480).frame(maxWidth: .infinity).clipped()
+            LinearGradient(colors: [Theme.background.opacity(0.6), .clear, Theme.background.opacity(0.7), Theme.background],
+                           startPoint: .top, endPoint: .bottom)
+            HStack(alignment: .bottom, spacing: 16) {
+                if !isEpisode {
+                    AuthImage(url: it.hasPoster ? client.imageURL(item: it.id, type: "poster") : nil, token: client.token, title: it.title, year: it.year)
+                        .frame(width: 112, height: 168)
+                        .clipShape(RoundedRectangle(cornerRadius: Theme.posterRadius, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: Theme.posterRadius, style: .continuous).strokeBorder(.white.opacity(0.12)))
+                        .shadow(color: .black.opacity(0.7), radius: 20, y: 12)
+                }
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(episodeTitle(it)).font(Theme.display(34)).foregroundStyle(Theme.text).lineLimit(3).minimumScaleFactor(0.6)
+                    MetaLine(item: it)
+                    if !d.genres.isEmpty {
+                        Text(d.genres.joined(separator: " · ")).font(.caption).foregroundStyle(Theme.textMuted).lineLimit(1)
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+        }
+        .frame(height: 480)
+    }
+
+    @ViewBuilder private func content(_ d: ItemDetail) -> some View {
+        let it = d.item
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(spacing: 12) {
+                if !d.files.isEmpty {
+                    Button { playing = PlayTarget(id: it.id) } label: {
+                        Label(it.positionMs != nil ? "player.resume" : "player.play", systemImage: "play.fill").frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(PrimaryButtonStyle())
+                }
+                Button { Task { try? await client.setUserData(item: it.id, favorite: !(it.favorite ?? false)); await reload() } } label: {
+                    Image(systemName: it.favorite == true ? "heart.fill" : "heart")
+                }
+                .buttonStyle(CircleButtonStyle(active: it.favorite == true))
+                .accessibilityLabel(Text("library.favorite"))
+                Button { Task { try? await client.setUserData(item: it.id, played: !(it.played ?? false)); await reload() } } label: {
+                    Image(systemName: "checkmark")
+                }
+                .buttonStyle(CircleButtonStyle(active: it.played == true))
+                .accessibilityLabel(Text("library.watched"))
+            }
+            if let p = progress(it) { ProgressStrip(value: p).frame(maxWidth: 240) }
+            if let tagline = d.tagline { Text(tagline).font(Theme.display(22).italic()).foregroundStyle(Theme.text.opacity(0.9)) }
+            if let overview = d.overview { Text(overview).font(.callout).foregroundStyle(Theme.text.opacity(0.82)).lineSpacing(3) }
+        }
+
+        let seasons = d.children.filter { $0.kind == .season }
+        let episodes = d.children.filter { $0.kind == .episode }
+        if !seasons.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("library.seasons").font(.title3.bold())
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(alignment: .top, spacing: 14) {
+                        ForEach(seasons, id: \.id) { s in
+                            NavigationLink(value: s.id) { PosterCard(item: s, client: client).frame(width: 118) }
+                                .buttonStyle(CardPressStyle())
+                        }
+                    }
+                }
+            }
+        }
+        if !episodes.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("library.episodes").font(.title3.bold())
+                ForEach(episodes, id: \.id) { e in
+                    NavigationLink(value: e.id) { EpisodeRow(item: e, client: client) }.buttonStyle(CardPressStyle())
+                }
+            }
+        }
+        if !d.cast.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("library.cast").font(.title3.bold())
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(alignment: .top, spacing: 14) {
+                        ForEach(Array(d.cast.prefix(20).enumerated()), id: \.offset) { _, p in
+                            VStack(spacing: 6) {
+                                Text(initials(p.name)).font(Theme.display(24)).foregroundStyle(Theme.text.opacity(0.7))
+                                    .frame(width: 72, height: 72)
+                                    .background(RadialGradient(colors: [Color(hue: Theme.hue(for: p.name), saturation: 0.25, brightness: 0.22), Theme.surface],
+                                                               center: .topLeading, startRadius: 0, endRadius: 80), in: Circle())
+                                    .overlay(Circle().strokeBorder(Theme.border))
+                                Text(p.name).font(.caption.weight(.medium)).lineLimit(2).multilineTextAlignment(.center)
+                                if let role = p.role { Text(role).font(.caption2).foregroundStyle(Theme.textMuted).lineLimit(1) }
+                            }
+                            .frame(width: 92)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func initials(_ name: String) -> String {
+        name.split(separator: " ").prefix(2).compactMap(\.first).map { String($0).uppercased() }.joined()
+    }
+}
+
+func episodeTitle(_ it: ItemSummary) -> String {
+    guard let e = it.episodeNumber else { return it.title }
+    return "E\(String(format: "%02d", e)) · \(it.title)"
+}
+
+struct EpisodeRow: View {
+    let item: ItemSummary
+    let client: MediaClient
+
+    var body: some View {
+        HStack(spacing: 14) {
+            AuthImage(url: item.hasPoster ? client.imageURL(item: item.id, type: "still") : nil, token: client.token)
+                .frame(width: 128, height: 72)
+                .overlay(alignment: .bottom) { if let p = progress(item) { ProgressStrip(value: p).padding(6) } }
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Theme.border))
+            VStack(alignment: .leading, spacing: 3) {
+                if let e = item.episodeNumber {
+                    Text("E\(String(format: "%02d", e))").font(.caption.weight(.semibold).monospacedDigit()).foregroundStyle(Theme.accent)
+                }
+                Text(item.title).font(.subheadline.weight(.medium)).foregroundStyle(Theme.text).lineLimit(2)
+            }
+            Spacer(minLength: 0)
+            if item.played == true { Image(systemName: "checkmark").font(.footnote.bold()).foregroundStyle(Theme.accent) }
+        }
+        .contentShape(Rectangle())
+    }
+}
+
+/// Search tab with debounced queries.
+struct SearchTab: View {
+    let client: MediaClient
+    @State private var query = ""
+    @State private var results: [ItemSummary] = []
+    @State private var searched = false
+
+    private let columns = [GridItem(.adaptive(minimum: 108), spacing: 14)]
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                if searched && results.isEmpty {
+                    ContentUnavailableView.search(text: query).padding(.top, 60)
+                } else {
+                    LazyVGrid(columns: columns, spacing: 22) {
+                        ForEach(results, id: \.id) { item in
+                            NavigationLink(value: item.id) { PosterCard(item: item, client: client) }.buttonStyle(CardPressStyle())
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                }
+            }
+            .background(Theme.background)
+            .navigationTitle(Text("nav.search"))
+            .searchable(text: $query, prompt: Text("search.prompt"))
+            .navigationDestination(for: String.self) { ItemView(itemID: $0, client: client) }
+            .task(id: query) {
+                let q = query.trimmingCharacters(in: .whitespaces)
+                guard !q.isEmpty else { results = []; searched = false; return }
+                try? await Task.sleep(for: .milliseconds(300))
+                guard !Task.isCancelled else { return }
+                results = (try? await client.search(q)) ?? []
+                searched = true
+            }
         }
     }
 }

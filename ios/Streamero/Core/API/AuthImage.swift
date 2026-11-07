@@ -23,21 +23,44 @@ struct AuthImage: View {
     let url: URL?
     let token: String
     var title: String = ""
+    var year: Int? = nil
     @State private var image: UIImage?
 
     var body: some View {
         ZStack {
+            PosterPlaceholder(title: title, year: year).opacity(image == nil ? 1 : 0)
             if let image {
                 Image(uiImage: image).resizable().scaledToFill()
-            } else {
-                LinearGradient(colors: [Theme.surface2, Theme.surface], startPoint: .top, endPoint: .bottom)
-                Text(title).font(.headline).multilineTextAlignment(.center).padding(8)
-                    .foregroundStyle(Theme.textMuted)
+                    .transition(.opacity)
             }
         }
+        .animation(.easeOut(duration: 0.35), value: image != nil)
         .task(id: url) {
             guard let url else { return }
             image = await ImageCache.shared.image(url: url, token: token)
+        }
+    }
+}
+
+/// Typographic stand-in when an item has no artwork: the title set like a film card.
+struct PosterPlaceholder: View {
+    let title: String
+    var year: Int? = nil
+
+    var body: some View {
+        let h = Theme.hue(for: title)
+        ZStack(alignment: .bottomLeading) {
+            RadialGradient(colors: [Color(hue: h, saturation: 0.22, brightness: 0.24),
+                                    Color(hue: h, saturation: 0.14, brightness: 0.11), Theme.background],
+                           center: .topLeading, startRadius: 0, endRadius: 320)
+            if !title.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title).font(Theme.display(22)).foregroundStyle(.white.opacity(0.95))
+                        .lineLimit(4).minimumScaleFactor(0.7)
+                    if let year { Text(String(year)).font(.caption2).foregroundStyle(.white.opacity(0.5)) }
+                }
+                .padding(12)
+            }
         }
     }
 }

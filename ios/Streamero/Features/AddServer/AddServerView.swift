@@ -10,10 +10,11 @@ struct AddServerView: View {
         VStack(spacing: 24) {
             Spacer()
             VStack(spacing: 8) {
-                Image(systemName: "play.rectangle.fill")
-                    .font(.system(size: 56))
-                    .foregroundStyle(Theme.accent)
-                Text("app.name").font(.largeTitle.bold())
+                Image("AppMark").resizable().frame(width: 76, height: 76)
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .shadow(color: Theme.accent.opacity(0.4), radius: 24, y: 10)
+                    .padding(.bottom, 8)
+                Text("app.name").font(Theme.display(44))
                 Text("addServer.subtitle").foregroundStyle(Theme.textMuted)
             }
             VStack(alignment: .leading, spacing: 8) {
@@ -24,8 +25,8 @@ struct AddServerView: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .padding(12)
-                    .background(Theme.surface, in: RoundedRectangle(cornerRadius: 10))
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.border))
+                    .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Theme.border))
                     .onSubmit { Task { await connect() } }
                 if let error {
                     Text(error).font(.footnote).foregroundStyle(.red)
@@ -38,9 +39,8 @@ struct AddServerView: View {
                     if checking { ProgressView() } else { Text("addServer.connect").bold() }
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(PrimaryButtonStyle())
             .disabled(checking || address.isEmpty)
             Spacer()
             Spacer()
@@ -48,7 +48,13 @@ struct AddServerView: View {
         .padding(24)
         .frame(maxWidth: 480)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Theme.background)
+        .background {
+            ZStack {
+                Theme.background
+                RadialGradient(colors: [Theme.accent.opacity(0.18), .clear], center: .bottom, startRadius: 0, endRadius: 420)
+            }
+            .ignoresSafeArea()
+        }
     }
 
     private func connect() async {
