@@ -40,7 +40,12 @@ export function channelsLabel(ch?: number): string {
   return `${ch - 1}.1`;
 }
 
-/** Stable colour for poster placeholders until artwork arrives in P3. */
+/** URL of cached artwork; the session cookie authorises it. */
+export function imageUrl(itemId: string, type: "poster" | "backdrop" | "still"): string {
+  return `/api/v1/items/${itemId}/images/${type}`;
+}
+
+/** Stable colour for poster placeholders when an item has no artwork. */
 export function placeholderHue(title: string): number {
   let h = 0;
   for (const c of title) h = (h * 31 + c.charCodeAt(0)) % 360;

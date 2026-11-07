@@ -830,6 +830,91 @@ paths:
                 $ref: "#/components/schemas/DirectoryListing"
         default:
           $ref: "#/components/responses/Error"
+  /settings/metadata:
+    get:
+      operationId: getMetadataSettings
+      summary: Metadata provider settings (admin); the TMDb key itself is never returned
+      tags: [settings]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MetadataSettings"
+        default:
+          $ref: "#/components/responses/Error"
+    put:
+      operationId: updateMetadataSettings
+      summary: Save metadata settings (admin); a new TMDb key is verified with TMDb first
+      tags: [settings]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MetadataSettingsInput"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MetadataSettings"
+        default:
+          $ref: "#/components/responses/Error"
+  /libraries/{libraryId}/refresh-metadata:
+    parameters:
+      - $ref: "#/components/parameters/LibraryId"
+    post:
+      operationId: refreshLibraryMetadata
+      summary: Fetch metadata again for every item of a library (admin)
+      tags: [libraries]
+      security:
+        - sessionToken: []
+      responses:
+        "202":
+          description: Queued
+        default:
+          $ref: "#/components/responses/Error"
+  /items/{itemId}/images/{imageType}:
+    parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: imageType
+        in: path
+        required: true
+        schema:
+          type: string
+          enum: [poster, backdrop, still]
+    get:
+      operationId: getItemImage
+      summary: Cached artwork of an item (JPEG)
+      tags: [items]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Image
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+        default:
+          $ref: "#/components/responses/Error"
   /settings/server:
     get:
       operationId: getServerSettings
@@ -1162,9 +1247,46 @@ components:
     ItemKind:
       type: string
       enum: [movie, series, season, episode]
+    MetadataSettings:
+      type: object
+      required: [tmdbConfigured, language, country]
+      properties:
+        tmdbConfigured:
+          type: boolean
+        language:
+          type: string
+          description: Preferred metadata language, e.g. "hr-HR" (English is the fallback).
+        country:
+          type: string
+          description: Country for age ratings and release dates, e.g. "HR".
+    MetadataSettingsInput:
+      type: object
+      required: [language, country]
+      properties:
+        tmdbApiKey:
+          type: string
+          maxLength: 512
+          description: TMDb API key (v3) or API Read Access Token (v4). Omit to keep the current key.
+        removeTmdbKey:
+          type: boolean
+        language:
+          type: string
+          pattern: "^[a-z]{2}-[A-Z]{2}$"
+        country:
+          type: string
+          pattern: "^[A-Z]{2}$"
+    Person:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        role:
+          type: string
+          description: Character name for actors, job for crew (e.g. "Director").
     ItemSummary:
       type: object
-      required: [id, kind, title, addedAt]
+      required: [id, kind, title, addedAt, hasPoster]
       properties:
         id:
           type: string
@@ -1187,6 +1309,11 @@ components:
         addedAt:
           type: string
           format: date-time
+        hasPoster:
+          type: boolean
+        rating:
+          type: number
+          description: Community rating 0–10.
     ItemPage:
       type: object
       required: [items, total]
@@ -1261,8 +1388,37 @@ components:
           type: boolean
     ItemDetail:
       type: object
-      required: [item, libraryId, files, children, providerIds]
+      required: [item, libraryId, files, children, providerIds, genres, cast, crew, hasBackdrop]
       properties:
+        overview:
+          type: string
+        tagline:
+          type: string
+        originalTitle:
+          type: string
+        genres:
+          type: array
+          items:
+            type: string
+        officialRating:
+          type: string
+          description: Age rating for the configured country, e.g. "12" or "PG-13".
+        premiereDate:
+          type: string
+          format: date
+        cast:
+          type: array
+          items:
+            $ref: "#/components/schemas/Person"
+        crew:
+          type: array
+          items:
+            $ref: "#/components/schemas/Person"
+        hasBackdrop:
+          type: boolean
+        metadataError:
+          type: string
+          description: Why metadata could not be fetched (e.g. no match), if so.
         item:
           $ref: "#/components/schemas/ItemSummary"
         libraryId:

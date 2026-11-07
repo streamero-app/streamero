@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { api, unwrap } from "@/api/client";
 import { Badge, Button, Card, ErrorText } from "@/components/ui";
 import { useMe } from "@/features/auth/useAuth";
-import { channelsLabel, formatDuration, formatSize, placeholderHue, resolutionLabel, type ItemSummary } from "./format";
+import { channelsLabel, formatDuration, formatSize, imageUrl, placeholderHue, resolutionLabel, type ItemSummary } from "./format";
 
 const PAGE = 60;
 
@@ -13,18 +13,25 @@ export function useLibraries() {
   return useQuery({ queryKey: ["libraries"], queryFn: async () => unwrap(await api.GET("/libraries")) });
 }
 
-/** Poster-shaped card; artwork arrives with metadata (P3). */
+/** Poster card; a coloured placeholder when there is no artwork. */
 export function ItemCard({ item }: { item: ItemSummary }) {
   const hue = placeholderHue(item.title);
   return (
     <Link to="/item/$itemId" params={{ itemId: item.id }} className="group flex flex-col gap-2" data-testid="item-card">
-      <div className="flex aspect-[2/3] items-end overflow-hidden rounded-card border border-border p-3 transition group-hover:border-accent"
-        style={{ background: `linear-gradient(160deg, hsl(${hue} 45% 28%), hsl(${(hue + 40) % 360} 35% 12%))` }}>
-        <span className="line-clamp-3 text-lg leading-tight font-semibold text-white drop-shadow">{item.title}</span>
-      </div>
+      {item.hasPoster ? (
+        <img src={imageUrl(item.id, "poster")} alt="" loading="lazy" decoding="async"
+          className="aspect-[2/3] w-full rounded-card border border-border object-cover transition group-hover:border-accent" />
+      ) : (
+        <div className="flex aspect-[2/3] items-end overflow-hidden rounded-card border border-border p-3 transition group-hover:border-accent"
+          style={{ background: `linear-gradient(160deg, hsl(${hue} 45% 28%), hsl(${(hue + 40) % 360} 35% 12%))` }}>
+          <span className="line-clamp-3 text-lg leading-tight font-semibold text-white drop-shadow">{item.title}</span>
+        </div>
+      )}
       <div className="min-w-0">
         <p className="truncate text-sm font-medium">{item.title}</p>
-        <p className="text-xs text-muted">{item.year ?? "—"}</p>
+        <p className="text-xs text-muted">
+          {item.year ?? "—"}{item.rating ? ` · ★ ${item.rating.toFixed(1)}` : ""}
+        </p>
       </div>
     </Link>
   );
@@ -133,18 +140,51 @@ export function ItemPage() {
     ? <Link to="/item/$itemId" params={{ itemId: d.parentId }} className="text-sm text-muted hover:text-text">← {t("library.back")}</Link>
     : <Link to="/library/$libraryId" params={{ libraryId: d.libraryId }} className="text-sm text-muted hover:text-text">← {t("library.back")}</Link>;
 
+  const posterType = it.kind === "episode" ? "still" : "poster";
+  const directors = d.crew.filter((p) => p.role === "Director").map((p) => p.name);
+  const writers = d.crew.filter((p) => p.role !== "Director").map((p) => p.name);
   return (
     <div className="flex flex-col gap-6">
       {back}
-      <div>
-        <h1 className="text-3xl font-semibold">{it.kind === "episode" ? `${episodeLabel(it)} · ${it.title}` : it.title}</h1>
-        <p className="text-sm text-muted">
-          {[it.year, t(`library.kind_${it.kind}`), formatDuration(it.durationMs)].filter(Boolean).join(" · ")}
-        </p>
-        {Object.keys(d.providerIds).length > 0 && (
-          <p className="mt-1 flex gap-1">{Object.entries(d.providerIds).map(([k, v]) => <Badge key={k}>{k}: {v}</Badge>)}</p>
+      <section className="relative overflow-hidden rounded-card border border-border" data-testid="item-hero">
+        {d.hasBackdrop && (
+          <img src={imageUrl(it.id, "backdrop")} alt="" className="absolute inset-0 h-full w-full object-cover opacity-30" />
         )}
-      </div>
+        <div className="relative flex flex-col gap-5 bg-gradient-to-r from-bg via-bg/90 to-bg/40 p-5 sm:flex-row sm:p-8">
+          {it.hasPoster && (
+            <img src={imageUrl(it.id, posterType)} alt=""
+              className={`shrink-0 rounded-card border border-border object-cover shadow-2xl ${posterType === "still" ? "w-72 aspect-video" : "w-40 aspect-[2/3] sm:w-52"}`} />
+          )}
+          <div className="flex min-w-0 flex-col gap-3">
+            <h1 className="text-3xl font-semibold sm:text-4xl">{it.kind === "episode" ? `${episodeLabel(it)} · ${it.title}` : it.title}</h1>
+            {d.originalTitle && d.originalTitle !== it.title && <p className="text-sm text-muted">{d.originalTitle}</p>}
+            <p className="flex flex-wrap items-center gap-2 text-sm text-muted">
+              {[it.year, t(`library.kind_${it.kind}`), formatDuration(it.durationMs)].filter(Boolean).join(" · ")}
+              {it.rating ? <Badge tone="accent">★ {it.rating.toFixed(1)}</Badge> : null}
+              {d.officialRating && <Badge>{d.officialRating}</Badge>}
+            </p>
+            {d.genres.length > 0 && <p className="flex flex-wrap gap-1">{d.genres.map((g) => <Badge key={g}>{g}</Badge>)}</p>}
+            {d.tagline && <p className="text-lg italic">{d.tagline}</p>}
+            {d.overview && <p className="max-w-3xl leading-relaxed" data-testid="overview">{d.overview}</p>}
+            {directors.length > 0 && <p className="text-sm"><span className="text-muted">{t("library.directedBy")}:</span> {directors.join(", ")}</p>}
+            {writers.length > 0 && <p className="text-sm"><span className="text-muted">{t("library.writtenBy")}:</span> {writers.join(", ")}</p>}
+            {d.metadataError && <p className="text-xs text-muted">{t("library.noMetadata")}</p>}
+          </div>
+        </div>
+      </section>
+
+      {d.cast.length > 0 && (
+        <Card title={t("library.cast")}>
+          <ul className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3 lg:grid-cols-4" data-testid="cast">
+            {d.cast.map((p) => (
+              <li key={p.name + (p.role ?? "")} className="min-w-0">
+                <p className="truncate font-medium">{p.name}</p>
+                {p.role && <p className="truncate text-xs text-muted">{p.role}</p>}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
       {d.children.length > 0 && (
         <Card title={it.kind === "series" ? t("library.seasons") : t("library.episodes")}>

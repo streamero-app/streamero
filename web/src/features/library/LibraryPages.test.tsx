@@ -7,7 +7,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 const lib = { id: "0190a8b0-0000-7000-8000-00000000aaaa", name: "Filmovi", kind: "movies", paths: ["/media/movies"], itemCount: 2,
   scan: { state: "idle", filesSeen: 3 } };
-const movie = { id: "0190a8b0-0000-7000-8000-00000000bbbb", kind: "movie", title: "Big Test Movie", year: 2021, addedAt: new Date().toISOString() };
+const movie = { id: "0190a8b0-0000-7000-8000-00000000bbbb", kind: "movie", title: "Big Test Movie", year: 2021, addedAt: new Date().toISOString(), hasPoster: false };
 
 describe("library pages", () => {
   beforeEach(() => setLanguage("en"));
@@ -27,7 +27,9 @@ describe("library pages", () => {
 
   it("shows versions with resolution, HDR, audio and subtitles", async () => {
     mockApi(({ path }) => path === `/items/${movie.id}`
-      ? { status: 200, body: { item: movie, libraryId: lib.id, providerIds: { tmdb: "1" }, children: [], files: [
+      ? { status: 200, body: { item: { ...movie, hasPoster: true, rating: 7.4 }, libraryId: lib.id, providerIds: { tmdb: "1" }, children: [],
+          genres: ["Drama"], cast: [{ name: "Ana Glumica", role: "Ivana" }], crew: [{ name: "Ivo", role: "Director" }], hasBackdrop: true,
+          overview: "Opis filma.", officialRating: "12", files: [
           { id: "f1", path: "/media/movies/Big/a.mkv", size: 1024 ** 3, container: "mkv", width: 3840, height: 2160, videoCodec: "hevc",
             hdr: "HDR10", label: "2160p", durationMs: 5_400_000, audio: [{ codec: "eac3", language: "eng", channels: 6 }],
             subtitles: [{ codec: "srt", language: "hr", forced: true, external: true }] },
@@ -41,6 +43,31 @@ describe("library pages", () => {
     expect(files[0]).toHaveTextContent("ENG EAC3 5.1");
     expect(files[0]).toHaveTextContent("HR forced external");
     expect(files[1]).toHaveTextContent("1080p");
+    expect(screen.getByTestId("overview")).toHaveTextContent("Opis filma.");
+    expect(screen.getByTestId("cast")).toHaveTextContent("Ana Glumica");
+    expect(screen.getByTestId("item-hero")).toHaveTextContent("★ 7.4");
+    expect(screen.getByText(/Directed by/).parentElement).toHaveTextContent("Ivo");
+  });
+
+  it("saves a TMDb key and explains a rejected one", async () => {
+    let calls = 0;
+    mockApi(({ method, body }) => {
+      if (method === "PUT") {
+        calls++;
+        return calls === 1
+          ? { status: 400, body: { code: "invalid_tmdb_key", message: "" } }
+          : { status: 200, body: { tmdbConfigured: true, language: "hr-HR", country: "HR" } };
+      }
+      void body;
+      return { status: 200, body: { tmdbConfigured: false, language: "hr-HR", country: "HR" } };
+    });
+    renderApp("/settings/metadata", { me: testUser({ isAdmin: true }) });
+    fireEvent.change(await screen.findByLabelText("TMDb API key or Read Access Token"), { target: { value: "bad" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("TMDb rejected this key");
+    fireEvent.change(screen.getByLabelText("TMDb API key or Read Access Token"), { target: { value: "good" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findByText("TMDb connected")).toBeInTheDocument();
   });
 
   it("lets an admin add a library with the folder picker", async () => {

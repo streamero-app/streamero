@@ -624,6 +624,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/settings/metadata": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Metadata provider settings (admin); the TMDb key itself is never returned */
+        get: operations["getMetadataSettings"];
+        /** Save metadata settings (admin); a new TMDb key is verified with TMDb first */
+        put: operations["updateMetadataSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/libraries/{libraryId}/refresh-metadata": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                libraryId: components["parameters"]["LibraryId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Fetch metadata again for every item of a library (admin) */
+        post: operations["refreshLibraryMetadata"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/items/{itemId}/images/{imageType}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+                imageType: "poster" | "backdrop" | "still";
+            };
+            cookie?: never;
+        };
+        /** Cached artwork of an item (JPEG) */
+        get: operations["getItemImage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/settings/server": {
         parameters: {
             query?: never;
@@ -763,6 +820,25 @@ export interface components {
         };
         /** @enum {string} */
         ItemKind: "movie" | "series" | "season" | "episode";
+        MetadataSettings: {
+            tmdbConfigured: boolean;
+            /** @description Preferred metadata language, e.g. "hr-HR" (English is the fallback). */
+            language: string;
+            /** @description Country for age ratings and release dates, e.g. "HR". */
+            country: string;
+        };
+        MetadataSettingsInput: {
+            /** @description TMDb API key (v3) or API Read Access Token (v4). Omit to keep the current key. */
+            tmdbApiKey?: string;
+            removeTmdbKey?: boolean;
+            language: string;
+            country: string;
+        };
+        Person: {
+            name: string;
+            /** @description Character name for actors, job for crew (e.g. "Director"). */
+            role?: string;
+        };
         ItemSummary: {
             /** Format: uuid */
             id: string;
@@ -776,6 +852,9 @@ export interface components {
             durationMs?: number;
             /** Format: date-time */
             addedAt: string;
+            hasPoster: boolean;
+            /** @description Community rating 0–10. */
+            rating?: number;
         };
         ItemPage: {
             items: components["schemas"]["ItemSummary"][];
@@ -814,6 +893,19 @@ export interface components {
             external: boolean;
         };
         ItemDetail: {
+            overview?: string;
+            tagline?: string;
+            originalTitle?: string;
+            genres: string[];
+            /** @description Age rating for the configured country, e.g. "12" or "PG-13". */
+            officialRating?: string;
+            /** Format: date */
+            premiereDate?: string;
+            cast: components["schemas"]["Person"][];
+            crew: components["schemas"]["Person"][];
+            hasBackdrop: boolean;
+            /** @description Why metadata could not be fetched (e.g. no match), if so. */
+            metadataError?: string;
             item: components["schemas"]["ItemSummary"];
             /** Format: uuid */
             libraryId: string;
@@ -1980,6 +2072,98 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DirectoryListing"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getMetadataSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MetadataSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateMetadataSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MetadataSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MetadataSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    refreshLibraryMetadata: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                libraryId: components["parameters"]["LibraryId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getItemImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+                imageType: "poster" | "backdrop" | "still";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Image */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": string;
                 };
             };
             default: components["responses"]["Error"];

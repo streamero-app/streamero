@@ -70,7 +70,7 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 
 ### Opcije biblioteke (po biblioteci)
 - [x] `[JF]` Više putanja po biblioteci, uključujući mrežne (SMB/NFS montirane u kontejner) (P2)
-- [ ] `[JF]` Preferirani jezik i država metapodataka (P3)
+- [x] `[JF]` Preferirani jezik i država metapodataka (P3)
 - [x] `[JF]` Real-time monitoring (fsnotify) + periodični scan; fallback polling za NFS/SMB (P2)
 - [ ] `[JF]` Redoslijed i on/off metadata providera i image fetchera po tipu (P3)
 - [ ] `[JF]` Spremanje slika/NFO pokraj medija (opcija) (P3)
@@ -96,7 +96,7 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 
 ## 4. Metapodaci i slike
 
-- [ ] `[JF]` TMDb (filmovi, serije, ljudi, kolekcije) (P3)
+- [ ] `[JF]` TMDb (filmovi, serije, ljudi, kolekcije) (P3) — *filmovi, serije, sezone, epizode, glumci (imena) gotovi; slike osoba i kolekcije slijede*
 - [ ] `[JF]` TVDB (uklj. TVDB ID za filmove) (P3)
 - [ ] `[JF]` OMDb (IMDb ocjene, Rotten Tomatoes) (P3)
 - [ ] `[JF]` MusicBrainz (otporni lookupi, rate limit 1 req/s) (P9)

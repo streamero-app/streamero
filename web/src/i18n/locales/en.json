@@ -54,7 +54,8 @@
     "quickConnect": "Quick Connect",
     "invites": "Invites",
     "profiles": "Profiles",
-    "libraries": "Libraries"
+    "libraries": "Libraries",
+    "metadata": "Metadata"
   },
   "account": {
     "changePassword": "Change password",
@@ -132,7 +133,9 @@
     "too_many_profiles": "An account can have at most 6 profiles.",
     "rate_limited": "Too many attempts from your network. Wait a moment and try again.",
     "invalid_path": "That folder does not exist or is outside the media folders.",
-    "unsupported_kind": "Music libraries arrive in a later phase."
+    "unsupported_kind": "Music libraries arrive in a later phase.",
+    "invalid_tmdb_key": "TMDb rejected this key. Copy it again from themoviedb.org/settings/api.",
+    "tmdb_unreachable": "TMDb could not be reached from the server. Try again later."
   },
   "notFound": {
     "title": "Page not found",
@@ -276,7 +279,9 @@
     "confirmDelete": "Remove library {{name}} from Streamero? The files stay untouched.",
     "meta": "{{count}} items · {{files}} files · scanned {{when}}",
     "items_one": "{{count}} item",
-    "items_other": "{{count}} items"
+    "items_other": "{{count}} items",
+    "refreshMetadata": "Refresh metadata",
+    "metadataQueued": "Metadata refresh queued."
   },
   "library": {
     "sort": "Sort",
@@ -302,6 +307,24 @@
     "subtitles": "Subtitles",
     "forced": "forced",
     "external": "external",
-    "playbackSoon": "Posters and descriptions arrive with metadata (P3), playback in P5."
+    "playbackSoon": "Playback arrives in P5.",
+    "cast": "Cast",
+    "directedBy": "Directed by",
+    "writtenBy": "Written by",
+    "noMetadata": "No match on TMDb yet — check the folder name (e.g. \"Title (Year)\" or add [tmdbid-…])."
+  },
+  "metadata": {
+    "connected": "TMDb connected",
+    "notConnected": "Not connected",
+    "intro": "Posters, descriptions, cast and age ratings come from TMDb (The Movie Database). Enter your free TMDb API key; new items get metadata automatically after each scan.",
+    "key": "TMDb API key or Read Access Token",
+    "replaceKey": "New TMDb key (leave empty to keep the current one)",
+    "keyHint": "Create one for free at",
+    "language": "Metadata language",
+    "country": "Country for age ratings",
+    "checking": "Checking key…",
+    "saved": "Saved. Metadata is being fetched for your libraries.",
+    "removeKey": "Remove key",
+    "confirmRemove": "Remove the TMDb key? Existing metadata stays."
   }
 }
