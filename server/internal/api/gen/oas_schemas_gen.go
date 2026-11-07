@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-faster/errors"
 	"github.com/google/uuid"
 )
 
@@ -131,6 +132,54 @@ func (s *ApiKey) SetCreatedAt(val time.Time) {
 // SetLastUsedAt sets the value of LastUsedAt.
 func (s *ApiKey) SetLastUsedAt(val OptDateTime) {
 	s.LastUsedAt = val
+}
+
+// Ref: #/components/schemas/AudioStream
+type AudioStream struct {
+	Codec    string    `json:"codec"`
+	Language OptString `json:"language"`
+	Channels OptInt    `json:"channels"`
+	Title    OptString `json:"title"`
+}
+
+// GetCodec returns the value of Codec.
+func (s *AudioStream) GetCodec() string {
+	return s.Codec
+}
+
+// GetLanguage returns the value of Language.
+func (s *AudioStream) GetLanguage() OptString {
+	return s.Language
+}
+
+// GetChannels returns the value of Channels.
+func (s *AudioStream) GetChannels() OptInt {
+	return s.Channels
+}
+
+// GetTitle returns the value of Title.
+func (s *AudioStream) GetTitle() OptString {
+	return s.Title
+}
+
+// SetCodec sets the value of Codec.
+func (s *AudioStream) SetCodec(val string) {
+	s.Codec = val
+}
+
+// SetLanguage sets the value of Language.
+func (s *AudioStream) SetLanguage(val OptString) {
+	s.Language = val
+}
+
+// SetChannels sets the value of Channels.
+func (s *AudioStream) SetChannels(val OptInt) {
+	s.Channels = val
+}
+
+// SetTitle sets the value of Title.
+func (s *AudioStream) SetTitle(val OptString) {
+	s.Title = val
 }
 
 // Ref: #/components/schemas/AuthResult
@@ -373,6 +422,9 @@ type DeleteAPIKeyNoContent struct{}
 // DeleteInviteNoContent is response for DeleteInvite operation.
 type DeleteInviteNoContent struct{}
 
+// DeleteLibraryNoContent is response for DeleteLibrary operation.
+type DeleteLibraryNoContent struct{}
+
 // DeleteProfileNoContent is response for DeleteProfile operation.
 type DeleteProfileNoContent struct{}
 
@@ -405,6 +457,45 @@ func (s *DeviceInfo) SetName(val OptString) {
 // SetClient sets the value of Client.
 func (s *DeviceInfo) SetClient(val OptString) {
 	s.Client = val
+}
+
+// Ref: #/components/schemas/DirectoryListing
+type DirectoryListing struct {
+	// The listed folder (absent for the list of media roots).
+	Path   OptString `json:"path"`
+	Parent OptString `json:"parent"`
+	// Absolute paths of sub-folders.
+	Directories []string `json:"directories"`
+}
+
+// GetPath returns the value of Path.
+func (s *DirectoryListing) GetPath() OptString {
+	return s.Path
+}
+
+// GetParent returns the value of Parent.
+func (s *DirectoryListing) GetParent() OptString {
+	return s.Parent
+}
+
+// GetDirectories returns the value of Directories.
+func (s *DirectoryListing) GetDirectories() []string {
+	return s.Directories
+}
+
+// SetPath sets the value of Path.
+func (s *DirectoryListing) SetPath(val OptString) {
+	s.Path = val
+}
+
+// SetParent sets the value of Parent.
+func (s *DirectoryListing) SetParent(val OptString) {
+	s.Parent = val
+}
+
+// SetDirectories sets the value of Directories.
+func (s *DirectoryListing) SetDirectories(val []string) {
+	s.Directories = val
 }
 
 // DisableTOTPNoContent is response for DisableTOTP operation.
@@ -580,6 +671,485 @@ func (s *InviteInfo) SetExpiresAt(val time.Time) {
 	s.ExpiresAt = val
 }
 
+// Ref: #/components/schemas/ItemDetail
+type ItemDetail struct {
+	Item      ItemSummary `json:"item"`
+	LibraryId uuid.UUID   `json:"libraryId"`
+	ParentId  OptUUID     `json:"parentId"`
+	// Provider IDs from file/folder names, e.g. tmdb=603, imdb=tt0133093.
+	ProviderIds ItemDetailProviderIds `json:"providerIds"`
+	Files       []MediaFile           `json:"files"`
+	Children    []ItemSummary         `json:"children"`
+}
+
+// GetItem returns the value of Item.
+func (s *ItemDetail) GetItem() ItemSummary {
+	return s.Item
+}
+
+// GetLibraryId returns the value of LibraryId.
+func (s *ItemDetail) GetLibraryId() uuid.UUID {
+	return s.LibraryId
+}
+
+// GetParentId returns the value of ParentId.
+func (s *ItemDetail) GetParentId() OptUUID {
+	return s.ParentId
+}
+
+// GetProviderIds returns the value of ProviderIds.
+func (s *ItemDetail) GetProviderIds() ItemDetailProviderIds {
+	return s.ProviderIds
+}
+
+// GetFiles returns the value of Files.
+func (s *ItemDetail) GetFiles() []MediaFile {
+	return s.Files
+}
+
+// GetChildren returns the value of Children.
+func (s *ItemDetail) GetChildren() []ItemSummary {
+	return s.Children
+}
+
+// SetItem sets the value of Item.
+func (s *ItemDetail) SetItem(val ItemSummary) {
+	s.Item = val
+}
+
+// SetLibraryId sets the value of LibraryId.
+func (s *ItemDetail) SetLibraryId(val uuid.UUID) {
+	s.LibraryId = val
+}
+
+// SetParentId sets the value of ParentId.
+func (s *ItemDetail) SetParentId(val OptUUID) {
+	s.ParentId = val
+}
+
+// SetProviderIds sets the value of ProviderIds.
+func (s *ItemDetail) SetProviderIds(val ItemDetailProviderIds) {
+	s.ProviderIds = val
+}
+
+// SetFiles sets the value of Files.
+func (s *ItemDetail) SetFiles(val []MediaFile) {
+	s.Files = val
+}
+
+// SetChildren sets the value of Children.
+func (s *ItemDetail) SetChildren(val []ItemSummary) {
+	s.Children = val
+}
+
+// Provider IDs from file/folder names, e.g. tmdb=603, imdb=tt0133093.
+type ItemDetailProviderIds map[string]string
+
+func (s *ItemDetailProviderIds) init() ItemDetailProviderIds {
+	m := *s
+	if m == nil {
+		m = map[string]string{}
+		*s = m
+	}
+	return m
+}
+
+// Ref: #/components/schemas/ItemKind
+type ItemKind string
+
+const (
+	ItemKindMovie   ItemKind = "movie"
+	ItemKindSeries  ItemKind = "series"
+	ItemKindSeason  ItemKind = "season"
+	ItemKindEpisode ItemKind = "episode"
+)
+
+// AllValues returns all ItemKind values.
+func (ItemKind) AllValues() []ItemKind {
+	return []ItemKind{
+		ItemKindMovie,
+		ItemKindSeries,
+		ItemKindSeason,
+		ItemKindEpisode,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ItemKind) MarshalText() ([]byte, error) {
+	switch s {
+	case ItemKindMovie:
+		return []byte(s), nil
+	case ItemKindSeries:
+		return []byte(s), nil
+	case ItemKindSeason:
+		return []byte(s), nil
+	case ItemKindEpisode:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ItemKind) UnmarshalText(data []byte) error {
+	switch ItemKind(data) {
+	case ItemKindMovie:
+		*s = ItemKindMovie
+		return nil
+	case ItemKindSeries:
+		*s = ItemKindSeries
+		return nil
+	case ItemKindSeason:
+		*s = ItemKindSeason
+		return nil
+	case ItemKindEpisode:
+		*s = ItemKindEpisode
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/ItemPage
+type ItemPage struct {
+	Items []ItemSummary `json:"items"`
+	Total int           `json:"total"`
+}
+
+// GetItems returns the value of Items.
+func (s *ItemPage) GetItems() []ItemSummary {
+	return s.Items
+}
+
+// GetTotal returns the value of Total.
+func (s *ItemPage) GetTotal() int {
+	return s.Total
+}
+
+// SetItems sets the value of Items.
+func (s *ItemPage) SetItems(val []ItemSummary) {
+	s.Items = val
+}
+
+// SetTotal sets the value of Total.
+func (s *ItemPage) SetTotal(val int) {
+	s.Total = val
+}
+
+// Ref: #/components/schemas/ItemSummary
+type ItemSummary struct {
+	ID               uuid.UUID `json:"id"`
+	Kind             ItemKind  `json:"kind"`
+	Title            string    `json:"title"`
+	Year             OptInt    `json:"year"`
+	SeasonNumber     OptInt    `json:"seasonNumber"`
+	EpisodeNumber    OptInt    `json:"episodeNumber"`
+	EpisodeNumberEnd OptInt    `json:"episodeNumberEnd"`
+	DurationMs       OptInt64  `json:"durationMs"`
+	AddedAt          time.Time `json:"addedAt"`
+}
+
+// GetID returns the value of ID.
+func (s *ItemSummary) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetKind returns the value of Kind.
+func (s *ItemSummary) GetKind() ItemKind {
+	return s.Kind
+}
+
+// GetTitle returns the value of Title.
+func (s *ItemSummary) GetTitle() string {
+	return s.Title
+}
+
+// GetYear returns the value of Year.
+func (s *ItemSummary) GetYear() OptInt {
+	return s.Year
+}
+
+// GetSeasonNumber returns the value of SeasonNumber.
+func (s *ItemSummary) GetSeasonNumber() OptInt {
+	return s.SeasonNumber
+}
+
+// GetEpisodeNumber returns the value of EpisodeNumber.
+func (s *ItemSummary) GetEpisodeNumber() OptInt {
+	return s.EpisodeNumber
+}
+
+// GetEpisodeNumberEnd returns the value of EpisodeNumberEnd.
+func (s *ItemSummary) GetEpisodeNumberEnd() OptInt {
+	return s.EpisodeNumberEnd
+}
+
+// GetDurationMs returns the value of DurationMs.
+func (s *ItemSummary) GetDurationMs() OptInt64 {
+	return s.DurationMs
+}
+
+// GetAddedAt returns the value of AddedAt.
+func (s *ItemSummary) GetAddedAt() time.Time {
+	return s.AddedAt
+}
+
+// SetID sets the value of ID.
+func (s *ItemSummary) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetKind sets the value of Kind.
+func (s *ItemSummary) SetKind(val ItemKind) {
+	s.Kind = val
+}
+
+// SetTitle sets the value of Title.
+func (s *ItemSummary) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetYear sets the value of Year.
+func (s *ItemSummary) SetYear(val OptInt) {
+	s.Year = val
+}
+
+// SetSeasonNumber sets the value of SeasonNumber.
+func (s *ItemSummary) SetSeasonNumber(val OptInt) {
+	s.SeasonNumber = val
+}
+
+// SetEpisodeNumber sets the value of EpisodeNumber.
+func (s *ItemSummary) SetEpisodeNumber(val OptInt) {
+	s.EpisodeNumber = val
+}
+
+// SetEpisodeNumberEnd sets the value of EpisodeNumberEnd.
+func (s *ItemSummary) SetEpisodeNumberEnd(val OptInt) {
+	s.EpisodeNumberEnd = val
+}
+
+// SetDurationMs sets the value of DurationMs.
+func (s *ItemSummary) SetDurationMs(val OptInt64) {
+	s.DurationMs = val
+}
+
+// SetAddedAt sets the value of AddedAt.
+func (s *ItemSummary) SetAddedAt(val time.Time) {
+	s.AddedAt = val
+}
+
+// Ref: #/components/schemas/Library
+type Library struct {
+	ID        uuid.UUID   `json:"id"`
+	Name      string      `json:"name"`
+	Kind      LibraryKind `json:"kind"`
+	Paths     []string    `json:"paths"`
+	ItemCount int         `json:"itemCount"`
+	Scan      ScanStatus  `json:"scan"`
+}
+
+// GetID returns the value of ID.
+func (s *Library) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetName returns the value of Name.
+func (s *Library) GetName() string {
+	return s.Name
+}
+
+// GetKind returns the value of Kind.
+func (s *Library) GetKind() LibraryKind {
+	return s.Kind
+}
+
+// GetPaths returns the value of Paths.
+func (s *Library) GetPaths() []string {
+	return s.Paths
+}
+
+// GetItemCount returns the value of ItemCount.
+func (s *Library) GetItemCount() int {
+	return s.ItemCount
+}
+
+// GetScan returns the value of Scan.
+func (s *Library) GetScan() ScanStatus {
+	return s.Scan
+}
+
+// SetID sets the value of ID.
+func (s *Library) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetName sets the value of Name.
+func (s *Library) SetName(val string) {
+	s.Name = val
+}
+
+// SetKind sets the value of Kind.
+func (s *Library) SetKind(val LibraryKind) {
+	s.Kind = val
+}
+
+// SetPaths sets the value of Paths.
+func (s *Library) SetPaths(val []string) {
+	s.Paths = val
+}
+
+// SetItemCount sets the value of ItemCount.
+func (s *Library) SetItemCount(val int) {
+	s.ItemCount = val
+}
+
+// SetScan sets the value of Scan.
+func (s *Library) SetScan(val ScanStatus) {
+	s.Scan = val
+}
+
+// Ref: #/components/schemas/LibraryInput
+type LibraryInput struct {
+	Name  string      `json:"name"`
+	Kind  LibraryKind `json:"kind"`
+	Paths []string    `json:"paths"`
+}
+
+// GetName returns the value of Name.
+func (s *LibraryInput) GetName() string {
+	return s.Name
+}
+
+// GetKind returns the value of Kind.
+func (s *LibraryInput) GetKind() LibraryKind {
+	return s.Kind
+}
+
+// GetPaths returns the value of Paths.
+func (s *LibraryInput) GetPaths() []string {
+	return s.Paths
+}
+
+// SetName sets the value of Name.
+func (s *LibraryInput) SetName(val string) {
+	s.Name = val
+}
+
+// SetKind sets the value of Kind.
+func (s *LibraryInput) SetKind(val LibraryKind) {
+	s.Kind = val
+}
+
+// SetPaths sets the value of Paths.
+func (s *LibraryInput) SetPaths(val []string) {
+	s.Paths = val
+}
+
+// Ref: #/components/schemas/LibraryKind
+type LibraryKind string
+
+const (
+	LibraryKindMovies LibraryKind = "movies"
+	LibraryKindShows  LibraryKind = "shows"
+	LibraryKindMusic  LibraryKind = "music"
+	LibraryKindMixed  LibraryKind = "mixed"
+)
+
+// AllValues returns all LibraryKind values.
+func (LibraryKind) AllValues() []LibraryKind {
+	return []LibraryKind{
+		LibraryKindMovies,
+		LibraryKindShows,
+		LibraryKindMusic,
+		LibraryKindMixed,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s LibraryKind) MarshalText() ([]byte, error) {
+	switch s {
+	case LibraryKindMovies:
+		return []byte(s), nil
+	case LibraryKindShows:
+		return []byte(s), nil
+	case LibraryKindMusic:
+		return []byte(s), nil
+	case LibraryKindMixed:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *LibraryKind) UnmarshalText(data []byte) error {
+	switch LibraryKind(data) {
+	case LibraryKindMovies:
+		*s = LibraryKindMovies
+		return nil
+	case LibraryKindShows:
+		*s = LibraryKindShows
+		return nil
+	case LibraryKindMusic:
+		*s = LibraryKindMusic
+		return nil
+	case LibraryKindMixed:
+		*s = LibraryKindMixed
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ListLibraryItemsSort string
+
+const (
+	ListLibraryItemsSortTitle ListLibraryItemsSort = "title"
+	ListLibraryItemsSortYear  ListLibraryItemsSort = "year"
+	ListLibraryItemsSortAdded ListLibraryItemsSort = "added"
+)
+
+// AllValues returns all ListLibraryItemsSort values.
+func (ListLibraryItemsSort) AllValues() []ListLibraryItemsSort {
+	return []ListLibraryItemsSort{
+		ListLibraryItemsSortTitle,
+		ListLibraryItemsSortYear,
+		ListLibraryItemsSortAdded,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListLibraryItemsSort) MarshalText() ([]byte, error) {
+	switch s {
+	case ListLibraryItemsSortTitle:
+		return []byte(s), nil
+	case ListLibraryItemsSortYear:
+		return []byte(s), nil
+	case ListLibraryItemsSortAdded:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListLibraryItemsSort) UnmarshalText(data []byte) error {
+	switch ListLibraryItemsSort(data) {
+	case ListLibraryItemsSortTitle:
+		*s = ListLibraryItemsSortTitle
+		return nil
+	case ListLibraryItemsSortYear:
+		*s = ListLibraryItemsSortYear
+		return nil
+	case ListLibraryItemsSortAdded:
+		*s = ListLibraryItemsSortAdded
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // Ref: #/components/schemas/LoginRequest
 type LoginRequest struct {
 	Username string `json:"username"`
@@ -655,6 +1225,145 @@ func (s *LogoutNoContent) GetSetCookie() OptString {
 // SetSetCookie sets the value of SetCookie.
 func (s *LogoutNoContent) SetSetCookie(val OptString) {
 	s.SetCookie = val
+}
+
+// Ref: #/components/schemas/MediaFile
+type MediaFile struct {
+	ID uuid.UUID `json:"id"`
+	// Path inside the server's media folders.
+	Path string `json:"path"`
+	// Version label from the file name, e.g. "4K" or "Director's Cut".
+	Label      OptString `json:"label"`
+	Size       int64     `json:"size"`
+	Container  string    `json:"container"`
+	DurationMs OptInt64  `json:"durationMs"`
+	Width      OptInt    `json:"width"`
+	Height     OptInt    `json:"height"`
+	VideoCodec OptString `json:"videoCodec"`
+	// E.g. "HDR10", "HLG", "Dolby Vision" (empty for SDR).
+	Hdr       OptString        `json:"hdr"`
+	Audio     []AudioStream    `json:"audio"`
+	Subtitles []SubtitleStream `json:"subtitles"`
+}
+
+// GetID returns the value of ID.
+func (s *MediaFile) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetPath returns the value of Path.
+func (s *MediaFile) GetPath() string {
+	return s.Path
+}
+
+// GetLabel returns the value of Label.
+func (s *MediaFile) GetLabel() OptString {
+	return s.Label
+}
+
+// GetSize returns the value of Size.
+func (s *MediaFile) GetSize() int64 {
+	return s.Size
+}
+
+// GetContainer returns the value of Container.
+func (s *MediaFile) GetContainer() string {
+	return s.Container
+}
+
+// GetDurationMs returns the value of DurationMs.
+func (s *MediaFile) GetDurationMs() OptInt64 {
+	return s.DurationMs
+}
+
+// GetWidth returns the value of Width.
+func (s *MediaFile) GetWidth() OptInt {
+	return s.Width
+}
+
+// GetHeight returns the value of Height.
+func (s *MediaFile) GetHeight() OptInt {
+	return s.Height
+}
+
+// GetVideoCodec returns the value of VideoCodec.
+func (s *MediaFile) GetVideoCodec() OptString {
+	return s.VideoCodec
+}
+
+// GetHdr returns the value of Hdr.
+func (s *MediaFile) GetHdr() OptString {
+	return s.Hdr
+}
+
+// GetAudio returns the value of Audio.
+func (s *MediaFile) GetAudio() []AudioStream {
+	return s.Audio
+}
+
+// GetSubtitles returns the value of Subtitles.
+func (s *MediaFile) GetSubtitles() []SubtitleStream {
+	return s.Subtitles
+}
+
+// SetID sets the value of ID.
+func (s *MediaFile) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetPath sets the value of Path.
+func (s *MediaFile) SetPath(val string) {
+	s.Path = val
+}
+
+// SetLabel sets the value of Label.
+func (s *MediaFile) SetLabel(val OptString) {
+	s.Label = val
+}
+
+// SetSize sets the value of Size.
+func (s *MediaFile) SetSize(val int64) {
+	s.Size = val
+}
+
+// SetContainer sets the value of Container.
+func (s *MediaFile) SetContainer(val string) {
+	s.Container = val
+}
+
+// SetDurationMs sets the value of DurationMs.
+func (s *MediaFile) SetDurationMs(val OptInt64) {
+	s.DurationMs = val
+}
+
+// SetWidth sets the value of Width.
+func (s *MediaFile) SetWidth(val OptInt) {
+	s.Width = val
+}
+
+// SetHeight sets the value of Height.
+func (s *MediaFile) SetHeight(val OptInt) {
+	s.Height = val
+}
+
+// SetVideoCodec sets the value of VideoCodec.
+func (s *MediaFile) SetVideoCodec(val OptString) {
+	s.VideoCodec = val
+}
+
+// SetHdr sets the value of Hdr.
+func (s *MediaFile) SetHdr(val OptString) {
+	s.Hdr = val
+}
+
+// SetAudio sets the value of Audio.
+func (s *MediaFile) SetAudio(val []AudioStream) {
+	s.Audio = val
+}
+
+// SetSubtitles sets the value of Subtitles.
+func (s *MediaFile) SetSubtitles(val []SubtitleStream) {
+	s.Subtitles = val
 }
 
 // NewOptBool returns new OptBool with value set to v.
@@ -835,6 +1544,98 @@ func (o OptInt) Get() (v int, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptInt) Or(d int) int {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptInt64 returns new OptInt64 with value set to v.
+func NewOptInt64(v int64) OptInt64 {
+	return OptInt64{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptInt64 is optional int64.
+type OptInt64 struct {
+	Value int64
+	Set   bool
+}
+
+// IsSet returns true if OptInt64 was set.
+func (o OptInt64) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptInt64) Reset() {
+	var v int64
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptInt64) SetTo(v int64) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptInt64) Get() (v int64, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptInt64) Or(d int64) int64 {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptListLibraryItemsSort returns new OptListLibraryItemsSort with value set to v.
+func NewOptListLibraryItemsSort(v ListLibraryItemsSort) OptListLibraryItemsSort {
+	return OptListLibraryItemsSort{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptListLibraryItemsSort is optional ListLibraryItemsSort.
+type OptListLibraryItemsSort struct {
+	Value ListLibraryItemsSort
+	Set   bool
+}
+
+// IsSet returns true if OptListLibraryItemsSort was set.
+func (o OptListLibraryItemsSort) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptListLibraryItemsSort) Reset() {
+	var v ListLibraryItemsSort
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptListLibraryItemsSort) SetTo(v ListLibraryItemsSort) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptListLibraryItemsSort) Get() (v ListLibraryItemsSort, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptListLibraryItemsSort) Or(d ListLibraryItemsSort) ListLibraryItemsSort {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -1065,6 +1866,52 @@ func (o OptString) Get() (v string, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptString) Or(d string) string {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptUUID returns new OptUUID with value set to v.
+func NewOptUUID(v uuid.UUID) OptUUID {
+	return OptUUID{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUUID is optional uuid.UUID.
+type OptUUID struct {
+	Value uuid.UUID
+	Set   bool
+}
+
+// IsSet returns true if OptUUID was set.
+func (o OptUUID) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUUID) Reset() {
+	var v uuid.UUID
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUUID) SetTo(v uuid.UUID) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUUID) Get() (v uuid.UUID, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUUID) Or(d uuid.UUID) uuid.UUID {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -1428,6 +2275,112 @@ func (s *RenameSessionRequest) SetDeviceName(val string) {
 // RevokeSessionNoContent is response for RevokeSession operation.
 type RevokeSessionNoContent struct{}
 
+// ScanLibraryAccepted is response for ScanLibrary operation.
+type ScanLibraryAccepted struct{}
+
+// Ref: #/components/schemas/ScanStatus
+type ScanStatus struct {
+	State      ScanStatusState `json:"state"`
+	LastScanAt OptDateTime     `json:"lastScanAt"`
+	Error      OptString       `json:"error"`
+	FilesSeen  OptInt          `json:"filesSeen"`
+}
+
+// GetState returns the value of State.
+func (s *ScanStatus) GetState() ScanStatusState {
+	return s.State
+}
+
+// GetLastScanAt returns the value of LastScanAt.
+func (s *ScanStatus) GetLastScanAt() OptDateTime {
+	return s.LastScanAt
+}
+
+// GetError returns the value of Error.
+func (s *ScanStatus) GetError() OptString {
+	return s.Error
+}
+
+// GetFilesSeen returns the value of FilesSeen.
+func (s *ScanStatus) GetFilesSeen() OptInt {
+	return s.FilesSeen
+}
+
+// SetState sets the value of State.
+func (s *ScanStatus) SetState(val ScanStatusState) {
+	s.State = val
+}
+
+// SetLastScanAt sets the value of LastScanAt.
+func (s *ScanStatus) SetLastScanAt(val OptDateTime) {
+	s.LastScanAt = val
+}
+
+// SetError sets the value of Error.
+func (s *ScanStatus) SetError(val OptString) {
+	s.Error = val
+}
+
+// SetFilesSeen sets the value of FilesSeen.
+func (s *ScanStatus) SetFilesSeen(val OptInt) {
+	s.FilesSeen = val
+}
+
+type ScanStatusState string
+
+const (
+	ScanStatusStateIdle     ScanStatusState = "idle"
+	ScanStatusStateQueued   ScanStatusState = "queued"
+	ScanStatusStateScanning ScanStatusState = "scanning"
+	ScanStatusStateFailed   ScanStatusState = "failed"
+)
+
+// AllValues returns all ScanStatusState values.
+func (ScanStatusState) AllValues() []ScanStatusState {
+	return []ScanStatusState{
+		ScanStatusStateIdle,
+		ScanStatusStateQueued,
+		ScanStatusStateScanning,
+		ScanStatusStateFailed,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ScanStatusState) MarshalText() ([]byte, error) {
+	switch s {
+	case ScanStatusStateIdle:
+		return []byte(s), nil
+	case ScanStatusStateQueued:
+		return []byte(s), nil
+	case ScanStatusStateScanning:
+		return []byte(s), nil
+	case ScanStatusStateFailed:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ScanStatusState) UnmarshalText(data []byte) error {
+	switch ScanStatusState(data) {
+	case ScanStatusStateIdle:
+		*s = ScanStatusStateIdle
+		return nil
+	case ScanStatusStateQueued:
+		*s = ScanStatusStateQueued
+		return nil
+	case ScanStatusStateScanning:
+		*s = ScanStatusStateScanning
+		return nil
+	case ScanStatusStateFailed:
+		*s = ScanStatusStateFailed
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // SelectMainProfileNoContent is response for SelectMainProfile operation.
 type SelectMainProfileNoContent struct{}
 
@@ -1692,6 +2645,54 @@ func (s *StartingHeaders) SetResponse(val Error) {
 }
 
 func (*StartingHeaders) getSystemInfoRes() {}
+
+// Ref: #/components/schemas/SubtitleStream
+type SubtitleStream struct {
+	Codec    string    `json:"codec"`
+	Language OptString `json:"language"`
+	Forced   OptBool   `json:"forced"`
+	External bool      `json:"external"`
+}
+
+// GetCodec returns the value of Codec.
+func (s *SubtitleStream) GetCodec() string {
+	return s.Codec
+}
+
+// GetLanguage returns the value of Language.
+func (s *SubtitleStream) GetLanguage() OptString {
+	return s.Language
+}
+
+// GetForced returns the value of Forced.
+func (s *SubtitleStream) GetForced() OptBool {
+	return s.Forced
+}
+
+// GetExternal returns the value of External.
+func (s *SubtitleStream) GetExternal() bool {
+	return s.External
+}
+
+// SetCodec sets the value of Codec.
+func (s *SubtitleStream) SetCodec(val string) {
+	s.Codec = val
+}
+
+// SetLanguage sets the value of Language.
+func (s *SubtitleStream) SetLanguage(val OptString) {
+	s.Language = val
+}
+
+// SetForced sets the value of Forced.
+func (s *SubtitleStream) SetForced(val OptBool) {
+	s.Forced = val
+}
+
+// SetExternal sets the value of External.
+func (s *SubtitleStream) SetExternal(val bool) {
+	s.External = val
+}
 
 // Ref: #/components/schemas/SystemInfo
 type SystemInfo struct {

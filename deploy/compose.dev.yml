@@ -1,5 +1,5 @@
-# Dev override: build the image locally instead of pulling from GHCR and
-# mount generated test media (scripts/gen-fixtures.sh ./data/fixtures).
+# Dev override: build the image locally instead of pulling from GHCR. Real media stays
+# at /media (MEDIA_PATH); generated test media (scripts/gen-fixtures.sh) is at /fixtures.
 services:
   streamero:
     image: streamero:dev
@@ -12,11 +12,13 @@ services:
         FFMPEG_SOURCE: ${FFMPEG_SOURCE:-jellyfin}
     environment:
       STREAMERO_LOG_LEVEL: debug
+      STREAMERO_MEDIA_ROOTS: /media,/fixtures
     volumes:
-      - ../data/fixtures:/media:ro
+      - ../data/fixtures:/fixtures:ro
   worker:
     image: streamero:dev
     environment:
       STREAMERO_LOG_LEVEL: debug
+      STREAMERO_MEDIA_ROOTS: /media,/fixtures
     volumes:
-      - ../data/fixtures:/media:ro
+      - ../data/fixtures:/fixtures:ro

@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/streamero-app/streamero/server/internal/auth"
+	"github.com/streamero-app/streamero/server/internal/library"
 	"github.com/streamero-app/streamero/server/internal/settings"
 )
 
@@ -15,6 +16,8 @@ type State struct {
 	// SetupCode guards first-run setup; set before Bootstrap.
 	SetupCode string
 
+	// Library is set by the caller after Bootstrap (needs roots and a job inserter).
+	library  atomic.Pointer[library.Service]
 	ready    atomic.Bool
 	auth     atomic.Pointer[auth.Service]
 	serverID atomic.Pointer[uuid.UUID]
@@ -45,6 +48,12 @@ func (s *State) SetupCompleted(ctx context.Context) bool {
 	}
 	return done
 }
+
+// Library returns the library service (nil until ready).
+func (s *State) Library() *library.Service { return s.library.Load() }
+
+// SetLibrary installs the library service.
+func (s *State) SetLibrary(l *library.Service) { s.library.Store(l) }
 
 // Auth returns the account service (nil until ready).
 func (s *State) Auth() *auth.Service { return s.auth.Load() }
