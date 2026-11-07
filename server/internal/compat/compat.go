@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"io"
 	"log/slog"
 	"net/http"
 	"path/filepath"
@@ -65,6 +66,8 @@ func (s *Server) Routes() http.Handler {
 	r.Group(func(r chi.Router) {
 		r.Use(s.requireAuth)
 		r.Get("/system/info", s.info)
+		r.Get("/system/configuration", s.configuration)
+		r.Post("/notifications/admin", accepted)
 		r.Get("/users/me", s.me)
 		r.Get("/users", s.users)
 		r.Get("/users/{userId}", s.user)
@@ -195,6 +198,22 @@ func (s *Server) info(w http.ResponseWriter, r *http.Request) {
 		"ServerName": s.name(r.Context()), "Version": APIVersion, "ProductName": "Streamero", "Id": ID(s.ServerID),
 		"StartupWizardCompleted": true, "OperatingSystem": "Linux",
 	})
+}
+
+// configuration is the minimal server configuration object. Sonarr fetches it
+// to test the connection; nothing in it is used by clients.
+func (s *Server) configuration(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, map[string]any{
+		"ServerName": s.name(r.Context()), "IsStartupWizardCompleted": true,
+		"UICulture": "en-US", "PreferredMetadataLanguage": "en", "MetadataCountryCode": "US",
+	})
+}
+
+// accepted acknowledges requests Streamero has no use for (e.g. admin
+// notifications from *arr apps), so senders do not report failures.
+func accepted(w http.ResponseWriter, r *http.Request) {
+	_, _ = io.Copy(io.Discard, http.MaxBytesReader(w, r.Body, 1<<20))
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *Server) userDTO(u auth.User) map[string]any {
