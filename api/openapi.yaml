@@ -22,6 +22,7 @@ tags:
   - name: libraries
   - name: items
   - name: playback
+  - name: admin
 security: []
 paths:
   /system/info:
@@ -1032,6 +1033,113 @@ paths:
                 $ref: "#/components/schemas/DirectoryListing"
         default:
           $ref: "#/components/responses/Error"
+  /dashboard:
+    get:
+      operationId: getDashboard
+      summary: Server overview for administrators (now playing, storage, activity)
+      tags: [admin]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dashboard"
+        default:
+          $ref: "#/components/responses/Error"
+  /tasks:
+    get:
+      operationId: listTasks
+      summary: Scheduled maintenance tasks and their last run
+      tags: [admin]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+        default:
+          $ref: "#/components/responses/Error"
+  /tasks/{taskKey}/run:
+    parameters:
+      - name: taskKey
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/TaskKey"
+    post:
+      operationId: runTask
+      summary: Run a task now
+      tags: [admin]
+      security:
+        - sessionToken: []
+      responses:
+        "202":
+          description: Queued
+        default:
+          $ref: "#/components/responses/Error"
+  /settings/notifications:
+    get:
+      operationId: getNotificationSettings
+      summary: Webhook / push notification targets
+      tags: [settings]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Targets (tokens are never returned)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationSettings"
+        default:
+          $ref: "#/components/responses/Error"
+    put:
+      operationId: updateNotificationSettings
+      summary: Replace the notification targets (an empty token keeps the stored one)
+      tags: [settings]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationSettings"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationSettings"
+        default:
+          $ref: "#/components/responses/Error"
+  /settings/notifications/test:
+    post:
+      operationId: testNotification
+      summary: Send a test message to one target
+      tags: [settings]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationTarget"
+      responses:
+        "204":
+          description: Delivered
+        default:
+          $ref: "#/components/responses/Error"
   /settings/metadata:
     get:
       operationId: getMetadataSettings
@@ -1592,6 +1700,163 @@ components:
         played:
           type: boolean
           description: Mark as watched (set automatically past 90%).
+    Dashboard:
+      type: object
+      required: [server, storage, nowPlaying, activeTranscodes, activity]
+      properties:
+        server:
+          type: object
+          required: [name, version, startedAt, os]
+          properties:
+            name:
+              type: string
+            version:
+              type: string
+            commit:
+              type: string
+            os:
+              type: string
+            startedAt:
+              type: string
+              format: date-time
+        storage:
+          type: array
+          items:
+            $ref: "#/components/schemas/StorageUsage"
+        nowPlaying:
+          type: array
+          items:
+            $ref: "#/components/schemas/NowPlaying"
+        activeTranscodes:
+          type: integer
+        activity:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityEntry"
+    StorageUsage:
+      type: object
+      required: [kind, path, totalBytes, freeBytes]
+      properties:
+        kind:
+          type: string
+          enum: [media, cache, transcode]
+        path:
+          type: string
+        totalBytes:
+          type: integer
+          format: int64
+        freeBytes:
+          type: integer
+          format: int64
+    NowPlaying:
+      type: object
+      required: [user, device, itemId, title, method, positionMs, updatedAt]
+      properties:
+        user:
+          type: string
+        profile:
+          type: string
+        device:
+          type: string
+        client:
+          type: string
+        itemId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        method:
+          type: string
+          enum: [direct, remux, transcode]
+        reason:
+          type: string
+          description: Why the server remuxes or transcodes.
+        positionMs:
+          type: integer
+          format: int64
+        durationMs:
+          type: integer
+          format: int64
+        updatedAt:
+          type: string
+          format: date-time
+    ActivityEntry:
+      type: object
+      required: [at, action]
+      properties:
+        at:
+          type: string
+          format: date-time
+        user:
+          type: string
+        action:
+          type: string
+          description: Machine-readable event (login.succeeded, user.created…).
+        detail:
+          type: object
+          additionalProperties: true
+    TaskKey:
+      type: string
+      enum: [scan_all, refresh_metadata, cleanup_images]
+    Task:
+      type: object
+      required: [key, running]
+      properties:
+        key:
+          $ref: "#/components/schemas/TaskKey"
+        running:
+          type: boolean
+        lastRunAt:
+          type: string
+          format: date-time
+        lastState:
+          type: string
+          description: completed, failed or cancelled.
+        interval:
+          type: string
+          description: Automatic schedule, e.g. "6h"; absent when manual only.
+    NotificationEvent:
+      type: string
+      enum: [item.added, playback.started, login.succeeded, login.failed, scan.failed, test]
+    NotificationTarget:
+      type: object
+      required: [id, name, kind, url, events, enabled]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 80
+        kind:
+          type: string
+          enum: [generic, discord, ntfy, gotify]
+        url:
+          type: string
+          format: uri
+          maxLength: 2000
+        token:
+          type: string
+          maxLength: 500
+          description: Write-only (ntfy access token, Gotify app token).
+        hasToken:
+          type: boolean
+          readOnly: true
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/NotificationEvent"
+        enabled:
+          type: boolean
+    NotificationSettings:
+      type: object
+      required: [targets]
+      properties:
+        targets:
+          type: array
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/NotificationTarget"
     MetadataSettings:
       type: object
       required: [tmdbConfigured, language, country]

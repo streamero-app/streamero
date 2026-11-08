@@ -177,6 +177,15 @@ func (UnimplementedHandler) EnableTOTP(ctx context.Context, req *TOTPCodeRequest
 	return r, ht.ErrNotImplemented
 }
 
+// GetDashboard implements getDashboard operation.
+//
+// Server overview for administrators (now playing, storage, activity).
+//
+// GET /dashboard
+func (UnimplementedHandler) GetDashboard(ctx context.Context) (r *Dashboard, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetInvite implements getInvite operation.
 //
 // Check an invite link (public).
@@ -219,6 +228,15 @@ func (UnimplementedHandler) GetMe(ctx context.Context) (r *User, _ error) {
 //
 // GET /settings/metadata
 func (UnimplementedHandler) GetMetadataSettings(ctx context.Context) (r *MetadataSettings, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetNotificationSettings implements getNotificationSettings operation.
+//
+// Webhook / push notification targets.
+//
+// GET /settings/notifications
+func (UnimplementedHandler) GetNotificationSettings(ctx context.Context) (r *NotificationSettings, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -331,6 +349,15 @@ func (UnimplementedHandler) ListSessions(ctx context.Context) (r []Session, _ er
 	return r, ht.ErrNotImplemented
 }
 
+// ListTasks implements listTasks operation.
+//
+// Scheduled maintenance tasks and their last run.
+//
+// GET /tasks
+func (UnimplementedHandler) ListTasks(ctx context.Context) (r []Task, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ListUsers implements listUsers operation.
 //
 // List users (admin).
@@ -421,6 +448,15 @@ func (UnimplementedHandler) RevokeSession(ctx context.Context, params RevokeSess
 	return ht.ErrNotImplemented
 }
 
+// RunTask implements runTask operation.
+//
+// Run a task now.
+//
+// POST /tasks/{taskKey}/run
+func (UnimplementedHandler) RunTask(ctx context.Context, params RunTaskParams) error {
+	return ht.ErrNotImplemented
+}
+
 // ScanLibrary implements scanLibrary operation.
 //
 // Scan a library for new, changed and removed files (admin).
@@ -477,6 +513,15 @@ func (UnimplementedHandler) StartTOTPSetup(ctx context.Context) (r *TOTPSetup, _
 	return r, ht.ErrNotImplemented
 }
 
+// TestNotification implements testNotification operation.
+//
+// Send a test message to one target.
+//
+// POST /settings/notifications/test
+func (UnimplementedHandler) TestNotification(ctx context.Context, req *NotificationTarget) error {
+	return ht.ErrNotImplemented
+}
+
 // UpdateLibrary implements updateLibrary operation.
 //
 // Change a library (admin); changed folders are rescanned.
@@ -492,6 +537,15 @@ func (UnimplementedHandler) UpdateLibrary(ctx context.Context, req *LibraryInput
 //
 // PUT /settings/metadata
 func (UnimplementedHandler) UpdateMetadataSettings(ctx context.Context, req *MetadataSettingsInput) (r *MetadataSettings, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateNotificationSettings implements updateNotificationSettings operation.
+//
+// Replace the notification targets (an empty token keeps the stored one).
+//
+// PUT /settings/notifications
+func (UnimplementedHandler) UpdateNotificationSettings(ctx context.Context, req *NotificationSettings) (r *NotificationSettings, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

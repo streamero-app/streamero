@@ -118,6 +118,12 @@ type Handler interface {
 	//
 	// POST /auth/totp/enable
 	EnableTOTP(ctx context.Context, req *TOTPCodeRequest) (*RecoveryCodes, error)
+	// GetDashboard implements getDashboard operation.
+	//
+	// Server overview for administrators (now playing, storage, activity).
+	//
+	// GET /dashboard
+	GetDashboard(ctx context.Context) (*Dashboard, error)
 	// GetInvite implements getInvite operation.
 	//
 	// Check an invite link (public).
@@ -148,6 +154,12 @@ type Handler interface {
 	//
 	// GET /settings/metadata
 	GetMetadataSettings(ctx context.Context) (*MetadataSettings, error)
+	// GetNotificationSettings implements getNotificationSettings operation.
+	//
+	// Webhook / push notification targets.
+	//
+	// GET /settings/notifications
+	GetNotificationSettings(ctx context.Context) (*NotificationSettings, error)
 	// GetPersonImage implements getPersonImage operation.
 	//
 	// Cached photo of a person (JPEG).
@@ -221,6 +233,12 @@ type Handler interface {
 	//
 	// GET /sessions
 	ListSessions(ctx context.Context) ([]Session, error)
+	// ListTasks implements listTasks operation.
+	//
+	// Scheduled maintenance tasks and their last run.
+	//
+	// GET /tasks
+	ListTasks(ctx context.Context) ([]Task, error)
 	// ListUsers implements listUsers operation.
 	//
 	// List users (admin).
@@ -281,6 +299,12 @@ type Handler interface {
 	//
 	// DELETE /sessions/{sessionId}
 	RevokeSession(ctx context.Context, params RevokeSessionParams) error
+	// RunTask implements runTask operation.
+	//
+	// Run a task now.
+	//
+	// POST /tasks/{taskKey}/run
+	RunTask(ctx context.Context, params RunTaskParams) error
 	// ScanLibrary implements scanLibrary operation.
 	//
 	// Scan a library for new, changed and removed files (admin).
@@ -319,6 +343,12 @@ type Handler interface {
 	//
 	// POST /auth/totp/setup
 	StartTOTPSetup(ctx context.Context) (*TOTPSetup, error)
+	// TestNotification implements testNotification operation.
+	//
+	// Send a test message to one target.
+	//
+	// POST /settings/notifications/test
+	TestNotification(ctx context.Context, req *NotificationTarget) error
 	// UpdateLibrary implements updateLibrary operation.
 	//
 	// Change a library (admin); changed folders are rescanned.
@@ -331,6 +361,12 @@ type Handler interface {
 	//
 	// PUT /settings/metadata
 	UpdateMetadataSettings(ctx context.Context, req *MetadataSettingsInput) (*MetadataSettings, error)
+	// UpdateNotificationSettings implements updateNotificationSettings operation.
+	//
+	// Replace the notification targets (an empty token keeps the stored one).
+	//
+	// PUT /settings/notifications
+	UpdateNotificationSettings(ctx context.Context, req *NotificationSettings) (*NotificationSettings, error)
 	// UpdateProfile implements updateProfile operation.
 	//
 	// Change a profile (not from a kids profile).

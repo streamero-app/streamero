@@ -547,6 +547,11 @@ type execer interface {
 	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
 }
 
+// Audit records an administrative action in the activity log.
+func (s *Service) Audit(ctx context.Context, userID *uuid.UUID, action string, detail map[string]any) error {
+	return audit(ctx, s.pool, userID, action, detail)
+}
+
 func audit(ctx context.Context, db execer, userID *uuid.UUID, action string, detail map[string]any) error {
 	if detail == nil {
 		detail = map[string]any{}

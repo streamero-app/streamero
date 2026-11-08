@@ -244,6 +244,19 @@ func encodeEnableTOTPResponse(response *RecoveryCodes, w http.ResponseWriter, sp
 	return nil
 }
 
+func encodeGetDashboardResponse(response *Dashboard, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
 func encodeGetInviteResponse(response *InviteInfo, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
@@ -318,6 +331,19 @@ func encodeGetMeResponse(response *User, w http.ResponseWriter, span trace.Span)
 }
 
 func encodeGetMetadataSettingsResponse(response *MetadataSettings, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
+func encodeGetNotificationSettingsResponse(response *NotificationSettings, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
 
@@ -574,6 +600,23 @@ func encodeListSessionsResponse(response []Session, w http.ResponseWriter, span 
 	return nil
 }
 
+func encodeListTasksResponse(response []Task, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	e.ArrStart()
+	for _, elem := range response {
+		elem.Encode(e)
+	}
+	e.ArrEnd()
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
 func encodeListUsersResponse(response []User, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
@@ -748,6 +791,12 @@ func encodeRevokeSessionResponse(response *RevokeSessionNoContent, w http.Respon
 	return nil
 }
 
+func encodeRunTaskResponse(response *RunTaskAccepted, w http.ResponseWriter, span trace.Span) error {
+	w.WriteHeader(202)
+
+	return nil
+}
+
 func encodeScanLibraryResponse(response *ScanLibraryAccepted, w http.ResponseWriter, span trace.Span) error {
 	w.WriteHeader(202)
 
@@ -809,6 +858,12 @@ func encodeStartTOTPSetupResponse(response *TOTPSetup, w http.ResponseWriter, sp
 	return nil
 }
 
+func encodeTestNotificationResponse(response *TestNotificationNoContent, w http.ResponseWriter, span trace.Span) error {
+	w.WriteHeader(204)
+
+	return nil
+}
+
 func encodeUpdateLibraryResponse(response *Library, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
@@ -823,6 +878,19 @@ func encodeUpdateLibraryResponse(response *Library, w http.ResponseWriter, span 
 }
 
 func encodeUpdateMetadataSettingsResponse(response *MetadataSettings, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
+func encodeUpdateNotificationSettingsResponse(response *NotificationSettings, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
 

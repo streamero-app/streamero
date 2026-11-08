@@ -21,6 +21,7 @@ import (
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 
+	"github.com/streamero-app/streamero/server/internal/activity"
 	"github.com/streamero-app/streamero/server/internal/api"
 	"github.com/streamero-app/streamero/server/internal/app"
 	"github.com/streamero-app/streamero/server/internal/auth"
@@ -31,6 +32,8 @@ import (
 	"github.com/streamero-app/streamero/server/internal/library"
 	"github.com/streamero-app/streamero/server/internal/metadata"
 	"github.com/streamero-app/streamero/server/internal/netx"
+	"github.com/streamero-app/streamero/server/internal/notify"
+	"github.com/streamero-app/streamero/server/internal/settings"
 	"github.com/streamero-app/streamero/server/internal/storage"
 	"github.com/streamero-app/streamero/server/internal/stream"
 	"github.com/streamero-app/streamero/server/internal/version"
@@ -102,7 +105,10 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	}
 	h := &api.Handler{State: state, ServerName: cfg.ServerName, StartedAt: time.Now().UTC(),
 		Auth: state.Auth, Settings: state.Settings, Library: state.Library, Stream: state.Stream,
-		NewTMDb: func(key string) *metadata.TMDb { return &metadata.TMDb{Key: key} }}
+		NewTMDb:    func(key string) *metadata.TMDb { return &metadata.TMDb{Key: key} },
+		NowPlaying: &activity.Registry{},
+		Paths:      api.Paths{Media: roots, Cache: cfg.CacheDir, Transcode: cfg.TranscodeDir}}
+	h.Notify = &notify.Dispatcher{Settings: state.Settings, Log: log, Server: h.ServerNameFor}
 	proxies, err := netx.ParsePrefixes(cfg.TrustedProxies)
 	if err != nil {
 		return err
@@ -150,6 +156,21 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 				_, err := inserter.Insert(ctx, jobs.MetadataRefreshArgs{LibraryID: id, Force: force}, nil)
 				return err
 			}}
+		h.RunTaskFn = func(ctx context.Context, key string) error {
+			var args river.JobArgs
+			switch key {
+			case "scan_all":
+				args = jobs.LibraryScanAllArgs{}
+			case "refresh_metadata":
+				args = jobs.MetadataRefreshAllArgs{}
+			case "cleanup_images":
+				args = jobs.ImagesCleanupArgs{}
+			default:
+				return fmt.Errorf("unknown task %q", key)
+			}
+			_, err := inserter.Insert(ctx, args, nil)
+			return err
+		}
 		state.SetLibrary(libs)
 		state.SetCompat(&compat.Server{Pool: deps.Pool, Auth: state.Auth(), Libraries: libs, ServerID: state.ServerID(), Log: log,
 			ServerName: h.ServerNameFor})
@@ -200,11 +221,18 @@ func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	workers := river.NewWorkers()
 	refresher := &metadata.Refresher{Pool: deps.Pool, Settings: state.Settings(), ImageDir: filepath.Join(cfg.CacheDir, "images"), Log: log,
 		FFmpeg: cfg.FFmpegPath, ResolvePath: func(p string) (string, error) { return library.ResolveSafePath(roots, p) }}
+	notifier := &notify.Dispatcher{Settings: state.Settings, Log: log, Server: func(ctx context.Context) string {
+		var name string
+		if ok, _ := state.Settings().Get(ctx, settings.KeyServerName, &name); ok && name != "" {
+			return name
+		}
+		return cfg.ServerName
+	}}
 	jobs.Register(workers, log, &library.Scanner{Pool: deps.Pool, Roots: roots, Probe: library.FFprobe(cfg.FFprobePath), Log: log},
 		libraries, refresher, func(ctx context.Context, id uuid.UUID) error {
 			_, err := client.Insert(ctx, jobs.MetadataRefreshArgs{LibraryID: id}, nil)
 			return err
-		})
+		}, notifier)
 	client, err = river.NewClient(riverpgxv5.New(deps.Pool), &river.Config{
 		Logger:  log,
 		Queues:  map[string]river.QueueConfig{river.QueueDefault: {MaxWorkers: 10}},
@@ -215,6 +243,8 @@ func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 				&river.PeriodicJobOpts{RunOnStart: true}),
 			river.NewPeriodicJob(river.PeriodicInterval(6*time.Hour),
 				func() (river.JobArgs, *river.InsertOpts) { return jobs.LibraryScanAllArgs{}, nil }, nil),
+			river.NewPeriodicJob(river.PeriodicInterval(24*time.Hour),
+				func() (river.JobArgs, *river.InsertOpts) { return jobs.ImagesCleanupArgs{}, nil }, nil),
 		},
 	})
 	if err != nil {

@@ -1629,6 +1629,79 @@ func decodeRevokeSessionParams(args [1]string, argsEscaped bool, r *http.Request
 	return params, nil
 }
 
+// RunTaskParams is parameters of runTask operation.
+type RunTaskParams struct {
+	TaskKey TaskKey
+}
+
+func unpackRunTaskParams(packed middleware.Parameters) (params RunTaskParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "taskKey",
+			In:   "path",
+		}
+		params.TaskKey = packed[key].(TaskKey)
+	}
+	return params
+}
+
+func decodeRunTaskParams(args [1]string, argsEscaped bool, r *http.Request) (params RunTaskParams, _ error) {
+	// Decode path: taskKey.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "taskKey",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.TaskKey = TaskKey(c)
+				return nil
+			}(); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := params.TaskKey.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "taskKey",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // ScanLibraryParams is parameters of scanLibrary operation.
 type ScanLibraryParams struct {
 	LibraryId uuid.UUID

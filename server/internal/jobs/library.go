@@ -3,7 +3,9 @@ package jobs
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,6 +14,7 @@ import (
 
 	"github.com/streamero-app/streamero/server/internal/library"
 	"github.com/streamero-app/streamero/server/internal/metadata"
+	"github.com/streamero-app/streamero/server/internal/notify"
 )
 
 // LibraryScanArgs scans one library.
@@ -42,6 +45,8 @@ type LibraryScanWorker struct {
 	Log     *slog.Logger
 	// AfterScan queues follow-up work (metadata for new items).
 	AfterScan func(ctx context.Context, libraryID uuid.UUID) error
+	// Notify announces new titles and failed scans (nil disables it).
+	Notify *notify.Dispatcher
 }
 
 // Timeout allows long first scans of big libraries.
@@ -53,15 +58,70 @@ func (w *LibraryScanWorker) Work(ctx context.Context, job *river.Job[LibraryScan
 	res, err := w.Scanner.Scan(ctx, job.Args.LibraryID)
 	if err != nil {
 		w.Log.Warn("library scan failed", "library", job.Args.LibraryID, "err", err)
+		w.Notify.Emit(ctx, notify.Event{Kind: notify.ScanFailed, Title: "Library scan failed", Message: err.Error(),
+			Data: map[string]any{"libraryId": job.Args.LibraryID}})
 		// A missing folder will not fix itself on retry; the library shows the error instead.
 		return river.JobCancel(err)
 	}
+	w.announceNew(ctx, job.Args.LibraryID, start)
 	w.Log.Info("library scanned", "library", job.Args.LibraryID, "files", res.Files, "probed", res.Probed,
 		"removed", res.Removed, "took", time.Since(start).String())
 	if w.AfterScan != nil {
 		return w.AfterScan(ctx, job.Args.LibraryID)
 	}
 	return nil
+}
+
+// announceNew sends one "new in library" notification for titles this scan added.
+func (w *LibraryScanWorker) announceNew(ctx context.Context, libraryID uuid.UUID, since time.Time) {
+	if w.Notify == nil {
+		return
+	}
+	pool := w.Scanner.Pool
+	var libName string
+	if err := pool.QueryRow(ctx, `SELECT name FROM libraries WHERE id = $1`, libraryID).Scan(&libName); err != nil {
+		return
+	}
+	rows, err := pool.Query(ctx, `SELECT i.kind, COALESCE(s.title, i.title), i.year, i.season_number, i.episode_number
+		FROM items i
+		LEFT JOIN items se ON se.id = i.parent_id
+		LEFT JOIN items s ON s.id = COALESCE(se.parent_id, i.parent_id) AND i.kind = 'episode'
+		WHERE i.library_id = $1 AND i.added_at >= $2 AND i.kind IN ('movie', 'series', 'episode')
+		ORDER BY i.added_at LIMIT 200`, libraryID, since)
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+	var lines []string
+	total := 0
+	for rows.Next() {
+		var kind, title string
+		var year, season, ep *int
+		if rows.Scan(&kind, &title, &year, &season, &ep) != nil {
+			return
+		}
+		total++
+		if len(lines) >= 10 {
+			continue
+		}
+		switch {
+		case kind == "episode" && season != nil && ep != nil:
+			lines = append(lines, fmt.Sprintf("%s S%02dE%02d", title, *season, *ep))
+		case year != nil:
+			lines = append(lines, fmt.Sprintf("%s (%d)", title, *year))
+		default:
+			lines = append(lines, title)
+		}
+	}
+	if total == 0 {
+		return
+	}
+	msg := strings.Join(lines, "\n")
+	if total > len(lines) {
+		msg += fmt.Sprintf("\n… +%d", total-len(lines))
+	}
+	w.Notify.Emit(ctx, notify.Event{Kind: notify.ItemAdded, Title: "New in " + libName, Message: msg,
+		Data: map[string]any{"libraryId": libraryID, "count": total}})
 }
 
 // LibraryScanAllArgs queues a scan of every library (periodic safety net for
@@ -133,5 +193,49 @@ func (w *MetadataRefreshWorker) Work(ctx context.Context, job *river.Job[Metadat
 	} else if g > 0 {
 		w.Log.Info("frame artwork created", "library", job.Args.LibraryID, "items", g)
 	}
+	return w.Refresher.CleanupImages(ctx)
+}
+
+// MetadataRefreshAllArgs queues a metadata refresh of every library (missing items only).
+type MetadataRefreshAllArgs struct{}
+
+// Kind implements river.JobArgs.
+func (MetadataRefreshAllArgs) Kind() string { return "metadata.refresh_all" }
+
+// MetadataRefreshAllWorker fans out per-library refresh jobs.
+type MetadataRefreshAllWorker struct {
+	river.WorkerDefaults[MetadataRefreshAllArgs]
+	Libraries *library.Service
+	Refresh   func(ctx context.Context, libraryID uuid.UUID) error
+}
+
+// Work implements river.Worker.
+func (w *MetadataRefreshAllWorker) Work(ctx context.Context, _ *river.Job[MetadataRefreshAllArgs]) error {
+	libs, err := w.Libraries.List(ctx)
+	if err != nil {
+		return err
+	}
+	for _, l := range libs {
+		if err := w.Refresh(ctx, l.ID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// ImagesCleanupArgs removes cached artwork of deleted items.
+type ImagesCleanupArgs struct{}
+
+// Kind implements river.JobArgs.
+func (ImagesCleanupArgs) Kind() string { return "images.cleanup" }
+
+// ImagesCleanupWorker runs Refresher.CleanupImages.
+type ImagesCleanupWorker struct {
+	river.WorkerDefaults[ImagesCleanupArgs]
+	Refresher *metadata.Refresher
+}
+
+// Work implements river.Worker.
+func (w *ImagesCleanupWorker) Work(ctx context.Context, _ *river.Job[ImagesCleanupArgs]) error {
 	return w.Refresher.CleanupImages(ctx)
 }

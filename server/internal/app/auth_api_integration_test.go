@@ -24,11 +24,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/streamero-app/streamero/server/internal/activity"
 	"github.com/streamero-app/streamero/server/internal/api"
 	"github.com/streamero-app/streamero/server/internal/auth"
 	"github.com/streamero-app/streamero/server/internal/compat"
 	"github.com/streamero-app/streamero/server/internal/config"
 	"github.com/streamero-app/streamero/server/internal/library"
+	"github.com/streamero-app/streamero/server/internal/notify"
 	"github.com/streamero-app/streamero/server/internal/stream"
 )
 
@@ -70,7 +72,10 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 	state.SetCompat(&compat.Server{Pool: deps.Pool, Auth: state.Auth(), Libraries: state.Library(), ServerID: state.ServerID(),
 		Log: log, ServerName: func(context.Context) string { return "Kino" }})
 	h := &api.Handler{State: state, ServerName: "Default", StartedAt: time.Now(), Auth: state.Auth, Settings: state.Settings,
-		Library: state.Library, Stream: state.Stream}
+		Library: state.Library, Stream: state.Stream, NowPlaying: &activity.Registry{},
+		Notify: &notify.Dispatcher{Settings: state.Settings}, Paths: api.Paths{Media: []string{mediaRoot}, Cache: t.TempDir()},
+		RunTaskFn: func(_ context.Context, key string) error { ranTasks = append(ranTasks, key); return nil }}
+	h.Notify.Server = h.ServerNameFor
 	router, err := NewRouter(state, h)
 	if err != nil {
 		t.Fatal(err)
@@ -79,6 +84,9 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 	t.Cleanup(srv.Close)
 	return srv
 }
+
+// ranTasks records tasks started through the API (the test server queues nothing).
+var ranTasks []string
 
 type client struct {
 	t     *testing.T
@@ -1324,5 +1332,130 @@ func TestCompatAPIIntegration(t *testing.T) {
 	_ = resp.Body.Close()
 	if !strings.Contains(string(body), `location.replace("/item/"`) || !strings.Contains(resp.Header.Get("Content-Security-Policy"), "sha256-") {
 		t.Fatalf("web redirect: %s %s", resp.Header.Get("Content-Security-Policy"), body)
+	}
+}
+
+func TestAdminDashboardIntegration(t *testing.T) {
+	srv := newAuthTestServer(t)
+	adminC := newClient(t, srv)
+	setupAdmin(t, adminC)
+	movies := mediaRoot + "/dash"
+	if err := os.MkdirAll(movies+"/Dash (2020)", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(movies+"/Dash (2020)/Dash (2020).mp4", []byte("0123456789"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var lib struct {
+		ID string `json:"id"`
+	}
+	adminC.do("POST", "/libraries", map[string]any{"name": "D", "kind": "movies", "paths": []string{movies}}, &lib)
+	scanner := &library.Scanner{Pool: testPool, Roots: library.Roots{mediaRoot}, Log: slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Probe: func(context.Context, string) (library.ProbeResult, error) {
+			return library.ProbeResult{Container: "mp4", VideoCodec: "h264", DurationMS: 60_000, Audio: []library.AudioStream{{Codec: "aac"}}}, nil
+		}}
+	if _, err := scanner.Scan(context.Background(), uuid.MustParse(lib.ID)); err != nil {
+		t.Fatal(err)
+	}
+	var page struct {
+		Items []struct {
+			ID string `json:"id"`
+		} `json:"items"`
+	}
+	adminC.do("GET", "/libraries/"+lib.ID+"/items", nil, &page)
+	item := page.Items[0].ID
+	device := map[string]any{"containers": []string{"mp4"}, "videoCodecs": []string{"h264"}, "audioCodecs": []string{"aac"}}
+	if s := adminC.do("POST", "/items/"+item+"/playback", map[string]any{"device": device}, nil); s != 200 {
+		t.Fatalf("playback: %d", s)
+	}
+	adminC.do("PUT", "/items/"+item+"/progress", map[string]any{"positionMs": 12_000}, nil)
+
+	var dash struct {
+		Server     struct{ Name, Version string }
+		Storage    []struct{ Kind string }
+		NowPlaying []struct {
+			User, Device, Title, Method string
+			PositionMs                  int64
+		}
+		Activity []struct{ Action string }
+	}
+	if s := adminC.do("GET", "/dashboard", nil, &dash); s != 200 {
+		t.Fatalf("dashboard: %d", s)
+	}
+	if dash.Server.Name != "Kino" || len(dash.Storage) < 2 || len(dash.NowPlaying) != 1 || dash.NowPlaying[0].Title != "Dash" ||
+		dash.NowPlaying[0].Method != "direct" || dash.NowPlaying[0].PositionMs != 12_000 || dash.NowPlaying[0].Device != "test" {
+		t.Fatalf("dashboard: %+v", dash)
+	}
+	if len(dash.Activity) == 0 || dash.Activity[0].Action == "" {
+		t.Fatalf("activity: %+v", dash.Activity)
+	}
+
+	var tasks []struct {
+		Key     string
+		Running bool
+	}
+	if s := adminC.do("GET", "/tasks", nil, &tasks); s != 200 || len(tasks) != 3 {
+		t.Fatalf("tasks: %d %+v", s, tasks)
+	}
+	if s := adminC.do("POST", "/tasks/refresh_metadata/run", nil, nil); s != 202 || ranTasks[len(ranTasks)-1] != "refresh_metadata" {
+		t.Fatalf("run task: %d %v", s, ranTasks)
+	}
+	if s := adminC.do("POST", "/tasks/nope/run", nil, nil); s != 400 {
+		t.Fatalf("unknown task: %d", s)
+	}
+
+	// Notifications: a generic webhook subscribed to failed sign-ins.
+	got := make(chan map[string]any, 4)
+	hook := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		body["auth"] = r.Header.Get("Authorization")
+		got <- body
+	}))
+	defer hook.Close()
+	target := map[string]any{"id": uuid.NewString(), "name": "Hook", "kind": "generic", "url": hook.URL, "token": "secret",
+		"events": []string{"login.failed"}, "enabled": true}
+	if s := adminC.do("PUT", "/settings/notifications", map[string]any{"targets": []any{target}}, nil); s != 200 {
+		t.Fatalf("save targets: %d", s)
+	}
+	var saved struct {
+		Targets []map[string]any
+	}
+	adminC.do("GET", "/settings/notifications", nil, &saved)
+	if len(saved.Targets) != 1 || saved.Targets[0]["hasToken"] != true || saved.Targets[0]["token"] != nil {
+		t.Fatalf("token must be write-only: %+v", saved)
+	}
+	// Saving again without the token keeps it.
+	delete(target, "token")
+	adminC.do("PUT", "/settings/notifications", map[string]any{"targets": []any{target}}, nil)
+	if s := adminC.do("POST", "/settings/notifications/test", target, nil); s != 204 {
+		t.Fatalf("test notification: %d", s)
+	}
+	if b := <-got; b["event"] != "test" || b["auth"] != "Bearer secret" || b["server"] != "Kino" {
+		t.Fatalf("test payload: %+v", b)
+	}
+	bad := newClient(t, srv)
+	bad.do("POST", "/auth/login", map[string]any{"username": "Admin", "password": "wrong-password", "device": map[string]any{"name": "x"}}, nil)
+	select {
+	case b := <-got:
+		if b["event"] != "login.failed" {
+			t.Fatalf("event: %+v", b)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("no login.failed notification")
+	}
+	if s := adminC.do("PUT", "/settings/notifications", map[string]any{"targets": []any{map[string]any{
+		"id": uuid.NewString(), "name": "x", "kind": "ntfy", "url": "ftp://nope", "events": []string{}, "enabled": true}}}, nil); s != 400 {
+		t.Fatalf("invalid target: %d", s)
+	}
+
+	// Not for regular users.
+	userC := newClient(t, srv)
+	adminC.do("POST", "/users", map[string]any{"username": "dashuser", "password": "user-pass-1"}, nil)
+	var res authResult
+	userC.do("POST", "/auth/login", map[string]any{"username": "dashuser", "password": "user-pass-1", "device": map[string]any{"name": "u"}}, &res)
+	userC.token = res.Token
+	if s := userC.do("GET", "/dashboard", nil, nil); s != 403 {
+		t.Fatalf("user dashboard: %d", s)
 	}
 }
