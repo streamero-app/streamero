@@ -30,7 +30,8 @@ describe("signed-in area", () => {
   it("signs out and returns to sign-in", async () => {
     const fetch = mockApi(() => ({ status: 204 }));
     const { router } = renderApp("/", { me: testUser() });
-    fireEvent.click(await screen.findByRole("button", { name: "Sign out" }));
+    fireEvent.click(await screen.findByTestId("account-menu"));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Sign out" }));
     await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
     expect(fetch.mock.calls.some(([r]) => /\/api\/v1\/auth\/logout$/.test((r as Request).url))).toBe(true);
   });
@@ -105,9 +106,10 @@ describe("profiles", () => {
       if (path.endsWith("/select")) return { status: 204 };
       return { status: 200, body: [] };
     });
-    renderApp("/", { me: testUser() });
-    fireEvent.click(await screen.findByTestId("profile-switcher"));
-    fireEvent.click(screen.getByRole("menuitem", { name: /Mama/ }));
+    const { router } = renderApp("/", { me: testUser() });
+    // With profiles, the app first asks who is watching.
+    await waitFor(() => expect(router.state.location.pathname).toBe("/who"));
+    fireEvent.click(await screen.findByRole("button", { name: /Mama/ }));
     fireEvent.change(screen.getByLabelText("PIN"), { target: { value: "1234" } });
     fireEvent.click(screen.getByRole("button", { name: "Open" }));
     await waitFor(() => expect(fetch.mock.calls.some(([r]) => (r as Request).url.endsWith(`/profiles/${mama.id}/select`))).toBe(true));
@@ -119,6 +121,7 @@ describe("profiles", () => {
     mockApi(({ path }) => (path === "/profiles" ? { status: 200, body: [kid] } : { status: 200, body: [] }));
     const { router } = renderApp("/settings/account", { me: testUser({ currentProfile: kid }) });
     await waitFor(() => expect(router.state.location.pathname).toBe("/"));
-    expect(screen.queryByRole("link", { name: "Settings" })).not.toBeInTheDocument();
+    fireEvent.click(await screen.findByTestId("account-menu"));
+    expect(screen.queryByRole("menuitem", { name: "Settings" })).not.toBeInTheDocument();
   });
 });

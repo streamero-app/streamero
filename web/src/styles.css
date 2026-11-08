@@ -1,23 +1,21 @@
 @import "tailwindcss";
 @import "@fontsource-variable/geist";
-@import "@fontsource/instrument-serif/400.css";
-@import "@fontsource/instrument-serif/400-italic.css";
 
 /*
- * Streamero design tokens — "projection room": warm black like a dark cinema,
- * one amber light (the projector beam) used for the primary action, focus and progress.
+ * Streamero design tokens — streaming-service layout on near-black, white primary action,
+ * one amber brand light for focus, progress and active states.
  * Components read only these variables, so a theme swap never touches components.
  */
 :root {
-  --color-bg: #0b0907;
-  --color-surface: #15120f;
-  --color-surface-2: #1f1b17;
-  --color-surface-3: #2a2520;
-  --color-border: rgb(255 236 214 / 0.09);
-  --color-border-strong: rgb(255 236 214 / 0.16);
-  --color-text: #f6f0e8;
-  --color-text-muted: #a89f93;
-  --color-text-faint: #7a7268;
+  --color-bg: #101010;
+  --color-surface: #181818;
+  --color-surface-2: #232323;
+  --color-surface-3: #2f2f2f;
+  --color-border: rgb(255 255 255 / 0.09);
+  --color-border-strong: rgb(255 255 255 / 0.18);
+  --color-text: #f5f5f5;
+  --color-text-muted: #a3a3a3;
+  --color-text-faint: #737373;
   --color-accent: #ffaa45;
   --color-accent-strong: #ff8f2a;
   --color-accent-contrast: #1c1006;
@@ -26,7 +24,7 @@
   --radius-card: 14px;
   --radius-poster: 10px;
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: "Instrument Serif", ui-serif, Georgia, serif;
+  --font-display: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --shadow-lift: 0 18px 40px -18px rgb(0 0 0 / 0.75), 0 4px 12px -4px rgb(0 0 0 / 0.5);
@@ -82,7 +80,7 @@ select option { background: var(--color-surface); color: var(--color-text); }
 .tabular { font-variant-numeric: tabular-nums; }
 
 /* Display titles: film-title serif, tight but never cramped. */
-.font-display { font-family: var(--font-display); font-weight: 400; letter-spacing: -0.01em; }
+.font-display { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.035em; }
 
 /* Horizontal shelves scroll natively with snap; the bar stays hidden. */
 .shelf-track { scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
@@ -106,3 +104,10 @@ select option { background: var(--color-surface); color: var(--color-text); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; transition-duration: 1ms !important; }
 }
+
+/* Living-room screens: scale the whole UI up on large displays (TV browsers report ~1920 CSS px). */
+@media (min-width: 1700px) { html { font-size: 17px; } }
+@media (min-width: 2400px) { html { font-size: 22px; } }
+
+/* Remote / keyboard focus on cards: lift and outline, like a TV interface. */
+.tv-focus:focus-visible { outline: 3px solid #fff; outline-offset: 3px; border-radius: 8px; transform: scale(1.04); }

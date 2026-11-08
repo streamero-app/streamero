@@ -34,13 +34,14 @@ test("setup wizard creates the admin and signs in", async ({ page }) => {
   await page.getByLabel("Setup code").fill(setupCode!.toLowerCase());
   await page.getByLabel("Server name").fill("E2E Kino");
   await page.getByRole("button", { name: "Finish setup" }).click();
-  await expect(page.getByRole("heading", { name: `Welcome, ${admin.username}` })).toBeVisible();
+  await expect(page.getByTestId("home-page")).toBeVisible();
   await expect(page.getByText("E2E Kino").first()).toBeVisible();
 });
 
 test("admin adds a user; user signs in; admin signs the device out", async ({ page, browser }) => {
   await signIn(page, admin);
-  await page.getByRole("link", { name: "Settings", exact: true }).click();
+  await page.getByTestId("account-menu").click();
+  await page.getByRole("menuitem", { name: "Settings" }).click();
   await page.getByRole("link", { name: "Users" }).click();
   await page.getByLabel("Username").fill(user.username);
   await page.getByLabel("Password").fill(user.password);
@@ -82,7 +83,7 @@ test("Quick Connect signs in a second browser after approval", async ({ page, br
   await page.getByRole("button", { name: "Approve" }).click();
   await expect(page.getByText(/is now signed in/)).toBeVisible();
 
-  await expect(tv.getByRole("heading", { name: `Welcome, ${admin.username}` })).toBeVisible({ timeout: 15_000 });
+  await expect(tv.getByTestId("home-page")).toBeVisible({ timeout: 15_000 });
   await ctx.close();
 });
 
@@ -102,7 +103,7 @@ test("an invite link creates an account", async ({ page, browser }) => {
   await guest.getByLabel("Password", { exact: true }).fill("e2e-guest-pass");
   await guest.getByLabel("Confirm password").fill("e2e-guest-pass");
   await guest.getByRole("button", { name: "Create account" }).click();
-  await expect(guest.getByRole("heading", { name: "Welcome, e2e-guest" })).toBeVisible();
+  await expect(guest.getByTestId("home-page")).toBeVisible();
   // Single use by default.
   await guest.goto(new URL(link).pathname);
   await expect(guest.getByRole("heading", { name: "Invite not valid" })).toBeVisible();
@@ -181,7 +182,8 @@ test("wrong passwords lock the account", async ({ page }) => {
 
 test("sign out returns to sign-in", async ({ page }) => {
   await signIn(page, admin);
-  await page.getByRole("button", { name: "Sign out" }).click();
+  await page.getByTestId("account-menu").click();
+  await page.getByRole("menuitem", { name: "Sign out" }).click();
   await expect(page).toHaveURL(/\/login$/);
   await page.goto("/settings/account");
   await expect(page).toHaveURL(/\/login$/);
