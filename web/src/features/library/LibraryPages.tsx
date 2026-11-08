@@ -8,6 +8,7 @@ import type { components } from "@/api/schema.gen";
 import { Art, Badge, Button, ErrorText, Select, Spinner, buttonVariants, pressable } from "@/components/ui";
 import { useMe } from "@/features/auth/useAuth";
 import { channelsLabel, formatDuration, formatSize, imageUrl, placeholderHue, resolutionLabel, type ItemSummary, type Library } from "./format";
+import { AddToMenu, CollectionCard, useCollections } from "./CollectionsPages";
 import { ArtFallback, ItemCard, ProgressBar, RankCard, Row, RowSkeleton, TitleArt, TitleCard, isPlayable, progressOf, rowCard } from "./cards";
 
 export { ItemCard } from "./cards";
@@ -234,10 +235,23 @@ export function HomeContent() {
         <Row title={t("nav.myList")} testId="favorites" count={favs.data?.length ?? 0}>
           {favs.data?.map((it) => <TitleCard key={it.id} item={it} className={rowCard} />)}
         </Row>
+        <CollectionsRow />
         {libraries.data?.map((l) => <LibraryRows key={l.id} library={l} />)}
         <LibraryShelf />
       </div>
     </div>
+  );
+}
+
+function CollectionsRow() {
+  const { t } = useTranslation();
+  const cols = useCollections();
+  const list = Array.isArray(cols.data) ? cols.data : [];
+  return (
+    <Row title={t("collections.title")} testId="collections" count={list.length}
+      action={<Link to="/collections" className="text-sm text-white/60 hover:text-white">{t("collections.all")} ›</Link>}>
+      {list.map((c) => <CollectionCard key={c.id} c={c} className="w-[30vw] shrink-0 sm:w-[160px] xl:w-[180px]" />)}
+    </Row>
   );
 }
 
@@ -545,6 +559,7 @@ export function ItemPage() {
               </Link>
             ) : null}
             <UserDataButtons item={it} />
+            {it.kind !== "season" && <AddToMenu item={it} />}
           </div>
           {progressOf(it) > 0 && <ProgressBar value={progressOf(it)} className="max-w-sm rounded-full" />}
         </div>
@@ -559,6 +574,13 @@ export function ItemPage() {
         <dl className="flex flex-col gap-2.5 text-sm">
           {d.cast.length > 0 && <div><dt className="inline text-muted">{t("library.starring")}: </dt><dd className="inline">{d.cast.slice(0, 5).map((p) => p.name).join(", ")}</dd></div>}
           {d.genres.length > 0 && <div><dt className="inline text-muted">{t("library.genres")}: </dt><dd className="inline">{d.genres.join(", ")}</dd></div>}
+          {(d.collections?.length ?? 0) > 0 && (
+            <div><dt className="inline text-muted">{t("collections.partOf")}: </dt>
+              <dd className="inline">{d.collections!.map((c, i) => (
+                <span key={c.id}>{i > 0 && ", "}<Link to="/collection/$collectionId" params={{ collectionId: c.id }} className="underline-offset-2 hover:underline">{c.name}</Link></span>
+              ))}</dd>
+            </div>
+          )}
           {directors.length > 0 && <div><dt className="inline text-muted">{t("library.directedBy")}: </dt><dd className="inline">{directors.join(", ")}</dd></div>}
           {writers.length > 0 && <div><dt className="inline text-muted">{t("library.writtenBy")}: </dt><dd className="inline">{writers.join(", ")}</dd></div>}
         </dl>

@@ -23,6 +23,8 @@ tags:
   - name: items
   - name: playback
   - name: admin
+  - name: collections
+  - name: playlists
 security: []
 paths:
   /system/info:
@@ -911,6 +913,245 @@ paths:
           description: Saved
         default:
           $ref: "#/components/responses/Error"
+  /collections:
+    get:
+      operationId: listCollections
+      summary: Collections that contain at least one visible item
+      tags: [collections]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Collections
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Collection"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createCollection
+      summary: Create a collection (administrators)
+      tags: [collections]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CollectionInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Collection"
+        default:
+          $ref: "#/components/responses/Error"
+  /collections/{collectionId}:
+    parameters:
+      - $ref: "#/components/parameters/CollectionId"
+    get:
+      operationId: getCollection
+      summary: A collection with its titles
+      tags: [collections]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CollectionDetail"
+        default:
+          $ref: "#/components/responses/Error"
+    put:
+      operationId: updateCollection
+      summary: Rename a collection and replace its titles (administrators)
+      tags: [collections]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CollectionInput"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Collection"
+        default:
+          $ref: "#/components/responses/Error"
+    delete:
+      operationId: deleteCollection
+      summary: Delete a collection (titles stay in the library)
+      tags: [collections]
+      security:
+        - sessionToken: []
+      responses:
+        "204":
+          description: Deleted
+        default:
+          $ref: "#/components/responses/Error"
+  /collections/{collectionId}/images/{imageType}:
+    parameters:
+      - $ref: "#/components/parameters/CollectionId"
+      - name: imageType
+        in: path
+        required: true
+        schema:
+          type: string
+          enum: [poster, backdrop]
+    get:
+      operationId: getCollectionImage
+      summary: Collection artwork (JPEG)
+      tags: [collections]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Image
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+        default:
+          $ref: "#/components/responses/Error"
+  /playlists:
+    get:
+      operationId: listPlaylists
+      summary: The current profile's playlists and public playlists
+      tags: [playlists]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Playlists
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Playlist"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createPlaylist
+      summary: Create a playlist
+      tags: [playlists]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaylistInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Playlist"
+        default:
+          $ref: "#/components/responses/Error"
+  /playlists/{playlistId}:
+    parameters:
+      - $ref: "#/components/parameters/PlaylistId"
+    get:
+      operationId: getPlaylist
+      summary: A playlist with its items in order
+      tags: [playlists]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Playlist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaylistDetail"
+        default:
+          $ref: "#/components/responses/Error"
+    put:
+      operationId: updatePlaylist
+      summary: Rename, share and reorder a playlist (owner only)
+      tags: [playlists]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaylistInput"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Playlist"
+        default:
+          $ref: "#/components/responses/Error"
+    delete:
+      operationId: deletePlaylist
+      summary: Delete a playlist (owner only)
+      tags: [playlists]
+      security:
+        - sessionToken: []
+      responses:
+        "204":
+          description: Deleted
+        default:
+          $ref: "#/components/responses/Error"
+  /playlists/{playlistId}/items:
+    parameters:
+      - $ref: "#/components/parameters/PlaylistId"
+    post:
+      operationId: addToPlaylist
+      summary: Append titles to a playlist (owner only)
+      tags: [playlists]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [itemIds]
+              properties:
+                itemIds:
+                  type: array
+                  maxItems: 500
+                  items:
+                    type: string
+                    format: uuid
+      responses:
+        "200":
+          description: Updated playlist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Playlist"
+        default:
+          $ref: "#/components/responses/Error"
   /items/{itemId}:
     parameters:
       - name: itemId
@@ -1381,6 +1622,20 @@ components:
   parameters:
     LibraryId:
       name: libraryId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CollectionId:
+      name: collectionId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    PlaylistId:
+      name: playlistId
       in: path
       required: true
       schema:
@@ -1960,6 +2215,105 @@ components:
         autoplayNext:
           type: boolean
           description: Play the next episode automatically.
+    Collection:
+      type: object
+      required: [id, name, itemCount, hasPoster, hasBackdrop, auto]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        overview:
+          type: string
+        itemCount:
+          type: integer
+        hasPoster:
+          type: boolean
+        hasBackdrop:
+          type: boolean
+        auto:
+          type: boolean
+          description: Created from TMDb (box set); kept in sync by metadata refresh.
+    CollectionDetail:
+      type: object
+      required: [collection, items]
+      properties:
+        collection:
+          $ref: "#/components/schemas/Collection"
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ItemSummary"
+    CollectionInput:
+      type: object
+      required: [name, itemIds]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        overview:
+          type: string
+          maxLength: 2000
+        itemIds:
+          type: array
+          maxItems: 500
+          items:
+            type: string
+            format: uuid
+    Playlist:
+      type: object
+      required: [id, name, itemCount, public, mine, durationMs]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        itemCount:
+          type: integer
+        durationMs:
+          type: integer
+          format: int64
+        public:
+          type: boolean
+        mine:
+          type: boolean
+          description: The current profile owns it (may edit).
+        coverItemIds:
+          type: array
+          description: Up to four items whose artwork makes the cover.
+          items:
+            type: string
+            format: uuid
+    PlaylistDetail:
+      type: object
+      required: [playlist, items]
+      properties:
+        playlist:
+          $ref: "#/components/schemas/Playlist"
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ItemSummary"
+    PlaylistInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        public:
+          type: boolean
+        itemIds:
+          type: array
+          maxItems: 500
+          description: Full order on update; omitted keeps the items.
+          items:
+            type: string
+            format: uuid
     MetadataSettings:
       type: object
       required: [tmdbConfigured, language, country]
@@ -2127,6 +2481,10 @@ components:
       type: object
       required: [item, libraryId, files, children, providerIds, genres, cast, crew, hasBackdrop]
       properties:
+        collections:
+          type: array
+          items:
+            $ref: "#/components/schemas/Collection"
         hasLogo:
           type: boolean
         overview:

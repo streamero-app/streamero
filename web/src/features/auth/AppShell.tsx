@@ -133,7 +133,9 @@ export function AppShell() {
             {libs.map((l) => (
               <Link key={l.id} to="/library/$libraryId" params={{ libraryId: l.id }} className={topLink}>{l.name}</Link>
             ))}
+            <Link to="/collections" className={topLink}>{t("collections.title")}</Link>
             <Link to="/my-list" className={topLink}>{t("nav.myList")}</Link>
+            <Link to="/playlists" className={topLink}>{t("playlists.title")}</Link>
           </nav>
           <div className="ml-auto flex items-center gap-4">
             <div className="hidden sm:block"><SearchBox /></div>

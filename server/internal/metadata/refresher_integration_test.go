@@ -47,10 +47,11 @@ func fakeTMDb(t *testing.T) *httptest.Server {
 		if r.URL.Query().Get("language") == "hr-HR" {
 			write(w, map[string]any{"id": 111, "title": "Veliki testni film", "original_title": "Big Test Movie", "overview": "",
 				"release_date": "2021-05-01", "vote_average": 7.4, "poster_path": "/p.jpg", "backdrop_path": "/b.jpg", "imdb_id": "tt0000111",
-				"genres":        []map[string]any{{"name": "Drama"}},
-				"credits":       map[string]any{"cast": []map[string]any{{"id": 501, "name": "Ana Glumica", "character": "Ivana", "profile_path": "/ana.jpg"}}, "crew": []map[string]any{{"name": "Redatelj Ivo", "job": "Director"}, {"name": "Grip", "job": "Grip"}}},
-				"images":        map[string]any{"logos": []map[string]any{{"file_path": "/logo-en.png", "iso_639_1": "en", "vote_average": 5}, {"file_path": "/logo-hr.png", "iso_639_1": "hr", "vote_average": 1}}},
-				"release_dates": map[string]any{"results": []map[string]any{{"iso_3166_1": "HR", "release_dates": []map[string]any{{"certification": "12"}}}}}})
+				"genres":                []map[string]any{{"name": "Drama"}},
+				"credits":               map[string]any{"cast": []map[string]any{{"id": 501, "name": "Ana Glumica", "character": "Ivana", "profile_path": "/ana.jpg"}}, "crew": []map[string]any{{"name": "Redatelj Ivo", "job": "Director"}, {"name": "Grip", "job": "Grip"}}},
+				"belongs_to_collection": map[string]any{"id": 9001, "name": "Testni filmovi – kolekcija", "poster_path": "/cp.jpg", "backdrop_path": "/cb.jpg"},
+				"images":                map[string]any{"logos": []map[string]any{{"file_path": "/logo-en.png", "iso_639_1": "en", "vote_average": 5}, {"file_path": "/logo-hr.png", "iso_639_1": "hr", "vote_average": 1}}},
+				"release_dates":         map[string]any{"results": []map[string]any{{"iso_3166_1": "HR", "release_dates": []map[string]any{{"certification": "12"}}}}}})
 			return
 		}
 		write(w, map[string]any{"id": 111, "title": "Big Test Movie", "overview": "An English overview.", "tagline": "Big."})
@@ -185,6 +186,12 @@ func TestRefreshLibraryIntegration(t *testing.T) {
 	if _, err := os.Stat(PersonImagePath(images, 501)); err != nil {
 		t.Fatalf("person photo not cached: %v", err)
 	}
+	// TMDb box set: collection created once, movie linked, artwork cached.
+	cols, err := svc.ItemCollections(ctx, movie.ID)
+	if err != nil || len(cols) != 1 || cols[0].Name != "Testni filmovi – kolekcija" || !cols[0].HasPoster || cols[0].TMDbID == nil {
+		t.Fatalf("collection: %+v %v", cols, err)
+	}
+	t.Cleanup(func() { _ = svc.DeleteCollection(context.Background(), cols[0].ID) })
 	if _, ok := byTitle["Dina"]; !ok {
 		t.Fatalf("tmdb id from folder name not used: %v", byTitle)
 	}
