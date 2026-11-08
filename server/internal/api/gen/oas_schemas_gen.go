@@ -5,9 +5,11 @@ package gen
 import (
 	"fmt"
 	"io"
+	"net/url"
 	"time"
 
 	"github.com/go-faster/errors"
+	"github.com/go-faster/jx"
 	"github.com/google/uuid"
 )
 
@@ -61,6 +63,66 @@ func (s *AcceptInviteRequest) SetUseCookie(val OptBool) {
 // SetDevice sets the value of Device.
 func (s *AcceptInviteRequest) SetDevice(val OptDeviceInfo) {
 	s.Device = val
+}
+
+// Ref: #/components/schemas/ActivityEntry
+type ActivityEntry struct {
+	At   time.Time `json:"at"`
+	User OptString `json:"user"`
+	// Machine-readable event (login.succeeded, user.created…).
+	Action string                 `json:"action"`
+	Detail OptActivityEntryDetail `json:"detail"`
+}
+
+// GetAt returns the value of At.
+func (s *ActivityEntry) GetAt() time.Time {
+	return s.At
+}
+
+// GetUser returns the value of User.
+func (s *ActivityEntry) GetUser() OptString {
+	return s.User
+}
+
+// GetAction returns the value of Action.
+func (s *ActivityEntry) GetAction() string {
+	return s.Action
+}
+
+// GetDetail returns the value of Detail.
+func (s *ActivityEntry) GetDetail() OptActivityEntryDetail {
+	return s.Detail
+}
+
+// SetAt sets the value of At.
+func (s *ActivityEntry) SetAt(val time.Time) {
+	s.At = val
+}
+
+// SetUser sets the value of User.
+func (s *ActivityEntry) SetUser(val OptString) {
+	s.User = val
+}
+
+// SetAction sets the value of Action.
+func (s *ActivityEntry) SetAction(val string) {
+	s.Action = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *ActivityEntry) SetDetail(val OptActivityEntryDetail) {
+	s.Detail = val
+}
+
+type ActivityEntryDetail map[string]jx.Raw
+
+func (s *ActivityEntryDetail) init() ActivityEntryDetail {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
 }
 
 // Ref: #/components/schemas/ApiKey
@@ -415,6 +477,123 @@ func (s *CreatedInvite) SetToken(val string) {
 // SetInvite sets the value of Invite.
 func (s *CreatedInvite) SetInvite(val Invite) {
 	s.Invite = val
+}
+
+// Ref: #/components/schemas/Dashboard
+type Dashboard struct {
+	Server           DashboardServer `json:"server"`
+	Storage          []StorageUsage  `json:"storage"`
+	NowPlaying       []NowPlaying    `json:"nowPlaying"`
+	ActiveTranscodes int             `json:"activeTranscodes"`
+	Activity         []ActivityEntry `json:"activity"`
+}
+
+// GetServer returns the value of Server.
+func (s *Dashboard) GetServer() DashboardServer {
+	return s.Server
+}
+
+// GetStorage returns the value of Storage.
+func (s *Dashboard) GetStorage() []StorageUsage {
+	return s.Storage
+}
+
+// GetNowPlaying returns the value of NowPlaying.
+func (s *Dashboard) GetNowPlaying() []NowPlaying {
+	return s.NowPlaying
+}
+
+// GetActiveTranscodes returns the value of ActiveTranscodes.
+func (s *Dashboard) GetActiveTranscodes() int {
+	return s.ActiveTranscodes
+}
+
+// GetActivity returns the value of Activity.
+func (s *Dashboard) GetActivity() []ActivityEntry {
+	return s.Activity
+}
+
+// SetServer sets the value of Server.
+func (s *Dashboard) SetServer(val DashboardServer) {
+	s.Server = val
+}
+
+// SetStorage sets the value of Storage.
+func (s *Dashboard) SetStorage(val []StorageUsage) {
+	s.Storage = val
+}
+
+// SetNowPlaying sets the value of NowPlaying.
+func (s *Dashboard) SetNowPlaying(val []NowPlaying) {
+	s.NowPlaying = val
+}
+
+// SetActiveTranscodes sets the value of ActiveTranscodes.
+func (s *Dashboard) SetActiveTranscodes(val int) {
+	s.ActiveTranscodes = val
+}
+
+// SetActivity sets the value of Activity.
+func (s *Dashboard) SetActivity(val []ActivityEntry) {
+	s.Activity = val
+}
+
+type DashboardServer struct {
+	Name      string    `json:"name"`
+	Version   string    `json:"version"`
+	Commit    OptString `json:"commit"`
+	Os        string    `json:"os"`
+	StartedAt time.Time `json:"startedAt"`
+}
+
+// GetName returns the value of Name.
+func (s *DashboardServer) GetName() string {
+	return s.Name
+}
+
+// GetVersion returns the value of Version.
+func (s *DashboardServer) GetVersion() string {
+	return s.Version
+}
+
+// GetCommit returns the value of Commit.
+func (s *DashboardServer) GetCommit() OptString {
+	return s.Commit
+}
+
+// GetOs returns the value of Os.
+func (s *DashboardServer) GetOs() string {
+	return s.Os
+}
+
+// GetStartedAt returns the value of StartedAt.
+func (s *DashboardServer) GetStartedAt() time.Time {
+	return s.StartedAt
+}
+
+// SetName sets the value of Name.
+func (s *DashboardServer) SetName(val string) {
+	s.Name = val
+}
+
+// SetVersion sets the value of Version.
+func (s *DashboardServer) SetVersion(val string) {
+	s.Version = val
+}
+
+// SetCommit sets the value of Commit.
+func (s *DashboardServer) SetCommit(val OptString) {
+	s.Commit = val
+}
+
+// SetOs sets the value of Os.
+func (s *DashboardServer) SetOs(val string) {
+	s.Os = val
+}
+
+// SetStartedAt sets the value of StartedAt.
+func (s *DashboardServer) SetStartedAt(val time.Time) {
+	s.StartedAt = val
 }
 
 // DeleteAPIKeyNoContent is response for DeleteAPIKey operation.
@@ -1878,6 +2057,459 @@ func (s *MetadataSettingsInput) SetCountry(val string) {
 	s.Country = val
 }
 
+// Ref: #/components/schemas/NotificationEvent
+type NotificationEvent string
+
+const (
+	NotificationEventItemAdded       NotificationEvent = "item.added"
+	NotificationEventPlaybackStarted NotificationEvent = "playback.started"
+	NotificationEventLoginSucceeded  NotificationEvent = "login.succeeded"
+	NotificationEventLoginFailed     NotificationEvent = "login.failed"
+	NotificationEventScanFailed      NotificationEvent = "scan.failed"
+	NotificationEventTest            NotificationEvent = "test"
+)
+
+// AllValues returns all NotificationEvent values.
+func (NotificationEvent) AllValues() []NotificationEvent {
+	return []NotificationEvent{
+		NotificationEventItemAdded,
+		NotificationEventPlaybackStarted,
+		NotificationEventLoginSucceeded,
+		NotificationEventLoginFailed,
+		NotificationEventScanFailed,
+		NotificationEventTest,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s NotificationEvent) MarshalText() ([]byte, error) {
+	switch s {
+	case NotificationEventItemAdded:
+		return []byte(s), nil
+	case NotificationEventPlaybackStarted:
+		return []byte(s), nil
+	case NotificationEventLoginSucceeded:
+		return []byte(s), nil
+	case NotificationEventLoginFailed:
+		return []byte(s), nil
+	case NotificationEventScanFailed:
+		return []byte(s), nil
+	case NotificationEventTest:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *NotificationEvent) UnmarshalText(data []byte) error {
+	switch NotificationEvent(data) {
+	case NotificationEventItemAdded:
+		*s = NotificationEventItemAdded
+		return nil
+	case NotificationEventPlaybackStarted:
+		*s = NotificationEventPlaybackStarted
+		return nil
+	case NotificationEventLoginSucceeded:
+		*s = NotificationEventLoginSucceeded
+		return nil
+	case NotificationEventLoginFailed:
+		*s = NotificationEventLoginFailed
+		return nil
+	case NotificationEventScanFailed:
+		*s = NotificationEventScanFailed
+		return nil
+	case NotificationEventTest:
+		*s = NotificationEventTest
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/NotificationSettings
+type NotificationSettings struct {
+	Targets []NotificationTarget `json:"targets"`
+}
+
+// GetTargets returns the value of Targets.
+func (s *NotificationSettings) GetTargets() []NotificationTarget {
+	return s.Targets
+}
+
+// SetTargets sets the value of Targets.
+func (s *NotificationSettings) SetTargets(val []NotificationTarget) {
+	s.Targets = val
+}
+
+// Ref: #/components/schemas/NotificationTarget
+type NotificationTarget struct {
+	ID   uuid.UUID              `json:"id"`
+	Name string                 `json:"name"`
+	Kind NotificationTargetKind `json:"kind"`
+	URL  url.URL                `json:"url"`
+	// Write-only (ntfy access token, Gotify app token).
+	Token    OptString           `json:"token"`
+	HasToken OptBool             `json:"hasToken"`
+	Events   []NotificationEvent `json:"events"`
+	Enabled  bool                `json:"enabled"`
+}
+
+// GetID returns the value of ID.
+func (s *NotificationTarget) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetName returns the value of Name.
+func (s *NotificationTarget) GetName() string {
+	return s.Name
+}
+
+// GetKind returns the value of Kind.
+func (s *NotificationTarget) GetKind() NotificationTargetKind {
+	return s.Kind
+}
+
+// GetURL returns the value of URL.
+func (s *NotificationTarget) GetURL() url.URL {
+	return s.URL
+}
+
+// GetToken returns the value of Token.
+func (s *NotificationTarget) GetToken() OptString {
+	return s.Token
+}
+
+// GetHasToken returns the value of HasToken.
+func (s *NotificationTarget) GetHasToken() OptBool {
+	return s.HasToken
+}
+
+// GetEvents returns the value of Events.
+func (s *NotificationTarget) GetEvents() []NotificationEvent {
+	return s.Events
+}
+
+// GetEnabled returns the value of Enabled.
+func (s *NotificationTarget) GetEnabled() bool {
+	return s.Enabled
+}
+
+// SetID sets the value of ID.
+func (s *NotificationTarget) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetName sets the value of Name.
+func (s *NotificationTarget) SetName(val string) {
+	s.Name = val
+}
+
+// SetKind sets the value of Kind.
+func (s *NotificationTarget) SetKind(val NotificationTargetKind) {
+	s.Kind = val
+}
+
+// SetURL sets the value of URL.
+func (s *NotificationTarget) SetURL(val url.URL) {
+	s.URL = val
+}
+
+// SetToken sets the value of Token.
+func (s *NotificationTarget) SetToken(val OptString) {
+	s.Token = val
+}
+
+// SetHasToken sets the value of HasToken.
+func (s *NotificationTarget) SetHasToken(val OptBool) {
+	s.HasToken = val
+}
+
+// SetEvents sets the value of Events.
+func (s *NotificationTarget) SetEvents(val []NotificationEvent) {
+	s.Events = val
+}
+
+// SetEnabled sets the value of Enabled.
+func (s *NotificationTarget) SetEnabled(val bool) {
+	s.Enabled = val
+}
+
+type NotificationTargetKind string
+
+const (
+	NotificationTargetKindGeneric NotificationTargetKind = "generic"
+	NotificationTargetKindDiscord NotificationTargetKind = "discord"
+	NotificationTargetKindNtfy    NotificationTargetKind = "ntfy"
+	NotificationTargetKindGotify  NotificationTargetKind = "gotify"
+)
+
+// AllValues returns all NotificationTargetKind values.
+func (NotificationTargetKind) AllValues() []NotificationTargetKind {
+	return []NotificationTargetKind{
+		NotificationTargetKindGeneric,
+		NotificationTargetKindDiscord,
+		NotificationTargetKindNtfy,
+		NotificationTargetKindGotify,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s NotificationTargetKind) MarshalText() ([]byte, error) {
+	switch s {
+	case NotificationTargetKindGeneric:
+		return []byte(s), nil
+	case NotificationTargetKindDiscord:
+		return []byte(s), nil
+	case NotificationTargetKindNtfy:
+		return []byte(s), nil
+	case NotificationTargetKindGotify:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *NotificationTargetKind) UnmarshalText(data []byte) error {
+	switch NotificationTargetKind(data) {
+	case NotificationTargetKindGeneric:
+		*s = NotificationTargetKindGeneric
+		return nil
+	case NotificationTargetKindDiscord:
+		*s = NotificationTargetKindDiscord
+		return nil
+	case NotificationTargetKindNtfy:
+		*s = NotificationTargetKindNtfy
+		return nil
+	case NotificationTargetKindGotify:
+		*s = NotificationTargetKindGotify
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/NowPlaying
+type NowPlaying struct {
+	User    string           `json:"user"`
+	Profile OptString        `json:"profile"`
+	Device  string           `json:"device"`
+	Client  OptString        `json:"client"`
+	ItemId  uuid.UUID        `json:"itemId"`
+	Title   string           `json:"title"`
+	Method  NowPlayingMethod `json:"method"`
+	// Why the server remuxes or transcodes.
+	Reason     OptString `json:"reason"`
+	PositionMs int64     `json:"positionMs"`
+	DurationMs OptInt64  `json:"durationMs"`
+	UpdatedAt  time.Time `json:"updatedAt"`
+}
+
+// GetUser returns the value of User.
+func (s *NowPlaying) GetUser() string {
+	return s.User
+}
+
+// GetProfile returns the value of Profile.
+func (s *NowPlaying) GetProfile() OptString {
+	return s.Profile
+}
+
+// GetDevice returns the value of Device.
+func (s *NowPlaying) GetDevice() string {
+	return s.Device
+}
+
+// GetClient returns the value of Client.
+func (s *NowPlaying) GetClient() OptString {
+	return s.Client
+}
+
+// GetItemId returns the value of ItemId.
+func (s *NowPlaying) GetItemId() uuid.UUID {
+	return s.ItemId
+}
+
+// GetTitle returns the value of Title.
+func (s *NowPlaying) GetTitle() string {
+	return s.Title
+}
+
+// GetMethod returns the value of Method.
+func (s *NowPlaying) GetMethod() NowPlayingMethod {
+	return s.Method
+}
+
+// GetReason returns the value of Reason.
+func (s *NowPlaying) GetReason() OptString {
+	return s.Reason
+}
+
+// GetPositionMs returns the value of PositionMs.
+func (s *NowPlaying) GetPositionMs() int64 {
+	return s.PositionMs
+}
+
+// GetDurationMs returns the value of DurationMs.
+func (s *NowPlaying) GetDurationMs() OptInt64 {
+	return s.DurationMs
+}
+
+// GetUpdatedAt returns the value of UpdatedAt.
+func (s *NowPlaying) GetUpdatedAt() time.Time {
+	return s.UpdatedAt
+}
+
+// SetUser sets the value of User.
+func (s *NowPlaying) SetUser(val string) {
+	s.User = val
+}
+
+// SetProfile sets the value of Profile.
+func (s *NowPlaying) SetProfile(val OptString) {
+	s.Profile = val
+}
+
+// SetDevice sets the value of Device.
+func (s *NowPlaying) SetDevice(val string) {
+	s.Device = val
+}
+
+// SetClient sets the value of Client.
+func (s *NowPlaying) SetClient(val OptString) {
+	s.Client = val
+}
+
+// SetItemId sets the value of ItemId.
+func (s *NowPlaying) SetItemId(val uuid.UUID) {
+	s.ItemId = val
+}
+
+// SetTitle sets the value of Title.
+func (s *NowPlaying) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetMethod sets the value of Method.
+func (s *NowPlaying) SetMethod(val NowPlayingMethod) {
+	s.Method = val
+}
+
+// SetReason sets the value of Reason.
+func (s *NowPlaying) SetReason(val OptString) {
+	s.Reason = val
+}
+
+// SetPositionMs sets the value of PositionMs.
+func (s *NowPlaying) SetPositionMs(val int64) {
+	s.PositionMs = val
+}
+
+// SetDurationMs sets the value of DurationMs.
+func (s *NowPlaying) SetDurationMs(val OptInt64) {
+	s.DurationMs = val
+}
+
+// SetUpdatedAt sets the value of UpdatedAt.
+func (s *NowPlaying) SetUpdatedAt(val time.Time) {
+	s.UpdatedAt = val
+}
+
+type NowPlayingMethod string
+
+const (
+	NowPlayingMethodDirect    NowPlayingMethod = "direct"
+	NowPlayingMethodRemux     NowPlayingMethod = "remux"
+	NowPlayingMethodTranscode NowPlayingMethod = "transcode"
+)
+
+// AllValues returns all NowPlayingMethod values.
+func (NowPlayingMethod) AllValues() []NowPlayingMethod {
+	return []NowPlayingMethod{
+		NowPlayingMethodDirect,
+		NowPlayingMethodRemux,
+		NowPlayingMethodTranscode,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s NowPlayingMethod) MarshalText() ([]byte, error) {
+	switch s {
+	case NowPlayingMethodDirect:
+		return []byte(s), nil
+	case NowPlayingMethodRemux:
+		return []byte(s), nil
+	case NowPlayingMethodTranscode:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *NowPlayingMethod) UnmarshalText(data []byte) error {
+	switch NowPlayingMethod(data) {
+	case NowPlayingMethodDirect:
+		*s = NowPlayingMethodDirect
+		return nil
+	case NowPlayingMethodRemux:
+		*s = NowPlayingMethodRemux
+		return nil
+	case NowPlayingMethodTranscode:
+		*s = NowPlayingMethodTranscode
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// NewOptActivityEntryDetail returns new OptActivityEntryDetail with value set to v.
+func NewOptActivityEntryDetail(v ActivityEntryDetail) OptActivityEntryDetail {
+	return OptActivityEntryDetail{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptActivityEntryDetail is optional ActivityEntryDetail.
+type OptActivityEntryDetail struct {
+	Value ActivityEntryDetail
+	Set   bool
+}
+
+// IsSet returns true if OptActivityEntryDetail was set.
+func (o OptActivityEntryDetail) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptActivityEntryDetail) Reset() {
+	var v ActivityEntryDetail
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptActivityEntryDetail) SetTo(v ActivityEntryDetail) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptActivityEntryDetail) Get() (v ActivityEntryDetail, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptActivityEntryDetail) Or(d ActivityEntryDetail) ActivityEntryDetail {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptBool returns new OptBool with value set to v.
 func NewOptBool(v bool) OptBool {
 	return OptBool{
@@ -3227,6 +3859,9 @@ type ReportProgressNoContent struct{}
 // RevokeSessionNoContent is response for RevokeSession operation.
 type RevokeSessionNoContent struct{}
 
+// RunTaskAccepted is response for RunTask operation.
+type RunTaskAccepted struct{}
+
 // ScanLibraryAccepted is response for ScanLibrary operation.
 type ScanLibraryAccepted struct{}
 
@@ -3598,6 +4233,102 @@ func (s *StartingHeaders) SetResponse(val Error) {
 
 func (*StartingHeaders) getSystemInfoRes() {}
 
+// Ref: #/components/schemas/StorageUsage
+type StorageUsage struct {
+	Kind       StorageUsageKind `json:"kind"`
+	Path       string           `json:"path"`
+	TotalBytes int64            `json:"totalBytes"`
+	FreeBytes  int64            `json:"freeBytes"`
+}
+
+// GetKind returns the value of Kind.
+func (s *StorageUsage) GetKind() StorageUsageKind {
+	return s.Kind
+}
+
+// GetPath returns the value of Path.
+func (s *StorageUsage) GetPath() string {
+	return s.Path
+}
+
+// GetTotalBytes returns the value of TotalBytes.
+func (s *StorageUsage) GetTotalBytes() int64 {
+	return s.TotalBytes
+}
+
+// GetFreeBytes returns the value of FreeBytes.
+func (s *StorageUsage) GetFreeBytes() int64 {
+	return s.FreeBytes
+}
+
+// SetKind sets the value of Kind.
+func (s *StorageUsage) SetKind(val StorageUsageKind) {
+	s.Kind = val
+}
+
+// SetPath sets the value of Path.
+func (s *StorageUsage) SetPath(val string) {
+	s.Path = val
+}
+
+// SetTotalBytes sets the value of TotalBytes.
+func (s *StorageUsage) SetTotalBytes(val int64) {
+	s.TotalBytes = val
+}
+
+// SetFreeBytes sets the value of FreeBytes.
+func (s *StorageUsage) SetFreeBytes(val int64) {
+	s.FreeBytes = val
+}
+
+type StorageUsageKind string
+
+const (
+	StorageUsageKindMedia     StorageUsageKind = "media"
+	StorageUsageKindCache     StorageUsageKind = "cache"
+	StorageUsageKindTranscode StorageUsageKind = "transcode"
+)
+
+// AllValues returns all StorageUsageKind values.
+func (StorageUsageKind) AllValues() []StorageUsageKind {
+	return []StorageUsageKind{
+		StorageUsageKindMedia,
+		StorageUsageKindCache,
+		StorageUsageKindTranscode,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s StorageUsageKind) MarshalText() ([]byte, error) {
+	switch s {
+	case StorageUsageKindMedia:
+		return []byte(s), nil
+	case StorageUsageKindCache:
+		return []byte(s), nil
+	case StorageUsageKindTranscode:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *StorageUsageKind) UnmarshalText(data []byte) error {
+	switch StorageUsageKind(data) {
+	case StorageUsageKindMedia:
+		*s = StorageUsageKindMedia
+		return nil
+	case StorageUsageKindCache:
+		*s = StorageUsageKindCache
+		return nil
+	case StorageUsageKindTranscode:
+		*s = StorageUsageKindTranscode
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // Ref: #/components/schemas/SubtitleStream
 type SubtitleStream struct {
 	Codec    string    `json:"codec"`
@@ -3797,6 +4528,119 @@ func (s *TOTPSetup) SetOtpauthUri(val string) {
 func (s *TOTPSetup) SetQrPng(val string) {
 	s.QrPng = val
 }
+
+// Ref: #/components/schemas/Task
+type Task struct {
+	Key       TaskKey     `json:"key"`
+	Running   bool        `json:"running"`
+	LastRunAt OptDateTime `json:"lastRunAt"`
+	// Completed, failed or cancelled.
+	LastState OptString `json:"lastState"`
+	// Automatic schedule, e.g. "6h"; absent when manual only.
+	Interval OptString `json:"interval"`
+}
+
+// GetKey returns the value of Key.
+func (s *Task) GetKey() TaskKey {
+	return s.Key
+}
+
+// GetRunning returns the value of Running.
+func (s *Task) GetRunning() bool {
+	return s.Running
+}
+
+// GetLastRunAt returns the value of LastRunAt.
+func (s *Task) GetLastRunAt() OptDateTime {
+	return s.LastRunAt
+}
+
+// GetLastState returns the value of LastState.
+func (s *Task) GetLastState() OptString {
+	return s.LastState
+}
+
+// GetInterval returns the value of Interval.
+func (s *Task) GetInterval() OptString {
+	return s.Interval
+}
+
+// SetKey sets the value of Key.
+func (s *Task) SetKey(val TaskKey) {
+	s.Key = val
+}
+
+// SetRunning sets the value of Running.
+func (s *Task) SetRunning(val bool) {
+	s.Running = val
+}
+
+// SetLastRunAt sets the value of LastRunAt.
+func (s *Task) SetLastRunAt(val OptDateTime) {
+	s.LastRunAt = val
+}
+
+// SetLastState sets the value of LastState.
+func (s *Task) SetLastState(val OptString) {
+	s.LastState = val
+}
+
+// SetInterval sets the value of Interval.
+func (s *Task) SetInterval(val OptString) {
+	s.Interval = val
+}
+
+// Ref: #/components/schemas/TaskKey
+type TaskKey string
+
+const (
+	TaskKeyScanAll         TaskKey = "scan_all"
+	TaskKeyRefreshMetadata TaskKey = "refresh_metadata"
+	TaskKeyCleanupImages   TaskKey = "cleanup_images"
+)
+
+// AllValues returns all TaskKey values.
+func (TaskKey) AllValues() []TaskKey {
+	return []TaskKey{
+		TaskKeyScanAll,
+		TaskKeyRefreshMetadata,
+		TaskKeyCleanupImages,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TaskKey) MarshalText() ([]byte, error) {
+	switch s {
+	case TaskKeyScanAll:
+		return []byte(s), nil
+	case TaskKeyRefreshMetadata:
+		return []byte(s), nil
+	case TaskKeyCleanupImages:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TaskKey) UnmarshalText(data []byte) error {
+	switch TaskKey(data) {
+	case TaskKeyScanAll:
+		*s = TaskKeyScanAll
+		return nil
+	case TaskKeyRefreshMetadata:
+		*s = TaskKeyRefreshMetadata
+		return nil
+	case TaskKeyCleanupImages:
+		*s = TaskKeyCleanupImages
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// TestNotificationNoContent is response for TestNotification operation.
+type TestNotificationNoContent struct{}
 
 // UpdateUserDataNoContent is response for UpdateUserData operation.
 type UpdateUserDataNoContent struct{}

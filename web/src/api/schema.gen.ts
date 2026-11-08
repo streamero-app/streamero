@@ -779,6 +779,94 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Server overview for administrators (now playing, storage, activity) */
+        get: operations["getDashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Scheduled maintenance tasks and their last run */
+        get: operations["listTasks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{taskKey}/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                taskKey: components["schemas"]["TaskKey"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run a task now */
+        post: operations["runTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Webhook / push notification targets */
+        get: operations["getNotificationSettings"];
+        /** Replace the notification targets (an empty token keeps the stored one) */
+        put: operations["updateNotificationSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/notifications/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a test message to one target */
+        post: operations["testNotification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/settings/metadata": {
         parameters: {
             query?: never;
@@ -1062,6 +1150,89 @@ export interface components {
             durationMs?: number;
             /** @description Mark as watched (set automatically past 90%). */
             played?: boolean;
+        };
+        Dashboard: {
+            server: {
+                name: string;
+                version: string;
+                commit?: string;
+                os: string;
+                /** Format: date-time */
+                startedAt: string;
+            };
+            storage: components["schemas"]["StorageUsage"][];
+            nowPlaying: components["schemas"]["NowPlaying"][];
+            activeTranscodes: number;
+            activity: components["schemas"]["ActivityEntry"][];
+        };
+        StorageUsage: {
+            /** @enum {string} */
+            kind: "media" | "cache" | "transcode";
+            path: string;
+            /** Format: int64 */
+            totalBytes: number;
+            /** Format: int64 */
+            freeBytes: number;
+        };
+        NowPlaying: {
+            user: string;
+            profile?: string;
+            device: string;
+            client?: string;
+            /** Format: uuid */
+            itemId: string;
+            title: string;
+            /** @enum {string} */
+            method: "direct" | "remux" | "transcode";
+            /** @description Why the server remuxes or transcodes. */
+            reason?: string;
+            /** Format: int64 */
+            positionMs: number;
+            /** Format: int64 */
+            durationMs?: number;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        ActivityEntry: {
+            /** Format: date-time */
+            at: string;
+            user?: string;
+            /** @description Machine-readable event (login.succeeded, user.created…). */
+            action: string;
+            detail?: {
+                [key: string]: unknown;
+            };
+        };
+        /** @enum {string} */
+        TaskKey: "scan_all" | "refresh_metadata" | "cleanup_images";
+        Task: {
+            key: components["schemas"]["TaskKey"];
+            running: boolean;
+            /** Format: date-time */
+            lastRunAt?: string;
+            /** @description completed, failed or cancelled. */
+            lastState?: string;
+            /** @description Automatic schedule, e.g. "6h"; absent when manual only. */
+            interval?: string;
+        };
+        /** @enum {string} */
+        NotificationEvent: "item.added" | "playback.started" | "login.succeeded" | "login.failed" | "scan.failed" | "test";
+        NotificationTarget: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** @enum {string} */
+            kind: "generic" | "discord" | "ntfy" | "gotify";
+            /** Format: uri */
+            url: string;
+            /** @description Write-only (ntfy access token, Gotify app token). */
+            token?: string;
+            readonly hasToken?: boolean;
+            events: components["schemas"]["NotificationEvent"][];
+            enabled: boolean;
+        };
+        NotificationSettings: {
+            targets: components["schemas"]["NotificationTarget"][];
         };
         MetadataSettings: {
             tmdbConfigured: boolean;
@@ -2521,6 +2692,138 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["DirectoryListing"];
                 };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getDashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Overview */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Dashboard"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listTasks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tasks */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    runTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                taskKey: components["schemas"]["TaskKey"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getNotificationSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Targets (tokens are never returned) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateNotificationSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotificationSettings"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    testNotification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotificationTarget"];
+            };
+        };
+        responses: {
+            /** @description Delivered */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             default: components["responses"]["Error"];
         };

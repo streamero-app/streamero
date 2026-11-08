@@ -294,6 +294,20 @@ func encodeStartPlaybackRequest(
 	return nil
 }
 
+func encodeTestNotificationRequest(
+	req *NotificationTarget,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeUpdateLibraryRequest(
 	req *LibraryInput,
 	r *http.Request,
@@ -310,6 +324,20 @@ func encodeUpdateLibraryRequest(
 
 func encodeUpdateMetadataSettingsRequest(
 	req *MetadataSettingsInput,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeUpdateNotificationSettingsRequest(
+	req *NotificationSettings,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"

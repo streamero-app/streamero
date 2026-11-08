@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -12,6 +13,8 @@ import (
 
 	"github.com/streamero-app/streamero/server/internal/api/gen"
 	"github.com/streamero-app/streamero/server/internal/auth"
+	"github.com/streamero-app/streamero/server/internal/netx"
+	"github.com/streamero-app/streamero/server/internal/notify"
 	"github.com/streamero-app/streamero/server/internal/settings"
 )
 
@@ -129,9 +132,25 @@ func (h *Handler) CompleteSetup(ctx context.Context, req *gen.SetupRequest) (*ge
 func (h *Handler) Login(ctx context.Context, req *gen.LoginRequest) (*gen.SignedInHeaders, error) {
 	p, token, err := h.Auth().Login(ctx, req.Username, req.Password, req.TotpCode.Value, device(req.Device))
 	if err != nil {
+		if !errors.Is(err, auth.ErrTOTPRequired) && h.Notify != nil {
+			h.Notify.Emit(ctx, notify.Event{Kind: notify.LoginFailed, Title: "Failed sign-in",
+				Message: fmt.Sprintf("%q from %s", req.Username, clientIP(ctx)), Data: map[string]any{"username": req.Username, "ip": clientIP(ctx)}})
+		}
 		return nil, err
 	}
+	if h.Notify != nil {
+		h.Notify.Emit(ctx, notify.Event{Kind: notify.LoginSucceeded, Title: "Signed in",
+			Message: fmt.Sprintf("%s on %s (%s)", p.User.Username, device(req.Device).Name, clientIP(ctx)),
+			Data:    map[string]any{"username": p.User.Username, "ip": clientIP(ctx)}})
+	}
 	return h.signedIn(ctx, p, token, req.UseCookie.Value), nil
+}
+
+func clientIP(ctx context.Context) string {
+	if ip := netx.FromContext(ctx); ip.IsValid() {
+		return ip.String()
+	}
+	return "?"
 }
 
 // Logout implements POST /auth/logout.

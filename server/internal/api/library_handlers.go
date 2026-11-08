@@ -451,6 +451,9 @@ func (h *Handler) StartPlayback(ctx context.Context, req *gen.PlaybackRequest, p
 		r.StartMS = &v
 	}
 	info, err := h.Stream().Start(ctx, h.lib(), p, params.ItemId, r)
+	if err == nil {
+		h.trackPlayback(ctx, p, params.ItemId, info.Method, info.Reason, info.DurationMS, info.StartMS)
+	}
 	if err != nil {
 		switch {
 		case errors.Is(err, stream.ErrNotPlayable):
@@ -497,6 +500,7 @@ func (h *Handler) ReportProgress(ctx context.Context, req *gen.ProgressReport, p
 	if v, ok := req.DurationMs.Get(); ok && v > 0 {
 		dur = &v
 	}
+	h.trackProgress(p, params.ItemId, req.PositionMs)
 	return h.lib().SaveProgress(ctx, stream.Owner(p), params.ItemId, req.PositionMs, dur, req.Played.Value)
 }
 

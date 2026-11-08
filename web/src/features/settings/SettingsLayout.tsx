@@ -1,6 +1,6 @@
 import { Link, Outlet } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Cable, FolderOpen, KeyRound, Mail, MonitorSmartphone, Server, Sparkles, UserRound, Users, UsersRound, Zap, type LucideIcon } from "lucide-react";
+import { Bell, Cable, FolderOpen, Gauge, KeyRound, ListChecks, Mail, MonitorSmartphone, Server, Sparkles, UserRound, Users, UsersRound, Zap, type LucideIcon } from "lucide-react";
 import { useMe } from "@/features/auth/useAuth";
 import { Page } from "@/components/Page";
 
@@ -31,12 +31,15 @@ export function SettingsLayout() {
           {me?.isAdmin && (
             <>
               <p className="hidden px-3 pt-5 pb-1.5 text-[11px] font-medium tracking-[0.08em] text-faint uppercase md:block">{t("settings.adminSection")}</p>
+              <Tab to="/settings/dashboard" icon={Gauge} label={t("settings.dashboard")} />
               <Tab to="/settings/server" icon={Server} label={t("settings.server")} />
               <Tab to="/settings/libraries" icon={FolderOpen} label={t("settings.libraries")} />
               <Tab to="/settings/metadata" icon={Sparkles} label={t("settings.metadata")} />
               <Tab to="/settings/users" icon={Users} label={t("settings.users")} />
               <Tab to="/settings/invites" icon={Mail} label={t("settings.invites")} />
               <Tab to="/settings/integrations" icon={Cable} label={t("settings.integrations")} />
+              <Tab to="/settings/notifications" icon={Bell} label={t("settings.notifications")} />
+              <Tab to="/settings/tasks" icon={ListChecks} label={t("settings.tasks")} />
               <Tab to="/settings/apikeys" icon={KeyRound} label={t("settings.apiKeys")} />
             </>
           )}

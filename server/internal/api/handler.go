@@ -10,10 +10,12 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/streamero-app/streamero/server/internal/activity"
 	"github.com/streamero-app/streamero/server/internal/api/gen"
 	"github.com/streamero-app/streamero/server/internal/auth"
 	"github.com/streamero-app/streamero/server/internal/library"
 	"github.com/streamero-app/streamero/server/internal/metadata"
+	"github.com/streamero-app/streamero/server/internal/notify"
 	"github.com/streamero-app/streamero/server/internal/settings"
 	"github.com/streamero-app/streamero/server/internal/stream"
 	"github.com/streamero-app/streamero/server/internal/version"
@@ -40,6 +42,14 @@ type Handler struct {
 	Stream func() *stream.Server
 	// NewTMDb builds a TMDb client (tests use a fake server).
 	NewTMDb func(key string) *metadata.TMDb
+	// NowPlaying tracks active playback for the dashboard (nil disables it).
+	NowPlaying *activity.Registry
+	// Notify delivers events to webhook targets (nil disables it).
+	Notify *notify.Dispatcher
+	// Paths are shown with their free space on the dashboard.
+	Paths Paths
+	// RunTaskFn queues a maintenance task by key.
+	RunTaskFn func(ctx context.Context, key string) error
 }
 
 var _ gen.Handler = (*Handler)(nil)
