@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/rivertype"
 
 	"github.com/streamero-app/streamero/server/internal/library"
 	"github.com/streamero-app/streamero/server/internal/metadata"
@@ -22,8 +23,15 @@ type LibraryScanArgs struct {
 func (LibraryScanArgs) Kind() string { return "library.scan" }
 
 // InsertOpts keeps one pending scan per library.
+// whileQueued makes a job unique only while one is waiting or running. River's default
+// also counts completed jobs (until they are cleaned, ~24 h), which silently dropped
+// every rescan after the first one.
+var whileQueued = river.UniqueOpts{ByArgs: true, ByState: []rivertype.JobState{
+	rivertype.JobStateAvailable, rivertype.JobStatePending, rivertype.JobStateRunning, rivertype.JobStateScheduled,
+}}
+
 func (LibraryScanArgs) InsertOpts() river.InsertOpts {
-	return river.InsertOpts{MaxAttempts: 3, UniqueOpts: river.UniqueOpts{ByArgs: true}}
+	return river.InsertOpts{MaxAttempts: 3, UniqueOpts: whileQueued}
 }
 
 // LibraryScanWorker runs scans.
@@ -93,7 +101,7 @@ func (MetadataRefreshArgs) Kind() string { return "metadata.refresh_library" }
 
 // InsertOpts keeps one pending refresh per library and mode.
 func (MetadataRefreshArgs) InsertOpts() river.InsertOpts {
-	return river.InsertOpts{MaxAttempts: 3, UniqueOpts: river.UniqueOpts{ByArgs: true}}
+	return river.InsertOpts{MaxAttempts: 3, UniqueOpts: whileQueued}
 }
 
 // MetadataRefreshWorker runs metadata refreshes.

@@ -196,20 +196,16 @@ func (s *Service) Delete(ctx context.Context, id uuid.UUID) error {
 
 // Scan queues a scan job (a queued or running scan is not duplicated).
 func (s *Service) Scan(ctx context.Context, id uuid.UUID) error {
-	tag, err := s.Pool.Exec(ctx, `UPDATE libraries SET scan_state = 'queued' WHERE id = $1 AND scan_state NOT IN ('queued', 'scanning')`, id)
+	tag, err := s.Pool.Exec(ctx, `UPDATE libraries SET scan_state = CASE WHEN scan_state = 'scanning' THEN scan_state ELSE 'queued' END
+		WHERE id = $1`, id)
 	if err != nil {
 		return err
 	}
 	if tag.RowsAffected() == 0 {
-		var exists bool
-		if err := s.Pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM libraries WHERE id = $1)`, id).Scan(&exists); err != nil {
-			return err
-		}
-		if !exists {
-			return ErrNotFound
-		}
-		return nil // already queued or running
+		return ErrNotFound
 	}
+	// Always enqueue: the job queue drops duplicates while one is waiting, and a
+	// state left at "queued" by a lost job must never block scanning for good.
 	return s.Enqueue(ctx, id)
 }
 
