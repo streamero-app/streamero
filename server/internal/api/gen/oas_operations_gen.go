@@ -44,6 +44,7 @@ const (
 	GetPreferencesOperation             OperationName = "GetPreferences"
 	GetServerSettingsOperation          OperationName = "GetServerSettings"
 	GetSystemInfoOperation              OperationName = "GetSystemInfo"
+	GetTrickplaySheetOperation          OperationName = "GetTrickplaySheet"
 	IdentifyApplyOperation              OperationName = "IdentifyApply"
 	IdentifySearchOperation             OperationName = "IdentifySearch"
 	InitiateQuickConnectOperation       OperationName = "InitiateQuickConnect"

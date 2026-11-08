@@ -326,6 +326,32 @@ func (s *ChangePasswordRequest) SetNewPassword(val Password) {
 	s.NewPassword = val
 }
 
+// Ref: #/components/schemas/Chapter
+type Chapter struct {
+	StartMs int64  `json:"startMs"`
+	Title   string `json:"title"`
+}
+
+// GetStartMs returns the value of StartMs.
+func (s *Chapter) GetStartMs() int64 {
+	return s.StartMs
+}
+
+// GetTitle returns the value of Title.
+func (s *Chapter) GetTitle() string {
+	return s.Title
+}
+
+// SetStartMs sets the value of StartMs.
+func (s *Chapter) SetStartMs(val int64) {
+	s.StartMs = val
+}
+
+// SetTitle sets the value of Title.
+func (s *Chapter) SetTitle(val string) {
+	s.Title = val
+}
+
 // Ref: #/components/schemas/Collection
 type Collection struct {
 	ID          uuid.UUID `json:"id"`
@@ -1190,6 +1216,46 @@ func (s *GetPersonImageOKHeaders) SetCacheControl(val OptString) {
 
 // SetResponse sets the value of Response.
 func (s *GetPersonImageOKHeaders) SetResponse(val GetPersonImageOK) {
+	s.Response = val
+}
+
+type GetTrickplaySheetOK struct {
+	Data io.Reader
+}
+
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s GetTrickplaySheetOK) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
+}
+
+// GetTrickplaySheetOKHeaders wraps GetTrickplaySheetOK with response headers.
+type GetTrickplaySheetOKHeaders struct {
+	CacheControl OptString
+	Response     GetTrickplaySheetOK
+}
+
+// GetCacheControl returns the value of CacheControl.
+func (s *GetTrickplaySheetOKHeaders) GetCacheControl() OptString {
+	return s.CacheControl
+}
+
+// GetResponse returns the value of Response.
+func (s *GetTrickplaySheetOKHeaders) GetResponse() GetTrickplaySheetOK {
+	return s.Response
+}
+
+// SetCacheControl sets the value of CacheControl.
+func (s *GetTrickplaySheetOKHeaders) SetCacheControl(val OptString) {
+	s.CacheControl = val
+}
+
+// SetResponse sets the value of Response.
+func (s *GetTrickplaySheetOKHeaders) SetResponse(val GetTrickplaySheetOK) {
 	s.Response = val
 }
 
@@ -2350,6 +2416,98 @@ func (s *MediaFile) SetAudio(val []AudioStream) {
 // SetSubtitles sets the value of Subtitles.
 func (s *MediaFile) SetSubtitles(val []SubtitleStream) {
 	s.Subtitles = val
+}
+
+// Ref: #/components/schemas/MediaSegment
+type MediaSegment struct {
+	Kind    MediaSegmentKind `json:"kind"`
+	StartMs int64            `json:"startMs"`
+	EndMs   int64            `json:"endMs"`
+}
+
+// GetKind returns the value of Kind.
+func (s *MediaSegment) GetKind() MediaSegmentKind {
+	return s.Kind
+}
+
+// GetStartMs returns the value of StartMs.
+func (s *MediaSegment) GetStartMs() int64 {
+	return s.StartMs
+}
+
+// GetEndMs returns the value of EndMs.
+func (s *MediaSegment) GetEndMs() int64 {
+	return s.EndMs
+}
+
+// SetKind sets the value of Kind.
+func (s *MediaSegment) SetKind(val MediaSegmentKind) {
+	s.Kind = val
+}
+
+// SetStartMs sets the value of StartMs.
+func (s *MediaSegment) SetStartMs(val int64) {
+	s.StartMs = val
+}
+
+// SetEndMs sets the value of EndMs.
+func (s *MediaSegment) SetEndMs(val int64) {
+	s.EndMs = val
+}
+
+type MediaSegmentKind string
+
+const (
+	MediaSegmentKindIntro   MediaSegmentKind = "intro"
+	MediaSegmentKindCredits MediaSegmentKind = "credits"
+	MediaSegmentKindRecap   MediaSegmentKind = "recap"
+	MediaSegmentKindPreview MediaSegmentKind = "preview"
+)
+
+// AllValues returns all MediaSegmentKind values.
+func (MediaSegmentKind) AllValues() []MediaSegmentKind {
+	return []MediaSegmentKind{
+		MediaSegmentKindIntro,
+		MediaSegmentKindCredits,
+		MediaSegmentKindRecap,
+		MediaSegmentKindPreview,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s MediaSegmentKind) MarshalText() ([]byte, error) {
+	switch s {
+	case MediaSegmentKindIntro:
+		return []byte(s), nil
+	case MediaSegmentKindCredits:
+		return []byte(s), nil
+	case MediaSegmentKindRecap:
+		return []byte(s), nil
+	case MediaSegmentKindPreview:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *MediaSegmentKind) UnmarshalText(data []byte) error {
+	switch MediaSegmentKind(data) {
+	case MediaSegmentKindIntro:
+		*s = MediaSegmentKindIntro
+		return nil
+	case MediaSegmentKindCredits:
+		*s = MediaSegmentKindCredits
+		return nil
+	case MediaSegmentKindRecap:
+		*s = MediaSegmentKindRecap
+		return nil
+	case MediaSegmentKindPreview:
+		*s = MediaSegmentKindPreview
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 // Ref: #/components/schemas/MetadataEdit
@@ -3595,6 +3753,52 @@ func (o OptString) Or(d string) string {
 	return d
 }
 
+// NewOptTrickplayInfo returns new OptTrickplayInfo with value set to v.
+func NewOptTrickplayInfo(v TrickplayInfo) OptTrickplayInfo {
+	return OptTrickplayInfo{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptTrickplayInfo is optional TrickplayInfo.
+type OptTrickplayInfo struct {
+	Value TrickplayInfo
+	Set   bool
+}
+
+// IsSet returns true if OptTrickplayInfo was set.
+func (o OptTrickplayInfo) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptTrickplayInfo) Reset() {
+	var v TrickplayInfo
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptTrickplayInfo) SetTo(v TrickplayInfo) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptTrickplayInfo) Get() (v TrickplayInfo, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptTrickplayInfo) Or(d TrickplayInfo) TrickplayInfo {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptUUID returns new OptUUID with value set to v.
 func NewOptUUID(v uuid.UUID) OptUUID {
 	return OptUUID{
@@ -3760,6 +3964,9 @@ func (s *PinRequest) SetPin(val OptString) {
 
 // Ref: #/components/schemas/PlaybackInfo
 type PlaybackInfo struct {
+	Chapters  []Chapter        `json:"chapters"`
+	Segments  []MediaSegment   `json:"segments"`
+	Trickplay OptTrickplayInfo `json:"trickplay"`
 	// Position in subtitles to show by default (from the viewer's preferences); absent = off.
 	SubtitleDefault OptInt             `json:"subtitleDefault"`
 	FileId          uuid.UUID          `json:"fileId"`
@@ -3774,6 +3981,21 @@ type PlaybackInfo struct {
 	Subtitles  []PlaybackSubtitle `json:"subtitles"`
 	// Why the stream is not direct play (e.g. "audio codec dts").
 	Reason OptString `json:"reason"`
+}
+
+// GetChapters returns the value of Chapters.
+func (s *PlaybackInfo) GetChapters() []Chapter {
+	return s.Chapters
+}
+
+// GetSegments returns the value of Segments.
+func (s *PlaybackInfo) GetSegments() []MediaSegment {
+	return s.Segments
+}
+
+// GetTrickplay returns the value of Trickplay.
+func (s *PlaybackInfo) GetTrickplay() OptTrickplayInfo {
+	return s.Trickplay
 }
 
 // GetSubtitleDefault returns the value of SubtitleDefault.
@@ -3824,6 +4046,21 @@ func (s *PlaybackInfo) GetSubtitles() []PlaybackSubtitle {
 // GetReason returns the value of Reason.
 func (s *PlaybackInfo) GetReason() OptString {
 	return s.Reason
+}
+
+// SetChapters sets the value of Chapters.
+func (s *PlaybackInfo) SetChapters(val []Chapter) {
+	s.Chapters = val
+}
+
+// SetSegments sets the value of Segments.
+func (s *PlaybackInfo) SetSegments(val []MediaSegment) {
+	s.Segments = val
+}
+
+// SetTrickplay sets the value of Trickplay.
+func (s *PlaybackInfo) SetTrickplay(val OptTrickplayInfo) {
+	s.Trickplay = val
 }
 
 // SetSubtitleDefault sets the value of SubtitleDefault.
@@ -5365,6 +5602,7 @@ const (
 	TaskKeyScanAll         TaskKey = "scan_all"
 	TaskKeyRefreshMetadata TaskKey = "refresh_metadata"
 	TaskKeyCleanupImages   TaskKey = "cleanup_images"
+	TaskKeyAnalyzeMedia    TaskKey = "analyze_media"
 )
 
 // AllValues returns all TaskKey values.
@@ -5373,6 +5611,7 @@ func (TaskKey) AllValues() []TaskKey {
 		TaskKeyScanAll,
 		TaskKeyRefreshMetadata,
 		TaskKeyCleanupImages,
+		TaskKeyAnalyzeMedia,
 	}
 }
 
@@ -5384,6 +5623,8 @@ func (s TaskKey) MarshalText() ([]byte, error) {
 	case TaskKeyRefreshMetadata:
 		return []byte(s), nil
 	case TaskKeyCleanupImages:
+		return []byte(s), nil
+	case TaskKeyAnalyzeMedia:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -5402,6 +5643,9 @@ func (s *TaskKey) UnmarshalText(data []byte) error {
 	case TaskKeyCleanupImages:
 		*s = TaskKeyCleanupImages
 		return nil
+	case TaskKeyAnalyzeMedia:
+		*s = TaskKeyAnalyzeMedia
+		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
 	}
@@ -5409,6 +5653,87 @@ func (s *TaskKey) UnmarshalText(data []byte) error {
 
 // TestNotificationNoContent is response for TestNotification operation.
 type TestNotificationNoContent struct{}
+
+// Ref: #/components/schemas/TrickplayInfo
+type TrickplayInfo struct {
+	IntervalMs int      `json:"intervalMs"`
+	Width      int      `json:"width"`
+	Height     int      `json:"height"`
+	Columns    int      `json:"columns"`
+	Rows       int      `json:"rows"`
+	Count      int      `json:"count"`
+	SheetUrls  []string `json:"sheetUrls"`
+}
+
+// GetIntervalMs returns the value of IntervalMs.
+func (s *TrickplayInfo) GetIntervalMs() int {
+	return s.IntervalMs
+}
+
+// GetWidth returns the value of Width.
+func (s *TrickplayInfo) GetWidth() int {
+	return s.Width
+}
+
+// GetHeight returns the value of Height.
+func (s *TrickplayInfo) GetHeight() int {
+	return s.Height
+}
+
+// GetColumns returns the value of Columns.
+func (s *TrickplayInfo) GetColumns() int {
+	return s.Columns
+}
+
+// GetRows returns the value of Rows.
+func (s *TrickplayInfo) GetRows() int {
+	return s.Rows
+}
+
+// GetCount returns the value of Count.
+func (s *TrickplayInfo) GetCount() int {
+	return s.Count
+}
+
+// GetSheetUrls returns the value of SheetUrls.
+func (s *TrickplayInfo) GetSheetUrls() []string {
+	return s.SheetUrls
+}
+
+// SetIntervalMs sets the value of IntervalMs.
+func (s *TrickplayInfo) SetIntervalMs(val int) {
+	s.IntervalMs = val
+}
+
+// SetWidth sets the value of Width.
+func (s *TrickplayInfo) SetWidth(val int) {
+	s.Width = val
+}
+
+// SetHeight sets the value of Height.
+func (s *TrickplayInfo) SetHeight(val int) {
+	s.Height = val
+}
+
+// SetColumns sets the value of Columns.
+func (s *TrickplayInfo) SetColumns(val int) {
+	s.Columns = val
+}
+
+// SetRows sets the value of Rows.
+func (s *TrickplayInfo) SetRows(val int) {
+	s.Rows = val
+}
+
+// SetCount sets the value of Count.
+func (s *TrickplayInfo) SetCount(val int) {
+	s.Count = val
+}
+
+// SetSheetUrls sets the value of SheetUrls.
+func (s *TrickplayInfo) SetSheetUrls(val []string) {
+	s.SheetUrls = val
+}
 
 // UpdateUserDataNoContent is response for UpdateUserData operation.
 type UpdateUserDataNoContent struct{}

@@ -238,6 +238,12 @@ type Handler interface {
 	//
 	// GET /system/info
 	GetSystemInfo(ctx context.Context) (GetSystemInfoRes, error)
+	// GetTrickplaySheet implements getTrickplaySheet operation.
+	//
+	// One sheet of seek-bar thumbnails (JPEG grid).
+	//
+	// GET /trickplay/{fileId}/{sheet}
+	GetTrickplaySheet(ctx context.Context, params GetTrickplaySheetParams) (*GetTrickplaySheetOKHeaders, error)
 	// IdentifyApply implements identifyApply operation.
 	//
 	// Match the item to a TMDb entry and fetch its metadata now.

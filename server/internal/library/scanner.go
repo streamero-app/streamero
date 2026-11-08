@@ -577,7 +577,8 @@ func (s *Scanner) upsertFile(ctx context.Context, libID, itemID uuid.UUID, f pla
 		ON CONFLICT (library_id, path) DO UPDATE SET item_id = EXCLUDED.item_id, label = EXCLUDED.label,
 			size = EXCLUDED.size, mtime = EXCLUDED.mtime, container = EXCLUDED.container, duration_ms = EXCLUDED.duration_ms,
 			width = EXCLUDED.width, height = EXCLUDED.height, video_codec = EXCLUDED.video_codec, hdr = EXCLUDED.hdr,
-			audio = EXCLUDED.audio, subtitles = EXCLUDED.subtitles, probe_error = EXCLUDED.probe_error`,
+			audio = EXCLUDED.audio, subtitles = EXCLUDED.subtitles, probe_error = EXCLUDED.probe_error,
+			analyzed_at = NULL, trickplay = NULL, chapters = '[]'::jsonb`,
 		id, itemID, libID, f.path, f.label, f.size, f.mtime, r.Container, dur, r.Width, r.Height, r.VideoCodec, r.HDR,
 		audio, subs, probeErr)
 	return err
