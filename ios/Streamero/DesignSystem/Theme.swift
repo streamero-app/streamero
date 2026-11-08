@@ -1,21 +1,21 @@
 import SwiftUI
 
-/// Design tokens — "projection room": warm black, one amber light. Same palette as the web client.
+/// Design tokens — streaming-service look on near-black, white primary action, amber brand accent. Same palette as the web client.
 enum Theme {
-    static let background = Color(red: 0.043, green: 0.035, blue: 0.027)
-    static let surface = Color(red: 0.082, green: 0.071, blue: 0.059)
-    static let surface2 = Color(red: 0.122, green: 0.106, blue: 0.090)
-    static let border = Color(red: 1, green: 0.925, blue: 0.84).opacity(0.09)
-    static let text = Color(red: 0.965, green: 0.941, blue: 0.91)
-    static let textMuted = Color(red: 0.66, green: 0.62, blue: 0.576)
-    static let textFaint = Color(red: 0.48, green: 0.447, blue: 0.408)
+    static let background = Color(red: 0.063, green: 0.063, blue: 0.063)
+    static let surface = Color(red: 0.094, green: 0.094, blue: 0.094)
+    static let surface2 = Color(red: 0.137, green: 0.137, blue: 0.137)
+    static let border = Color.white.opacity(0.09)
+    static let text = Color(red: 0.96, green: 0.96, blue: 0.96)
+    static let textMuted = Color(red: 0.64, green: 0.64, blue: 0.64)
+    static let textFaint = Color(red: 0.45, green: 0.45, blue: 0.45)
     static let accent = Color(red: 1, green: 0.667, blue: 0.271)
     static let accentContrast = Color(red: 0.11, green: 0.063, blue: 0.024)
     static let cornerRadius: CGFloat = 14
     static let posterRadius: CGFloat = 10
 
-    /// Film-title serif (New York) for display text; UI text stays SF.
-    static func display(_ size: CGFloat) -> Font { .system(size: size, weight: .regular, design: .serif) }
+    /// Heavy, tight title type for billboards and headings.
+    static func display(_ size: CGFloat) -> Font { .system(size: size, weight: .heavy) }
 
     /// Stable, muted hue for artwork placeholders.
     static func hue(for title: String) -> Double {
@@ -25,15 +25,15 @@ enum Theme {
     }
 }
 
-/// Primary pill: amber, presses down slightly.
+/// Primary action: white with black label (Play), presses down slightly.
 struct PrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.body.weight(.semibold))
-            .foregroundStyle(Theme.accentContrast)
-            .padding(.horizontal, 22).frame(height: 50)
-            .background(Theme.accent, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .shadow(color: Theme.accent.opacity(0.35), radius: 14, y: 6)
+            .font(.body.weight(.bold))
+            .foregroundStyle(.black)
+            .tint(.black)
+            .padding(.horizontal, 22).frame(height: 48)
+            .background(.white.opacity(configuration.isPressed ? 0.8 : 1), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(.spring(response: 0.25, dampingFraction: 0.8), value: configuration.isPressed)
     }
@@ -60,5 +60,18 @@ struct CardPressStyle: ButtonStyle {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(.spring(response: 0.3, dampingFraction: 0.75), value: configuration.isPressed)
+    }
+}
+
+/// Secondary action: translucent grey (More info).
+struct MutedButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.body.weight(.bold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 20).frame(height: 48)
+            .background(.white.opacity(configuration.isPressed ? 0.3 : 0.2), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(.spring(response: 0.25, dampingFraction: 0.8), value: configuration.isPressed)
     }
 }
