@@ -299,7 +299,8 @@
     "items_one": "{{count}} item",
     "items_other": "{{count}} items",
     "refreshMetadata": "Refresh metadata",
-    "metadataQueued": "Metadata refresh queued."
+    "metadataQueued": "Metadata refresh queued.",
+    "items_few": "{{count}} items"
   },
   "library": {
     "sort": "Sort",
@@ -347,7 +348,8 @@
     "episodeCount_other": "{{count}} episodes",
     "removeFavorite": "Remove from favorites",
     "addFavorite": "Add to favorites",
-    "episodeCount_few": "{{count}} episodes"
+    "episodeCount_few": "{{count}} episodes",
+    "versions_few": "{{count}} versions"
   },
   "metadata": {
     "connected": "TMDb connected",

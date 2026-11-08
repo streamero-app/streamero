@@ -554,7 +554,7 @@ export function ItemPage() {
           </h2>
           <ul className="grid gap-3 lg:grid-cols-2">
             {d.files.map((f) => (
-              <li key={f.id} className="flex flex-col gap-3 rounded-card border border-border bg-surface/60 p-4 text-sm" data-testid="media-file">
+              <li key={f.id} className="flex min-w-0 flex-col gap-3 rounded-card border border-border bg-surface/60 p-4 text-sm" data-testid="media-file">
                 <div className="flex flex-wrap items-center gap-2">
                   {f.label && <span className="mr-1 font-medium">{f.label}</span>}
                   {resolutionLabel(f.width, f.height) && <Badge tone="accent">{resolutionLabel(f.width, f.height)}</Badge>}
