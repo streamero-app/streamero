@@ -1,6 +1,8 @@
 # Screenshots
 
-The demo has no TMDb key, so the art below is the typographic stand-in. Real posters and backdrops appear once a key is set.
+Demo content: Blender Foundation open movies (Sintel, Tears of Steel, Elephants Dream, Big Buck Bunny; © Blender Foundation, CC BY). The demo has no TMDb key, so the artwork is Streamero's own frame grabs; with a key, posters, title logos and cast photos replace them.
+
+![Billboard with muted preview](screenshots/desktop-0-pregled.png)
 
 **Desktop**
 
