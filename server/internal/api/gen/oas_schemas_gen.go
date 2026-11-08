@@ -1366,6 +1366,9 @@ type ItemSummary struct {
 	HasBackdrop OptBool `json:"hasBackdrop"`
 	// A transparent title logo is available (images/logo, PNG).
 	HasLogo OptBool `json:"hasLogo"`
+	// For episodes in Next Up / Continue watching.
+	SeriesId    OptUUID   `json:"seriesId"`
+	SeriesTitle OptString `json:"seriesTitle"`
 	// Community rating 0–10.
 	Rating OptFloat64 `json:"rating"`
 	// Resume position for the current profile.
@@ -1433,6 +1436,16 @@ func (s *ItemSummary) GetHasBackdrop() OptBool {
 // GetHasLogo returns the value of HasLogo.
 func (s *ItemSummary) GetHasLogo() OptBool {
 	return s.HasLogo
+}
+
+// GetSeriesId returns the value of SeriesId.
+func (s *ItemSummary) GetSeriesId() OptUUID {
+	return s.SeriesId
+}
+
+// GetSeriesTitle returns the value of SeriesTitle.
+func (s *ItemSummary) GetSeriesTitle() OptString {
+	return s.SeriesTitle
 }
 
 // GetRating returns the value of Rating.
@@ -1513,6 +1526,16 @@ func (s *ItemSummary) SetHasBackdrop(val OptBool) {
 // SetHasLogo sets the value of HasLogo.
 func (s *ItemSummary) SetHasLogo(val OptBool) {
 	s.HasLogo = val
+}
+
+// SetSeriesId sets the value of SeriesId.
+func (s *ItemSummary) SetSeriesId(val OptUUID) {
+	s.SeriesId = val
+}
+
+// SetSeriesTitle sets the value of SeriesTitle.
+func (s *ItemSummary) SetSeriesTitle(val OptString) {
+	s.SeriesTitle = val
 }
 
 // SetRating sets the value of Rating.
@@ -3273,8 +3296,10 @@ func (s *PinRequest) SetPin(val OptString) {
 
 // Ref: #/components/schemas/PlaybackInfo
 type PlaybackInfo struct {
-	FileId uuid.UUID          `json:"fileId"`
-	Method PlaybackInfoMethod `json:"method"`
+	// Position in subtitles to show by default (from the viewer's preferences); absent = off.
+	SubtitleDefault OptInt             `json:"subtitleDefault"`
+	FileId          uuid.UUID          `json:"fileId"`
+	Method          PlaybackInfoMethod `json:"method"`
 	// Signed URL (relative to the server) for the video element / player.
 	URL string `json:"url"`
 	// Position the stream starts at; for HLS the stream itself starts there.
@@ -3285,6 +3310,11 @@ type PlaybackInfo struct {
 	Subtitles  []PlaybackSubtitle `json:"subtitles"`
 	// Why the stream is not direct play (e.g. "audio codec dts").
 	Reason OptString `json:"reason"`
+}
+
+// GetSubtitleDefault returns the value of SubtitleDefault.
+func (s *PlaybackInfo) GetSubtitleDefault() OptInt {
+	return s.SubtitleDefault
 }
 
 // GetFileId returns the value of FileId.
@@ -3330,6 +3360,11 @@ func (s *PlaybackInfo) GetSubtitles() []PlaybackSubtitle {
 // GetReason returns the value of Reason.
 func (s *PlaybackInfo) GetReason() OptString {
 	return s.Reason
+}
+
+// SetSubtitleDefault sets the value of SubtitleDefault.
+func (s *PlaybackInfo) SetSubtitleDefault(val OptInt) {
+	s.SubtitleDefault = val
 }
 
 // SetFileId sets the value of FileId.
@@ -3419,6 +3454,125 @@ func (s *PlaybackInfoMethod) UnmarshalText(data []byte) error {
 		return nil
 	case PlaybackInfoMethodTranscode:
 		*s = PlaybackInfoMethodTranscode
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/PlaybackPreferences
+type PlaybackPreferences struct {
+	// Preferred audio language (ISO 639-1 or -2, e.g. "hr", "eng"); empty = the file's default track.
+	AudioLanguage OptString `json:"audioLanguage"`
+	// Preferred subtitle language.
+	SubtitleLanguage OptString `json:"subtitleLanguage"`
+	// Default: forced subtitles in the audio language, else the preferred language when the audio differs;
+	// smart: the preferred language only when the audio is in another language; always: the preferred
+	// language; forced: forced subtitles only; none: off.
+	SubtitleMode PlaybackPreferencesSubtitleMode `json:"subtitleMode"`
+	// Play the next episode automatically.
+	AutoplayNext bool `json:"autoplayNext"`
+}
+
+// GetAudioLanguage returns the value of AudioLanguage.
+func (s *PlaybackPreferences) GetAudioLanguage() OptString {
+	return s.AudioLanguage
+}
+
+// GetSubtitleLanguage returns the value of SubtitleLanguage.
+func (s *PlaybackPreferences) GetSubtitleLanguage() OptString {
+	return s.SubtitleLanguage
+}
+
+// GetSubtitleMode returns the value of SubtitleMode.
+func (s *PlaybackPreferences) GetSubtitleMode() PlaybackPreferencesSubtitleMode {
+	return s.SubtitleMode
+}
+
+// GetAutoplayNext returns the value of AutoplayNext.
+func (s *PlaybackPreferences) GetAutoplayNext() bool {
+	return s.AutoplayNext
+}
+
+// SetAudioLanguage sets the value of AudioLanguage.
+func (s *PlaybackPreferences) SetAudioLanguage(val OptString) {
+	s.AudioLanguage = val
+}
+
+// SetSubtitleLanguage sets the value of SubtitleLanguage.
+func (s *PlaybackPreferences) SetSubtitleLanguage(val OptString) {
+	s.SubtitleLanguage = val
+}
+
+// SetSubtitleMode sets the value of SubtitleMode.
+func (s *PlaybackPreferences) SetSubtitleMode(val PlaybackPreferencesSubtitleMode) {
+	s.SubtitleMode = val
+}
+
+// SetAutoplayNext sets the value of AutoplayNext.
+func (s *PlaybackPreferences) SetAutoplayNext(val bool) {
+	s.AutoplayNext = val
+}
+
+// Default: forced subtitles in the audio language, else the preferred language when the audio differs;
+// smart: the preferred language only when the audio is in another language; always: the preferred
+// language; forced: forced subtitles only; none: off.
+type PlaybackPreferencesSubtitleMode string
+
+const (
+	PlaybackPreferencesSubtitleModeDefault PlaybackPreferencesSubtitleMode = "default"
+	PlaybackPreferencesSubtitleModeSmart   PlaybackPreferencesSubtitleMode = "smart"
+	PlaybackPreferencesSubtitleModeAlways  PlaybackPreferencesSubtitleMode = "always"
+	PlaybackPreferencesSubtitleModeForced  PlaybackPreferencesSubtitleMode = "forced"
+	PlaybackPreferencesSubtitleModeNone    PlaybackPreferencesSubtitleMode = "none"
+)
+
+// AllValues returns all PlaybackPreferencesSubtitleMode values.
+func (PlaybackPreferencesSubtitleMode) AllValues() []PlaybackPreferencesSubtitleMode {
+	return []PlaybackPreferencesSubtitleMode{
+		PlaybackPreferencesSubtitleModeDefault,
+		PlaybackPreferencesSubtitleModeSmart,
+		PlaybackPreferencesSubtitleModeAlways,
+		PlaybackPreferencesSubtitleModeForced,
+		PlaybackPreferencesSubtitleModeNone,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s PlaybackPreferencesSubtitleMode) MarshalText() ([]byte, error) {
+	switch s {
+	case PlaybackPreferencesSubtitleModeDefault:
+		return []byte(s), nil
+	case PlaybackPreferencesSubtitleModeSmart:
+		return []byte(s), nil
+	case PlaybackPreferencesSubtitleModeAlways:
+		return []byte(s), nil
+	case PlaybackPreferencesSubtitleModeForced:
+		return []byte(s), nil
+	case PlaybackPreferencesSubtitleModeNone:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *PlaybackPreferencesSubtitleMode) UnmarshalText(data []byte) error {
+	switch PlaybackPreferencesSubtitleMode(data) {
+	case PlaybackPreferencesSubtitleModeDefault:
+		*s = PlaybackPreferencesSubtitleModeDefault
+		return nil
+	case PlaybackPreferencesSubtitleModeSmart:
+		*s = PlaybackPreferencesSubtitleModeSmart
+		return nil
+	case PlaybackPreferencesSubtitleModeAlways:
+		*s = PlaybackPreferencesSubtitleModeAlways
+		return nil
+	case PlaybackPreferencesSubtitleModeForced:
+		*s = PlaybackPreferencesSubtitleModeForced
+		return nil
+	case PlaybackPreferencesSubtitleModeNone:
+		*s = PlaybackPreferencesSubtitleModeNone
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)

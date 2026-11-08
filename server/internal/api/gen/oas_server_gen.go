@@ -166,6 +166,12 @@ type Handler interface {
 	//
 	// GET /people/{personId}/image
 	GetPersonImage(ctx context.Context, params GetPersonImageParams) (*GetPersonImageOKHeaders, error)
+	// GetPreferences implements getPreferences operation.
+	//
+	// Playback preferences of the current profile.
+	//
+	// GET /me/preferences
+	GetPreferences(ctx context.Context) (*PlaybackPreferences, error)
 	// GetServerSettings implements getServerSettings operation.
 	//
 	// Server-wide settings (admin).
@@ -257,6 +263,18 @@ type Handler interface {
 	//
 	// POST /auth/logout
 	Logout(ctx context.Context) (*LogoutNoContent, error)
+	// NextEpisode implements nextEpisode operation.
+	//
+	// The episode after this one (for autoplay).
+	//
+	// GET /items/{itemId}/next
+	NextEpisode(ctx context.Context, params NextEpisodeParams) (*ItemSummary, error)
+	// NextUp implements nextUp operation.
+	//
+	// The next unwatched episode of each series the current profile is watching.
+	//
+	// GET /home/next-up
+	NextUp(ctx context.Context) ([]ItemSummary, error)
 	// Ping implements ping operation.
 	//
 	// Liveness probe for clients.
@@ -367,6 +385,12 @@ type Handler interface {
 	//
 	// PUT /settings/notifications
 	UpdateNotificationSettings(ctx context.Context, req *NotificationSettings) (*NotificationSettings, error)
+	// UpdatePreferences implements updatePreferences operation.
+	//
+	// Save playback preferences of the current profile.
+	//
+	// PUT /me/preferences
+	UpdatePreferences(ctx context.Context, req *PlaybackPreferences) (*PlaybackPreferences, error)
 	// UpdateProfile implements updateProfile operation.
 	//
 	// Change a profile (not from a kids profile).

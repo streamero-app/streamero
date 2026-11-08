@@ -992,6 +992,84 @@ paths:
           description: Saved
         default:
           $ref: "#/components/responses/Error"
+  /home/next-up:
+    get:
+      operationId: nextUp
+      summary: The next unwatched episode of each series the current profile is watching
+      tags: [playback]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Episodes, most recently watched series first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ItemSummary"
+        default:
+          $ref: "#/components/responses/Error"
+  /items/{itemId}/next:
+    parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: nextEpisode
+      summary: The episode after this one (for autoplay)
+      tags: [playback]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Next episode
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ItemSummary"
+        default:
+          $ref: "#/components/responses/Error"
+  /me/preferences:
+    get:
+      operationId: getPreferences
+      summary: Playback preferences of the current profile
+      tags: [playback]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaybackPreferences"
+        default:
+          $ref: "#/components/responses/Error"
+    put:
+      operationId: updatePreferences
+      summary: Save playback preferences of the current profile
+      tags: [playback]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaybackPreferences"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaybackPreferences"
+        default:
+          $ref: "#/components/responses/Error"
   /home/continue:
     get:
       operationId: continueWatching
@@ -1635,6 +1713,9 @@ components:
       type: object
       required: [fileId, method, url, startMs, subtitles, audio]
       properties:
+        subtitleDefault:
+          type: integer
+          description: Position in subtitles to show by default (from the viewer's preferences); absent = off.
         fileId:
           type: string
           format: uuid
@@ -1857,6 +1938,28 @@ components:
           maxItems: 20
           items:
             $ref: "#/components/schemas/NotificationTarget"
+    PlaybackPreferences:
+      type: object
+      required: [subtitleMode, autoplayNext]
+      properties:
+        audioLanguage:
+          type: string
+          maxLength: 3
+          description: Preferred audio language (ISO 639-1 or -2, e.g. "hr", "eng"); empty = the file's default track.
+        subtitleLanguage:
+          type: string
+          maxLength: 3
+          description: Preferred subtitle language.
+        subtitleMode:
+          type: string
+          enum: [default, smart, always, forced, none]
+          description: >-
+            default: forced subtitles in the audio language, else the preferred language when the audio differs;
+            smart: the preferred language only when the audio is in another language; always: the preferred language;
+            forced: forced subtitles only; none: off.
+        autoplayNext:
+          type: boolean
+          description: Play the next episode automatically.
     MetadataSettings:
       type: object
       required: [tmdbConfigured, language, country]
@@ -1930,6 +2033,12 @@ components:
         hasLogo:
           type: boolean
           description: A transparent title logo is available (images/logo, PNG).
+        seriesId:
+          type: string
+          format: uuid
+          description: For episodes in Next Up / Continue watching.
+        seriesTitle:
+          type: string
         rating:
           type: number
           description: Community rating 0–10.

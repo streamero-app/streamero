@@ -56,6 +56,8 @@ type Info struct {
 	AudioIndex int
 	Subtitles  []Subtitle
 	Reason     string
+	// SubtitleDefault is the position in Subtitles to show (-1 = off).
+	SubtitleDefault int
 }
 
 // Owner returns the id that playback state belongs to (active profile or user).
@@ -118,7 +120,8 @@ func (s *Server) Start(ctx context.Context, lib *library.Service, p auth.Princip
 			return Info{}, library.ErrNotFound
 		}
 	}
-	audio := 0
+	prefs, _ := lib.GetPrefs(ctx, Owner(p))
+	audio := library.PickAudio(f.Audio, prefs.AudioLanguage)
 	if req.AudioIndex != nil && *req.AudioIndex >= 0 && *req.AudioIndex < len(f.Audio) {
 		audio = *req.AudioIndex
 	}
@@ -165,6 +168,15 @@ func (s *Server) Start(ctx context.Context, lib *library.Service, p auth.Princip
 		info.Subtitles = append(info.Subtitles, Subtitle{Index: i, Language: sub.Language, Forced: sub.Forced,
 			External: sub.External, URL: fmt.Sprintf("%s%d.vtt?%s", subScope, i, q)})
 	}
+	choices := make([]library.SubtitleChoice, len(info.Subtitles))
+	for i, sub := range info.Subtitles {
+		choices[i] = library.SubtitleChoice{Language: sub.Language, Forced: sub.Forced}
+	}
+	audioLang := ""
+	if audio >= 0 && audio < len(f.Audio) {
+		audioLang = f.Audio[audio].Language
+	}
+	info.SubtitleDefault = library.PickSubtitle(choices, audioLang, prefs)
 	return info, nil
 }
 

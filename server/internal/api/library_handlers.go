@@ -277,6 +277,10 @@ func toItemSummary(it library.Item) gen.ItemSummary {
 	if it.Favorite {
 		out.Favorite = gen.NewOptBool(true)
 	}
+	if it.SeriesID != nil {
+		out.SeriesId = gen.NewOptUUID(*it.SeriesID)
+		out.SeriesTitle = gen.NewOptString(it.SeriesTitle)
+	}
 	return out
 }
 
@@ -484,6 +488,9 @@ func (h *Handler) StartPlayback(ctx context.Context, req *gen.PlaybackRequest, p
 		}
 		out.Subtitles = append(out.Subtitles, ps)
 	}
+	if info.SubtitleDefault >= 0 {
+		out.SubtitleDefault = gen.NewOptInt(info.SubtitleDefault)
+	}
 	return out, nil
 }
 
@@ -599,4 +606,95 @@ func (h *Handler) UpdateUserData(ctx context.Context, req *gen.UserDataUpdate, p
 		played = &v
 	}
 	return h.lib().SetUserData(ctx, stream.Owner(p), params.ItemId, fav, played)
+}
+
+// NextUp implements GET /home/next-up.
+func (h *Handler) NextUp(ctx context.Context) ([]gen.ItemSummary, error) {
+	if h.lib() == nil {
+		return nil, errStarting
+	}
+	p, err := principal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := []gen.ItemSummary{}
+	if !canSeeLibraries(p) {
+		return out, nil
+	}
+	items, err := h.lib().NextUp(ctx, stream.Owner(p), 20)
+	if err != nil {
+		return nil, err
+	}
+	for _, it := range items {
+		out = append(out, toItemSummary(it))
+	}
+	return out, nil
+}
+
+// NextEpisode implements GET /items/{itemId}/next.
+func (h *Handler) NextEpisode(ctx context.Context, params gen.NextEpisodeParams) (*gen.ItemSummary, error) {
+	if h.lib() == nil {
+		return nil, errStarting
+	}
+	p, err := viewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+	it, err := h.lib().NextEpisode(ctx, stream.Owner(p), params.ItemId)
+	if err != nil {
+		return nil, err
+	}
+	s := toItemSummary(it)
+	return &s, nil
+}
+
+var subtitleModes = map[string]bool{"default": true, "smart": true, "always": true, "forced": true, "none": true}
+
+// GetPreferences implements GET /me/preferences.
+func (h *Handler) GetPreferences(ctx context.Context) (*gen.PlaybackPreferences, error) {
+	if h.lib() == nil {
+		return nil, errStarting
+	}
+	p, err := principal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	prefs, err := h.lib().GetPrefs(ctx, stream.Owner(p))
+	if err != nil {
+		return nil, err
+	}
+	return toPrefs(prefs), nil
+}
+
+// UpdatePreferences implements PUT /me/preferences.
+func (h *Handler) UpdatePreferences(ctx context.Context, req *gen.PlaybackPreferences) (*gen.PlaybackPreferences, error) {
+	if h.lib() == nil {
+		return nil, errStarting
+	}
+	p, err := principal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	mode := string(req.SubtitleMode)
+	if !subtitleModes[mode] {
+		return nil, &StatusError{Status: 400, Code: "invalid_request", Message: "unknown subtitle mode"}
+	}
+	autoplay := req.AutoplayNext
+	prefs := library.Prefs{AudioLanguage: strings.ToLower(req.AudioLanguage.Value), SubtitleLanguage: strings.ToLower(req.SubtitleLanguage.Value),
+		SubtitleMode: mode, AutoplayNext: &autoplay}
+	if err := h.lib().SavePrefs(ctx, stream.Owner(p), prefs); err != nil {
+		return nil, err
+	}
+	return toPrefs(prefs), nil
+}
+
+func toPrefs(p library.Prefs) *gen.PlaybackPreferences {
+	out := &gen.PlaybackPreferences{SubtitleMode: gen.PlaybackPreferencesSubtitleMode(p.Mode()), AutoplayNext: p.Autoplay()}
+	if p.AudioLanguage != "" {
+		out.AudioLanguage = gen.NewOptString(p.AudioLanguage)
+	}
+	if p.SubtitleLanguage != "" {
+		out.SubtitleLanguage = gen.NewOptString(p.SubtitleLanguage)
+	}
+	return out
 }
