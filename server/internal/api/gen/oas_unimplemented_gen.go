@@ -22,6 +22,15 @@ func (UnimplementedHandler) AcceptInvite(ctx context.Context, req *AcceptInviteR
 	return r, ht.ErrNotImplemented
 }
 
+// AddToPlaylist implements addToPlaylist operation.
+//
+// Append titles to a playlist (owner only).
+//
+// POST /playlists/{playlistId}/items
+func (UnimplementedHandler) AddToPlaylist(ctx context.Context, req *AddToPlaylistReq, params AddToPlaylistParams) (r *Playlist, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // AuthorizeQuickConnect implements authorizeQuickConnect operation.
 //
 // The other device is signed in as the calling user.
@@ -78,6 +87,15 @@ func (UnimplementedHandler) CreateAPIKey(ctx context.Context, req *CreateApiKeyR
 	return r, ht.ErrNotImplemented
 }
 
+// CreateCollection implements createCollection operation.
+//
+// Create a collection (administrators).
+//
+// POST /collections
+func (UnimplementedHandler) CreateCollection(ctx context.Context, req *CollectionInput) (r *Collection, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // CreateInvite implements createInvite operation.
 //
 // Create an invite link (admin).
@@ -93,6 +111,15 @@ func (UnimplementedHandler) CreateInvite(ctx context.Context, req *CreateInviteR
 //
 // POST /libraries
 func (UnimplementedHandler) CreateLibrary(ctx context.Context, req *LibraryInput) (r *Library, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// CreatePlaylist implements createPlaylist operation.
+//
+// Create a playlist.
+//
+// POST /playlists
+func (UnimplementedHandler) CreatePlaylist(ctx context.Context, req *PlaylistInput) (r *Playlist, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -123,6 +150,15 @@ func (UnimplementedHandler) DeleteAPIKey(ctx context.Context, params DeleteAPIKe
 	return ht.ErrNotImplemented
 }
 
+// DeleteCollection implements deleteCollection operation.
+//
+// Delete a collection (titles stay in the library).
+//
+// DELETE /collections/{collectionId}
+func (UnimplementedHandler) DeleteCollection(ctx context.Context, params DeleteCollectionParams) error {
+	return ht.ErrNotImplemented
+}
+
 // DeleteInvite implements deleteInvite operation.
 //
 // Revoke an invite (admin).
@@ -138,6 +174,15 @@ func (UnimplementedHandler) DeleteInvite(ctx context.Context, params DeleteInvit
 //
 // DELETE /libraries/{libraryId}
 func (UnimplementedHandler) DeleteLibrary(ctx context.Context, params DeleteLibraryParams) error {
+	return ht.ErrNotImplemented
+}
+
+// DeletePlaylist implements deletePlaylist operation.
+//
+// Delete a playlist (owner only).
+//
+// DELETE /playlists/{playlistId}
+func (UnimplementedHandler) DeletePlaylist(ctx context.Context, params DeletePlaylistParams) error {
 	return ht.ErrNotImplemented
 }
 
@@ -174,6 +219,24 @@ func (UnimplementedHandler) DisableTOTP(ctx context.Context, req *PasswordConfir
 //
 // POST /auth/totp/enable
 func (UnimplementedHandler) EnableTOTP(ctx context.Context, req *TOTPCodeRequest) (r *RecoveryCodes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetCollection implements getCollection operation.
+//
+// A collection with its titles.
+//
+// GET /collections/{collectionId}
+func (UnimplementedHandler) GetCollection(ctx context.Context, params GetCollectionParams) (r *CollectionDetail, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetCollectionImage implements getCollectionImage operation.
+//
+// Collection artwork (JPEG).
+//
+// GET /collections/{collectionId}/images/{imageType}
+func (UnimplementedHandler) GetCollectionImage(ctx context.Context, params GetCollectionImageParams) (r *GetCollectionImageOKHeaders, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -249,6 +312,15 @@ func (UnimplementedHandler) GetPersonImage(ctx context.Context, params GetPerson
 	return r, ht.ErrNotImplemented
 }
 
+// GetPlaylist implements getPlaylist operation.
+//
+// A playlist with its items in order.
+//
+// GET /playlists/{playlistId}
+func (UnimplementedHandler) GetPlaylist(ctx context.Context, params GetPlaylistParams) (r *PlaylistDetail, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetPreferences implements getPreferences operation.
 //
 // Playback preferences of the current profile.
@@ -295,6 +367,15 @@ func (UnimplementedHandler) ListAPIKeys(ctx context.Context) (r []ApiKey, _ erro
 	return r, ht.ErrNotImplemented
 }
 
+// ListCollections implements listCollections operation.
+//
+// Collections that contain at least one visible item.
+//
+// GET /collections
+func (UnimplementedHandler) ListCollections(ctx context.Context) (r []Collection, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ListFavorites implements listFavorites operation.
 //
 // Favorites of the current profile.
@@ -337,6 +418,15 @@ func (UnimplementedHandler) ListLibraryGenres(ctx context.Context, params ListLi
 //
 // GET /libraries/{libraryId}/items
 func (UnimplementedHandler) ListLibraryItems(ctx context.Context, params ListLibraryItemsParams) (r *ItemPage, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListPlaylists implements listPlaylists operation.
+//
+// The current profile's playlists and public playlists.
+//
+// GET /playlists
+func (UnimplementedHandler) ListPlaylists(ctx context.Context) (r []Playlist, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -549,6 +639,15 @@ func (UnimplementedHandler) TestNotification(ctx context.Context, req *Notificat
 	return ht.ErrNotImplemented
 }
 
+// UpdateCollection implements updateCollection operation.
+//
+// Rename a collection and replace its titles (administrators).
+//
+// PUT /collections/{collectionId}
+func (UnimplementedHandler) UpdateCollection(ctx context.Context, req *CollectionInput, params UpdateCollectionParams) (r *Collection, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // UpdateLibrary implements updateLibrary operation.
 //
 // Change a library (admin); changed folders are rescanned.
@@ -573,6 +672,15 @@ func (UnimplementedHandler) UpdateMetadataSettings(ctx context.Context, req *Met
 //
 // PUT /settings/notifications
 func (UnimplementedHandler) UpdateNotificationSettings(ctx context.Context, req *NotificationSettings) (r *NotificationSettings, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdatePlaylist implements updatePlaylist operation.
+//
+// Rename, share and reorder a playlist (owner only).
+//
+// PUT /playlists/{playlistId}
+func (UnimplementedHandler) UpdatePlaylist(ctx context.Context, req *PlaylistInput, params UpdatePlaylistParams) (r *Playlist, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

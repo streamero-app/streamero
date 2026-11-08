@@ -48,6 +48,19 @@ func encodeAcceptInviteResponse(response *SignedInHeaders, w http.ResponseWriter
 	return nil
 }
 
+func encodeAddToPlaylistResponse(response *Playlist, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
 func encodeAuthorizeQuickConnectResponse(response *QuickConnectApproved, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
@@ -143,6 +156,19 @@ func encodeCreateAPIKeyResponse(response *CreatedApiKey, w http.ResponseWriter, 
 	return nil
 }
 
+func encodeCreateCollectionResponse(response *Collection, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(201)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
 func encodeCreateInviteResponse(response *CreatedInvite, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(201)
@@ -157,6 +183,19 @@ func encodeCreateInviteResponse(response *CreatedInvite, w http.ResponseWriter, 
 }
 
 func encodeCreateLibraryResponse(response *Library, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(201)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
+func encodeCreatePlaylistResponse(response *Playlist, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(201)
 
@@ -201,6 +240,12 @@ func encodeDeleteAPIKeyResponse(response *DeleteAPIKeyNoContent, w http.Response
 	return nil
 }
 
+func encodeDeleteCollectionResponse(response *DeleteCollectionNoContent, w http.ResponseWriter, span trace.Span) error {
+	w.WriteHeader(204)
+
+	return nil
+}
+
 func encodeDeleteInviteResponse(response *DeleteInviteNoContent, w http.ResponseWriter, span trace.Span) error {
 	w.WriteHeader(204)
 
@@ -208,6 +253,12 @@ func encodeDeleteInviteResponse(response *DeleteInviteNoContent, w http.Response
 }
 
 func encodeDeleteLibraryResponse(response *DeleteLibraryNoContent, w http.ResponseWriter, span trace.Span) error {
+	w.WriteHeader(204)
+
+	return nil
+}
+
+func encodeDeletePlaylistResponse(response *DeletePlaylistNoContent, w http.ResponseWriter, span trace.Span) error {
 	w.WriteHeader(204)
 
 	return nil
@@ -238,6 +289,53 @@ func encodeEnableTOTPResponse(response *RecoveryCodes, w http.ResponseWriter, sp
 	e := new(jx.Encoder)
 	response.Encode(e)
 	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
+func encodeGetCollectionResponse(response *CollectionDetail, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
+func encodeGetCollectionImageResponse(response *GetCollectionImageOKHeaders, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "image/jpeg")
+	// Encoding response headers.
+	{
+		h := uri.NewHeaderEncoder(w.Header())
+		// Encode "Cache-Control" header.
+		{
+			cfg := uri.HeaderParameterEncodingConfig{
+				Name:    "Cache-Control",
+				Explode: false,
+			}
+			if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+				if val, ok := response.CacheControl.Get(); ok {
+					return e.EncodeValue(conv.StringToString(val))
+				}
+				return nil
+			}); err != nil {
+				return errors.Wrap(err, "encode Cache-Control header")
+			}
+		}
+	}
+	w.WriteHeader(200)
+
+	writer := w
+	if closer, ok := response.Response.Data.(io.Closer); ok {
+		defer closer.Close()
+	}
+	if _, err := io.Copy(writer, response.Response); err != nil {
 		return errors.Wrap(err, "write")
 	}
 
@@ -390,6 +488,19 @@ func encodeGetPersonImageResponse(response *GetPersonImageOKHeaders, w http.Resp
 	return nil
 }
 
+func encodeGetPlaylistResponse(response *PlaylistDetail, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
 func encodeGetPreferencesResponse(response *PlaybackPreferences, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
@@ -498,6 +609,23 @@ func encodeListAPIKeysResponse(response []ApiKey, w http.ResponseWriter, span tr
 	return nil
 }
 
+func encodeListCollectionsResponse(response []Collection, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	e.ArrStart()
+	for _, elem := range response {
+		elem.Encode(e)
+	}
+	e.ArrEnd()
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
 func encodeListFavoritesResponse(response []ItemSummary, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
@@ -572,6 +700,23 @@ func encodeListLibraryItemsResponse(response *ItemPage, w http.ResponseWriter, s
 
 	e := new(jx.Encoder)
 	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
+func encodeListPlaylistsResponse(response []Playlist, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	e.ArrStart()
+	for _, elem := range response {
+		elem.Encode(e)
+	}
+	e.ArrEnd()
 	if _, err := e.WriteTo(w); err != nil {
 		return errors.Wrap(err, "write")
 	}
@@ -907,6 +1052,19 @@ func encodeTestNotificationResponse(response *TestNotificationNoContent, w http.
 	return nil
 }
 
+func encodeUpdateCollectionResponse(response *Collection, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
 func encodeUpdateLibraryResponse(response *Library, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
@@ -934,6 +1092,19 @@ func encodeUpdateMetadataSettingsResponse(response *MetadataSettings, w http.Res
 }
 
 func encodeUpdateNotificationSettingsResponse(response *NotificationSettings, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
+func encodeUpdatePlaylistResponse(response *Playlist, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
 

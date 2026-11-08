@@ -24,6 +24,20 @@ func encodeAcceptInviteRequest(
 	return nil
 }
 
+func encodeAddToPlaylistRequest(
+	req *AddToPlaylistReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeAuthorizeQuickConnectRequest(
 	req *TOTPCodeRequest,
 	r *http.Request,
@@ -80,6 +94,20 @@ func encodeCreateAPIKeyRequest(
 	return nil
 }
 
+func encodeCreateCollectionRequest(
+	req *CollectionInput,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeCreateInviteRequest(
 	req *CreateInviteRequest,
 	r *http.Request,
@@ -96,6 +124,20 @@ func encodeCreateInviteRequest(
 
 func encodeCreateLibraryRequest(
 	req *LibraryInput,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeCreatePlaylistRequest(
+	req *PlaylistInput,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"
@@ -308,6 +350,20 @@ func encodeTestNotificationRequest(
 	return nil
 }
 
+func encodeUpdateCollectionRequest(
+	req *CollectionInput,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeUpdateLibraryRequest(
 	req *LibraryInput,
 	r *http.Request,
@@ -338,6 +394,20 @@ func encodeUpdateMetadataSettingsRequest(
 
 func encodeUpdateNotificationSettingsRequest(
 	req *NotificationSettings,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeUpdatePlaylistRequest(
+	req *PlaylistInput,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"

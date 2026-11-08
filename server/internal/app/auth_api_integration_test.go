@@ -1557,3 +1557,116 @@ func TestNextUpAndPreferencesIntegration(t *testing.T) {
 		t.Fatalf("preferences not applied: %+v", info)
 	}
 }
+
+func TestCollectionsAndPlaylistsIntegration(t *testing.T) {
+	srv := newAuthTestServer(t)
+	adminC := newClient(t, srv)
+	setupAdmin(t, adminC)
+	dir := mediaRoot + "/cp"
+	for _, f := range []string{"A (2001)/A (2001).mkv", "B (2002)/B (2002).mkv", "C (2003)/C (2003).mkv"} {
+		if err := os.MkdirAll(filepath.Dir(dir+"/"+f), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(dir+"/"+f, []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var lib struct {
+		ID string `json:"id"`
+	}
+	adminC.do("POST", "/libraries", map[string]any{"name": "CP", "kind": "movies", "paths": []string{dir}}, &lib)
+	scanner := &library.Scanner{Pool: testPool, Roots: library.Roots{mediaRoot}, Log: slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Probe: func(context.Context, string) (library.ProbeResult, error) {
+			return library.ProbeResult{Container: "mkv", DurationMS: 60_000}, nil
+		}}
+	if _, err := scanner.Scan(context.Background(), uuid.MustParse(lib.ID)); err != nil {
+		t.Fatal(err)
+	}
+	var page struct {
+		Items []struct {
+			ID    string `json:"id"`
+			Title string `json:"title"`
+		} `json:"items"`
+	}
+	adminC.do("GET", "/libraries/"+lib.ID+"/items?sort=title", nil, &page)
+	a, b, c := page.Items[0].ID, page.Items[1].ID, page.Items[2].ID
+
+	// Collections: admin only; ordered by year; shown on the item.
+	var col struct {
+		ID        string
+		ItemCount int
+		Auto      bool
+	}
+	if s := adminC.do("POST", "/collections", map[string]any{"name": "Trilogija", "itemIds": []string{c, a}}, &col); s != 201 || col.ItemCount != 2 || col.Auto {
+		t.Fatalf("create collection: %d %+v", s, col)
+	}
+	var detail struct {
+		Items []struct{ Title string }
+	}
+	adminC.do("GET", "/collections/"+col.ID, nil, &detail)
+	if len(detail.Items) != 2 || detail.Items[0].Title != "A" || detail.Items[1].Title != "C" {
+		t.Fatalf("collection order: %+v", detail)
+	}
+	var item struct {
+		Collections []struct{ Name string }
+	}
+	adminC.do("GET", "/items/"+a, nil, &item)
+	if len(item.Collections) != 1 || item.Collections[0].Name != "Trilogija" {
+		t.Fatalf("item collections: %+v", item)
+	}
+	if s := adminC.do("POST", "/collections", map[string]any{"name": " ", "itemIds": []string{}}, nil); s != 400 {
+		t.Fatalf("empty name: %d", s)
+	}
+
+	userC := newClient(t, srv)
+	adminC.do("POST", "/users", map[string]any{"username": "cpuser", "password": "user-pass-1"}, nil)
+	var res authResult
+	userC.do("POST", "/auth/login", map[string]any{"username": "cpuser", "password": "user-pass-1", "device": map[string]any{"name": "u"}}, &res)
+	userC.token = res.Token
+	if s := userC.do("POST", "/collections", map[string]any{"name": "Mine", "itemIds": []string{}}, nil); s != 403 {
+		t.Fatalf("user creates collection: %d", s)
+	}
+	var cols []struct{ Name string }
+	userC.do("GET", "/collections", nil, &cols)
+	if len(cols) == 0 {
+		t.Fatal("users see collections")
+	}
+
+	// Playlists: owned per viewer, private by default, duplicates allowed, reorder by replacing the list.
+	var pl struct {
+		ID        string
+		ItemCount int
+		Mine      bool
+		Public    bool
+	}
+	if s := userC.do("POST", "/playlists", map[string]any{"name": "Vikend"}, &pl); s != 201 || !pl.Mine || pl.ItemCount != 0 {
+		t.Fatalf("create playlist: %d %+v", s, pl)
+	}
+	userC.do("POST", "/playlists/"+pl.ID+"/items", map[string]any{"itemIds": []string{b, a, b}}, &pl)
+	if pl.ItemCount != 3 {
+		t.Fatalf("append: %+v", pl)
+	}
+	if s := adminC.do("GET", "/playlists/"+pl.ID, nil, nil); s != 404 {
+		t.Fatalf("private playlist visible to others: %d", s)
+	}
+	userC.do("PUT", "/playlists/"+pl.ID, map[string]any{"name": "Vikend", "public": true, "itemIds": []string{c, b}}, &pl)
+	var pd struct {
+		Playlist struct{ Mine bool }
+		Items    []struct{ Title string }
+	}
+	if s := adminC.do("GET", "/playlists/"+pl.ID, nil, &pd); s != 200 || pd.Playlist.Mine || len(pd.Items) != 2 || pd.Items[0].Title != "C" {
+		t.Fatalf("public playlist: %d %+v", s, pd)
+	}
+	if s := adminC.do("POST", "/playlists/"+pl.ID+"/items", map[string]any{"itemIds": []string{a}}, nil); s != 403 {
+		t.Fatalf("others edit a public playlist: %d", s)
+	}
+	if s := adminC.do("DELETE", "/playlists/"+pl.ID, nil, nil); s != 403 {
+		t.Fatalf("others delete: %d", s)
+	}
+	if s := userC.do("DELETE", "/playlists/"+pl.ID, nil, nil); s != 204 {
+		t.Fatalf("owner delete: %d", s)
+	}
+	if s := adminC.do("DELETE", "/collections/"+col.ID, nil, nil); s != 204 {
+		t.Fatalf("delete collection: %d", s)
+	}
+}

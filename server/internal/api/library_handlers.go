@@ -173,6 +173,11 @@ func (h *Handler) GetItem(ctx context.Context, params gen.GetItemParams) (*gen.I
 		out.Genres = []string{}
 	}
 	out.Cast, out.Crew = toPeople(m.Cast), toPeople(m.Crew)
+	if cs, err := h.lib().ItemCollections(ctx, it.ID); err == nil {
+		for _, c := range cs {
+			out.Collections = append(out.Collections, toCollection(c))
+		}
+	}
 	setOpt := func(dst *gen.OptString, v string) {
 		if v != "" {
 			*dst = gen.NewOptString(v)
@@ -330,6 +335,8 @@ func mapLibraryError(err error) *StatusError {
 		return &StatusError{Status: http.StatusBadRequest, Code: "invalid_path", Message: err.Error()}
 	case errors.Is(err, library.ErrInvalidName):
 		return &StatusError{Status: http.StatusBadRequest, Code: "invalid_name", Message: err.Error()}
+	case errors.Is(err, library.ErrForbidden):
+		return &StatusError{Status: http.StatusForbidden, Code: "forbidden", Message: err.Error()}
 	case errors.Is(err, library.ErrUnsupportedKind):
 		return &StatusError{Status: http.StatusBadRequest, Code: "unsupported_kind", Message: err.Error()}
 	}

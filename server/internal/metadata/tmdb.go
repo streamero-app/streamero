@@ -231,6 +231,12 @@ type Details struct {
 		SeasonNumber int    `json:"season_number"`
 		PosterPath   string `json:"poster_path"`
 	} `json:"seasons"`
+	Collection *struct {
+		ID           int    `json:"id"`
+		Name         string `json:"name"`
+		PosterPath   string `json:"poster_path"`
+		BackdropPath string `json:"backdrop_path"`
+	} `json:"belongs_to_collection"`
 }
 
 // DisplayTitle returns the localized title.

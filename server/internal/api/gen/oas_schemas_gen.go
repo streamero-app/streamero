@@ -125,6 +125,20 @@ func (s *ActivityEntryDetail) init() ActivityEntryDetail {
 	return m
 }
 
+type AddToPlaylistReq struct {
+	ItemIds []uuid.UUID `json:"itemIds"`
+}
+
+// GetItemIds returns the value of ItemIds.
+func (s *AddToPlaylistReq) GetItemIds() []uuid.UUID {
+	return s.ItemIds
+}
+
+// SetItemIds sets the value of ItemIds.
+func (s *AddToPlaylistReq) SetItemIds(val []uuid.UUID) {
+	s.ItemIds = val
+}
+
 // Ref: #/components/schemas/ApiKey
 type ApiKey struct {
 	ID   uuid.UUID `json:"id"`
@@ -310,6 +324,151 @@ func (s *ChangePasswordRequest) SetCurrentPassword(val string) {
 // SetNewPassword sets the value of NewPassword.
 func (s *ChangePasswordRequest) SetNewPassword(val Password) {
 	s.NewPassword = val
+}
+
+// Ref: #/components/schemas/Collection
+type Collection struct {
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	Overview    OptString `json:"overview"`
+	ItemCount   int       `json:"itemCount"`
+	HasPoster   bool      `json:"hasPoster"`
+	HasBackdrop bool      `json:"hasBackdrop"`
+	// Created from TMDb (box set); kept in sync by metadata refresh.
+	Auto bool `json:"auto"`
+}
+
+// GetID returns the value of ID.
+func (s *Collection) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetName returns the value of Name.
+func (s *Collection) GetName() string {
+	return s.Name
+}
+
+// GetOverview returns the value of Overview.
+func (s *Collection) GetOverview() OptString {
+	return s.Overview
+}
+
+// GetItemCount returns the value of ItemCount.
+func (s *Collection) GetItemCount() int {
+	return s.ItemCount
+}
+
+// GetHasPoster returns the value of HasPoster.
+func (s *Collection) GetHasPoster() bool {
+	return s.HasPoster
+}
+
+// GetHasBackdrop returns the value of HasBackdrop.
+func (s *Collection) GetHasBackdrop() bool {
+	return s.HasBackdrop
+}
+
+// GetAuto returns the value of Auto.
+func (s *Collection) GetAuto() bool {
+	return s.Auto
+}
+
+// SetID sets the value of ID.
+func (s *Collection) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetName sets the value of Name.
+func (s *Collection) SetName(val string) {
+	s.Name = val
+}
+
+// SetOverview sets the value of Overview.
+func (s *Collection) SetOverview(val OptString) {
+	s.Overview = val
+}
+
+// SetItemCount sets the value of ItemCount.
+func (s *Collection) SetItemCount(val int) {
+	s.ItemCount = val
+}
+
+// SetHasPoster sets the value of HasPoster.
+func (s *Collection) SetHasPoster(val bool) {
+	s.HasPoster = val
+}
+
+// SetHasBackdrop sets the value of HasBackdrop.
+func (s *Collection) SetHasBackdrop(val bool) {
+	s.HasBackdrop = val
+}
+
+// SetAuto sets the value of Auto.
+func (s *Collection) SetAuto(val bool) {
+	s.Auto = val
+}
+
+// Ref: #/components/schemas/CollectionDetail
+type CollectionDetail struct {
+	Collection Collection    `json:"collection"`
+	Items      []ItemSummary `json:"items"`
+}
+
+// GetCollection returns the value of Collection.
+func (s *CollectionDetail) GetCollection() Collection {
+	return s.Collection
+}
+
+// GetItems returns the value of Items.
+func (s *CollectionDetail) GetItems() []ItemSummary {
+	return s.Items
+}
+
+// SetCollection sets the value of Collection.
+func (s *CollectionDetail) SetCollection(val Collection) {
+	s.Collection = val
+}
+
+// SetItems sets the value of Items.
+func (s *CollectionDetail) SetItems(val []ItemSummary) {
+	s.Items = val
+}
+
+// Ref: #/components/schemas/CollectionInput
+type CollectionInput struct {
+	Name     string      `json:"name"`
+	Overview OptString   `json:"overview"`
+	ItemIds  []uuid.UUID `json:"itemIds"`
+}
+
+// GetName returns the value of Name.
+func (s *CollectionInput) GetName() string {
+	return s.Name
+}
+
+// GetOverview returns the value of Overview.
+func (s *CollectionInput) GetOverview() OptString {
+	return s.Overview
+}
+
+// GetItemIds returns the value of ItemIds.
+func (s *CollectionInput) GetItemIds() []uuid.UUID {
+	return s.ItemIds
+}
+
+// SetName sets the value of Name.
+func (s *CollectionInput) SetName(val string) {
+	s.Name = val
+}
+
+// SetOverview sets the value of Overview.
+func (s *CollectionInput) SetOverview(val OptString) {
+	s.Overview = val
+}
+
+// SetItemIds sets the value of ItemIds.
+func (s *CollectionInput) SetItemIds(val []uuid.UUID) {
+	s.ItemIds = val
 }
 
 // Ref: #/components/schemas/CreateApiKeyRequest
@@ -599,11 +758,17 @@ func (s *DashboardServer) SetStartedAt(val time.Time) {
 // DeleteAPIKeyNoContent is response for DeleteAPIKey operation.
 type DeleteAPIKeyNoContent struct{}
 
+// DeleteCollectionNoContent is response for DeleteCollection operation.
+type DeleteCollectionNoContent struct{}
+
 // DeleteInviteNoContent is response for DeleteInvite operation.
 type DeleteInviteNoContent struct{}
 
 // DeleteLibraryNoContent is response for DeleteLibrary operation.
 type DeleteLibraryNoContent struct{}
+
+// DeletePlaylistNoContent is response for DeletePlaylist operation.
+type DeletePlaylistNoContent struct{}
 
 // DeleteProfileNoContent is response for DeleteProfile operation.
 type DeleteProfileNoContent struct{}
@@ -806,6 +971,87 @@ func (s *ErrorStatusCode) SetStatusCode(val int) {
 
 // SetResponse sets the value of Response.
 func (s *ErrorStatusCode) SetResponse(val Error) {
+	s.Response = val
+}
+
+type GetCollectionImageImageType string
+
+const (
+	GetCollectionImageImageTypePoster   GetCollectionImageImageType = "poster"
+	GetCollectionImageImageTypeBackdrop GetCollectionImageImageType = "backdrop"
+)
+
+// AllValues returns all GetCollectionImageImageType values.
+func (GetCollectionImageImageType) AllValues() []GetCollectionImageImageType {
+	return []GetCollectionImageImageType{
+		GetCollectionImageImageTypePoster,
+		GetCollectionImageImageTypeBackdrop,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s GetCollectionImageImageType) MarshalText() ([]byte, error) {
+	switch s {
+	case GetCollectionImageImageTypePoster:
+		return []byte(s), nil
+	case GetCollectionImageImageTypeBackdrop:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *GetCollectionImageImageType) UnmarshalText(data []byte) error {
+	switch GetCollectionImageImageType(data) {
+	case GetCollectionImageImageTypePoster:
+		*s = GetCollectionImageImageTypePoster
+		return nil
+	case GetCollectionImageImageTypeBackdrop:
+		*s = GetCollectionImageImageTypeBackdrop
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type GetCollectionImageOK struct {
+	Data io.Reader
+}
+
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s GetCollectionImageOK) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
+}
+
+// GetCollectionImageOKHeaders wraps GetCollectionImageOK with response headers.
+type GetCollectionImageOKHeaders struct {
+	CacheControl OptString
+	Response     GetCollectionImageOK
+}
+
+// GetCacheControl returns the value of CacheControl.
+func (s *GetCollectionImageOKHeaders) GetCacheControl() OptString {
+	return s.CacheControl
+}
+
+// GetResponse returns the value of Response.
+func (s *GetCollectionImageOKHeaders) GetResponse() GetCollectionImageOK {
+	return s.Response
+}
+
+// SetCacheControl sets the value of CacheControl.
+func (s *GetCollectionImageOKHeaders) SetCacheControl(val OptString) {
+	s.CacheControl = val
+}
+
+// SetResponse sets the value of Response.
+func (s *GetCollectionImageOKHeaders) SetResponse(val GetCollectionImageOK) {
 	s.Response = val
 }
 
@@ -1064,11 +1310,12 @@ func (s *InviteInfo) SetExpiresAt(val time.Time) {
 
 // Ref: #/components/schemas/ItemDetail
 type ItemDetail struct {
-	HasLogo       OptBool   `json:"hasLogo"`
-	Overview      OptString `json:"overview"`
-	Tagline       OptString `json:"tagline"`
-	OriginalTitle OptString `json:"originalTitle"`
-	Genres        []string  `json:"genres"`
+	Collections   []Collection `json:"collections"`
+	HasLogo       OptBool      `json:"hasLogo"`
+	Overview      OptString    `json:"overview"`
+	Tagline       OptString    `json:"tagline"`
+	OriginalTitle OptString    `json:"originalTitle"`
+	Genres        []string     `json:"genres"`
 	// Age rating for the configured country, e.g. "12" or "PG-13".
 	OfficialRating OptString `json:"officialRating"`
 	PremiereDate   OptDate   `json:"premiereDate"`
@@ -1084,6 +1331,11 @@ type ItemDetail struct {
 	ProviderIds ItemDetailProviderIds `json:"providerIds"`
 	Files       []MediaFile           `json:"files"`
 	Children    []ItemSummary         `json:"children"`
+}
+
+// GetCollections returns the value of Collections.
+func (s *ItemDetail) GetCollections() []Collection {
+	return s.Collections
 }
 
 // GetHasLogo returns the value of HasLogo.
@@ -1169,6 +1421,11 @@ func (s *ItemDetail) GetFiles() []MediaFile {
 // GetChildren returns the value of Children.
 func (s *ItemDetail) GetChildren() []ItemSummary {
 	return s.Children
+}
+
+// SetCollections sets the value of Collections.
+func (s *ItemDetail) SetCollections(val []Collection) {
+	s.Collections = val
 }
 
 // SetHasLogo sets the value of HasLogo.
@@ -3688,6 +3945,153 @@ func (s *PlaybackSubtitle) SetExternal(val bool) {
 // SetURL sets the value of URL.
 func (s *PlaybackSubtitle) SetURL(val string) {
 	s.URL = val
+}
+
+// Ref: #/components/schemas/Playlist
+type Playlist struct {
+	ID         uuid.UUID `json:"id"`
+	Name       string    `json:"name"`
+	ItemCount  int       `json:"itemCount"`
+	DurationMs int64     `json:"durationMs"`
+	Public     bool      `json:"public"`
+	// The current profile owns it (may edit).
+	Mine bool `json:"mine"`
+	// Up to four items whose artwork makes the cover.
+	CoverItemIds []uuid.UUID `json:"coverItemIds"`
+}
+
+// GetID returns the value of ID.
+func (s *Playlist) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetName returns the value of Name.
+func (s *Playlist) GetName() string {
+	return s.Name
+}
+
+// GetItemCount returns the value of ItemCount.
+func (s *Playlist) GetItemCount() int {
+	return s.ItemCount
+}
+
+// GetDurationMs returns the value of DurationMs.
+func (s *Playlist) GetDurationMs() int64 {
+	return s.DurationMs
+}
+
+// GetPublic returns the value of Public.
+func (s *Playlist) GetPublic() bool {
+	return s.Public
+}
+
+// GetMine returns the value of Mine.
+func (s *Playlist) GetMine() bool {
+	return s.Mine
+}
+
+// GetCoverItemIds returns the value of CoverItemIds.
+func (s *Playlist) GetCoverItemIds() []uuid.UUID {
+	return s.CoverItemIds
+}
+
+// SetID sets the value of ID.
+func (s *Playlist) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetName sets the value of Name.
+func (s *Playlist) SetName(val string) {
+	s.Name = val
+}
+
+// SetItemCount sets the value of ItemCount.
+func (s *Playlist) SetItemCount(val int) {
+	s.ItemCount = val
+}
+
+// SetDurationMs sets the value of DurationMs.
+func (s *Playlist) SetDurationMs(val int64) {
+	s.DurationMs = val
+}
+
+// SetPublic sets the value of Public.
+func (s *Playlist) SetPublic(val bool) {
+	s.Public = val
+}
+
+// SetMine sets the value of Mine.
+func (s *Playlist) SetMine(val bool) {
+	s.Mine = val
+}
+
+// SetCoverItemIds sets the value of CoverItemIds.
+func (s *Playlist) SetCoverItemIds(val []uuid.UUID) {
+	s.CoverItemIds = val
+}
+
+// Ref: #/components/schemas/PlaylistDetail
+type PlaylistDetail struct {
+	Playlist Playlist      `json:"playlist"`
+	Items    []ItemSummary `json:"items"`
+}
+
+// GetPlaylist returns the value of Playlist.
+func (s *PlaylistDetail) GetPlaylist() Playlist {
+	return s.Playlist
+}
+
+// GetItems returns the value of Items.
+func (s *PlaylistDetail) GetItems() []ItemSummary {
+	return s.Items
+}
+
+// SetPlaylist sets the value of Playlist.
+func (s *PlaylistDetail) SetPlaylist(val Playlist) {
+	s.Playlist = val
+}
+
+// SetItems sets the value of Items.
+func (s *PlaylistDetail) SetItems(val []ItemSummary) {
+	s.Items = val
+}
+
+// Ref: #/components/schemas/PlaylistInput
+type PlaylistInput struct {
+	Name   string  `json:"name"`
+	Public OptBool `json:"public"`
+	// Full order on update; omitted keeps the items.
+	ItemIds []uuid.UUID `json:"itemIds"`
+}
+
+// GetName returns the value of Name.
+func (s *PlaylistInput) GetName() string {
+	return s.Name
+}
+
+// GetPublic returns the value of Public.
+func (s *PlaylistInput) GetPublic() OptBool {
+	return s.Public
+}
+
+// GetItemIds returns the value of ItemIds.
+func (s *PlaylistInput) GetItemIds() []uuid.UUID {
+	return s.ItemIds
+}
+
+// SetName sets the value of Name.
+func (s *PlaylistInput) SetName(val string) {
+	s.Name = val
+}
+
+// SetPublic sets the value of Public.
+func (s *PlaylistInput) SetPublic(val OptBool) {
+	s.Public = val
+}
+
+// SetItemIds sets the value of ItemIds.
+func (s *PlaylistInput) SetItemIds(val []uuid.UUID) {
+	s.ItemIds = val
 }
 
 // PollQuickConnectAccepted is response for PollQuickConnect operation.

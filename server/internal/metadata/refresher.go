@@ -60,6 +60,11 @@ func ImagePath(dir string, itemID uuid.UUID, kind string) string {
 	return filepath.Join(dir, itemID.String(), kind+".jpg")
 }
 
+// CollectionImagePath is where a collection's artwork is cached.
+func CollectionImagePath(dir string, id uuid.UUID, kind string) string {
+	return filepath.Join(dir, "collections", id.String(), kind+".jpg")
+}
+
 // PersonImagePath is where a person's photo is cached (by TMDb person id).
 func PersonImagePath(dir string, personID int64) string {
 	return filepath.Join(dir, "people", strconv.FormatInt(personID, 10)+".jpg")
@@ -205,7 +210,47 @@ func (r *Refresher) refreshTop(ctx context.Context, c *TMDb, cfg Settings, it it
 	if kind == "tv" {
 		return r.refreshSeasons(ctx, c, cfg, it.id, d)
 	}
+	if d.Collection != nil && d.Collection.ID > 0 {
+		r.linkCollection(ctx, c, it.id, d)
+	}
 	return nil
+}
+
+// linkCollection puts a movie into its TMDb box set, creating the collection once.
+func (r *Refresher) linkCollection(ctx context.Context, c *TMDb, itemID uuid.UUID, d Details) {
+	bc := d.Collection
+	var id uuid.UUID
+	var poster, backdrop bool
+	err := r.Pool.QueryRow(ctx, `INSERT INTO collections (id, name, tmdb_id) VALUES ($1, $2, $3)
+		ON CONFLICT (tmdb_id) DO UPDATE SET name = EXCLUDED.name
+		RETURNING id, has_poster, has_backdrop`, uuid.Must(uuid.NewV7()), bc.Name, bc.ID).Scan(&id, &poster, &backdrop)
+	if err != nil {
+		r.Log.Debug("collection upsert failed", "err", err)
+		return
+	}
+	if _, err := r.Pool.Exec(ctx, `INSERT INTO collection_items (collection_id, item_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, id, itemID); err != nil {
+		return
+	}
+	save := func(kind, path, size string) bool {
+		if path == "" || r.ImageDir == "" {
+			return false
+		}
+		data, err := c.Image(ctx, path, size)
+		if err != nil {
+			return false
+		}
+		dst := CollectionImagePath(r.ImageDir, id, kind)
+		if os.MkdirAll(filepath.Dir(dst), 0o750) != nil {
+			return false
+		}
+		return os.WriteFile(dst+".tmp", data, 0o600) == nil && os.Rename(dst+".tmp", dst) == nil
+	}
+	if !poster && save("poster", bc.PosterPath, "w500") {
+		_, _ = r.Pool.Exec(ctx, `UPDATE collections SET has_poster = true WHERE id = $1`, id)
+	}
+	if !backdrop && save("backdrop", bc.BackdropPath, "w1280") {
+		_, _ = r.Pool.Exec(ctx, `UPDATE collections SET has_backdrop = true WHERE id = $1`, id)
+	}
 }
 
 // art says which images were downloaded in this refresh.

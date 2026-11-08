@@ -14,6 +14,12 @@ type Handler interface {
 	//
 	// POST /invite/{token}
 	AcceptInvite(ctx context.Context, req *AcceptInviteRequest, params AcceptInviteParams) (*SignedInHeaders, error)
+	// AddToPlaylist implements addToPlaylist operation.
+	//
+	// Append titles to a playlist (owner only).
+	//
+	// POST /playlists/{playlistId}/items
+	AddToPlaylist(ctx context.Context, req *AddToPlaylistReq, params AddToPlaylistParams) (*Playlist, error)
 	// AuthorizeQuickConnect implements authorizeQuickConnect operation.
 	//
 	// The other device is signed in as the calling user.
@@ -52,6 +58,12 @@ type Handler interface {
 	//
 	// POST /apikeys
 	CreateAPIKey(ctx context.Context, req *CreateApiKeyRequest) (*CreatedApiKey, error)
+	// CreateCollection implements createCollection operation.
+	//
+	// Create a collection (administrators).
+	//
+	// POST /collections
+	CreateCollection(ctx context.Context, req *CollectionInput) (*Collection, error)
 	// CreateInvite implements createInvite operation.
 	//
 	// Create an invite link (admin).
@@ -64,6 +76,12 @@ type Handler interface {
 	//
 	// POST /libraries
 	CreateLibrary(ctx context.Context, req *LibraryInput) (*Library, error)
+	// CreatePlaylist implements createPlaylist operation.
+	//
+	// Create a playlist.
+	//
+	// POST /playlists
+	CreatePlaylist(ctx context.Context, req *PlaylistInput) (*Playlist, error)
 	// CreateProfile implements createProfile operation.
 	//
 	// Add a profile (not from a kids profile).
@@ -82,6 +100,12 @@ type Handler interface {
 	//
 	// DELETE /apikeys/{apiKeyId}
 	DeleteAPIKey(ctx context.Context, params DeleteAPIKeyParams) error
+	// DeleteCollection implements deleteCollection operation.
+	//
+	// Delete a collection (titles stay in the library).
+	//
+	// DELETE /collections/{collectionId}
+	DeleteCollection(ctx context.Context, params DeleteCollectionParams) error
 	// DeleteInvite implements deleteInvite operation.
 	//
 	// Revoke an invite (admin).
@@ -94,6 +118,12 @@ type Handler interface {
 	//
 	// DELETE /libraries/{libraryId}
 	DeleteLibrary(ctx context.Context, params DeleteLibraryParams) error
+	// DeletePlaylist implements deletePlaylist operation.
+	//
+	// Delete a playlist (owner only).
+	//
+	// DELETE /playlists/{playlistId}
+	DeletePlaylist(ctx context.Context, params DeletePlaylistParams) error
 	// DeleteProfile implements deleteProfile operation.
 	//
 	// Delete a profile (not from a kids profile).
@@ -118,6 +148,18 @@ type Handler interface {
 	//
 	// POST /auth/totp/enable
 	EnableTOTP(ctx context.Context, req *TOTPCodeRequest) (*RecoveryCodes, error)
+	// GetCollection implements getCollection operation.
+	//
+	// A collection with its titles.
+	//
+	// GET /collections/{collectionId}
+	GetCollection(ctx context.Context, params GetCollectionParams) (*CollectionDetail, error)
+	// GetCollectionImage implements getCollectionImage operation.
+	//
+	// Collection artwork (JPEG).
+	//
+	// GET /collections/{collectionId}/images/{imageType}
+	GetCollectionImage(ctx context.Context, params GetCollectionImageParams) (*GetCollectionImageOKHeaders, error)
 	// GetDashboard implements getDashboard operation.
 	//
 	// Server overview for administrators (now playing, storage, activity).
@@ -166,6 +208,12 @@ type Handler interface {
 	//
 	// GET /people/{personId}/image
 	GetPersonImage(ctx context.Context, params GetPersonImageParams) (*GetPersonImageOKHeaders, error)
+	// GetPlaylist implements getPlaylist operation.
+	//
+	// A playlist with its items in order.
+	//
+	// GET /playlists/{playlistId}
+	GetPlaylist(ctx context.Context, params GetPlaylistParams) (*PlaylistDetail, error)
 	// GetPreferences implements getPreferences operation.
 	//
 	// Playback preferences of the current profile.
@@ -197,6 +245,12 @@ type Handler interface {
 	//
 	// GET /apikeys
 	ListAPIKeys(ctx context.Context) ([]ApiKey, error)
+	// ListCollections implements listCollections operation.
+	//
+	// Collections that contain at least one visible item.
+	//
+	// GET /collections
+	ListCollections(ctx context.Context) ([]Collection, error)
 	// ListFavorites implements listFavorites operation.
 	//
 	// Favorites of the current profile.
@@ -227,6 +281,12 @@ type Handler interface {
 	//
 	// GET /libraries/{libraryId}/items
 	ListLibraryItems(ctx context.Context, params ListLibraryItemsParams) (*ItemPage, error)
+	// ListPlaylists implements listPlaylists operation.
+	//
+	// The current profile's playlists and public playlists.
+	//
+	// GET /playlists
+	ListPlaylists(ctx context.Context) ([]Playlist, error)
 	// ListProfiles implements listProfiles operation.
 	//
 	// The account itself is the main profile; these are additional profiles (max 6).
@@ -367,6 +427,12 @@ type Handler interface {
 	//
 	// POST /settings/notifications/test
 	TestNotification(ctx context.Context, req *NotificationTarget) error
+	// UpdateCollection implements updateCollection operation.
+	//
+	// Rename a collection and replace its titles (administrators).
+	//
+	// PUT /collections/{collectionId}
+	UpdateCollection(ctx context.Context, req *CollectionInput, params UpdateCollectionParams) (*Collection, error)
 	// UpdateLibrary implements updateLibrary operation.
 	//
 	// Change a library (admin); changed folders are rescanned.
@@ -385,6 +451,12 @@ type Handler interface {
 	//
 	// PUT /settings/notifications
 	UpdateNotificationSettings(ctx context.Context, req *NotificationSettings) (*NotificationSettings, error)
+	// UpdatePlaylist implements updatePlaylist operation.
+	//
+	// Rename, share and reorder a playlist (owner only).
+	//
+	// PUT /playlists/{playlistId}
+	UpdatePlaylist(ctx context.Context, req *PlaylistInput, params UpdatePlaylistParams) (*Playlist, error)
 	// UpdatePreferences implements updatePreferences operation.
 	//
 	// Save playback preferences of the current profile.

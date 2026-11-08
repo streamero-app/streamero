@@ -100,6 +100,71 @@ func decodeAcceptInviteParams(args [1]string, argsEscaped bool, r *http.Request)
 	return params, nil
 }
 
+// AddToPlaylistParams is parameters of addToPlaylist operation.
+type AddToPlaylistParams struct {
+	PlaylistId uuid.UUID
+}
+
+func unpackAddToPlaylistParams(packed middleware.Parameters) (params AddToPlaylistParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "playlistId",
+			In:   "path",
+		}
+		params.PlaylistId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeAddToPlaylistParams(args [1]string, argsEscaped bool, r *http.Request) (params AddToPlaylistParams, _ error) {
+	// Decode path: playlistId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "playlistId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.PlaylistId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "playlistId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // BrowseDirectoriesParams is parameters of browseDirectories operation.
 type BrowseDirectoriesParams struct {
 	Path OptString `json:",omitempty,omitzero"`
@@ -256,6 +321,71 @@ func decodeDeleteAPIKeyParams(args [1]string, argsEscaped bool, r *http.Request)
 	return params, nil
 }
 
+// DeleteCollectionParams is parameters of deleteCollection operation.
+type DeleteCollectionParams struct {
+	CollectionId uuid.UUID
+}
+
+func unpackDeleteCollectionParams(packed middleware.Parameters) (params DeleteCollectionParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "collectionId",
+			In:   "path",
+		}
+		params.CollectionId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeDeleteCollectionParams(args [1]string, argsEscaped bool, r *http.Request) (params DeleteCollectionParams, _ error) {
+	// Decode path: collectionId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "collectionId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.CollectionId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "collectionId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // DeleteInviteParams is parameters of deleteInvite operation.
 type DeleteInviteParams struct {
 	InviteId uuid.UUID
@@ -386,6 +516,71 @@ func decodeDeleteLibraryParams(args [1]string, argsEscaped bool, r *http.Request
 	return params, nil
 }
 
+// DeletePlaylistParams is parameters of deletePlaylist operation.
+type DeletePlaylistParams struct {
+	PlaylistId uuid.UUID
+}
+
+func unpackDeletePlaylistParams(packed middleware.Parameters) (params DeletePlaylistParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "playlistId",
+			In:   "path",
+		}
+		params.PlaylistId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeDeletePlaylistParams(args [1]string, argsEscaped bool, r *http.Request) (params DeletePlaylistParams, _ error) {
+	// Decode path: playlistId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "playlistId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.PlaylistId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "playlistId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // DeleteProfileParams is parameters of deleteProfile operation.
 type DeleteProfileParams struct {
 	ProfileId uuid.UUID
@@ -509,6 +704,197 @@ func decodeDeleteUserParams(args [1]string, argsEscaped bool, r *http.Request) (
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "userId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// GetCollectionParams is parameters of getCollection operation.
+type GetCollectionParams struct {
+	CollectionId uuid.UUID
+}
+
+func unpackGetCollectionParams(packed middleware.Parameters) (params GetCollectionParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "collectionId",
+			In:   "path",
+		}
+		params.CollectionId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeGetCollectionParams(args [1]string, argsEscaped bool, r *http.Request) (params GetCollectionParams, _ error) {
+	// Decode path: collectionId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "collectionId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.CollectionId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "collectionId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// GetCollectionImageParams is parameters of getCollectionImage operation.
+type GetCollectionImageParams struct {
+	CollectionId uuid.UUID
+	ImageType    GetCollectionImageImageType
+}
+
+func unpackGetCollectionImageParams(packed middleware.Parameters) (params GetCollectionImageParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "collectionId",
+			In:   "path",
+		}
+		params.CollectionId = packed[key].(uuid.UUID)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "imageType",
+			In:   "path",
+		}
+		params.ImageType = packed[key].(GetCollectionImageImageType)
+	}
+	return params
+}
+
+func decodeGetCollectionImageParams(args [2]string, argsEscaped bool, r *http.Request) (params GetCollectionImageParams, _ error) {
+	// Decode path: collectionId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "collectionId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.CollectionId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "collectionId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode path: imageType.
+	if err := func() error {
+		param := args[1]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[1])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "imageType",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.ImageType = GetCollectionImageImageType(c)
+				return nil
+			}(); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := params.ImageType.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "imageType",
 			In:   "path",
 			Err:  err,
 		}
@@ -868,6 +1254,71 @@ func decodeGetPersonImageParams(args [1]string, argsEscaped bool, r *http.Reques
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "personId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// GetPlaylistParams is parameters of getPlaylist operation.
+type GetPlaylistParams struct {
+	PlaylistId uuid.UUID
+}
+
+func unpackGetPlaylistParams(packed middleware.Parameters) (params GetPlaylistParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "playlistId",
+			In:   "path",
+		}
+		params.PlaylistId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeGetPlaylistParams(args [1]string, argsEscaped bool, r *http.Request) (params GetPlaylistParams, _ error) {
+	// Decode path: playlistId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "playlistId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.PlaylistId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "playlistId",
 			In:   "path",
 			Err:  err,
 		}
@@ -2120,6 +2571,71 @@ func decodeStartPlaybackParams(args [1]string, argsEscaped bool, r *http.Request
 	return params, nil
 }
 
+// UpdateCollectionParams is parameters of updateCollection operation.
+type UpdateCollectionParams struct {
+	CollectionId uuid.UUID
+}
+
+func unpackUpdateCollectionParams(packed middleware.Parameters) (params UpdateCollectionParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "collectionId",
+			In:   "path",
+		}
+		params.CollectionId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeUpdateCollectionParams(args [1]string, argsEscaped bool, r *http.Request) (params UpdateCollectionParams, _ error) {
+	// Decode path: collectionId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "collectionId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.CollectionId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "collectionId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // UpdateLibraryParams is parameters of updateLibrary operation.
 type UpdateLibraryParams struct {
 	LibraryId uuid.UUID
@@ -2178,6 +2694,71 @@ func decodeUpdateLibraryParams(args [1]string, argsEscaped bool, r *http.Request
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "libraryId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// UpdatePlaylistParams is parameters of updatePlaylist operation.
+type UpdatePlaylistParams struct {
+	PlaylistId uuid.UUID
+}
+
+func unpackUpdatePlaylistParams(packed middleware.Parameters) (params UpdatePlaylistParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "playlistId",
+			In:   "path",
+		}
+		params.PlaylistId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeUpdatePlaylistParams(args [1]string, argsEscaped bool, r *http.Request) (params UpdatePlaylistParams, _ error) {
+	// Decode path: playlistId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "playlistId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.PlaylistId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "playlistId",
 			In:   "path",
 			Err:  err,
 		}
