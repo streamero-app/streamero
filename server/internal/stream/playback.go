@@ -58,6 +58,59 @@ type Info struct {
 	Reason     string
 	// SubtitleDefault is the position in Subtitles to show (-1 = off).
 	SubtitleDefault int
+	Chapters        []Chapter
+	Segments        []Segment
+	Trickplay       *Trickplay
+}
+
+// Chapter is a named position (from media analysis).
+type Chapter struct {
+	StartMS int64  `json:"startMs"`
+	Title   string `json:"title"`
+}
+
+// Segment is a skippable part (intro, credits, recap, preview).
+type Segment struct {
+	Kind           string
+	StartMS, EndMS int64
+}
+
+// Trickplay describes seek-bar thumbnail sheets.
+type Trickplay struct {
+	IntervalMS int `json:"intervalMs"`
+	Width      int `json:"width"`
+	Height     int `json:"height"`
+	Columns    int `json:"columns"`
+	Rows       int `json:"rows"`
+	Count      int `json:"count"`
+	Sheets     int `json:"sheets"`
+}
+
+// analysis loads chapters, segments and trickplay of a file (empty when not analyzed yet).
+func (s *Server) analysis(ctx context.Context, fileID uuid.UUID) ([]Chapter, []Segment, *Trickplay) {
+	var chRaw, tpRaw []byte
+	_ = s.Pool.QueryRow(ctx, `SELECT chapters, trickplay FROM media_files WHERE id = $1`, fileID).Scan(&chRaw, &tpRaw)
+	var chs []Chapter
+	_ = json.Unmarshal(chRaw, &chs)
+	var tp *Trickplay
+	if len(tpRaw) > 0 {
+		tp = &Trickplay{}
+		if json.Unmarshal(tpRaw, tp) != nil {
+			tp = nil
+		}
+	}
+	var segs []Segment
+	rows, err := s.Pool.Query(ctx, `SELECT kind, start_ms, end_ms FROM media_segments WHERE file_id = $1 ORDER BY start_ms`, fileID)
+	if err == nil {
+		for rows.Next() {
+			var sg Segment
+			if rows.Scan(&sg.Kind, &sg.StartMS, &sg.EndMS) == nil {
+				segs = append(segs, sg)
+			}
+		}
+		rows.Close()
+	}
+	return chs, segs, tp
 }
 
 // Owner returns the id that playback state belongs to (active profile or user).
@@ -177,6 +230,7 @@ func (s *Server) Start(ctx context.Context, lib *library.Service, p auth.Princip
 		audioLang = f.Audio[audio].Language
 	}
 	info.SubtitleDefault = library.PickSubtitle(choices, audioLang, prefs)
+	info.Chapters, info.Segments, info.Trickplay = s.analysis(ctx, f.ID)
 	return info, nil
 }
 

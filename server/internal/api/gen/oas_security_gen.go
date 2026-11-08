@@ -71,6 +71,7 @@ var operationRolesSessionToken = map[string][]string{
 	GetPlaylistOperation:                []string{},
 	GetPreferencesOperation:             []string{},
 	GetServerSettingsOperation:          []string{},
+	GetTrickplaySheetOperation:          []string{},
 	IdentifyApplyOperation:              []string{},
 	IdentifySearchOperation:             []string{},
 	ListAPIKeysOperation:                []string{},

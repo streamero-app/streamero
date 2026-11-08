@@ -855,6 +855,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/trickplay/{fileId}/{sheet}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fileId: string;
+                sheet: number;
+            };
+            cookie?: never;
+        };
+        /** One sheet of seek-bar thumbnails (JPEG grid) */
+        get: operations["getTrickplaySheet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/items/{itemId}": {
         parameters: {
             query?: never;
@@ -1341,6 +1361,9 @@ export interface components {
             device: components["schemas"]["DeviceProfile"];
         };
         PlaybackInfo: {
+            chapters?: components["schemas"]["Chapter"][];
+            segments?: components["schemas"]["MediaSegment"][];
+            trickplay?: components["schemas"]["TrickplayInfo"];
             /** @description Position in subtitles to show by default (from the viewer's preferences); absent = off. */
             subtitleDefault?: number;
             /** Format: uuid */
@@ -1435,7 +1458,7 @@ export interface components {
             };
         };
         /** @enum {string} */
-        TaskKey: "scan_all" | "refresh_metadata" | "cleanup_images";
+        TaskKey: "scan_all" | "refresh_metadata" | "cleanup_images" | "analyze_media";
         Task: {
             key: components["schemas"]["TaskKey"];
             running: boolean;
@@ -1541,6 +1564,28 @@ export interface components {
             rating?: number;
             /** @description Keep these values when metadata is refreshed. */
             locked: boolean;
+        };
+        Chapter: {
+            /** Format: int64 */
+            startMs: number;
+            title: string;
+        };
+        MediaSegment: {
+            /** @enum {string} */
+            kind: "intro" | "credits" | "recap" | "preview";
+            /** Format: int64 */
+            startMs: number;
+            /** Format: int64 */
+            endMs: number;
+        };
+        TrickplayInfo: {
+            intervalMs: number;
+            width: number;
+            height: number;
+            columns: number;
+            rows: number;
+            count: number;
+            sheetUrls: string[];
         };
         MetadataSettings: {
             tmdbConfigured: boolean;
@@ -3279,6 +3324,31 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getTrickplaySheet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fileId: string;
+                sheet: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Image */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": string;
+                };
             };
             default: components["responses"]["Error"];
         };

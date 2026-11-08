@@ -12,6 +12,7 @@ import (
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/rivertype"
 
+	"github.com/streamero-app/streamero/server/internal/analyze"
 	"github.com/streamero-app/streamero/server/internal/library"
 	"github.com/streamero-app/streamero/server/internal/metadata"
 	"github.com/streamero-app/streamero/server/internal/notify"
@@ -170,6 +171,8 @@ type MetadataRefreshWorker struct {
 	river.WorkerDefaults[MetadataRefreshArgs]
 	Refresher *metadata.Refresher
 	Log       *slog.Logger
+	// Analyze queues chapter/segment/trickplay analysis once metadata is in.
+	Analyze func(ctx context.Context, libraryID uuid.UUID) error
 }
 
 // Timeout allows large libraries (TMDb is paced at ~30 requests/s).
@@ -192,6 +195,11 @@ func (w *MetadataRefreshWorker) Work(ctx context.Context, job *river.Job[Metadat
 		w.Log.Warn("frame grab failed", "library", job.Args.LibraryID, "err", err)
 	} else if g > 0 {
 		w.Log.Info("frame artwork created", "library", job.Args.LibraryID, "items", g)
+	}
+	if w.Analyze != nil {
+		if err := w.Analyze(ctx, job.Args.LibraryID); err != nil {
+			w.Log.Warn("could not queue media analysis", "err", err)
+		}
 	}
 	return w.Refresher.CleanupImages(ctx)
 }
@@ -238,4 +246,69 @@ type ImagesCleanupWorker struct {
 // Work implements river.Worker.
 func (w *ImagesCleanupWorker) Work(ctx context.Context, _ *river.Job[ImagesCleanupArgs]) error {
 	return w.Refresher.CleanupImages(ctx)
+}
+
+// MediaAnalyzeArgs analyzes new files of a library (chapters, intro/credits, trickplay).
+type MediaAnalyzeArgs struct {
+	LibraryID uuid.UUID `json:"library_id"`
+}
+
+// Kind implements river.JobArgs.
+func (MediaAnalyzeArgs) Kind() string { return "media.analyze" }
+
+// InsertOpts keeps at most one waiting analysis per library.
+func (MediaAnalyzeArgs) InsertOpts() river.InsertOpts {
+	return river.InsertOpts{MaxAttempts: 2, UniqueOpts: whileQueued}
+}
+
+// MediaAnalyzeWorker runs the analyzer.
+type MediaAnalyzeWorker struct {
+	river.WorkerDefaults[MediaAnalyzeArgs]
+	Analyzer *analyze.Analyzer
+	Log      *slog.Logger
+}
+
+// Timeout allows trickplay of large libraries.
+func (w *MediaAnalyzeWorker) Timeout(*river.Job[MediaAnalyzeArgs]) time.Duration {
+	return 24 * time.Hour
+}
+
+// Work implements river.Worker.
+func (w *MediaAnalyzeWorker) Work(ctx context.Context, job *river.Job[MediaAnalyzeArgs]) error {
+	start := time.Now()
+	n, err := w.Analyzer.Run(ctx, job.Args.LibraryID)
+	if err != nil {
+		return err
+	}
+	if n > 0 {
+		w.Log.Info("media analyzed", "library", job.Args.LibraryID, "files", n, "took", time.Since(start).String())
+	}
+	return nil
+}
+
+// MediaAnalyzeAllArgs queues analysis of every library.
+type MediaAnalyzeAllArgs struct{}
+
+// Kind implements river.JobArgs.
+func (MediaAnalyzeAllArgs) Kind() string { return "media.analyze_all" }
+
+// MediaAnalyzeAllWorker fans out per-library analysis.
+type MediaAnalyzeAllWorker struct {
+	river.WorkerDefaults[MediaAnalyzeAllArgs]
+	Libraries *library.Service
+	Analyze   func(ctx context.Context, libraryID uuid.UUID) error
+}
+
+// Work implements river.Worker.
+func (w *MediaAnalyzeAllWorker) Work(ctx context.Context, _ *river.Job[MediaAnalyzeAllArgs]) error {
+	libs, err := w.Libraries.List(ctx)
+	if err != nil {
+		return err
+	}
+	for _, l := range libs {
+		if err := w.Analyze(ctx, l.ID); err != nil {
+			return err
+		}
+	}
+	return nil
 }

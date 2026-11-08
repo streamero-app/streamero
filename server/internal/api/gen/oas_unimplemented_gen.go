@@ -357,6 +357,15 @@ func (UnimplementedHandler) GetSystemInfo(ctx context.Context) (r GetSystemInfoR
 	return r, ht.ErrNotImplemented
 }
 
+// GetTrickplaySheet implements getTrickplaySheet operation.
+//
+// One sheet of seek-bar thumbnails (JPEG grid).
+//
+// GET /trickplay/{fileId}/{sheet}
+func (UnimplementedHandler) GetTrickplaySheet(ctx context.Context, params GetTrickplaySheetParams) (r *GetTrickplaySheetOKHeaders, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // IdentifyApply implements identifyApply operation.
 //
 // Match the item to a TMDb entry and fetch its metadata now.

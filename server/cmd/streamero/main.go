@@ -22,6 +22,7 @@ import (
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 
 	"github.com/streamero-app/streamero/server/internal/activity"
+	"github.com/streamero-app/streamero/server/internal/analyze"
 	"github.com/streamero-app/streamero/server/internal/api"
 	"github.com/streamero-app/streamero/server/internal/app"
 	"github.com/streamero-app/streamero/server/internal/auth"
@@ -165,6 +166,8 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 				args = jobs.MetadataRefreshAllArgs{}
 			case "cleanup_images":
 				args = jobs.ImagesCleanupArgs{}
+			case "analyze_media":
+				args = jobs.MediaAnalyzeAllArgs{}
 			default:
 				return fmt.Errorf("unknown task %q", key)
 			}
@@ -232,7 +235,13 @@ func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		libraries, refresher, func(ctx context.Context, id uuid.UUID) error {
 			_, err := client.Insert(ctx, jobs.MetadataRefreshArgs{LibraryID: id}, nil)
 			return err
-		}, notifier)
+		}, notifier,
+		&analyze.Analyzer{Pool: deps.Pool, FFmpeg: cfg.FFmpegPath, FFprobe: cfg.FFprobePath, CacheDir: cfg.CacheDir, Trickplay: true, Log: log,
+			ResolvePath: func(p string) (string, error) { return library.ResolveSafePath(roots, p) }},
+		func(ctx context.Context, id uuid.UUID) error {
+			_, err := client.Insert(ctx, jobs.MediaAnalyzeArgs{LibraryID: id}, nil)
+			return err
+		})
 	client, err = river.NewClient(riverpgxv5.New(deps.Pool), &river.Config{
 		Logger:  log,
 		Queues:  map[string]river.QueueConfig{river.QueueDefault: {MaxWorkers: 10}},
@@ -245,6 +254,8 @@ func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 				func() (river.JobArgs, *river.InsertOpts) { return jobs.LibraryScanAllArgs{}, nil }, nil),
 			river.NewPeriodicJob(river.PeriodicInterval(24*time.Hour),
 				func() (river.JobArgs, *river.InsertOpts) { return jobs.ImagesCleanupArgs{}, nil }, nil),
+			river.NewPeriodicJob(river.PeriodicInterval(24*time.Hour),
+				func() (river.JobArgs, *river.InsertOpts) { return jobs.MediaAnalyzeAllArgs{}, nil }, nil),
 		},
 	})
 	if err != nil {

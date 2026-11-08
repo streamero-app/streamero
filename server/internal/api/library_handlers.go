@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
 
+	"github.com/streamero-app/streamero/server/internal/analyze"
 	"github.com/streamero-app/streamero/server/internal/api/gen"
 	"github.com/streamero-app/streamero/server/internal/auth"
 	"github.com/streamero-app/streamero/server/internal/library"
@@ -507,6 +510,20 @@ func (h *Handler) StartPlayback(ctx context.Context, req *gen.PlaybackRequest, p
 	if info.SubtitleDefault >= 0 {
 		out.SubtitleDefault = gen.NewOptInt(info.SubtitleDefault)
 	}
+	for _, c := range info.Chapters {
+		out.Chapters = append(out.Chapters, gen.Chapter{StartMs: c.StartMS, Title: c.Title})
+	}
+	for _, sg := range info.Segments {
+		out.Segments = append(out.Segments, gen.MediaSegment{Kind: gen.MediaSegmentKind(sg.Kind), StartMs: sg.StartMS, EndMs: sg.EndMS})
+	}
+	if tp := info.Trickplay; tp != nil {
+		urls := make([]string, tp.Sheets)
+		for i := range urls {
+			urls[i] = fmt.Sprintf("/api/v1/trickplay/%s/%d", info.FileID, i)
+		}
+		out.Trickplay = gen.NewOptTrickplayInfo(gen.TrickplayInfo{IntervalMs: tp.IntervalMS, Width: tp.Width, Height: tp.Height,
+			Columns: tp.Columns, Rows: tp.Rows, Count: tp.Count, SheetUrls: urls})
+	}
 	return out, nil
 }
 
@@ -713,4 +730,21 @@ func toPrefs(p library.Prefs) *gen.PlaybackPreferences {
 		out.SubtitleLanguage = gen.NewOptString(p.SubtitleLanguage)
 	}
 	return out
+}
+
+// GetTrickplaySheet implements GET /trickplay/{fileId}/{sheet}.
+func (h *Handler) GetTrickplaySheet(ctx context.Context, params gen.GetTrickplaySheetParams) (*gen.GetTrickplaySheetOKHeaders, error) {
+	if h.lib() == nil {
+		return nil, errStarting
+	}
+	if _, err := viewer(ctx); err != nil {
+		return nil, err
+	}
+	// Built from a UUID and a bounded integer, never from client text.
+	f, err := os.Open(filepath.Join(analyze.TrickplayDir(h.Paths.Cache, params.FileId), strconv.Itoa(params.Sheet)+".jpg"))
+	if err != nil {
+		return nil, library.ErrNotFound
+	}
+	return &gen.GetTrickplaySheetOKHeaders{CacheControl: gen.NewOptString("private, max-age=604800"),
+		Response: gen.GetTrickplaySheetOK{Data: f}}, nil
 }

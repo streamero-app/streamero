@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/riverqueue/river"
 
+	"github.com/streamero-app/streamero/server/internal/analyze"
 	"github.com/streamero-app/streamero/server/internal/library"
 	"github.com/streamero-app/streamero/server/internal/metadata"
 	"github.com/streamero-app/streamero/server/internal/notify"
@@ -33,10 +34,13 @@ func (w *HeartbeatWorker) Work(_ context.Context, job *river.Job[HeartbeatArgs])
 
 // Register adds all workers to the registry.
 func Register(workers *river.Workers, log *slog.Logger, scanner *library.Scanner, libraries *library.Service,
-	refresher *metadata.Refresher, afterScan func(context.Context, uuid.UUID) error, n *notify.Dispatcher) {
+	refresher *metadata.Refresher, afterScan func(context.Context, uuid.UUID) error, n *notify.Dispatcher,
+	analyzer *analyze.Analyzer, enqueueAnalyze func(context.Context, uuid.UUID) error) {
 	river.AddWorker(workers, &HeartbeatWorker{Log: log})
 	river.AddWorker(workers, &LibraryScanWorker{Scanner: scanner, Log: log, AfterScan: afterScan, Notify: n})
-	river.AddWorker(workers, &MetadataRefreshWorker{Refresher: refresher, Log: log})
+	river.AddWorker(workers, &MetadataRefreshWorker{Refresher: refresher, Log: log, Analyze: enqueueAnalyze})
+	river.AddWorker(workers, &MediaAnalyzeWorker{Analyzer: analyzer, Log: log})
+	river.AddWorker(workers, &MediaAnalyzeAllWorker{Libraries: libraries, Analyze: enqueueAnalyze})
 	river.AddWorker(workers, &LibraryScanAllWorker{Libraries: libraries})
 	river.AddWorker(workers, &MetadataRefreshAllWorker{Libraries: libraries, Refresh: afterScan})
 	river.AddWorker(workers, &ImagesCleanupWorker{Refresher: refresher})

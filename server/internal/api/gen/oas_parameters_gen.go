@@ -1391,6 +1391,142 @@ func decodeGetPlaylistParams(args [1]string, argsEscaped bool, r *http.Request) 
 	return params, nil
 }
 
+// GetTrickplaySheetParams is parameters of getTrickplaySheet operation.
+type GetTrickplaySheetParams struct {
+	FileId uuid.UUID
+	Sheet  int
+}
+
+func unpackGetTrickplaySheetParams(packed middleware.Parameters) (params GetTrickplaySheetParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "fileId",
+			In:   "path",
+		}
+		params.FileId = packed[key].(uuid.UUID)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "sheet",
+			In:   "path",
+		}
+		params.Sheet = packed[key].(int)
+	}
+	return params
+}
+
+func decodeGetTrickplaySheetParams(args [2]string, argsEscaped bool, r *http.Request) (params GetTrickplaySheetParams, _ error) {
+	// Decode path: fileId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "fileId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.FileId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "fileId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode path: sheet.
+	if err := func() error {
+		param := args[1]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[1])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "sheet",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToInt(val)
+				if err != nil {
+					return err
+				}
+
+				params.Sheet = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := (validate.Int{
+					MinSet:        true,
+					Min:           0,
+					MaxSet:        true,
+					Max:           10000,
+					MinExclusive:  false,
+					MaxExclusive:  false,
+					MultipleOfSet: false,
+					MultipleOf:    0,
+					Pattern:       nil,
+				}).Validate(int64(params.Sheet)); err != nil {
+					return errors.Wrap(err, "int")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "sheet",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // IdentifyApplyParams is parameters of identifyApply operation.
 type IdentifyApplyParams struct {
 	ItemId uuid.UUID

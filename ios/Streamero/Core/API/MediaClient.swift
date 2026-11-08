@@ -70,6 +70,29 @@ struct MediaClient {
         }
     }
 
+    func nextUp() async throws -> [ItemSummary] {
+        switch try await client.nextUp() {
+        case .ok(let ok): return try ok.body.json
+        case .default(let status, let r): throw Self.fail(status, code: try? r.body.json.code)
+        }
+    }
+
+    /// The episode after this one (nil after the last one).
+    func nextEpisode(_ id: String) async throws -> ItemSummary? {
+        switch try await client.nextEpisode(path: .init(itemId: id)) {
+        case .ok(let ok): return try ok.body.json
+        case .default(let status, _) where status == 404: return nil
+        case .default(let status, let r): throw Self.fail(status, code: try? r.body.json.code)
+        }
+    }
+
+    func preferences() async throws -> Components.Schemas.PlaybackPreferences {
+        switch try await client.getPreferences() {
+        case .ok(let ok): return try ok.body.json
+        case .default(let status, let r): throw Self.fail(status, code: try? r.body.json.code)
+        }
+    }
+
     /// Favorite / watched for the current profile.
     func setUserData(item id: String, favorite: Bool? = nil, played: Bool? = nil) async throws {
         switch try await client.updateUserData(path: .init(itemId: id), body: .json(.init(favorite: favorite, played: played))) {

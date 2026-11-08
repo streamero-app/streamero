@@ -157,6 +157,7 @@ struct HomeTab: View {
     @State private var libraries: [Library] = []
     @State private var continueItems: [ItemSummary] = []
     @State private var latest: [ItemSummary] = []
+    @State private var nextUp: [ItemSummary] = []
     @State private var favorites: [ItemSummary] = []
     @State private var error: LocalizedStringKey?
     @State private var showQuickConnect = false
@@ -178,6 +179,14 @@ struct HomeTab: View {
                     if !continueItems.isEmpty {
                         Shelf(title: "home.continue") {
                             ForEach(continueItems, id: \.id) { item in
+                                Button { playing = PlayTarget(id: item.id) } label: { WideCard(item: item, client: client) }
+                                    .buttonStyle(CardPressStyle())
+                            }
+                        }
+                    }
+                    if !nextUp.isEmpty {
+                        Shelf(title: "home.nextUp") {
+                            ForEach(nextUp, id: \.id) { item in
                                 Button { playing = PlayTarget(id: item.id) } label: { WideCard(item: item, client: client) }
                                     .buttonStyle(CardPressStyle())
                             }
@@ -254,10 +263,12 @@ struct HomeTab: View {
             async let cont = client.continueWatching()
             async let new = client.latest()
             async let favs = client.favorites()
+            async let up = client.nextUp()
             libraries = try await libs
             continueItems = (try? await cont) ?? []
             latest = (try? await new) ?? []
             favorites = (try? await favs) ?? []
+            nextUp = (try? await up) ?? []
             error = nil
         } catch {
             self.error = "addServer.error.unreachable"
@@ -750,18 +761,38 @@ struct SearchTab: View {
     }
 }
 
-/// Full-screen AVPlayer with resume and progress reporting.
+/// Full-screen AVPlayer with resume, progress reporting, skip intro and the next episode.
 struct PlayerView: View {
     let itemID: String
     let client: MediaClient
     @Environment(\.dismiss) private var dismiss
+    @State private var current: String = ""
     @State private var player: AVPlayer?
     @State private var info: PlaybackInfo?
     @State private var error: String?
     @State private var observer: Any?
+    @State private var position: Int64 = 0
+    @State private var lastReport = Date.distantPast
+    @State private var next: ItemSummary?
+    @State private var autoplay = true
+    @State private var countdown = 10
+    @State private var dismissedNext = false
+    @State private var skippedIntro = false
+    @State private var ended = false
+
+    private var duration: Int64 { info?.durationMs ?? 0 }
+
+    private func segment(_ kinds: [Components.Schemas.MediaSegment.kindPayload]) -> Components.Schemas.MediaSegment? {
+        info?.segments?.first { kinds.contains($0.kind) && position >= $0.startMs && position < $0.endMs - 1000 }
+    }
+
+    private var showNext: Bool {
+        guard next != nil, !dismissedNext else { return false }
+        return ended || segment([.credits]) != nil || (duration > 0 && position > 0 && duration - position <= 20_000)
+    }
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
+        ZStack {
             Color.black.ignoresSafeArea()
             if let player {
                 VideoPlayer(player: player).ignoresSafeArea()
@@ -770,29 +801,82 @@ struct PlayerView: View {
             } else {
                 ProgressView().tint(.white).frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            HStack {
-                Button { close() } label: {
-                    Image(systemName: "xmark.circle.fill").font(.title).foregroundStyle(.white.opacity(0.8)).padding()
-                }
-                .accessibilityLabel(Text("player.back"))
-                Spacer()
-                if let tracks = info?.audio, tracks.count > 1 {
-                    Menu {
-                        ForEach(Array(tracks.enumerated()), id: \.offset) { idx, a in
-                            Button {
-                                Task { await restart(audioIndex: idx) }
-                            } label: {
-                                Text([a.language?.uppercased() ?? "#\(idx + 1)", a.codec.uppercased(), a.title].compactMap { $0 }.joined(separator: " "))
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "speaker.wave.2.circle.fill").font(.title).foregroundStyle(.white.opacity(0.8)).padding()
+            VStack {
+                HStack {
+                    Button { close() } label: {
+                        Image(systemName: "xmark.circle.fill").font(.title).foregroundStyle(.white.opacity(0.8)).padding()
                     }
-                    .accessibilityLabel(Text("player.audio"))
+                    .accessibilityLabel(Text("player.back"))
+                    Spacer()
+                    if let tracks = info?.audio, tracks.count > 1 {
+                        Menu {
+                            ForEach(Array(tracks.enumerated()), id: \.offset) { idx, a in
+                                Button {
+                                    Task { await restart(audioIndex: idx) }
+                                } label: {
+                                    Text([a.language?.uppercased() ?? "#\(idx + 1)", a.codec.uppercased(), a.title].compactMap { $0 }.joined(separator: " "))
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "speaker.wave.2.circle.fill").font(.title).foregroundStyle(.white.opacity(0.8)).padding()
+                        }
+                        .accessibilityLabel(Text("player.audio"))
+                    }
                 }
+                Spacer()
+                HStack(alignment: .bottom) {
+                    Spacer()
+                    if showNext, let next {
+                        nextCard(next)
+                    } else if let seg = segment([.intro, .recap]), !skippedIntro {
+                        Button {
+                            skippedIntro = true
+                            Task { await player?.seek(to: CMTime(value: seg.endMs - offsetMs, timescale: 1000)) }
+                        } label: {
+                            Label(seg.kind == .recap ? "player.skipRecap" : "player.skipIntro", systemImage: "forward.end.fill")
+                        }
+                        .buttonStyle(MutedButtonStyle())
+                    }
+                }
+                .padding(.horizontal, 24).padding(.bottom, 90)
             }
         }
-        .task { await start() }
+        .task {
+            current = itemID
+            autoplay = (try? await client.preferences().autoplayNext) ?? true
+            await start()
+        }
+        .onChange(of: showNext) { _, shown in
+            if shown { countdown = 10 }
+        }
+        .task(id: showNext) {
+            guard showNext, autoplay else { return }
+            while countdown > 0 && !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1))
+                countdown -= 1
+            }
+            if !Task.isCancelled && showNext { await playNext() }
+        }
+    }
+
+    private func nextCard(_ n: ItemSummary) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Group {
+                if autoplay { Text("player.nextIn \(max(0, countdown))") } else { Text("player.upNext") }
+            }
+            .font(.caption).foregroundStyle(.white.opacity(0.7))
+            Text(episodeTitle(n)).font(.subheadline.bold()).foregroundStyle(.white).lineLimit(2)
+            HStack {
+                Button { Task { await playNext() } } label: { Label("player.playNext", systemImage: "play.fill") }
+                    .buttonStyle(PrimaryButtonStyle())
+                Button { dismissedNext = true } label: { Image(systemName: "xmark") }
+                    .buttonStyle(MutedButtonStyle())
+                    .accessibilityLabel(Text("player.back"))
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: 320, alignment: .leading)
+        .background(.black.opacity(0.8), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private var offsetMs: Int64 { info?.method == .direct ? 0 : (info?.startMs ?? 0) }
@@ -803,45 +887,70 @@ struct PlayerView: View {
         return seconds.isFinite ? offsetMs + Int64(seconds * 1000) : 0
     }
 
-    /// Switches the audio track: a new stream from the current position.
-    private func restart(audioIndex: Int) async {
-        let pos = positionMs()
+    private func teardown() {
         if let observer { player?.removeTimeObserver(observer) }
         observer = nil
         player?.pause()
         player = nil
+    }
+
+    /// Switches the audio track: a new stream from the current position.
+    private func restart(audioIndex: Int) async {
+        let pos = positionMs()
+        teardown()
         await start(startMs: pos, audioIndex: audioIndex)
     }
 
     private func start(startMs: Int64? = nil, audioIndex: Int? = nil) async {
         do {
-            let info = try await client.startPlayback(item: itemID, startMs: startMs, audioIndex: audioIndex)
+            let info = try await client.startPlayback(item: current, startMs: startMs, audioIndex: audioIndex)
             guard let url = client.absolute(info.url) else { throw APIError(status: 0, code: "bad_url") }
             self.info = info
             let p = AVPlayer(url: url)
             if info.method == .direct && info.startMs > 0 {
                 await p.seek(to: CMTime(value: info.startMs, timescale: 1000))
             }
-            observer = p.addPeriodicTimeObserver(forInterval: CMTime(seconds: 10, preferredTimescale: 1), queue: .main) { _ in
-                Task { @MainActor in await report() }
+            observer = p.addPeriodicTimeObserver(forInterval: CMTime(seconds: 1, preferredTimescale: 1), queue: .main) { _ in
+                Task { @MainActor in
+                    position = positionMs()
+                    if let pl = player, let item = pl.currentItem, item.duration.isNumeric, pl.currentTime() >= item.duration { ended = true }
+                    if Date().timeIntervalSince(lastReport) >= 10 {
+                        lastReport = Date()
+                        await report()
+                    }
+                }
             }
             player = p
             p.play()
+            next = try? await client.nextEpisode(current)
         } catch {
             self.error = String(localized: "player.error")
         }
     }
 
+    private func playNext() async {
+        guard let n = next else { return }
+        await report()
+        teardown()
+        current = n.id
+        info = nil
+        next = nil
+        position = 0
+        ended = false
+        dismissedNext = false
+        skippedIntro = false
+        await start(startMs: 0)
+    }
+
     private func report() async {
         let pos = positionMs()
-        if pos > 0 { await client.reportProgress(item: itemID, positionMs: pos, durationMs: info?.durationMs) }
+        if pos > 0 { await client.reportProgress(item: current, positionMs: pos, durationMs: info?.durationMs) }
     }
 
     private func close() {
         Task {
             await report()
-            if let observer { player?.removeTimeObserver(observer) }
-            player?.pause()
+            teardown()
             dismiss()
         }
     }

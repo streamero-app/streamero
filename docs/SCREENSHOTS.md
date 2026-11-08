@@ -28,3 +28,7 @@ Demo content: Blender Foundation open movies (Sintel, Tears of Steel, Elephants 
 
 ![Dashboard](screenshots/admin-nadzorna-ploca.png)
 ![Notifications](screenshots/admin-obavijesti.png)
+
+**Player** (trickplay + chapters on the seek bar)
+
+![Player](screenshots/player-trickplay.png)

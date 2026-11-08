@@ -1253,6 +1253,41 @@ paths:
           description: Saved
         default:
           $ref: "#/components/responses/Error"
+  /trickplay/{fileId}/{sheet}:
+    parameters:
+      - name: fileId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: sheet
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 0
+          maximum: 10000
+    get:
+      operationId: getTrickplaySheet
+      summary: One sheet of seek-bar thumbnails (JPEG grid)
+      tags: [playback]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Image
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+        default:
+          $ref: "#/components/responses/Error"
   /items/{itemId}:
     parameters:
       - name: itemId
@@ -2069,6 +2104,16 @@ components:
       type: object
       required: [fileId, method, url, startMs, subtitles, audio]
       properties:
+        chapters:
+          type: array
+          items:
+            $ref: "#/components/schemas/Chapter"
+        segments:
+          type: array
+          items:
+            $ref: "#/components/schemas/MediaSegment"
+        trickplay:
+          $ref: "#/components/schemas/TrickplayInfo"
         subtitleDefault:
           type: integer
           description: Position in subtitles to show by default (from the viewer's preferences); absent = off.
@@ -2234,7 +2279,7 @@ components:
           additionalProperties: true
     TaskKey:
       type: string
-      enum: [scan_all, refresh_metadata, cleanup_images]
+      enum: [scan_all, refresh_metadata, cleanup_images, analyze_media]
     Task:
       type: object
       required: [key, running]
@@ -2469,6 +2514,48 @@ components:
         locked:
           type: boolean
           description: Keep these values when metadata is refreshed.
+    Chapter:
+      type: object
+      required: [startMs, title]
+      properties:
+        startMs:
+          type: integer
+          format: int64
+        title:
+          type: string
+    MediaSegment:
+      type: object
+      required: [kind, startMs, endMs]
+      properties:
+        kind:
+          type: string
+          enum: [intro, credits, recap, preview]
+        startMs:
+          type: integer
+          format: int64
+        endMs:
+          type: integer
+          format: int64
+    TrickplayInfo:
+      type: object
+      required: [intervalMs, width, height, columns, rows, count, sheetUrls]
+      properties:
+        intervalMs:
+          type: integer
+        width:
+          type: integer
+        height:
+          type: integer
+        columns:
+          type: integer
+        rows:
+          type: integer
+        count:
+          type: integer
+        sheetUrls:
+          type: array
+          items:
+            type: string
     MetadataSettings:
       type: object
       required: [tmdbConfigured, language, country]
