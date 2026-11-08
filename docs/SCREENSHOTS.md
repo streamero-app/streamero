@@ -23,3 +23,8 @@ Demo content: Blender Foundation open movies (Sintel, Tears of Steel, Elephants 
 **App icon**
 
 <img src="screenshots/ikona.png" width="160">
+
+**Administration**
+
+![Dashboard](screenshots/admin-nadzorna-ploca.png)
+![Notifications](screenshots/admin-obavijesti.png)
