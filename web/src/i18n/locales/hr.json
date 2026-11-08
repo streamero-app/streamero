@@ -62,7 +62,8 @@
     "nextUp": "Sljedeće",
     "top": "Najbolje ocijenjeno",
     "more": "Još iz: {{name}}",
-    "hello": "Početna"
+    "hello": "Početna",
+    "topTen": "Top 10 · {{name}}"
   },
   "settings": {
     "account": "Moj račun",
@@ -389,7 +390,9 @@
     "preparing": "Pripremam stream…",
     "method_direct": "Izravna reprodukcija",
     "method_remux": "Izravni stream",
-    "method_transcode": "Transkodiranje"
+    "method_transcode": "Transkodiranje",
+    "mute": "Isključi zvuk",
+    "unmute": "Uključi zvuk"
   },
   "search": {
     "title": "Pretraga",

@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/rivertype"
 
 	"github.com/streamero-app/streamero/server/internal/library"
 	"github.com/streamero-app/streamero/server/internal/metadata"
@@ -22,8 +23,16 @@ type LibraryScanArgs struct {
 func (LibraryScanArgs) Kind() string { return "library.scan" }
 
 // InsertOpts keeps one pending scan per library.
+// whileQueued makes a job unique only while one is waiting or running. River's default
+// also counts completed jobs (until they are cleaned, ~24 h), which silently dropped
+// every rescan after the first one.
+var whileQueued = river.UniqueOpts{ByArgs: true, ByState: []rivertype.JobState{
+	rivertype.JobStateAvailable, rivertype.JobStatePending, rivertype.JobStateRunning, rivertype.JobStateScheduled,
+}}
+
+// InsertOpts keeps at most one waiting scan per library.
 func (LibraryScanArgs) InsertOpts() river.InsertOpts {
-	return river.InsertOpts{MaxAttempts: 3, UniqueOpts: river.UniqueOpts{ByArgs: true}}
+	return river.InsertOpts{MaxAttempts: 3, UniqueOpts: whileQueued}
 }
 
 // LibraryScanWorker runs scans.
@@ -93,7 +102,7 @@ func (MetadataRefreshArgs) Kind() string { return "metadata.refresh_library" }
 
 // InsertOpts keeps one pending refresh per library and mode.
 func (MetadataRefreshArgs) InsertOpts() river.InsertOpts {
-	return river.InsertOpts{MaxAttempts: 3, UniqueOpts: river.UniqueOpts{ByArgs: true}}
+	return river.InsertOpts{MaxAttempts: 3, UniqueOpts: whileQueued}
 }
 
 // MetadataRefreshWorker runs metadata refreshes.
@@ -118,5 +127,11 @@ func (w *MetadataRefreshWorker) Work(ctx context.Context, job *river.Job[Metadat
 		return err
 	}
 	w.Log.Info("metadata refreshed", "library", job.Args.LibraryID, "items", n)
+	// Whatever TMDb could not illustrate gets a frame from its own video.
+	if g, err := w.Refresher.GrabFrames(ctx, job.Args.LibraryID); err != nil {
+		w.Log.Warn("frame grab failed", "library", job.Args.LibraryID, "err", err)
+	} else if g > 0 {
+		w.Log.Info("frame artwork created", "library", job.Args.LibraryID, "items", g)
+	}
 	return w.Refresher.CleanupImages(ctx)
 }

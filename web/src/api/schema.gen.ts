@@ -816,13 +816,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/people/{personId}/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                personId: number;
+            };
+            cookie?: never;
+        };
+        /** Cached photo of a person (JPEG) */
+        get: operations["getPersonImage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/items/{itemId}/images/{imageType}": {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 itemId: string;
-                imageType: "poster" | "backdrop" | "still";
+                imageType: "poster" | "backdrop" | "still" | "logo";
             };
             cookie?: never;
         };
@@ -1062,6 +1081,8 @@ export interface components {
             name: string;
             /** @description Character name for actors, job for crew (e.g. "Director"). */
             role?: string;
+            /** @description Server-relative URL of the person's photo, when cached. */
+            imageUrl?: string;
         };
         ItemSummary: {
             /** Format: uuid */
@@ -1079,6 +1100,8 @@ export interface components {
             hasPoster: boolean;
             /** @description A wide backdrop image is available (images/backdrop). */
             hasBackdrop?: boolean;
+            /** @description A transparent title logo is available (images/logo, PNG). */
+            hasLogo?: boolean;
             /** @description Community rating 0–10. */
             rating?: number;
             /**
@@ -1127,6 +1150,7 @@ export interface components {
             external: boolean;
         };
         ItemDetail: {
+            hasLogo?: boolean;
             overview?: string;
             tagline?: string;
             originalTitle?: string;
@@ -2568,13 +2592,37 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
+    getPersonImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                personId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Image */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": string;
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
     getItemImage: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 itemId: string;
-                imageType: "poster" | "backdrop" | "still";
+                imageType: "poster" | "backdrop" | "still" | "logo";
             };
             cookie?: never;
         };

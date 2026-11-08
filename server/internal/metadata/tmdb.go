@@ -190,10 +190,19 @@ type Details struct {
 	Genres        []struct {
 		Name string `json:"name"`
 	} `json:"genres"`
+	Images struct {
+		Logos []struct {
+			FilePath string  `json:"file_path"`
+			Language string  `json:"iso_639_1"`
+			Vote     float64 `json:"vote_average"`
+		} `json:"logos"`
+	} `json:"images"`
 	Credits struct {
 		Cast []struct {
-			Name      string `json:"name"`
-			Character string `json:"character"`
+			ID          int    `json:"id"`
+			Name        string `json:"name"`
+			Character   string `json:"character"`
+			ProfilePath string `json:"profile_path"`
 		} `json:"cast"`
 		Crew []struct {
 			Name string `json:"name"`
@@ -273,17 +282,45 @@ func (d Details) Certification(country string) string {
 	return pick("US")
 }
 
+// imageLanguages asks for logos in the UI language, then English, then language-neutral.
+func imageLanguages(lang string) string {
+	l := strings.ToLower(strings.SplitN(lang, "-", 2)[0])
+	if l == "" || l == "en" {
+		return "en,null"
+	}
+	return l + ",en,null"
+}
+
+// LogoPath picks the title logo: UI language first, then English, then neutral; best voted within each.
+func (d Details) LogoPath(lang string) string {
+	want := []string{strings.ToLower(strings.SplitN(lang, "-", 2)[0]), "en", ""}
+	for _, l := range want {
+		best, score := "", -1.0
+		for _, g := range d.Images.Logos {
+			if g.Language == l && g.Vote > score && strings.HasSuffix(strings.ToLower(g.FilePath), ".png") {
+				best, score = g.FilePath, g.Vote
+			}
+		}
+		if best != "" {
+			return best
+		}
+	}
+	return ""
+}
+
 // Movie fetches movie details with credits and release dates.
 func (c *TMDb) Movie(ctx context.Context, id int, lang string) (Details, error) {
 	var d Details
-	err := c.get(ctx, fmt.Sprintf("/movie/%d", id), url.Values{"language": {lang}, "append_to_response": {"credits,release_dates"}}, &d)
+	err := c.get(ctx, fmt.Sprintf("/movie/%d", id), url.Values{"language": {lang}, "append_to_response": {"credits,release_dates,images"},
+		"include_image_language": {imageLanguages(lang)}}, &d)
 	return d, err
 }
 
 // Series fetches series details with credits, content ratings and external IDs.
 func (c *TMDb) Series(ctx context.Context, id int, lang string) (Details, error) {
 	var d Details
-	err := c.get(ctx, fmt.Sprintf("/tv/%d", id), url.Values{"language": {lang}, "append_to_response": {"credits,content_ratings,external_ids"}}, &d)
+	err := c.get(ctx, fmt.Sprintf("/tv/%d", id), url.Values{"language": {lang}, "append_to_response": {"credits,content_ratings,external_ids,images"},
+		"include_image_language": {imageLanguages(lang)}}, &d)
 	return d, err
 }
 

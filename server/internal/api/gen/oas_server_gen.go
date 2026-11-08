@@ -148,6 +148,12 @@ type Handler interface {
 	//
 	// GET /settings/metadata
 	GetMetadataSettings(ctx context.Context) (*MetadataSettings, error)
+	// GetPersonImage implements getPersonImage operation.
+	//
+	// Cached photo of a person (JPEG).
+	//
+	// GET /people/{personId}/image
+	GetPersonImage(ctx context.Context, params GetPersonImageParams) (*GetPersonImageOKHeaders, error)
 	// GetServerSettings implements getServerSettings operation.
 	//
 	// Server-wide settings (admin).

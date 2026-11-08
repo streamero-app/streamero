@@ -36,12 +36,17 @@ type Library struct {
 }
 
 // Person is a cast or crew member.
-type Person struct{ Name, Role string }
+// Person is a cast or crew credit; ImageID is the TMDb person id when a photo is cached.
+type Person struct {
+	Name, Role string
+	ImageID    *int64
+}
 
 // Item is a movie, series, season or episode.
 type Item struct {
 	HasPoster                         bool
 	HasBackdrop                       bool
+	HasLogo                           bool
 	Rating                            *float64
 	PositionMS                        int64
 	Played                            bool
@@ -191,26 +196,22 @@ func (s *Service) Delete(ctx context.Context, id uuid.UUID) error {
 
 // Scan queues a scan job (a queued or running scan is not duplicated).
 func (s *Service) Scan(ctx context.Context, id uuid.UUID) error {
-	tag, err := s.Pool.Exec(ctx, `UPDATE libraries SET scan_state = 'queued' WHERE id = $1 AND scan_state NOT IN ('queued', 'scanning')`, id)
+	tag, err := s.Pool.Exec(ctx, `UPDATE libraries SET scan_state = CASE WHEN scan_state = 'scanning' THEN scan_state ELSE 'queued' END
+		WHERE id = $1`, id)
 	if err != nil {
 		return err
 	}
 	if tag.RowsAffected() == 0 {
-		var exists bool
-		if err := s.Pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM libraries WHERE id = $1)`, id).Scan(&exists); err != nil {
-			return err
-		}
-		if !exists {
-			return ErrNotFound
-		}
-		return nil // already queued or running
+		return ErrNotFound
 	}
+	// Always enqueue: the job queue drops duplicates while one is waiting, and a
+	// state left at "queued" by a lost job must never block scanning for good.
 	return s.Enqueue(ctx, id)
 }
 
 const itemCols = `i.id, i.library_id, i.parent_id, i.kind, COALESCE(i.metadata_title, i.title), i.year, i.season_number,
 	i.episode_number, i.episode_number_end, i.added_at, i.provider_ids,
-	(SELECT max(f.duration_ms) FROM media_files f WHERE f.item_id = i.id), i.has_poster, i.has_backdrop, i.community_rating,
+	(SELECT max(f.duration_ms) FROM media_files f WHERE f.item_id = i.id), i.has_poster, i.has_backdrop, i.has_logo, i.community_rating,
 	COALESCE(u.position_ms, 0), COALESCE(u.played, false), COALESCE(u.favorite, false)`
 
 // userJoin attaches the viewer's playback state ($owner is the profile or user id).
@@ -222,7 +223,7 @@ func scanItem(row pgx.Row) (Item, error) {
 	var it Item
 	var ids []byte
 	err := row.Scan(&it.ID, &it.LibraryID, &it.ParentID, &it.Kind, &it.Title, &it.Year, &it.Season, &it.Episode,
-		&it.EpisodeEnd, &it.AddedAt, &ids, &it.DurationMS, &it.HasPoster, &it.HasBackdrop, &it.Rating, &it.PositionMS, &it.Played, &it.Favorite)
+		&it.EpisodeEnd, &it.AddedAt, &ids, &it.DurationMS, &it.HasPoster, &it.HasBackdrop, &it.HasLogo, &it.Rating, &it.PositionMS, &it.Played, &it.Favorite)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return it, ErrNotFound
 	}
@@ -354,6 +355,7 @@ type ItemMetadata struct {
 	Genres                                                  []string
 	Premiere                                                *time.Time
 	HasBackdrop                                             bool
+	HasLogo                                                 bool
 	Cast, Crew                                              []Person
 }
 
@@ -361,16 +363,17 @@ type ItemMetadata struct {
 func (s *Service) GetMetadata(ctx context.Context, id uuid.UUID) (ItemMetadata, error) {
 	var m ItemMetadata
 	err := s.Pool.QueryRow(ctx, `SELECT COALESCE(overview, ''), COALESCE(tagline, ''), COALESCE(original_title, ''),
-			COALESCE(official_rating, ''), COALESCE(metadata_error, ''), genres, premiere_date, has_backdrop
+			COALESCE(official_rating, ''), COALESCE(metadata_error, ''), genres, premiere_date, has_backdrop, has_logo
 		FROM items WHERE id = $1`, id).Scan(&m.Overview, &m.Tagline, &m.OriginalTitle, &m.OfficialRating, &m.Error,
-		&m.Genres, &m.Premiere, &m.HasBackdrop)
+		&m.Genres, &m.Premiere, &m.HasBackdrop, &m.HasLogo)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return m, ErrNotFound
 	}
 	if err != nil {
 		return m, err
 	}
-	rows, err := s.Pool.Query(ctx, `SELECT kind, name, role FROM item_people WHERE item_id = $1 ORDER BY kind, position`, id)
+	rows, err := s.Pool.Query(ctx, `SELECT kind, name, role, CASE WHEN has_image THEN tmdb_person_id END
+		FROM item_people WHERE item_id = $1 ORDER BY kind, position`, id)
 	if err != nil {
 		return m, err
 	}
@@ -378,7 +381,7 @@ func (s *Service) GetMetadata(ctx context.Context, id uuid.UUID) (ItemMetadata, 
 	for rows.Next() {
 		var kind string
 		var p Person
-		if err := rows.Scan(&kind, &p.Name, &p.Role); err != nil {
+		if err := rows.Scan(&kind, &p.Name, &p.Role, &p.ImageID); err != nil {
 			return m, err
 		}
 		if kind == "cast" {

@@ -2219,6 +2219,12 @@ func (s *ItemDetail) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *ItemDetail) encodeFields(e *jx.Encoder) {
 	{
+		if s.HasLogo.Set {
+			e.FieldStart("hasLogo")
+			s.HasLogo.Encode(e)
+		}
+	}
+	{
 		if s.Overview.Set {
 			e.FieldStart("overview")
 			s.Overview.Encode(e)
@@ -2318,23 +2324,24 @@ func (s *ItemDetail) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfItemDetail = [16]string{
-	0:  "overview",
-	1:  "tagline",
-	2:  "originalTitle",
-	3:  "genres",
-	4:  "officialRating",
-	5:  "premiereDate",
-	6:  "cast",
-	7:  "crew",
-	8:  "hasBackdrop",
-	9:  "metadataError",
-	10: "item",
-	11: "libraryId",
-	12: "parentId",
-	13: "providerIds",
-	14: "files",
-	15: "children",
+var jsonFieldsNameOfItemDetail = [17]string{
+	0:  "hasLogo",
+	1:  "overview",
+	2:  "tagline",
+	3:  "originalTitle",
+	4:  "genres",
+	5:  "officialRating",
+	6:  "premiereDate",
+	7:  "cast",
+	8:  "crew",
+	9:  "hasBackdrop",
+	10: "metadataError",
+	11: "item",
+	12: "libraryId",
+	13: "parentId",
+	14: "providerIds",
+	15: "files",
+	16: "children",
 }
 
 // Decode decodes ItemDetail from json.
@@ -2342,10 +2349,20 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode ItemDetail to nil")
 	}
-	var requiredBitSet [2]uint8
+	var requiredBitSet [3]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
+		case "hasLogo":
+			if err := func() error {
+				s.HasLogo.Reset()
+				if err := s.HasLogo.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"hasLogo\"")
+			}
 		case "overview":
 			if err := func() error {
 				s.Overview.Reset()
@@ -2377,7 +2394,7 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"originalTitle\"")
 			}
 		case "genres":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				s.Genres = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -2417,7 +2434,7 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"premiereDate\"")
 			}
 		case "cast":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				s.Cast = make([]Person, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -2435,7 +2452,7 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"cast\"")
 			}
 		case "crew":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				s.Crew = make([]Person, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -2453,7 +2470,7 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"crew\"")
 			}
 		case "hasBackdrop":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := d.Bool()
 				s.HasBackdrop = bool(v)
@@ -2475,7 +2492,7 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"metadataError\"")
 			}
 		case "item":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				if err := s.Item.Decode(d); err != nil {
 					return err
@@ -2485,7 +2502,7 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"item\"")
 			}
 		case "libraryId":
-			requiredBitSet[1] |= 1 << 3
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.LibraryId = v
@@ -2507,7 +2524,7 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"parentId\"")
 			}
 		case "providerIds":
-			requiredBitSet[1] |= 1 << 5
+			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				if err := s.ProviderIds.Decode(d); err != nil {
 					return err
@@ -2517,7 +2534,7 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"providerIds\"")
 			}
 		case "files":
-			requiredBitSet[1] |= 1 << 6
+			requiredBitSet[1] |= 1 << 7
 			if err := func() error {
 				s.Files = make([]MediaFile, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -2535,7 +2552,7 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"files\"")
 			}
 		case "children":
-			requiredBitSet[1] |= 1 << 7
+			requiredBitSet[2] |= 1 << 0
 			if err := func() error {
 				s.Children = make([]ItemSummary, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -2561,9 +2578,10 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [2]uint8{
-		0b11001000,
-		0b11101101,
+	for i, mask := range [3]uint8{
+		0b10010000,
+		0b11011011,
+		0b00000001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -2898,6 +2916,12 @@ func (s *ItemSummary) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.HasLogo.Set {
+			e.FieldStart("hasLogo")
+			s.HasLogo.Encode(e)
+		}
+	}
+	{
 		if s.Rating.Set {
 			e.FieldStart("rating")
 			s.Rating.Encode(e)
@@ -2923,7 +2947,7 @@ func (s *ItemSummary) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfItemSummary = [15]string{
+var jsonFieldsNameOfItemSummary = [16]string{
 	0:  "id",
 	1:  "kind",
 	2:  "title",
@@ -2935,10 +2959,11 @@ var jsonFieldsNameOfItemSummary = [15]string{
 	8:  "addedAt",
 	9:  "hasPoster",
 	10: "hasBackdrop",
-	11: "rating",
-	12: "positionMs",
-	13: "played",
-	14: "favorite",
+	11: "hasLogo",
+	12: "rating",
+	13: "positionMs",
+	14: "played",
+	15: "favorite",
 }
 
 // Decode decodes ItemSummary from json.
@@ -3067,6 +3092,16 @@ func (s *ItemSummary) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"hasBackdrop\"")
+			}
+		case "hasLogo":
+			if err := func() error {
+				s.HasLogo.Reset()
+				if err := s.HasLogo.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"hasLogo\"")
 			}
 		case "rating":
 			if err := func() error {
@@ -4918,11 +4953,18 @@ func (s *Person) encodeFields(e *jx.Encoder) {
 			s.Role.Encode(e)
 		}
 	}
+	{
+		if s.ImageUrl.Set {
+			e.FieldStart("imageUrl")
+			s.ImageUrl.Encode(e)
+		}
+	}
 }
 
-var jsonFieldsNameOfPerson = [2]string{
+var jsonFieldsNameOfPerson = [3]string{
 	0: "name",
 	1: "role",
+	2: "imageUrl",
 }
 
 // Decode decodes Person from json.
@@ -4955,6 +4997,16 @@ func (s *Person) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"role\"")
+			}
+		case "imageUrl":
+			if err := func() error {
+				s.ImageUrl.Reset()
+				if err := s.ImageUrl.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"imageUrl\"")
 			}
 		default:
 			return d.Skip()

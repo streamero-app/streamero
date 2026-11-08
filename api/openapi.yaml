@@ -1083,6 +1083,35 @@ paths:
           description: Queued
         default:
           $ref: "#/components/responses/Error"
+  /people/{personId}/image:
+    parameters:
+      - name: personId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+    get:
+      operationId: getPersonImage
+      summary: Cached photo of a person (JPEG)
+      tags: [items]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Image
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+        default:
+          $ref: "#/components/responses/Error"
   /items/{itemId}/images/{imageType}:
     parameters:
       - name: itemId
@@ -1096,7 +1125,7 @@ paths:
         required: true
         schema:
           type: string
-          enum: [poster, backdrop, still]
+          enum: [poster, backdrop, still, logo]
     get:
       operationId: getItemImage
       summary: Cached artwork of an item (JPEG)
@@ -1600,6 +1629,9 @@ components:
         role:
           type: string
           description: Character name for actors, job for crew (e.g. "Director").
+        imageUrl:
+          type: string
+          description: Server-relative URL of the person's photo, when cached.
     ItemSummary:
       type: object
       required: [id, kind, title, addedAt, hasPoster]
@@ -1630,6 +1662,9 @@ components:
         hasBackdrop:
           type: boolean
           description: A wide backdrop image is available (images/backdrop).
+        hasLogo:
+          type: boolean
+          description: A transparent title logo is available (images/logo, PNG).
         rating:
           type: number
           description: Community rating 0–10.
@@ -1718,6 +1753,8 @@ components:
       type: object
       required: [item, libraryId, files, children, providerIds, genres, cast, crew, hasBackdrop]
       properties:
+        hasLogo:
+          type: boolean
         overview:
           type: string
         tagline:

@@ -490,6 +490,8 @@ func (s GetItemImageImageType) Validate() error {
 		return nil
 	case "still":
 		return nil
+	case "logo":
+		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
 	}
