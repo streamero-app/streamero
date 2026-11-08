@@ -30,6 +30,7 @@ var whileQueued = river.UniqueOpts{ByArgs: true, ByState: []rivertype.JobState{
 	rivertype.JobStateAvailable, rivertype.JobStatePending, rivertype.JobStateRunning, rivertype.JobStateScheduled,
 }}
 
+// InsertOpts keeps at most one waiting scan per library.
 func (LibraryScanArgs) InsertOpts() river.InsertOpts {
 	return river.InsertOpts{MaxAttempts: 3, UniqueOpts: whileQueued}
 }

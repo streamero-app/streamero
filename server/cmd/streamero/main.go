@@ -184,6 +184,13 @@ func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	if err != nil {
 		return err
 	}
+	// Finished scan/refresh jobs from older versions still carry a uniqueness bitmask that
+	// includes "completed" and would block new ones until River cleans them (~24 h).
+	if _, err := deps.Pool.Exec(ctx, `UPDATE river_job SET unique_key = NULL
+		WHERE unique_key IS NOT NULL AND state IN ('completed', 'cancelled', 'discarded')
+			AND kind IN ('library.scan', 'metadata.refresh_library')`); err != nil {
+		log.Warn("could not release finished unique jobs", "err", err)
+	}
 	// The library service queues scans through this worker's own River client (set below).
 	var client *river.Client[pgx.Tx]
 	libraries := &library.Service{Pool: deps.Pool, Roots: roots, Enqueue: func(ctx context.Context, id uuid.UUID) error {
