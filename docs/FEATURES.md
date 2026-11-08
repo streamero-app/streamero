@@ -74,7 +74,7 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [x] `[JF]` Real-time monitoring (fsnotify) + periodični scan; fallback polling za NFS/SMB (P2)
 - [ ] `[JF]` Redoslijed i on/off metadata providera i image fetchera po tipu (P3)
 - [ ] `[JF]` Spremanje slika/NFO pokraj medija (opcija) (P3)
-- [ ] `[JF]` Automatske kolekcije (TMDb box sets) (P3)
+- [x] `[JF]` Automatske kolekcije (TMDb box sets) (P3)
 - [ ] `[JF]` Automatsko grupiranje alternativnih verzija (film I epizode) + ručno spajanje/razdvajanje (P2) — *automatsko grupiranje filmova gotovo; epizode i ručno spajanje slijede*
 - [ ] `[JF]` Provider ID u imenu foldera/datoteke: `[tmdbid-123]`, `{tmdb-123}`, `(imdb-tt…)`, aliasi `tmdb/imdb/tvdb` — i na folderima sezona i epizoda (P2) — *film/serija gotovi; sezone/epizode slijede*
 - [x] `[JF]` Prepoznavanje release tagova (WEB-DL, BluRay, 2160p, HDR, DV, Remux…) (P2)
@@ -84,8 +84,8 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [ ] `[JF]` Redoslijed epizoda: aired, DVD, absolute, alternativni (TVDB orders) (P3)
 - [ ] `[JF]` Prikaz nedostajućih epizoda i neemitiranih (missing/unaired) (P3)
 - [ ] `[JF]` Grupiranje serija u kolekcije u prikazu biblioteke (P4)
-- [ ] `[JF]` Ekstrakcija poglavlja i slika poglavlja (chapter images) (P6)
-- [ ] `[JF]` Trickplay generiranje (tijekom scana ili kao task), ponovno korištenje postojećih (P6)
+- [ ] `[JF]` Ekstrakcija poglavlja i slika poglavlja (chapter images) (P6) — *poglavlja gotova; slike poglavlja preko trickplaya*
+- [x] `[JF]` Trickplay generiranje (tijekom scana ili kao task), ponovno korištenje postojećih (P6)
 - [ ] `[JF]` Media segment provideri po biblioteci (P6)
 - [ ] `[JF]` Postavke podnaslova po biblioteci (jezici za download, skip ako postoji audio na jeziku…) (P13)
 - [ ] `[JF]` Symlinkovi rezolvirani u trenutku reprodukcije (P2)
@@ -109,7 +109,7 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [ ] `[JF]` ISBN external ID i linkovi (P9)
 - [ ] `[JF]` Tipovi slika: Primary, Backdrop (više), Logo, Thumb, Banner, Art, Disc, Box, Screenshot, Chapter (P3)
 - [ ] `[JF]` Generiranje postera za EPUB/comics, vanjske naslovnice audioknjiga (P9)
-- [ ] `[JF]` Identify (ručno traženje/sparivanje), Refresh metadata (scan novih / zamijeni sve / zamijeni slike) (P3)
+- [x] `[JF]` Identify (ručno traženje/sparivanje), Refresh metadata (scan novih / zamijeni sve / zamijeni slike) (P3)
 - [ ] `[JF]` Metadata editor: sva polja, zaključavanje polja (lock), dodavanje/uklanjanje ljudi, žanrova, studija, tagova, external ID-eva, slika (upload, odabir s providera, brisanje) (P3)
 - [ ] `[JF]` Ljudi: glumci (uloge, guest stars s ulogama), redatelji, scenaristi, producenti, kreatori serija; spajanje crew članova s više uloga u jednu karticu; Refresh People task (P3)
 - [ ] `[JF]` Dobne ocjene po državama (uklj. ispravne HR/NO/IT…), case-insensitive, `ratingScore` sa subscores (P3)
@@ -135,8 +135,8 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [ ] `[JF]` Globalna pretraga (brza, s prijedlozima, po tipovima, uklj. ljude) (P4)
 - [ ] `[JF]` Favoriti za sve tipove: filmove, serije, sezone, epizode, ljude, izvođače, albume, pjesme, kanale, music videe, foto albume, fotografije (P4)
 - [ ] `[JF]` Korisnička ocjena (like/dislike + zvjezdice) (P4)
-- [ ] `[JF]` Kolekcije: kreiranje, uređivanje, slika, filter po biblioteci, prikaz na detaljima stavke (P4)
-- [ ] `[JF]` Playliste: video/audio/mixed, duplikati dopušteni, redoslijed drag&drop, dijeljenje s drugim korisnicima (javne/privatne), slika playliste (P4)
+- [x] `[JF]` Kolekcije: kreiranje, uređivanje, slika, filter po biblioteci, prikaz na detaljima stavke (P4)
+- [ ] `[JF]` Playliste: video/audio/mixed, duplikati dopušteni, redoslijed drag&drop, dijeljenje s drugim korisnicima (javne/privatne), slika playliste (P4) — *video playliste, javne/privatne, redoslijed gumbima, kolaž naslovnica gotovi; audio s glazbenim bibliotekama*
 - [ ] `[JF]` Preporuke: „Because you watched", „More like this"; izvor preporuka biran po biblioteci; ListenBrainz za glazbu (P4/P9)
 - [ ] `[JF]` Teme web klijenta: Dark, Light, + više tema na CSS varijablama; Custom CSS (admin i korisnik) (P4)
 - [ ] `[JF]` Branding: splash/login pozadina, disclaimer tekst na loginu, custom CSS (P10)
@@ -180,13 +180,13 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [ ] `[JF]` Resume, napredak se javlja serveru (start/progress/stop/pause), mark played prag (npr. 90 %) (P5)
 - [x] `[JF]` Next Up / autoplay sljedeće epizode s odbrojavanjem (P5) — *web; iOS slijedi*
 - [ ] `[JF]` „Još gledate?" prompt nakon N epizoda/sati (P5)
-- [ ] `[JF]` Brzina reprodukcije (P5)
-- [ ] `[JF]` Frame-by-frame (`,` i `.` tipke na webu) (P5)
-- [ ] `[JF]` Trickplay preview na seek baru + imena poglavlja u previewu (P6)
-- [ ] `[JF]` Poglavlja: lista, skok (P6)
-- [ ] `[JF]` Media segments: Intro, Outro/Credits, Recap, Preview, Commercial — akcija po tipu: Skip / Ask to skip / None (P6)
+- [x] `[JF]` Brzina reprodukcije (P5)
+- [x] `[JF]` Frame-by-frame (`,` i `.` tipke na webu) (P5)
+- [x] `[JF]` Trickplay preview na seek baru + imena poglavlja u previewu (P6)
+- [ ] `[JF]` Poglavlja: lista, skok (P6) — *oznake i nazivi na seek baru gotovi; zasebna lista slijedi*
+- [ ] `[JF]` Media segments: Intro, Outro/Credits, Recap, Preview, Commercial — akcija po tipu: Skip / Ask to skip / None (P6) — *intro/recap/credits/preview iz poglavlja i Chromaprint otisaka, „Preskoči uvod" na webu i iOS-u; postavka akcije po tipu slijedi*
 - [ ] `[JF]` Info overlay: kodeci, bitrate, način reprodukcije, razlog transkodiranja, bufer (P5)
-- [ ] `[JF]` Picture-in-Picture (web + iOS) (P5/P7)
+- [ ] `[JF]` Picture-in-Picture (web + iOS) (P5/P7) — *web gotov*
 - [ ] `[JF]` Fullscreen, tipkovni prečaci (rade i na ne-latiničnim layoutima), media keys, daljinski rewind/FF (P5)
 - [ ] `[JF]` Queue / „Play next" / „Add to queue" (P5)
 - [ ] `[JF]` Cast: Chromecast (web + iOS), AirPlay (iOS/Safari) (P8)
