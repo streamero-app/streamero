@@ -1735,13 +1735,13 @@ func TestIdentifyAndEditMetadataIntegration(t *testing.T) {
 		t.Fatalf("save key: %d", s)
 	}
 	var cands []struct {
-		TmdbId    int
+		TmdbID    int `json:"tmdbId"`
 		Title     string
 		Year      int
-		PosterUrl string
+		PosterURL string `json:"posterUrl"`
 	}
 	if s := adminC.do("GET", "/items/"+item+"/identify?query=pravi", nil, &cands); s != 200 || len(cands) != 2 || cands[0].Year != 1999 ||
-		cands[0].PosterUrl != "https://image.tmdb.org/t/p/w185/p.jpg" {
+		cands[0].PosterURL != "https://image.tmdb.org/t/p/w185/p.jpg" {
 		t.Fatalf("candidates: %d %+v", s, cands)
 	}
 	if s := adminC.do("POST", "/items/"+item+"/identify", map[string]any{"tmdbId": 77}, nil); s != 204 {
@@ -1750,11 +1750,11 @@ func TestIdentifyAndEditMetadataIntegration(t *testing.T) {
 	var d struct {
 		Item        struct{ Title string }
 		Overview    string
-		ProviderIds map[string]string
+		ProviderIDs map[string]string `json:"providerIds"`
 		Locked      bool
 	}
 	adminC.do("GET", "/items/"+item, nil, &d)
-	if d.Item.Title != "Pravi film" || d.Overview != "Tocno." || d.ProviderIds["tmdb"] != "77" || d.Locked {
+	if d.Item.Title != "Pravi film" || d.Overview != "Tocno." || d.ProviderIDs["tmdb"] != "77" || d.Locked {
 		t.Fatalf("after identify: %+v", d)
 	}
 
