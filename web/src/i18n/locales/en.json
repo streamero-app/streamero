@@ -404,7 +404,20 @@
     "upNext": "Next episode",
     "nextIn": "Next episode in {{seconds}}",
     "playNext": "Play now",
-    "nextItemIn": "Next in playlist in {{seconds}}"
+    "nextItemIn": "Next in playlist in {{seconds}}",
+    "seek": "Seek",
+    "pause": "Pause",
+    "back10": "Back 10 seconds",
+    "forward10": "Forward 10 seconds",
+    "volume": "Volume",
+    "tracks": "Audio and subtitles",
+    "speed": "Playback speed",
+    "normalSpeed": "Normal",
+    "pip": "Picture in picture",
+    "fullscreen": "Full screen",
+    "exitFullscreen": "Exit full screen",
+    "skipIntro": "Skip intro",
+    "skipRecap": "Skip recap"
   },
   "search": {
     "title": "Search",
@@ -484,7 +497,9 @@
     "never": "not run yet",
     "running": "Running",
     "failed": "Failed",
-    "runNow": "Run now"
+    "runNow": "Run now",
+    "analyze_media": "Analyze media",
+    "analyze_media_hint": "Chapters, intro and credits for skipping, seek-bar thumbnails"
   },
   "notifications": {
     "title": "Notifications",

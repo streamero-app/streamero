@@ -404,7 +404,20 @@
     "upNext": "Sljedeća epizoda",
     "nextIn": "Sljedeća epizoda za {{seconds}}",
     "playNext": "Pokreni sada",
-    "nextItemIn": "Sljedeće s playliste za {{seconds}}"
+    "nextItemIn": "Sljedeće s playliste za {{seconds}}",
+    "seek": "Premotavanje",
+    "pause": "Pauza",
+    "back10": "10 sekundi natrag",
+    "forward10": "10 sekundi naprijed",
+    "volume": "Glasnoća",
+    "tracks": "Zvuk i podnaslovi",
+    "speed": "Brzina reprodukcije",
+    "normalSpeed": "Normalno",
+    "pip": "Slika u slici",
+    "fullscreen": "Cijeli zaslon",
+    "exitFullscreen": "Izađi iz cijelog zaslona",
+    "skipIntro": "Preskoči uvod",
+    "skipRecap": "Preskoči sažetak"
   },
   "search": {
     "title": "Pretraga",
@@ -484,7 +497,9 @@
     "never": "još nije pokrenuto",
     "running": "U tijeku",
     "failed": "Neuspjelo",
-    "runNow": "Pokreni sada"
+    "runNow": "Pokreni sada",
+    "analyze_media": "Analiziraj medije",
+    "analyze_media_hint": "Poglavlja, uvod i odjavna špica za preskakanje, sličice za premotavanje"
   },
   "notifications": {
     "title": "Obavijesti",

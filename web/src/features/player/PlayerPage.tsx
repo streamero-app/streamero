@@ -1,23 +1,98 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import type Hls from "hls.js";
+import {
+  ArrowLeft, Captions, Gauge, Maximize, Minimize, Pause, PictureInPicture2, Play, RotateCcw, RotateCw, SkipForward, Volume1, Volume2, VolumeX, X,
+} from "lucide-react";
 import { api, unwrap } from "@/api/client";
 import type { components } from "@/api/schema.gen";
 import { ErrorText, Spinner } from "@/components/ui";
-import { ArrowLeft, Play, X } from "lucide-react";
 import { imageUrl } from "@/features/library/format";
 import { detectDeviceProfile } from "./deviceProfile";
 
 type PlaybackInfo = components["schemas"]["PlaybackInfo"];
+type Segment = components["schemas"]["MediaSegment"];
 const SAVE_EVERY_MS = 10_000;
+const HIDE_AFTER_MS = 3200;
+const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
+
+export function clock(ms: number): string {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = String(s % 60).padStart(2, "0");
+  return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${m}:${sec}`;
+}
+
+/** Seek bar with buffered range, chapter ticks and a trickplay preview on hover. */
+function SeekBar({ positionMs, durationMs, bufferedMs, info, onSeek }: {
+  positionMs: number; durationMs: number; bufferedMs: number; info: PlaybackInfo | null; onSeek: (ms: number) => void;
+}) {
+  const { t } = useTranslation();
+  const ref = useRef<HTMLDivElement>(null);
+  const [hover, setHover] = useState<number | null>(null);
+  const [drag, setDrag] = useState<number | null>(null);
+  const at = (e: { clientX: number }) => {
+    const r = ref.current!.getBoundingClientRect();
+    return r.width ? Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)) * durationMs : 0;
+  };
+  const shown = drag ?? positionMs;
+  const pct = durationMs ? (shown / durationMs) * 100 : 0;
+  const tp = info?.trickplay;
+  const chapter = hover !== null ? [...(info?.chapters ?? [])].reverse().find((c) => c.startMs <= hover) : undefined;
+  let thumb: { url: string; x: number; y: number } | null = null;
+  if (tp && hover !== null) {
+    const idx = Math.min(tp.count - 1, Math.floor(hover / tp.intervalMs));
+    const perSheet = tp.columns * tp.rows;
+    const sheet = Math.floor(idx / perSheet);
+    const cell = idx % perSheet;
+    if (tp.sheetUrls[sheet]) thumb = { url: tp.sheetUrls[sheet]!, x: (cell % tp.columns) * tp.width, y: Math.floor(cell / tp.columns) * tp.height };
+  }
+  const hoverPct = hover !== null && durationMs ? (hover / durationMs) * 100 : 0;
+  return (
+    <div className="group/seek relative flex h-6 cursor-pointer touch-none items-center" ref={ref}
+      role="slider" tabIndex={0} aria-label={t("player.seek")} aria-valuemin={0} aria-valuemax={Math.round(durationMs / 1000)}
+      aria-valuenow={Math.round(shown / 1000)} aria-valuetext={clock(shown)}
+      onPointerMove={(e) => { setHover(at(e)); if (drag !== null) setDrag(at(e)); }}
+      onPointerLeave={() => { if (drag === null) setHover(null); }}
+      onPointerDown={(e: ReactPointerEvent) => { e.currentTarget.setPointerCapture?.(e.pointerId); setDrag(at(e)); }}
+      onPointerUp={(e) => { if (drag !== null) onSeek(at(e)); setDrag(null); setHover(null); }}>
+      <div className="relative h-1 w-full rounded-full bg-white/25 transition-[height] duration-150 group-hover/seek:h-1.5">
+        <div className="absolute inset-y-0 left-0 rounded-full bg-white/35" style={{ width: `${durationMs ? Math.min(100, (bufferedMs / durationMs) * 100) : 0}%` }} />
+        <div className="absolute inset-y-0 left-0 rounded-full bg-accent" style={{ width: `${pct}%` }} />
+        {durationMs > 0 && info?.chapters?.filter((c) => c.startMs > 0).map((c) => (
+          <span key={c.startMs} className="absolute inset-y-0 w-0.5 bg-black/70" style={{ left: `${(c.startMs / durationMs) * 100}%` }} aria-hidden />
+        ))}
+        <span className="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 scale-0 rounded-full bg-accent shadow transition-transform duration-150 group-hover/seek:scale-100"
+          style={{ left: `${pct}%` }} aria-hidden />
+      </div>
+      {hover !== null && (
+        <div className="pointer-events-none absolute bottom-7 flex -translate-x-1/2 flex-col items-center gap-1.5"
+          style={{ left: `clamp(${(tp?.width ?? 80) / 2}px, ${hoverPct}%, calc(100% - ${(tp?.width ?? 80) / 2}px))` }} data-testid="seek-preview">
+          {thumb && tp && (
+            <div className="overflow-hidden rounded-md shadow-2xl ring-2 ring-white/80"
+              style={{ width: tp.width, height: tp.height, backgroundImage: `url(${thumb.url})`, backgroundPosition: `-${thumb.x}px -${thumb.y}px` }} />
+          )}
+          <span className="rounded bg-black/80 px-2 py-0.5 text-xs font-semibold text-white tabular">
+            {chapter?.title ? `${chapter.title} · ` : ""}{clock(hover)}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const iconBtn = "grid size-11 place-items-center rounded-full text-white transition-[background-color,transform] duration-150 hover:bg-white/15 active:scale-95";
 
 export function PlayerPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { itemId } = useParams({ from: "/app/watch/$itemId" });
   const search = useSearch({ from: "/app/watch/$itemId" });
+  const rootRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const [info, setInfo] = useState<PlaybackInfo | null>(null);
@@ -26,16 +101,26 @@ export function PlayerPage() {
   const offsetRef = useRef(0); // HLS streams start at info.startMs; direct play starts at 0
   const lastSave = useRef(0);
   const firstStart = useRef(true);
-  const navigate = useNavigate();
-  const [remaining, setRemaining] = useState<number | null>(null);
+  const [position, setPosition] = useState(0);
+  const [buffered, setBuffered] = useState(0);
+  const [paused, setPaused] = useState(true);
+  const [waiting, setWaiting] = useState(false);
+  const [volume, setVolume] = useState(1);
+  const [muted, setMuted] = useState(false);
+  const [speed, setSpeed] = useState(1);
+  const [fullscreen, setFullscreen] = useState(false);
+  const [chrome, setChrome] = useState(true);
+  const [panel, setPanel] = useState<"tracks" | "speed" | null>(null);
   const [ended, setEnded] = useState(false);
   const [dismissed, setDismissed] = useState(false);
-  const prefs = useQuery({ queryKey: ["preferences"], queryFn: async () => unwrap(await api.GET("/me/preferences")) });
+  const [skipped, setSkipped] = useState<string | null>(null);
+  const hideTimer = useRef<number | undefined>(undefined);
 
   const detail = useQuery({
     queryKey: ["item", itemId],
     queryFn: async () => unwrap(await api.GET("/items/{itemId}", { params: { path: { itemId } } })),
   });
+  const prefs = useQuery({ queryKey: ["preferences"], queryFn: async () => unwrap(await api.GET("/me/preferences")) });
 
   const start = useMutation({
     mutationFn: async (v: { audioIndex?: number; startMs?: number }) =>
@@ -45,14 +130,17 @@ export function PlayerPage() {
       })),
     onSuccess: (data) => {
       setInfo(data);
-      // The viewer's subtitle preference applies when an item starts, not on audio switches.
+      // The viewer's subtitle preference applies when an item starts, not on audio switches or seeks.
       if (firstStart.current) {
         setSubtitle(data.subtitleDefault ?? -1);
         firstStart.current = false;
       }
     },
   });
-  const isEpisode = detail.data?.item.kind === "episode";
+  const it = detail.data?.item;
+  const isEpisode = it?.kind === "episode";
+  const durationMs = info?.durationMs ?? it?.durationMs ?? 0;
+
   // In a playlist the next title is the playlist's next entry; otherwise the next episode.
   const playlist = useQuery({
     queryKey: ["playlist", search.playlist],
@@ -72,7 +160,7 @@ export function PlayerPage() {
   })();
   const next = search.playlist ? { data: playlistNext } : episodeNext;
 
-  const position = useCallback(() => {
+  const absolute = useCallback(() => {
     const v = videoRef.current;
     return v ? Math.round(offsetRef.current + v.currentTime * 1000) : 0;
   }, []);
@@ -81,15 +169,15 @@ export function PlayerPage() {
     const now = Date.now();
     if (!force && now - lastSave.current < SAVE_EVERY_MS) return;
     lastSave.current = now;
-    const pos = position();
+    const pos = absolute();
     if (pos <= 0) return;
     void api.PUT("/items/{itemId}/progress", {
       params: { path: { itemId } },
       body: { positionMs: pos, durationMs: info?.durationMs },
     }).then(() => qc.invalidateQueries({ queryKey: ["continue"] }));
-  }, [itemId, info?.durationMs, position, qc]);
+  }, [itemId, info?.durationMs, absolute, qc]);
 
-  // Start (honours ?start= from "play from beginning"); again when autoplay moves to the next episode.
+  // Start (honours ?start= from "play from beginning"); again when moving to the next title.
   useEffect(() => {
     firstStart.current = true;
     setInfo(null);
@@ -97,31 +185,10 @@ export function PlayerPage() {
     setAudioIndex(undefined);
     setEnded(false);
     setDismissed(false);
-    setRemaining(null);
+    setSkipped(null);
+    setPosition(0);
     start.mutate({ startMs: search.start });
   }, [itemId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Up next: count down over the end credits (or after the end) and move on.
-  const autoplay = prefs.data?.autoplayNext ?? true;
-  const showNext = !!next.data && !dismissed && (ended || (remaining !== null && remaining <= 20));
-  const [countdown, setCountdown] = useState(10);
-  useEffect(() => {
-    if (!showNext) {
-      setCountdown(10);
-      return;
-    }
-    if (!autoplay) return;
-    const timer = window.setInterval(() => setCountdown((c) => c - 1), 1000);
-    return () => window.clearInterval(timer);
-  }, [showNext, autoplay]);
-  const playNext = useCallback(() => {
-    if (!next.data) return;
-    save(true);
-    void navigate({ to: "/watch/$itemId", params: { itemId: next.data.id }, search: search.playlist ? { playlist: search.playlist } : {}, replace: true });
-  }, [next.data, navigate, save, search.playlist]);
-  useEffect(() => {
-    if (showNext && autoplay && countdown <= 0) playNext();
-  }, [countdown, showNext, autoplay, playNext]);
 
   // Attach the stream to the <video> element.
   useEffect(() => {
@@ -151,11 +218,12 @@ export function PlayerPage() {
         });
       }
     }
+    video.playbackRate = speed;
     void video.play().catch(() => undefined); // autoplay may need a click
     return () => {
       cancelled = true;
     };
-  }, [info]);
+  }, [info]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Subtitles: show the chosen <track>, hide the others.
   useEffect(() => {
@@ -173,22 +241,238 @@ export function PlayerPage() {
   const changeAudio = (idx: number) => {
     setAudioIndex(idx);
     save(true);
-    start.mutate({ audioIndex: idx, startMs: position() });
+    start.mutate({ audioIndex: idx, startMs: absolute() });
   };
 
-  const it = detail.data?.item;
+  /** Seeks to an absolute position; a transcode restarts there when the target is not encoded yet. */
+  const seekTo = useCallback((ms: number) => {
+    const v = videoRef.current;
+    if (!v || !info) return;
+    const target = Math.max(0, Math.min(ms, durationMs || ms));
+    if (info.method === "direct") {
+      v.currentTime = target / 1000;
+    } else {
+      const rel = (target - offsetRef.current) / 1000;
+      const end = v.seekable.length ? v.seekable.end(v.seekable.length - 1) : 0;
+      if (rel >= 0 && rel <= end) v.currentTime = rel;
+      else start.mutate({ audioIndex, startMs: target });
+    }
+    setPosition(target);
+  }, [info, durationMs, audioIndex, start]);
+
+  // Controls hide while playing and come back on any movement or key.
+  const poke = useCallback(() => {
+    setChrome(true);
+    window.clearTimeout(hideTimer.current);
+    hideTimer.current = window.setTimeout(() => {
+      if (!videoRef.current?.paused && !panel) setChrome(false);
+    }, HIDE_AFTER_MS);
+  }, [panel]);
+  useEffect(() => () => window.clearTimeout(hideTimer.current), []);
+
+  const togglePlay = useCallback(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) void v.play()?.catch(() => undefined);
+    else v.pause();
+  }, []);
+  const toggleFullscreen = useCallback(() => {
+    if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
+    else void rootRef.current?.requestFullscreen?.().catch(() => undefined);
+  }, []);
+  useEffect(() => {
+    const onFs = () => setFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onFs);
+    return () => document.removeEventListener("fullscreenchange", onFs);
+  }, []);
+
+  // Segments: skip intro/recap, and credits bring up the next title.
+  const segAt = (kind: Segment["kind"]) => info?.segments?.find((s) => s.kind === kind && position >= s.startMs && position < s.endMs - 1000);
+  const skippable = segAt("intro") ?? segAt("recap");
+  const inCredits = !!segAt("credits");
+  const autoplay = prefs.data?.autoplayNext ?? true;
+  const remaining = durationMs ? durationMs - position : null;
+  const showNext = !!next.data && !dismissed && (ended || inCredits || (remaining !== null && remaining <= 20_000 && position > 0));
+  const [countdown, setCountdown] = useState(10);
+  useEffect(() => {
+    if (!showNext) {
+      setCountdown(10);
+      return;
+    }
+    if (!autoplay) return;
+    const timer = window.setInterval(() => setCountdown((c) => c - 1), 1000);
+    return () => window.clearInterval(timer);
+  }, [showNext, autoplay]);
+  const playNext = useCallback(() => {
+    if (!next.data) return;
+    save(true);
+    void navigate({ to: "/watch/$itemId", params: { itemId: next.data.id }, search: search.playlist ? { playlist: search.playlist } : {}, replace: true });
+  }, [next.data, navigate, save, search.playlist]);
+  useEffect(() => {
+    if (showNext && autoplay && countdown <= 0) playNext();
+  }, [countdown, showNext, autoplay, playNext]);
+
+  // Keyboard and TV remote. Runs before the app's arrow-key navigation (capture phase).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const v = videoRef.current;
+      if (!v || e.ctrlKey || e.metaKey || e.altKey) return;
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === "SELECT" || tag === "INPUT" || tag === "BUTTON" && (e.key === " " || e.key === "Enter")) return;
+      let handled = true;
+      switch (e.key) {
+        case " ": case "k": case "K": case "MediaPlayPause": togglePlay(); break;
+        case "ArrowLeft": case "j": case "J": case "MediaRewind": seekTo(absolute() - 10_000); break;
+        case "ArrowRight": case "l": case "L": case "MediaFastForward": seekTo(absolute() + 10_000); break;
+        case "ArrowUp": v.volume = Math.min(1, v.volume + 0.1); v.muted = false; break;
+        case "ArrowDown": v.volume = Math.max(0, v.volume - 0.1); break;
+        case "m": case "M": v.muted = !v.muted; break;
+        case "f": case "F": toggleFullscreen(); break;
+        case "c": case "C": if (info?.subtitles.length) setSubtitle((s) => (s >= 0 ? -1 : (info.subtitleDefault ?? 0))); break;
+        case "s": case "S": if (skippable) seekTo(skippable.endMs); else handled = false; break;
+        case "n": case "N": if (next.data) playNext(); else handled = false; break;
+        case ",": if (v.paused) v.currentTime = Math.max(0, v.currentTime - 1 / 24); break;
+        case ".": if (v.paused) v.currentTime += 1 / 24; break;
+        case "Escape": if (panel) setPanel(null); else handled = false; break;
+        default: handled = false;
+      }
+      if (handled) {
+        e.preventDefault();
+        e.stopPropagation();
+        poke();
+      }
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [togglePlay, seekTo, absolute, toggleFullscreen, info, skippable, next.data, playNext, panel, poke]);
+
+  const VolumeIcon = muted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
+  const title = it ? (isEpisode && it.seasonNumber !== undefined && it.episodeNumber !== undefined
+    ? `S${it.seasonNumber}:E${it.episodeNumber} · ${it.title}` : it.title) : "";
+  const visible = chrome || paused || !!panel;
+
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black" data-testid="player">
-      <div className="flex items-center gap-3 bg-gradient-to-b from-black/80 to-transparent px-4 py-3 text-white">
-        <Link to="/item/$itemId" params={{ itemId }} className="inline-flex h-9 items-center gap-1.5 rounded-full pr-3 pl-2 text-sm transition-colors hover:bg-white/10" onClick={() => save(true)}>
-          <ArrowLeft className="size-4" aria-hidden />{t("player.back")}
+    <div ref={rootRef} className={`fixed inset-0 z-50 bg-black text-white ${visible ? "" : "cursor-none"}`} data-testid="player"
+      onPointerMove={poke} onPointerDown={poke}>
+      <video ref={videoRef} className="absolute inset-0 size-full" playsInline autoPlay data-testid="video"
+        onClick={togglePlay} onDoubleClick={toggleFullscreen}
+        onTimeUpdate={(e) => {
+          save();
+          const v = e.currentTarget;
+          setPosition(offsetRef.current + v.currentTime * 1000);
+          if (v.buffered?.length) setBuffered(offsetRef.current + v.buffered.end(v.buffered.length - 1) * 1000);
+        }}
+        onPlay={() => { setPaused(false); setEnded(false); poke(); }}
+        onPause={() => { setPaused(true); save(true); }}
+        onWaiting={() => setWaiting(true)} onPlaying={() => setWaiting(false)} onCanPlay={() => setWaiting(false)}
+        onVolumeChange={(e) => { setVolume(e.currentTarget.volume); setMuted(e.currentTarget.muted); }}
+        onEnded={() => { save(true); setEnded(true); }}>
+        {info?.subtitles.map((s) => (
+          <track key={s.index} kind="subtitles" src={s.url} srcLang={s.language ?? "und"} label={s.language ?? String(s.index)} />
+        ))}
+      </video>
+
+      {(start.isPending || waiting) && !start.error && (
+        <p role="status" className="pointer-events-none absolute inset-0 flex items-center justify-center gap-3 text-white/80">
+          <Spinner className="size-10" />{start.isPending && <span className="sr-only">{t("player.preparing")}</span>}
+        </p>
+      )}
+      {start.error && <div className="absolute top-1/2 left-1/2 max-w-md -translate-x-1/2 -translate-y-1/2 rounded-card bg-surface p-4"><ErrorText error={start.error} /></div>}
+
+      {/* Top bar */}
+      <div className={`absolute inset-x-0 top-0 flex items-center gap-3 bg-gradient-to-b from-black/80 to-transparent px-4 pt-4 pb-10 transition-opacity duration-300 sm:px-8 ${visible ? "opacity-100" : "pointer-events-none opacity-0"}`}>
+        <Link to="/item/$itemId" params={{ itemId }} className="inline-flex h-10 items-center gap-1.5 rounded-full pr-4 pl-2.5 text-sm font-medium transition-colors hover:bg-white/10" onClick={() => save(true)}>
+          <ArrowLeft className="size-5" aria-hidden />{t("player.back")}
         </Link>
-        <span className="truncate font-display text-xl">{it?.title}</span>
-        <div className="ml-auto flex items-center gap-3 text-sm">
+        <span className="min-w-0 truncate text-lg font-semibold">{title}</span>
+        {info && <span className="ml-auto hidden rounded bg-white/10 px-2 py-1 text-xs text-white/70 sm:inline" data-testid="play-method">{t(`player.method_${info.method}`)}</span>}
+      </div>
+
+      {/* Skip intro / recap */}
+      {skippable && skipped !== skippable.kind + skippable.startMs && (
+        <button type="button" data-testid="skip-segment"
+          onClick={() => { setSkipped(skippable.kind + skippable.startMs); seekTo(skippable.endMs); }}
+          className="tv-focus absolute right-6 bottom-28 z-10 inline-flex h-12 items-center gap-2 rounded-md border border-white/60 bg-black/60 px-5 text-base font-semibold backdrop-blur transition-colors hover:bg-white hover:text-black sm:right-10">
+          <SkipForward className="size-5" aria-hidden />{t(skippable.kind === "recap" ? "player.skipRecap" : "player.skipIntro")}
+        </button>
+      )}
+
+      {/* Up next */}
+      {showNext && next.data && (
+        <div className="absolute right-4 bottom-28 z-10 flex w-[min(92vw,380px)] gap-3 rounded-lg bg-black/85 p-3 text-white shadow-2xl ring-1 ring-white/15 backdrop-blur [animation:rise_300ms_var(--ease-out)_both] sm:right-8"
+          role="dialog" aria-label={t("player.upNext")} data-testid="up-next">
+          <div className="relative aspect-video w-32 shrink-0 overflow-hidden rounded-md bg-white/10">
+            {next.data.hasPoster && <img src={imageUrl(next.data.id, next.data.kind === "episode" ? "still" : "poster")} alt="" className="absolute inset-0 size-full object-cover" />}
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <p className="text-xs text-white/60">{autoplay ? t(search.playlist ? "player.nextItemIn" : "player.nextIn", { seconds: Math.max(0, countdown) }) : t("player.upNext")}</p>
+            <p className="truncate text-sm font-semibold">
+              {next.data.seasonNumber !== undefined && next.data.episodeNumber !== undefined ? `S${next.data.seasonNumber}:E${next.data.episodeNumber} · ` : ""}{next.data.title}
+            </p>
+            <div className="mt-auto flex gap-2">
+              <button type="button" onClick={playNext} autoFocus
+                className="inline-flex h-8 items-center gap-1.5 rounded-md bg-white px-3 text-sm font-bold text-black hover:bg-white/85">
+                <Play className="size-3.5 fill-current" aria-hidden />{t("player.playNext")}
+              </button>
+              <button type="button" onClick={() => setDismissed(true)} aria-label={t("common.close")}
+                className="grid size-8 place-items-center rounded-md bg-white/15 hover:bg-white/25"><X className="size-4" aria-hidden /></button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom controls */}
+      <div className={`absolute inset-x-0 bottom-0 flex flex-col gap-1 bg-gradient-to-t from-black/90 via-black/50 to-transparent px-4 pt-16 pb-4 transition-opacity duration-300 sm:px-8 ${visible ? "opacity-100" : "pointer-events-none opacity-0"}`}>
+        <div className="flex items-center gap-3">
+          <div className="flex-1">
+            <SeekBar positionMs={position} durationMs={durationMs} bufferedMs={buffered} info={info} onSeek={seekTo} />
+          </div>
+          <span className="w-24 text-right text-sm text-white/80 tabular">-{clock(Math.max(0, durationMs - position))}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <button type="button" className={iconBtn} onClick={togglePlay} aria-label={paused ? t("player.play") : t("player.pause")}>
+            {paused ? <Play className="size-6 fill-current" aria-hidden /> : <Pause className="size-6 fill-current" aria-hidden />}
+          </button>
+          <button type="button" className={iconBtn} onClick={() => seekTo(absolute() - 10_000)} aria-label={t("player.back10")}><RotateCcw className="size-5" aria-hidden /></button>
+          <button type="button" className={iconBtn} onClick={() => seekTo(absolute() + 10_000)} aria-label={t("player.forward10")}><RotateCw className="size-5" aria-hidden /></button>
+          <div className="group/vol hidden items-center sm:flex">
+            <button type="button" className={iconBtn} aria-label={muted ? t("player.unmute") : t("player.mute")}
+              onClick={() => { const v = videoRef.current; if (v) v.muted = !v.muted; }}><VolumeIcon className="size-5" aria-hidden /></button>
+            <input type="range" min={0} max={1} step={0.05} value={muted ? 0 : volume} aria-label={t("player.volume")}
+              onChange={(e) => { const v = videoRef.current; if (v) { v.volume = Number(e.target.value); v.muted = false; } }}
+              className="w-0 accent-white opacity-0 transition-[width,opacity] duration-200 group-hover/vol:w-24 group-hover/vol:opacity-100 focus:w-24 focus:opacity-100" />
+          </div>
+          <span className="ml-2 hidden text-sm text-white/80 tabular sm:inline">{clock(position)} / {clock(durationMs)}</span>
+          <div className="ml-auto flex items-center gap-1">
+            {next.data && (
+              <button type="button" className={iconBtn} onClick={playNext} aria-label={t("player.upNext")}><SkipForward className="size-5" aria-hidden /></button>
+            )}
+            {info && (info.subtitles.length > 0 || info.audio.length > 1) && (
+              <button type="button" className={iconBtn} aria-expanded={panel === "tracks"} aria-label={t("player.tracks")}
+                onClick={() => setPanel(panel === "tracks" ? null : "tracks")}><Captions className="size-5" aria-hidden /></button>
+            )}
+            <button type="button" className={iconBtn} aria-expanded={panel === "speed"} aria-label={t("player.speed")}
+              onClick={() => setPanel(panel === "speed" ? null : "speed")}><Gauge className="size-5" aria-hidden /></button>
+            {typeof document !== "undefined" && "pictureInPictureEnabled" in document && (
+              <button type="button" className={iconBtn} aria-label={t("player.pip")}
+                onClick={() => { const v = videoRef.current; if (!v) return; if (document.pictureInPictureElement) void document.exitPictureInPicture(); else void v.requestPictureInPicture?.().catch(() => undefined); }}>
+                <PictureInPicture2 className="size-5" aria-hidden />
+              </button>
+            )}
+            <button type="button" className={iconBtn} onClick={toggleFullscreen} aria-label={fullscreen ? t("player.exitFullscreen") : t("player.fullscreen")}>
+              {fullscreen ? <Minimize className="size-5" aria-hidden /> : <Maximize className="size-5" aria-hidden />}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Audio & subtitles panel (kept in the DOM so labels stay addressable) */}
+      <div hidden={panel !== "tracks"} className="absolute right-4 bottom-24 z-20 w-[min(92vw,520px)] rounded-lg bg-black/90 p-5 shadow-2xl ring-1 ring-white/15 backdrop-blur sm:right-8">
+        <div className="grid gap-5 sm:grid-cols-2">
           {info && info.audio.length > 1 && (
-            <label className="flex items-center gap-1">
-              {t("library.audio")}
-              <select className="h-8 rounded-full bg-white/10 px-3 ring-1 ring-white/10" value={audioIndex ?? info.audioIndex ?? 0}
+            <label className="flex flex-col gap-2 text-sm">
+              <span className="font-semibold">{t("library.audio")}</span>
+              <select className="h-10 rounded-md bg-white/10 px-3 ring-1 ring-white/15" value={audioIndex ?? info.audioIndex ?? 0}
                 onChange={(e) => changeAudio(Number(e.target.value))} aria-label={t("library.audio")}>
                 {info.audio.map((a, i) => (
                   <option key={i} value={i} className="text-black">
@@ -199,9 +483,9 @@ export function PlayerPage() {
             </label>
           )}
           {info && info.subtitles.length > 0 && (
-            <label className="flex items-center gap-1">
-              {t("library.subtitles")}
-              <select className="h-8 rounded-full bg-white/10 px-3 ring-1 ring-white/10" value={subtitle} onChange={(e) => setSubtitle(Number(e.target.value))}
+            <label className="flex flex-col gap-2 text-sm">
+              <span className="font-semibold">{t("library.subtitles")}</span>
+              <select className="h-10 rounded-md bg-white/10 px-3 ring-1 ring-white/15" value={subtitle} onChange={(e) => setSubtitle(Number(e.target.value))}
                 aria-label={t("library.subtitles")}>
                 <option value={-1} className="text-black">{t("player.off")}</option>
                 {info.subtitles.map((s, i) => (
@@ -212,47 +496,16 @@ export function PlayerPage() {
               </select>
             </label>
           )}
-          {info && <span className="hidden text-xs text-white/60 sm:inline" data-testid="play-method">{t(`player.method_${info.method}`)}</span>}
         </div>
       </div>
-      <div className="relative flex flex-1 items-center justify-center">
-        <video ref={videoRef} className="h-full w-full" controls playsInline autoPlay data-testid="video"
-          onTimeUpdate={(e) => {
-            save();
-            const v = e.currentTarget;
-            const total = (info?.durationMs ?? 0) / 1000;
-            if (total > 0) setRemaining(total - (offsetRef.current / 1000 + v.currentTime));
-          }}
-          onPause={() => save(true)} onEnded={() => { save(true); setEnded(true); }}>
-          {info?.subtitles.map((s) => (
-            <track key={s.index} kind="subtitles" src={s.url} srcLang={s.language ?? "und"} label={s.language ?? String(s.index)} />
-          ))}
-        </video>
-        {start.isPending && <p role="status" className="absolute flex items-center gap-3 text-white/80"><Spinner />{t("player.preparing")}</p>}
-        {start.error && <div className="absolute max-w-md rounded-card bg-surface p-4"><ErrorText error={start.error} /></div>}
-        {showNext && next.data && (
-          <div className="absolute right-4 bottom-24 z-10 flex w-[min(92vw,380px)] gap-3 rounded-lg bg-black/85 p-3 text-white shadow-2xl ring-1 ring-white/15 backdrop-blur [animation:rise_300ms_var(--ease-out)_both] sm:right-8"
-            role="dialog" aria-label={t("player.upNext")} data-testid="up-next">
-            <div className="relative aspect-video w-32 shrink-0 overflow-hidden rounded-md bg-white/10">
-              {next.data.hasPoster && <img src={imageUrl(next.data.id, "still")} alt="" className="absolute inset-0 size-full object-cover" />}
-            </div>
-            <div className="flex min-w-0 flex-1 flex-col gap-2">
-              <p className="text-xs text-white/60">{autoplay ? t(search.playlist ? "player.nextItemIn" : "player.nextIn", { seconds: Math.max(0, countdown) }) : t("player.upNext")}</p>
-              <p className="truncate text-sm font-semibold">
-                {next.data.seasonNumber !== undefined && next.data.episodeNumber !== undefined
-                  ? `S${next.data.seasonNumber}:E${next.data.episodeNumber} · ` : ""}{next.data.title}
-              </p>
-              <div className="mt-auto flex gap-2">
-                <button type="button" onClick={playNext} autoFocus
-                  className="inline-flex h-8 items-center gap-1.5 rounded-md bg-white px-3 text-sm font-bold text-black hover:bg-white/85">
-                  <Play className="size-3.5 fill-current" aria-hidden />{t("player.playNext")}
-                </button>
-                <button type="button" onClick={() => setDismissed(true)} aria-label={t("common.close")}
-                  className="grid size-8 place-items-center rounded-md bg-white/15 hover:bg-white/25"><X className="size-4" aria-hidden /></button>
-              </div>
-            </div>
-          </div>
-        )}
+      <div hidden={panel !== "speed"} className="absolute right-4 bottom-24 z-20 rounded-lg bg-black/90 p-2 shadow-2xl ring-1 ring-white/15 backdrop-blur sm:right-8" role="menu" aria-label={t("player.speed")}>
+        {SPEEDS.map((s) => (
+          <button key={s} type="button" role="menuitemradio" aria-checked={speed === s}
+            onClick={() => { setSpeed(s); if (videoRef.current) videoRef.current.playbackRate = s; setPanel(null); }}
+            className={`block w-full rounded px-4 py-2 text-left text-sm tabular hover:bg-white/10 ${speed === s ? "font-bold text-accent" : ""}`}>
+            {s === 1 ? t("player.normalSpeed") : `${s}×`}
+          </button>
+        ))}
       </div>
     </div>
   );

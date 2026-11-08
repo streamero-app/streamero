@@ -93,4 +93,37 @@ describe("player", () => {
     fireEvent.click(screen.getByRole("button", { name: /Play now/ }));
     await waitFor(() => expect(router.state.location.pathname).toBe(`/watch/${nextEp.id}`));
   });
+
+  it("offers to skip the intro and shows chapter and trickplay previews on the seek bar", async () => {
+    const ep = { ...item, id: "0190a8b0-0000-7000-8000-00000000abab", kind: "episode", title: "Pilot", seasonNumber: 1, episodeNumber: 1 };
+    mockApi(({ method, path }) => {
+      if (method === "POST" && path.endsWith("/playback")) {
+        return { status: 200, body: { fileId: "f", method: "direct", url: "/stream/file/f/video.mp4?exp=1&sig=x", startMs: 0, durationMs: 1_000_000,
+          audio: [{ codec: "aac" }], subtitles: [],
+          chapters: [{ startMs: 0, title: "Cold open" }, { startMs: 60_000, title: "Opening" }],
+          segments: [{ kind: "intro", startMs: 60_000, endMs: 120_000 }],
+          trickplay: { intervalMs: 10_000, width: 320, height: 180, columns: 10, rows: 10, count: 100, sheetUrls: ["/api/v1/trickplay/f/0"] } } };
+      }
+      if (path === `/items/${ep.id}/next`) return { status: 404, body: { code: "not_found", message: "" } };
+      if (method === "PUT") return { status: 204 };
+      return { status: 200, body: { item: ep, libraryId: "l", providerIds: {}, files: [], children: [], genres: [], cast: [], crew: [], hasBackdrop: false } };
+    });
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+    renderApp(`/watch/${ep.id}`, { me: testUser() });
+    const video = (await screen.findByTestId("video")) as HTMLVideoElement;
+    await waitFor(() => expect(video.getAttribute("src") ?? video.src).toContain("/stream/file/f/video.mp4"));
+    Object.defineProperty(video, "currentTime", { value: 65, configurable: true, writable: true });
+    fireEvent.timeUpdate(video);
+    const skip = await screen.findByTestId("skip-segment");
+    expect(skip).toHaveTextContent("Skip intro");
+    fireEvent.click(skip);
+    expect(video.currentTime).toBe(120);
+
+    const bar = screen.getByRole("slider", { name: "Seek" });
+    vi.spyOn(bar, "getBoundingClientRect").mockReturnValue({ left: 0, width: 1000, top: 0, height: 10, right: 1000, bottom: 10, x: 0, y: 0, toJSON: () => ({}) });
+    fireEvent.pointerMove(bar, { clientX: 70 }); // 70 s, inside "Opening"
+    const preview = await screen.findByTestId("seek-preview");
+    expect(preview).toHaveTextContent("Opening · 1:10");
+    expect(preview.querySelector("div")?.getAttribute("style")).toContain("/api/v1/trickplay/f/0");
+  });
 });
