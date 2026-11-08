@@ -1,14 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Check, Info, Play, Plus, RotateCcw, Star } from "lucide-react";
+import { Check, Info, Play, Plus, RotateCcw, Star, Volume2, VolumeX } from "lucide-react";
 import { api, unwrap } from "@/api/client";
 import type { components } from "@/api/schema.gen";
 import { Art, Badge, Button, ErrorText, Select, Spinner, buttonVariants, pressable } from "@/components/ui";
 import { useMe } from "@/features/auth/useAuth";
 import { channelsLabel, formatDuration, formatSize, imageUrl, placeholderHue, resolutionLabel, type ItemSummary, type Library } from "./format";
-import { ArtFallback, ItemCard, ProgressBar, Row, TitleCard, isPlayable, progressOf, rowCard } from "./cards";
+import { ArtFallback, ItemCard, ProgressBar, RankCard, Row, RowSkeleton, TitleArt, TitleCard, isPlayable, progressOf, rowCard } from "./cards";
 
 export { ItemCard } from "./cards";
 
@@ -52,6 +52,73 @@ function BillboardArt({ item, hasBackdrop, still = false }: { item: ItemSummary;
   );
 }
 
+const codecMime: Record<string, string> = { h264: "avc1.640028", hevc: "hvc1.1.6.L120.90", av1: "av01.0.08M.08", vp9: "vp09.00.10.08" };
+const containerMime: Record<string, string> = { mp4: "video/mp4", m4v: "video/mp4", mov: "video/mp4", webm: "video/webm", mkv: "video/x-matroska" };
+
+/** Can this browser decode the file's video as-is? Then the preview never costs a transcode. */
+function previewable(f?: ItemDetail["files"][number]): boolean {
+  if (!f || f.hdr || !f.videoCodec || typeof document === "undefined") return false;
+  const mime = containerMime[f.container];
+  const codec = codecMime[f.videoCodec];
+  if (!mime || !codec) return false;
+  return document.createElement("video").canPlayType(`${mime}; codecs="${codec}"`) !== "";
+}
+
+/**
+ * Muted motion preview behind a billboard, like streaming services: starts after a short
+ * rest, only when the file plays directly, pauses off-screen, and gives way to the still.
+ */
+function PreviewVideo({ detail }: { detail?: ItemDetail }) {
+  const { t } = useTranslation();
+  const ref = useRef<HTMLVideoElement>(null);
+  const [src, setSrc] = useState<{ url: string; startMs: number } | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(true);
+  const file = detail?.files[0];
+  const itemId = detail?.item.id;
+  useEffect(() => {
+    setSrc(null);
+    setPlaying(false);
+    if (!itemId || !file || !isPlayable(detail!.item) || !previewable(file)) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    if ((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData) return;
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      const startMs = Math.round((file.durationMs ?? 0) * 0.18);
+      const res = await api.POST("/items/{itemId}/playback", {
+        params: { path: { itemId } },
+        body: { startMs, device: { containers: [file.container], videoCodecs: [file.videoCodec!], audioCodecs: (file.audio ?? []).map((a) => a.codec), hls: false } },
+      });
+      if (!cancelled && res.data?.method === "direct") setSrc({ url: res.data.url, startMs });
+    }, 2200);
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [itemId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const v = ref.current;
+    if (!v || !src) return;
+    const io = new IntersectionObserver(([e]) => { if (e && !e.isIntersecting) v.pause(); else if (e?.isIntersecting && !v.ended) void v.play().catch(() => undefined); }, { threshold: 0.4 });
+    io.observe(v);
+    return () => io.disconnect();
+  }, [src]);
+  if (!src) return null;
+  return (
+    <>
+      <video ref={ref} src={src.url} muted={muted} playsInline autoPlay preload="auto" aria-hidden
+        onLoadedMetadata={(e) => { e.currentTarget.currentTime = src.startMs / 1000; }}
+        onPlaying={() => setPlaying(true)}
+        onTimeUpdate={(e) => { if (e.currentTarget.currentTime - src.startMs / 1000 > 45) e.currentTarget.pause(); }}
+        onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)} onError={() => setSrc(null)}
+        className={`absolute inset-0 -z-[5] size-full object-cover transition-opacity duration-[1200ms] ease-out ${playing ? "opacity-100" : "opacity-0"}`} />
+      {playing && (
+        <button type="button" onClick={() => setMuted(!muted)} aria-label={muted ? t("player.unmute") : t("player.mute")}
+          className="tv-focus absolute right-4 bottom-[22vh] z-10 grid size-11 place-items-center rounded-full border border-white/60 bg-black/30 text-white backdrop-blur transition-colors hover:bg-white/15 sm:right-8 lg:right-14">
+          {muted ? <VolumeX className="size-5" aria-hidden /> : <Volume2 className="size-5" aria-hidden />}
+        </button>
+      )}
+    </>
+  );
+}
+
 function Facts({ item, detail, className = "" }: { item: ItemSummary; detail?: ItemDetail; className?: string }) {
   const { t } = useTranslation();
   const file = detail?.files[0];
@@ -74,13 +141,18 @@ export function Billboard({ pool }: { pool?: ItemSummary[] }) {
   const { t } = useTranslation();
   const pick = pool?.find((i) => i.hasBackdrop) ?? pool?.find((i) => i.hasPoster) ?? pool?.[0];
   const detail = useItemDetail(pick?.id);
+  if (!pool) return <div aria-hidden className="h-[78vh] min-h-[460px] animate-pulse bg-gradient-to-b from-white/[0.04] to-transparent sm:h-[86vh]" />;
   if (!pick) return <div className="h-24" />;
   const d = detail.data;
   return (
     <section className="relative isolate flex h-[78vh] min-h-[460px] items-end pb-[14vh] sm:h-[86vh] lg:pb-[18vh]" data-testid="home-hero">
       <BillboardArt item={pick} hasBackdrop={!!pick.hasBackdrop} />
+      <PreviewVideo detail={d} />
       <div className={`flex w-full max-w-[44rem] flex-col gap-4 ${gutter}`}>
-        <h2 className="enter font-display text-[42px] leading-[0.92] text-balance drop-shadow-lg sm:text-6xl lg:text-7xl">{pick.title}</h2>
+        <h2 className="enter">
+          <TitleArt item={pick} className="max-h-[22vh] w-auto max-w-[min(32rem,80vw)]"
+            textClass="block font-display text-[42px] leading-[0.92] text-balance drop-shadow-lg sm:text-6xl lg:text-7xl" />
+        </h2>
         <Facts item={pick} detail={d} className="enter-2" />
         {d?.overview && <p className="enter-2 line-clamp-3 max-w-[54ch] text-[15px] leading-snug text-white/90 drop-shadow sm:text-lg">{d.overview}</p>}
         <div className="enter-3 mt-2 flex flex-wrap gap-3">
@@ -122,8 +194,8 @@ function LibraryRows({ library }: { library: Library }) {
   });
   return (
     <>
-      <Row title={`${t("home.top")} · ${library.name}`} testId="top" count={top.data?.length ?? 0}>
-        {top.data?.map((it) => <TitleCard key={it.id} item={it} className={rowCard} />)}
+      <Row title={t("home.topTen", { name: library.name })} testId="top" count={top.data?.length ?? 0}>
+        {top.data?.slice(0, 10).map((it, i) => <RankCard key={it.id} item={it} rank={i + 1} />)}
       </Row>
       {picked.map((g, i) => (
         <Row key={g} title={g} testId={`genre-${g}`} count={rows[i]?.data?.length ?? 0}>
@@ -148,6 +220,7 @@ export function HomeContent() {
       <h1 className="sr-only">{t("home.welcome", { name })}</h1>
       <Billboard pool={latest.data} />
       <div className={`relative z-10 flex flex-col gap-7 sm:gap-10 ${latest.data?.length ? "-mt-[12vh] lg:-mt-[16vh]" : "pt-20"}`}>
+        {latest.isPending && <><RowSkeleton /><RowSkeleton /></>}
         <Row title={t("home.continue")} testId="continue" count={cont.data?.length ?? 0}>
           {cont.data?.map((it) => <TitleCard key={it.id} item={it} className={rowCard} play />)}
         </Row>
@@ -248,8 +321,8 @@ export function LibraryPage() {
   const [pool, setPool] = useState<ItemSummary[]>();
   // The billboard keeps the newest titles even while filters change the grid.
   useEffect(() => {
-    if (!pool && sort === "added" && !genre && !unplayed && all.length) setPool(all.slice(0, 10));
-  }, [all, pool, sort, genre, unplayed]);
+    if (!pool && items.data) setPool(all.slice(0, 10));
+  }, [all, pool, items.data]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -438,13 +511,19 @@ export function ItemPage() {
     <div className="flex flex-col gap-12 pb-6">
       <section className="relative isolate flex min-h-[80vh] flex-col justify-end pt-28 pb-10" data-testid="item-hero">
         <BillboardArt item={it} hasBackdrop={d.hasBackdrop || (isEpisode && it.hasPoster)} still={!d.hasBackdrop && isEpisode} />
+        <PreviewVideo detail={d} />
         {!d.hasBackdrop && !isEpisode && (
           <div className={sidePoster}>
             {it.hasPoster ? <Art src={imageUrl(it.id, "poster")} loading="eager" className="absolute inset-0 size-full object-cover" /> : <ArtFallback item={it} />}
           </div>
         )}
         <div className={`flex max-w-[48rem] flex-col gap-4 ${gutter}`}>
-          <h1 className="enter font-display text-[40px] leading-[0.92] text-balance drop-shadow-lg sm:text-6xl lg:text-7xl">{title}</h1>
+          <h1 className="enter">
+            {isEpisode
+              ? <span className="block font-display text-[40px] leading-[0.92] text-balance drop-shadow-lg sm:text-6xl lg:text-7xl">{title}</span>
+              : <TitleArt item={{ ...it, hasLogo: d.hasLogo }} className="max-h-[24vh] w-auto max-w-[min(34rem,82vw)]"
+                  textClass="block font-display text-[40px] leading-[0.92] text-balance drop-shadow-lg sm:text-6xl lg:text-7xl" />}
+          </h1>
           {d.originalTitle && d.originalTitle !== it.title && <p className="-mt-1 text-sm text-white/60">{d.originalTitle}</p>}
           <Facts item={it} detail={d} className="enter-2" />
           <div className="enter-3 mt-1 flex flex-wrap items-center gap-3">
@@ -511,9 +590,10 @@ export function ItemPage() {
           <ul className={`shelf-track flex gap-4 overflow-x-auto pb-2 ${gutter}`} data-testid="cast">
             {d.cast.map((p) => (
               <li key={p.name + (p.role ?? "")} className="flex w-[112px] shrink-0 flex-col items-center gap-2 text-center">
-                <span aria-hidden className="grid size-[88px] place-items-center rounded-full text-2xl font-bold text-white/70 ring-1 ring-white/10"
+                <span aria-hidden className="relative grid size-[88px] place-items-center overflow-hidden rounded-full text-2xl font-bold text-white/70 ring-1 ring-white/10"
                   style={{ background: `radial-gradient(circle at 30% 20%, hsl(${placeholderHue(p.name)} 20% 26%), #1a1a1a 75%)` }}>
                   {initials(p.name)}
+                  {p.imageUrl && <Art src={p.imageUrl} className="absolute inset-0 size-full object-cover object-top" />}
                 </span>
                 <span className="min-w-0">
                   <span className="line-clamp-2 text-[13px] leading-tight font-semibold">{p.name}</span>

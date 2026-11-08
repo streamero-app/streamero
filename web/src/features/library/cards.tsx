@@ -28,6 +28,18 @@ export function ArtFallback({ item, wide = false }: { item: ItemSummary; wide?: 
   );
 }
 
+/** The title as its logo artwork when there is one, else set in type. */
+export function TitleArt({ item, className = "", textClass = "" }: { item: ItemSummary; className?: string; textClass?: string }) {
+  const [broken, setBroken] = useState(false);
+  if (item.hasLogo && !broken) {
+    return (
+      <img src={imageUrl(item.id, "logo")} alt={item.title} draggable={false} onError={() => setBroken(true)}
+        className={`object-contain object-left-bottom drop-shadow-[0_2px_12px_rgb(0_0_0/0.55)] ${className}`} />
+    );
+  }
+  return <span className={textClass}>{item.title}</span>;
+}
+
 function landscapeSrc(it: ItemSummary): string | null {
   if (it.hasBackdrop) return imageUrl(it.id, "backdrop");
   if (it.kind === "episode" && it.hasPoster) return imageUrl(it.id, "still");
@@ -52,8 +64,10 @@ function Landscape({ item, showTitle = true }: { item: ItemSummary; showTitle?: 
       {src && !broken ? <Art src={src} onError={() => setBroken(true)} className="absolute inset-0 size-full object-cover" /> : <ArtFallback item={item} wide />}
       {src && !broken && showTitle && (
         <>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/5 to-transparent" />
-          <span className="absolute inset-x-3 bottom-2.5 line-clamp-2 text-[15px] leading-tight font-bold tracking-tight text-white drop-shadow">{item.title}</span>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/0 to-transparent" />
+          <div className="absolute inset-x-3 bottom-2.5 flex items-end">
+            <TitleArt item={item} className="max-h-[3.4rem] max-w-[62%]" textClass="line-clamp-2 text-[15px] leading-tight font-bold tracking-tight text-white drop-shadow" />
+          </div>
         </>
       )}
     </>
@@ -249,3 +263,35 @@ export function Row({ title, testId, count, children, action }: { title: string;
 
 /** Width of a landscape card so that a whole number of cards fills the row at each breakpoint. */
 export const rowCard = "w-[44vw] sm:w-[30vw] md:w-[23vw] lg:w-[18.6vw] 2xl:w-[15.5vw]";
+
+/** "Top 10" card: an outlined rank numeral with the poster leaning on it. */
+export function RankCard({ item, rank }: { item: ItemSummary; rank: number }) {
+  const [broken, setBroken] = useState(false);
+  return (
+    <Link to="/item/$itemId" params={{ itemId: item.id }} data-testid="item-card" aria-label={`${rank}. ${item.title}`}
+      className="tv-focus group relative flex w-[46vw] shrink-0 items-end transition-transform duration-200 ease-out sm:w-[30vw] md:w-[23vw] lg:w-[18.6vw] 2xl:w-[15.5vw]">
+      <span aria-hidden className="pointer-events-none -mr-[9%] w-[52%] text-right font-display text-[clamp(6rem,12vw,13rem)] leading-[0.74] tracking-[-0.08em] text-bg [-webkit-text-stroke:clamp(2px,0.28vw,5px)_rgb(255_255_255/0.5)] select-none">
+        {rank}
+      </span>
+      <div className="relative aspect-[2/3] w-[52%] overflow-hidden rounded-md bg-surface-2 shadow-[0_10px_30px_rgb(0_0_0/0.5)] transition-transform duration-300 ease-out group-hover:scale-[1.04]">
+        {item.hasPoster && !broken
+          ? <Art src={imageUrl(item.id, "poster")} onError={() => setBroken(true)} className="absolute inset-0 size-full object-cover" />
+          : <ArtFallback item={item} />}
+      </div>
+    </Link>
+  );
+}
+
+/** Placeholder row while a row's titles load, shaped like the real one. */
+export function RowSkeleton() {
+  return (
+    <div aria-hidden className="flex flex-col gap-2.5">
+      <div className="mx-4 h-5 w-44 animate-pulse rounded bg-white/[0.06] sm:mx-8 lg:mx-14" />
+      <div className="flex gap-2 overflow-hidden px-4 py-2 sm:px-8 lg:px-14">
+        {Array.from({ length: 6 }, (_, i) => (
+          <div key={i} className={`${rowCard} aspect-video shrink-0 animate-pulse rounded-md bg-white/[0.05]`} style={{ animationDelay: `${i * 90}ms` }} />
+        ))}
+      </div>
+    </div>
+  );
+}

@@ -62,7 +62,8 @@
     "nextUp": "Up next",
     "top": "Top rated",
     "more": "More from {{name}}",
-    "hello": "Home"
+    "hello": "Home",
+    "topTen": "Top 10 in {{name}}"
   },
   "settings": {
     "account": "My account",
@@ -389,7 +390,9 @@
     "preparing": "Preparing the stream…",
     "method_direct": "Direct play",
     "method_remux": "Direct stream",
-    "method_transcode": "Transcoding"
+    "method_transcode": "Transcoding",
+    "mute": "Mute",
+    "unmute": "Unmute"
   },
   "search": {
     "title": "Search",

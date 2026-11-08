@@ -41,7 +41,7 @@ export function channelsLabel(ch?: number): string {
 }
 
 /** URL of cached artwork; the session cookie authorises it. */
-export function imageUrl(itemId: string, type: "poster" | "backdrop" | "still"): string {
+export function imageUrl(itemId: string, type: "poster" | "backdrop" | "still" | "logo"): string {
   return `/api/v1/items/${itemId}/images/${type}`;
 }
 
