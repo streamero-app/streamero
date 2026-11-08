@@ -67,4 +67,30 @@ describe("player", () => {
     fireEvent.pause(video);
     await waitFor(() => expect(progress).toMatchObject({ positionMs: 605_000 }));
   });
+
+  it("selects the preferred subtitle and offers the next episode at the end", async () => {
+    const ep = { ...item, id: "0190a8b0-0000-7000-8000-00000000eeee", kind: "episode", title: "Pilot", seasonNumber: 1, episodeNumber: 1 };
+    const nextEp = { ...ep, id: "0190a8b0-0000-7000-8000-00000000ffff", title: "Second", episodeNumber: 2 };
+    mockApi(({ method, path }) => {
+      if (method === "POST" && path.endsWith("/playback")) {
+        return { status: 200, body: { fileId: "f", method: "direct", url: "/stream/file/f/video.mp4?exp=1&sig=x", startMs: 0, durationMs: 100_000,
+          audio: [{ codec: "aac" }], subtitleDefault: 1, subtitles: [
+            { index: 0, url: "/a.vtt", external: true, language: "en" }, { index: 1, url: "/b.vtt", external: true, language: "hr" }] } };
+      }
+      if (path === `/items/${ep.id}/next`) return { status: 200, body: nextEp };
+      if (path === "/me/preferences") return { status: 200, body: { subtitleMode: "always", subtitleLanguage: "hr", autoplayNext: false } };
+      if (method === "PUT") return { status: 204 };
+      return { status: 200, body: { item: ep, libraryId: "l", providerIds: {}, files: [], children: [], genres: [], cast: [], crew: [], hasBackdrop: false } };
+    });
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+    const { router } = renderApp(`/watch/${ep.id}`, { me: testUser() });
+    const video = (await screen.findByTestId("video")) as HTMLVideoElement;
+    await waitFor(() => expect((screen.getByLabelText("Subtitles") as HTMLSelectElement).value).toBe("1"));
+    fireEvent.ended(video);
+    const card = await screen.findByTestId("up-next");
+    expect(card).toHaveTextContent("Second");
+    expect(card).toHaveTextContent("Next episode"); // autoplay off: no countdown
+    fireEvent.click(screen.getByRole("button", { name: /Play now/ }));
+    await waitFor(() => expect(router.state.location.pathname).toBe(`/watch/${nextEp.id}`));
+  });
 });

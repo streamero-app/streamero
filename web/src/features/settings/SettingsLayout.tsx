@@ -1,6 +1,6 @@
 import { Link, Outlet } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Bell, Cable, FolderOpen, Gauge, KeyRound, ListChecks, Mail, MonitorSmartphone, Server, Sparkles, UserRound, Users, UsersRound, Zap, type LucideIcon } from "lucide-react";
+import { Bell, Clapperboard, Cable, FolderOpen, Gauge, KeyRound, ListChecks, Mail, MonitorSmartphone, Server, Sparkles, UserRound, Users, UsersRound, Zap, type LucideIcon } from "lucide-react";
 import { useMe } from "@/features/auth/useAuth";
 import { Page } from "@/components/Page";
 
@@ -25,6 +25,7 @@ export function SettingsLayout() {
         <h1 className="mb-5 font-display text-5xl leading-none">{t("nav.settings")}</h1>
         <nav className="shelf-track -mx-4 flex gap-1 overflow-x-auto px-4 md:mx-0 md:flex-col md:px-0" aria-label={t("nav.settings")}>
           <Tab to="/settings/account" icon={UserRound} label={t("settings.account")} />
+          <Tab to="/settings/playback" icon={Clapperboard} label={t("settings.playback")} />
           <Tab to="/settings/profiles" icon={UsersRound} label={t("settings.profiles")} />
           <Tab to="/settings/devices" icon={MonitorSmartphone} label={t("settings.devices")} />
           <Tab to="/settings/quickconnect" icon={Zap} label={t("settings.quickConnect")} />

@@ -213,6 +213,7 @@ export function HomeContent() {
   const libraries = useLibraries();
   const latest = useQuery({ queryKey: ["latest"], queryFn: async () => unwrap(await api.GET("/home/latest")) });
   const cont = useQuery({ queryKey: ["continue"], queryFn: async () => unwrap(await api.GET("/home/continue")) });
+  const nextUp = useQuery({ queryKey: ["next-up"], queryFn: async () => unwrap(await api.GET("/home/next-up")) });
   const favs = useQuery({ queryKey: ["favorites"], queryFn: async () => unwrap(await api.GET("/home/favorites")) });
   const name = me?.currentProfile?.name ?? me?.username;
   return (
@@ -223,6 +224,9 @@ export function HomeContent() {
         {latest.isPending && <><RowSkeleton /><RowSkeleton /></>}
         <Row title={t("home.continue")} testId="continue" count={cont.data?.length ?? 0}>
           {cont.data?.map((it) => <TitleCard key={it.id} item={it} className={rowCard} play />)}
+        </Row>
+        <Row title={t("home.nextUp")} testId="next-up" count={Array.isArray(nextUp.data) ? nextUp.data.length : 0}>
+          {Array.isArray(nextUp.data) && nextUp.data.map((it) => <TitleCard key={it.id} item={it} className={rowCard} play />)}
         </Row>
         <Row title={t("home.latest")} testId="latest" count={latest.data?.length ?? 0}>
           {latest.data?.map((it) => <TitleCard key={it.id} item={it} className={rowCard} />)}

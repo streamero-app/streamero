@@ -59,7 +59,7 @@
     "emptyTitle": "Ekran je spreman",
     "scrollLeft": "Pomakni lijevo",
     "scrollRight": "Pomakni desno",
-    "nextUp": "Sljedeće",
+    "nextUp": "Sljedeće za gledanje",
     "top": "Najbolje ocijenjeno",
     "more": "Još iz: {{name}}",
     "hello": "Početna",
@@ -80,7 +80,8 @@
     "integrations": "Integracije",
     "dashboard": "Nadzorna ploča",
     "tasks": "Zakazani zadaci",
-    "notifications": "Obavijesti"
+    "notifications": "Obavijesti",
+    "playback": "Reprodukcija"
   },
   "account": {
     "changePassword": "Promijeni lozinku",
@@ -397,7 +398,10 @@
     "method_remux": "Izravni stream",
     "method_transcode": "Transkodiranje",
     "mute": "Isključi zvuk",
-    "unmute": "Uključi zvuk"
+    "unmute": "Uključi zvuk",
+    "upNext": "Sljedeća epizoda",
+    "nextIn": "Sljedeća epizoda za {{seconds}}",
+    "playNext": "Pokreni sada"
   },
   "search": {
     "title": "Pretraga",
@@ -509,5 +513,24 @@
     "enabled": "Uključeno",
     "test": "Pošalji test",
     "testSent": "Testna poruka poslana."
+  },
+  "playbackPrefs": {
+    "title": "Reprodukcija",
+    "intro": "Vrijedi za ovaj profil na svim uređajima.",
+    "any": "Kako je u datoteci",
+    "audio": "Jezik zvuka",
+    "subtitles": "Jezik podnaslova",
+    "mode": "Podnaslovi",
+    "mode_default": "Zadano",
+    "mode_default_hint": "Prisilni podnaslovi na jeziku zvuka; inače tvoj jezik podnaslova kad je zvuk na drugom jeziku.",
+    "mode_smart": "Pametno",
+    "mode_smart_hint": "Samo kad zvuk nije na tvom jeziku podnaslova.",
+    "mode_always": "Uvijek",
+    "mode_always_hint": "Uvijek prikaži tvoj jezik podnaslova kad postoji.",
+    "mode_forced": "Samo prisilni",
+    "mode_forced_hint": "Samo prisilni podnaslovi (natpisi, strani dijalog).",
+    "mode_none": "Isključeno",
+    "mode_none_hint": "Bez podnaslova dok ih sam ne uključiš.",
+    "autoplay": "Automatski pusti sljedeću epizodu"
   }
 }

@@ -66,7 +66,14 @@ function Landscape({ item, showTitle = true }: { item: ItemSummary; showTitle?: 
         <>
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/0 to-transparent" />
           <div className="absolute inset-x-3 bottom-2.5 flex items-end">
-            <TitleArt item={item} className="max-h-[3.4rem] max-w-[62%]" textClass="line-clamp-2 text-[15px] leading-tight font-bold tracking-tight text-white drop-shadow" />
+            {item.seriesTitle ? (
+              <span className="min-w-0 drop-shadow">
+                <span className="block truncate text-[15px] leading-tight font-bold tracking-tight text-white">{item.seriesTitle}</span>
+                <span className="block truncate text-xs text-white/75 tabular">S{item.seasonNumber}:E{item.episodeNumber} · {item.title}</span>
+              </span>
+            ) : (
+              <TitleArt item={item} className="max-h-[3.4rem] max-w-[62%]" textClass="line-clamp-2 text-[15px] leading-tight font-bold tracking-tight text-white drop-shadow" />
+            )}
           </div>
         </>
       )}

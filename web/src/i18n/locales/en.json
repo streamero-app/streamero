@@ -80,7 +80,8 @@
     "integrations": "Integrations",
     "dashboard": "Dashboard",
     "tasks": "Scheduled tasks",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "playback": "Playback"
   },
   "account": {
     "changePassword": "Change password",
@@ -397,7 +398,10 @@
     "method_remux": "Direct stream",
     "method_transcode": "Transcoding",
     "mute": "Mute",
-    "unmute": "Unmute"
+    "unmute": "Unmute",
+    "upNext": "Next episode",
+    "nextIn": "Next episode in {{seconds}}",
+    "playNext": "Play now"
   },
   "search": {
     "title": "Search",
@@ -509,5 +513,24 @@
     "enabled": "Enabled",
     "test": "Send test",
     "testSent": "Test message sent."
+  },
+  "playbackPrefs": {
+    "title": "Playback",
+    "intro": "Applies to this profile on every device.",
+    "any": "File default",
+    "audio": "Audio language",
+    "subtitles": "Subtitle language",
+    "mode": "Subtitles",
+    "mode_default": "Default",
+    "mode_default_hint": "Forced subtitles in the audio language; otherwise your subtitle language when the audio is in another language.",
+    "mode_smart": "Smart",
+    "mode_smart_hint": "Only when the audio is not in your subtitle language.",
+    "mode_always": "Always",
+    "mode_always_hint": "Always show your subtitle language when available.",
+    "mode_forced": "Forced only",
+    "mode_forced_hint": "Only forced subtitles (signs, foreign dialogue).",
+    "mode_none": "Off",
+    "mode_none_hint": "No subtitles unless you turn them on.",
+    "autoplay": "Play the next episode automatically"
   }
 }
