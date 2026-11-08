@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -167,7 +168,7 @@ func (h *Handler) GetItem(ctx context.Context, params gen.GetItemParams) (*gen.I
 	if err != nil {
 		return nil, err
 	}
-	out.Genres, out.HasBackdrop = m.Genres, m.HasBackdrop
+	out.Genres, out.HasBackdrop, out.HasLogo = m.Genres, m.HasBackdrop, gen.NewOptBool(m.HasLogo)
 	if out.Genres == nil {
 		out.Genres = []string{}
 	}
@@ -249,6 +250,9 @@ func toPeople(ps []library.Person) []gen.Person {
 		if p.Role != "" {
 			gp.Role = gen.NewOptString(p.Role)
 		}
+		if p.ImageID != nil {
+			gp.ImageUrl = gen.NewOptString(fmt.Sprintf("/api/v1/people/%d/image", *p.ImageID))
+		}
 		out = append(out, gp)
 	}
 	return out
@@ -256,8 +260,8 @@ func toPeople(ps []library.Person) []gen.Person {
 
 func toItemSummary(it library.Item) gen.ItemSummary {
 	out := gen.ItemSummary{ID: it.ID, Kind: gen.ItemKind(it.Kind), Title: it.Title, AddedAt: it.AddedAt, HasPoster: it.HasPoster,
-		HasBackdrop: gen.NewOptBool(it.HasBackdrop),
-		Year:        optInt(it.Year), SeasonNumber: optInt(it.Season), EpisodeNumber: optInt(it.Episode), EpisodeNumberEnd: optInt(it.EpisodeEnd)}
+		HasBackdrop: gen.NewOptBool(it.HasBackdrop), HasLogo: gen.NewOptBool(it.HasLogo),
+		Year: optInt(it.Year), SeasonNumber: optInt(it.Season), EpisodeNumber: optInt(it.Episode), EpisodeNumberEnd: optInt(it.EpisodeEnd)}
 	if it.DurationMS != nil {
 		out.DurationMs = gen.NewOptInt64(*it.DurationMS)
 	}
@@ -357,6 +361,23 @@ func (h *Handler) GetItemImage(ctx context.Context, params gen.GetItemImageParam
 	}
 	return &gen.GetItemImageOKHeaders{CacheControl: gen.NewOptString("private, max-age=86400"),
 		Response: gen.GetItemImageOK{Data: f}}, nil
+}
+
+// GetPersonImage implements GET /people/{personId}/image.
+func (h *Handler) GetPersonImage(ctx context.Context, params gen.GetPersonImageParams) (*gen.GetPersonImageOKHeaders, error) {
+	if h.lib() == nil {
+		return nil, errStarting
+	}
+	if _, err := viewer(ctx); err != nil {
+		return nil, err
+	}
+	// The path is built from a positive integer, never from client text.
+	f, err := os.Open(metadata.PersonImagePath(h.lib().ImageDir, params.PersonId))
+	if err != nil {
+		return nil, library.ErrNotFound
+	}
+	return &gen.GetPersonImageOKHeaders{CacheControl: gen.NewOptString("private, max-age=604800"),
+		Response: gen.GetPersonImageOK{Data: f}}, nil
 }
 
 // GetMetadataSettings implements GET /settings/metadata.

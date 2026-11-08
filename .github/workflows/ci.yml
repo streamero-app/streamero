@@ -44,6 +44,8 @@ jobs:
       - uses: golangci/golangci-lint-action@v8
         with:
           working-directory: server
+      - name: ffmpeg for the frame-artwork test
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg
       - run: go test ./... -race
 
   web:

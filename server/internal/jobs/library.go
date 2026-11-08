@@ -118,5 +118,11 @@ func (w *MetadataRefreshWorker) Work(ctx context.Context, job *river.Job[Metadat
 		return err
 	}
 	w.Log.Info("metadata refreshed", "library", job.Args.LibraryID, "items", n)
+	// Whatever TMDb could not illustrate gets a frame from its own video.
+	if g, err := w.Refresher.GrabFrames(ctx, job.Args.LibraryID); err != nil {
+		w.Log.Warn("frame grab failed", "library", job.Args.LibraryID, "err", err)
+	} else if g > 0 {
+		w.Log.Info("frame artwork created", "library", job.Args.LibraryID, "items", g)
+	}
 	return w.Refresher.CleanupImages(ctx)
 }

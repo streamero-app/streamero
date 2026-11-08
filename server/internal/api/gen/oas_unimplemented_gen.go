@@ -222,6 +222,15 @@ func (UnimplementedHandler) GetMetadataSettings(ctx context.Context) (r *Metadat
 	return r, ht.ErrNotImplemented
 }
 
+// GetPersonImage implements getPersonImage operation.
+//
+// Cached photo of a person (JPEG).
+//
+// GET /people/{personId}/image
+func (UnimplementedHandler) GetPersonImage(ctx context.Context, params GetPersonImageParams) (r *GetPersonImageOKHeaders, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetServerSettings implements getServerSettings operation.
 //
 // Server-wide settings (admin).

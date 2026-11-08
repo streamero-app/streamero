@@ -636,6 +636,7 @@ const (
 	GetItemImageImageTypePoster   GetItemImageImageType = "poster"
 	GetItemImageImageTypeBackdrop GetItemImageImageType = "backdrop"
 	GetItemImageImageTypeStill    GetItemImageImageType = "still"
+	GetItemImageImageTypeLogo     GetItemImageImageType = "logo"
 )
 
 // AllValues returns all GetItemImageImageType values.
@@ -644,6 +645,7 @@ func (GetItemImageImageType) AllValues() []GetItemImageImageType {
 		GetItemImageImageTypePoster,
 		GetItemImageImageTypeBackdrop,
 		GetItemImageImageTypeStill,
+		GetItemImageImageTypeLogo,
 	}
 }
 
@@ -655,6 +657,8 @@ func (s GetItemImageImageType) MarshalText() ([]byte, error) {
 	case GetItemImageImageTypeBackdrop:
 		return []byte(s), nil
 	case GetItemImageImageTypeStill:
+		return []byte(s), nil
+	case GetItemImageImageTypeLogo:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -672,6 +676,9 @@ func (s *GetItemImageImageType) UnmarshalText(data []byte) error {
 		return nil
 	case GetItemImageImageTypeStill:
 		*s = GetItemImageImageTypeStill
+		return nil
+	case GetItemImageImageTypeLogo:
+		*s = GetItemImageImageTypeLogo
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -715,6 +722,46 @@ func (s *GetItemImageOKHeaders) SetCacheControl(val OptString) {
 
 // SetResponse sets the value of Response.
 func (s *GetItemImageOKHeaders) SetResponse(val GetItemImageOK) {
+	s.Response = val
+}
+
+type GetPersonImageOK struct {
+	Data io.Reader
+}
+
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s GetPersonImageOK) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
+}
+
+// GetPersonImageOKHeaders wraps GetPersonImageOK with response headers.
+type GetPersonImageOKHeaders struct {
+	CacheControl OptString
+	Response     GetPersonImageOK
+}
+
+// GetCacheControl returns the value of CacheControl.
+func (s *GetPersonImageOKHeaders) GetCacheControl() OptString {
+	return s.CacheControl
+}
+
+// GetResponse returns the value of Response.
+func (s *GetPersonImageOKHeaders) GetResponse() GetPersonImageOK {
+	return s.Response
+}
+
+// SetCacheControl sets the value of CacheControl.
+func (s *GetPersonImageOKHeaders) SetCacheControl(val OptString) {
+	s.CacheControl = val
+}
+
+// SetResponse sets the value of Response.
+func (s *GetPersonImageOKHeaders) SetResponse(val GetPersonImageOK) {
 	s.Response = val
 }
 
@@ -838,6 +885,7 @@ func (s *InviteInfo) SetExpiresAt(val time.Time) {
 
 // Ref: #/components/schemas/ItemDetail
 type ItemDetail struct {
+	HasLogo       OptBool   `json:"hasLogo"`
 	Overview      OptString `json:"overview"`
 	Tagline       OptString `json:"tagline"`
 	OriginalTitle OptString `json:"originalTitle"`
@@ -857,6 +905,11 @@ type ItemDetail struct {
 	ProviderIds ItemDetailProviderIds `json:"providerIds"`
 	Files       []MediaFile           `json:"files"`
 	Children    []ItemSummary         `json:"children"`
+}
+
+// GetHasLogo returns the value of HasLogo.
+func (s *ItemDetail) GetHasLogo() OptBool {
+	return s.HasLogo
 }
 
 // GetOverview returns the value of Overview.
@@ -937,6 +990,11 @@ func (s *ItemDetail) GetFiles() []MediaFile {
 // GetChildren returns the value of Children.
 func (s *ItemDetail) GetChildren() []ItemSummary {
 	return s.Children
+}
+
+// SetHasLogo sets the value of HasLogo.
+func (s *ItemDetail) SetHasLogo(val OptBool) {
+	s.HasLogo = val
 }
 
 // SetOverview sets the value of Overview.
@@ -1127,6 +1185,8 @@ type ItemSummary struct {
 	HasPoster        bool      `json:"hasPoster"`
 	// A wide backdrop image is available (images/backdrop).
 	HasBackdrop OptBool `json:"hasBackdrop"`
+	// A transparent title logo is available (images/logo, PNG).
+	HasLogo OptBool `json:"hasLogo"`
 	// Community rating 0–10.
 	Rating OptFloat64 `json:"rating"`
 	// Resume position for the current profile.
@@ -1189,6 +1249,11 @@ func (s *ItemSummary) GetHasPoster() bool {
 // GetHasBackdrop returns the value of HasBackdrop.
 func (s *ItemSummary) GetHasBackdrop() OptBool {
 	return s.HasBackdrop
+}
+
+// GetHasLogo returns the value of HasLogo.
+func (s *ItemSummary) GetHasLogo() OptBool {
+	return s.HasLogo
 }
 
 // GetRating returns the value of Rating.
@@ -1264,6 +1329,11 @@ func (s *ItemSummary) SetHasPoster(val bool) {
 // SetHasBackdrop sets the value of HasBackdrop.
 func (s *ItemSummary) SetHasBackdrop(val OptBool) {
 	s.HasBackdrop = val
+}
+
+// SetHasLogo sets the value of HasLogo.
+func (s *ItemSummary) SetHasLogo(val OptBool) {
+	s.HasLogo = val
 }
 
 // SetRating sets the value of Rating.
@@ -2520,6 +2590,8 @@ type Person struct {
 	Name string `json:"name"`
 	// Character name for actors, job for crew (e.g. "Director").
 	Role OptString `json:"role"`
+	// Server-relative URL of the person's photo, when cached.
+	ImageUrl OptString `json:"imageUrl"`
 }
 
 // GetName returns the value of Name.
@@ -2532,6 +2604,11 @@ func (s *Person) GetRole() OptString {
 	return s.Role
 }
 
+// GetImageUrl returns the value of ImageUrl.
+func (s *Person) GetImageUrl() OptString {
+	return s.ImageUrl
+}
+
 // SetName sets the value of Name.
 func (s *Person) SetName(val string) {
 	s.Name = val
@@ -2540,6 +2617,11 @@ func (s *Person) SetName(val string) {
 // SetRole sets the value of Role.
 func (s *Person) SetRole(val OptString) {
 	s.Role = val
+}
+
+// SetImageUrl sets the value of ImageUrl.
+func (s *Person) SetImageUrl(val OptString) {
+	s.ImageUrl = val
 }
 
 // Ref: #/components/schemas/PinRequest

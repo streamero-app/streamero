@@ -29,6 +29,7 @@ const (
 	GetItemImageOperation           OperationName = "GetItemImage"
 	GetMeOperation                  OperationName = "GetMe"
 	GetMetadataSettingsOperation    OperationName = "GetMetadataSettings"
+	GetPersonImageOperation         OperationName = "GetPersonImage"
 	GetServerSettingsOperation      OperationName = "GetServerSettings"
 	GetSystemInfoOperation          OperationName = "GetSystemInfo"
 	InitiateQuickConnectOperation   OperationName = "InitiateQuickConnect"

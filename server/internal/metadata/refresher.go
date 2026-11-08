@@ -50,11 +50,19 @@ type Refresher struct {
 	Log      *slog.Logger
 	// NewClient builds the TMDb client (tests point it at a fake server).
 	NewClient func(key string) *TMDb
+	// FFmpeg and ResolvePath enable frame-grab artwork (GrabFrames); empty disables it.
+	FFmpeg      string
+	ResolvePath func(path string) (string, error)
 }
 
 // ImagePath is where an item's cached image lives.
 func ImagePath(dir string, itemID uuid.UUID, kind string) string {
 	return filepath.Join(dir, itemID.String(), kind+".jpg")
+}
+
+// PersonImagePath is where a person's photo is cached (by TMDb person id).
+func PersonImagePath(dir string, personID int64) string {
+	return filepath.Join(dir, "people", strconv.FormatInt(personID, 10)+".jpg")
 }
 
 type itemRow struct {
@@ -189,7 +197,9 @@ func (r *Refresher) refreshTop(ctx context.Context, c *TMDb, cfg Settings, it it
 	}
 	poster := r.saveImage(ctx, c, it.id, "poster", d.PosterPath, "w500")
 	backdrop := r.saveImage(ctx, c, it.id, "backdrop", d.BackdropPath, "w1280")
-	if err := r.store(ctx, it.id, d, cfg.Country, it.ids, poster, backdrop); err != nil {
+	logo := r.saveImage(ctx, c, it.id, "logo", d.LogoPath(cfg.Language), "w500")
+	photos := r.savePeople(ctx, c, d)
+	if err := r.store(ctx, it.id, d, cfg.Country, it.ids, art{poster, backdrop, logo}, photos); err != nil {
 		return err
 	}
 	if kind == "tv" {
@@ -198,7 +208,42 @@ func (r *Refresher) refreshTop(ctx context.Context, c *TMDb, cfg Settings, it it
 	return nil
 }
 
-func (r *Refresher) store(ctx context.Context, id uuid.UUID, d Details, country string, ids map[string]string, poster, backdrop bool) error {
+// art says which images were downloaded in this refresh.
+type art struct{ poster, backdrop, logo bool }
+
+// savePeople caches the photos of the billed cast (once per person) and returns who has one.
+func (r *Refresher) savePeople(ctx context.Context, c *TMDb, d Details) map[int]bool {
+	out := map[int]bool{}
+	if r.ImageDir == "" {
+		return out
+	}
+	for i, p := range d.Credits.Cast {
+		if i >= 20 {
+			break
+		}
+		if p.ID <= 0 || p.ProfilePath == "" {
+			continue
+		}
+		dst := PersonImagePath(r.ImageDir, int64(p.ID))
+		if _, err := os.Stat(dst); err == nil {
+			out[p.ID] = true
+			continue
+		}
+		data, err := c.Image(ctx, p.ProfilePath, "w185")
+		if err != nil {
+			continue
+		}
+		if os.MkdirAll(filepath.Dir(dst), 0o750) != nil {
+			continue
+		}
+		if os.WriteFile(dst+".tmp", data, 0o600) == nil && os.Rename(dst+".tmp", dst) == nil {
+			out[p.ID] = true
+		}
+	}
+	return out
+}
+
+func (r *Refresher) store(ctx context.Context, id uuid.UUID, d Details, country string, ids map[string]string, a art, photos map[int]bool) error {
 	genres := make([]string, 0, len(d.Genres))
 	for _, g := range d.Genres {
 		genres = append(genres, g.Name)
@@ -217,11 +262,11 @@ func (r *Refresher) store(ctx context.Context, id uuid.UUID, d Details, country 
 	return pgx.BeginFunc(ctx, r.Pool, func(tx pgx.Tx) error {
 		if _, err := tx.Exec(ctx, `UPDATE items SET metadata_title = NULLIF($2, ''), sort_title = COALESCE(NULLIF($3, ''), sort_title),
 				original_title = NULLIF($4, ''), overview = NULLIF($5, ''), tagline = NULLIF($6, ''), genres = $7,
-				community_rating = $8, official_rating = NULLIF($9, ''), premiere_date = $10, has_poster = $11,
-				has_backdrop = $12, provider_ids = $13, year = COALESCE(year, $14), metadata_refreshed_at = now(),
-				metadata_error = NULL, updated_at = now()
+				community_rating = $8, official_rating = NULLIF($9, ''), premiere_date = $10, has_poster = ($11 OR has_poster),
+				has_backdrop = ($12 OR has_backdrop), provider_ids = $13, year = COALESCE(year, $14), metadata_refreshed_at = now(),
+				metadata_error = NULL, has_logo = ($15 OR has_logo), updated_at = now()
 			WHERE id = $1`, id, title, library.SortTitle(title), d.Original(), d.Overview, d.Tagline, genres, rating,
-			d.Certification(country), premiere, poster, backdrop, rawIDs, yearOf(premiere)); err != nil {
+			d.Certification(country), premiere, a.poster, a.backdrop, rawIDs, yearOf(premiere), a.logo); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(ctx, `DELETE FROM item_people WHERE item_id = $1`, id); err != nil {
@@ -231,8 +276,12 @@ func (r *Refresher) store(ctx context.Context, id uuid.UUID, d Details, country 
 			if i >= 20 {
 				break
 			}
-			if _, err := tx.Exec(ctx, `INSERT INTO item_people (item_id, position, kind, name, role) VALUES ($1, $2, 'cast', $3, $4)`,
-				id, i, p.Name, p.Character); err != nil {
+			var person *int
+			if p.ID > 0 {
+				person = &p.ID
+			}
+			if _, err := tx.Exec(ctx, `INSERT INTO item_people (item_id, position, kind, name, role, tmdb_person_id, has_image)
+				VALUES ($1, $2, 'cast', $3, $4, $5, $6)`, id, i, p.Name, p.Character, person, photos[p.ID]); err != nil {
 				return err
 			}
 		}
@@ -274,7 +323,7 @@ func (r *Refresher) refreshSeasons(ctx context.Context, c *TMDb, cfg Settings, s
 		if err != nil && !errors.Is(err, errNotFound) {
 			return err
 		}
-		_, _ = r.Pool.Exec(ctx, `UPDATE items SET has_poster = $2, overview = NULLIF($3, ''), metadata_refreshed_at = now() WHERE id = $1`,
+		_, _ = r.Pool.Exec(ctx, `UPDATE items SET has_poster = ($2 OR has_poster), overview = NULLIF($3, ''), metadata_refreshed_at = now() WHERE id = $1`,
 			s.id, poster, overview)
 		byNumber := map[int]Episode{}
 		for _, e := range eps {
@@ -308,7 +357,7 @@ func (r *Refresher) refreshSeasons(ctx context.Context, c *TMDb, cfg Settings, s
 				rating = &v
 			}
 			if _, err := r.Pool.Exec(ctx, `UPDATE items SET metadata_title = NULLIF($2, ''), overview = NULLIF($3, ''),
-					premiere_date = $4, community_rating = $5, has_poster = $6, metadata_refreshed_at = now(), metadata_error = NULL
+					premiere_date = $4, community_rating = $5, has_poster = ($6 OR has_poster), metadata_refreshed_at = now(), metadata_error = NULL
 				WHERE id = $1`, e.id, meta.Name, meta.Overview, air, rating, still); err != nil {
 				return err
 			}

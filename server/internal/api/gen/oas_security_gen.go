@@ -57,6 +57,7 @@ var operationRolesSessionToken = map[string][]string{
 	GetItemImageOperation:           []string{},
 	GetMeOperation:                  []string{},
 	GetMetadataSettingsOperation:    []string{},
+	GetPersonImageOperation:         []string{},
 	GetServerSettingsOperation:      []string{},
 	ListAPIKeysOperation:            []string{},
 	ListFavoritesOperation:          []string{},

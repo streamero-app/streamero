@@ -191,7 +191,8 @@ func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		return err
 	}}
 	workers := river.NewWorkers()
-	refresher := &metadata.Refresher{Pool: deps.Pool, Settings: state.Settings(), ImageDir: filepath.Join(cfg.CacheDir, "images"), Log: log}
+	refresher := &metadata.Refresher{Pool: deps.Pool, Settings: state.Settings(), ImageDir: filepath.Join(cfg.CacheDir, "images"), Log: log,
+		FFmpeg: cfg.FFmpegPath, ResolvePath: func(p string) (string, error) { return library.ResolveSafePath(roots, p) }}
 	jobs.Register(workers, log, &library.Scanner{Pool: deps.Pool, Roots: roots, Probe: library.FFprobe(cfg.FFprobePath), Log: log},
 		libraries, refresher, func(ctx context.Context, id uuid.UUID) error {
 			_, err := client.Insert(ctx, jobs.MetadataRefreshArgs{LibraryID: id}, nil)
