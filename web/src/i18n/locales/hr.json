@@ -401,7 +401,8 @@
     "unmute": "Uključi zvuk",
     "upNext": "Sljedeća epizoda",
     "nextIn": "Sljedeća epizoda za {{seconds}}",
-    "playNext": "Pokreni sada"
+    "playNext": "Pokreni sada",
+    "nextItemIn": "Sljedeće s playliste za {{seconds}}"
   },
   "search": {
     "title": "Pretraga",
@@ -532,5 +533,39 @@
     "mode_none": "Isključeno",
     "mode_none_hint": "Bez podnaslova dok ih sam ne uključiš.",
     "autoplay": "Automatski pusti sljedeću epizodu"
+  },
+  "collections": {
+    "title": "Kolekcije",
+    "one": "Kolekcija",
+    "all": "Sve",
+    "count_one": "{{count}} naslov",
+    "count_few": "{{count}} naslova",
+    "count_other": "{{count}} naslova",
+    "empty": "Još nema kolekcija. Filmski serijali pojavit će se ovdje čim se dohvate metapodaci; administratori mogu i sami složiti kolekciju sa stranice naslova.",
+    "partOf": "Kolekcija",
+    "create": "Nova kolekcija…",
+    "newName": "Naziv nove kolekcije",
+    "confirmDelete": "Obrisati kolekciju {{name}}? Naslovi ostaju u biblioteci."
+  },
+  "playlists": {
+    "title": "Playliste",
+    "count_one": "{{count}} naslov",
+    "count_few": "{{count}} naslova",
+    "count_other": "{{count}} naslova",
+    "newName": "Naziv nove playliste",
+    "name": "Naziv playliste",
+    "create": "Nova playlista",
+    "empty": "Još nema playlista.",
+    "addHint": "Dodaj naslove s njihove stranice gumbom za listu.",
+    "playAll": "Pusti sve",
+    "shareAll": "Vidljiva svima na ovom serveru",
+    "public": "Javna",
+    "private": "Privatna",
+    "confirmDelete": "Obrisati playlistu {{name}}?",
+    "moveUp": "Pomakni gore",
+    "moveDown": "Pomakni dolje",
+    "removeItem": "Ukloni s playliste",
+    "addTo": "Dodaj na playlistu",
+    "added": "Dodano na: {{name}}"
   }
 }

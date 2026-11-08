@@ -401,7 +401,8 @@
     "unmute": "Unmute",
     "upNext": "Next episode",
     "nextIn": "Next episode in {{seconds}}",
-    "playNext": "Play now"
+    "playNext": "Play now",
+    "nextItemIn": "Next in playlist in {{seconds}}"
   },
   "search": {
     "title": "Search",
@@ -532,5 +533,39 @@
     "mode_none": "Off",
     "mode_none_hint": "No subtitles unless you turn them on.",
     "autoplay": "Play the next episode automatically"
+  },
+  "collections": {
+    "title": "Collections",
+    "one": "Collection",
+    "all": "See all",
+    "count_one": "{{count}} title",
+    "count_few": "{{count}} titles",
+    "count_other": "{{count}} titles",
+    "empty": "No collections yet. Movie series (box sets) appear here once metadata is fetched; administrators can also make their own from a title's page.",
+    "partOf": "Collection",
+    "create": "New collection…",
+    "newName": "Name of the new collection",
+    "confirmDelete": "Delete the collection {{name}}? The titles stay in your library."
+  },
+  "playlists": {
+    "title": "Playlists",
+    "count_one": "{{count}} title",
+    "count_few": "{{count}} titles",
+    "count_other": "{{count}} titles",
+    "newName": "Name of the new playlist",
+    "name": "Playlist name",
+    "create": "New playlist",
+    "empty": "No playlists yet.",
+    "addHint": "Add titles from their page with the list button.",
+    "playAll": "Play all",
+    "shareAll": "Visible to everyone on this server",
+    "public": "Public",
+    "private": "Private",
+    "confirmDelete": "Delete the playlist {{name}}?",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "removeItem": "Remove from playlist",
+    "addTo": "Add to playlist",
+    "added": "Added to {{name}}"
   }
 }

@@ -53,12 +53,24 @@ export function PlayerPage() {
     },
   });
   const isEpisode = detail.data?.item.kind === "episode";
-  const next = useQuery({
+  // In a playlist the next title is the playlist's next entry; otherwise the next episode.
+  const playlist = useQuery({
+    queryKey: ["playlist", search.playlist],
+    enabled: !!search.playlist,
+    queryFn: async () => unwrap(await api.GET("/playlists/{playlistId}", { params: { path: { playlistId: search.playlist! } } })),
+  });
+  const episodeNext = useQuery({
     queryKey: ["next", itemId],
-    enabled: isEpisode,
+    enabled: isEpisode && !search.playlist,
     retry: false,
     queryFn: async () => unwrap(await api.GET("/items/{itemId}/next", { params: { path: { itemId } } })),
   });
+  const playlistNext = (() => {
+    const items = playlist.data?.items ?? [];
+    const at = items.findIndex((i) => i.id === itemId);
+    return at >= 0 ? items.slice(at + 1).find((i) => i.kind === "movie" || i.kind === "episode") : undefined;
+  })();
+  const next = search.playlist ? { data: playlistNext } : episodeNext;
 
   const position = useCallback(() => {
     const v = videoRef.current;
@@ -105,8 +117,8 @@ export function PlayerPage() {
   const playNext = useCallback(() => {
     if (!next.data) return;
     save(true);
-    void navigate({ to: "/watch/$itemId", params: { itemId: next.data.id }, search: {}, replace: true });
-  }, [next.data, navigate, save]);
+    void navigate({ to: "/watch/$itemId", params: { itemId: next.data.id }, search: search.playlist ? { playlist: search.playlist } : {}, replace: true });
+  }, [next.data, navigate, save, search.playlist]);
   useEffect(() => {
     if (showNext && autoplay && countdown <= 0) playNext();
   }, [countdown, showNext, autoplay, playNext]);
@@ -225,7 +237,7 @@ export function PlayerPage() {
               {next.data.hasPoster && <img src={imageUrl(next.data.id, "still")} alt="" className="absolute inset-0 size-full object-cover" />}
             </div>
             <div className="flex min-w-0 flex-1 flex-col gap-2">
-              <p className="text-xs text-white/60">{autoplay ? t("player.nextIn", { seconds: Math.max(0, countdown) }) : t("player.upNext")}</p>
+              <p className="text-xs text-white/60">{autoplay ? t(search.playlist ? "player.nextItemIn" : "player.nextIn", { seconds: Math.max(0, countdown) }) : t("player.upNext")}</p>
               <p className="truncate text-sm font-semibold">
                 {next.data.seasonNumber !== undefined && next.data.episodeNumber !== undefined
                   ? `S${next.data.seasonNumber}:E${next.data.episodeNumber} · ` : ""}{next.data.title}

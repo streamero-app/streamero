@@ -24,6 +24,7 @@ import { NotificationsSettings } from "@/features/settings/NotificationsSettings
 import { PlaybackSettings } from "@/features/settings/PlaybackSettings";
 import { ItemPage, LibrariesPage, LibraryPage, MyListPage } from "@/features/library/LibraryPages";
 import { ProfileGatePage } from "@/features/profiles/ProfileSwitcher";
+import { CollectionPage, CollectionsPage, PlaylistPage, PlaylistsPage } from "@/features/library/CollectionsPages";
 import { PlayerPage } from "@/features/player/PlayerPage";
 import { SearchPage } from "@/features/library/SearchPage";
 import { NotFoundPage } from "@/routes/NotFoundPage";
@@ -47,6 +48,10 @@ const appRoute = createRoute({ getParentRoute: () => rootRoute, id: "app", compo
 const homeRoute = createRoute({ getParentRoute: () => appRoute, path: "/", component: HomePage });
 const libraryRoute = createRoute({ getParentRoute: () => appRoute, path: "/library/$libraryId", component: LibraryPage });
 const itemRoute = createRoute({ getParentRoute: () => appRoute, path: "/item/$itemId", component: ItemPage });
+const collectionsRoute = createRoute({ getParentRoute: () => appRoute, path: "/collections", component: CollectionsPage });
+const collectionRoute = createRoute({ getParentRoute: () => appRoute, path: "/collection/$collectionId", component: CollectionPage });
+const playlistsRoute = createRoute({ getParentRoute: () => appRoute, path: "/playlists", component: PlaylistsPage });
+const playlistRoute = createRoute({ getParentRoute: () => appRoute, path: "/playlist/$playlistId", component: PlaylistPage });
 const myListRoute = createRoute({ getParentRoute: () => appRoute, path: "/my-list", component: MyListPage });
 const librariesRoute2 = createRoute({ getParentRoute: () => appRoute, path: "/libraries", component: LibrariesPage });
 const searchRoute = createRoute({
@@ -59,8 +64,10 @@ const watchRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/watch/$itemId",
   component: PlayerPage,
-  validateSearch: (s: Record<string, unknown>): { start?: number } =>
-    s.start === undefined || Number.isNaN(Number(s.start)) ? {} : { start: Number(s.start) },
+  validateSearch: (s: Record<string, unknown>): { start?: number; playlist?: string } => ({
+    ...(s.start === undefined || Number.isNaN(Number(s.start)) ? {} : { start: Number(s.start) }),
+    ...(typeof s.playlist === "string" && s.playlist ? { playlist: s.playlist } : {}),
+  }),
 });
 
 function adminOnly(Page: ComponentType) {
@@ -108,6 +115,10 @@ export const routeTree = rootRoute.addChildren([
     libraryRoute,
     itemRoute,
     myListRoute,
+    collectionsRoute,
+    collectionRoute,
+    playlistsRoute,
+    playlistRoute,
     librariesRoute2,
     watchRoute,
     searchRoute,
