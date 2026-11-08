@@ -299,7 +299,8 @@
     "items_one": "{{count}} stavka",
     "items_other": "{{count}} stavki",
     "refreshMetadata": "Osvježi metapodatke",
-    "metadataQueued": "Osvježavanje metapodataka je pokrenuto."
+    "metadataQueued": "Osvježavanje metapodataka je pokrenuto.",
+    "items_few": "{{count}} stavke"
   },
   "library": {
     "sort": "Poredaj",
@@ -347,7 +348,8 @@
     "episodeCount_few": "{{count}} epizode",
     "episodeCount_other": "{{count}} epizoda",
     "removeFavorite": "Ukloni iz favorita",
-    "addFavorite": "Dodaj u favorite"
+    "addFavorite": "Dodaj u favorite",
+    "versions_few": "{{count}} verzije"
   },
   "metadata": {
     "connected": "TMDb povezan",
