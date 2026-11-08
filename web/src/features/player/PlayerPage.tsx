@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useParams, useSearch } from "@tanstack/react-router";
+import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import type Hls from "hls.js";
 import { api, unwrap } from "@/api/client";
 import type { components } from "@/api/schema.gen";
 import { ErrorText, Spinner } from "@/components/ui";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Play, X } from "lucide-react";
+import { imageUrl } from "@/features/library/format";
 import { detectDeviceProfile } from "./deviceProfile";
 
 type PlaybackInfo = components["schemas"]["PlaybackInfo"];
@@ -24,6 +25,12 @@ export function PlayerPage() {
   const [subtitle, setSubtitle] = useState<number>(-1);
   const offsetRef = useRef(0); // HLS streams start at info.startMs; direct play starts at 0
   const lastSave = useRef(0);
+  const firstStart = useRef(true);
+  const navigate = useNavigate();
+  const [remaining, setRemaining] = useState<number | null>(null);
+  const [ended, setEnded] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  const prefs = useQuery({ queryKey: ["preferences"], queryFn: async () => unwrap(await api.GET("/me/preferences")) });
 
   const detail = useQuery({
     queryKey: ["item", itemId],
@@ -36,7 +43,21 @@ export function PlayerPage() {
         params: { path: { itemId } },
         body: { device: detectDeviceProfile(), audioIndex: v.audioIndex, startMs: v.startMs },
       })),
-    onSuccess: (data) => setInfo(data),
+    onSuccess: (data) => {
+      setInfo(data);
+      // The viewer's subtitle preference applies when an item starts, not on audio switches.
+      if (firstStart.current) {
+        setSubtitle(data.subtitleDefault ?? -1);
+        firstStart.current = false;
+      }
+    },
+  });
+  const isEpisode = detail.data?.item.kind === "episode";
+  const next = useQuery({
+    queryKey: ["next", itemId],
+    enabled: isEpisode,
+    retry: false,
+    queryFn: async () => unwrap(await api.GET("/items/{itemId}/next", { params: { path: { itemId } } })),
   });
 
   const position = useCallback(() => {
@@ -56,10 +77,39 @@ export function PlayerPage() {
     }).then(() => qc.invalidateQueries({ queryKey: ["continue"] }));
   }, [itemId, info?.durationMs, position, qc]);
 
-  // Start once (honours ?start= from "play from beginning").
+  // Start (honours ?start= from "play from beginning"); again when autoplay moves to the next episode.
   useEffect(() => {
+    firstStart.current = true;
+    setInfo(null);
+    setSubtitle(-1);
+    setAudioIndex(undefined);
+    setEnded(false);
+    setDismissed(false);
+    setRemaining(null);
     start.mutate({ startMs: search.start });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [itemId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Up next: count down over the end credits (or after the end) and move on.
+  const autoplay = prefs.data?.autoplayNext ?? true;
+  const showNext = !!next.data && !dismissed && (ended || (remaining !== null && remaining <= 20));
+  const [countdown, setCountdown] = useState(10);
+  useEffect(() => {
+    if (!showNext) {
+      setCountdown(10);
+      return;
+    }
+    if (!autoplay) return;
+    const timer = window.setInterval(() => setCountdown((c) => c - 1), 1000);
+    return () => window.clearInterval(timer);
+  }, [showNext, autoplay]);
+  const playNext = useCallback(() => {
+    if (!next.data) return;
+    save(true);
+    void navigate({ to: "/watch/$itemId", params: { itemId: next.data.id }, search: {}, replace: true });
+  }, [next.data, navigate, save]);
+  useEffect(() => {
+    if (showNext && autoplay && countdown <= 0) playNext();
+  }, [countdown, showNext, autoplay, playNext]);
 
   // Attach the stream to the <video> element.
   useEffect(() => {
@@ -155,13 +205,42 @@ export function PlayerPage() {
       </div>
       <div className="relative flex flex-1 items-center justify-center">
         <video ref={videoRef} className="h-full w-full" controls playsInline autoPlay data-testid="video"
-          onTimeUpdate={() => save()} onPause={() => save(true)} onEnded={() => save(true)}>
+          onTimeUpdate={(e) => {
+            save();
+            const v = e.currentTarget;
+            const total = (info?.durationMs ?? 0) / 1000;
+            if (total > 0) setRemaining(total - (offsetRef.current / 1000 + v.currentTime));
+          }}
+          onPause={() => save(true)} onEnded={() => { save(true); setEnded(true); }}>
           {info?.subtitles.map((s) => (
             <track key={s.index} kind="subtitles" src={s.url} srcLang={s.language ?? "und"} label={s.language ?? String(s.index)} />
           ))}
         </video>
         {start.isPending && <p role="status" className="absolute flex items-center gap-3 text-white/80"><Spinner />{t("player.preparing")}</p>}
         {start.error && <div className="absolute max-w-md rounded-card bg-surface p-4"><ErrorText error={start.error} /></div>}
+        {showNext && next.data && (
+          <div className="absolute right-4 bottom-24 z-10 flex w-[min(92vw,380px)] gap-3 rounded-lg bg-black/85 p-3 text-white shadow-2xl ring-1 ring-white/15 backdrop-blur [animation:rise_300ms_var(--ease-out)_both] sm:right-8"
+            role="dialog" aria-label={t("player.upNext")} data-testid="up-next">
+            <div className="relative aspect-video w-32 shrink-0 overflow-hidden rounded-md bg-white/10">
+              {next.data.hasPoster && <img src={imageUrl(next.data.id, "still")} alt="" className="absolute inset-0 size-full object-cover" />}
+            </div>
+            <div className="flex min-w-0 flex-1 flex-col gap-2">
+              <p className="text-xs text-white/60">{autoplay ? t("player.nextIn", { seconds: Math.max(0, countdown) }) : t("player.upNext")}</p>
+              <p className="truncate text-sm font-semibold">
+                {next.data.seasonNumber !== undefined && next.data.episodeNumber !== undefined
+                  ? `S${next.data.seasonNumber}:E${next.data.episodeNumber} · ` : ""}{next.data.title}
+              </p>
+              <div className="mt-auto flex gap-2">
+                <button type="button" onClick={playNext} autoFocus
+                  className="inline-flex h-8 items-center gap-1.5 rounded-md bg-white px-3 text-sm font-bold text-black hover:bg-white/85">
+                  <Play className="size-3.5 fill-current" aria-hidden />{t("player.playNext")}
+                </button>
+                <button type="button" onClick={() => setDismissed(true)} aria-label={t("common.close")}
+                  className="grid size-8 place-items-center rounded-md bg-white/15 hover:bg-white/25"><X className="size-4" aria-hidden /></button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

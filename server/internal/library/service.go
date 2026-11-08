@@ -47,6 +47,8 @@ type Item struct {
 	HasPoster                         bool
 	HasBackdrop                       bool
 	HasLogo                           bool
+	SeriesID                          *uuid.UUID
+	SeriesTitle                       string
 	Rating                            *float64
 	PositionMS                        int64
 	Played                            bool
@@ -439,7 +441,11 @@ func (s *Service) ContinueWatching(ctx context.Context, owner uuid.UUID, limit i
 		}
 		out = append(out, it)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	rows.Close()
+	return out, s.AttachSeries(ctx, out)
 }
 
 func (s *Service) queryItems(ctx context.Context, sql string, args ...any) ([]Item, error) {

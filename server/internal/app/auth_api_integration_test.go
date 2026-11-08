@@ -1459,3 +1459,101 @@ func TestAdminDashboardIntegration(t *testing.T) {
 		t.Fatalf("user dashboard: %d", s)
 	}
 }
+
+func TestNextUpAndPreferencesIntegration(t *testing.T) {
+	srv := newAuthTestServer(t)
+	adminC := newClient(t, srv)
+	setupAdmin(t, adminC)
+	shows := mediaRoot + "/nextup"
+	for _, f := range []string{"Show (2020)/Season 01/Show S01E01.mkv", "Show (2020)/Season 01/Show S01E02.mkv",
+		"Show (2020)/Season 01/Show S01E03.mkv", "Show (2020)/Season 02/Show S02E01.mkv", "Show (2020)/Season 01/Show S01E03.hr.srt"} {
+		if err := os.MkdirAll(filepath.Dir(shows+"/"+f), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(shows+"/"+f, []byte("1\n00:00:01,000 --> 00:00:02,000\nBok\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var lib struct {
+		ID string `json:"id"`
+	}
+	adminC.do("POST", "/libraries", map[string]any{"name": "N", "kind": "shows", "paths": []string{shows}}, &lib)
+	scanner := &library.Scanner{Pool: testPool, Roots: library.Roots{mediaRoot}, Log: slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Probe: func(context.Context, string) (library.ProbeResult, error) {
+			return library.ProbeResult{Container: "mkv", VideoCodec: "h264", DurationMS: 60_000,
+				Audio: []library.AudioStream{{Codec: "aac", Language: "eng"}, {Codec: "aac", Language: "hrv"}}}, nil
+		}}
+	if _, err := scanner.Scan(context.Background(), uuid.MustParse(lib.ID)); err != nil {
+		t.Fatal(err)
+	}
+	type summary struct {
+		ID            string `json:"id"`
+		Title         string `json:"title"`
+		SeasonNumber  int    `json:"seasonNumber"`
+		EpisodeNumber int    `json:"episodeNumber"`
+		SeriesTitle   string `json:"seriesTitle"`
+	}
+	var eps []summary
+	rows, err := testPool.Query(context.Background(), `SELECT id, season_number, episode_number FROM items
+		WHERE library_id = $1 AND kind = 'episode' ORDER BY season_number, episode_number`, uuid.MustParse(lib.ID))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for rows.Next() {
+		var e summary
+		var id uuid.UUID
+		if err := rows.Scan(&id, &e.SeasonNumber, &e.EpisodeNumber); err != nil {
+			t.Fatal(err)
+		}
+		e.ID = id.String()
+		eps = append(eps, e)
+	}
+	rows.Close()
+	if len(eps) != 4 {
+		t.Fatalf("episodes: %+v", eps)
+	}
+	var next []summary
+	adminC.do("GET", "/home/next-up", nil, &next)
+	if len(next) != 0 {
+		t.Fatalf("nothing watched yet: %+v", next)
+	}
+	adminC.do("PUT", "/items/"+eps[0].ID+"/user-data", map[string]any{"played": true}, nil)
+	adminC.do("PUT", "/items/"+eps[1].ID+"/user-data", map[string]any{"played": true}, nil)
+	adminC.do("GET", "/home/next-up", nil, &next)
+	if len(next) != 1 || next[0].ID != eps[2].ID || next[0].SeriesTitle != "Show" {
+		t.Fatalf("next up: %+v", next)
+	}
+	var after summary
+	if s := adminC.do("GET", "/items/"+eps[2].ID+"/next", nil, &after); s != 200 || after.ID != eps[3].ID {
+		t.Fatalf("next episode: %d %+v", s, after)
+	}
+	if s := adminC.do("GET", "/items/"+eps[3].ID+"/next", nil, nil); s != 404 {
+		t.Fatalf("after the last episode: %d", s)
+	}
+
+	var prefs map[string]any
+	adminC.do("GET", "/me/preferences", nil, &prefs)
+	if prefs["subtitleMode"] != "default" || prefs["autoplayNext"] != true {
+		t.Fatalf("default prefs: %+v", prefs)
+	}
+	if s := adminC.do("PUT", "/me/preferences", map[string]any{"audioLanguage": "en", "subtitleLanguage": "hr", "subtitleMode": "always",
+		"autoplayNext": false}, &prefs); s != 200 || prefs["autoplayNext"] != false {
+		t.Fatalf("save prefs: %d %+v", s, prefs)
+	}
+	if s := adminC.do("PUT", "/me/preferences", map[string]any{"subtitleMode": "loud", "autoplayNext": true}, nil); s != 400 {
+		t.Fatalf("bad mode: %d", s)
+	}
+	var info struct {
+		AudioIndex      int  `json:"audioIndex"`
+		SubtitleDefault *int `json:"subtitleDefault"`
+		Subtitles       []struct{ Language string }
+	}
+	device := map[string]any{"containers": []string{"mkv"}, "videoCodecs": []string{"h264"}, "audioCodecs": []string{"aac"}, "hls": true}
+	// (A Croatian audio preference would pick track 1 and need a remux; the test server has no ffmpeg.)
+	if s := adminC.do("POST", "/items/"+eps[2].ID+"/playback", map[string]any{"device": device}, &info); s != 200 {
+		t.Fatalf("playback: %d", s)
+	}
+	if info.AudioIndex != 0 || info.SubtitleDefault == nil || info.Subtitles[*info.SubtitleDefault].Language != "hr" {
+		t.Fatalf("preferences not applied: %+v", info)
+	}
+}

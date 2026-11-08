@@ -162,9 +162,9 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [ ] `[JF]` HLS (fMP4 + MPEG-TS), seek koji restarta ffmpeg na keyframeu, throttling transkodiranja, brisanje starih segmenata (P5)
 - [ ] `[JF]` Progressive stream (za stare klijente / download) (P5)
 - [ ] `[JF]` Ograničenje bitratea (LAN vs internet), max rezolucija, max audio kanala (P5)
-- [ ] `[JF]` Audio: odabir traka, preferirani jezik, preferiraj originalni jezik naslova, downmix, normalizacija (bez utjecaja na pitch/brzinu na iOS-u) (P5)
+- [ ] `[JF]` Audio *(odabir trake i preferirani jezik gotovi)*: odabir traka, preferirani jezik, preferiraj originalni jezik naslova, downmix, normalizacija (bez utjecaja na pitch/brzinu na iOS-u) (P5)
 - [ ] `[JF]` Podnaslovi: SRT, ASS/SSA (stil sačuvan), WebVTT, PGS, VobSub, DVB; ugrađeni i vanjski (`film.hr.forced.srt` konvencije); burn-in kad klijent ne može renderirati; ekstrakcija u pozadini s podesivim timeoutom; slikovni podnaslovi renderirani na klijentu kod remuxa; forced podnaslovi ispravno nadjačavaju zapamćene; ugradnja vanjskih u MKS kod transkodiranja (P5)
-- [ ] `[JF]` Načini podnaslova: default, smart, only forced, always, none (P5)
+- [x] `[JF]` Načini podnaslova: default, smart, only forced, always, none (P5)
 - [ ] `[JF]` Stil podnaslova po korisniku/uređaju (veličina, font, boja, pozadina, sjena, pozicija); opcija gašenja native stila (P5)
 - [ ] `[JF]` Upload i uređivanje/brisanje vanjskih podnaslova (P5)
 - [ ] `[JF]` HW akceleracija: NVENC/NVDEC, Intel QSV, VA-API (Intel/AMD), AMD AMF, Apple VideoToolbox, Rockchip RKMPP; Vulkan/OpenCL/CUDA filteri (P5)
@@ -178,7 +178,7 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 
 ### Iskustvo u playeru
 - [ ] `[JF]` Resume, napredak se javlja serveru (start/progress/stop/pause), mark played prag (npr. 90 %) (P5)
-- [ ] `[JF]` Next Up / autoplay sljedeće epizode s odbrojavanjem (P5)
+- [x] `[JF]` Next Up / autoplay sljedeće epizode s odbrojavanjem (P5) — *web; iOS slijedi*
 - [ ] `[JF]` „Još gledate?" prompt nakon N epizoda/sati (P5)
 - [ ] `[JF]` Brzina reprodukcije (P5)
 - [ ] `[JF]` Frame-by-frame (`,` i `.` tipke na webu) (P5)
@@ -260,10 +260,10 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 
 ## 13. Administracija (dashboard)
 
-- [ ] `[JF]` Dashboard: aktivne sesije (što, tko, uređaj, način reprodukcije, razlog transkodiranja, napredak), zaustavi stream, pošalji poruku (P10)
+- [ ] `[JF]` Dashboard: aktivne sesije (što, tko, uređaj, način reprodukcije, razlog transkodiranja, napredak), zaustavi stream, pošalji poruku (P10) — *pregled sesija, prostor i aktivnost gotovi; zaustavi stream / poruka slijede*
 - [ ] `[JF]` Broj stavki i dostupan prostor po direktoriju (P10)
 - [ ] `[JF]` Activity log sa sortiranjem i filtriranjem (P10)
-- [ ] `[JF]` Scheduled tasks: scan biblioteka, refresh people, trickplay, chapter images, media segment scan, ekstrakcija podnaslova/attachmenta, čišćenje cachea, čišćenje transcode direktorija, čišćenje logova, optimizacija baze (analyze+vacuum, i pri gašenju), backup, update plugina/providera, download podnaslova, intro detekcija; triggeri: interval, dnevno, tjedno, pri startu, max trajanje (P10)
+- [ ] `[JF]` Scheduled tasks *(scan, refresh metadata, čišćenje slika s „Pokreni sada" gotovi)*: scan biblioteka, refresh people, trickplay, chapter images, media segment scan, ekstrakcija podnaslova/attachmenta, čišćenje cachea, čišćenje transcode direktorija, čišćenje logova, optimizacija baze (analyze+vacuum, i pri gašenju), backup, update plugina/providera, download podnaslova, intro detekcija; triggeri: interval, dnevno, tjedno, pri startu, max trajanje (P10)
 - [ ] `[JF]` Log viewer s live follow (P10)
 - [ ] `[JF]` Backup i restore (ugrađeni, snapshot baze + configa, upozorenje ako backup tijekom scana, otporan na korumpirane zapise) (P10)
 - [ ] `[JF]` Postavke: općenito (ime servera, jezik, cache putanja, metadata putanja), display, biblioteke, korisnici, uređaji, playback/transcoding, resume postavke (min/max %), streaming, trickplay, Live TV, networking, API ključevi, plugini/integracije, branding, logging (P10)
@@ -271,7 +271,7 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [ ] `[JF]` Klijenti mogu tražiti odgovor na određenom jeziku (Accept-Language) (P0)
 - [ ] `[JF]` Plugin repozitoriji i katalog (kod nas: „Integracije" — vidi PLAN.md §Extensibility) (P13)
 - [ ] `[JF-P]` Playback reporting / statistike (P13)
-- [ ] `[JF-P]` Webhooks (Discord, Slack, generic JSON, ntfy, Gotify, Pushover, Telegram, email) na događaje: nova stavka, playback start/stop, login, greška taska… (P13)
+- [ ] `[JF-P]` Webhooks (Discord, Slack, generic JSON, ntfy, Gotify, Pushover, Telegram, email) na događaje: nova stavka, playback start/stop, login, greška taska… (P13) — *Discord, ntfy, Gotify, generic JSON gotovi (nova stavka, početak gledanja, prijave, neuspjeli scan); Slack/Pushover/Telegram/email slijede*
 - [ ] `[JF-P]` Newsletter „Novo na serveru" (email digest) (P13)
 - [ ] `[JF-P]` Media cleaner (brisanje pogledanog nakon X dana — opt-in, s košem i potvrdom) (P13)
 - [ ] `[JF-P]` Transcode killer (pravila: zabrani 4K transcode, max transkodiranja po korisniku) (P10)

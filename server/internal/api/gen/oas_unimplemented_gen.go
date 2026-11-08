@@ -249,6 +249,15 @@ func (UnimplementedHandler) GetPersonImage(ctx context.Context, params GetPerson
 	return r, ht.ErrNotImplemented
 }
 
+// GetPreferences implements getPreferences operation.
+//
+// Playback preferences of the current profile.
+//
+// GET /me/preferences
+func (UnimplementedHandler) GetPreferences(ctx context.Context) (r *PlaybackPreferences, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetServerSettings implements getServerSettings operation.
 //
 // Server-wide settings (admin).
@@ -382,6 +391,24 @@ func (UnimplementedHandler) Login(ctx context.Context, req *LoginRequest) (r *Si
 //
 // POST /auth/logout
 func (UnimplementedHandler) Logout(ctx context.Context) (r *LogoutNoContent, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// NextEpisode implements nextEpisode operation.
+//
+// The episode after this one (for autoplay).
+//
+// GET /items/{itemId}/next
+func (UnimplementedHandler) NextEpisode(ctx context.Context, params NextEpisodeParams) (r *ItemSummary, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// NextUp implements nextUp operation.
+//
+// The next unwatched episode of each series the current profile is watching.
+//
+// GET /home/next-up
+func (UnimplementedHandler) NextUp(ctx context.Context) (r []ItemSummary, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -546,6 +573,15 @@ func (UnimplementedHandler) UpdateMetadataSettings(ctx context.Context, req *Met
 //
 // PUT /settings/notifications
 func (UnimplementedHandler) UpdateNotificationSettings(ctx context.Context, req *NotificationSettings) (r *NotificationSettings, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdatePreferences implements updatePreferences operation.
+//
+// Save playback preferences of the current profile.
+//
+// PUT /me/preferences
+func (UnimplementedHandler) UpdatePreferences(ctx context.Context, req *PlaybackPreferences) (r *PlaybackPreferences, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

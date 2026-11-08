@@ -742,6 +742,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/home/next-up": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The next unwatched episode of each series the current profile is watching */
+        get: operations["nextUp"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/items/{itemId}/next": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        /** The episode after this one (for autoplay) */
+        get: operations["nextEpisode"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Playback preferences of the current profile */
+        get: operations["getPreferences"];
+        /** Save playback preferences of the current profile */
+        put: operations["updatePreferences"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/home/continue": {
         parameters: {
             query?: never;
@@ -1112,6 +1166,8 @@ export interface components {
             device: components["schemas"]["DeviceProfile"];
         };
         PlaybackInfo: {
+            /** @description Position in subtitles to show by default (from the viewer's preferences); absent = off. */
+            subtitleDefault?: number;
             /** Format: uuid */
             fileId: string;
             /** @enum {string} */
@@ -1234,6 +1290,19 @@ export interface components {
         NotificationSettings: {
             targets: components["schemas"]["NotificationTarget"][];
         };
+        PlaybackPreferences: {
+            /** @description Preferred audio language (ISO 639-1 or -2, e.g. "hr", "eng"); empty = the file's default track. */
+            audioLanguage?: string;
+            /** @description Preferred subtitle language. */
+            subtitleLanguage?: string;
+            /**
+             * @description default: forced subtitles in the audio language, else the preferred language when the audio differs; smart: the preferred language only when the audio is in another language; always: the preferred language; forced: forced subtitles only; none: off.
+             * @enum {string}
+             */
+            subtitleMode: "default" | "smart" | "always" | "forced" | "none";
+            /** @description Play the next episode automatically. */
+            autoplayNext: boolean;
+        };
         MetadataSettings: {
             tmdbConfigured: boolean;
             /** @description Preferred metadata language, e.g. "hr-HR" (English is the fallback). */
@@ -1273,6 +1342,12 @@ export interface components {
             hasBackdrop?: boolean;
             /** @description A transparent title logo is available (images/logo, PNG). */
             hasLogo?: boolean;
+            /**
+             * Format: uuid
+             * @description For episodes in Next Up / Continue watching.
+             */
+            seriesId?: string;
+            seriesTitle?: string;
             /** @description Community rating 0–10. */
             rating?: number;
             /**
@@ -2648,6 +2723,96 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    nextUp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Episodes, most recently watched series first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemSummary"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    nextEpisode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Next episode */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemSummary"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getPreferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Preferences */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaybackPreferences"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updatePreferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlaybackPreferences"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaybackPreferences"];
+                };
             };
             default: components["responses"]["Error"];
         };

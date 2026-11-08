@@ -21,6 +21,7 @@ import { MetadataSettings } from "@/features/settings/MetadataSettings";
 import { IntegrationsSettings } from "@/features/settings/IntegrationsSettings";
 import { DashboardSettings, TasksSettings } from "@/features/settings/DashboardSettings";
 import { NotificationsSettings } from "@/features/settings/NotificationsSettings";
+import { PlaybackSettings } from "@/features/settings/PlaybackSettings";
 import { ItemPage, LibrariesPage, LibraryPage, MyListPage } from "@/features/library/LibraryPages";
 import { ProfileGatePage } from "@/features/profiles/ProfileSwitcher";
 import { PlayerPage } from "@/features/player/PlayerPage";
@@ -85,6 +86,7 @@ const accountRoute = createRoute({ getParentRoute: () => settingsRoute, path: "a
 const dashboardRoute = createRoute({ getParentRoute: () => settingsRoute, path: "dashboard", component: adminOnly(DashboardSettings) });
 const tasksRoute = createRoute({ getParentRoute: () => settingsRoute, path: "tasks", component: adminOnly(TasksSettings) });
 const notificationsRoute = createRoute({ getParentRoute: () => settingsRoute, path: "notifications", component: adminOnly(NotificationsSettings) });
+const playbackRoute = createRoute({ getParentRoute: () => settingsRoute, path: "playback", component: PlaybackSettings });
 const profilesRoute = createRoute({ getParentRoute: () => settingsRoute, path: "profiles", component: ProfilesSettings });
 const devicesRoute = createRoute({ getParentRoute: () => settingsRoute, path: "devices", component: DevicesSettings });
 const quickConnectRoute = createRoute({ getParentRoute: () => settingsRoute, path: "quickconnect", component: QuickConnectSettings });
@@ -109,7 +111,7 @@ export const routeTree = rootRoute.addChildren([
     librariesRoute2,
     watchRoute,
     searchRoute,
-    settingsRoute.addChildren([settingsIndex, dashboardRoute, tasksRoute, notificationsRoute, accountRoute, profilesRoute, devicesRoute, quickConnectRoute, serverRoute, librariesRoute, metadataRoute, integrationsRoute, usersRoute, invitesRoute, apiKeysRoute]),
+    settingsRoute.addChildren([settingsIndex, playbackRoute, dashboardRoute, tasksRoute, notificationsRoute, accountRoute, profilesRoute, devicesRoute, quickConnectRoute, serverRoute, librariesRoute, metadataRoute, integrationsRoute, usersRoute, invitesRoute, apiKeysRoute]),
   ]),
 ]);
 export const router = createRouter({ routeTree });

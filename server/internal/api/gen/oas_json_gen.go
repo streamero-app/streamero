@@ -3483,6 +3483,18 @@ func (s *ItemSummary) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.SeriesId.Set {
+			e.FieldStart("seriesId")
+			s.SeriesId.Encode(e)
+		}
+	}
+	{
+		if s.SeriesTitle.Set {
+			e.FieldStart("seriesTitle")
+			s.SeriesTitle.Encode(e)
+		}
+	}
+	{
 		if s.Rating.Set {
 			e.FieldStart("rating")
 			s.Rating.Encode(e)
@@ -3508,7 +3520,7 @@ func (s *ItemSummary) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfItemSummary = [16]string{
+var jsonFieldsNameOfItemSummary = [18]string{
 	0:  "id",
 	1:  "kind",
 	2:  "title",
@@ -3521,10 +3533,12 @@ var jsonFieldsNameOfItemSummary = [16]string{
 	9:  "hasPoster",
 	10: "hasBackdrop",
 	11: "hasLogo",
-	12: "rating",
-	13: "positionMs",
-	14: "played",
-	15: "favorite",
+	12: "seriesId",
+	13: "seriesTitle",
+	14: "rating",
+	15: "positionMs",
+	16: "played",
+	17: "favorite",
 }
 
 // Decode decodes ItemSummary from json.
@@ -3532,7 +3546,7 @@ func (s *ItemSummary) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode ItemSummary to nil")
 	}
-	var requiredBitSet [2]uint8
+	var requiredBitSet [3]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
@@ -3664,6 +3678,26 @@ func (s *ItemSummary) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"hasLogo\"")
 			}
+		case "seriesId":
+			if err := func() error {
+				s.SeriesId.Reset()
+				if err := s.SeriesId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"seriesId\"")
+			}
+		case "seriesTitle":
+			if err := func() error {
+				s.SeriesTitle.Reset()
+				if err := s.SeriesTitle.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"seriesTitle\"")
+			}
 		case "rating":
 			if err := func() error {
 				s.Rating.Reset()
@@ -3713,9 +3747,10 @@ func (s *ItemSummary) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [2]uint8{
+	for i, mask := range [3]uint8{
 		0b00000111,
 		0b00000011,
+		0b00000000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -6460,6 +6495,12 @@ func (s *PlaybackInfo) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *PlaybackInfo) encodeFields(e *jx.Encoder) {
 	{
+		if s.SubtitleDefault.Set {
+			e.FieldStart("subtitleDefault")
+			s.SubtitleDefault.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("fileId")
 		json.EncodeUUID(e, s.FileId)
 	}
@@ -6511,16 +6552,17 @@ func (s *PlaybackInfo) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfPlaybackInfo = [9]string{
-	0: "fileId",
-	1: "method",
-	2: "url",
-	3: "startMs",
-	4: "durationMs",
-	5: "audio",
-	6: "audioIndex",
-	7: "subtitles",
-	8: "reason",
+var jsonFieldsNameOfPlaybackInfo = [10]string{
+	0: "subtitleDefault",
+	1: "fileId",
+	2: "method",
+	3: "url",
+	4: "startMs",
+	5: "durationMs",
+	6: "audio",
+	7: "audioIndex",
+	8: "subtitles",
+	9: "reason",
 }
 
 // Decode decodes PlaybackInfo from json.
@@ -6532,8 +6574,18 @@ func (s *PlaybackInfo) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
+		case "subtitleDefault":
+			if err := func() error {
+				s.SubtitleDefault.Reset()
+				if err := s.SubtitleDefault.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"subtitleDefault\"")
+			}
 		case "fileId":
-			requiredBitSet[0] |= 1 << 0
+			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.FileId = v
@@ -6545,7 +6597,7 @@ func (s *PlaybackInfo) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"fileId\"")
 			}
 		case "method":
-			requiredBitSet[0] |= 1 << 1
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				if err := s.Method.Decode(d); err != nil {
 					return err
@@ -6555,7 +6607,7 @@ func (s *PlaybackInfo) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"method\"")
 			}
 		case "url":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := d.Str()
 				s.URL = string(v)
@@ -6567,7 +6619,7 @@ func (s *PlaybackInfo) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"url\"")
 			}
 		case "startMs":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int64()
 				s.StartMs = int64(v)
@@ -6589,7 +6641,7 @@ func (s *PlaybackInfo) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"durationMs\"")
 			}
 		case "audio":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				s.Audio = make([]AudioStream, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -6617,7 +6669,7 @@ func (s *PlaybackInfo) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"audioIndex\"")
 			}
 		case "subtitles":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				s.Subtitles = make([]PlaybackSubtitle, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -6654,8 +6706,8 @@ func (s *PlaybackInfo) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
-		0b10101111,
-		0b00000000,
+		0b01011110,
+		0b00000001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -6739,6 +6791,197 @@ func (s PlaybackInfoMethod) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *PlaybackInfoMethod) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *PlaybackPreferences) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *PlaybackPreferences) encodeFields(e *jx.Encoder) {
+	{
+		if s.AudioLanguage.Set {
+			e.FieldStart("audioLanguage")
+			s.AudioLanguage.Encode(e)
+		}
+	}
+	{
+		if s.SubtitleLanguage.Set {
+			e.FieldStart("subtitleLanguage")
+			s.SubtitleLanguage.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("subtitleMode")
+		s.SubtitleMode.Encode(e)
+	}
+	{
+		e.FieldStart("autoplayNext")
+		e.Bool(s.AutoplayNext)
+	}
+}
+
+var jsonFieldsNameOfPlaybackPreferences = [4]string{
+	0: "audioLanguage",
+	1: "subtitleLanguage",
+	2: "subtitleMode",
+	3: "autoplayNext",
+}
+
+// Decode decodes PlaybackPreferences from json.
+func (s *PlaybackPreferences) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode PlaybackPreferences to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "audioLanguage":
+			if err := func() error {
+				s.AudioLanguage.Reset()
+				if err := s.AudioLanguage.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"audioLanguage\"")
+			}
+		case "subtitleLanguage":
+			if err := func() error {
+				s.SubtitleLanguage.Reset()
+				if err := s.SubtitleLanguage.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"subtitleLanguage\"")
+			}
+		case "subtitleMode":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.SubtitleMode.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"subtitleMode\"")
+			}
+		case "autoplayNext":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Bool()
+				s.AutoplayNext = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"autoplayNext\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode PlaybackPreferences")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00001100,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfPlaybackPreferences) {
+					name = jsonFieldsNameOfPlaybackPreferences[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *PlaybackPreferences) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *PlaybackPreferences) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes PlaybackPreferencesSubtitleMode as json.
+func (s PlaybackPreferencesSubtitleMode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes PlaybackPreferencesSubtitleMode from json.
+func (s *PlaybackPreferencesSubtitleMode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode PlaybackPreferencesSubtitleMode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch PlaybackPreferencesSubtitleMode(v) {
+	case PlaybackPreferencesSubtitleModeDefault:
+		*s = PlaybackPreferencesSubtitleModeDefault
+	case PlaybackPreferencesSubtitleModeSmart:
+		*s = PlaybackPreferencesSubtitleModeSmart
+	case PlaybackPreferencesSubtitleModeAlways:
+		*s = PlaybackPreferencesSubtitleModeAlways
+	case PlaybackPreferencesSubtitleModeForced:
+		*s = PlaybackPreferencesSubtitleModeForced
+	case PlaybackPreferencesSubtitleModeNone:
+		*s = PlaybackPreferencesSubtitleModeNone
+	default:
+		*s = PlaybackPreferencesSubtitleMode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s PlaybackPreferencesSubtitleMode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *PlaybackPreferencesSubtitleMode) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
