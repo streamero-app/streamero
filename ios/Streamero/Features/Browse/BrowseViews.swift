@@ -288,7 +288,7 @@ struct HeroView: View {
             LinearGradient(colors: [Theme.background.opacity(0.7), .clear, Theme.background.opacity(0.6), Theme.background],
                            startPoint: .top, endPoint: .bottom)
             VStack(alignment: .leading, spacing: 12) {
-                Text(item.title).font(Theme.display(44)).foregroundStyle(Theme.text).lineLimit(3).minimumScaleFactor(0.6)
+                TitleArt(id: item.id, title: item.title, hasLogo: item.hasLogo == true, client: client, size: 44)
                 MetaLine(item: item)
                 HStack(spacing: 12) {
                     if playable {
@@ -302,6 +302,27 @@ struct HeroView: View {
             .padding(.horizontal, 20).padding(.bottom, 8)
         }
         .frame(height: 560)
+    }
+}
+
+/// The title as its logo artwork when there is one, else heavy type.
+struct TitleArt: View {
+    let id: String
+    let title: String
+    let hasLogo: Bool
+    let client: MediaClient
+    var size: CGFloat = 40
+    var maxHeight: CGFloat = 110
+
+    var body: some View {
+        if hasLogo {
+            AuthImage(url: client.imageURL(item: id, type: "logo"), token: client.token, fit: true)
+                .frame(maxWidth: 300, maxHeight: maxHeight, alignment: .bottomLeading)
+                .shadow(color: .black.opacity(0.5), radius: 10)
+                .accessibilityLabel(Text(title))
+        } else {
+            Text(title).font(Theme.display(size)).foregroundStyle(Theme.text).lineLimit(3).minimumScaleFactor(0.6)
+        }
     }
 }
 
@@ -411,8 +432,15 @@ struct WideCard: View {
                 if art != nil {
                     ZStack(alignment: .bottomLeading) {
                         LinearGradient(colors: [.clear, .black.opacity(0.75)], startPoint: .center, endPoint: .bottom)
-                        Text(item.title).font(.subheadline.weight(.heavy)).foregroundStyle(.white).lineLimit(2)
-                            .padding(.horizontal, 10).padding(.bottom, 12)
+                        Group {
+                            if item.hasLogo == true {
+                                AuthImage(url: client.imageURL(item: item.id, type: "logo"), token: client.token, fit: true)
+                                    .frame(maxWidth: 130, maxHeight: 40, alignment: .bottomLeading)
+                            } else {
+                                Text(item.title).font(.subheadline.weight(.heavy)).foregroundStyle(.white).lineLimit(2)
+                            }
+                        }
+                        .padding(.horizontal, 10).padding(.bottom, 12)
                     }
                 }
             }
@@ -556,7 +584,11 @@ struct ItemView: View {
                         .shadow(color: .black.opacity(0.7), radius: 20, y: 12)
                 }
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(episodeTitle(it)).font(Theme.display(34)).foregroundStyle(Theme.text).lineLimit(3).minimumScaleFactor(0.6)
+                    if isEpisode {
+                        Text(episodeTitle(it)).font(Theme.display(34)).foregroundStyle(Theme.text).lineLimit(3).minimumScaleFactor(0.6)
+                    } else {
+                        TitleArt(id: it.id, title: it.title, hasLogo: d.hasLogo == true, client: client, size: 34, maxHeight: 90)
+                    }
                     MetaLine(item: it)
                     if !d.genres.isEmpty {
                         Text(d.genres.joined(separator: " · ")).font(.caption).foregroundStyle(Theme.textMuted).lineLimit(1)
@@ -626,6 +658,11 @@ struct ItemView: View {
                             VStack(spacing: 6) {
                                 Text(initials(p.name)).font(Theme.display(24)).foregroundStyle(Theme.text.opacity(0.7))
                                     .frame(width: 72, height: 72)
+                                    .overlay {
+                                        if let url = p.imageUrl.flatMap(client.absolute) {
+                                            AuthImage(url: url, token: client.token).clipShape(Circle())
+                                        }
+                                    }
                                     .background(RadialGradient(colors: [Color(hue: Theme.hue(for: p.name), saturation: 0.25, brightness: 0.22), Theme.surface],
                                                                center: .topLeading, startRadius: 0, endRadius: 80), in: Circle())
                                     .overlay(Circle().strokeBorder(Theme.border))

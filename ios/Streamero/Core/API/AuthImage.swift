@@ -24,14 +24,19 @@ struct AuthImage: View {
     let token: String
     var title: String = ""
     var year: Int? = nil
+    /// Fit instead of fill, with no placeholder (title logos).
+    var fit = false
     @State private var image: UIImage?
 
     var body: some View {
         ZStack {
-            PosterPlaceholder(title: title, year: year).opacity(image == nil ? 1 : 0)
+            if !fit { PosterPlaceholder(title: title, year: year).opacity(image == nil ? 1 : 0) }
             if let image {
-                Image(uiImage: image).resizable().scaledToFill()
-                    .transition(.opacity)
+                if fit {
+                    Image(uiImage: image).resizable().scaledToFit().transition(.opacity)
+                } else {
+                    Image(uiImage: image).resizable().scaledToFill().transition(.opacity)
+                }
             }
         }
         .animation(.easeOut(duration: 0.35), value: image != nil)
