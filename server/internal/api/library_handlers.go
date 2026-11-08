@@ -169,6 +169,9 @@ func (h *Handler) GetItem(ctx context.Context, params gen.GetItemParams) (*gen.I
 		return nil, err
 	}
 	out.Genres, out.HasBackdrop, out.HasLogo = m.Genres, m.HasBackdrop, gen.NewOptBool(m.HasLogo)
+	if m.Locked {
+		out.Locked = gen.NewOptBool(true)
+	}
 	if out.Genres == nil {
 		out.Genres = []string{}
 	}
@@ -335,6 +338,12 @@ func mapLibraryError(err error) *StatusError {
 		return &StatusError{Status: http.StatusBadRequest, Code: "invalid_path", Message: err.Error()}
 	case errors.Is(err, library.ErrInvalidName):
 		return &StatusError{Status: http.StatusBadRequest, Code: "invalid_name", Message: err.Error()}
+	case errors.Is(err, metadata.ErrNoKey):
+		return &StatusError{Status: http.StatusConflict, Code: "tmdb_not_configured", Message: err.Error()}
+	case errors.Is(err, metadata.ErrLocked):
+		return &StatusError{Status: http.StatusConflict, Code: "metadata_locked", Message: err.Error()}
+	case errors.Is(err, metadata.ErrInvalidKey):
+		return &StatusError{Status: http.StatusBadRequest, Code: "invalid_tmdb_key", Message: err.Error()}
 	case errors.Is(err, library.ErrForbidden):
 		return &StatusError{Status: http.StatusForbidden, Code: "forbidden", Message: err.Error()}
 	case errors.Is(err, library.ErrUnsupportedKind):

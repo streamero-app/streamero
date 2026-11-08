@@ -30,7 +30,9 @@ import (
 	"github.com/streamero-app/streamero/server/internal/compat"
 	"github.com/streamero-app/streamero/server/internal/config"
 	"github.com/streamero-app/streamero/server/internal/library"
+	"github.com/streamero-app/streamero/server/internal/metadata"
 	"github.com/streamero-app/streamero/server/internal/notify"
+	"github.com/streamero-app/streamero/server/internal/settings"
 	"github.com/streamero-app/streamero/server/internal/stream"
 )
 
@@ -73,6 +75,12 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 		Log: log, ServerName: func(context.Context) string { return "Kino" }})
 	h := &api.Handler{State: state, ServerName: "Default", StartedAt: time.Now(), Auth: state.Auth, Settings: state.Settings,
 		Library: state.Library, Stream: state.Stream, NowPlaying: &activity.Registry{},
+		NewTMDb: func(key string) *metadata.TMDb {
+			if fakeTMDbURL != "" {
+				return &metadata.TMDb{Key: key, BaseURL: fakeTMDbURL + "/3", ImageBase: fakeTMDbURL + "/img"}
+			}
+			return &metadata.TMDb{Key: key}
+		},
 		Notify: &notify.Dispatcher{Settings: state.Settings}, Paths: api.Paths{Media: []string{mediaRoot}, Cache: t.TempDir()},
 		RunTaskFn: func(_ context.Context, key string) error { ranTasks = append(ranTasks, key); return nil }}
 	h.Notify.Server = h.ServerNameFor
@@ -84,6 +92,9 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 	t.Cleanup(srv.Close)
 	return srv
 }
+
+// fakeTMDbURL points the API's TMDb client at a test server when set.
+var fakeTMDbURL string
 
 // ranTasks records tasks started through the API (the test server queues nothing).
 var ranTasks []string
@@ -1668,5 +1679,98 @@ func TestCollectionsAndPlaylistsIntegration(t *testing.T) {
 	}
 	if s := adminC.do("DELETE", "/collections/"+col.ID, nil, nil); s != 204 {
 		t.Fatalf("delete collection: %d", s)
+	}
+}
+
+func TestIdentifyAndEditMetadataIntegration(t *testing.T) {
+	tm := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/3/configuration":
+			_, _ = w.Write([]byte(`{}`))
+		case "/3/search/movie":
+			_, _ = w.Write([]byte(`{"results":[{"id":77,"title":"Pravi film","original_title":"Real Movie","release_date":"1999-03-31","overview":"Tocno.","poster_path":"/p.jpg"},{"id":78,"title":"Krivi film","release_date":"2005-01-01"}]}`))
+		case "/3/movie/77":
+			_, _ = w.Write([]byte(`{"id":77,"title":"Pravi film","original_title":"Real Movie","overview":"Tocno.","release_date":"1999-03-31","vote_average":8.1,"genres":[{"name":"Drama"}]}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer tm.Close()
+	fakeTMDbURL = tm.URL
+	t.Cleanup(func() { fakeTMDbURL = "" })
+	srv := newAuthTestServer(t)
+	adminC := newClient(t, srv)
+	setupAdmin(t, adminC)
+	dir := mediaRoot + "/ident"
+	if err := os.MkdirAll(dir+"/Wrong Name (1999)", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(dir+"/Wrong Name (1999)/Wrong Name (1999).mkv", []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var lib struct {
+		ID string `json:"id"`
+	}
+	adminC.do("POST", "/libraries", map[string]any{"name": "I", "kind": "movies", "paths": []string{dir}}, &lib)
+	scanner := &library.Scanner{Pool: testPool, Roots: library.Roots{mediaRoot}, Log: slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Probe: func(context.Context, string) (library.ProbeResult, error) {
+			return library.ProbeResult{Container: "mkv"}, nil
+		}}
+	if _, err := scanner.Scan(context.Background(), uuid.MustParse(lib.ID)); err != nil {
+		t.Fatal(err)
+	}
+	var page struct {
+		Items []struct{ ID string } `json:"items"`
+	}
+	adminC.do("GET", "/libraries/"+lib.ID+"/items", nil, &page)
+	item := page.Items[0].ID
+
+	if s := adminC.do("GET", "/items/"+item+"/identify", nil, nil); s != 409 {
+		t.Fatalf("identify without key: %d", s)
+	}
+	old, _ := metadata.LoadSettings(context.Background(), settings.New(testPool))
+	t.Cleanup(func() { _ = metadata.SaveSettings(context.Background(), settings.New(testPool), old) })
+	if s := adminC.do("PUT", "/settings/metadata", map[string]any{"tmdbApiKey": "k", "language": "hr-HR", "country": "HR"}, nil); s != 200 {
+		t.Fatalf("save key: %d", s)
+	}
+	var cands []struct {
+		TmdbId    int
+		Title     string
+		Year      int
+		PosterUrl string
+	}
+	if s := adminC.do("GET", "/items/"+item+"/identify?query=pravi", nil, &cands); s != 200 || len(cands) != 2 || cands[0].Year != 1999 ||
+		cands[0].PosterUrl != "https://image.tmdb.org/t/p/w185/p.jpg" {
+		t.Fatalf("candidates: %d %+v", s, cands)
+	}
+	if s := adminC.do("POST", "/items/"+item+"/identify", map[string]any{"tmdbId": 77}, nil); s != 204 {
+		t.Fatalf("identify: %d", s)
+	}
+	var d struct {
+		Item        struct{ Title string }
+		Overview    string
+		ProviderIds map[string]string
+		Locked      bool
+	}
+	adminC.do("GET", "/items/"+item, nil, &d)
+	if d.Item.Title != "Pravi film" || d.Overview != "Tocno." || d.ProviderIds["tmdb"] != "77" || d.Locked {
+		t.Fatalf("after identify: %+v", d)
+	}
+
+	// Hand edit with lock: a refresh is refused instead of overwriting it.
+	if s := adminC.do("PUT", "/items/"+item+"/metadata", map[string]any{"title": "Moj naslov", "year": 2000, "genres": []string{"Drama", " "},
+		"overview": "Vlastiti opis.", "rating": 9.5, "locked": true}, nil); s != 204 {
+		t.Fatalf("edit: %d", s)
+	}
+	adminC.do("GET", "/items/"+item, nil, &d)
+	if d.Item.Title != "Moj naslov" || d.Overview != "Vlastiti opis." || !d.Locked {
+		t.Fatalf("after edit: %+v", d)
+	}
+	if s := adminC.do("POST", "/items/"+item+"/refresh", nil, nil); s != 409 {
+		t.Fatalf("refresh of locked item: %d", s)
+	}
+	if s := adminC.do("PUT", "/items/"+item+"/metadata", map[string]any{"title": "  ", "genres": []string{}, "locked": false}, nil); s != 400 {
+		t.Fatalf("empty title: %d", s)
 	}
 }

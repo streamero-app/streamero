@@ -192,8 +192,36 @@ func encodeDisableTOTPRequest(
 	return nil
 }
 
+func encodeEditMetadataRequest(
+	req *MetadataEdit,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeEnableTOTPRequest(
 	req *TOTPCodeRequest,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeIdentifyApplyRequest(
+	req *IdentifyApplyReq,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"

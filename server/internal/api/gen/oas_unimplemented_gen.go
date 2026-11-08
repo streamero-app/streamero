@@ -213,6 +213,15 @@ func (UnimplementedHandler) DisableTOTP(ctx context.Context, req *PasswordConfir
 	return ht.ErrNotImplemented
 }
 
+// EditMetadata implements editMetadata operation.
+//
+// Edit metadata by hand (administrators); locked items keep it on refresh.
+//
+// PUT /items/{itemId}/metadata
+func (UnimplementedHandler) EditMetadata(ctx context.Context, req *MetadataEdit, params EditMetadataParams) error {
+	return ht.ErrNotImplemented
+}
+
 // EnableTOTP implements enableTOTP operation.
 //
 // Confirm a code from the authenticator app and turn 2FA on.
@@ -345,6 +354,24 @@ func (UnimplementedHandler) GetServerSettings(ctx context.Context) (r *ServerSet
 //
 // GET /system/info
 func (UnimplementedHandler) GetSystemInfo(ctx context.Context) (r GetSystemInfoRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// IdentifyApply implements identifyApply operation.
+//
+// Match the item to a TMDb entry and fetch its metadata now.
+//
+// POST /items/{itemId}/identify
+func (UnimplementedHandler) IdentifyApply(ctx context.Context, req *IdentifyApplyReq, params IdentifyApplyParams) error {
+	return ht.ErrNotImplemented
+}
+
+// IdentifySearch implements identifySearch operation.
+//
+// Search TMDb for the right match of a movie or series (administrators).
+//
+// GET /items/{itemId}/identify
+func (UnimplementedHandler) IdentifySearch(ctx context.Context, params IdentifySearchParams) (r []IdentifyResult, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -527,6 +554,15 @@ func (UnimplementedHandler) PollQuickConnect(ctx context.Context, req *QuickConn
 // GET /home/latest
 func (UnimplementedHandler) RecentlyAdded(ctx context.Context) (r []ItemSummary, _ error) {
 	return r, ht.ErrNotImplemented
+}
+
+// RefreshItem implements refreshItem operation.
+//
+// Fetch metadata and artwork of one title again (administrators).
+//
+// POST /items/{itemId}/refresh
+func (UnimplementedHandler) RefreshItem(ctx context.Context, params RefreshItemParams) error {
+	return ht.ErrNotImplemented
 }
 
 // RefreshLibraryMetadata implements refreshLibraryMetadata operation.

@@ -797,6 +797,64 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/items/{itemId}/identify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        /** Search TMDb for the right match of a movie or series (administrators) */
+        get: operations["identifySearch"];
+        put?: never;
+        /** Match the item to a TMDb entry and fetch its metadata now */
+        post: operations["identifyApply"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/items/{itemId}/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Fetch metadata and artwork of one title again (administrators) */
+        post: operations["refreshItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/items/{itemId}/metadata": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Edit metadata by hand (administrators); locked items keep it on refresh */
+        put: operations["editMetadata"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/items/{itemId}": {
         parameters: {
             query?: never;
@@ -1463,6 +1521,27 @@ export interface components {
             /** @description Full order on update; omitted keeps the items. */
             itemIds?: string[];
         };
+        IdentifyResult: {
+            tmdbId: number;
+            title: string;
+            originalTitle?: string;
+            year?: number;
+            overview?: string;
+            /** @description Small poster on the TMDb image CDN. */
+            posterUrl?: string;
+        };
+        MetadataEdit: {
+            title: string;
+            originalTitle?: string;
+            year?: number;
+            overview?: string;
+            tagline?: string;
+            genres: string[];
+            officialRating?: string;
+            rating?: number;
+            /** @description Keep these values when metadata is refreshed. */
+            locked: boolean;
+        };
         MetadataSettings: {
             tmdbConfigured: boolean;
             /** @description Preferred metadata language, e.g. "hr-HR" (English is the fallback). */
@@ -1556,6 +1635,8 @@ export interface components {
             external: boolean;
         };
         ItemDetail: {
+            /** @description Metadata was edited by hand and is kept on refresh. */
+            locked?: boolean;
             collections?: components["schemas"]["Collection"][];
             hasLogo?: boolean;
             overview?: string;
@@ -3099,6 +3180,105 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Playlist"];
                 };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    identifySearch: {
+        parameters: {
+            query?: {
+                query?: string;
+                year?: number;
+            };
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Candidates */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentifyResult"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    identifyApply: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    tmdbId: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Matched and refreshed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    refreshItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Refreshed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    editMetadata: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MetadataEdit"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             default: components["responses"]["Error"];
         };
