@@ -2,7 +2,7 @@ import { useId, useState, type ButtonHTMLAttributes, type ImgHTMLAttributes, typ
 import { useTranslation } from "react-i18next";
 import { ApiError } from "@/api/client";
 
-type Variant = "primary" | "secondary" | "danger" | "ghost";
+type Variant = "primary" | "secondary" | "danger" | "ghost" | "play" | "muted";
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: "md" | "lg" };
 
 /** Shared look of every pressable thing: steps on hover, presses on click. */
@@ -14,6 +14,8 @@ export const buttonVariants: Record<Variant, string> = {
   secondary: "bg-white/[0.07] text-text ring-1 ring-inset ring-border hover:bg-white/[0.11]",
   danger: "bg-transparent text-danger ring-1 ring-inset ring-danger/40 hover:bg-danger/10",
   ghost: "bg-transparent text-muted hover:bg-white/[0.06] hover:text-text",
+  play: "bg-white text-black hover:bg-white/80",
+  muted: "bg-white/20 text-white backdrop-blur-md hover:bg-white/30",
 };
 
 const sizes = { md: "h-10 rounded-[10px] px-4 text-sm", lg: "h-12 rounded-xl px-6 text-[15px]" };

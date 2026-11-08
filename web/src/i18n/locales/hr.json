@@ -21,7 +21,10 @@
     "search": "Pretraga",
     "libraries": "Biblioteke",
     "menu": "Izbornik",
-    "account": "Račun"
+    "account": "Račun",
+    "myList": "Moja lista",
+    "profileMenu": "Izbornik računa",
+    "switchProfile": "Promijeni profil"
   },
   "login": {
     "title": "Prijava",
@@ -56,7 +59,10 @@
     "emptyTitle": "Ekran je spreman",
     "scrollLeft": "Pomakni lijevo",
     "scrollRight": "Pomakni desno",
-    "nextUp": "Sljedeće"
+    "nextUp": "Sljedeće",
+    "top": "Najbolje ocijenjeno",
+    "more": "Još iz: {{name}}",
+    "hello": "Početna"
   },
   "settings": {
     "account": "Moj račun",
@@ -267,7 +273,9 @@
     "pinHint": "4–6 znamenki. Ostavite prazno da zadržite postojeći PIN.",
     "removePin": "Ukloni PIN",
     "confirmDelete": "Obrisati profil {{name}}?",
-    "pinLocked": "Zaštićeno PIN-om"
+    "pinLocked": "Zaštićeno PIN-om",
+    "whoIsWatching": "Tko gleda?",
+    "manage": "Upravljanje profilima"
   },
   "libraries": {
     "intro": "Biblioteke pokazuju na mape na serveru. Streamero ih samo čita; ništa se u tim mapama nikad ne mijenja ni ne briše.",
@@ -349,7 +357,14 @@
     "episodeCount_other": "{{count}} epizoda",
     "removeFavorite": "Ukloni iz favorita",
     "addFavorite": "Dodaj u favorite",
-    "versions_few": "{{count}} verzije"
+    "versions_few": "{{count}} verzije",
+    "moreLikeThis": "Slično ovome",
+    "removeFromList": "Ukloni s Moje liste",
+    "addToList": "Dodaj na Moju listu",
+    "selectSeason": "Sezona",
+    "starring": "Glume",
+    "genres": "Žanrovi",
+    "myListEmpty": "Ovdje se pojavljuju naslovi koje dodaš na Moju listu."
   },
   "metadata": {
     "connected": "TMDb povezan",
@@ -382,7 +397,8 @@
     "resultsFor": "Rezultati za „{{q}}”",
     "none": "Ništa nije pronađeno. Pokušajte drugi pravopis ili ime glumca.",
     "hint": "Filmovi, serije, epizode i osobe.",
-    "start": "Upiši naslov, godinu ili ime glumca."
+    "start": "Upiši naslov, godinu ili ime glumca.",
+    "open": "Otvori pretragu"
   },
   "integrations": {
     "host": "Host",

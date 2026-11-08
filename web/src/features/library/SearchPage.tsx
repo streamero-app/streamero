@@ -26,7 +26,7 @@ export function SearchPage() {
         <label className="group relative flex max-w-2xl items-center">
           <Search className="pointer-events-none absolute left-5 z-10 size-5 text-faint transition-colors group-focus-within:text-accent" aria-hidden />
           <input key={q} name="q" type="search" defaultValue={q} autoFocus={!q} placeholder={t("search.start")} aria-label={t("search.title")}
-            className="h-14 w-full rounded-2xl border border-border bg-surface/70 pr-5 pl-13 text-lg text-text transition-colors placeholder:text-faint hover:border-border-strong focus:border-accent/60" />
+            className="h-14 w-full rounded-md border border-border bg-surface pr-5 pl-13 text-lg text-text transition-colors placeholder:text-faint hover:border-border-strong focus:border-accent/60" />
         </label>
       </form>
       <div>

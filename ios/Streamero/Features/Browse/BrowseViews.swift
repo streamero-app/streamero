@@ -9,11 +9,14 @@ struct LibraryRoute: Hashable {
     let name: String
 }
 
-/// Signed-in root: Home and Search tabs.
+/// Signed-in root: profile picker, then Home / Search / My list tabs.
 struct HomeView: View {
     let server: SavedServer
     let user: Components.Schemas.User
     let client: MediaClient
+    @State private var profiles: [Components.Schemas.Profile] = []
+    @State private var showGate = false
+    @State private var generation = 0
 
     var body: some View {
         TabView {
@@ -21,8 +24,127 @@ struct HomeView: View {
                 .tabItem { Label("nav.home", systemImage: "house.fill") }
             SearchTab(client: client)
                 .tabItem { Label("nav.search", systemImage: "magnifyingglass") }
+            MyListTab(client: client)
+                .tabItem { Label("nav.myList", systemImage: "bookmark.fill") }
         }
-        .tint(Theme.accent)
+        .id(generation)
+        .tint(.white)
+        .task {
+            profiles = (try? await client.profiles()) ?? []
+            // Like a streaming service: ask who is watching when the app starts.
+            if !profiles.isEmpty && user.currentProfile == nil { showGate = true }
+        }
+        .fullScreenCover(isPresented: $showGate) {
+            ProfileGateView(user: user, profiles: profiles, client: client) {
+                showGate = false
+                generation += 1
+            }
+        }
+    }
+}
+
+/// "Who's watching?"
+struct ProfileGateView: View {
+    let user: Components.Schemas.User
+    let profiles: [Components.Schemas.Profile]
+    let client: MediaClient
+    let done: () -> Void
+    @State private var pinFor: Components.Schemas.Profile?
+    @State private var pin = ""
+    @State private var failed = false
+
+    private let columns = [GridItem(.adaptive(minimum: 120), spacing: 24)]
+
+    var body: some View {
+        VStack(spacing: 36) {
+            Spacer()
+            Text("profiles.whoIsWatching").font(Theme.display(30)).foregroundStyle(Theme.text)
+            LazyVGrid(columns: columns, spacing: 28) {
+                avatar(name: user.username, color: "#8a5a2b", locked: false) { Task { try? await client.selectMainProfile(); done() } }
+                ForEach(profiles, id: \.id) { p in
+                    avatar(name: p.name, color: p.color, locked: p.hasPin) {
+                        if p.hasPin { pinFor = p } else { Task { try? await client.selectProfile(p.id, pin: nil); done() } }
+                    }
+                }
+            }
+            .padding(.horizontal, 32)
+            Spacer()
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Theme.background.ignoresSafeArea())
+        .alert(Text("profiles.pin"), isPresented: Binding(get: { pinFor != nil }, set: { if !$0 { pinFor = nil } })) {
+            SecureField("profiles.pin", text: $pin).keyboardType(.numberPad)
+            Button("profiles.open") {
+                guard let p = pinFor else { return }
+                Task {
+                    do { try await client.selectProfile(p.id, pin: pin); pin = ""; done() } catch { failed = true; pin = "" }
+                }
+            }
+            Button("player.back", role: .cancel) { pin = "" }
+        }
+        .alert(Text("profiles.wrongPin"), isPresented: $failed) { Button("OK") {} }
+    }
+
+    private func avatar(name: String, color: String, locked: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 10) {
+                Text(String(name.prefix(1)).uppercased())
+                    .font(.system(size: 44, weight: .bold)).foregroundStyle(.white)
+                    .frame(width: 104, height: 104)
+                    .background(LinearGradient(colors: [Color(hex: color), Color(hex: color).opacity(0.55)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                                in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .overlay(alignment: .bottomTrailing) {
+                        if locked { Image(systemName: "lock.fill").font(.caption).foregroundStyle(.white.opacity(0.85)).padding(8) }
+                    }
+                Text(name).font(.subheadline).foregroundStyle(Theme.textMuted).lineLimit(1)
+            }
+        }
+        .buttonStyle(CardPressStyle())
+    }
+}
+
+extension Color {
+    /// "#rrggbb" from the server's profile colours.
+    init(hex: String) {
+        let v = UInt64(hex.trimmingCharacters(in: CharacterSet(charactersIn: "#")), radix: 16) ?? 0x8a5a2b
+        self.init(red: Double((v >> 16) & 0xff) / 255, green: Double((v >> 8) & 0xff) / 255, blue: Double(v & 0xff) / 255)
+    }
+}
+
+/// My list (favorites) as a grid of landscape cards.
+struct MyListTab: View {
+    let client: MediaClient
+    @State private var items: [ItemSummary] = []
+    @State private var loaded = false
+
+    private let columns = [GridItem(.adaptive(minimum: 160), spacing: 10)]
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                if loaded && items.isEmpty {
+                    Text("library.myListEmpty").foregroundStyle(Theme.textMuted).padding(.top, 80).padding(.horizontal, 32)
+                        .multilineTextAlignment(.center)
+                }
+                LazyVGrid(columns: columns, spacing: 14) {
+                    ForEach(items, id: \.id) { item in
+                        NavigationLink(value: item.id) { WideCard(item: item, client: client, width: nil) }.buttonStyle(CardPressStyle())
+                    }
+                }
+                .padding(.horizontal, 16)
+            }
+            .background(Theme.background)
+            .navigationTitle(Text("nav.myList"))
+            .navigationDestination(for: String.self) { ItemView(itemID: $0, client: client) }
+            .task { await load() }
+            .refreshable { await load() }
+        }
+    }
+
+    private func load() async {
+        items = (try? await client.favorites()) ?? []
+        loaded = true
     }
 }
 
@@ -53,8 +175,6 @@ struct HomeTab: View {
                     } else {
                         Color.clear.frame(height: 100)
                     }
-                    Text("home.welcome \(user.username)").font(Theme.display(28)).foregroundStyle(Theme.text.opacity(0.9))
-                        .padding(.horizontal, 20)
                     if !continueItems.isEmpty {
                         Shelf(title: "home.continue") {
                             ForEach(continueItems, id: \.id) { item in
@@ -66,15 +186,15 @@ struct HomeTab: View {
                     if !latest.isEmpty {
                         Shelf(title: "home.latest") {
                             ForEach(latest, id: \.id) { item in
-                                NavigationLink(value: item.id) { PosterCard(item: item, client: client).frame(width: 128) }
+                                NavigationLink(value: item.id) { WideCard(item: item, client: client, showPlay: false) }
                                     .buttonStyle(CardPressStyle())
                             }
                         }
                     }
                     if !favorites.isEmpty {
-                        Shelf(title: "home.favorites") {
+                        Shelf(title: "nav.myList") {
                             ForEach(favorites, id: \.id) { item in
-                                NavigationLink(value: item.id) { PosterCard(item: item, client: client).frame(width: 128) }
+                                NavigationLink(value: item.id) { WideCard(item: item, client: client, showPlay: false) }
                                     .buttonStyle(CardPressStyle())
                             }
                         }
@@ -168,21 +288,14 @@ struct HeroView: View {
             LinearGradient(colors: [Theme.background.opacity(0.7), .clear, Theme.background.opacity(0.6), Theme.background],
                            startPoint: .top, endPoint: .bottom)
             VStack(alignment: .leading, spacing: 12) {
-                Text("home.latest").font(.footnote.weight(.semibold)).foregroundStyle(Theme.accent)
                 Text(item.title).font(Theme.display(44)).foregroundStyle(Theme.text).lineLimit(3).minimumScaleFactor(0.6)
                 MetaLine(item: item)
                 HStack(spacing: 12) {
                     if playable {
                         Button(action: onPlay) { Label("player.play", systemImage: "play.fill") }.buttonStyle(PrimaryButtonStyle())
                     }
-                    NavigationLink(value: item.id) {
-                        Label("home.moreInfo", systemImage: "info.circle")
-                            .font(.body.weight(.semibold)).foregroundStyle(Theme.text)
-                            .padding(.horizontal, 20).frame(height: 50)
-                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Theme.border))
-                    }
-                    .buttonStyle(CardPressStyle())
+                    NavigationLink(value: item.id) { Label("home.moreInfo", systemImage: "info.circle") }
+                        .buttonStyle(MutedButtonStyle())
                 }
                 .padding(.top, 4)
             }
@@ -259,7 +372,7 @@ struct PosterCard: View {
                     Image(systemName: "checkmark").font(.caption.bold()).foregroundStyle(Theme.accentContrast)
                         .frame(width: 22, height: 22).background(Theme.accent, in: Circle()).padding(7)
                 } else if item.favorite == true {
-                    Image(systemName: "heart.fill").font(.caption2).foregroundStyle(Theme.accent)
+                    Image(systemName: "bookmark.fill").font(.caption2).foregroundStyle(Theme.accent)
                         .frame(width: 22, height: 22).background(.black.opacity(0.55), in: Circle()).padding(7)
                 }
             }
@@ -280,6 +393,8 @@ struct PosterCard: View {
 struct WideCard: View {
     let item: ItemSummary
     let client: MediaClient
+    var showPlay = true
+    var width: CGFloat? = 240
 
     private var art: URL? {
         if item.hasBackdrop == true { return client.imageURL(item: item.id, type: "backdrop") }
@@ -288,20 +403,31 @@ struct WideCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            ZStack(alignment: .bottomLeading) {
-                AuthImage(url: art, token: client.token, title: item.title)
-                    .aspectRatio(16 / 9, contentMode: .fill)
-                LinearGradient(colors: [.clear, .black.opacity(0.6)], startPoint: .center, endPoint: .bottom)
-                Image(systemName: "play.fill").font(.callout).foregroundStyle(.black)
-                    .frame(width: 36, height: 36).background(.white.opacity(0.9), in: Circle()).padding(10).padding(.bottom, 8)
-                if let p = progress(item) { ProgressStrip(value: p).padding(8) }
+        Color.clear
+            .frame(width: width)
+            .aspectRatio(16 / 9, contentMode: .fit)
+            .overlay { AuthImage(url: art, token: client.token, title: item.title) }
+            .overlay(alignment: .bottomLeading) {
+                if art != nil {
+                    ZStack(alignment: .bottomLeading) {
+                        LinearGradient(colors: [.clear, .black.opacity(0.75)], startPoint: .center, endPoint: .bottom)
+                        Text(item.title).font(.subheadline.weight(.heavy)).foregroundStyle(.white).lineLimit(2)
+                            .padding(.horizontal, 10).padding(.bottom, 12)
+                    }
+                }
             }
-            .frame(width: 270, height: 152)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.posterRadius, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: Theme.posterRadius, style: .continuous).strokeBorder(Theme.border))
-            Text(item.title).font(.footnote.weight(.medium)).foregroundStyle(Theme.text).lineLimit(1).frame(width: 270, alignment: .leading)
-        }
+            .overlay {
+                if showPlay {
+                    Image(systemName: "play.fill").font(.callout).foregroundStyle(.white)
+                        .frame(width: 34, height: 34).background(.black.opacity(0.5), in: Circle())
+                        .overlay(Circle().strokeBorder(.white, lineWidth: 1.5))
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if let p = progress(item) { ProgressStrip(value: p).padding(.horizontal, 8).padding(.bottom, 5) }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .contentShape(Rectangle())
     }
 }
 
@@ -453,10 +579,10 @@ struct ItemView: View {
                     .buttonStyle(PrimaryButtonStyle())
                 }
                 Button { Task { try? await client.setUserData(item: it.id, favorite: !(it.favorite ?? false)); await reload() } } label: {
-                    Image(systemName: it.favorite == true ? "heart.fill" : "heart")
+                    Image(systemName: it.favorite == true ? "checkmark" : "plus")
                 }
                 .buttonStyle(CircleButtonStyle(active: it.favorite == true))
-                .accessibilityLabel(Text("library.favorite"))
+                .accessibilityLabel(Text("library.addToList"))
                 Button { Task { try? await client.setUserData(item: it.id, played: !(it.played ?? false)); await reload() } } label: {
                     Image(systemName: "checkmark")
                 }

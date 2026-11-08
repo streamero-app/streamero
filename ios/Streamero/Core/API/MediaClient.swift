@@ -78,6 +78,29 @@ struct MediaClient {
         }
     }
 
+    func profiles() async throws -> [Components.Schemas.Profile] {
+        switch try await client.listProfiles() {
+        case .ok(let ok): return try ok.body.json
+        case .default(let status, let r): throw Self.fail(status, code: try? r.body.json.code)
+        }
+    }
+
+    /// Switches this device to a profile (PIN when it has one).
+    func selectProfile(_ id: String, pin: String?) async throws {
+        switch try await client.selectProfile(path: .init(profileId: id), body: .json(.init(pin: pin))) {
+        case .noContent: return
+        case .default(let status, let r): throw Self.fail(status, code: try? r.body.json.code)
+        }
+    }
+
+    /// Back to the account's main profile (password only needed when leaving a kids profile).
+    func selectMainProfile(password: String = "") async throws {
+        switch try await client.selectMainProfile(body: .json(.init(password: password))) {
+        case .noContent: return
+        case .default(let status, let r): throw Self.fail(status, code: try? r.body.json.code)
+        }
+    }
+
     /// What iOS plays natively: AVPlayer handles MP4/MOV, HEVC (incl. HDR) and HLS with fMP4.
     static let device = Components.Schemas.DeviceProfile(
         containers: ["mp4", "m4v", "mov"],

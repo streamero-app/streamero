@@ -19,7 +19,8 @@ import { ProfilesSettings } from "@/features/settings/ProfilesSettings";
 import { LibrariesSettings } from "@/features/settings/LibrariesSettings";
 import { MetadataSettings } from "@/features/settings/MetadataSettings";
 import { IntegrationsSettings } from "@/features/settings/IntegrationsSettings";
-import { ItemPage, LibraryPage } from "@/features/library/LibraryPages";
+import { ItemPage, LibrariesPage, LibraryPage, MyListPage } from "@/features/library/LibraryPages";
+import { ProfileGatePage } from "@/features/profiles/ProfileSwitcher";
 import { PlayerPage } from "@/features/player/PlayerPage";
 import { SearchPage } from "@/features/library/SearchPage";
 import { NotFoundPage } from "@/routes/NotFoundPage";
@@ -36,12 +37,15 @@ const rootRoute = createRootRoute({
 const loginRoute = createRoute({ getParentRoute: () => rootRoute, path: "/login", component: LoginPage });
 const setupRoute = createRoute({ getParentRoute: () => rootRoute, path: "/setup", component: SetupPage });
 const inviteRoute = createRoute({ getParentRoute: () => rootRoute, path: "/invite/$token", component: InvitePage });
+const whoRoute = createRoute({ getParentRoute: () => rootRoute, path: "/who", component: ProfileGatePage });
 
 // Everything below requires a signed-in user (AppShell redirects otherwise).
 const appRoute = createRoute({ getParentRoute: () => rootRoute, id: "app", component: AppShell });
 const homeRoute = createRoute({ getParentRoute: () => appRoute, path: "/", component: HomePage });
 const libraryRoute = createRoute({ getParentRoute: () => appRoute, path: "/library/$libraryId", component: LibraryPage });
 const itemRoute = createRoute({ getParentRoute: () => appRoute, path: "/item/$itemId", component: ItemPage });
+const myListRoute = createRoute({ getParentRoute: () => appRoute, path: "/my-list", component: MyListPage });
+const librariesRoute2 = createRoute({ getParentRoute: () => appRoute, path: "/libraries", component: LibrariesPage });
 const searchRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/search",
@@ -91,10 +95,13 @@ export const routeTree = rootRoute.addChildren([
   loginRoute,
   setupRoute,
   inviteRoute,
+  whoRoute,
   appRoute.addChildren([
     homeRoute,
     libraryRoute,
     itemRoute,
+    myListRoute,
+    librariesRoute2,
     watchRoute,
     searchRoute,
     settingsRoute.addChildren([settingsIndex, accountRoute, profilesRoute, devicesRoute, quickConnectRoute, serverRoute, librariesRoute, metadataRoute, integrationsRoute, usersRoute, invitesRoute, apiKeysRoute]),

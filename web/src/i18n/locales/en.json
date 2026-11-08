@@ -21,7 +21,10 @@
     "search": "Search",
     "libraries": "Libraries",
     "menu": "Menu",
-    "account": "Account"
+    "account": "Account",
+    "myList": "My list",
+    "profileMenu": "Account menu",
+    "switchProfile": "Switch profile"
   },
   "login": {
     "title": "Sign in",
@@ -56,7 +59,10 @@
     "emptyTitle": "Your screen is ready",
     "scrollLeft": "Scroll left",
     "scrollRight": "Scroll right",
-    "nextUp": "Up next"
+    "nextUp": "Up next",
+    "top": "Top rated",
+    "more": "More from {{name}}",
+    "hello": "Home"
   },
   "settings": {
     "account": "My account",
@@ -267,7 +273,9 @@
     "pinHint": "4–6 digits. Leave empty to keep the current PIN.",
     "removePin": "Remove PIN",
     "confirmDelete": "Delete profile {{name}}?",
-    "pinLocked": "Protected by PIN"
+    "pinLocked": "Protected by PIN",
+    "whoIsWatching": "Who's watching?",
+    "manage": "Manage profiles"
   },
   "libraries": {
     "intro": "Libraries point at folders on the server. Streamero only reads them; nothing in these folders is ever changed or deleted.",
@@ -349,7 +357,14 @@
     "removeFavorite": "Remove from favorites",
     "addFavorite": "Add to favorites",
     "episodeCount_few": "{{count}} episodes",
-    "versions_few": "{{count}} versions"
+    "versions_few": "{{count}} versions",
+    "moreLikeThis": "More like this",
+    "removeFromList": "Remove from My list",
+    "addToList": "Add to My list",
+    "selectSeason": "Season",
+    "starring": "Starring",
+    "genres": "Genres",
+    "myListEmpty": "Titles you add to My list appear here."
   },
   "metadata": {
     "connected": "TMDb connected",
@@ -382,7 +397,8 @@
     "resultsFor": "Results for “{{q}}”",
     "none": "Nothing found. Try another spelling or an actor's name.",
     "hint": "Movies, shows, episodes and people.",
-    "start": "Type a title, a year or an actor."
+    "start": "Type a title, a year or an actor.",
+    "open": "Open search"
   },
   "integrations": {
     "host": "Host",

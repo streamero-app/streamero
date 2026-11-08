@@ -881,6 +881,118 @@
           }
         }
       }
+    },
+    "nav.myList": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "My list"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moja lista"
+          }
+        }
+      }
+    },
+    "profiles.whoIsWatching": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Who's watching?"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tko gleda?"
+          }
+        }
+      }
+    },
+    "profiles.pin": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PIN"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PIN"
+          }
+        }
+      }
+    },
+    "profiles.open": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otvori"
+          }
+        }
+      }
+    },
+    "profiles.wrongPin": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wrong PIN"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pogrešan PIN"
+          }
+        }
+      }
+    },
+    "library.myListEmpty": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Titles you add to My list appear here."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ovdje se pojavljuju naslovi koje dodaš na Moju listu."
+          }
+        }
+      }
+    },
+    "library.addToList": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "My list"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moja lista"
+          }
+        }
+      }
     }
   }
 }

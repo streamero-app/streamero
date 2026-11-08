@@ -1,17 +1,23 @@
-# Screenshots (v0.5)
+# Screenshots
 
-Demo content without a TMDb key, so the posters are the typographic placeholders. Real posters and backdrops appear once a key is set.
+The demo has no TMDb key, so the art below is the typographic stand-in. Real posters and backdrops appear once a key is set.
+
+**Desktop**
 
 | | |
 |---|---|
-| ![Sign in](screenshots/desktop-0-prijava.png) | ![Home](screenshots/desktop-1-pocetna.png) |
+| ![Home](screenshots/desktop-1-pocetna.png) | ![Hover preview](screenshots/desktop-6-hover.png) |
 | ![Library](screenshots/desktop-2-biblioteka.png) | ![Movie](screenshots/desktop-3-film.png) |
-| ![Series](screenshots/desktop-4-serija.png) | ![Settings](screenshots/desktop-5-postavke.png) |
+| ![Series](screenshots/desktop-4-serija.png) | ![My list](screenshots/desktop-5-moja-lista.png) |
 
-Phone:
+**TV (1920×1080, remote focus)**
 
-<img src="screenshots/mobitel-0-prijava.png" width="200"> <img src="screenshots/mobitel-1-pocetna.png" width="200"> <img src="screenshots/mobitel-2-biblioteka.png" width="200"> <img src="screenshots/mobitel-3-film.png" width="200">
+![TV](screenshots/tv-1-fokus.png)
 
-App icon:
+**Phone**
+
+<img src="screenshots/mobitel-1-pocetna.png" width="220"> <img src="screenshots/mobitel-2-serija.png" width="220"> <img src="screenshots/mobitel-3-biblioteke.png" width="220">
+
+**App icon**
 
 <img src="screenshots/ikona.png" width="160">
