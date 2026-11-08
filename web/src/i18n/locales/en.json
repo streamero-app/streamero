@@ -166,7 +166,9 @@
     "transcode_failed": "The server could not prepare this file for playback.",
     "not_playable": "This item has no playable file.",
     "invalid_notification_target": "Check the service and URL (http or https; Gotify needs an app token).",
-    "notification_failed": "The target did not accept the message. Check the URL and token."
+    "notification_failed": "The target did not accept the message. Check the URL and token.",
+    "tmdb_not_configured": "Add a TMDb key in Settings → Metadata first.",
+    "metadata_locked": "This title was edited by hand. Use Identify to replace it from TMDb."
   },
   "notFound": {
     "title": "Page not found",
@@ -464,7 +466,9 @@
     "totp.recovery_code_used": "Recovery code used",
     "user.created": "User created",
     "user.deleted": "User deleted",
-    "user.updated": "User changed"
+    "user.updated": "User changed",
+    "item.identified": "Title identified",
+    "item.edited": "Metadata edited"
   },
   "tasks": {
     "title": "Scheduled tasks",
@@ -567,5 +571,27 @@
     "removeItem": "Remove from playlist",
     "addTo": "Add to playlist",
     "added": "Added to {{name}}"
+  },
+  "metadataEdit": {
+    "title": "Edit metadata",
+    "more": "More",
+    "name": "Title",
+    "originalTitle": "Original title",
+    "year": "Year",
+    "overview": "Description",
+    "tagline": "Tagline",
+    "genres": "Genres",
+    "genresHint": "Separate with commas.",
+    "officialRating": "Age rating",
+    "rating": "Rating (0–10)",
+    "lock": "Keep my changes",
+    "lockHint": "Metadata refreshes will not overwrite this title.",
+    "refresh": "Refresh metadata",
+    "refreshed": "Refreshed.",
+    "locked": "Edited by hand — locked"
+  },
+  "identify": {
+    "title": "Identify",
+    "query": "Title on TMDb"
   }
 }

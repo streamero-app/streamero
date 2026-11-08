@@ -358,6 +358,7 @@ type ItemMetadata struct {
 	Premiere                                                *time.Time
 	HasBackdrop                                             bool
 	HasLogo                                                 bool
+	Locked                                                  bool
 	Cast, Crew                                              []Person
 }
 
@@ -365,9 +366,9 @@ type ItemMetadata struct {
 func (s *Service) GetMetadata(ctx context.Context, id uuid.UUID) (ItemMetadata, error) {
 	var m ItemMetadata
 	err := s.Pool.QueryRow(ctx, `SELECT COALESCE(overview, ''), COALESCE(tagline, ''), COALESCE(original_title, ''),
-			COALESCE(official_rating, ''), COALESCE(metadata_error, ''), genres, premiere_date, has_backdrop, has_logo
+			COALESCE(official_rating, ''), COALESCE(metadata_error, ''), genres, premiere_date, has_backdrop, has_logo, metadata_locked
 		FROM items WHERE id = $1`, id).Scan(&m.Overview, &m.Tagline, &m.OriginalTitle, &m.OfficialRating, &m.Error,
-		&m.Genres, &m.Premiere, &m.HasBackdrop, &m.HasLogo)
+		&m.Genres, &m.Premiere, &m.HasBackdrop, &m.HasLogo, &m.Locked)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return m, ErrNotFound
 	}
@@ -547,4 +548,39 @@ func (s *Service) SetUserData(ctx context.Context, owner, itemID uuid.UUID, favo
 		}
 		return nil
 	})
+}
+
+// MetadataEdit is a hand edit of an item's metadata.
+type MetadataEdit struct {
+	Title, OriginalTitle, Overview, Tagline, OfficialRating string
+	Year                                                    *int
+	Rating                                                  *float64
+	Genres                                                  []string
+	Locked                                                  bool
+}
+
+// EditMetadata stores hand-edited metadata; Locked keeps it on later refreshes.
+func (s *Service) EditMetadata(ctx context.Context, id uuid.UUID, e MetadataEdit) error {
+	title := strings.TrimSpace(e.Title)
+	if title == "" {
+		return ErrInvalidName
+	}
+	genres := make([]string, 0, len(e.Genres))
+	for _, g := range e.Genres {
+		if g = strings.TrimSpace(g); g != "" {
+			genres = append(genres, g)
+		}
+	}
+	tag, err := s.Pool.Exec(ctx, `UPDATE items SET metadata_title = $2, sort_title = $3, original_title = NULLIF($4, ''),
+			overview = NULLIF($5, ''), tagline = NULLIF($6, ''), official_rating = NULLIF($7, ''), year = $8,
+			community_rating = $9, genres = $10, metadata_locked = $11, updated_at = now()
+		WHERE id = $1`, id, title, SortTitle(title), strings.TrimSpace(e.OriginalTitle), strings.TrimSpace(e.Overview),
+		strings.TrimSpace(e.Tagline), strings.TrimSpace(e.OfficialRating), e.Year, e.Rating, genres, e.Locked)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
 }

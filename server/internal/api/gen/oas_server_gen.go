@@ -142,6 +142,12 @@ type Handler interface {
 	//
 	// POST /auth/totp/disable
 	DisableTOTP(ctx context.Context, req *PasswordConfirmRequest) error
+	// EditMetadata implements editMetadata operation.
+	//
+	// Edit metadata by hand (administrators); locked items keep it on refresh.
+	//
+	// PUT /items/{itemId}/metadata
+	EditMetadata(ctx context.Context, req *MetadataEdit, params EditMetadataParams) error
 	// EnableTOTP implements enableTOTP operation.
 	//
 	// Confirm a code from the authenticator app and turn 2FA on.
@@ -232,6 +238,18 @@ type Handler interface {
 	//
 	// GET /system/info
 	GetSystemInfo(ctx context.Context) (GetSystemInfoRes, error)
+	// IdentifyApply implements identifyApply operation.
+	//
+	// Match the item to a TMDb entry and fetch its metadata now.
+	//
+	// POST /items/{itemId}/identify
+	IdentifyApply(ctx context.Context, req *IdentifyApplyReq, params IdentifyApplyParams) error
+	// IdentifySearch implements identifySearch operation.
+	//
+	// Search TMDb for the right match of a movie or series (administrators).
+	//
+	// GET /items/{itemId}/identify
+	IdentifySearch(ctx context.Context, params IdentifySearchParams) ([]IdentifyResult, error)
 	// InitiateQuickConnect implements initiateQuickConnect operation.
 	//
 	// Returns a 6-digit code to show on the new device and a secret to poll with. A signed-in user
@@ -353,6 +371,12 @@ type Handler interface {
 	//
 	// GET /home/latest
 	RecentlyAdded(ctx context.Context) ([]ItemSummary, error)
+	// RefreshItem implements refreshItem operation.
+	//
+	// Fetch metadata and artwork of one title again (administrators).
+	//
+	// POST /items/{itemId}/refresh
+	RefreshItem(ctx context.Context, params RefreshItemParams) error
 	// RefreshLibraryMetadata implements refreshLibraryMetadata operation.
 	//
 	// Fetch metadata again for every item of a library (admin).

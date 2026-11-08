@@ -166,7 +166,9 @@
     "transcode_failed": "Server nije mogao pripremiti ovu datoteku za reprodukciju.",
     "not_playable": "Ova stavka nema datoteku za reprodukciju.",
     "invalid_notification_target": "Provjeri servis i URL (http ili https; Gotify treba app token).",
-    "notification_failed": "Odredište nije prihvatilo poruku. Provjeri URL i token."
+    "notification_failed": "Odredište nije prihvatilo poruku. Provjeri URL i token.",
+    "tmdb_not_configured": "Prvo dodaj TMDb ključ u Postavke → Metapodaci.",
+    "metadata_locked": "Ovaj naslov je ručno uređen. Za zamjenu podacima s TMDb-a koristi Identificiraj."
   },
   "notFound": {
     "title": "Stranica nije pronađena",
@@ -464,7 +466,9 @@
     "totp.recovery_code_used": "Iskorišten kod za oporavak",
     "user.created": "Korisnik stvoren",
     "user.deleted": "Korisnik obrisan",
-    "user.updated": "Korisnik promijenjen"
+    "user.updated": "Korisnik promijenjen",
+    "item.identified": "Naslov identificiran",
+    "item.edited": "Metapodaci uređeni"
   },
   "tasks": {
     "title": "Zakazani zadaci",
@@ -567,5 +571,27 @@
     "removeItem": "Ukloni s playliste",
     "addTo": "Dodaj na playlistu",
     "added": "Dodano na: {{name}}"
+  },
+  "metadataEdit": {
+    "title": "Uredi metapodatke",
+    "more": "Više",
+    "name": "Naslov",
+    "originalTitle": "Izvorni naslov",
+    "year": "Godina",
+    "overview": "Opis",
+    "tagline": "Slogan",
+    "genres": "Žanrovi",
+    "genresHint": "Odvoji zarezom.",
+    "officialRating": "Dobna oznaka",
+    "rating": "Ocjena (0–10)",
+    "lock": "Zadrži moje izmjene",
+    "lockHint": "Osvježavanje metapodataka neće prepisati ovaj naslov.",
+    "refresh": "Osvježi metapodatke",
+    "refreshed": "Osvježeno.",
+    "locked": "Ručno uređeno — zaključano"
+  },
+  "identify": {
+    "title": "Identificiraj",
+    "query": "Naslov na TMDb-u"
   }
 }

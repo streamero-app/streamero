@@ -3015,6 +3015,283 @@ func (s *Error) UnmarshalJSON(data []byte) error {
 }
 
 // Encode implements json.Marshaler.
+func (s *IdentifyApplyReq) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *IdentifyApplyReq) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("tmdbId")
+		e.Int(s.TmdbId)
+	}
+}
+
+var jsonFieldsNameOfIdentifyApplyReq = [1]string{
+	0: "tmdbId",
+}
+
+// Decode decodes IdentifyApplyReq from json.
+func (s *IdentifyApplyReq) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode IdentifyApplyReq to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "tmdbId":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.TmdbId = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"tmdbId\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode IdentifyApplyReq")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfIdentifyApplyReq) {
+					name = jsonFieldsNameOfIdentifyApplyReq[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *IdentifyApplyReq) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *IdentifyApplyReq) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *IdentifyResult) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *IdentifyResult) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("tmdbId")
+		e.Int(s.TmdbId)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		if s.OriginalTitle.Set {
+			e.FieldStart("originalTitle")
+			s.OriginalTitle.Encode(e)
+		}
+	}
+	{
+		if s.Year.Set {
+			e.FieldStart("year")
+			s.Year.Encode(e)
+		}
+	}
+	{
+		if s.Overview.Set {
+			e.FieldStart("overview")
+			s.Overview.Encode(e)
+		}
+	}
+	{
+		if s.PosterUrl.Set {
+			e.FieldStart("posterUrl")
+			s.PosterUrl.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfIdentifyResult = [6]string{
+	0: "tmdbId",
+	1: "title",
+	2: "originalTitle",
+	3: "year",
+	4: "overview",
+	5: "posterUrl",
+}
+
+// Decode decodes IdentifyResult from json.
+func (s *IdentifyResult) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode IdentifyResult to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "tmdbId":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.TmdbId = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"tmdbId\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "originalTitle":
+			if err := func() error {
+				s.OriginalTitle.Reset()
+				if err := s.OriginalTitle.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"originalTitle\"")
+			}
+		case "year":
+			if err := func() error {
+				s.Year.Reset()
+				if err := s.Year.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"year\"")
+			}
+		case "overview":
+			if err := func() error {
+				s.Overview.Reset()
+				if err := s.Overview.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"overview\"")
+			}
+		case "posterUrl":
+			if err := func() error {
+				s.PosterUrl.Reset()
+				if err := s.PosterUrl.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"posterUrl\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode IdentifyResult")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfIdentifyResult) {
+					name = jsonFieldsNameOfIdentifyResult[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *IdentifyResult) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *IdentifyResult) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
 func (s *Invite) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
@@ -3350,6 +3627,12 @@ func (s *ItemDetail) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *ItemDetail) encodeFields(e *jx.Encoder) {
 	{
+		if s.Locked.Set {
+			e.FieldStart("locked")
+			s.Locked.Encode(e)
+		}
+	}
+	{
 		if s.Collections != nil {
 			e.FieldStart("collections")
 			e.ArrStart()
@@ -3465,25 +3748,26 @@ func (s *ItemDetail) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfItemDetail = [18]string{
-	0:  "collections",
-	1:  "hasLogo",
-	2:  "overview",
-	3:  "tagline",
-	4:  "originalTitle",
-	5:  "genres",
-	6:  "officialRating",
-	7:  "premiereDate",
-	8:  "cast",
-	9:  "crew",
-	10: "hasBackdrop",
-	11: "metadataError",
-	12: "item",
-	13: "libraryId",
-	14: "parentId",
-	15: "providerIds",
-	16: "files",
-	17: "children",
+var jsonFieldsNameOfItemDetail = [19]string{
+	0:  "locked",
+	1:  "collections",
+	2:  "hasLogo",
+	3:  "overview",
+	4:  "tagline",
+	5:  "originalTitle",
+	6:  "genres",
+	7:  "officialRating",
+	8:  "premiereDate",
+	9:  "cast",
+	10: "crew",
+	11: "hasBackdrop",
+	12: "metadataError",
+	13: "item",
+	14: "libraryId",
+	15: "parentId",
+	16: "providerIds",
+	17: "files",
+	18: "children",
 }
 
 // Decode decodes ItemDetail from json.
@@ -3495,6 +3779,16 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
+		case "locked":
+			if err := func() error {
+				s.Locked.Reset()
+				if err := s.Locked.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"locked\"")
+			}
 		case "collections":
 			if err := func() error {
 				s.Collections = make([]Collection, 0)
@@ -3553,7 +3847,7 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"originalTitle\"")
 			}
 		case "genres":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				s.Genres = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -3593,7 +3887,7 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"premiereDate\"")
 			}
 		case "cast":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				s.Cast = make([]Person, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -3611,7 +3905,7 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"cast\"")
 			}
 		case "crew":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				s.Crew = make([]Person, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -3629,7 +3923,7 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"crew\"")
 			}
 		case "hasBackdrop":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				v, err := d.Bool()
 				s.HasBackdrop = bool(v)
@@ -3651,7 +3945,7 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"metadataError\"")
 			}
 		case "item":
-			requiredBitSet[1] |= 1 << 4
+			requiredBitSet[1] |= 1 << 5
 			if err := func() error {
 				if err := s.Item.Decode(d); err != nil {
 					return err
@@ -3661,7 +3955,7 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"item\"")
 			}
 		case "libraryId":
-			requiredBitSet[1] |= 1 << 5
+			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.LibraryId = v
@@ -3683,7 +3977,7 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"parentId\"")
 			}
 		case "providerIds":
-			requiredBitSet[1] |= 1 << 7
+			requiredBitSet[2] |= 1 << 0
 			if err := func() error {
 				if err := s.ProviderIds.Decode(d); err != nil {
 					return err
@@ -3693,7 +3987,7 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"providerIds\"")
 			}
 		case "files":
-			requiredBitSet[2] |= 1 << 0
+			requiredBitSet[2] |= 1 << 1
 			if err := func() error {
 				s.Files = make([]MediaFile, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -3711,7 +4005,7 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"files\"")
 			}
 		case "children":
-			requiredBitSet[2] |= 1 << 1
+			requiredBitSet[2] |= 1 << 2
 			if err := func() error {
 				s.Children = make([]ItemSummary, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -3738,9 +4032,9 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [3]uint8{
-		0b00100000,
-		0b10110111,
-		0b00000011,
+		0b01000000,
+		0b01101110,
+		0b00000111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -5233,6 +5527,251 @@ func (s *MediaFile) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *MediaFile) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *MetadataEdit) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *MetadataEdit) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		if s.OriginalTitle.Set {
+			e.FieldStart("originalTitle")
+			s.OriginalTitle.Encode(e)
+		}
+	}
+	{
+		if s.Year.Set {
+			e.FieldStart("year")
+			s.Year.Encode(e)
+		}
+	}
+	{
+		if s.Overview.Set {
+			e.FieldStart("overview")
+			s.Overview.Encode(e)
+		}
+	}
+	{
+		if s.Tagline.Set {
+			e.FieldStart("tagline")
+			s.Tagline.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("genres")
+		e.ArrStart()
+		for _, elem := range s.Genres {
+			e.Str(elem)
+		}
+		e.ArrEnd()
+	}
+	{
+		if s.OfficialRating.Set {
+			e.FieldStart("officialRating")
+			s.OfficialRating.Encode(e)
+		}
+	}
+	{
+		if s.Rating.Set {
+			e.FieldStart("rating")
+			s.Rating.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("locked")
+		e.Bool(s.Locked)
+	}
+}
+
+var jsonFieldsNameOfMetadataEdit = [9]string{
+	0: "title",
+	1: "originalTitle",
+	2: "year",
+	3: "overview",
+	4: "tagline",
+	5: "genres",
+	6: "officialRating",
+	7: "rating",
+	8: "locked",
+}
+
+// Decode decodes MetadataEdit from json.
+func (s *MetadataEdit) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode MetadataEdit to nil")
+	}
+	var requiredBitSet [2]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "title":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "originalTitle":
+			if err := func() error {
+				s.OriginalTitle.Reset()
+				if err := s.OriginalTitle.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"originalTitle\"")
+			}
+		case "year":
+			if err := func() error {
+				s.Year.Reset()
+				if err := s.Year.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"year\"")
+			}
+		case "overview":
+			if err := func() error {
+				s.Overview.Reset()
+				if err := s.Overview.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"overview\"")
+			}
+		case "tagline":
+			if err := func() error {
+				s.Tagline.Reset()
+				if err := s.Tagline.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"tagline\"")
+			}
+		case "genres":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				s.Genres = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.Genres = append(s.Genres, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"genres\"")
+			}
+		case "officialRating":
+			if err := func() error {
+				s.OfficialRating.Reset()
+				if err := s.OfficialRating.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"officialRating\"")
+			}
+		case "rating":
+			if err := func() error {
+				s.Rating.Reset()
+				if err := s.Rating.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"rating\"")
+			}
+		case "locked":
+			requiredBitSet[1] |= 1 << 0
+			if err := func() error {
+				v, err := d.Bool()
+				s.Locked = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"locked\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode MetadataEdit")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [2]uint8{
+		0b00100001,
+		0b00000001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfMetadataEdit) {
+					name = jsonFieldsNameOfMetadataEdit[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *MetadataEdit) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *MetadataEdit) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

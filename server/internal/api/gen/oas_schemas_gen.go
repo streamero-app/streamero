@@ -922,6 +922,9 @@ func (s *DirectoryListing) SetDirectories(val []string) {
 // DisableTOTPNoContent is response for DisableTOTP operation.
 type DisableTOTPNoContent struct{}
 
+// EditMetadataNoContent is response for EditMetadata operation.
+type EditMetadataNoContent struct{}
+
 // Ref: #/components/schemas/Error
 type Error struct {
 	Code    string `json:"code"`
@@ -1190,6 +1193,94 @@ func (s *GetPersonImageOKHeaders) SetResponse(val GetPersonImageOK) {
 	s.Response = val
 }
 
+// IdentifyApplyNoContent is response for IdentifyApply operation.
+type IdentifyApplyNoContent struct{}
+
+type IdentifyApplyReq struct {
+	TmdbId int `json:"tmdbId"`
+}
+
+// GetTmdbId returns the value of TmdbId.
+func (s *IdentifyApplyReq) GetTmdbId() int {
+	return s.TmdbId
+}
+
+// SetTmdbId sets the value of TmdbId.
+func (s *IdentifyApplyReq) SetTmdbId(val int) {
+	s.TmdbId = val
+}
+
+// Ref: #/components/schemas/IdentifyResult
+type IdentifyResult struct {
+	TmdbId        int       `json:"tmdbId"`
+	Title         string    `json:"title"`
+	OriginalTitle OptString `json:"originalTitle"`
+	Year          OptInt    `json:"year"`
+	Overview      OptString `json:"overview"`
+	// Small poster on the TMDb image CDN.
+	PosterUrl OptString `json:"posterUrl"`
+}
+
+// GetTmdbId returns the value of TmdbId.
+func (s *IdentifyResult) GetTmdbId() int {
+	return s.TmdbId
+}
+
+// GetTitle returns the value of Title.
+func (s *IdentifyResult) GetTitle() string {
+	return s.Title
+}
+
+// GetOriginalTitle returns the value of OriginalTitle.
+func (s *IdentifyResult) GetOriginalTitle() OptString {
+	return s.OriginalTitle
+}
+
+// GetYear returns the value of Year.
+func (s *IdentifyResult) GetYear() OptInt {
+	return s.Year
+}
+
+// GetOverview returns the value of Overview.
+func (s *IdentifyResult) GetOverview() OptString {
+	return s.Overview
+}
+
+// GetPosterUrl returns the value of PosterUrl.
+func (s *IdentifyResult) GetPosterUrl() OptString {
+	return s.PosterUrl
+}
+
+// SetTmdbId sets the value of TmdbId.
+func (s *IdentifyResult) SetTmdbId(val int) {
+	s.TmdbId = val
+}
+
+// SetTitle sets the value of Title.
+func (s *IdentifyResult) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetOriginalTitle sets the value of OriginalTitle.
+func (s *IdentifyResult) SetOriginalTitle(val OptString) {
+	s.OriginalTitle = val
+}
+
+// SetYear sets the value of Year.
+func (s *IdentifyResult) SetYear(val OptInt) {
+	s.Year = val
+}
+
+// SetOverview sets the value of Overview.
+func (s *IdentifyResult) SetOverview(val OptString) {
+	s.Overview = val
+}
+
+// SetPosterUrl sets the value of PosterUrl.
+func (s *IdentifyResult) SetPosterUrl(val OptString) {
+	s.PosterUrl = val
+}
+
 // Ref: #/components/schemas/Invite
 type Invite struct {
 	ID          uuid.UUID       `json:"id"`
@@ -1310,6 +1401,8 @@ func (s *InviteInfo) SetExpiresAt(val time.Time) {
 
 // Ref: #/components/schemas/ItemDetail
 type ItemDetail struct {
+	// Metadata was edited by hand and is kept on refresh.
+	Locked        OptBool      `json:"locked"`
 	Collections   []Collection `json:"collections"`
 	HasLogo       OptBool      `json:"hasLogo"`
 	Overview      OptString    `json:"overview"`
@@ -1331,6 +1424,11 @@ type ItemDetail struct {
 	ProviderIds ItemDetailProviderIds `json:"providerIds"`
 	Files       []MediaFile           `json:"files"`
 	Children    []ItemSummary         `json:"children"`
+}
+
+// GetLocked returns the value of Locked.
+func (s *ItemDetail) GetLocked() OptBool {
+	return s.Locked
 }
 
 // GetCollections returns the value of Collections.
@@ -1421,6 +1519,11 @@ func (s *ItemDetail) GetFiles() []MediaFile {
 // GetChildren returns the value of Children.
 func (s *ItemDetail) GetChildren() []ItemSummary {
 	return s.Children
+}
+
+// SetLocked sets the value of Locked.
+func (s *ItemDetail) SetLocked(val OptBool) {
+	s.Locked = val
 }
 
 // SetCollections sets the value of Collections.
@@ -2247,6 +2350,110 @@ func (s *MediaFile) SetAudio(val []AudioStream) {
 // SetSubtitles sets the value of Subtitles.
 func (s *MediaFile) SetSubtitles(val []SubtitleStream) {
 	s.Subtitles = val
+}
+
+// Ref: #/components/schemas/MetadataEdit
+type MetadataEdit struct {
+	Title          string     `json:"title"`
+	OriginalTitle  OptString  `json:"originalTitle"`
+	Year           OptInt     `json:"year"`
+	Overview       OptString  `json:"overview"`
+	Tagline        OptString  `json:"tagline"`
+	Genres         []string   `json:"genres"`
+	OfficialRating OptString  `json:"officialRating"`
+	Rating         OptFloat64 `json:"rating"`
+	// Keep these values when metadata is refreshed.
+	Locked bool `json:"locked"`
+}
+
+// GetTitle returns the value of Title.
+func (s *MetadataEdit) GetTitle() string {
+	return s.Title
+}
+
+// GetOriginalTitle returns the value of OriginalTitle.
+func (s *MetadataEdit) GetOriginalTitle() OptString {
+	return s.OriginalTitle
+}
+
+// GetYear returns the value of Year.
+func (s *MetadataEdit) GetYear() OptInt {
+	return s.Year
+}
+
+// GetOverview returns the value of Overview.
+func (s *MetadataEdit) GetOverview() OptString {
+	return s.Overview
+}
+
+// GetTagline returns the value of Tagline.
+func (s *MetadataEdit) GetTagline() OptString {
+	return s.Tagline
+}
+
+// GetGenres returns the value of Genres.
+func (s *MetadataEdit) GetGenres() []string {
+	return s.Genres
+}
+
+// GetOfficialRating returns the value of OfficialRating.
+func (s *MetadataEdit) GetOfficialRating() OptString {
+	return s.OfficialRating
+}
+
+// GetRating returns the value of Rating.
+func (s *MetadataEdit) GetRating() OptFloat64 {
+	return s.Rating
+}
+
+// GetLocked returns the value of Locked.
+func (s *MetadataEdit) GetLocked() bool {
+	return s.Locked
+}
+
+// SetTitle sets the value of Title.
+func (s *MetadataEdit) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetOriginalTitle sets the value of OriginalTitle.
+func (s *MetadataEdit) SetOriginalTitle(val OptString) {
+	s.OriginalTitle = val
+}
+
+// SetYear sets the value of Year.
+func (s *MetadataEdit) SetYear(val OptInt) {
+	s.Year = val
+}
+
+// SetOverview sets the value of Overview.
+func (s *MetadataEdit) SetOverview(val OptString) {
+	s.Overview = val
+}
+
+// SetTagline sets the value of Tagline.
+func (s *MetadataEdit) SetTagline(val OptString) {
+	s.Tagline = val
+}
+
+// SetGenres sets the value of Genres.
+func (s *MetadataEdit) SetGenres(val []string) {
+	s.Genres = val
+}
+
+// SetOfficialRating sets the value of OfficialRating.
+func (s *MetadataEdit) SetOfficialRating(val OptString) {
+	s.OfficialRating = val
+}
+
+// SetRating sets the value of Rating.
+func (s *MetadataEdit) SetRating(val OptFloat64) {
+	s.Rating = val
+}
+
+// SetLocked sets the value of Locked.
+func (s *MetadataEdit) SetLocked(val bool) {
+	s.Locked = val
 }
 
 // Ref: #/components/schemas/MetadataSettings
@@ -4389,6 +4596,9 @@ func (s *RecoveryCodes) GetRecoveryCodes() []string {
 func (s *RecoveryCodes) SetRecoveryCodes(val []string) {
 	s.RecoveryCodes = val
 }
+
+// RefreshItemNoContent is response for RefreshItem operation.
+type RefreshItemNoContent struct{}
 
 // RefreshLibraryMetadataAccepted is response for RefreshLibraryMetadata operation.
 type RefreshLibraryMetadataAccepted struct{}

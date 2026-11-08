@@ -1152,6 +1152,107 @@ paths:
                 $ref: "#/components/schemas/Playlist"
         default:
           $ref: "#/components/responses/Error"
+  /items/{itemId}/identify:
+    parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: identifySearch
+      summary: Search TMDb for the right match of a movie or series (administrators)
+      tags: [items]
+      security:
+        - sessionToken: []
+      parameters:
+        - name: query
+          in: query
+          schema:
+            type: string
+            maxLength: 200
+        - name: year
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Candidates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IdentifyResult"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: identifyApply
+      summary: Match the item to a TMDb entry and fetch its metadata now
+      tags: [items]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tmdbId]
+              properties:
+                tmdbId:
+                  type: integer
+                  minimum: 1
+      responses:
+        "204":
+          description: Matched and refreshed
+        default:
+          $ref: "#/components/responses/Error"
+  /items/{itemId}/refresh:
+    parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: refreshItem
+      summary: Fetch metadata and artwork of one title again (administrators)
+      tags: [items]
+      security:
+        - sessionToken: []
+      responses:
+        "204":
+          description: Refreshed
+        default:
+          $ref: "#/components/responses/Error"
+  /items/{itemId}/metadata:
+    parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    put:
+      operationId: editMetadata
+      summary: Edit metadata by hand (administrators); locked items keep it on refresh
+      tags: [items]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MetadataEdit"
+      responses:
+        "204":
+          description: Saved
+        default:
+          $ref: "#/components/responses/Error"
   /items/{itemId}:
     parameters:
       - name: itemId
@@ -2314,6 +2415,60 @@ components:
           items:
             type: string
             format: uuid
+    IdentifyResult:
+      type: object
+      required: [tmdbId, title]
+      properties:
+        tmdbId:
+          type: integer
+        title:
+          type: string
+        originalTitle:
+          type: string
+        year:
+          type: integer
+        overview:
+          type: string
+        posterUrl:
+          type: string
+          description: Small poster on the TMDb image CDN.
+    MetadataEdit:
+      type: object
+      required: [title, genres, locked]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 300
+        originalTitle:
+          type: string
+          maxLength: 300
+        year:
+          type: integer
+          minimum: 1870
+          maximum: 2200
+        overview:
+          type: string
+          maxLength: 10000
+        tagline:
+          type: string
+          maxLength: 500
+        genres:
+          type: array
+          maxItems: 20
+          items:
+            type: string
+            maxLength: 60
+        officialRating:
+          type: string
+          maxLength: 20
+        rating:
+          type: number
+          minimum: 0
+          maximum: 10
+        locked:
+          type: boolean
+          description: Keep these values when metadata is refreshed.
     MetadataSettings:
       type: object
       required: [tmdbConfigured, language, country]
@@ -2481,6 +2636,9 @@ components:
       type: object
       required: [item, libraryId, files, children, providerIds, genres, cast, crew, hasBackdrop]
       properties:
+        locked:
+          type: boolean
+          description: Metadata was edited by hand and is kept on refresh.
         collections:
           type: array
           items:

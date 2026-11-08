@@ -89,7 +89,7 @@ func (r *Refresher) RefreshLibrary(ctx context.Context, libraryID uuid.UUID, for
 	}
 	c := r.client(cfg.TMDbKey)
 	rows, err := r.Pool.Query(ctx, `SELECT id, library_id, kind, title, year, season_number, episode_number, provider_ids
-		FROM items WHERE library_id = $1 AND parent_id IS NULL AND ($2 OR metadata_refreshed_at IS NULL)
+		FROM items WHERE library_id = $1 AND parent_id IS NULL AND ($2 OR metadata_refreshed_at IS NULL) AND NOT metadata_locked
 		ORDER BY added_at`, libraryID, force)
 	if err != nil {
 		return 0, err
@@ -114,6 +114,103 @@ func (r *Refresher) RefreshLibrary(ctx context.Context, libraryID uuid.UUID, for
 		done++
 	}
 	return done, nil
+}
+
+// ErrNoKey is returned when an action needs TMDb but no key is configured.
+var ErrNoKey = errors.New("no TMDb key configured")
+
+// ErrLocked is returned when refreshing an item whose metadata was edited by hand.
+var ErrLocked = errors.New("metadata is locked")
+
+// topOf returns the movie or series an item belongs to (episodes and seasons → series).
+func (r *Refresher) topOf(ctx context.Context, id uuid.UUID) (itemRow, bool, error) {
+	var top uuid.UUID
+	if err := r.Pool.QueryRow(ctx, `WITH RECURSIVE up AS (
+			SELECT id, parent_id FROM items WHERE id = $1
+			UNION ALL SELECT i.id, i.parent_id FROM items i JOIN up ON i.id = up.parent_id
+		) SELECT id FROM up WHERE parent_id IS NULL`, id).Scan(&top); err != nil {
+		return itemRow{}, false, err
+	}
+	rows, err := r.Pool.Query(ctx, `SELECT id, library_id, kind, title, year, season_number, episode_number, provider_ids
+		FROM items WHERE id = $1`, top)
+	if err != nil {
+		return itemRow{}, false, err
+	}
+	items, err := collectItems(rows)
+	if err != nil || len(items) == 0 {
+		return itemRow{}, false, err
+	}
+	var locked bool
+	if err := r.Pool.QueryRow(ctx, `SELECT metadata_locked FROM items WHERE id = $1`, top).Scan(&locked); err != nil {
+		return itemRow{}, false, err
+	}
+	return items[0], locked, nil
+}
+
+// RefreshItem fetches metadata for the title an item belongs to, now.
+func (r *Refresher) RefreshItem(ctx context.Context, id uuid.UUID) error {
+	cfg, err := LoadSettings(ctx, r.Settings)
+	if err != nil {
+		return err
+	}
+	if cfg.TMDbKey == "" {
+		return ErrNoKey
+	}
+	it, locked, err := r.topOf(ctx, id)
+	if err != nil {
+		return err
+	}
+	if locked {
+		return ErrLocked
+	}
+	return r.refreshTop(ctx, r.client(cfg.TMDbKey), cfg, it)
+}
+
+// Identify matches the title an item belongs to with a TMDb entry and refreshes it
+// (this replaces hand-edited values: the lock is lifted).
+func (r *Refresher) Identify(ctx context.Context, id uuid.UUID, tmdbID int) error {
+	cfg, err := LoadSettings(ctx, r.Settings)
+	if err != nil {
+		return err
+	}
+	if cfg.TMDbKey == "" {
+		return ErrNoKey
+	}
+	it, _, err := r.topOf(ctx, id)
+	if err != nil {
+		return err
+	}
+	it.ids = map[string]string{"tmdb": strconv.Itoa(tmdbID)} // other IDs come back from TMDb
+	if _, err := r.Pool.Exec(ctx, `UPDATE items SET metadata_locked = false WHERE id = $1`, it.id); err != nil {
+		return err
+	}
+	return r.refreshTop(ctx, r.client(cfg.TMDbKey), cfg, it)
+}
+
+// Candidates searches TMDb for an item's title (or a typed query).
+func (r *Refresher) Candidates(ctx context.Context, id uuid.UUID, query string, year int) ([]Candidate, error) {
+	cfg, err := LoadSettings(ctx, r.Settings)
+	if err != nil {
+		return nil, err
+	}
+	if cfg.TMDbKey == "" {
+		return nil, ErrNoKey
+	}
+	it, _, err := r.topOf(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if query == "" {
+		query = it.title
+		if it.year != nil && year == 0 {
+			year = *it.year
+		}
+	}
+	kind := "movie"
+	if it.kind == "series" {
+		kind = "tv"
+	}
+	return r.client(cfg.TMDbKey).Candidates(ctx, kind, query, year, cfg.Language)
 }
 
 func (r *Refresher) client(key string) *TMDb {

@@ -282,6 +282,12 @@ func encodeDisableTOTPResponse(response *DisableTOTPNoContent, w http.ResponseWr
 	return nil
 }
 
+func encodeEditMetadataResponse(response *EditMetadataNoContent, w http.ResponseWriter, span trace.Span) error {
+	w.WriteHeader(204)
+
+	return nil
+}
+
 func encodeEnableTOTPResponse(response *RecoveryCodes, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
@@ -577,6 +583,29 @@ func encodeGetSystemInfoResponse(response GetSystemInfoRes, w http.ResponseWrite
 	default:
 		return errors.Errorf("unexpected response type: %T", response)
 	}
+}
+
+func encodeIdentifyApplyResponse(response *IdentifyApplyNoContent, w http.ResponseWriter, span trace.Span) error {
+	w.WriteHeader(204)
+
+	return nil
+}
+
+func encodeIdentifySearchResponse(response []IdentifyResult, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	e.ArrStart()
+	for _, elem := range response {
+		elem.Encode(e)
+	}
+	e.ArrEnd()
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
 }
 
 func encodeInitiateQuickConnectResponse(response *QuickConnectStart, w http.ResponseWriter, span trace.Span) error {
@@ -951,6 +980,12 @@ func encodeRecentlyAddedResponse(response []ItemSummary, w http.ResponseWriter, 
 	if _, err := e.WriteTo(w); err != nil {
 		return errors.Wrap(err, "write")
 	}
+
+	return nil
+}
+
+func encodeRefreshItemResponse(response *RefreshItemNoContent, w http.ResponseWriter, span trace.Span) error {
+	w.WriteHeader(204)
 
 	return nil
 }

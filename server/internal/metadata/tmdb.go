@@ -110,12 +110,52 @@ func (c *TMDb) Verify(ctx context.Context) error {
 }
 
 type searchResult struct {
-	ID           int    `json:"id"`
-	Title        string `json:"title"`
-	Name         string `json:"name"`
-	ReleaseDate  string `json:"release_date"`
-	FirstAirDate string `json:"first_air_date"`
-	Popularity   float64
+	ID            int    `json:"id"`
+	Title         string `json:"title"`
+	Name          string `json:"name"`
+	OriginalTitle string `json:"original_title"`
+	OriginalName  string `json:"original_name"`
+	ReleaseDate   string `json:"release_date"`
+	FirstAirDate  string `json:"first_air_date"`
+	Overview      string `json:"overview"`
+	PosterPath    string `json:"poster_path"`
+	Popularity    float64
+}
+
+// Candidate is one search hit offered when identifying an item by hand.
+type Candidate struct {
+	ID                   int
+	Title, OriginalTitle string
+	Year                 int
+	Overview, PosterPath string
+}
+
+// Candidates lists up to 12 TMDb matches for a manual identify.
+func (c *TMDb) Candidates(ctx context.Context, kind, title string, year int, lang string) ([]Candidate, error) {
+	q := url.Values{"query": {title}, "language": {lang}, "include_adult": {"false"}}
+	if year > 0 {
+		if kind == "movie" {
+			q.Set("year", fmt.Sprint(year))
+		} else {
+			q.Set("first_air_date_year", fmt.Sprint(year))
+		}
+	}
+	var out struct {
+		Results []searchResult `json:"results"`
+	}
+	if err := c.get(ctx, "/search/"+kind, q, &out); err != nil {
+		return nil, err
+	}
+	res := make([]Candidate, 0, len(out.Results))
+	for _, r := range out.Results[:min(12, len(out.Results))] {
+		cd := Candidate{ID: r.ID, Title: firstNonEmpty(r.Title, r.Name), OriginalTitle: firstNonEmpty(r.OriginalTitle, r.OriginalName),
+			Overview: r.Overview, PosterPath: r.PosterPath}
+		if d := firstNonEmpty(r.ReleaseDate, r.FirstAirDate); len(d) >= 4 {
+			_, _ = fmt.Sscanf(d[:4], "%d", &cd.Year)
+		}
+		res = append(res, cd)
+	}
+	return res, nil
 }
 
 // Search finds a movie ("movie") or series ("tv") by title and optional year.

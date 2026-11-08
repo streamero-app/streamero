@@ -9,6 +9,7 @@ import { Art, Badge, Button, ErrorText, Select, Spinner, buttonVariants, pressab
 import { useMe } from "@/features/auth/useAuth";
 import { channelsLabel, formatDuration, formatSize, imageUrl, placeholderHue, resolutionLabel, type ItemSummary, type Library } from "./format";
 import { AddToMenu, CollectionCard, useCollections } from "./CollectionsPages";
+import { MetadataMenu } from "./MetadataEditor";
 import { ArtFallback, ItemCard, ProgressBar, RankCard, Row, RowSkeleton, TitleArt, TitleCard, isPlayable, progressOf, rowCard } from "./cards";
 
 export { ItemCard } from "./cards";
@@ -503,6 +504,7 @@ function MoreLikeThis({ detail }: { detail: ItemDetail }) {
 
 export function ItemPage() {
   const { t } = useTranslation();
+  const isAdmin = !!useMe().data?.isAdmin;
   const { itemId } = useParams({ from: "/app/item/$itemId" });
   const detail = useItemDetail(itemId);
   const d = detail.data;
@@ -560,6 +562,7 @@ export function ItemPage() {
             ) : null}
             <UserDataButtons item={it} />
             {it.kind !== "season" && <AddToMenu item={it} />}
+            {isAdmin && <MetadataMenu d={d} />}
           </div>
           {progressOf(it) > 0 && <ProgressBar value={progressOf(it)} className="max-w-sm rounded-full" />}
         </div>
