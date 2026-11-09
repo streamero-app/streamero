@@ -10,7 +10,7 @@ import { useMe } from "@/features/auth/useAuth";
 import { channelsLabel, formatDuration, formatSize, imageUrl, placeholderHue, resolutionLabel, type ItemSummary, type Library } from "./format";
 import { AddToMenu, CollectionCard, useCollections } from "./CollectionsPages";
 import { MetadataMenu } from "./MetadataEditor";
-import { ArtFallback, ItemCard, ProgressBar, RankCard, Row, RowSkeleton, TitleArt, TitleCard, isPlayable, posterCard, progressOf, rowCard } from "./cards";
+import { ArtFallback, ItemCard, PortraitArt, ProgressBar, RankCard, Row, RowSkeleton, TitleArt, TitleCard, isPlayable, posterCard, progressOf, rowCard } from "./cards";
 import { useAmbient, useAmbientLight } from "@/features/ambient/Ambient";
 
 export { ItemCard } from "./cards";
@@ -206,8 +206,7 @@ export function Billboard({ pool, label }: { pool?: ItemSummary[]; label?: strin
                 onMouseEnter={() => choose(it.id)} onFocus={() => { window.clearTimeout(timer.current); setPickId(it.id); }}
                 onClick={() => setPickId(it.id)}
                 className={`relative aspect-[2/3] w-[88px] shrink-0 overflow-hidden rounded-xl transition-[transform,opacity,box-shadow] duration-300 ease-out sm:w-[104px] ${on ? "scale-105 opacity-100 shadow-[0_14px_40px_-10px_var(--amb-a)] ring-2 ring-[var(--amb-a)]" : "opacity-55 hover:opacity-90"}`}>
-                {it.hasPoster ? <img src={imageUrl(it.id, it.kind === "episode" ? "still" : "poster")} alt="" className="absolute inset-0 size-full object-cover" loading="lazy" />
-                  : <ArtFallback item={it} />}
+                <PortraitArt item={it} />
               </button>
             );
           })}

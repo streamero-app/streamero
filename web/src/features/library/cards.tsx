@@ -23,10 +23,10 @@ function cardLight(it: ItemSummary): CSSProperties | undefined {
 export function ArtFallback({ item, wide = false }: { item: ItemSummary; wide?: boolean }) {
   const hue = placeholderHue(item.title);
   return (
-    <div className="absolute inset-0 flex flex-col justify-end p-3"
+    <div className="absolute inset-0 flex flex-col justify-end p-[8cqw] [container-type:inline-size]"
       style={{ background: `radial-gradient(120% 100% at 15% 0%, hsl(${hue} 22% 24%) 0%, hsl(${(hue + 30) % 360} 14% 12%) 55%, #0b0b0e 100%)` }}>
-      <span className={`font-display leading-[0.95] text-white ${wide ? "line-clamp-2 text-[22px]" : "line-clamp-4 text-2xl"}`}>{item.title}</span>
-      {item.year && !wide && <span className="mt-1 text-xs text-white/55 tabular">{item.year}</span>}
+      <span className={`font-display leading-[0.95] break-words text-white ${wide ? "line-clamp-2 text-[9cqw]" : "line-clamp-4 text-[15cqw]"}`}>{item.title}</span>
+      {item.year && !wide && <span className="mt-[2cqw] text-[8cqw] text-white/55 tabular">{item.year}</span>}
     </div>
   );
 }
@@ -50,6 +50,24 @@ export function ProgressBar({ value, className = "" }: { value: number; classNam
       <div className="h-full rounded-full bg-[var(--card-a,var(--amb-a))]" style={{ width: `${value}%` }} />
     </div>
   );
+}
+
+/** Portrait artwork: the poster, else a centred crop of the backdrop with the title, else type. */
+export function PortraitArt({ item, broken = false, onError }: { item: ItemSummary; broken?: boolean; onError?: () => void }) {
+  if (item.hasPoster && !broken) {
+    return <Art src={imageUrl(item.id, item.kind === "episode" ? "still" : "poster")} onError={onError} className="absolute inset-0 size-full object-cover" />;
+  }
+  if (item.hasBackdrop && !broken) {
+    return (
+      <>
+        <Art src={imageUrl(item.id, "backdrop")} onError={onError} className="absolute inset-0 size-full object-cover" />
+        <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/85 via-black/10 to-transparent p-[8cqw] [container-type:inline-size]">
+          <span className="line-clamp-3 font-display text-[14cqw] leading-[0.95] break-words text-white">{item.title}</span>
+        </div>
+      </>
+    );
+  }
+  return <ArtFallback item={item} />;
 }
 
 function landscapeSrc(it: ItemSummary): string | null {
@@ -105,14 +123,11 @@ export function ItemCard({ item, className = "" }: { item: ItemSummary; classNam
   const { t } = useTranslation();
   const [broken, setBroken] = useState(false);
   const light = useCardLight(item);
-  const art = item.hasPoster && !broken;
   return (
     <Link to="/item/$itemId" params={{ itemId: item.id }} data-testid="item-card" {...light} style={cardLight(item)}
       className={`group flex flex-col gap-2.5 rounded-2xl outline-none ${className}`}>
       <div className="glow relative aspect-[2/3] overflow-hidden rounded-2xl bg-surface-2 group-hover:-translate-y-1.5 group-focus-visible:-translate-y-1.5 group-focus-visible:scale-[1.04]">
-        {art ? (
-          <Art src={imageUrl(item.id, item.kind === "episode" ? "still" : "poster")} onError={() => setBroken(true)} className="absolute inset-0 size-full object-cover" />
-        ) : <ArtFallback item={item} />}
+        <PortraitArt item={item} broken={broken} onError={() => setBroken(true)} />
         {item.played && (
           <span className="absolute top-2.5 right-2.5 grid size-7 place-items-center rounded-full bg-black/60 text-white backdrop-blur">
             <Check className="size-4" strokeWidth={3} aria-label={t("library.watched")} />
@@ -186,9 +201,7 @@ export function RankCard({ item, rank }: { item: ItemSummary; rank: number }) {
         {rank}
       </span>
       <div className="glow relative aspect-[2/3] w-[56%] overflow-hidden rounded-2xl bg-surface-2 group-hover:-translate-y-1.5 group-focus-visible:-translate-y-1.5">
-        {item.hasPoster && !broken
-          ? <Art src={imageUrl(item.id, "poster")} onError={() => setBroken(true)} className="absolute inset-0 size-full object-cover" />
-          : <ArtFallback item={item} />}
+        <PortraitArt item={item} broken={broken} onError={() => setBroken(true)} />
       </div>
     </Link>
   );

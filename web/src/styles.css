@@ -146,6 +146,6 @@ html { background: var(--color-bg); }
 
 /* The screen: the title's picture as a lit panel in the room. */
 .screen-glow::before {
-  content: ""; position: absolute; inset: -8% -6%; z-index: -1; border-radius: 48px; filter: blur(48px); opacity: 0.55;
+  content: ""; position: absolute; inset: -10% -8%; z-index: -1; border-radius: 48px; filter: blur(56px); opacity: 0.7;
   background: radial-gradient(closest-side, var(--amb-a), color-mix(in oklab, var(--amb-b) 60%, transparent) 60%, transparent);
 }
