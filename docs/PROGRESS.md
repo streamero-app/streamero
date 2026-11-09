@@ -20,6 +20,13 @@ P4 — Web pregledavanje (u tijeku); izdanja v0.2.0 i **v0.3.0** objavljena. P0 
 - Branch pushan, PR #1 (`phase/P0-foundations` → `main`) otvoren; `main` je prazan početni commit spojen u P0 (repo je bio prazan). CI zelen: `server`, `web`, `e2e`, iOS `build` (prvi uspješan iOS build, artefakt `streamero-ipa`).
 - `scripts/gen-fixtures.sh`: filmovi (H.264, 4K HEVC 10-bit, HDR10, AV1, multi-audio + poglavlja + embedded/external SRT/ASS, verzije, trailer), serija sa zajedničkim introm (2×4 ep.), multi-episode, specials, daily, anime absolute, glazba (FLAC/MP3), fotke.
 
+## Android aplikacija (branch `feat/android`, 2026-11-09)
+Nativna Kotlin/Compose aplikacija u `android/`; CI `android.yml`, `.apk` ide u release uz `.ipa`.
+- Provjereno na emulatoru (release build, R8) protiv lokalnog servera: spajanje, prijava, admin vidi administraciju, običan korisnik ne vidi, prazan Home.
+- Još nije provjereno na emulatoru: reprodukcija videa i glazbe te Bazarr protiv pravog servera.
+- Poznato: bez secreta `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD` i `ANDROID_KEY_ALIAS` CI potpisuje debug ključem.
+- Sljedeće: iOS nativni paritet s webom (biblioteke/filtri, pretraga, Discover, kolekcije, glazba, račun, sve postavke, admin samo za admine, Bazarr, poglavlja).
+
 ## v0.8.0 (2026-11-09)
 - Redizajn „Kino platno" (D-019), lokalni .nfo i slike pokraj medija, kartice i filteri biblioteke, poglavlja na stranici naslova.
 - Postavke: transkodiranje (VAAPI/QSV/NVENC), nastavak gledanja, brendiranje, logovi, aktivnost; po profilu kontrole, kvaliteta, izgled titlova, sekcije početne.
