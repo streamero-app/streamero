@@ -20,6 +20,16 @@ P4 — Web pregledavanje (u tijeku); izdanja v0.2.0 i **v0.3.0** objavljena. P0 
 - Branch pushan, PR #1 (`phase/P0-foundations` → `main`) otvoren; `main` je prazan početni commit spojen u P0 (repo je bio prazan). CI zelen: `server`, `web`, `e2e`, iOS `build` (prvi uspješan iOS build, artefakt `streamero-ipa`).
 - `scripts/gen-fixtures.sh`: filmovi (H.264, 4K HEVC 10-bit, HDR10, AV1, multi-audio + poglavlja + embedded/external SRT/ASS, verzije, trailer), serija sa zajedničkim introm (2×4 ep.), multi-episode, specials, daily, anime absolute, glazba (FLAC/MP3), fotke.
 
+## v0.8.0 (2026-11-09)
+- Redizajn „Kino platno" (D-019), lokalni .nfo i slike pokraj medija, kartice i filteri biblioteke, poglavlja na stranici naslova.
+- Postavke: transkodiranje (VAAPI/QSV/NVENC), nastavak gledanja, brendiranje, logovi, aktivnost; po profilu kontrole, kvaliteta, izgled titlova, sekcije početne.
+- Moj račun (ime, e-mail, jezik, slike računa i profila); engleski kao glavni jezik.
+- Discover sa zahtjevima preko Seerra i kalendarom iz Radarra/Sonarra; ugrađena proširenja (D-020).
+- Odabir verzije/zvuka/titlova prije puštanja; poruka i zaustavljanje s nadzorne ploče.
+- Glazbena biblioteka i audio player.
+- Poznato: iOS app još nema glazbu, račun ni Discover; Discover je testiran s lažnim Seerrom.
+- Sljedeće: iOS (glazba, Discover, račun), fotografije, Chromecast, LDAP/OIDC.
+
 ## Redizajn „Kino platno" (D-019)
 - Web i iOS prepisani na novi vizualni smjer: slika filma preko cijelog ekrana, široki naslovi, pravokutne kontrole, tekstualna navigacija.
 - Server uvozi lokalne postere/pozadine/logotipe iz mapa filmova (`metadata.LocalArtwork`); demo ima službene CC-BY postere Blender filmova.
