@@ -96,3 +96,8 @@ Format: `## D-001 Naslov (datum)` → Kontekst → Odluka → Posljedice.
 **Kontekst:** korisnik je ocijenio dotadašnji neutralni UI kao siromašan; `docs/DESIGN.md` još ne postoji.
 **Odluka:** topla crna podloga i jedan jantarni akcent (projektorsko svjetlo) za primarnu akciju, fokus i napredak; serif za naslove (Instrument Serif na webu, New York na iOS-u), Geist/SF za sučelje; znak „razdvojeni play". Tokeni ostaju jedini izvor boja (`web/src/styles.css`, `ios/Streamero/DesignSystem/Theme.swift`). Smjernice iz skillova impeccable / emil-design-eng / taste-skill / awwwards-animations primijenjene bez dodavanja njihovih biblioteka.
 **Posljedice:** kad korisnik doda `docs/DESIGN.md`, mijenjaju se samo tokeni i znak. Bez TMDb ključa UI koristi tipografske placeholdere umjesto praznih sivih ploha.
+
+## D-018 Vizualni smjer „Ambijent" (2026-11-09)
+**Kontekst:** korisnik je odbio Netflix raspored („ne želim kopiju Netflixa — stvori nešto naše unikatno") i od tri ponuđena smjera (Ambijent, Arena, Kinoteka) izabrao Ambijent.
+**Odluka:** sučelje je tamna soba osvijetljena naslovom u fokusu. Server iz slika izvlači dvije boje (`items.colors`, migracija 00018); web ih piše u `--amb-a/--amb-b` (animirano preko `@property`), iOS u `AmbientBackground`. Početna je „pozornica" (naslov + osvijetljeni ekran s pregledom + traka postera), navigacija je plutajuća pilula, naslovi u Bricolage Grotesque. Zamjenjuje D-017 i Netflix raspored iz PR #16.
+**Posljedice:** svaka nova površina koristi `--amb-*` tokene umjesto fiksne boje; primarna akcija je „lit" gumb u boji naslova; kartice svijetle vlastitom bojom (`--card-a`).
