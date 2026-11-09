@@ -136,7 +136,7 @@ fun LibraryTile(l: Library, onClick: () -> Unit) {
     Box(Modifier.width(220.dp).height(110.dp).clip(RoundedCornerShape(6.dp)).background(Kino.surface2).clickable(onClick = onClick).padding(16.dp)) {
         Column(Modifier.align(Alignment.BottomStart)) {
             Text(l.name.uppercase(), style = Display.copy(fontSize = 24.sp), color = Kino.text)
-            Text(stringResource(R.string.items_count, l.itemCount), color = Kino.muted, fontSize = 13.sp)
+            Text(itemsCount(l.itemCount), color = Kino.muted, fontSize = 13.sp)
         }
     }
 }
@@ -150,7 +150,7 @@ fun CollectionTile(api: Api, c: MediaCollection, width: androidx.compose.ui.unit
         }
         Spacer(Modifier.height(8.dp))
         Text(c.name, color = Kino.text, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(stringResource(R.string.items_count, c.itemCount), color = Kino.faint, fontSize = 13.sp)
+        Text(itemsCount(c.itemCount), color = Kino.faint, fontSize = 13.sp)
     }
 }
 
@@ -172,7 +172,7 @@ fun LibrariesScreen(state: AppState, nav: NavHostController) {
                 Box(Modifier.fillMaxWidth().height(110.dp).clip(RoundedCornerShape(6.dp)).background(Kino.surface2).clickable { nav.navigate("library/${l.id}") }.padding(18.dp)) {
                     Column(Modifier.align(Alignment.BottomStart)) {
                         Text(l.name.uppercase(), style = Display.copy(fontSize = 28.sp), color = Kino.text)
-                        Text(stringResource(R.string.items_count, l.itemCount), color = Kino.muted, fontSize = 13.sp)
+                        Text(itemsCount(l.itemCount), color = Kino.muted, fontSize = 13.sp)
                     }
                 }
             }
@@ -218,7 +218,7 @@ fun LibraryScreen(state: AppState, nav: NavHostController, libraryId: String) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text((lib?.name ?: "").uppercase(), style = Display.copy(fontSize = 34.sp), color = Kino.text, modifier = Modifier.statusBarsPadding().padding(top = 12.dp))
-                if (total >= 0) Text(stringResource(R.string.items_count, total), color = Kino.muted, fontSize = 13.sp)
+                if (total >= 0) Text(itemsCount(total), color = Kino.muted, fontSize = 13.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Picker(sort, listOf("added" to stringResource(R.string.sort_added), "title" to stringResource(R.string.sort_title),
                         "year" to stringResource(R.string.sort_year), "rating" to stringResource(R.string.sort_rating), "random" to stringResource(R.string.sort_random)), { sort = it }, Modifier.weight(1f))

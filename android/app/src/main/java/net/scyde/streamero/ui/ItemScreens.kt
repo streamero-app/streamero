@@ -251,7 +251,7 @@ fun CollectionsScreen(state: AppState, nav: NavHostController) {
                         p.coverItemIds.firstOrNull()?.let { cid -> ServerImage(api.imageUrl(cid, "poster"), Modifier.fillMaxSize()) }
                     }
                     Text(p.name, color = Kino.text, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1)
-                    Text(stringResource(R.string.items_count, p.itemCount), color = Kino.faint, fontSize = 13.sp)
+                    Text(itemsCount(p.itemCount), color = Kino.faint, fontSize = 13.sp)
                 }
             }
         }

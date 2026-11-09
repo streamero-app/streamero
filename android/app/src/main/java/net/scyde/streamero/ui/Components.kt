@@ -216,3 +216,7 @@ fun <T> Picker(value: T, options: List<Pair<T, String>>, onChange: (T) -> Unit, 
         }
     }
 }
+
+/** "1 item", "2 items", with the plural forms of the current language. */
+@Composable
+fun itemsCount(n: Int): String = androidx.compose.ui.platform.LocalContext.current.resources.getQuantityString(R.plurals.items_count, n, n)

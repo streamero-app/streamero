@@ -87,7 +87,7 @@
     <string name="hw_none">None (processor)</string>
     <string name="intros">Intros and recaps</string>
     <string name="invites">Invites</string>
-    <string name="items_count">%1$d items</string>
+    <plurals name="items_count"><item quantity="one">%1$d item</item><item quantity="other">%1$d items</item></plurals>
     <string name="kind">Kind</string>
     <string name="language">Language</string>
     <string name="large">Large</string>
