@@ -449,7 +449,14 @@
     "checking": "Checking key…",
     "saved": "Saved. Metadata is being fetched for your libraries.",
     "removeKey": "Remove key",
-    "confirmRemove": "Remove the TMDb key? Existing metadata stays."
+    "confirmRemove": "Remove the TMDb key? Existing metadata stays.",
+    "step1": "Create a free account at",
+    "step2": "Request an API key (type “Developer”, any app name) at",
+    "step3": "Copy the “API Read Access Token” (or the API key) and paste it below.",
+    "step4": "Save: titles, descriptions, cast with photos, posters, logos and collections are fetched for every library.",
+    "nudgeTitle": "Metadata is off.",
+    "nudgeText": "Add a free TMDb key to get proper titles, descriptions, cast photos, posters and logos.",
+    "nudgeAction": "Add TMDb key"
   },
   "player": {
     "play": "Play",

@@ -449,7 +449,14 @@
     "checking": "Provjeravam ključ…",
     "saved": "Spremljeno. Metapodaci se dohvaćaju za vaše biblioteke.",
     "removeKey": "Ukloni ključ",
-    "confirmRemove": "Ukloniti TMDb ključ? Postojeći metapodaci ostaju."
+    "confirmRemove": "Ukloniti TMDb ključ? Postojeći metapodaci ostaju.",
+    "step1": "Napravi besplatan račun na",
+    "step2": "Zatraži API ključ (vrsta „Developer“, bilo koje ime aplikacije) na",
+    "step3": "Kopiraj „API Read Access Token“ (ili API ključ) i zalijepi ga ispod.",
+    "step4": "Spremi: naslovi, opisi, glumci s fotografijama, posteri, logotipi i kolekcije dohvatit će se za sve biblioteke.",
+    "nudgeTitle": "Metapodaci su isključeni.",
+    "nudgeText": "Dodaj besplatni TMDb ključ za prave naslove, opise, fotografije glumaca, postere i logotipe.",
+    "nudgeAction": "Dodaj TMDb ključ"
   },
   "player": {
     "play": "Pokreni",
