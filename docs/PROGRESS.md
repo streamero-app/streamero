@@ -26,6 +26,9 @@ Nativna iOS aplikacija dobila je sve ekrane Android aplikacije: Home/Search/Disc
 - Poznato: skok naprijed/natrag iz postavki ne primjenjuje se u AVKit kontrolama (isto kao na Androidu).
 - Sljedeće: ručna provjera na uređaju (reprodukcija, glazba na zaključanom ekranu).
 
+## v0.8.2 (2026-11-09)
+iOS aplikacija s gotovo punim paritetom (#38) i ispravljeni oblici množine na Androidu (#39). iOS je preveden i prošao unit testove na CI-ju, ali još nije pokrenut na uređaju.
+
 ## v0.8.1 (2026-11-09)
 Popravak premotavanja (#33), upit za TMDb ključ (#34), Bazarr titlovi (#35), nativna Android aplikacija (#36). iOS `.ipa` još nema puni paritet s webom.
 
