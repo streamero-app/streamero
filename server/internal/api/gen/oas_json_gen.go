@@ -4488,6 +4488,16 @@ func (s *ItemSummary) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.Colors != nil {
+			e.FieldStart("colors")
+			e.ArrStart()
+			for _, elem := range s.Colors {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
 		if s.SeriesId.Set {
 			e.FieldStart("seriesId")
 			s.SeriesId.Encode(e)
@@ -4525,7 +4535,7 @@ func (s *ItemSummary) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfItemSummary = [18]string{
+var jsonFieldsNameOfItemSummary = [19]string{
 	0:  "id",
 	1:  "kind",
 	2:  "title",
@@ -4538,12 +4548,13 @@ var jsonFieldsNameOfItemSummary = [18]string{
 	9:  "hasPoster",
 	10: "hasBackdrop",
 	11: "hasLogo",
-	12: "seriesId",
-	13: "seriesTitle",
-	14: "rating",
-	15: "positionMs",
-	16: "played",
-	17: "favorite",
+	12: "colors",
+	13: "seriesId",
+	14: "seriesTitle",
+	15: "rating",
+	16: "positionMs",
+	17: "played",
+	18: "favorite",
 }
 
 // Decode decodes ItemSummary from json.
@@ -4682,6 +4693,25 @@ func (s *ItemSummary) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"hasLogo\"")
+			}
+		case "colors":
+			if err := func() error {
+				s.Colors = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.Colors = append(s.Colors, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"colors\"")
 			}
 		case "seriesId":
 			if err := func() error {

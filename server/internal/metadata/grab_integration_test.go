@@ -60,6 +60,14 @@ func TestGrabFramesIntegration(t *testing.T) {
 	if st, err := os.Stat(ImagePath(images, items[0].ID, "backdrop")); err != nil || st.Size() < 1024 {
 		t.Fatalf("frame not written: %v", err)
 	}
+	// Ambient colours come from the new frame.
+	if n, err := r.FillPalettes(ctx, lib.ID); err != nil || n != 1 {
+		t.Fatalf("palettes: %d %v", n, err)
+	}
+	items, _, _ = svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 10, 0, library.ItemFilter{})
+	if len(items[0].Colors) != 2 || items[0].Colors[0][0] != '#' {
+		t.Fatalf("colors: %v", items[0].Colors)
+	}
 	// Tried once: a second run does nothing.
 	if n, _ := r.GrabFrames(ctx, lib.ID); n != 0 {
 		t.Fatalf("second grab: %d", n)

@@ -1792,6 +1792,8 @@ type ItemSummary struct {
 	HasBackdrop OptBool `json:"hasBackdrop"`
 	// A transparent title logo is available (images/logo, PNG).
 	HasLogo OptBool `json:"hasLogo"`
+	// Characteristic colours of the artwork (#rrggbb, primary first) for ambient lighting.
+	Colors []string `json:"colors"`
 	// For episodes in Next Up / Continue watching.
 	SeriesId    OptUUID   `json:"seriesId"`
 	SeriesTitle OptString `json:"seriesTitle"`
@@ -1862,6 +1864,11 @@ func (s *ItemSummary) GetHasBackdrop() OptBool {
 // GetHasLogo returns the value of HasLogo.
 func (s *ItemSummary) GetHasLogo() OptBool {
 	return s.HasLogo
+}
+
+// GetColors returns the value of Colors.
+func (s *ItemSummary) GetColors() []string {
+	return s.Colors
 }
 
 // GetSeriesId returns the value of SeriesId.
@@ -1952,6 +1959,11 @@ func (s *ItemSummary) SetHasBackdrop(val OptBool) {
 // SetHasLogo sets the value of HasLogo.
 func (s *ItemSummary) SetHasLogo(val OptBool) {
 	s.HasLogo = val
+}
+
+// SetColors sets the value of Colors.
+func (s *ItemSummary) SetColors(val []string) {
+	s.Colors = val
 }
 
 // SetSeriesId sets the value of SeriesId.

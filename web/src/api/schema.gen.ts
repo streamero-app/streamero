@@ -1626,6 +1626,8 @@ export interface components {
             hasBackdrop?: boolean;
             /** @description A transparent title logo is available (images/logo, PNG). */
             hasLogo?: boolean;
+            /** @description Characteristic colours of the artwork (#rrggbb, primary first) for ambient lighting. */
+            colors?: string[];
             /**
              * Format: uuid
              * @description For episodes in Next Up / Continue watching.
