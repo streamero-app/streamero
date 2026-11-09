@@ -1,0 +1,10 @@
+.gradle/
+build/
+local.properties
+.idea/
+.kotlin/
+*.jks
+*.keystore
+
+# The root rule for local data folders must not hide this Kotlin package.
+!app/src/main/java/net/scyde/streamero/data/
