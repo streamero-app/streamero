@@ -20,6 +20,9 @@ P4 — Web pregledavanje (u tijeku); izdanja v0.2.0 i **v0.3.0** objavljena. P0 
 - Branch pushan, PR #1 (`phase/P0-foundations` → `main`) otvoren; `main` je prazan početni commit spojen u P0 (repo je bio prazan). CI zelen: `server`, `web`, `e2e`, iOS `build` (prvi uspješan iOS build, artefakt `streamero-ipa`).
 - `scripts/gen-fixtures.sh`: filmovi (H.264, 4K HEVC 10-bit, HDR10, AV1, multi-audio + poglavlja + embedded/external SRT/ASS, verzije, trailer), serija sa zajedničkim introm (2×4 ep.), multi-episode, specials, daily, anime absolute, glazba (FLAC/MP3), fotke.
 
+## v0.8.1 (2026-11-09)
+Popravak premotavanja (#33), upit za TMDb ključ (#34), Bazarr titlovi (#35), nativna Android aplikacija (#36). iOS `.ipa` još nema puni paritet s webom.
+
 ## Android aplikacija (branch `feat/android`, 2026-11-09)
 Nativna Kotlin/Compose aplikacija u `android/`; CI `android.yml`, `.apk` ide u release uz `.ipa`.
 - Provjereno na emulatoru (release build, R8) protiv lokalnog servera: spajanje, prijava, admin vidi administraciju, običan korisnik ne vidi, prazan Home.
