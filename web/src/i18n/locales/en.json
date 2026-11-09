@@ -63,7 +63,10 @@
     "top": "Top rated",
     "more": "More from {{name}}",
     "hello": "Home",
-    "topTen": "Top 10 in {{name}}"
+    "topTen": "Top 10 in {{name}}",
+    "minutesLeft_one": "{{count}} min left",
+    "minutesLeft_other": "{{count}} min left",
+    "minutesLeft_few": "{{count}} min left"
   },
   "settings": {
     "account": "My account",
@@ -373,7 +376,9 @@
     "selectSeason": "Season",
     "starring": "Starring",
     "genres": "Genres",
-    "myListEmpty": "Titles you add to My list appear here."
+    "myListEmpty": "Titles you add to My list appear here.",
+    "story": "Story",
+    "noOverview": "No description yet."
   },
   "metadata": {
     "connected": "TMDb connected",

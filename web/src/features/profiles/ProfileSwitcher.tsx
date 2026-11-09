@@ -95,7 +95,7 @@ export function ProfileGatePage() {
 
   return (
     <div className="flex min-h-full flex-col items-center justify-center gap-12 bg-bg px-6 py-16" data-testid="profile-gate">
-      <Mark size={44} className="absolute top-6 left-6 rounded-xl sm:left-10" />
+      <Mark size={40} className="absolute top-6 left-6 sm:left-10" />
       <h1 className="enter text-center text-4xl font-semibold tracking-tight sm:text-6xl">{t("profiles.whoIsWatching")}</h1>
       <ul className="enter-2 flex flex-wrap justify-center gap-6 sm:gap-10">
         {all.map((p) => {

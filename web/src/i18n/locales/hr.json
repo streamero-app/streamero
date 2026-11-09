@@ -63,7 +63,10 @@
     "top": "Najbolje ocijenjeno",
     "more": "Još iz: {{name}}",
     "hello": "Početna",
-    "topTen": "Top 10 · {{name}}"
+    "topTen": "Top 10 · {{name}}",
+    "minutesLeft_one": "Još {{count}} min",
+    "minutesLeft_few": "Još {{count}} min",
+    "minutesLeft_other": "Još {{count}} min"
   },
   "settings": {
     "account": "Moj račun",
@@ -373,7 +376,9 @@
     "selectSeason": "Sezona",
     "starring": "Glume",
     "genres": "Žanrovi",
-    "myListEmpty": "Ovdje se pojavljuju naslovi koje dodaš na Moju listu."
+    "myListEmpty": "Ovdje se pojavljuju naslovi koje dodaš na Moju listu.",
+    "story": "Radnja",
+    "noOverview": "Opis još nije dodan."
   },
   "metadata": {
     "connected": "TMDb povezan",

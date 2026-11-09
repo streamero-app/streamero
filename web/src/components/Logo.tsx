@@ -10,7 +10,7 @@ export function Logo({ className = "", size = 30 }: { className?: string; size?:
   return (
     <div className={`flex items-center gap-2.5 select-none ${className}`}>
       <Mark size={size} />
-      <span className="text-[19px] font-semibold tracking-[-0.02em]">{t("app.name")}</span>
+      <span className="font-head text-[17px] tracking-[0.05em]">{t("app.name")}</span>
     </div>
   );
 }
