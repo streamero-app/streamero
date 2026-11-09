@@ -5908,6 +5908,12 @@ func (s *ItemKind) Decode(d *jx.Decoder) error {
 		*s = ItemKindSeason
 	case ItemKindEpisode:
 		*s = ItemKindEpisode
+	case ItemKindArtist:
+		*s = ItemKindArtist
+	case ItemKindAlbum:
+		*s = ItemKindAlbum
+	case ItemKindTrack:
+		*s = ItemKindTrack
 	default:
 		*s = ItemKind(v)
 	}
@@ -6151,6 +6157,24 @@ func (s *ItemSummary) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.ParentId.Set {
+			e.FieldStart("parentId")
+			s.ParentId.Encode(e)
+		}
+	}
+	{
+		if s.Artist.Set {
+			e.FieldStart("artist")
+			s.Artist.Encode(e)
+		}
+	}
+	{
+		if s.Album.Set {
+			e.FieldStart("album")
+			s.Album.Encode(e)
+		}
+	}
+	{
 		if s.VideoHeight.Set {
 			e.FieldStart("videoHeight")
 			s.VideoHeight.Encode(e)
@@ -6182,7 +6206,7 @@ func (s *ItemSummary) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfItemSummary = [21]string{
+var jsonFieldsNameOfItemSummary = [24]string{
 	0:  "id",
 	1:  "kind",
 	2:  "title",
@@ -6199,11 +6223,14 @@ var jsonFieldsNameOfItemSummary = [21]string{
 	13: "seriesId",
 	14: "seriesTitle",
 	15: "rating",
-	16: "videoHeight",
-	17: "hdr",
-	18: "positionMs",
-	19: "played",
-	20: "favorite",
+	16: "parentId",
+	17: "artist",
+	18: "album",
+	19: "videoHeight",
+	20: "hdr",
+	21: "positionMs",
+	22: "played",
+	23: "favorite",
 }
 
 // Decode decodes ItemSummary from json.
@@ -6391,6 +6418,36 @@ func (s *ItemSummary) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"rating\"")
+			}
+		case "parentId":
+			if err := func() error {
+				s.ParentId.Reset()
+				if err := s.ParentId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"parentId\"")
+			}
+		case "artist":
+			if err := func() error {
+				s.Artist.Reset()
+				if err := s.Artist.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"artist\"")
+			}
+		case "album":
+			if err := func() error {
+				s.Album.Reset()
+				if err := s.Album.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"album\"")
 			}
 		case "videoHeight":
 			if err := func() error {

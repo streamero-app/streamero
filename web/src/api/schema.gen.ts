@@ -638,6 +638,8 @@ export interface paths {
                 yearTo?: number;
                 /** @description First letter of the sort title ("#" for digits and symbols). */
                 letter?: string;
+                /** @description In music libraries, list artists, albums or tracks instead of top-level items. */
+                kind?: "artist" | "album" | "track";
             };
             header?: never;
             path: {
@@ -1644,7 +1646,7 @@ export interface components {
             filesSeen?: number;
         };
         /** @enum {string} */
-        ItemKind: "movie" | "series" | "season" | "episode";
+        ItemKind: "movie" | "series" | "season" | "episode" | "artist" | "album" | "track";
         /** @description What the client can decode natively. */
         DeviceProfile: {
             /** @description e.g. ["mp4", "webm"] */
@@ -1974,6 +1976,15 @@ export interface components {
             seriesTitle?: string;
             /** @description Community rating 0–10. */
             rating?: number;
+            /**
+             * Format: uuid
+             * @description The album of a track, the artist of an album, the season of an episode.
+             */
+            parentId?: string;
+            /** @description Music, the performer (album artist for albums, track artist for tracks). */
+            artist?: string;
+            /** @description A track's album. */
+            album?: string;
             /** @description Height of the best file's picture (for 4K/HD tags). */
             videoHeight?: number;
             /** @description HDR format of the best file (HDR10, HLG, Dolby Vision), if any. */
@@ -3467,6 +3478,8 @@ export interface operations {
                 yearTo?: number;
                 /** @description First letter of the sort title ("#" for digits and symbols). */
                 letter?: string;
+                /** @description In music libraries, list artists, albums or tracks instead of top-level items. */
+                kind?: "artist" | "album" | "track";
             };
             header?: never;
             path: {

@@ -71,7 +71,7 @@ func (a *Analyzer) Run(ctx context.Context, libraryID uuid.UUID) (int, error) {
 	rows, err := a.Pool.Query(ctx, `SELECT f.id, f.path, COALESCE(f.duration_ms, 0), COALESCE(f.width, 0), COALESCE(f.height, 0),
 			f.hdr, i.kind, CASE WHEN i.kind = 'episode' THEN i.parent_id END, i.episode_number, f.analyzed_at IS NOT NULL
 		FROM media_files f JOIN items i ON i.id = f.item_id
-		WHERE f.library_id = $1 AND COALESCE(f.duration_ms, 0) > 0
+		WHERE f.library_id = $1 AND COALESCE(f.duration_ms, 0) > 0 AND i.kind IN ('movie', 'episode')
 			AND (f.analyzed_at IS NULL OR (i.kind = 'episode' AND i.parent_id IN (
 				SELECT i2.parent_id FROM media_files f2 JOIN items i2 ON i2.id = f2.item_id
 				WHERE f2.library_id = $1 AND f2.analyzed_at IS NULL AND i2.kind = 'episode')))

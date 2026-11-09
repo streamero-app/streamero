@@ -53,6 +53,7 @@ type Item struct {
 	Rating                            *float64
 	VideoHeight                       *int
 	HDR                               *string
+	Artist, Album                     *string // music: the performer, and a track's album
 	PositionMS                        int64
 	Played                            bool
 	Favorite                          bool
@@ -127,9 +128,6 @@ func (s *Service) validate(name, kind string, paths []string) (string, []string,
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return "", nil, ErrInvalidName
-	}
-	if kind == "music" {
-		return "", nil, ErrUnsupportedKind
 	}
 	seen := map[string]bool{}
 	var clean []string
@@ -221,7 +219,10 @@ const itemCols = `i.id, i.library_id, i.parent_id, i.kind, COALESCE(i.metadata_t
 	(SELECT max(f.duration_ms) FROM media_files f WHERE f.item_id = i.id), i.has_poster, i.has_backdrop, i.has_logo, i.colors, i.community_rating,
 	COALESCE(u.position_ms, 0), COALESCE(u.played, false), COALESCE(u.favorite, false),
 	(SELECT max(f.height) FROM media_files f WHERE f.item_id = i.id),
-	(SELECT f.hdr FROM media_files f WHERE f.item_id = i.id AND f.hdr <> '' ORDER BY f.height DESC NULLS LAST LIMIT 1)`
+	(SELECT f.hdr FROM media_files f WHERE f.item_id = i.id AND f.hdr <> '' ORDER BY f.height DESC NULLS LAST LIMIT 1),
+	CASE i.kind WHEN 'album' THEN (SELECT p.title FROM items p WHERE p.id = i.parent_id)
+		WHEN 'track' THEN COALESCE(i.artist, (SELECT g.title FROM items a JOIN items g ON g.id = a.parent_id WHERE a.id = i.parent_id)) END,
+	CASE WHEN i.kind = 'track' THEN (SELECT a.title FROM items a WHERE a.id = i.parent_id) END`
 
 // userJoin attaches the viewer's playback state ($owner is the profile or user id).
 func userJoin(owner string) string {
@@ -233,7 +234,7 @@ func scanItem(row pgx.Row) (Item, error) {
 	var ids []byte
 	err := row.Scan(&it.ID, &it.LibraryID, &it.ParentID, &it.Kind, &it.Title, &it.Year, &it.Season, &it.Episode,
 		&it.EpisodeEnd, &it.AddedAt, &ids, &it.DurationMS, &it.HasPoster, &it.HasBackdrop, &it.HasLogo, &it.Colors, &it.Rating, &it.PositionMS, &it.Played, &it.Favorite,
-		&it.VideoHeight, &it.HDR)
+		&it.VideoHeight, &it.HDR, &it.Artist, &it.Album)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return it, ErrNotFound
 	}
@@ -249,6 +250,7 @@ type ItemFilter struct {
 	Resumable        bool
 	YearFrom, YearTo int    // 0 = open
 	Letter           string // "A".."Z", "#" for anything else, "" = all
+	Kind             string // music: artist, album or track instead of top-level items
 }
 
 // ListItems returns a filtered page of top-level items (movies, series) with the viewer's state.
@@ -264,19 +266,22 @@ func (s *Service) ListItems(ctx context.Context, libID, owner uuid.UUID, sortBy 
 	case "random":
 		order = "random()"
 	}
-	where := ` WHERE i.library_id = $1 AND i.parent_id IS NULL
+	if f.Kind == "track" && sortBy == "title" {
+		order = "(SELECT a.sort_title FROM items a WHERE a.id = i.parent_id), i.parent_id, i.season_number NULLS FIRST, i.episode_number NULLS LAST, i.sort_title"
+	}
+	where := ` WHERE i.library_id = $1 AND (($10 = '' AND i.parent_id IS NULL) OR i.kind = $10)
 		AND ($2 = '' OR i.genres @> ARRAY[$2]::text[]) AND (NOT $3 OR NOT COALESCE(u.played, false))
 		AND (NOT $5 OR COALESCE(u.favorite, false)) AND (NOT $6 OR (COALESCE(u.position_ms, 0) > 0 AND NOT COALESCE(u.played, false)))
 		AND ($7 = 0 OR i.year >= $7) AND ($8 = 0 OR i.year <= $8)
 		AND ($9 = '' OR ($9 = '#' AND upper(left(i.sort_title, 1)) !~ '^[A-ZČĆĐŠŽ]') OR upper(left(i.sort_title, 1)) = $9)`
-	args := []any{libID, f.Genre, f.Unplayed, owner, f.Favorite, f.Resumable, f.YearFrom, f.YearTo, strings.ToUpper(f.Letter)}
+	args := []any{libID, f.Genre, f.Unplayed, owner, f.Favorite, f.Resumable, f.YearFrom, f.YearTo, strings.ToUpper(f.Letter), f.Kind}
 	var total int
 	if err := s.Pool.QueryRow(ctx, `SELECT count(*) FROM items i`+userJoin("$4")+where, args...).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 	// #nosec G202 -- order is one of the constants above
 	rows, err := s.Pool.Query(ctx, `SELECT `+itemCols+` FROM items i`+userJoin("$4")+where+`
-		ORDER BY `+order+` LIMIT $10 OFFSET $11`, append(args, limit, offset)...)
+		ORDER BY `+order+` LIMIT $11 OFFSET $12`, append(args, limit, offset)...)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -467,7 +472,7 @@ func (s *Service) SaveProgress(ctx context.Context, owner, itemID uuid.UUID, pos
 // ContinueWatching returns started, unfinished movies and episodes of owner.
 func (s *Service) ContinueWatching(ctx context.Context, owner uuid.UUID, limit int) ([]Item, error) {
 	rows, err := s.Pool.Query(ctx, `SELECT `+itemCols+` FROM user_item_data u JOIN items i ON i.id = u.item_id
-		WHERE u.owner_id = $1 AND u.position_ms > 0 AND NOT u.played
+		WHERE u.owner_id = $1 AND u.position_ms > 0 AND NOT u.played AND i.kind IN ('movie', 'episode')
 		ORDER BY u.last_played_at DESC LIMIT $2`, owner, limit)
 	if err != nil {
 		return nil, err
@@ -508,7 +513,7 @@ func (s *Service) queryItems(ctx context.Context, sql string, args ...any) ([]It
 // Genres lists the genres used by top-level items of a library.
 func (s *Service) Genres(ctx context.Context, libID uuid.UUID) ([]string, error) {
 	rows, err := s.Pool.Query(ctx, `SELECT DISTINCT g FROM items, unnest(genres) g
-		WHERE library_id = $1 AND parent_id IS NULL ORDER BY g`, libID)
+		WHERE library_id = $1 AND (parent_id IS NULL OR kind = 'album') ORDER BY g`, libID)
 	if err != nil {
 		return nil, err
 	}
@@ -532,21 +537,21 @@ func (s *Service) Search(ctx context.Context, owner uuid.UUID, q string, limit i
 	}
 	like := "%" + strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`).Replace(q) + "%"
 	return s.queryItems(ctx, `SELECT `+itemCols+` FROM items i`+userJoin("$3")+`
-		WHERE i.kind IN ('movie', 'series', 'episode') AND (
+		WHERE i.kind IN ('movie', 'series', 'episode', 'artist', 'album', 'track') AND (
 			lower(COALESCE(i.metadata_title, i.title)) LIKE $2
 			-- typo tolerance: 0.35 keeps swapped letters ("matirx") and drops unrelated titles
 			OR word_similarity($1, lower(COALESCE(i.metadata_title, i.title))) >= 0.35
 			OR EXISTS (SELECT 1 FROM item_people p WHERE p.item_id = i.id AND lower(p.name) LIKE $2))
 		ORDER BY (lower(COALESCE(i.metadata_title, i.title)) LIKE $2) DESC,
 			word_similarity($1, lower(COALESCE(i.metadata_title, i.title))) DESC,
-			(i.kind = 'episode'), i.sort_title
+			(i.kind IN ('episode', 'track')), i.sort_title
 		LIMIT $4`, q, like, owner, limit)
 }
 
 // RecentlyAdded returns the newest movies and series.
 func (s *Service) RecentlyAdded(ctx context.Context, owner uuid.UUID, limit int) ([]Item, error) {
 	return s.queryItems(ctx, `SELECT `+itemCols+` FROM items i`+userJoin("$1")+`
-		WHERE i.parent_id IS NULL ORDER BY i.added_at DESC LIMIT $2`, owner, limit)
+		WHERE i.parent_id IS NULL AND i.kind IN ('movie', 'series') ORDER BY i.added_at DESC LIMIT $2`, owner, limit)
 }
 
 // Favorites returns the owner's favorites, most recently marked first.

@@ -159,3 +159,19 @@ func TestDecideRespectsBitrateLimit(t *testing.T) {
 		t.Fatalf("under the limit: %+v", p)
 	}
 }
+
+func TestAudioOnlyTranscodeHasNoVideo(t *testing.T) {
+	dur := int64(200_000)
+	f := library.MediaFile{Container: "flac", Size: 30_000_000, DurationMS: &dur, Audio: []library.AudioStream{{Codec: "alac", Channels: 2}}}
+	p := Decide(f, 0, Device{Containers: []string{"mp4", "flac"}, AudioCodecs: []string{"aac", "flac"}, HLS: true})
+	if p.Method != "remux" || !p.AudioOnly || p.TranscodeVideo || !p.TranscodeAudio {
+		t.Fatalf("plan: %+v", p)
+	}
+	a := strings.Join(Args(Job{Input: "x.m4a", AudioIndex: 0, Plan: p}, "/t", Encoding{}), " ")
+	if strings.Contains(a, "0:v:0") || !strings.Contains(a, "-vn") || !strings.Contains(a, "-c:a aac") {
+		t.Fatalf("args: %s", a)
+	}
+	if d := Decide(library.MediaFile{Container: "flac", Audio: []library.AudioStream{{Codec: "flac"}}}, 0, Device{Containers: []string{"flac"}, AudioCodecs: []string{"flac"}}); d.Method != "direct" {
+		t.Fatalf("flac in a browser that plays it: %+v", d)
+	}
+}

@@ -81,7 +81,12 @@ func Args(j Job, dir string, enc Encoding) []string {
 	if j.StartMS > 0 {
 		a = append(a, "-ss", strconv.FormatFloat(float64(j.StartMS)/1000, 'f', 3, 64))
 	}
-	a = append(a, "-i", j.Input, "-map", "0:v:0")
+	a = append(a, "-i", j.Input)
+	if j.Plan.AudioOnly {
+		encode = []string{"-vn"}
+	} else {
+		a = append(a, "-map", "0:v:0")
+	}
 	if j.AudioIndex >= 0 {
 		a = append(a, "-map", fmt.Sprintf("0:a:%d?", j.AudioIndex))
 	}

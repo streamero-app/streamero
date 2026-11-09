@@ -89,7 +89,8 @@ func (r *Refresher) RefreshLibrary(ctx context.Context, libraryID uuid.UUID, for
 	}
 	c := r.client(cfg.TMDbKey)
 	rows, err := r.Pool.Query(ctx, `SELECT id, library_id, kind, title, year, season_number, episode_number, provider_ids
-		FROM items WHERE library_id = $1 AND parent_id IS NULL AND ($2 OR metadata_refreshed_at IS NULL) AND NOT metadata_locked
+		FROM items WHERE library_id = $1 AND parent_id IS NULL AND kind IN ('movie', 'series')
+			AND ($2 OR metadata_refreshed_at IS NULL) AND NOT metadata_locked
 		ORDER BY added_at`, libraryID, force)
 	if err != nil {
 		return 0, err

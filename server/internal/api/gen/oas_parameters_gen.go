@@ -2655,6 +2655,8 @@ type ListLibraryItemsParams struct {
 	YearTo    OptInt  `json:",omitempty,omitzero"`
 	// First letter of the sort title ("#" for digits and symbols).
 	Letter OptString `json:",omitempty,omitzero"`
+	// In music libraries, list artists, albums or tracks instead of top-level items.
+	Kind OptListLibraryItemsKind `json:",omitempty,omitzero"`
 }
 
 func unpackListLibraryItemsParams(packed middleware.Parameters) (params ListLibraryItemsParams) {
@@ -2753,6 +2755,15 @@ func unpackListLibraryItemsParams(packed middleware.Parameters) (params ListLibr
 		}
 		if v, ok := packed[key]; ok {
 			params.Letter = v.(OptString)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "kind",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Kind = v.(OptListLibraryItemsKind)
 		}
 	}
 	return params
@@ -3395,6 +3406,62 @@ func decodeListLibraryItemsParams(args [1]string, argsEscaped bool, r *http.Requ
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "letter",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: kind.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "kind",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotKindVal ListLibraryItemsKind
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotKindVal = ListLibraryItemsKind(c)
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Kind.SetTo(paramsDotKindVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.Kind.Get(); ok {
+					if err := func() error {
+						if err := value.Validate(); err != nil {
+							return err
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "kind",
 			In:   "query",
 			Err:  err,
 		}

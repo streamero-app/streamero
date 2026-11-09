@@ -42,7 +42,8 @@ type planItem struct {
 	season, ep, epEnd    *int
 	ids                  map[string]string
 	files                []planFile
-	order                int // parents (series, seasons) before children
+	order                int    // parents (series, seasons) before children
+	artist               string // tracks by someone other than the album artist
 }
 
 // ScanResult summarises a scan.
@@ -72,16 +73,38 @@ func (s *Scanner) Scan(ctx context.Context, libraryID uuid.UUID) (ScanResult, er
 
 func (s *Scanner) scan(ctx context.Context, libID uuid.UUID, kind string, paths []string) (ScanResult, error) {
 	plan := map[string]*planItem{}
+	roots := make([]string, 0, len(paths))
 	for _, p := range paths {
 		root, err := ResolveSafePath(s.Roots, p)
 		if err != nil {
 			return ScanResult{}, fmt.Errorf("folder %s is not available: %w", p, err)
 		}
+		roots = append(roots, root)
+	}
+	if kind == "music" {
+		plan, probed, genres, err := s.planMusic(ctx, libID.String(), roots)
+		if err != nil {
+			return ScanResult{}, err
+		}
+		res, err := s.apply(ctx, libID, plan, probed)
+		if err != nil {
+			return res, err
+		}
+		// Album genres come from the tags of their tracks (unless edited by hand).
+		for key, g := range genres {
+			if _, err := s.Pool.Exec(ctx, `UPDATE items SET genres = $3 WHERE library_id = $1 AND path = $2
+				AND NOT metadata_locked AND genres IS DISTINCT FROM $3`, libID, key, g); err != nil {
+				return res, err
+			}
+		}
+		return res, nil
+	}
+	for _, root := range roots {
 		if err := s.planFolder(ctx, root, kind, plan); err != nil {
 			return ScanResult{}, err
 		}
 	}
-	return s.apply(ctx, libID, plan)
+	return s.apply(ctx, libID, plan, nil)
 }
 
 type dirContent struct {
@@ -320,6 +343,7 @@ type existingItem struct {
 	parent                  *uuid.UUID
 	year, season, ep, epEnd *int
 	ids                     map[string]string
+	artist                  string
 }
 
 type existingFile struct {
@@ -330,10 +354,10 @@ type existingFile struct {
 	subtitles []SubtitleStream
 }
 
-func (s *Scanner) apply(ctx context.Context, libID uuid.UUID, plan map[string]*planItem) (ScanResult, error) {
+func (s *Scanner) apply(ctx context.Context, libID uuid.UUID, plan map[string]*planItem, preProbed map[string]probeOutcome) (ScanResult, error) {
 	items := map[string]existingItem{}
 	rows, err := s.Pool.Query(ctx, `SELECT id, path, kind, title, parent_id, year, season_number, episode_number,
-		episode_number_end, provider_ids FROM items WHERE library_id = $1`, libID)
+		episode_number_end, provider_ids, COALESCE(artist, '') FROM items WHERE library_id = $1`, libID)
 	if err != nil {
 		return ScanResult{}, err
 	}
@@ -341,7 +365,7 @@ func (s *Scanner) apply(ctx context.Context, libID uuid.UUID, plan map[string]*p
 		var e existingItem
 		var path string
 		var ids []byte
-		if err := rows.Scan(&e.id, &path, &e.kind, &e.title, &e.parent, &e.year, &e.season, &e.ep, &e.epEnd, &ids); err != nil {
+		if err := rows.Scan(&e.id, &path, &e.kind, &e.title, &e.parent, &e.year, &e.season, &e.ep, &e.epEnd, &ids, &e.artist); err != nil {
 			rows.Close()
 			return ScanResult{}, err
 		}
@@ -389,7 +413,16 @@ func (s *Scanner) apply(ctx context.Context, libID uuid.UUID, plan map[string]*p
 			}
 		}
 	}
-	probed := s.probeAll(ctx, toProbe)
+	var rest []planFile
+	for _, f := range toProbe {
+		if _, done := preProbed[f.path]; !done {
+			rest = append(rest, f)
+		}
+	}
+	probed := s.probeAll(ctx, rest)
+	for k, v := range preProbed {
+		probed[k] = v
+	}
 	res.Probed = len(toProbe)
 
 	ids := map[string]uuid.UUID{}
@@ -493,7 +526,8 @@ func (s *Scanner) upsertItem(ctx context.Context, libID uuid.UUID, it *planItem,
 	}
 	if e, ok := existing[it.key]; ok && e.kind == it.kind && e.title == it.title && intPtrEq(e.year, year) &&
 		intPtrEq(e.season, it.season) && intPtrEq(e.ep, it.ep) && intPtrEq(e.epEnd, it.epEnd) &&
-		((e.parent == nil && parent == nil) || (e.parent != nil && parent != nil && *e.parent == *parent)) && mapsEqual(e.ids, it.ids) {
+		((e.parent == nil && parent == nil) || (e.parent != nil && parent != nil && *e.parent == *parent)) && mapsEqual(e.ids, it.ids) &&
+		e.artist == it.artist {
 		return e.id, nil // unchanged: no write (keeps re-scans fast)
 	}
 	newID, err := uuid.NewV7()
@@ -503,17 +537,18 @@ func (s *Scanner) upsertItem(ctx context.Context, libID uuid.UUID, it *planItem,
 	ids, _ := json.Marshal(it.ids)
 	var id uuid.UUID
 	err = s.Pool.QueryRow(ctx, `INSERT INTO items (id, library_id, parent_id, kind, path, title, sort_title, year,
-			season_number, episode_number, episode_number_end, provider_ids)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+			season_number, episode_number, episode_number_end, provider_ids, artist)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NULLIF($13, ''))
 		ON CONFLICT (library_id, path) DO UPDATE SET parent_id = EXCLUDED.parent_id, kind = EXCLUDED.kind,
 			title = EXCLUDED.title,
 			-- once metadata named the item, its title decides the sort order
 			sort_title = CASE WHEN items.metadata_title IS NULL THEN EXCLUDED.sort_title ELSE items.sort_title END,
 			year = COALESCE(EXCLUDED.year, items.year),
 			season_number = EXCLUDED.season_number, episode_number = EXCLUDED.episode_number,
-			episode_number_end = EXCLUDED.episode_number_end, provider_ids = EXCLUDED.provider_ids, updated_at = now()
+			episode_number_end = EXCLUDED.episode_number_end, provider_ids = EXCLUDED.provider_ids, artist = EXCLUDED.artist,
+			updated_at = now()
 		RETURNING id`, newID, libID, parent, it.kind, it.key, it.title, SortTitle(it.title), year,
-		it.season, it.ep, it.epEnd, ids).Scan(&id)
+		it.season, it.ep, it.epEnd, ids, it.artist).Scan(&id)
 	return id, err
 }
 
@@ -571,17 +606,25 @@ func (s *Scanner) upsertFile(ctx context.Context, libID, itemID uuid.UUID, f pla
 	if r.DurationMS > 0 {
 		dur = &r.DurationMS
 	}
+	tags, _ := json.Marshal(nonNilMap(r.Tags))
 	_, err = s.Pool.Exec(ctx, `INSERT INTO media_files (id, item_id, library_id, path, label, size, mtime, container,
-			duration_ms, width, height, video_codec, hdr, audio, subtitles, probe_error)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NULLIF($10, 0), NULLIF($11, 0), $12, $13, $14, $15, $16)
+			duration_ms, width, height, video_codec, hdr, audio, subtitles, probe_error, tags)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NULLIF($10, 0), NULLIF($11, 0), $12, $13, $14, $15, $16, $17)
 		ON CONFLICT (library_id, path) DO UPDATE SET item_id = EXCLUDED.item_id, label = EXCLUDED.label,
 			size = EXCLUDED.size, mtime = EXCLUDED.mtime, container = EXCLUDED.container, duration_ms = EXCLUDED.duration_ms,
 			width = EXCLUDED.width, height = EXCLUDED.height, video_codec = EXCLUDED.video_codec, hdr = EXCLUDED.hdr,
-			audio = EXCLUDED.audio, subtitles = EXCLUDED.subtitles, probe_error = EXCLUDED.probe_error,
+			audio = EXCLUDED.audio, subtitles = EXCLUDED.subtitles, probe_error = EXCLUDED.probe_error, tags = EXCLUDED.tags,
 			analyzed_at = NULL, trickplay = NULL, chapters = '[]'::jsonb`,
 		id, itemID, libID, f.path, f.label, f.size, f.mtime, r.Container, dur, r.Width, r.Height, r.VideoCodec, r.HDR,
-		audio, subs, probeErr)
+		audio, subs, probeErr, tags)
 	return err
+}
+
+func nonNilMap(m map[string]string) map[string]string {
+	if m == nil {
+		return map[string]string{}
+	}
+	return m
 }
 
 func nonNil[T any](s []T) []T {
@@ -604,7 +647,7 @@ func subsEqual(a, b []SubtitleStream) bool {
 }
 
 // ErrUnsupportedKind is returned for library kinds the scanner cannot handle yet.
-var ErrUnsupportedKind = errors.New("music libraries arrive in phase P9")
+var ErrUnsupportedKind = errors.New("unsupported library kind")
 
 // Stat helper used by the API to validate folders.
 func isDir(path string) bool {

@@ -11,6 +11,8 @@ import { Avatar, MAIN_COLOR, avatarUrl, profilePicked, markProfilePicked, usePro
 import { installSpatialNav } from "@/features/tv/spatialNav";
 import { useLogout, useMe } from "./useAuth";
 import { setLanguage } from "@/i18n";
+import { MusicProvider } from "@/features/music/MusicPlayer";
+import { NowPlayingBar } from "@/features/music/NowPlayingBar";
 
 export const libraryIcon: Record<string, LucideIcon> = { movies: Film, shows: Tv, mixed: Clapperboard, music: Music };
 
@@ -130,6 +132,7 @@ export function AppShell() {
   const libs = Array.isArray(libraries.data) ? libraries.data : [];
 
   return (
+    <MusicProvider>
     <div className="min-h-full">
       {!watching && (
         <header data-scrolled={scrolled}
@@ -157,7 +160,7 @@ export function AppShell() {
         </header>
       )}
 
-      <main className={watching ? "" : "pb-24 md:pb-0"}>
+      <main className={watching ? "" : "pb-24 md:pb-20"}>
         <Outlet />
       </main>
       {!watching && (
@@ -183,6 +186,8 @@ export function AppShell() {
           ))}
         </nav>
       )}
+      {!watching && <NowPlayingBar />}
     </div>
+    </MusicProvider>
   );
 }

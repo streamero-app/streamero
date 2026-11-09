@@ -137,7 +137,7 @@ func (h *Handler) ListLibraryItems(ctx context.Context, params gen.ListLibraryIt
 	items, total, err := h.lib().ListItems(ctx, params.LibraryId, stream.Owner(p), string(params.Sort.Or(gen.ListLibraryItemsSortTitle)),
 		params.Limit.Or(100), params.Offset.Or(0), library.ItemFilter{Genre: params.Genre.Value, Unplayed: params.Unplayed.Value,
 			Favorite: params.Favorite.Value, Resumable: params.Resumable.Value, YearFrom: params.YearFrom.Value, YearTo: params.YearTo.Value,
-			Letter: params.Letter.Value})
+			Letter: params.Letter.Value, Kind: string(params.Kind.Value)})
 	if err != nil {
 		return nil, err
 	}
@@ -299,6 +299,15 @@ func toItemSummary(it library.Item) gen.ItemSummary {
 	}
 	if it.Favorite {
 		out.Favorite = gen.NewOptBool(true)
+	}
+	if it.ParentID != nil {
+		out.ParentId = gen.NewOptUUID(*it.ParentID)
+	}
+	if it.Artist != nil {
+		out.Artist = gen.NewOptString(*it.Artist)
+	}
+	if it.Album != nil {
+		out.Album = gen.NewOptString(*it.Album)
 	}
 	if it.VideoHeight != nil && *it.VideoHeight > 0 {
 		out.VideoHeight = gen.NewOptInt(*it.VideoHeight)

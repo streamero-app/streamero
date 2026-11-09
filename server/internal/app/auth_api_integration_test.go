@@ -857,9 +857,6 @@ func TestLibrariesAPIIntegration(t *testing.T) {
 	if s := adminC.do("POST", "/libraries", map[string]any{"name": "X", "kind": "movies", "paths": []string{"/etc"}}, &e); s != 400 || e.Code != "invalid_path" {
 		t.Fatalf("library outside roots: HTTP %d %+v", s, e)
 	}
-	if s := adminC.do("POST", "/libraries", map[string]any{"name": "X", "kind": "music", "paths": []string{movies}}, &e); s != 400 || e.Code != "unsupported_kind" {
-		t.Fatalf("music library: HTTP %d %+v", s, e)
-	}
 	var lib struct {
 		ID   string `json:"id"`
 		Scan struct {

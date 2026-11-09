@@ -9,6 +9,7 @@ import {
 import { api, unwrap } from "@/api/client";
 import { useEnhancements } from "@/features/enhancements/useEnhancements";
 import { formatDuration } from "@/features/library/format";
+import { useMusic } from "@/features/music/MusicPlayer";
 import type { components } from "@/api/schema.gen";
 import { ErrorText, Spinner } from "@/components/ui";
 import { imageUrl } from "@/features/library/format";
@@ -112,6 +113,9 @@ export function PlayerPage() {
   const navigate = useNavigate();
   const { itemId } = useParams({ from: "/app/watch/$itemId" });
   const search = useSearch({ from: "/app/watch/$itemId" });
+  // A film and a song never play at once.
+  const music = useMusic();
+  useEffect(() => { if (music.playing) music.toggle(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const rootRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);

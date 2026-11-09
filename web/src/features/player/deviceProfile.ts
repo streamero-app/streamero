@@ -26,3 +26,26 @@ export function detectDeviceProfile(probe?: Probe, nativeHls?: boolean): DeviceP
   const hls = nativeHls ?? (video?.canPlayType("application/vnd.apple.mpegurl") ?? "") !== "";
   return { containers, videoCodecs, audioCodecs, hls: hls || !!ms };
 }
+
+/** What an <audio> element here can play as-is (music never needs a picture). */
+export function detectAudioProfile(probe?: Probe): DeviceProfile {
+  const audio = typeof document !== "undefined" ? document.createElement("audio") : undefined;
+  const can: Probe = probe ?? ((mime) => (audio?.canPlayType(mime) ?? "") !== "");
+  const containers: string[] = [];
+  const codecs: string[] = [];
+  const add = (mime: string, container: string, codec: string) => {
+    if (!can(mime)) return;
+    if (!containers.includes(container)) containers.push(container);
+    if (!codecs.includes(codec)) codecs.push(codec);
+  };
+  add("audio/mpeg", "mp3", "mp3");
+  add("audio/flac", "flac", "flac");
+  add('audio/mp4; codecs="mp4a.40.2"', "mp4", "aac");
+  add("audio/aac", "aac", "aac");
+  add('audio/mp4; codecs="alac"', "mp4", "alac");
+  add('audio/ogg; codecs="vorbis"', "ogg", "vorbis");
+  add('audio/ogg; codecs="opus"', "ogg", "opus");
+  add('audio/webm; codecs="opus"', "webm", "opus");
+  add('audio/wav; codecs="1"', "wav", "pcm_s16le");
+  return { containers, videoCodecs: [], audioCodecs: codecs, hls: true };
+}

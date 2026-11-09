@@ -923,6 +923,12 @@ paths:
         schema:
           type: string
           maxLength: 1
+      - name: kind
+        in: query
+        description: In music libraries, list artists, albums or tracks instead of top-level items.
+        schema:
+          type: string
+          enum: [artist, album, track]
     get:
       operationId: listLibraryItems
       summary: Top-level items of a library (movies, series), paged
@@ -2607,7 +2613,7 @@ components:
           type: integer
     ItemKind:
       type: string
-      enum: [movie, series, season, episode]
+      enum: [movie, series, season, episode, artist, album, track]
     DeviceProfile:
       type: object
       description: What the client can decode natively.
@@ -3249,6 +3255,16 @@ components:
         rating:
           type: number
           description: Community rating 0–10.
+        parentId:
+          type: string
+          format: uuid
+          description: The album of a track, the artist of an album, the season of an episode.
+        artist:
+          type: string
+          description: Music, the performer (album artist for albums, track artist for tracks).
+        album:
+          type: string
+          description: A track's album.
         videoHeight:
           type: integer
           description: Height of the best file's picture (for 4K/HD tags).
