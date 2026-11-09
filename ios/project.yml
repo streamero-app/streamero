@@ -65,6 +65,10 @@ targets:
     sources: [StreameroTests]
     dependencies:
       - target: Streamero
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: "YES"
+        CODE_SIGNING_ALLOWED: "NO"
 schemes:
   Streamero:
     build:

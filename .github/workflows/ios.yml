@@ -31,7 +31,7 @@ jobs:
         run: |
           xcodebuild test -project Streamero.xcodeproj -scheme Streamero \
             -destination 'platform=iOS Simulator,name=iPhone 16' \
-            -skipPackagePluginValidation -skipMacroValidation | xcpretty || exit ${PIPESTATUS[0]}
+            -skipPackagePluginValidation -skipMacroValidation | xcpretty; exit ${PIPESTATUS[0]}
       - name: Build unsigned .ipa
         run: |
           xcodebuild -project Streamero.xcodeproj -scheme Streamero -configuration Release \
