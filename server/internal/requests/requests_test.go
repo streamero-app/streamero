@@ -3,6 +3,7 @@ package requests
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -71,7 +72,7 @@ func TestSeerrSearchTrendingAndRequest(t *testing.T) {
 	if _, err := c.Ping(ctx, "Seerr", s.SeerrURL, "wrong"); err == nil {
 		t.Fatal("a wrong key must fail")
 	}
-	if _, err := c.Search(ctx, Settings{}, "x", "", 1); err != ErrNotConfigured {
+	if _, err := c.Search(ctx, Settings{}, "x", "", 1); !errors.Is(err, ErrNotConfigured) {
 		t.Fatalf("unconfigured: %v", err)
 	}
 }
@@ -131,7 +132,7 @@ func TestLinkFindsTitleInRadarrAndSonarr(t *testing.T) {
 	if app, u, err := c.Link(context.Background(), s, "series", map[string]string{"tmdb": "42"}); err != nil || app != "sonarr" || u != srv.URL+"/series/caminandes" {
 		t.Fatalf("sonarr: %s %s %v", app, u, err)
 	}
-	if _, _, err := c.Link(context.Background(), s, "movie", map[string]string{"tmdb": "1"}); err != ErrNotFound {
+	if _, _, err := c.Link(context.Background(), s, "movie", map[string]string{"tmdb": "1"}); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("missing: %v", err)
 	}
 }
