@@ -422,7 +422,10 @@
     "noMatches": "No titles match these filters.",
     "matches_one": "{{count}} match",
     "matches_few": "{{count}} matches",
-    "matches_other": "{{count}} matches"
+    "matches_other": "{{count}} matches",
+    "version": "Version",
+    "automatic": "Automatic",
+    "unknownLanguage": "Unknown language"
   },
   "metadata": {
     "connected": "TMDb connected",
@@ -466,7 +469,8 @@
     "skipIntro": "Skip intro",
     "skipRecap": "Skip recap",
     "backSeconds": "Back {{seconds}} seconds",
-    "forwardSeconds": "Forward {{seconds}} seconds"
+    "forwardSeconds": "Forward {{seconds}} seconds",
+    "stoppedByAdmin": "An administrator stopped playback."
   },
   "search": {
     "title": "Search",
@@ -506,7 +510,14 @@
     "version": "Version",
     "platform": "Platform",
     "started": "Running since",
-    "activity": "Recent activity"
+    "activity": "Recent activity",
+    "message": "Message",
+    "messagePlaceholder": "Shown on their screen…",
+    "send": "Send",
+    "stop": "Stop",
+    "stopConfirm": "Stop this playback?",
+    "stoppedByAdmin": "An administrator stopped playback.",
+    "sent": "Sent"
   },
   "activity": {
     "apikey.created": "API key created",
@@ -533,7 +544,10 @@
     "item.edited": "Metadata edited",
     "settings.encoding": "Transcoding changed",
     "settings.resume": "Resume settings changed",
-    "settings.branding": "Branding changed"
+    "settings.branding": "Branding changed",
+    "session.message": "Message sent to a viewer",
+    "session.stop": "Playback stopped by an administrator",
+    "account.updated": "Account details changed"
   },
   "tasks": {
     "title": "Scheduled tasks",

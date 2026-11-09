@@ -3916,6 +3916,91 @@ func decodeSelectProfileParams(args [1]string, argsEscaped bool, r *http.Request
 	return params, nil
 }
 
+// SendSessionCommandParams is parameters of sendSessionCommand operation.
+type SendSessionCommandParams struct {
+	SessionKey string
+}
+
+func unpackSendSessionCommandParams(packed middleware.Parameters) (params SendSessionCommandParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "sessionKey",
+			In:   "path",
+		}
+		params.SessionKey = packed[key].(string)
+	}
+	return params
+}
+
+func decodeSendSessionCommandParams(args [1]string, argsEscaped bool, r *http.Request) (params SendSessionCommandParams, _ error) {
+	// Decode path: sessionKey.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "sessionKey",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.SessionKey = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     0,
+					MinLengthSet:  false,
+					MaxLength:     80,
+					MaxLengthSet:  true,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(params.SessionKey)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "sessionKey",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // SetProfileAvatarParams is parameters of setProfileAvatar operation.
 type SetProfileAvatarParams struct {
 	ProfileId uuid.UUID

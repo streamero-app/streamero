@@ -422,7 +422,10 @@
     "noMatches": "Nijedan naslov ne odgovara filterima.",
     "matches_one": "{{count}} rezultat",
     "matches_few": "{{count}} rezultata",
-    "matches_other": "{{count}} rezultata"
+    "matches_other": "{{count}} rezultata",
+    "version": "Verzija",
+    "automatic": "Automatski",
+    "unknownLanguage": "Nepoznat jezik"
   },
   "metadata": {
     "connected": "TMDb povezan",
@@ -466,7 +469,8 @@
     "skipIntro": "Preskoči uvod",
     "skipRecap": "Preskoči sažetak",
     "backSeconds": "{{seconds}} s natrag",
-    "forwardSeconds": "{{seconds}} s naprijed"
+    "forwardSeconds": "{{seconds}} s naprijed",
+    "stoppedByAdmin": "Administrator je zaustavio reprodukciju."
   },
   "search": {
     "title": "Pretraga",
@@ -506,7 +510,14 @@
     "version": "Verzija",
     "platform": "Platforma",
     "started": "Radi od",
-    "activity": "Nedavna aktivnost"
+    "activity": "Nedavna aktivnost",
+    "message": "Poruka",
+    "messagePlaceholder": "Prikazat će se na njihovom ekranu…",
+    "send": "Pošalji",
+    "stop": "Zaustavi",
+    "stopConfirm": "Zaustaviti ovu reprodukciju?",
+    "stoppedByAdmin": "Administrator je zaustavio reprodukciju.",
+    "sent": "Poslano"
   },
   "activity": {
     "apikey.created": "API ključ stvoren",
@@ -533,7 +544,10 @@
     "item.edited": "Metapodaci uređeni",
     "settings.encoding": "Promijenjeno transkodiranje",
     "settings.resume": "Promijenjen nastavak gledanja",
-    "settings.branding": "Promijenjeno brendiranje"
+    "settings.branding": "Promijenjeno brendiranje",
+    "session.message": "Poruka poslana gledatelju",
+    "session.stop": "Administrator je zaustavio reprodukciju",
+    "account.updated": "Promijenjeni podaci računa"
   },
   "tasks": {
     "title": "Zakazani zadaci",

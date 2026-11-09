@@ -3482,6 +3482,8 @@ func (s *NotificationTargetKind) UnmarshalText(data []byte) error {
 
 // Ref: #/components/schemas/NowPlaying
 type NowPlaying struct {
+	// Identifies the playing session for remote commands.
+	Key     string           `json:"key"`
 	User    string           `json:"user"`
 	Profile OptString        `json:"profile"`
 	Device  string           `json:"device"`
@@ -3494,6 +3496,11 @@ type NowPlaying struct {
 	PositionMs int64     `json:"positionMs"`
 	DurationMs OptInt64  `json:"durationMs"`
 	UpdatedAt  time.Time `json:"updatedAt"`
+}
+
+// GetKey returns the value of Key.
+func (s *NowPlaying) GetKey() string {
+	return s.Key
 }
 
 // GetUser returns the value of User.
@@ -3549,6 +3556,11 @@ func (s *NowPlaying) GetDurationMs() OptInt64 {
 // GetUpdatedAt returns the value of UpdatedAt.
 func (s *NowPlaying) GetUpdatedAt() time.Time {
 	return s.UpdatedAt
+}
+
+// SetKey sets the value of Key.
+func (s *NowPlaying) SetKey(val string) {
+	s.Key = val
 }
 
 // SetUser sets the value of User.
@@ -6410,6 +6422,9 @@ type SelectMainProfileNoContent struct{}
 // SelectProfileNoContent is response for SelectProfile operation.
 type SelectProfileNoContent struct{}
 
+// SendSessionCommandNoContent is response for SendSessionCommand operation.
+type SendSessionCommandNoContent struct{}
+
 // Ref: #/components/schemas/ServerSettings
 type ServerSettings struct {
 	ServerName string `json:"serverName"`
@@ -6516,6 +6531,73 @@ func (s *Session) SetLastSeenAt(val time.Time) {
 // SetCurrent sets the value of Current.
 func (s *Session) SetCurrent(val bool) {
 	s.Current = val
+}
+
+// Ref: #/components/schemas/SessionCommand
+type SessionCommand struct {
+	Kind SessionCommandKind `json:"kind"`
+	Text OptString          `json:"text"`
+}
+
+// GetKind returns the value of Kind.
+func (s *SessionCommand) GetKind() SessionCommandKind {
+	return s.Kind
+}
+
+// GetText returns the value of Text.
+func (s *SessionCommand) GetText() OptString {
+	return s.Text
+}
+
+// SetKind sets the value of Kind.
+func (s *SessionCommand) SetKind(val SessionCommandKind) {
+	s.Kind = val
+}
+
+// SetText sets the value of Text.
+func (s *SessionCommand) SetText(val OptString) {
+	s.Text = val
+}
+
+type SessionCommandKind string
+
+const (
+	SessionCommandKindMessage SessionCommandKind = "message"
+	SessionCommandKindStop    SessionCommandKind = "stop"
+)
+
+// AllValues returns all SessionCommandKind values.
+func (SessionCommandKind) AllValues() []SessionCommandKind {
+	return []SessionCommandKind{
+		SessionCommandKindMessage,
+		SessionCommandKindStop,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s SessionCommandKind) MarshalText() ([]byte, error) {
+	switch s {
+	case SessionCommandKindMessage:
+		return []byte(s), nil
+	case SessionCommandKindStop:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *SessionCommandKind) UnmarshalText(data []byte) error {
+	switch SessionCommandKind(data) {
+	case SessionCommandKindMessage:
+		*s = SessionCommandKindMessage
+		return nil
+	case SessionCommandKindStop:
+		*s = SessionCommandKindStop
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 type SessionToken struct {

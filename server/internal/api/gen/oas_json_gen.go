@@ -7621,6 +7621,10 @@ func (s *NowPlaying) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *NowPlaying) encodeFields(e *jx.Encoder) {
 	{
+		e.FieldStart("key")
+		e.Str(s.Key)
+	}
+	{
 		e.FieldStart("user")
 		e.Str(s.User)
 	}
@@ -7674,18 +7678,19 @@ func (s *NowPlaying) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfNowPlaying = [11]string{
-	0:  "user",
-	1:  "profile",
-	2:  "device",
-	3:  "client",
-	4:  "itemId",
-	5:  "title",
-	6:  "method",
-	7:  "reason",
-	8:  "positionMs",
-	9:  "durationMs",
-	10: "updatedAt",
+var jsonFieldsNameOfNowPlaying = [12]string{
+	0:  "key",
+	1:  "user",
+	2:  "profile",
+	3:  "device",
+	4:  "client",
+	5:  "itemId",
+	6:  "title",
+	7:  "method",
+	8:  "reason",
+	9:  "positionMs",
+	10: "durationMs",
+	11: "updatedAt",
 }
 
 // Decode decodes NowPlaying from json.
@@ -7697,8 +7702,20 @@ func (s *NowPlaying) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "user":
+		case "key":
 			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.Key = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"key\"")
+			}
+		case "user":
+			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
 				v, err := d.Str()
 				s.User = string(v)
@@ -7720,7 +7737,7 @@ func (s *NowPlaying) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"profile\"")
 			}
 		case "device":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := d.Str()
 				s.Device = string(v)
@@ -7742,7 +7759,7 @@ func (s *NowPlaying) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"client\"")
 			}
 		case "itemId":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ItemId = v
@@ -7754,7 +7771,7 @@ func (s *NowPlaying) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"itemId\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -7766,7 +7783,7 @@ func (s *NowPlaying) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "method":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				if err := s.Method.Decode(d); err != nil {
 					return err
@@ -7786,7 +7803,7 @@ func (s *NowPlaying) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"reason\"")
 			}
 		case "positionMs":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := d.Int64()
 				s.PositionMs = int64(v)
@@ -7808,7 +7825,7 @@ func (s *NowPlaying) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"durationMs\"")
 			}
 		case "updatedAt":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.UpdatedAt = v
@@ -7829,8 +7846,8 @@ func (s *NowPlaying) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
-		0b01110101,
-		0b00000101,
+		0b11101011,
+		0b00001010,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -12635,6 +12652,157 @@ func (s *Session) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *Session) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *SessionCommand) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *SessionCommand) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("kind")
+		s.Kind.Encode(e)
+	}
+	{
+		if s.Text.Set {
+			e.FieldStart("text")
+			s.Text.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfSessionCommand = [2]string{
+	0: "kind",
+	1: "text",
+}
+
+// Decode decodes SessionCommand from json.
+func (s *SessionCommand) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode SessionCommand to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "kind":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Kind.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"kind\"")
+			}
+		case "text":
+			if err := func() error {
+				s.Text.Reset()
+				if err := s.Text.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"text\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode SessionCommand")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfSessionCommand) {
+					name = jsonFieldsNameOfSessionCommand[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *SessionCommand) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *SessionCommand) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes SessionCommandKind as json.
+func (s SessionCommandKind) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes SessionCommandKind from json.
+func (s *SessionCommandKind) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode SessionCommandKind to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch SessionCommandKind(v) {
+	case SessionCommandKindMessage:
+		*s = SessionCommandKindMessage
+	case SessionCommandKindStop:
+		*s = SessionCommandKindStop
+	default:
+		*s = SessionCommandKind(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s SessionCommandKind) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *SessionCommandKind) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

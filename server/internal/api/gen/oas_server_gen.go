@@ -485,6 +485,12 @@ type Handler interface {
 	//
 	// POST /profiles/{profileId}/select
 	SelectProfile(ctx context.Context, req OptPinRequest, params SelectProfileParams) error
+	// SendSessionCommand implements sendSessionCommand operation.
+	//
+	// Show a message on a playing client or stop its playback (admin).
+	//
+	// POST /sessions/{sessionKey}/command
+	SendSessionCommand(ctx context.Context, req *SessionCommand, params SendSessionCommandParams) error
 	// SetMyAvatar implements setMyAvatar operation.
 	//
 	// Upload own picture (JPEG, PNG or GIF, up to 8 MB; cropped to a square).
@@ -511,6 +517,12 @@ type Handler interface {
 	//
 	// POST /auth/totp/setup
 	StartTOTPSetup(ctx context.Context) (*TOTPSetup, error)
+	// TakeMyCommands implements takeMyCommands operation.
+	//
+	// Commands an administrator sent to this session (taken once).
+	//
+	// GET /me/commands
+	TakeMyCommands(ctx context.Context) ([]SessionCommand, error)
 	// TestNotification implements testNotification operation.
 	//
 	// Send a test message to one target.

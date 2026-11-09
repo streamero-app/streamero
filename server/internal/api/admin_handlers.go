@@ -1,10 +1,14 @@
 package api
 
 import (
+	"net/http"
+	"strings"
+
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/streamero-app/streamero/server/internal/library"
 	"net/url"
 	"runtime"
 	"syscall"
@@ -60,7 +64,7 @@ func (h *Handler) GetDashboard(ctx context.Context) (*gen.Dashboard, error) {
 	}
 	if h.NowPlaying != nil {
 		for _, s := range h.NowPlaying.Active() {
-			np := gen.NowPlaying{User: s.User, Device: s.Device, ItemId: s.ItemID, Title: s.Title,
+			np := gen.NowPlaying{Key: s.Key, User: s.User, Device: s.Device, ItemId: s.ItemID, Title: s.Title,
 				Method: gen.NowPlayingMethod(s.Method), PositionMs: s.PositionMS, UpdatedAt: s.UpdatedAt}
 			if s.Profile != "" {
 				np.Profile = gen.NewOptString(s.Profile)
@@ -389,6 +393,53 @@ func (h *Handler) GetServerLogs(ctx context.Context, params gen.GetServerLogsPar
 			le.Attrs = gen.NewOptString(e.Attrs)
 		}
 		out = append(out, le)
+	}
+	return out, nil
+}
+
+func sessionKey(p auth.Principal) string {
+	if p.SessionID == uuid.Nil {
+		return "key:" + p.APIKeyID.String()
+	}
+	return p.SessionID.String()
+}
+
+// SendSessionCommand implements POST /sessions/{sessionKey}/command.
+func (h *Handler) SendSessionCommand(ctx context.Context, req *gen.SessionCommand, params gen.SendSessionCommandParams) error {
+	p, err := admin(ctx)
+	if err != nil {
+		return err
+	}
+	if h.NowPlaying == nil {
+		return library.ErrNotFound
+	}
+	text := strings.TrimSpace(req.Text.Value)
+	if req.Kind == gen.SessionCommandKindMessage && text == "" {
+		return &StatusError{Status: http.StatusBadRequest, Code: "invalid_request", Message: "a message needs text"}
+	}
+	if !h.NowPlaying.Send(params.SessionKey, activity.Command{Kind: string(req.Kind), Text: text}) {
+		return library.ErrNotFound
+	}
+	_ = h.Auth().Audit(ctx, &p.User.ID, "session."+string(req.Kind), map[string]any{"text": text})
+	return nil
+}
+
+// TakeMyCommands implements GET /me/commands.
+func (h *Handler) TakeMyCommands(ctx context.Context) ([]gen.SessionCommand, error) {
+	p, err := principal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := []gen.SessionCommand{}
+	if h.NowPlaying == nil {
+		return out, nil
+	}
+	for _, c := range h.NowPlaying.Take(sessionKey(p)) {
+		sc := gen.SessionCommand{Kind: gen.SessionCommandKind(c.Kind)}
+		if c.Text != "" {
+			sc.Text = gen.NewOptString(c.Text)
+		}
+		out = append(out, sc)
 	}
 	return out, nil
 }

@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router"
 import { useTranslation } from "react-i18next";
 import type Hls from "hls.js";
 import {
-  ArrowLeft, Captions, Gauge, Maximize, Minimize, Pause, PictureInPicture2, Play, RotateCcw, RotateCw, SkipForward, Volume1, Volume2, VolumeX, X,
+  ArrowLeft, Captions, Gauge, Maximize, MessageSquare, Minimize, Pause, PictureInPicture2, Play, RotateCcw, RotateCw, SkipForward, Volume1, Volume2, VolumeX, X,
 } from "lucide-react";
 import { api, unwrap } from "@/api/client";
 import type { components } from "@/api/schema.gen";
@@ -144,17 +144,46 @@ export function PlayerPage() {
     mutationFn: async (v: { audioIndex?: number; startMs?: number }) =>
       unwrap(await api.POST("/items/{itemId}/playback", {
         params: { path: { itemId } },
-        body: { device: detectDeviceProfile(), audioIndex: v.audioIndex, startMs: v.startMs },
+        // The version chosen on the title page stays for audio switches and seeks.
+        body: { device: detectDeviceProfile(), audioIndex: v.audioIndex, startMs: v.startMs, fileId: search.file },
       })),
     onSuccess: (data) => {
       setInfo(data);
-      // The viewer's subtitle preference applies when an item starts, not on audio switches or seeks.
+      // The viewer's subtitle preference (or the choice made on the title page) applies
+      // when an item starts, not on audio switches or seeks.
       if (firstStart.current) {
-        setSubtitle(data.subtitleDefault ?? -1);
+        const chosen = search.sub === undefined ? undefined : search.sub < 0 ? -1 : data.subtitles.findIndex((x) => x.index === search.sub);
+        setSubtitle(chosen !== undefined ? chosen : data.subtitleDefault ?? -1);
         firstStart.current = false;
       }
     },
   });
+  // Messages and stop requests from an administrator (Settings → Dashboard).
+  const [notice, setNotice] = useState<string | null>(null);
+  const commands = useQuery({
+    queryKey: ["my-commands", itemId],
+    queryFn: async () => unwrap(await api.GET("/me/commands")),
+    refetchInterval: 4000,
+    enabled: !!info,
+  });
+  useEffect(() => {
+    for (const c of Array.isArray(commands.data) ? commands.data : []) {
+      if (c.kind === "stop") {
+        videoRef.current?.pause();
+        save(true);
+        setNotice(c.text || t("player.stoppedByAdmin"));
+        // Leave the message on screen for a moment, then return to the title.
+        window.setTimeout(() => void navigate({ to: "/item/$itemId", params: { itemId }, replace: true }), 5000);
+        return;
+      }
+      setNotice(c.text ?? "");
+    }
+  }, [commands.data]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!notice) return;
+    const id = window.setTimeout(() => setNotice(null), 10_000);
+    return () => window.clearTimeout(id);
+  }, [notice]);
   const it = detail.data?.item;
   const isEpisode = it?.kind === "episode";
   const durationMs = info?.durationMs ?? it?.durationMs ?? 0;
@@ -205,7 +234,8 @@ export function PlayerPage() {
     setDismissed(false);
     setSkipped(null);
     setPosition(0);
-    start.mutate({ startMs: search.start });
+    if (search.audio !== undefined) setAudioIndex(search.audio);
+    start.mutate({ startMs: search.start, audioIndex: search.audio });
   }, [itemId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Attach the stream to the <video> element.
@@ -422,6 +452,15 @@ export function PlayerPage() {
         <span className="min-w-0 truncate text-lg font-semibold">{title}</span>
         {info && <span className="ml-auto hidden rounded bg-white/10 px-2 py-1 text-xs text-white/70 sm:inline" data-testid="play-method">{t(`player.method_${info.method}`)}</span>}
       </div>
+
+      {notice && (
+        <div role="status" data-testid="admin-message"
+          className="absolute top-20 left-1/2 z-30 flex w-[min(92vw,560px)] -translate-x-1/2 items-start gap-3 rounded-[8px] bg-black/85 p-4 text-white shadow-2xl ring-1 ring-white/15 backdrop-blur [animation:rise_300ms_var(--ease-out)_both]">
+          <MessageSquare className="mt-0.5 size-5 shrink-0" aria-hidden />
+          <p className="flex-1 text-[15px] leading-snug">{notice}</p>
+          <button type="button" onClick={() => setNotice(null)} aria-label={t("common.close")} className="grid size-7 place-items-center rounded-[4px] hover:bg-white/15"><X className="size-4" aria-hidden /></button>
+        </div>
+      )}
 
       {/* Skip intro / recap */}
       {skippable && skipped !== skippable.kind + skippable.startMs && (

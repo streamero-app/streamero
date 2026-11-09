@@ -76,10 +76,16 @@ const watchRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/watch/$itemId",
   component: PlayerPage,
-  validateSearch: (s: Record<string, unknown>): { start?: number; playlist?: string } => ({
-    ...(s.start === undefined || Number.isNaN(Number(s.start)) ? {} : { start: Number(s.start) }),
-    ...(typeof s.playlist === "string" && s.playlist ? { playlist: s.playlist } : {}),
-  }),
+  validateSearch: (s: Record<string, unknown>): { start?: number; playlist?: string; file?: string; audio?: number; sub?: number } => {
+    const num = (v: unknown) => (v === undefined || v === "" || Number.isNaN(Number(v)) ? undefined : Number(v));
+    const out: { start?: number; playlist?: string; file?: string; audio?: number; sub?: number } = {};
+    if (num(s.start) !== undefined) out.start = num(s.start);
+    if (typeof s.playlist === "string" && s.playlist) out.playlist = s.playlist;
+    if (typeof s.file === "string" && /^[0-9a-f-]{36}$/i.test(s.file)) out.file = s.file;
+    if (num(s.audio) !== undefined) out.audio = num(s.audio);
+    if (num(s.sub) !== undefined) out.sub = num(s.sub);
+    return out;
+  },
 });
 
 function adminOnly(Page: ComponentType) {

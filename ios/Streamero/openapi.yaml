@@ -2064,6 +2064,49 @@ paths:
                 $ref: "#/components/schemas/ActivityPage"
         default:
           $ref: "#/components/responses/Error"
+  /sessions/{sessionKey}/command:
+    parameters:
+      - name: sessionKey
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 80
+    post:
+      operationId: sendSessionCommand
+      summary: Show a message on a playing client or stop its playback (admin)
+      tags: [admin]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionCommand"
+      responses:
+        "204":
+          description: Queued
+        default:
+          $ref: "#/components/responses/Error"
+  /me/commands:
+    get:
+      operationId: takeMyCommands
+      summary: Commands an administrator sent to this session (taken once)
+      tags: [playback]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Commands, oldest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SessionCommand"
+        default:
+          $ref: "#/components/responses/Error"
 components:
   securitySchemes:
     sessionToken:
@@ -2550,8 +2593,11 @@ components:
           format: int64
     NowPlaying:
       type: object
-      required: [user, device, itemId, title, method, positionMs, updatedAt]
+      required: [key, user, device, itemId, title, method, positionMs, updatedAt]
       properties:
+        key:
+          type: string
+          description: Identifies the playing session for remote commands.
         user:
           type: string
         profile:
@@ -3339,6 +3385,16 @@ components:
         lastLoginAt:
           type: string
           format: date-time
+    SessionCommand:
+      type: object
+      required: [kind]
+      properties:
+        kind:
+          type: string
+          enum: [message, stop]
+        text:
+          type: string
+          maxLength: 500
     UpdateMeRequest:
       type: object
       properties:

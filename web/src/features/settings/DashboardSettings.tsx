@@ -1,7 +1,8 @@
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Activity, Cpu, HardDrive, MonitorPlay, Play, RefreshCw } from "lucide-react";
+import { Activity, Cpu, HardDrive, MessageSquare, MonitorPlay, Play, RefreshCw, Square } from "lucide-react";
 import { api, unwrap } from "@/api/client";
 import type { components } from "@/api/schema.gen";
 import { Badge, Button, Card, ErrorText, Spinner } from "@/components/ui";
@@ -50,6 +51,7 @@ export function DashboardSettings() {
                   {s.reason ? ` · ${t("dashboard.reason")}: ${s.reason}` : ""}
                 </p>
                 {pct > 0 && <div className="h-1 overflow-hidden rounded-full bg-white/10"><div className="h-full bg-accent" style={{ width: `${pct}%` }} /></div>}
+                <SessionActions sessionKey={s.key} />
               </li>
             );
           })}
@@ -144,3 +146,43 @@ export function TasksSettings() {
     </Card>
   );
 }
+
+/** Send a message to a playing client, or stop its playback. */
+function SessionActions({ sessionKey }: { sessionKey: string }) {
+  const { t } = useTranslation();
+  const qc = useQueryClient();
+  const [writing, setWriting] = useState(false);
+  const [text, setText] = useState("");
+  const send = useMutation({
+    mutationFn: async (body: { kind: "message" | "stop"; text?: string }) =>
+      unwrap(await api.POST("/sessions/{sessionKey}/command", { params: { path: { sessionKey } }, body })),
+    onSuccess: (_d, v) => {
+      setWriting(false);
+      setText("");
+      if (v.kind === "stop") void qc.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {writing ? (
+        <form className="flex min-w-0 flex-1 gap-2" onSubmit={(e) => { e.preventDefault(); if (text.trim()) send.mutate({ kind: "message", text: text.trim() }); }}>
+          <input autoFocus maxLength={500} value={text} onChange={(e) => setText(e.target.value)} placeholder={t("dashboard.messagePlaceholder")}
+            aria-label={t("dashboard.message")} className="h-9 min-w-0 flex-1 rounded-[6px] border border-border bg-black/30 px-3 text-sm text-text" />
+          <Button type="submit" disabled={send.isPending || !text.trim()}>{t("dashboard.send")}</Button>
+          <Button type="button" variant="ghost" onClick={() => setWriting(false)}>{t("common.cancel")}</Button>
+        </form>
+      ) : (
+        <>
+          <Button variant="secondary" onClick={() => setWriting(true)}><MessageSquare className="size-4" aria-hidden />{t("dashboard.message")}</Button>
+          <Button variant="danger" disabled={send.isPending}
+            onClick={() => window.confirm(t("dashboard.stopConfirm")) && send.mutate({ kind: "stop", text: t("dashboard.stoppedByAdmin") })}>
+            <Square className="size-3.5 fill-current" aria-hidden />{t("dashboard.stop")}
+          </Button>
+        </>
+      )}
+      {send.isSuccess && <span className="text-xs text-success">{t("dashboard.sent")}</span>}
+      <ErrorText error={send.error} />
+    </div>
+  );
+}
+

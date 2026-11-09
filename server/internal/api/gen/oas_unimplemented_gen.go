@@ -727,6 +727,15 @@ func (UnimplementedHandler) SelectProfile(ctx context.Context, req OptPinRequest
 	return ht.ErrNotImplemented
 }
 
+// SendSessionCommand implements sendSessionCommand operation.
+//
+// Show a message on a playing client or stop its playback (admin).
+//
+// POST /sessions/{sessionKey}/command
+func (UnimplementedHandler) SendSessionCommand(ctx context.Context, req *SessionCommand, params SendSessionCommandParams) error {
+	return ht.ErrNotImplemented
+}
+
 // SetMyAvatar implements setMyAvatar operation.
 //
 // Upload own picture (JPEG, PNG or GIF, up to 8 MB; cropped to a square).
@@ -762,6 +771,15 @@ func (UnimplementedHandler) StartPlayback(ctx context.Context, req *PlaybackRequ
 //
 // POST /auth/totp/setup
 func (UnimplementedHandler) StartTOTPSetup(ctx context.Context) (r *TOTPSetup, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// TakeMyCommands implements takeMyCommands operation.
+//
+// Commands an administrator sent to this session (taken once).
+//
+// GET /me/commands
+func (UnimplementedHandler) TakeMyCommands(ctx context.Context) (r []SessionCommand, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
