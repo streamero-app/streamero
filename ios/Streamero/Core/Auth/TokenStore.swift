@@ -5,6 +5,8 @@ import Security
 protocol TokenStore: Sendable {
     func token(for serverID: String) -> String?
     func setToken(_ token: String?, for serverID: String)
+    /// Forgets every saved session.
+    func removeAll()
 }
 
 /// Keychain-backed token store (generic password items, this device only).
@@ -39,6 +41,11 @@ struct KeychainTokenStore: TokenStore {
         add[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         SecItemAdd(add as CFDictionary, nil)
     }
+
+    func removeAll() {
+        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service]
+        SecItemDelete(query as CFDictionary)
+    }
 }
 
 /// In-memory store for tests and previews.
@@ -52,5 +59,9 @@ final class MemoryTokenStore: TokenStore, @unchecked Sendable {
 
     func setToken(_ token: String?, for serverID: String) {
         lock.withLock { tokens[serverID] = token }
+    }
+
+    func removeAll() {
+        lock.withLock { tokens.removeAll() }
     }
 }

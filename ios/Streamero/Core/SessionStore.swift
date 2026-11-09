@@ -14,8 +14,21 @@ final class SessionStore {
     private(set) var state: State = .unknown
     private let tokens: TokenStore
 
-    init(tokens: TokenStore = KeychainTokenStore()) {
+    /// Keychain items outlive the app, so a reinstall would sign in without asking.
+    /// The first launch of an install therefore drops every saved session.
+    init(tokens: TokenStore = KeychainTokenStore(), defaults: UserDefaults = .standard) {
         self.tokens = tokens
+        let installed = "streamero.installed"
+        if !defaults.bool(forKey: installed) {
+            tokens.removeAll()
+            defaults.set(true, forKey: installed)
+        }
+    }
+
+    /// Adding a server always starts with the sign-in screen, even if it was used before.
+    func forget(serverID: String) {
+        tokens.setToken(nil, for: serverID)
+        state = .signedOut
     }
 
     func token(for server: SavedServer) -> String? { tokens.token(for: server.id) }
