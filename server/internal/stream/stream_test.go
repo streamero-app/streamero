@@ -1,7 +1,10 @@
 package stream
 
 import (
+	"context"
+	"errors"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -73,5 +76,86 @@ func TestDecide(t *testing.T) {
 	hevcMP4.Container = "mp4"
 	if p := Decide(hevcMP4, 0, apple); p.Method != "direct" {
 		t.Fatalf("apple hevc hdr direct: %+v", p)
+	}
+}
+
+func TestArgsFollowEncodingSettings(t *testing.T) {
+	j := Job{Input: "/m/a.mkv", StartMS: 1500, AudioIndex: 0, Plan: Plan{TranscodeVideo: true, TranscodeAudio: true, Height: 720, ToneMap: true}}
+	has := func(a []string, seq ...string) bool {
+		for i := 0; i+len(seq) <= len(a); i++ {
+			ok := true
+			for k, s := range seq {
+				if a[i+k] != s {
+					ok = false
+					break
+				}
+			}
+			if ok {
+				return true
+			}
+		}
+		return false
+	}
+	def := Args(j, "/t", Encoding{})
+	if !has(def, "-c:v", "libx264", "-preset", "veryfast", "-crf", "22") || !has(def, "-b:a", "192k") || !has(def, "-hls_time", "6") {
+		t.Fatalf("defaults: %v", def)
+	}
+	if !strings.Contains(strings.Join(def, " "), "tonemap=tonemap=hable") {
+		t.Fatal("tone mapping should be on by default")
+	}
+	nv := Args(j, "/t", Encoding{HWAccel: "nvenc", Preset: "fast", Quality: 19, AudioKbps: 256, SegmentSeconds: 4})
+	if !has(nv, "-c:v", "h264_nvenc", "-preset", "p5") || !has(nv, "-cq", "19") || !has(nv, "-b:a", "256k") || !has(nv, "-hls_time", "4") || !has(nv, "-g", "96") {
+		t.Fatalf("nvenc: %v", nv)
+	}
+	off := false
+	va := Args(j, "/t", Encoding{HWAccel: "vaapi", VAAPIDevice: "/dev/dri/renderD129", ToneMapping: &off})
+	if !has(va, "-vaapi_device", "/dev/dri/renderD129") || !has(va, "-c:v", "h264_vaapi") {
+		t.Fatalf("vaapi: %v", va)
+	}
+	if va[len(va)-1] != "/t/index.m3u8" || strings.Contains(strings.Join(va, " "), "tonemap") {
+		t.Fatalf("vaapi args: %v", va)
+	}
+	// Hardware options come before the input; the seek stays an input option.
+	iDev, iIn := -1, -1
+	for i, s := range va {
+		if s == "-vaapi_device" {
+			iDev = i
+		}
+		if s == "-i" {
+			iIn = i
+		}
+	}
+	if iDev < 0 || iDev > iIn {
+		t.Fatal("hardware device must be set before the input")
+	}
+}
+
+func TestManagerRefusesBeyondMaxSessions(t *testing.T) {
+	m := &Manager{Encoding: func(context.Context) Encoding { return Encoding{MaxSessions: 1} }, streams: map[string]*session{"x": {}}}
+	if _, err := m.Start(context.Background(), Job{Plan: Plan{TranscodeVideo: true}}); !errors.Is(err, ErrBusy) {
+		t.Fatalf("want ErrBusy, got %v", err)
+	}
+}
+
+func TestDecideRespectsBitrateLimit(t *testing.T) {
+	dur := int64(600_000) // 10 min
+	h := 1080
+	f := library.MediaFile{Container: "mp4", VideoCodec: "h264", Size: 750_000_000, DurationMS: &dur, Height: &h, // ~10 Mbps
+		Audio: []library.AudioStream{{Codec: "aac"}}}
+	d := Device{Containers: []string{"mp4"}, VideoCodecs: []string{"h264"}, AudioCodecs: []string{"aac"}, HLS: true}
+	if p := Decide(f, 0, d); p.Method != "direct" {
+		t.Fatalf("no limit: %+v", p)
+	}
+	d.MaxBitrate = 3_000_000
+	p := Decide(f, 0, d)
+	if p.Method != "transcode" || p.MaxBitrate != 2_744_000 || p.Height != 720 || !strings.Contains(p.Reason, "bitrate") {
+		t.Fatalf("limited: %+v", p)
+	}
+	if a := Args(Job{Input: "x", Plan: p, AudioIndex: 0}, "/t", Encoding{}); !strings.Contains(strings.Join(a, " "), "-maxrate 2744000 -bufsize 5488000") {
+		t.Fatalf("args: %v", a)
+	}
+	d.MaxBitrate = 20_000_000
+	if p := Decide(f, 0, d); p.Method != "direct" {
+		t.Fatalf("under the limit: %+v", p)
 	}
 }

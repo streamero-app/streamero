@@ -16,6 +16,20 @@ type Prefs struct {
 	SubtitleLanguage string `json:"subtitleLanguage,omitempty"`
 	SubtitleMode     string `json:"subtitleMode,omitempty"`
 	AutoplayNext     *bool  `json:"autoplayNext,omitempty"`
+	// Player and display preferences (applied by the clients; bitrate and height
+	// are also enforced by the server).
+	SkipBackSeconds    int      `json:"skipBackSeconds,omitempty"`
+	SkipForwardSeconds int      `json:"skipForwardSeconds,omitempty"`
+	MaxBitrateKbps     int      `json:"maxBitrateKbps,omitempty"`
+	MaxHeight          int      `json:"maxHeight,omitempty"`
+	UpNextSeconds      *int     `json:"upNextSeconds,omitempty"`
+	SkipIntro          string   `json:"skipIntro,omitempty"`
+	SkipCredits        string   `json:"skipCredits,omitempty"`
+	SubtitleSize       string   `json:"subtitleSize,omitempty"`
+	SubtitleColor      string   `json:"subtitleColor,omitempty"`
+	SubtitleBackground string   `json:"subtitleBackground,omitempty"`
+	SubtitlePosition   int      `json:"subtitlePosition,omitempty"`
+	HomeSections       []string `json:"homeSections,omitempty"`
 }
 
 // Autoplay reports whether the next episode starts on its own (default on).

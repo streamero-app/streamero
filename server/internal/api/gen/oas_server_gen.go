@@ -154,6 +154,18 @@ type Handler interface {
 	//
 	// POST /auth/totp/enable
 	EnableTOTP(ctx context.Context, req *TOTPCodeRequest) (*RecoveryCodes, error)
+	// GetActivity implements getActivity operation.
+	//
+	// Sign-ins, account and settings changes (admin).
+	//
+	// GET /admin/activity
+	GetActivity(ctx context.Context, params GetActivityParams) (*ActivityPage, error)
+	// GetBrandingSettings implements getBrandingSettings operation.
+	//
+	// Login message and custom CSS (admin).
+	//
+	// GET /settings/branding
+	GetBrandingSettings(ctx context.Context) (*BrandingSettings, error)
 	// GetCollection implements getCollection operation.
 	//
 	// A collection with its titles.
@@ -172,6 +184,12 @@ type Handler interface {
 	//
 	// GET /dashboard
 	GetDashboard(ctx context.Context) (*Dashboard, error)
+	// GetEncodingSettings implements getEncodingSettings operation.
+	//
+	// Transcoding settings (admin).
+	//
+	// GET /settings/encoding
+	GetEncodingSettings(ctx context.Context) (*EncodingSettings, error)
 	// GetInvite implements getInvite operation.
 	//
 	// Check an invite link (public).
@@ -226,6 +244,18 @@ type Handler interface {
 	//
 	// GET /me/preferences
 	GetPreferences(ctx context.Context) (*PlaybackPreferences, error)
+	// GetResumeSettings implements getResumeSettings operation.
+	//
+	// When playback counts as started or watched (admin).
+	//
+	// GET /settings/resume
+	GetResumeSettings(ctx context.Context) (*ResumeSettings, error)
+	// GetServerLogs implements getServerLogs operation.
+	//
+	// Recent log lines of the server and worker (admin).
+	//
+	// GET /admin/logs
+	GetServerLogs(ctx context.Context, params GetServerLogsParams) ([]LogEntry, error)
 	// GetServerSettings implements getServerSettings operation.
 	//
 	// Server-wide settings (admin).
@@ -457,12 +487,24 @@ type Handler interface {
 	//
 	// POST /settings/notifications/test
 	TestNotification(ctx context.Context, req *NotificationTarget) error
+	// UpdateBrandingSettings implements updateBrandingSettings operation.
+	//
+	// Update branding (admin).
+	//
+	// PUT /settings/branding
+	UpdateBrandingSettings(ctx context.Context, req *BrandingSettings) (*BrandingSettings, error)
 	// UpdateCollection implements updateCollection operation.
 	//
 	// Rename a collection and replace its titles (administrators).
 	//
 	// PUT /collections/{collectionId}
 	UpdateCollection(ctx context.Context, req *CollectionInput, params UpdateCollectionParams) (*Collection, error)
+	// UpdateEncodingSettings implements updateEncodingSettings operation.
+	//
+	// Update transcoding settings (admin).
+	//
+	// PUT /settings/encoding
+	UpdateEncodingSettings(ctx context.Context, req *EncodingSettings) (*EncodingSettings, error)
 	// UpdateLibrary implements updateLibrary operation.
 	//
 	// Change a library (admin); changed folders are rescanned.
@@ -499,6 +541,12 @@ type Handler interface {
 	//
 	// PUT /profiles/{profileId}
 	UpdateProfile(ctx context.Context, req *ProfileInput, params UpdateProfileParams) (*Profile, error)
+	// UpdateResumeSettings implements updateResumeSettings operation.
+	//
+	// Update resume thresholds (admin).
+	//
+	// PUT /settings/resume
+	UpdateResumeSettings(ctx context.Context, req *ResumeSettings) (*ResumeSettings, error)
 	// UpdateServerSettings implements updateServerSettings operation.
 	//
 	// Update server-wide settings (admin).

@@ -4,6 +4,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"github.com/streamero-app/streamero/server/internal/logbuf"
 	"log/slog"
 	"net/http"
 	"time"
@@ -40,6 +41,8 @@ type Handler struct {
 	Library  func() *library.Service
 	// Stream serves playback (nil until ready).
 	Stream func() *stream.Server
+	// Logs holds recent log records of the server and worker (admin log viewer).
+	Logs *logbuf.Buffer
 	// NewTMDb builds a TMDb client (tests use a fake server).
 	NewTMDb func(key string) *metadata.TMDb
 	// NowPlaying tracks active playback for the dashboard (nil disables it).
@@ -66,15 +69,24 @@ func (h *Handler) GetSystemInfo(ctx context.Context) (gen.GetSystemInfoRes, erro
 		}, nil
 	}
 	return &gen.SystemInfo{
-		ID:             h.State.ServerID(),
-		Name:           h.serverName(ctx),
-		Product:        "Streamero",
-		Version:        version.Version,
-		Commit:         gen.NewOptString(version.Commit),
-		ApiVersion:     version.APIVersion,
-		SetupCompleted: h.State.SetupCompleted(ctx),
-		StartedAt:      h.StartedAt,
+		ID:              h.State.ServerID(),
+		Name:            h.serverName(ctx),
+		Product:         "Streamero",
+		Version:         version.Version,
+		Commit:          gen.NewOptString(version.Commit),
+		ApiVersion:      version.APIVersion,
+		SetupCompleted:  h.State.SetupCompleted(ctx),
+		StartedAt:       h.StartedAt,
+		LoginDisclaimer: optString(h.loadBranding(ctx).LoginDisclaimer),
+		CustomCss:       optString(h.loadBranding(ctx).CustomCSS),
 	}, nil
+}
+
+func optString(v string) gen.OptString {
+	if v == "" {
+		return gen.OptString{}
+	}
+	return gen.NewOptString(v)
 }
 
 // Ping implements GET /system/ping.

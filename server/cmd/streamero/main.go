@@ -31,6 +31,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/db"
 	"github.com/streamero-app/streamero/server/internal/jobs"
 	"github.com/streamero-app/streamero/server/internal/library"
+	"github.com/streamero-app/streamero/server/internal/logbuf"
 	"github.com/streamero-app/streamero/server/internal/metadata"
 	"github.com/streamero-app/streamero/server/internal/netx"
 	"github.com/streamero-app/streamero/server/internal/notify"
@@ -69,10 +70,13 @@ func main() {
 	}
 }
 
+// logs keeps recent records for the admin log viewer (shared through Valkey).
+var logs *logbuf.Buffer
+
 func newLogger(level string) *slog.Logger {
 	var l slog.Level
 	_ = l.UnmarshalText([]byte(level))
-	return slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: l}))
+	return slog.New(logs.Handler(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: l})))
 }
 
 func withConfig(ctx context.Context, fn func(context.Context, config.Config, *slog.Logger) error) error {
@@ -80,6 +84,11 @@ func withConfig(ctx context.Context, fn func(context.Context, config.Config, *sl
 	if err != nil {
 		return err
 	}
+	source := "serve"
+	if len(os.Args) > 1 {
+		source = os.Args[1]
+	}
+	logs = logbuf.New(source)
 	log := newLogger(cfg.LogLevel)
 	slog.SetDefault(log)
 	return fn(ctx, cfg, log)
@@ -107,8 +116,8 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	h := &api.Handler{State: state, ServerName: cfg.ServerName, StartedAt: time.Now().UTC(),
 		Auth: state.Auth, Settings: state.Settings, Library: state.Library, Stream: state.Stream,
 		NewTMDb:    func(key string) *metadata.TMDb { return &metadata.TMDb{Key: key} },
-		NowPlaying: &activity.Registry{},
-		Paths:      api.Paths{Media: roots, Cache: cfg.CacheDir, Transcode: cfg.TranscodeDir}}
+		NowPlaying: &activity.Registry{}, Logs: logs,
+		Paths: api.Paths{Media: roots, Cache: cfg.CacheDir, Transcode: cfg.TranscodeDir}}
 	h.Notify = &notify.Dispatcher{Settings: state.Settings, Log: log, Server: h.ServerNameFor}
 	proxies, err := netx.ParsePrefixes(cfg.TrustedProxies)
 	if err != nil {
@@ -136,6 +145,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	deps, err := app.Bootstrap(ctx, cfg, state, log)
 	if err == nil {
 		defer deps.Close()
+		logs.Attach(ctx, deps.Valkey)
 		// Insert-only River client: the worker process runs the jobs.
 		inserter, ierr := river.NewClient(riverpgxv5.New(deps.Pool), &river.Config{})
 		if ierr != nil {
@@ -145,10 +155,10 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		if kerr != nil {
 			return kerr
 		}
-		hls := &stream.Manager{Dir: cfg.TranscodeDir, FFmpeg: cfg.FFmpegPath, Log: log}
+		hls := &stream.Manager{Dir: cfg.TranscodeDir, FFmpeg: cfg.FFmpegPath, Log: log, Encoding: h.LoadEncoding}
 		go hls.Reap(ctx)
 		state.SetStream(&stream.Server{Pool: deps.Pool, Roots: roots, Signer: stream.Signer{Key: key}, HLS: hls, FFmpeg: cfg.FFmpegPath})
-		libs := &library.Service{Pool: deps.Pool, Roots: roots, ImageDir: filepath.Join(cfg.CacheDir, "images"),
+		libs := &library.Service{Pool: deps.Pool, Roots: roots, ImageDir: filepath.Join(cfg.CacheDir, "images"), Resume: h.LoadResume,
 			Enqueue: func(ctx context.Context, id uuid.UUID) error {
 				_, err := inserter.Insert(ctx, jobs.LibraryScanArgs{LibraryID: id}, nil)
 				return err
@@ -203,6 +213,7 @@ func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		return err
 	}
 	defer deps.Close()
+	logs.Attach(ctx, deps.Valkey)
 
 	roots, err := library.ParseRoots(cfg.MediaRoots)
 	if err != nil {

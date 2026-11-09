@@ -62,7 +62,7 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 	}
 	t.Cleanup(deps.Close)
 	if _, err := deps.Pool.Exec(ctx, `TRUNCATE users, sessions, audit_log, api_keys, user_totp, recovery_codes, quick_connect, invites, profiles;
-		DELETE FROM settings WHERE key IN ('setup.completed', 'server.name')`); err != nil {
+		DELETE FROM settings WHERE key IN ('setup.completed', 'server.name', 'playback.resume', 'encoding', 'branding')`); err != nil {
 		t.Fatal(err)
 	}
 	mediaRoot = t.TempDir()
@@ -84,6 +84,8 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 		Notify: &notify.Dispatcher{Settings: state.Settings}, Paths: api.Paths{Media: []string{mediaRoot}, Cache: t.TempDir()},
 		RunTaskFn: func(_ context.Context, key string) error { ranTasks = append(ranTasks, key); return nil }}
 	h.Notify.Server = h.ServerNameFor
+	state.Library().Resume = h.LoadResume
+	h.Stream().HLS.Encoding = h.LoadEncoding
 	router, err := NewRouter(state, h)
 	if err != nil {
 		t.Fatal(err)
@@ -987,6 +989,24 @@ func TestPlaybackIntegration(t *testing.T) {
 		t.Fatalf("remux without ffmpeg: HTTP %d %+v", s, e)
 	}
 
+	// The test file is 100 s long: below the default 5 min minimum nothing would be kept.
+	var rs map[string]int
+	if s := adminC.do("GET", "/settings/resume", nil, &rs); s != 200 || rs["minResumeDurationSeconds"] != 300 || rs["maxResumePercent"] != 90 {
+		t.Fatalf("resume defaults: HTTP %d %v", s, rs)
+	}
+	if s := adminC.do("PUT", "/settings/resume", map[string]int{"minResumePercent": 60, "maxResumePercent": 50, "minResumeDurationSeconds": 0}, nil); s != 400 {
+		t.Fatalf("min above max: HTTP %d", s)
+	}
+	if s := adminC.do("PUT", "/settings/resume", map[string]int{"minResumePercent": 5, "maxResumePercent": 90, "minResumeDurationSeconds": 0}, nil); s != 200 {
+		t.Fatalf("save resume: HTTP %d", s)
+	}
+	// Below the minimum percentage no position is kept.
+	adminC.do("PUT", "/items/"+item+"/progress", map[string]any{"positionMs": 2_000}, nil)
+	var early []struct{ ID string }
+	if adminC.do("GET", "/home/continue", nil, &early); len(early) != 0 {
+		t.Fatalf("2%% should not be resumable: %+v", early)
+	}
+
 	// Progress → continue watching → resume position; >90% marks as watched.
 	if s := adminC.do("PUT", "/items/"+item+"/progress", map[string]any{"positionMs": 30_000}, nil); s != 204 {
 		t.Fatalf("progress: HTTP %d", s)
@@ -1774,3 +1794,45 @@ func TestIdentifyAndEditMetadataIntegration(t *testing.T) {
 		t.Fatalf("empty title: %d", s)
 	}
 }
+
+func TestServerSettingsIntegration(t *testing.T) {
+	srv := newAuthTestServer(t)
+	adminC := newClient(t, srv)
+	setupAdmin(t, adminC)
+	var enc map[string]any
+	if s := adminC.do("GET", "/settings/encoding", nil, &enc); s != 200 || enc["preset"] != "veryfast" || enc["toneMapping"] != true {
+		t.Fatalf("encoding defaults: HTTP %d %v", s, enc)
+	}
+	bad := map[string]any{"hardwareAcceleration": "vaapi", "vaapiDevice": "/etc/passwd", "preset": "fast", "quality": 20,
+		"audioBitrateKbps": 256, "segmentSeconds": 4, "maxSessions": 2, "toneMapping": false}
+	if s := adminC.do("PUT", "/settings/encoding", bad, nil); s != 400 {
+		t.Fatalf("device outside /dev/dri: HTTP %d", s)
+	}
+	bad["vaapiDevice"] = "/dev/dri/renderD128"
+	if s := adminC.do("PUT", "/settings/encoding", bad, &enc); s != 200 || enc["toneMapping"] != false || enc["maxSessions"] != float64(2) {
+		t.Fatalf("save encoding: HTTP %d %v", s, enc)
+	}
+	if s := adminC.do("PUT", "/settings/branding", map[string]string{"loginDisclaimer": "Samo za obitelj.", "customCss": "</style><script>"}, nil); s != 400 {
+		t.Fatalf("css closing the style element: HTTP %d", s)
+	}
+	if s := adminC.do("PUT", "/settings/branding", map[string]string{"loginDisclaimer": "Samo za obitelj.", "customCss": "body{letter-spacing:0}"}, nil); s != 200 {
+		t.Fatalf("save branding: HTTP %d", s)
+	}
+	var info map[string]any
+	newClient(t, srv).do("GET", "/system/info", nil, &info)
+	if info["loginDisclaimer"] != "Samo za obitelj." || info["customCss"] != "body{letter-spacing:0}" {
+		t.Fatalf("branding in system info: %v", info)
+	}
+	var act struct {
+		Entries []struct{ Action string } `json:"entries"`
+		Total   int                       `json:"total"`
+	}
+	if s := adminC.do("GET", "/admin/activity?limit=5", nil, &act); s != 200 || act.Total < 2 || act.Entries[0].Action != "settings.branding" {
+		t.Fatalf("activity: HTTP %d %+v", s, act)
+	}
+	var logs []map[string]any
+	if s := adminC.do("GET", "/admin/logs?level=debug", nil, &logs); s != 200 {
+		t.Fatalf("logs: HTTP %d", s)
+	}
+}
+

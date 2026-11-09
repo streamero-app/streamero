@@ -15,6 +15,24 @@ import { detectDeviceProfile } from "./deviceProfile";
 type PlaybackInfo = components["schemas"]["PlaybackInfo"];
 type Segment = components["schemas"]["MediaSegment"];
 const SAVE_EVERY_MS = 10_000;
+
+const SUB_SIZE = { small: "2.6vh", normal: "3.4vh", large: "4.4vh", xlarge: "5.6vh" } as const;
+const SUB_COLOR = { white: "#ffffff", yellow: "#ffe14d", cyan: "#7ff3ff" } as const;
+
+/** The viewer's subtitle look, as ::cue rules for the player's text tracks. */
+export function subtitleCss(p?: { subtitleSize?: keyof typeof SUB_SIZE; subtitleColor?: keyof typeof SUB_COLOR; subtitleBackground?: "none" | "shadow" | "box"; subtitlePosition?: number }): string {
+  const bg = p?.subtitleBackground ?? "shadow";
+  const rules = [
+    `font-size:${SUB_SIZE[p?.subtitleSize ?? "normal"]}`,
+    `color:${SUB_COLOR[p?.subtitleColor ?? "white"]}`,
+    `font-family:var(--font-sans)`,
+    bg === "box" ? "background-color:rgb(0 0 0 / 0.75)" : "background-color:transparent",
+    bg === "shadow" ? "text-shadow:0 0 4px #000,0 2px 6px #000,0 0 1px #000" : "text-shadow:none",
+  ];
+  // Lifting cues: the video's own line placement cannot be set from CSS, so shift the whole track area.
+  const lift = p?.subtitlePosition ? `video::-webkit-media-text-track-container{transform:translateY(-${p.subtitlePosition}vh)}` : "";
+  return `video::cue{${rules.join(";")}}${lift}`;
+}
 const HIDE_AFTER_MS = 3200;
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
@@ -288,18 +306,34 @@ export function PlayerPage() {
 
   // Segments: skip intro/recap, and credits bring up the next title.
   const segAt = (kind: Segment["kind"]) => info?.segments?.find((s) => s.kind === kind && position >= s.startMs && position < s.endMs - 1000);
-  const skippable = segAt("intro") ?? segAt("recap");
-  const inCredits = !!segAt("credits");
+  const introMode = prefs.data?.skipIntro ?? "button";
+  const creditsMode = prefs.data?.skipCredits ?? "button";
+  const skippable = introMode === "off" ? undefined : segAt("intro") ?? segAt("recap");
+  const inCredits = creditsMode !== "off" && !!segAt("credits");
   const autoplay = prefs.data?.autoplayNext ?? true;
+  const back = (prefs.data?.skipBackSeconds ?? 10) * 1000;
+  const forward = (prefs.data?.skipForwardSeconds ?? 10) * 1000;
+  const upNext = prefs.data?.upNextSeconds ?? 10;
+  // "Skip automatically": jump over the intro/recap once, as soon as it starts.
+  useEffect(() => {
+    if (introMode === "auto" && skippable && skipped !== skippable.kind + skippable.startMs) {
+      setSkipped(skippable.kind + skippable.startMs);
+      seekTo(skippable.endMs);
+    }
+  }, [introMode, skippable?.startMs]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Credits on "auto" go straight to the next title when there is one.
+  useEffect(() => {
+    if (creditsMode === "auto" && inCredits && next.data && autoplay) playNext();
+  }, [creditsMode, inCredits]); // eslint-disable-line react-hooks/exhaustive-deps
   const remaining = durationMs ? durationMs - position : null;
   const showNext = !!next.data && !dismissed && (ended || inCredits || (remaining !== null && remaining <= 20_000 && position > 0));
-  const [countdown, setCountdown] = useState(10);
+  const [countdown, setCountdown] = useState(upNext);
   useEffect(() => {
     if (!showNext) {
-      setCountdown(10);
+      setCountdown(upNext);
       return;
     }
-    if (!autoplay) return;
+    if (!autoplay || upNext === 0) return;
     const timer = window.setInterval(() => setCountdown((c) => c - 1), 1000);
     return () => window.clearInterval(timer);
   }, [showNext, autoplay]);
@@ -309,7 +343,7 @@ export function PlayerPage() {
     void navigate({ to: "/watch/$itemId", params: { itemId: next.data.id }, search: search.playlist ? { playlist: search.playlist } : {}, replace: true });
   }, [next.data, navigate, save, search.playlist]);
   useEffect(() => {
-    if (showNext && autoplay && countdown <= 0) playNext();
+    if (showNext && autoplay && upNext > 0 && countdown <= 0) playNext();
   }, [countdown, showNext, autoplay, playNext]);
 
   // Keyboard and TV remote. Runs before the app's arrow-key navigation (capture phase).
@@ -322,8 +356,8 @@ export function PlayerPage() {
       let handled = true;
       switch (e.key) {
         case " ": case "k": case "K": case "MediaPlayPause": togglePlay(); break;
-        case "ArrowLeft": case "j": case "J": case "MediaRewind": seekTo(absolute() - 10_000); break;
-        case "ArrowRight": case "l": case "L": case "MediaFastForward": seekTo(absolute() + 10_000); break;
+        case "ArrowLeft": case "j": case "J": case "MediaRewind": seekTo(absolute() - back); break;
+        case "ArrowRight": case "l": case "L": case "MediaFastForward": seekTo(absolute() + forward); break;
         case "ArrowUp": v.volume = Math.min(1, v.volume + 0.1); v.muted = false; break;
         case "ArrowDown": v.volume = Math.max(0, v.volume - 0.1); break;
         case "m": case "M": v.muted = !v.muted; break;
@@ -354,6 +388,7 @@ export function PlayerPage() {
   return (
     <div ref={rootRef} className={`fixed inset-0 z-50 bg-black text-white ${visible ? "" : "cursor-none"}`} data-testid="player"
       onPointerMove={poke} onPointerDown={poke}>
+      <style>{subtitleCss(prefs.data)}</style>
       <video ref={videoRef} className="absolute inset-0 size-full" playsInline autoPlay data-testid="video"
         onClick={togglePlay} onDoubleClick={toggleFullscreen}
         onTimeUpdate={(e) => {
@@ -405,7 +440,7 @@ export function PlayerPage() {
             {next.data.hasPoster && <img src={imageUrl(next.data.id, next.data.kind === "episode" ? "still" : "poster")} alt="" className="absolute inset-0 size-full object-cover" />}
           </div>
           <div className="flex min-w-0 flex-1 flex-col gap-2">
-            <p className="text-xs text-white/60">{autoplay ? t(search.playlist ? "player.nextItemIn" : "player.nextIn", { seconds: Math.max(0, countdown) }) : t("player.upNext")}</p>
+            <p className="text-xs text-white/60">{autoplay && upNext > 0 ? t(search.playlist ? "player.nextItemIn" : "player.nextIn", { seconds: Math.max(0, countdown) }) : t("player.upNext")}</p>
             <p className="truncate text-sm font-semibold">
               {next.data.seasonNumber !== undefined && next.data.episodeNumber !== undefined ? `S${next.data.seasonNumber}:E${next.data.episodeNumber} · ` : ""}{next.data.title}
             </p>
@@ -433,8 +468,8 @@ export function PlayerPage() {
           <button type="button" className={iconBtn} onClick={togglePlay} aria-label={paused ? t("player.play") : t("player.pause")}>
             {paused ? <Play className="size-6 fill-current" aria-hidden /> : <Pause className="size-6 fill-current" aria-hidden />}
           </button>
-          <button type="button" className={iconBtn} onClick={() => seekTo(absolute() - 10_000)} aria-label={t("player.back10")}><RotateCcw className="size-5" aria-hidden /></button>
-          <button type="button" className={iconBtn} onClick={() => seekTo(absolute() + 10_000)} aria-label={t("player.forward10")}><RotateCw className="size-5" aria-hidden /></button>
+          <button type="button" className={iconBtn} onClick={() => seekTo(absolute() - back)} aria-label={t("player.backSeconds", { seconds: back / 1000 })}><RotateCcw className="size-5" aria-hidden /></button>
+          <button type="button" className={iconBtn} onClick={() => seekTo(absolute() + forward)} aria-label={t("player.forwardSeconds", { seconds: forward / 1000 })}><RotateCw className="size-5" aria-hidden /></button>
           <div className="group/vol hidden items-center sm:flex">
             <button type="button" className={iconBtn} aria-label={muted ? t("player.unmute") : t("player.mute")}
               onClick={() => { const v = videoRef.current; if (v) v.muted = !v.muted; }}><VolumeIcon className="size-5" aria-hidden /></button>

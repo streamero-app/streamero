@@ -87,6 +87,8 @@ type Service struct {
 	EnqueueMetadata func(ctx context.Context, libraryID uuid.UUID, force bool) error
 	// ImageDir holds cached artwork (<dir>/<item id>/<kind>.jpg).
 	ImageDir string
+	// Resume returns the administrator's resume thresholds (defaults when nil).
+	Resume func(ctx context.Context) Resume
 }
 
 const libCols = `l.id, l.name, l.kind, l.paths, l.scan_state, COALESCE(l.scan_error, ''), l.last_scan_at, l.files_seen,
@@ -405,8 +407,21 @@ func (s *Service) GetMetadata(ctx context.Context, id uuid.UUID) (ItemMetadata, 
 	return m, rows.Err()
 }
 
-// SaveProgress records a playback position for owner (profile or user). Past 90%
-// of the duration the item counts as watched and the position resets.
+// Resume says when a stopped title keeps its position and when it counts as watched.
+type Resume struct {
+	MinPercent         int `json:"minResumePercent"`
+	MaxPercent         int `json:"maxResumePercent"`
+	MinDurationSeconds int `json:"minResumeDurationSeconds"`
+}
+
+// KeyResume is the settings key of the resume thresholds.
+const KeyResume = "playback.resume"
+
+// DefaultResume: keep positions between 5% and 90%, for titles of five minutes or more.
+func DefaultResume() Resume { return Resume{MinPercent: 5, MaxPercent: 90, MinDurationSeconds: 300} }
+
+// SaveProgress records a playback position for owner (profile or user). Past the
+// resume maximum (90% by default) the item counts as watched and the position resets.
 func (s *Service) SaveProgress(ctx context.Context, owner, itemID uuid.UUID, positionMS int64, durationMS *int64, played bool) error {
 	var dur int64
 	if durationMS != nil {
@@ -414,8 +429,16 @@ func (s *Service) SaveProgress(ctx context.Context, owner, itemID uuid.UUID, pos
 	} else {
 		_ = s.Pool.QueryRow(ctx, `SELECT COALESCE(max(duration_ms), 0) FROM media_files WHERE item_id = $1`, itemID).Scan(&dur)
 	}
-	if dur > 0 && positionMS >= dur*9/10 {
+	r := DefaultResume()
+	if s.Resume != nil {
+		r = s.Resume(ctx)
+	}
+	if dur > 0 && positionMS*100 >= dur*int64(r.MaxPercent) {
 		played = true
+	}
+	// Too early, or too short a title, to be worth resuming.
+	if !played && (dur > 0 && positionMS*100 < dur*int64(r.MinPercent) || dur > 0 && dur < int64(r.MinDurationSeconds)*1000) {
+		positionMS = 0
 	}
 	if played {
 		positionMS = 0

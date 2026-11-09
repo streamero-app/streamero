@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
+import { HOME_SECTIONS, type HomeSection } from "@/features/settings/usePreferences";
 import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
@@ -243,17 +244,27 @@ export function Billboard({ pool, label }: { pool?: ItemSummary[]; label?: strin
 }
 
 /** Top-rated and genre strips for one library. */
-function LibraryRows({ library }: { library: Library }) {
+/** The best rated titles of one library, ranked. */
+function LibraryTop({ library }: { library: Library }) {
   const { t } = useTranslation();
-  const genres = useQuery({
-    queryKey: ["genres", library.id],
-    queryFn: async () => unwrap(await api.GET("/libraries/{libraryId}/genres", { params: { path: { libraryId: library.id } } })),
-  });
   const top = useQuery({
     queryKey: ["row", `top-${library.id}`],
     queryFn: async () =>
       unwrap(await api.GET("/libraries/{libraryId}/items", { params: { path: { libraryId: library.id }, query: { limit: 20, sort: "rating" } } }))
         .items.filter((i) => i.rating),
+  });
+  return (
+    <Row title={t("home.topTen", { name: library.name })} testId="top" count={top.data?.length ?? 0}>
+      {top.data?.slice(0, 10).map((it, i) => <RankCard key={it.id} item={it} rank={i + 1} />)}
+    </Row>
+  );
+}
+
+/** A strip per genre for one library. */
+function LibraryRows({ library }: { library: Library }) {
+  const genres = useQuery({
+    queryKey: ["genres", library.id],
+    queryFn: async () => unwrap(await api.GET("/libraries/{libraryId}/genres", { params: { path: { libraryId: library.id } } })),
   });
   const picked = (genres.data ?? []).slice(0, 4);
   const rows = useQueries({
@@ -266,9 +277,6 @@ function LibraryRows({ library }: { library: Library }) {
   });
   return (
     <>
-      <Row title={t("home.topTen", { name: library.name })} testId="top" count={top.data?.length ?? 0}>
-        {top.data?.slice(0, 10).map((it, i) => <RankCard key={it.id} item={it} rank={i + 1} />)}
-      </Row>
       {picked.map((g, i) => (
         <Row key={g} title={g} testId={`genre-${g}`} count={rows[i]?.data?.length ?? 0}>
           {rows[i]?.data?.map((it) => <ItemCard key={it.id} item={it} className={posterCard} />)}
@@ -289,26 +297,41 @@ export function HomeContent() {
   const favs = useQuery({ queryKey: ["favorites"], queryFn: async () => unwrap(await api.GET("/home/favorites")) });
   const name = me?.currentProfile?.name ?? me?.username;
   const up = Array.isArray(nextUp.data) ? nextUp.data : [];
+  const prefs = useQuery({ queryKey: ["preferences"], queryFn: async () => unwrap(await api.GET("/me/preferences")) });
+  const sections = (prefs.data?.homeSections?.length ? prefs.data.homeSections : HOME_SECTIONS) as readonly HomeSection[];
+  const libs = Array.isArray(libraries.data) ? libraries.data : [];
+  const blocks: Record<HomeSection, ReactNode> = {
+    continue: (
+      <Row title={t("home.continue")} testId="continue" count={cont.data?.length ?? 0}>
+        {cont.data?.map((it) => <TitleCard key={it.id} item={it} className={rowCard} play />)}
+      </Row>
+    ),
+    nextUp: (
+      <Row title={t("home.nextUp")} testId="next-up" count={up.length}>
+        {up.map((it) => <TitleCard key={it.id} item={it} className={rowCard} play />)}
+      </Row>
+    ),
+    latest: (
+      <Row title={t("home.latest")} testId="latest" count={latest.data?.length ?? 0}>
+        {latest.data?.map((it) => <ItemCard key={it.id} item={it} className={posterCard} />)}
+      </Row>
+    ),
+    favorites: (
+      <Row title={t("nav.myList")} testId="favorites" count={favs.data?.length ?? 0}>
+        {favs.data?.map((it) => <ItemCard key={it.id} item={it} className={posterCard} />)}
+      </Row>
+    ),
+    collections: <CollectionsRow />,
+    top: libs.map((l) => <LibraryTop key={l.id} library={l} />),
+    genres: libs.map((l) => <LibraryRows key={l.id} library={l} />),
+    libraries: <LibraryShelf />,
+  };
   return (
     <div className="flex flex-col gap-12 pb-8 sm:gap-14" data-testid="home-page">
       <h1 className="sr-only">{t("home.welcome", { name })}</h1>
       <Billboard pool={latest.data} label={t("home.latest")} />
       {latest.isPending && <><RowSkeleton /><RowSkeleton /></>}
-      <Row title={t("home.continue")} testId="continue" count={cont.data?.length ?? 0}>
-        {cont.data?.map((it) => <TitleCard key={it.id} item={it} className={rowCard} play />)}
-      </Row>
-      <Row title={t("home.nextUp")} testId="next-up" count={up.length}>
-        {up.map((it) => <TitleCard key={it.id} item={it} className={rowCard} play />)}
-      </Row>
-      <Row title={t("home.latest")} testId="latest" count={latest.data?.length ?? 0}>
-        {latest.data?.map((it) => <ItemCard key={it.id} item={it} className={posterCard} />)}
-      </Row>
-      <Row title={t("nav.myList")} testId="favorites" count={favs.data?.length ?? 0}>
-        {favs.data?.map((it) => <ItemCard key={it.id} item={it} className={posterCard} />)}
-      </Row>
-      <CollectionsRow />
-      {libraries.data?.map((l) => <LibraryRows key={l.id} library={l} />)}
-      <LibraryShelf />
+      {sections.map((sec) => <Fragment key={sec}>{blocks[sec]}</Fragment>)}
     </div>
   );
 }
@@ -405,6 +428,7 @@ function LibrarySuggestions({ library }: { library: Library }) {
       <Row title={t("library.notWatchedYet")} testId="lib-unwatched" count={unwatched.data?.length ?? 0}>
         {unwatched.data?.map((it) => <TitleCard key={it.id} item={it} className={rowCard} />)}
       </Row>
+      <LibraryTop library={library} />
       <LibraryRows library={library} />
     </div>
   );
@@ -428,11 +452,14 @@ function GenreGrid({ library, onPick }: { library: Library; onPick: (g: string) 
   });
   if (genres.isPending) return <div className="flex justify-center py-20"><Spinner /></div>;
   if (!list.length) return <p className="py-16 text-center text-sm text-muted">{t("library.noGenres")}</p>;
+  const used = new Set<string>();
   return (
     <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 ${gutter}`}>
       {list.map((g, i) => {
         const page = covers[i]?.data;
-        const cover = page?.items.find((x) => x.hasBackdrop) ?? page?.items[0];
+        // Each tile gets a different film where the library allows it.
+        const cover = page?.items.find((x) => x.hasBackdrop && !used.has(x.id)) ?? page?.items.find((x) => x.hasBackdrop) ?? page?.items[0];
+        if (cover) used.add(cover.id);
         return (
           <button key={g} type="button" onClick={() => onPick(g)} data-testid="genre-tile"
             className="tv-focus group relative aspect-[16/8] overflow-hidden rounded-[6px] bg-surface-2 text-left">
@@ -762,6 +789,12 @@ function TrickFrame({ tp, ms, className = "" }: { tp: Trick; ms: number; classNa
   );
 }
 
+/** A representative moment of a chapter: a little way in, past fades and titles. */
+function frameAt(start: number, next?: number): number {
+  const len = next ? next - start : 60_000;
+  return start + Math.min(20_000, Math.max(1_000, len / 3));
+}
+
 /** Chapters with a frame from each, starting playback at that point. */
 function Chapters({ d }: { d: ItemDetail }) {
   const { t } = useTranslation();
@@ -777,7 +810,7 @@ function Chapters({ d }: { d: ItemDetail }) {
             <Link to="/watch/$itemId" params={{ itemId: d.item.id }} search={{ start: c.startMs }}
               className="tv-focus group flex flex-col gap-2 rounded-[6px] outline-none">
               <div className="poster-lift relative aspect-video overflow-hidden rounded-[6px] bg-surface-2">
-                {tp ? <TrickFrame tp={tp} ms={c.startMs + 2000} className="absolute inset-0" /> : <ArtFallback item={d.item} wide />}
+                {tp ? <TrickFrame tp={tp} ms={frameAt(c.startMs, chapters[i + 1]?.startMs)} className="absolute inset-0" /> : <ArtFallback item={d.item} wide />}
                 <span className="absolute bottom-2 left-2 rounded-[3px] bg-black/75 px-1.5 py-0.5 text-xs font-semibold tabular">{formatClock(c.startMs)}</span>
               </div>
               <p className="truncate text-sm text-text/85 group-hover:text-text"><span className="mr-2 text-text/45 tabular">{i + 1}</span>{c.title}</p>

@@ -80,34 +80,12 @@ func (h *Handler) GetDashboard(ctx context.Context) (*gen.Dashboard, error) {
 	if h.Stream != nil && h.Stream() != nil && h.Stream().HLS != nil {
 		out.ActiveTranscodes = h.Stream().HLS.Active()
 	}
-	rows, err := h.lib().Pool.Query(ctx, `SELECT a.at, COALESCE(u.username, ''), a.action, a.detail
-		FROM audit_log a LEFT JOIN users u ON u.id = a.user_id ORDER BY a.at DESC LIMIT 40`)
+	act, err := h.activity(ctx, 40, 0)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	for rows.Next() {
-		var e gen.ActivityEntry
-		var user string
-		var raw []byte
-		if err := rows.Scan(&e.At, &user, &e.Action, &raw); err != nil {
-			return nil, err
-		}
-		if user != "" {
-			e.User = gen.NewOptString(user)
-		}
-		var detail map[string]any
-		if json.Unmarshal(raw, &detail) == nil && len(detail) > 0 {
-			d := gen.ActivityEntryDetail{}
-			for k, v := range detail {
-				b, _ := json.Marshal(v)
-				d[k] = b
-			}
-			e.Detail = gen.NewOptActivityEntryDetail(d)
-		}
-		out.Activity = append(out.Activity, e)
-	}
-	return out, rows.Err()
+	out.Activity = act
+	return out, nil
 }
 
 // taskJobs maps task keys to the River job kinds that perform them.
@@ -342,4 +320,75 @@ func (h *Handler) trackProgress(p auth.Principal, itemID uuid.UUID, positionMS i
 		key = "key:" + p.APIKeyID.String()
 	}
 	h.NowPlaying.Progress(key, itemID, positionMS)
+}
+
+// activity reads the audit log, newest first.
+func (h *Handler) activity(ctx context.Context, limit, offset int) ([]gen.ActivityEntry, error) {
+	rows, err := h.lib().Pool.Query(ctx, `SELECT a.at, COALESCE(u.username, ''), a.action, a.detail
+		FROM audit_log a LEFT JOIN users u ON u.id = a.user_id ORDER BY a.at DESC, a.id DESC LIMIT $1 OFFSET $2`, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []gen.ActivityEntry{}
+	for rows.Next() {
+		var e gen.ActivityEntry
+		var user string
+		var raw []byte
+		if err := rows.Scan(&e.At, &user, &e.Action, &raw); err != nil {
+			return nil, err
+		}
+		if user != "" {
+			e.User = gen.NewOptString(user)
+		}
+		var detail map[string]any
+		if json.Unmarshal(raw, &detail) == nil && len(detail) > 0 {
+			d := gen.ActivityEntryDetail{}
+			for k, v := range detail {
+				b, _ := json.Marshal(v)
+				d[k] = b
+			}
+			e.Detail = gen.NewOptActivityEntryDetail(d)
+		}
+		out = append(out, e)
+	}
+	return out, rows.Err()
+}
+
+// GetActivity implements GET /admin/activity.
+func (h *Handler) GetActivity(ctx context.Context, params gen.GetActivityParams) (*gen.ActivityPage, error) {
+	if h.lib() == nil {
+		return nil, errStarting
+	}
+	if _, err := admin(ctx); err != nil {
+		return nil, err
+	}
+	entries, err := h.activity(ctx, params.Limit.Or(50), params.Offset.Or(0))
+	if err != nil {
+		return nil, err
+	}
+	var total int
+	if err := h.lib().Pool.QueryRow(ctx, `SELECT count(*) FROM audit_log`).Scan(&total); err != nil {
+		return nil, err
+	}
+	return &gen.ActivityPage{Entries: entries, Total: total}, nil
+}
+
+// GetServerLogs implements GET /admin/logs.
+func (h *Handler) GetServerLogs(ctx context.Context, params gen.GetServerLogsParams) ([]gen.LogEntry, error) {
+	if _, err := admin(ctx); err != nil {
+		return nil, err
+	}
+	out := []gen.LogEntry{}
+	if h.Logs == nil {
+		return out, nil
+	}
+	for _, e := range h.Logs.Recent(ctx, string(params.Level.Or(gen.GetServerLogsLevelInfo)), params.Q.Value, params.Limit.Or(300)) {
+		le := gen.LogEntry{Time: e.Time, Level: gen.LogEntryLevel(e.Level), Message: e.Message, Source: e.Source}
+		if e.Attrs != "" {
+			le.Attrs = gen.NewOptString(e.Attrs)
+		}
+		out = append(out, le)
+	}
+	return out, nil
 }

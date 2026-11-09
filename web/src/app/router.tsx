@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 import { createRootRoute, createRoute, createRouter, Navigate, Outlet, redirect } from "@tanstack/react-router";
 import { ServerGate } from "@/features/server/ServerGate";
 import { AmbientProvider } from "@/features/ambient/Ambient";
+import { useSystemInfo } from "@/features/server/useSystemInfo";
 import { AppShell } from "@/features/auth/AppShell";
 import { useMe } from "@/features/auth/useAuth";
 import { SettingsLayout } from "@/features/settings/SettingsLayout";
@@ -22,7 +23,8 @@ import { MetadataSettings } from "@/features/settings/MetadataSettings";
 import { IntegrationsSettings } from "@/features/settings/IntegrationsSettings";
 import { DashboardSettings, TasksSettings } from "@/features/settings/DashboardSettings";
 import { NotificationsSettings } from "@/features/settings/NotificationsSettings";
-import { PlaybackSettings } from "@/features/settings/PlaybackSettings";
+import { HomeSettings, PlaybackSettings, SubtitleSettings } from "@/features/settings/PlaybackSettings";
+import { ActivitySettings, BrandingSettings, LogsSettings, TranscodingSettings } from "@/features/settings/ServerExtraSettings";
 import { ItemPage, LibrariesPage, LibraryPage, MyListPage } from "@/features/library/LibraryPages";
 import { ProfileGatePage } from "@/features/profiles/ProfileSwitcher";
 import { CollectionPage, CollectionsPage, PlaylistPage, PlaylistsPage } from "@/features/library/CollectionsPages";
@@ -30,9 +32,16 @@ import { PlayerPage } from "@/features/player/PlayerPage";
 import { SearchPage } from "@/features/library/SearchPage";
 import { NotFoundPage } from "@/routes/NotFoundPage";
 
+/** The administrator's extra CSS (Settings → Branding), on every page. */
+function CustomCss() {
+  const { data } = useSystemInfo();
+  return data?.customCss ? <style data-testid="custom-css">{data.customCss}</style> : null;
+}
+
 const rootRoute = createRootRoute({
   component: () => (
     <AmbientProvider>
+      <CustomCss />
       <ServerGate>
         <Outlet />
       </ServerGate>
@@ -107,6 +116,12 @@ const serverRoute = createRoute({ getParentRoute: () => settingsRoute, path: "se
 const apiKeysRoute = createRoute({ getParentRoute: () => settingsRoute, path: "apikeys", component: adminOnly(ApiKeysSettings) });
 const invitesRoute = createRoute({ getParentRoute: () => settingsRoute, path: "invites", component: adminOnly(InvitesSettings) });
 const usersRoute = createRoute({ getParentRoute: () => settingsRoute, path: "users", component: adminOnly(UsersSettings) });
+const subtitleLookRoute = createRoute({ getParentRoute: () => settingsRoute, path: "subtitles", component: SubtitleSettings });
+const homePrefsRoute = createRoute({ getParentRoute: () => settingsRoute, path: "home", component: HomeSettings });
+const transcodingRoute = createRoute({ getParentRoute: () => settingsRoute, path: "transcoding", component: adminOnly(TranscodingSettings) });
+const logsRoute = createRoute({ getParentRoute: () => settingsRoute, path: "logs", component: adminOnly(LogsSettings) });
+const activityRoute = createRoute({ getParentRoute: () => settingsRoute, path: "activity", component: adminOnly(ActivitySettings) });
+const brandingRoute = createRoute({ getParentRoute: () => settingsRoute, path: "branding", component: adminOnly(BrandingSettings) });
 
 export const routeTree = rootRoute.addChildren([
   loginRoute,
@@ -125,7 +140,8 @@ export const routeTree = rootRoute.addChildren([
     librariesRoute2,
     watchRoute,
     searchRoute,
-    settingsRoute.addChildren([settingsIndex, playbackRoute, dashboardRoute, tasksRoute, notificationsRoute, accountRoute, profilesRoute, devicesRoute, quickConnectRoute, serverRoute, librariesRoute, metadataRoute, integrationsRoute, usersRoute, invitesRoute, apiKeysRoute]),
+    settingsRoute.addChildren([settingsIndex, playbackRoute, dashboardRoute, tasksRoute, notificationsRoute, accountRoute, profilesRoute, devicesRoute, quickConnectRoute, serverRoute, librariesRoute, metadataRoute, integrationsRoute, usersRoute, invitesRoute, apiKeysRoute,
+      subtitleLookRoute, homePrefsRoute, transcodingRoute, logsRoute, activityRoute, brandingRoute]),
   ]),
 ]);
 export const router = createRouter({ routeTree });

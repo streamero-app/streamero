@@ -231,6 +231,24 @@ func (UnimplementedHandler) EnableTOTP(ctx context.Context, req *TOTPCodeRequest
 	return r, ht.ErrNotImplemented
 }
 
+// GetActivity implements getActivity operation.
+//
+// Sign-ins, account and settings changes (admin).
+//
+// GET /admin/activity
+func (UnimplementedHandler) GetActivity(ctx context.Context, params GetActivityParams) (r *ActivityPage, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetBrandingSettings implements getBrandingSettings operation.
+//
+// Login message and custom CSS (admin).
+//
+// GET /settings/branding
+func (UnimplementedHandler) GetBrandingSettings(ctx context.Context) (r *BrandingSettings, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetCollection implements getCollection operation.
 //
 // A collection with its titles.
@@ -255,6 +273,15 @@ func (UnimplementedHandler) GetCollectionImage(ctx context.Context, params GetCo
 //
 // GET /dashboard
 func (UnimplementedHandler) GetDashboard(ctx context.Context) (r *Dashboard, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetEncodingSettings implements getEncodingSettings operation.
+//
+// Transcoding settings (admin).
+//
+// GET /settings/encoding
+func (UnimplementedHandler) GetEncodingSettings(ctx context.Context) (r *EncodingSettings, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -336,6 +363,24 @@ func (UnimplementedHandler) GetPlaylist(ctx context.Context, params GetPlaylistP
 //
 // GET /me/preferences
 func (UnimplementedHandler) GetPreferences(ctx context.Context) (r *PlaybackPreferences, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetResumeSettings implements getResumeSettings operation.
+//
+// When playback counts as started or watched (admin).
+//
+// GET /settings/resume
+func (UnimplementedHandler) GetResumeSettings(ctx context.Context) (r *ResumeSettings, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetServerLogs implements getServerLogs operation.
+//
+// Recent log lines of the server and worker (admin).
+//
+// GET /admin/logs
+func (UnimplementedHandler) GetServerLogs(ctx context.Context, params GetServerLogsParams) (r []LogEntry, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -684,12 +729,30 @@ func (UnimplementedHandler) TestNotification(ctx context.Context, req *Notificat
 	return ht.ErrNotImplemented
 }
 
+// UpdateBrandingSettings implements updateBrandingSettings operation.
+//
+// Update branding (admin).
+//
+// PUT /settings/branding
+func (UnimplementedHandler) UpdateBrandingSettings(ctx context.Context, req *BrandingSettings) (r *BrandingSettings, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // UpdateCollection implements updateCollection operation.
 //
 // Rename a collection and replace its titles (administrators).
 //
 // PUT /collections/{collectionId}
 func (UnimplementedHandler) UpdateCollection(ctx context.Context, req *CollectionInput, params UpdateCollectionParams) (r *Collection, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateEncodingSettings implements updateEncodingSettings operation.
+//
+// Update transcoding settings (admin).
+//
+// PUT /settings/encoding
+func (UnimplementedHandler) UpdateEncodingSettings(ctx context.Context, req *EncodingSettings) (r *EncodingSettings, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -744,6 +807,15 @@ func (UnimplementedHandler) UpdatePreferences(ctx context.Context, req *Playback
 //
 // PUT /profiles/{profileId}
 func (UnimplementedHandler) UpdateProfile(ctx context.Context, req *ProfileInput, params UpdateProfileParams) (r *Profile, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateResumeSettings implements updateResumeSettings operation.
+//
+// Update resume thresholds (admin).
+//
+// PUT /settings/resume
+func (UnimplementedHandler) UpdateResumeSettings(ctx context.Context, req *ResumeSettings) (r *ResumeSettings, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
