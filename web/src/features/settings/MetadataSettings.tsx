@@ -35,6 +35,14 @@ export function MetadataSettings() {
     <Card title={<span className="flex items-center gap-2">{t("settings.metadata")} {configured
       ? <Badge tone="success">{t("metadata.connected")}</Badge> : <Badge>{t("metadata.notConnected")}</Badge>}</span>}>
       <p className="mb-4 text-sm text-muted">{t("metadata.intro")}</p>
+      {!configured && settings.data && (
+        <ol className="mb-5 flex max-w-xl list-decimal flex-col gap-1.5 rounded-[6px] border border-border bg-white/[0.03] py-4 pr-4 pl-9 text-sm text-text/85" data-testid="tmdb-steps">
+          <li>{t("metadata.step1")} <a className="font-semibold underline underline-offset-4" href="https://www.themoviedb.org/signup" target="_blank" rel="noreferrer">themoviedb.org/signup</a></li>
+          <li>{t("metadata.step2")} <a className="font-semibold underline underline-offset-4" href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer">themoviedb.org/settings/api</a></li>
+          <li>{t("metadata.step3")}</li>
+          <li>{t("metadata.step4")}</li>
+        </ol>
+      )}
       <form className="flex max-w-md flex-col gap-4" onSubmit={onSubmit}>
         <TextField label={configured ? t("metadata.replaceKey") : t("metadata.key")} type="password" autoComplete="off"
           spellCheck={false} value={form.key} onChange={(e) => setForm({ ...form, key: e.target.value })}

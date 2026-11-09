@@ -298,6 +298,23 @@ function LibraryRows({ library }: { library: Library }) {
   );
 }
 
+/** Admins without a TMDb key get one clear way to turn on proper metadata. */
+function MetadataNudge() {
+  const { t } = useTranslation();
+  const meta = useQuery({ queryKey: ["settings", "metadata"], queryFn: async () => unwrap(await api.GET("/settings/metadata")), retry: false });
+  const [hidden, setHidden] = useState(() => { try { return sessionStorage.getItem("tmdb-nudge") === "1"; } catch { return false; } });
+  if (hidden || !meta.data || meta.data.tmdbConfigured) return null;
+  return (
+    <div className="fixed inset-x-3 top-[4.75rem] z-30 mx-auto flex max-w-3xl flex-wrap items-center gap-3 rounded-[8px] border border-[color-mix(in_oklab,var(--amb-a)_45%,transparent)] bg-surface/95 p-4 shadow-2xl backdrop-blur-xl" role="status" data-testid="tmdb-nudge">
+      <Info className="size-5 shrink-0 text-[var(--amb-a)]" aria-hidden />
+      <p className="min-w-0 flex-1 text-sm text-text/85"><span className="font-semibold text-text">{t("metadata.nudgeTitle")}</span> {t("metadata.nudgeText")}</p>
+      <Link to="/settings/metadata" className={`${pressable} ${buttonVariants.primary} h-9 rounded-[6px] px-4 text-sm font-semibold`}>{t("metadata.nudgeAction")}</Link>
+      <button type="button" onClick={() => { setHidden(true); try { sessionStorage.setItem("tmdb-nudge", "1"); } catch { /* private mode */ } }}
+        aria-label={t("common.close")} className="grid size-8 place-items-center rounded-[6px] text-text/60 hover:bg-white/10 hover:text-text"><X className="size-4" aria-hidden /></button>
+    </div>
+  );
+}
+
 /** Home: the stage, then strips. */
 export function HomeContent() {
   const { t } = useTranslation();
@@ -341,6 +358,7 @@ export function HomeContent() {
   return (
     <div className="flex flex-col gap-12 pb-8 sm:gap-14" data-testid="home-page">
       <h1 className="sr-only">{t("home.welcome", { name })}</h1>
+      {me?.isAdmin && <MetadataNudge />}
       <Billboard pool={latest.data} label={t("home.latest")} />
       {latest.isPending && <><RowSkeleton /><RowSkeleton /></>}
       {sections.map((sec) => <Fragment key={sec}>{blocks[sec]}</Fragment>)}
