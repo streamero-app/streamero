@@ -389,27 +389,29 @@ export function LibraryPage() {
   return (
     <div className="flex flex-col gap-6">
       <Billboard pool={pool} />
-      <div className={`sticky top-16 z-30 -mt-2 flex flex-wrap items-center gap-x-5 gap-y-3 bg-bg/90 py-3 backdrop-blur-xl lg:top-[68px] ${gutter}`}>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{lib?.name ?? "…"}</h1>
+      <div className={`sticky top-[72px] z-30 ${gutter}`}>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3 rounded-[28px] bg-black/30 px-5 py-3 ring-1 ring-white/10 backdrop-blur-2xl">
+        <h1 className="font-display text-2xl sm:text-3xl">{lib?.name ?? "…"}</h1>
         {total !== undefined && <span className="text-sm text-muted tabular">{t("libraries.items", { count: total })}</span>}
         <div className="flex flex-wrap items-center gap-2 sm:ml-auto" role="group" aria-label={t("library.filters")}>
           {(genres.data?.length ?? 0) > 0 && (
-            <Select value={genre} onChange={(e) => setGenre(e.target.value)} aria-label={t("library.genre")} className="rounded-sm bg-black">
+            <Select value={genre} onChange={(e) => setGenre(e.target.value)} aria-label={t("library.genre")} className="rounded-full bg-white/[0.06]">
               <option value="">{t("library.allGenres")}</option>
               {genres.data?.map((g) => <option key={g} value={g}>{g}</option>)}
             </Select>
           )}
-          <Select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} aria-label={t("library.sort")} className="rounded-sm bg-black">
+          <Select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} aria-label={t("library.sort")} className="rounded-full bg-white/[0.06]">
             <option value="added">{t("library.sortAdded")}</option>
             <option value="title">{t("library.sortTitle")}</option>
             <option value="year">{t("library.sortYear")}</option>
             <option value="rating">{t("library.sortRating")}</option>
           </Select>
-          <label className={`${pressable} h-9 cursor-pointer rounded-sm border px-3 text-sm ${unplayed ? "border-white bg-white text-black" : "border-white/30 text-white/80 hover:border-white/70"}`}>
+          <label className={`${pressable} h-9 cursor-pointer rounded-full px-4 text-sm ${unplayed ? "bg-[var(--amb-a)] text-[var(--amb-ink)]" : "bg-white/[0.06] text-white/80 ring-1 ring-inset ring-white/15 hover:text-white"}`}>
             <input type="checkbox" className="sr-only" checked={unplayed} onChange={(e) => setUnplayed(e.target.checked)} />
             {unplayed && <Check className="size-3.5" aria-hidden />}
             {t("library.unplayedOnly")}
           </label>
+        </div>
         </div>
       </div>
       <div className={`flex flex-col gap-6 ${gutter}`}>
@@ -418,7 +420,7 @@ export function LibraryPage() {
         {total === 0 && (
           <p className="py-16 text-center text-sm text-muted">{lib && ["queued", "scanning"].includes(lib.scan.state) ? t("library.scanning") : t("library.empty")}</p>
         )}
-        <div className="grid grid-cols-3 gap-x-2 gap-y-6 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8">
+        <div className="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
           {all.map((it) => <ItemCard key={it.id} item={it} />)}
         </div>
         {items.hasNextPage && (
