@@ -104,13 +104,6 @@ struct ProfileGateView: View {
     }
 }
 
-extension Color {
-    /// "#rrggbb" from the server's profile colours.
-    init(hex: String) {
-        let v = UInt64(hex.trimmingCharacters(in: CharacterSet(charactersIn: "#")), radix: 16) ?? 0x8a5a2b
-        self.init(red: Double((v >> 16) & 0xff) / 255, green: Double((v >> 8) & 0xff) / 255, blue: Double(v & 0xff) / 255)
-    }
-}
 
 /// My list (favorites) as a grid of landscape cards.
 struct MyListTab: View {
@@ -224,7 +217,7 @@ struct HomeTab: View {
                 .padding(.bottom, 24)
             }
             .ignoresSafeArea(edges: .top)
-            .background(Theme.background)
+            .background(AmbientBackground(colors: featured?.colors))
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     HStack(spacing: 8) {
@@ -296,14 +289,16 @@ struct HeroView: View {
                 }
             }
             .frame(height: 560).frame(maxWidth: .infinity).clipped()
-            LinearGradient(colors: [Theme.background.opacity(0.7), .clear, Theme.background.opacity(0.6), Theme.background],
+            // The picture dissolves into the lit room instead of ending in a hard edge.
+            .mask(LinearGradient(colors: [.black, .black, .black.opacity(0.6), .clear], startPoint: .top, endPoint: .bottom))
+            LinearGradient(colors: [.black.opacity(0.5), .clear, .black.opacity(0.25), .black.opacity(0.45)],
                            startPoint: .top, endPoint: .bottom)
             VStack(alignment: .leading, spacing: 12) {
                 TitleArt(id: item.id, title: item.title, hasLogo: item.hasLogo == true, client: client, size: 44)
                 MetaLine(item: item)
                 HStack(spacing: 12) {
                     if playable {
-                        Button(action: onPlay) { Label("player.play", systemImage: "play.fill") }.buttonStyle(PrimaryButtonStyle())
+                        Button(action: onPlay) { Label("player.play", systemImage: "play.fill") }.buttonStyle(PrimaryButtonStyle(hex: item.colors?.first))
                     }
                     NavigationLink(value: item.id) { Label("home.moreInfo", systemImage: "info.circle") }
                         .buttonStyle(MutedButtonStyle())
@@ -560,7 +555,7 @@ struct ItemView: View {
             }
         }
         .ignoresSafeArea(edges: .top)
-        .background(Theme.background)
+        .background(AmbientBackground(colors: detail?.item.colors))
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .task { await reload() }
@@ -584,7 +579,8 @@ struct ItemView: View {
                 }
             }
             .frame(height: 480).frame(maxWidth: .infinity).clipped()
-            LinearGradient(colors: [Theme.background.opacity(0.6), .clear, Theme.background.opacity(0.7), Theme.background],
+            .mask(LinearGradient(colors: [.black, .black, .black.opacity(0.6), .clear], startPoint: .top, endPoint: .bottom))
+            LinearGradient(colors: [.black.opacity(0.45), .clear, .black.opacity(0.25), .black.opacity(0.45)],
                            startPoint: .top, endPoint: .bottom)
             HStack(alignment: .bottom, spacing: 16) {
                 if !isEpisode {
@@ -619,7 +615,7 @@ struct ItemView: View {
                     Button { playing = PlayTarget(id: it.id) } label: {
                         Label(it.positionMs != nil ? "player.resume" : "player.play", systemImage: "play.fill").frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(PrimaryButtonStyle())
+                    .buttonStyle(PrimaryButtonStyle(hex: it.colors?.first))
                 }
                 Button { Task { try? await client.setUserData(item: it.id, favorite: !(it.favorite ?? false)); await reload() } } label: {
                     Image(systemName: it.favorite == true ? "checkmark" : "plus")

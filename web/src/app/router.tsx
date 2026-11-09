@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import { createRootRoute, createRoute, createRouter, Navigate, Outlet, redirect } from "@tanstack/react-router";
 import { ServerGate } from "@/features/server/ServerGate";
+import { AmbientProvider } from "@/features/ambient/Ambient";
 import { AppShell } from "@/features/auth/AppShell";
 import { useMe } from "@/features/auth/useAuth";
 import { SettingsLayout } from "@/features/settings/SettingsLayout";
@@ -31,9 +32,11 @@ import { NotFoundPage } from "@/routes/NotFoundPage";
 
 const rootRoute = createRootRoute({
   component: () => (
-    <ServerGate>
-      <Outlet />
-    </ServerGate>
+    <AmbientProvider>
+      <ServerGate>
+        <Outlet />
+      </ServerGate>
+    </AmbientProvider>
   ),
   notFoundComponent: NotFoundPage,
 });

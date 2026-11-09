@@ -406,7 +406,7 @@ func (r *Refresher) store(ctx context.Context, id uuid.UUID, d Details, country 
 				original_title = NULLIF($4, ''), overview = NULLIF($5, ''), tagline = NULLIF($6, ''), genres = $7,
 				community_rating = $8, official_rating = NULLIF($9, ''), premiere_date = $10, has_poster = ($11 OR has_poster),
 				has_backdrop = ($12 OR has_backdrop), provider_ids = $13, year = COALESCE(year, $14), metadata_refreshed_at = now(),
-				metadata_error = NULL, has_logo = ($15 OR has_logo), updated_at = now()
+				metadata_error = NULL, has_logo = ($15 OR has_logo), colors = CASE WHEN $11 OR $12 THEN NULL ELSE colors END, updated_at = now()
 			WHERE id = $1`, id, title, library.SortTitle(title), d.Original(), d.Overview, d.Tagline, genres, rating,
 			d.Certification(country), premiere, a.poster, a.backdrop, rawIDs, yearOf(premiere), a.logo); err != nil {
 			return err
@@ -572,4 +572,54 @@ func yearOf(t *time.Time) *int {
 	}
 	y := t.Year()
 	return &y
+}
+
+// FillPalettes computes ambient colours for items whose artwork has none yet
+// (backdrop first, else poster or still).
+func (r *Refresher) FillPalettes(ctx context.Context, libraryID uuid.UUID) (int, error) {
+	if r.ImageDir == "" {
+		return 0, nil
+	}
+	rows, err := r.Pool.Query(ctx, `SELECT id, kind, has_backdrop FROM items
+		WHERE library_id = $1 AND colors IS NULL AND (has_backdrop OR has_poster) LIMIT 5000`, libraryID)
+	if err != nil {
+		return 0, err
+	}
+	type row struct {
+		id       uuid.UUID
+		kind     string
+		backdrop bool
+	}
+	var todo []row
+	for rows.Next() {
+		var x row
+		if err := rows.Scan(&x.id, &x.kind, &x.backdrop); err != nil {
+			rows.Close()
+			return 0, err
+		}
+		todo = append(todo, x)
+	}
+	rows.Close()
+	done := 0
+	for _, x := range todo {
+		if ctx.Err() != nil {
+			return done, ctx.Err()
+		}
+		kind := "poster"
+		switch {
+		case x.backdrop:
+			kind = "backdrop"
+		case x.kind == "episode":
+			kind = "still"
+		}
+		colors, err := PaletteFile(ImagePath(r.ImageDir, x.id, kind))
+		if err != nil {
+			colors = []string{} // unreadable artwork: do not retry every run
+		}
+		if _, err := r.Pool.Exec(ctx, `UPDATE items SET colors = $2 WHERE id = $1`, x.id, colors); err != nil {
+			return done, err
+		}
+		done++
+	}
+	return done, nil
 }

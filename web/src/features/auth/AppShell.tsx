@@ -13,7 +13,7 @@ import { useLogout, useMe } from "./useAuth";
 
 export const libraryIcon: Record<string, LucideIcon> = { movies: Film, shows: Tv, mixed: Clapperboard, music: Music };
 
-const topLink = "relative py-1 text-[14px] text-white/75 transition-colors duration-200 hover:text-white/95 [&.active]:font-semibold [&.active]:text-white";
+const topLink = "inline-flex h-9 items-center rounded-full px-4 text-[14px] font-medium text-white/70 transition-colors duration-200 hover:text-white [&.active]:bg-white/[0.12] [&.active]:text-white [&.active]:shadow-[inset_0_-2px_0_var(--amb-a)]";
 
 /** Search box that opens from an icon, like streaming apps. */
 function SearchBox() {
@@ -28,7 +28,7 @@ function SearchBox() {
       const q = new FormData(e.currentTarget).get("q")?.toString().trim();
       if (q) void navigate({ to: "/search", search: { q } });
     }}>
-      <div className={`flex h-9 items-center overflow-hidden rounded-sm transition-[width,background-color,border-color] duration-300 ease-out ${open ? "w-64 border border-white/70 bg-black/80" : "w-9 border border-transparent"}`}>
+      <div className={`flex h-9 items-center overflow-hidden rounded-full transition-[width,background-color] duration-300 ease-out ${open ? "w-64 bg-white/[0.1]" : "w-9"}`}>
         <button type="button" aria-label={t("search.open")} onClick={() => setOpen(true)} className="grid size-9 shrink-0 place-items-center text-white">
           <Search className="size-5" aria-hidden />
         </button>
@@ -125,10 +125,12 @@ export function AppShell() {
   return (
     <div className="min-h-full">
       {!watching && (
-        <header data-scrolled={scrolled}
-          className="fixed inset-x-0 top-0 z-40 flex h-16 items-center gap-6 bg-gradient-to-b from-black/80 to-transparent px-4 transition-[background-color] duration-500 data-[scrolled=true]:bg-bg sm:px-8 lg:h-[68px] lg:px-14">
-          <Link to="/" aria-label={t("nav.home")} className="shrink-0"><Logo size={28} /></Link>
-          <nav className="hidden items-center gap-5 md:flex" aria-label={t("nav.menu")}>
+        <header className="pointer-events-none fixed inset-x-0 top-0 z-40 flex items-center gap-3 px-3 pt-3 sm:px-6 sm:pt-4">
+          <Link to="/" aria-label={t("nav.home")} data-scrolled={scrolled}
+            className="pointer-events-auto flex h-12 items-center gap-2 rounded-full bg-black/30 pr-4 pl-2 ring-1 ring-white/10 backdrop-blur-2xl transition-colors data-[scrolled=true]:bg-black/55">
+            <Logo size={30} />
+          </Link>
+          <nav className="pointer-events-auto mx-auto hidden h-12 items-center gap-1 rounded-full bg-black/30 px-1.5 ring-1 ring-white/10 backdrop-blur-2xl md:flex" aria-label={t("nav.menu")}>
             <Link to="/" className={topLink} activeOptions={{ exact: true }}>{t("nav.home")}</Link>
             {libs.map((l) => (
               <Link key={l.id} to="/library/$libraryId" params={{ libraryId: l.id }} className={topLink}>{l.name}</Link>
@@ -137,14 +139,14 @@ export function AppShell() {
             <Link to="/my-list" className={topLink}>{t("nav.myList")}</Link>
             <Link to="/playlists" className={topLink}>{t("playlists.title")}</Link>
           </nav>
-          <div className="ml-auto flex items-center gap-4">
+          <div className="pointer-events-auto ml-auto flex h-12 items-center gap-1 rounded-full bg-black/30 px-1.5 ring-1 ring-white/10 backdrop-blur-2xl md:ml-0">
             <div className="hidden sm:block"><SearchBox /></div>
             <AccountMenu />
           </div>
         </header>
       )}
 
-      <main className={watching ? "" : "pb-20 md:pb-0"}>
+      <main className={watching ? "" : "pb-24 md:pb-0"}>
         <Outlet />
       </main>
       {!watching && (
@@ -155,7 +157,7 @@ export function AppShell() {
 
       {!watching && (
         <nav aria-label={t("nav.libraries")}
-          className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-white/10 bg-bg/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden">
+          className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-40 grid grid-cols-4 rounded-full bg-black/55 ring-1 ring-white/10 backdrop-blur-2xl md:hidden">
           {[
             { to: "/", icon: House, label: t("nav.home"), exact: true },
             { to: "/search", icon: Search, label: t("nav.search") },
@@ -163,7 +165,7 @@ export function AppShell() {
             { to: "/libraries", icon: Clapperboard, label: t("nav.libraries") },
           ].map(({ to, icon: Icon, label, exact }) => (
             <Link key={to} to={to} activeOptions={{ exact: !!exact }}
-              className="flex h-14 flex-col items-center justify-center gap-1 text-[11px] text-white/55 transition-colors [&.active]:text-white">
+              className="flex h-14 flex-col items-center justify-center gap-0.5 text-[11px] text-white/55 transition-colors [&.active]:text-[var(--amb-a)]">
               <Icon className="size-5" aria-hidden />{label}
             </Link>
           ))}

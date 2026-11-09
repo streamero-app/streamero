@@ -59,7 +59,7 @@ func (r *Refresher) GrabFrames(ctx context.Context, libraryID uuid.UUID) (int, e
 		}
 		ok := r.grab(ctx, j.path, j.durMS, j.hdr != "", ImagePath(r.ImageDir, j.id, kind))
 		// column is one of two constants above, never input.
-		q := fmt.Sprintf(`UPDATE items SET art_grabbed_at = now(), %s = (%s OR $2) WHERE id = $1`, column, column)
+		q := fmt.Sprintf(`UPDATE items SET art_grabbed_at = now(), %s = (%s OR $2), colors = CASE WHEN $2 THEN NULL ELSE colors END WHERE id = $1`, column, column)
 		if _, err := r.Pool.Exec(ctx, q, j.id, ok); err != nil {
 			return done, err
 		}

@@ -10,13 +10,14 @@ import { useMe } from "@/features/auth/useAuth";
 import { channelsLabel, formatDuration, formatSize, imageUrl, placeholderHue, resolutionLabel, type ItemSummary, type Library } from "./format";
 import { AddToMenu, CollectionCard, useCollections } from "./CollectionsPages";
 import { MetadataMenu } from "./MetadataEditor";
-import { ArtFallback, ItemCard, ProgressBar, RankCard, Row, RowSkeleton, TitleArt, TitleCard, isPlayable, progressOf, rowCard } from "./cards";
+import { ArtFallback, ItemCard, PortraitArt, ProgressBar, RankCard, Row, RowSkeleton, TitleArt, TitleCard, isPlayable, posterCard, progressOf, rowCard } from "./cards";
+import { useAmbient, useAmbientLight } from "@/features/ambient/Ambient";
 
 export { ItemCard } from "./cards";
 
 type ItemDetail = components["schemas"]["ItemDetail"];
 const PAGE = 60;
-const gutter = "px-4 sm:px-8 lg:px-14";
+const gutter = "px-5 sm:px-10 lg:px-16";
 
 export function useLibraries() {
   return useQuery({
@@ -36,20 +37,19 @@ function useItemDetail(id?: string) {
   });
 }
 
-/** Backdrop with the scrims every streaming billboard has; a tinted glow when there is no art. */
+/** Backdrop art with soft scrims; a tinted glow when there is no art. */
 function BillboardArt({ item, hasBackdrop, still = false }: { item: ItemSummary; hasBackdrop: boolean; still?: boolean }) {
   const [broken, setBroken] = useState(false);
   const hue = placeholderHue(item.title);
   return (
-    <div className="absolute inset-0 -z-10 overflow-hidden" aria-hidden>
+    <div className="absolute inset-0 overflow-hidden" aria-hidden>
       {hasBackdrop && !broken ? (
         <Art src={imageUrl(item.id, still ? "still" : "backdrop")} loading="eager" onError={() => setBroken(true)}
-          className="hero-settle absolute inset-0 size-full object-cover object-[center_20%]" />
+          className="absolute inset-0 size-full object-cover" />
       ) : (
-        <div className="absolute inset-0" style={{ background: `radial-gradient(80% 90% at 75% 20%, hsl(${hue} 22% 22%) 0%, transparent 70%), linear-gradient(180deg, #161616, #101010)` }} />
+        <div className="absolute inset-0" style={{ background: `radial-gradient(80% 90% at 70% 30%, hsl(${hue} 24% 26%) 0%, #101015 75%)` }} />
       )}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/35 to-transparent" />
-      <div className="absolute inset-x-0 bottom-0 h-[38%] bg-gradient-to-t from-bg via-bg/70 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
     </div>
   );
 }
@@ -67,8 +67,8 @@ function previewable(f?: ItemDetail["files"][number]): boolean {
 }
 
 /**
- * Muted motion preview behind a billboard, like streaming services: starts after a short
- * rest, only when the file plays directly, pauses off-screen, and gives way to the still.
+ * Muted motion preview inside the screen: starts after a short rest, only when the file
+ * plays directly, pauses off-screen, and gives way to the still.
  */
 function PreviewVideo({ detail }: { detail?: ItemDetail }) {
   const { t } = useTranslation();
@@ -92,12 +92,12 @@ function PreviewVideo({ detail }: { detail?: ItemDetail }) {
         body: { startMs, device: { containers: [file.container], videoCodecs: [file.videoCodec!], audioCodecs: (file.audio ?? []).map((a) => a.codec), hls: false } },
       });
       if (!cancelled && res.data?.method === "direct") setSrc({ url: res.data.url, startMs });
-    }, 2200);
+    }, 1800);
     return () => { cancelled = true; window.clearTimeout(timer); };
   }, [itemId]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const v = ref.current;
-    if (!v || !src) return;
+    if (!v || !src || typeof IntersectionObserver === "undefined") return;
     const io = new IntersectionObserver(([e]) => { if (e && !e.isIntersecting) v.pause(); else if (e?.isIntersecting && !v.ended) void v.play().catch(() => undefined); }, { threshold: 0.4 });
     io.observe(v);
     return () => io.disconnect();
@@ -110,14 +110,27 @@ function PreviewVideo({ detail }: { detail?: ItemDetail }) {
         onPlaying={() => setPlaying(true)}
         onTimeUpdate={(e) => { if (e.currentTarget.currentTime - src.startMs / 1000 > 45) e.currentTarget.pause(); }}
         onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)} onError={() => setSrc(null)}
-        className={`absolute inset-0 -z-[5] size-full object-cover transition-opacity duration-[1200ms] ease-out ${playing ? "opacity-100" : "opacity-0"}`} />
+        className={`absolute inset-0 size-full object-cover transition-opacity duration-[1200ms] ease-out ${playing ? "opacity-100" : "opacity-0"}`} />
       {playing && (
         <button type="button" onClick={() => setMuted(!muted)} aria-label={muted ? t("player.unmute") : t("player.mute")}
-          className="tv-focus absolute right-4 bottom-[22vh] z-10 grid size-11 place-items-center rounded-full border border-white/60 bg-black/30 text-white backdrop-blur transition-colors hover:bg-white/15 sm:right-8 lg:right-14">
-          {muted ? <VolumeX className="size-5" aria-hidden /> : <Volume2 className="size-5" aria-hidden />}
+          className="tv-focus absolute right-4 bottom-4 z-10 grid size-10 place-items-center rounded-full bg-black/40 text-white ring-1 ring-white/30 backdrop-blur transition-colors hover:bg-black/60">
+          {muted ? <VolumeX className="size-4" aria-hidden /> : <Volume2 className="size-4" aria-hidden />}
         </button>
       )}
     </>
+  );
+}
+
+/** The screen: the title's picture (and preview) as a lit panel that lights the room. */
+function Screen({ item, detail, still = false, className = "" }: { item: ItemSummary; detail?: ItemDetail; still?: boolean; className?: string }) {
+  const hasArt = !!item.hasBackdrop || (still && item.hasPoster);
+  return (
+    <div className={`screen-glow relative isolate ${className}`}>
+      <div className="relative aspect-video w-full overflow-hidden rounded-[28px] bg-surface-2 shadow-[0_40px_120px_-40px_rgb(0_0_0/0.9)] ring-1 ring-white/10">
+        <BillboardArt item={item} hasBackdrop={hasArt} still={still && !item.hasBackdrop} />
+        <PreviewVideo detail={detail} />
+      </div>
+    </div>
   );
 }
 
@@ -125,54 +138,85 @@ function Facts({ item, detail, className = "" }: { item: ItemSummary; detail?: I
   const { t } = useTranslation();
   const file = detail?.files[0];
   const res = resolutionLabel(file?.width, file?.height);
-  const tag = "rounded-sm border border-white/40 px-1.5 text-xs leading-5";
+  const pill = "inline-flex h-7 items-center gap-1 rounded-full bg-white/[0.08] px-3 text-[13px] text-white/85 ring-1 ring-inset ring-white/10";
   return (
-    <div className={`flex flex-wrap items-center gap-x-3 gap-y-2 text-[15px] text-white/85 tabular ${className}`}>
-      {item.rating ? <span className="inline-flex items-center gap-1 font-semibold text-white"><Star className="size-4 fill-accent text-accent" aria-hidden />{item.rating.toFixed(1)}</span> : null}
-      {item.year && <span>{item.year}</span>}
-      {detail?.officialRating && <span className={tag}>{detail.officialRating}</span>}
-      {item.durationMs ? <span>{formatDuration(item.durationMs)}</span> : <span>{t(`library.kind_${item.kind}`)}</span>}
-      {res && <span className={`${tag} font-semibold`}>{res === "4K" ? "4K" : "HD"}</span>}
-      {file?.hdr && <span className={`${tag} font-semibold`}>{file.hdr}</span>}
+    <div className={`flex flex-wrap items-center gap-2 tabular ${className}`}>
+      {item.rating ? <span className={`${pill} font-semibold text-white`}><Star className="size-3.5 fill-[var(--amb-a)] text-[var(--amb-a)]" aria-hidden />{item.rating.toFixed(1)}</span> : null}
+      {item.year && <span className={pill}>{item.year}</span>}
+      {item.durationMs ? <span className={pill}>{formatDuration(item.durationMs)}</span> : <span className={pill}>{t(`library.kind_${item.kind}`)}</span>}
+      {detail?.officialRating && <span className={pill}>{detail.officialRating}</span>}
+      {res && <span className={`${pill} font-semibold`}>{res === "4K" ? "4K" : "HD"}</span>}
+      {file?.hdr && <span className={`${pill} font-semibold`}>{file.hdr}</span>}
     </div>
   );
 }
 
-/** Billboard: the newest title with art, near full screen, with Play and More info. */
-export function Billboard({ pool }: { pool?: ItemSummary[] }) {
+const stageGutter = "px-5 sm:px-10 lg:px-16";
+
+/**
+ * The stage (home): a title on the left, its lit screen on the right, and a strip of
+ * posters below; focusing a poster brings that title onto the stage and re-lights the room.
+ */
+export function Billboard({ pool, label }: { pool?: ItemSummary[]; label?: string }) {
   const { t } = useTranslation();
-  const pick = pool?.find((i) => i.hasBackdrop) ?? pool?.find((i) => i.hasPoster) ?? pool?.[0];
+  const { light } = useAmbient();
+  const choices = (pool ?? []).filter((i, n, all) => all.findIndex((x) => x.id === i.id) === n).slice(0, 14);
+  const [pickId, setPickId] = useState<string>();
+  const pick = choices.find((i) => i.id === pickId) ?? choices.find((i) => i.hasBackdrop) ?? choices[0];
   const detail = useItemDetail(pick?.id);
-  if (!pool) return <div aria-hidden className="h-[78vh] min-h-[460px] animate-pulse bg-gradient-to-b from-white/[0.04] to-transparent sm:h-[86vh]" />;
+  useEffect(() => { if (pick) light(pick.colors); }, [pick?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const timer = useRef<number | undefined>(undefined);
+  const choose = (id: string) => {
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => setPickId(id), 180);
+  };
+  if (!pool) return <div aria-hidden className="h-[82vh] min-h-[520px]" />;
   if (!pick) return <div className="h-24" />;
   const d = detail.data;
   return (
-    <section className="relative isolate flex h-[78vh] min-h-[460px] items-end pb-[14vh] sm:h-[86vh] lg:pb-[18vh]" data-testid="home-hero">
-      <BillboardArt item={pick} hasBackdrop={!!pick.hasBackdrop} />
-      <PreviewVideo detail={d} />
-      <div className={`flex w-full max-w-[44rem] flex-col gap-4 ${gutter}`}>
-        <h2 className="enter">
-          <TitleArt item={pick} className="max-h-[22vh] w-auto max-w-[min(32rem,80vw)]"
-            textClass="block font-display text-[42px] leading-[0.92] text-balance drop-shadow-lg sm:text-6xl lg:text-7xl" />
-        </h2>
-        <Facts item={pick} detail={d} className="enter-2" />
-        {d?.overview && <p className="enter-2 line-clamp-3 max-w-[54ch] text-[15px] leading-snug text-white/90 drop-shadow sm:text-lg">{d.overview}</p>}
-        <div className="enter-3 mt-2 flex flex-wrap gap-3">
-          {isPlayable(pick) && (
-            <Link to="/watch/$itemId" params={{ itemId: pick.id }} className={`${pressable} ${buttonVariants.play} tv-focus h-11 rounded-md px-6 text-base font-bold sm:h-12 sm:px-8 sm:text-lg`}>
-              <Play className="size-5 fill-current sm:size-6" aria-hidden />{t("player.play")}
+    <section className="flex flex-col gap-8 pt-24 lg:pt-28" data-testid="home-hero">
+      <div className={`grid items-center gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-14 ${stageGutter}`}>
+        <div key={pick.id} className="order-2 flex min-w-0 flex-col gap-5 lg:order-1">
+          {label && <p className="enter text-sm font-semibold tracking-wide text-[var(--amb-a)]">{label}</p>}
+          <h2 className="enter">
+            <TitleArt item={pick} className="max-h-[18vh] w-auto max-w-[min(30rem,80vw)]"
+              textClass="block font-display text-[44px] leading-[0.9] text-balance sm:text-6xl xl:text-7xl" />
+          </h2>
+          <Facts item={pick} detail={d} className="enter-2" />
+          {d?.overview && <p className="enter-2 line-clamp-4 max-w-[52ch] text-[15px] leading-relaxed text-white/80 sm:text-base">{d.overview}</p>}
+          <div className="enter-3 mt-1 flex flex-wrap gap-3">
+            {isPlayable(pick) && (
+              <Link to="/watch/$itemId" params={{ itemId: pick.id }} className={`${pressable} ${buttonVariants.lit} tv-focus h-13 rounded-full px-8 text-base font-bold`}>
+                <Play className="size-5 fill-current" aria-hidden />{t("player.play")}
+              </Link>
+            )}
+            <Link to="/item/$itemId" params={{ itemId: pick.id }} className={`${pressable} ${buttonVariants.glass} tv-focus h-13 rounded-full px-6 text-base font-semibold`}>
+              <Info className="size-5" aria-hidden />{t("home.moreInfo")}
             </Link>
-          )}
-          <Link to="/item/$itemId" params={{ itemId: pick.id }} className={`${pressable} ${buttonVariants.muted} tv-focus h-11 rounded-md px-5 text-base font-bold sm:h-12 sm:px-7 sm:text-lg`}>
-            <Info className="size-5 sm:size-6" aria-hidden />{t("home.moreInfo")}
-          </Link>
+          </div>
         </div>
+        <Screen item={pick} detail={d} className="order-1 lg:order-2" />
       </div>
+      {choices.length > 1 && (
+        <div className="shelf-track flex gap-3 overflow-x-auto px-5 py-3 sm:px-10 lg:px-16" role="listbox" aria-label={label ?? t("home.latest")}>
+          {choices.map((it) => {
+            const on = it.id === pick.id;
+            return (
+              <button key={it.id} type="button" role="option" aria-selected={on} aria-label={it.title}
+                onMouseEnter={() => choose(it.id)} onFocus={() => { window.clearTimeout(timer.current); setPickId(it.id); }}
+                onClick={() => setPickId(it.id)}
+                className={`relative aspect-[2/3] w-[88px] shrink-0 overflow-hidden rounded-xl transition-[transform,opacity,box-shadow] duration-300 ease-out sm:w-[104px] ${on ? "scale-105 opacity-100 shadow-[0_14px_40px_-10px_var(--amb-a)] ring-2 ring-[var(--amb-a)]" : "opacity-55 hover:opacity-90"}`}>
+                <PortraitArt item={it} />
+              </button>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }
 
-/** Top-rated and genre rows for one library — the streaming-service backbone. */
+/** Top-rated and genre strips for one library. */
 function LibraryRows({ library }: { library: Library }) {
   const { t } = useTranslation();
   const genres = useQuery({
@@ -201,14 +245,14 @@ function LibraryRows({ library }: { library: Library }) {
       </Row>
       {picked.map((g, i) => (
         <Row key={g} title={g} testId={`genre-${g}`} count={rows[i]?.data?.length ?? 0}>
-          {rows[i]?.data?.map((it) => <TitleCard key={it.id} item={it} className={rowCard} />)}
+          {rows[i]?.data?.map((it) => <ItemCard key={it.id} item={it} className={posterCard} />)}
         </Row>
       ))}
     </>
   );
 }
 
-/** Home: billboard and rows. */
+/** Home: the stage, then strips. */
 export function HomeContent() {
   const { t } = useTranslation();
   const { data: me } = useMe();
@@ -218,28 +262,27 @@ export function HomeContent() {
   const nextUp = useQuery({ queryKey: ["next-up"], queryFn: async () => unwrap(await api.GET("/home/next-up")) });
   const favs = useQuery({ queryKey: ["favorites"], queryFn: async () => unwrap(await api.GET("/home/favorites")) });
   const name = me?.currentProfile?.name ?? me?.username;
+  const up = Array.isArray(nextUp.data) ? nextUp.data : [];
   return (
-    <div className="flex flex-col pb-8" data-testid="home-page">
+    <div className="flex flex-col gap-12 pb-8 sm:gap-14" data-testid="home-page">
       <h1 className="sr-only">{t("home.welcome", { name })}</h1>
-      <Billboard pool={latest.data} />
-      <div className={`relative z-10 flex flex-col gap-7 sm:gap-10 ${latest.data?.length ? "-mt-[12vh] lg:-mt-[16vh]" : "pt-20"}`}>
-        {latest.isPending && <><RowSkeleton /><RowSkeleton /></>}
-        <Row title={t("home.continue")} testId="continue" count={cont.data?.length ?? 0}>
-          {cont.data?.map((it) => <TitleCard key={it.id} item={it} className={rowCard} play />)}
-        </Row>
-        <Row title={t("home.nextUp")} testId="next-up" count={Array.isArray(nextUp.data) ? nextUp.data.length : 0}>
-          {Array.isArray(nextUp.data) && nextUp.data.map((it) => <TitleCard key={it.id} item={it} className={rowCard} play />)}
-        </Row>
-        <Row title={t("home.latest")} testId="latest" count={latest.data?.length ?? 0}>
-          {latest.data?.map((it) => <TitleCard key={it.id} item={it} className={rowCard} />)}
-        </Row>
-        <Row title={t("nav.myList")} testId="favorites" count={favs.data?.length ?? 0}>
-          {favs.data?.map((it) => <TitleCard key={it.id} item={it} className={rowCard} />)}
-        </Row>
-        <CollectionsRow />
-        {libraries.data?.map((l) => <LibraryRows key={l.id} library={l} />)}
-        <LibraryShelf />
-      </div>
+      <Billboard pool={latest.data} label={t("home.latest")} />
+      {latest.isPending && <><RowSkeleton /><RowSkeleton /></>}
+      <Row title={t("home.continue")} testId="continue" count={cont.data?.length ?? 0}>
+        {cont.data?.map((it) => <TitleCard key={it.id} item={it} className={rowCard} play />)}
+      </Row>
+      <Row title={t("home.nextUp")} testId="next-up" count={up.length}>
+        {up.map((it) => <TitleCard key={it.id} item={it} className={rowCard} play />)}
+      </Row>
+      <Row title={t("home.latest")} testId="latest" count={latest.data?.length ?? 0}>
+        {latest.data?.map((it) => <ItemCard key={it.id} item={it} className={posterCard} />)}
+      </Row>
+      <Row title={t("nav.myList")} testId="favorites" count={favs.data?.length ?? 0}>
+        {favs.data?.map((it) => <ItemCard key={it.id} item={it} className={posterCard} />)}
+      </Row>
+      <CollectionsRow />
+      {libraries.data?.map((l) => <LibraryRows key={l.id} library={l} />)}
+      <LibraryShelf />
     </div>
   );
 }
@@ -266,7 +309,7 @@ export function LibraryShelf({ asPage = false }: { asPage?: boolean }) {
       <section className={`flex flex-col items-start gap-3 ${gutter} ${asPage ? "pt-24" : ""}`}>
         <h2 className="text-xl font-bold">{t("home.librariesTitle")}</h2>
         <p className="max-w-prose text-sm text-muted">{me?.isAdmin ? t("home.noLibrariesAdmin") : t("home.noLibraries")}</p>
-        {me?.isAdmin && <Link to="/settings/libraries" className={`${pressable} ${buttonVariants.play} h-10 rounded-md px-4 text-sm font-bold`}>{t("libraries.add")}</Link>}
+        {me?.isAdmin && <Link to="/settings/libraries" className={`${pressable} ${buttonVariants.lit} h-10 rounded-full px-5 text-sm font-bold`}>{t("libraries.add")}</Link>}
       </section>
     );
   }
@@ -346,27 +389,29 @@ export function LibraryPage() {
   return (
     <div className="flex flex-col gap-6">
       <Billboard pool={pool} />
-      <div className={`sticky top-16 z-30 -mt-2 flex flex-wrap items-center gap-x-5 gap-y-3 bg-bg/90 py-3 backdrop-blur-xl lg:top-[68px] ${gutter}`}>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{lib?.name ?? "…"}</h1>
+      <div className={`sticky top-[72px] z-30 ${gutter}`}>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3 rounded-[28px] bg-black/30 px-5 py-3 ring-1 ring-white/10 backdrop-blur-2xl">
+        <h1 className="font-display text-2xl sm:text-3xl">{lib?.name ?? "…"}</h1>
         {total !== undefined && <span className="text-sm text-muted tabular">{t("libraries.items", { count: total })}</span>}
         <div className="flex flex-wrap items-center gap-2 sm:ml-auto" role="group" aria-label={t("library.filters")}>
           {(genres.data?.length ?? 0) > 0 && (
-            <Select value={genre} onChange={(e) => setGenre(e.target.value)} aria-label={t("library.genre")} className="rounded-sm bg-black">
+            <Select value={genre} onChange={(e) => setGenre(e.target.value)} aria-label={t("library.genre")} className="rounded-full bg-white/[0.06]">
               <option value="">{t("library.allGenres")}</option>
               {genres.data?.map((g) => <option key={g} value={g}>{g}</option>)}
             </Select>
           )}
-          <Select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} aria-label={t("library.sort")} className="rounded-sm bg-black">
+          <Select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} aria-label={t("library.sort")} className="rounded-full bg-white/[0.06]">
             <option value="added">{t("library.sortAdded")}</option>
             <option value="title">{t("library.sortTitle")}</option>
             <option value="year">{t("library.sortYear")}</option>
             <option value="rating">{t("library.sortRating")}</option>
           </Select>
-          <label className={`${pressable} h-9 cursor-pointer rounded-sm border px-3 text-sm ${unplayed ? "border-white bg-white text-black" : "border-white/30 text-white/80 hover:border-white/70"}`}>
+          <label className={`${pressable} h-9 cursor-pointer rounded-full px-4 text-sm ${unplayed ? "bg-[var(--amb-a)] text-[var(--amb-ink)]" : "bg-white/[0.06] text-white/80 ring-1 ring-inset ring-white/15 hover:text-white"}`}>
             <input type="checkbox" className="sr-only" checked={unplayed} onChange={(e) => setUnplayed(e.target.checked)} />
             {unplayed && <Check className="size-3.5" aria-hidden />}
             {t("library.unplayedOnly")}
           </label>
+        </div>
         </div>
       </div>
       <div className={`flex flex-col gap-6 ${gutter}`}>
@@ -375,7 +420,7 @@ export function LibraryPage() {
         {total === 0 && (
           <p className="py-16 text-center text-sm text-muted">{lib && ["queued", "scanning"].includes(lib.scan.state) ? t("library.scanning") : t("library.empty")}</p>
         )}
-        <div className="grid grid-cols-3 gap-x-2 gap-y-6 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8">
+        <div className="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
           {all.map((it) => <ItemCard key={it.id} item={it} />)}
         </div>
         {items.hasNextPage && (
@@ -402,7 +447,7 @@ function episodeLabel(it: ItemSummary): string {
   return it.episodeNumberEnd ? `E${e}–E${String(it.episodeNumberEnd).padStart(2, "0")}` : `E${e}`;
 }
 
-const circle = "tv-focus grid size-11 shrink-0 place-items-center rounded-full border-2 border-white/50 bg-black/40 text-white backdrop-blur transition-[border-color,transform] duration-150 hover:border-white active:scale-95 disabled:opacity-50 sm:size-12";
+const circle = "tv-focus grid size-12 shrink-0 place-items-center rounded-full bg-white/[0.08] text-white ring-1 ring-inset ring-white/15 backdrop-blur-xl transition-[background-color,transform] duration-150 hover:bg-white/[0.16] active:scale-95 disabled:opacity-50 sm:size-13";
 
 /** My list and watched toggles for the current profile. */
 function UserDataButtons({ item }: { item: ItemSummary }) {
@@ -422,7 +467,7 @@ function UserDataButtons({ item }: { item: ItemSummary }) {
         data-testid="favorite" disabled={update.isPending} onClick={() => update.mutate({ favorite: !item.favorite })}>
         {item.favorite ? <Check className="size-5" aria-hidden /> : <Plus className="size-5" aria-hidden />}
       </button>
-      <button type="button" className={`${circle} ${item.played ? "!border-accent text-accent" : ""}`}
+      <button type="button" className={`${circle} ${item.played ? "!bg-[var(--amb-a)] !text-[var(--amb-ink)]" : ""}`}
         title={item.played ? t("library.markUnplayed") : t("library.markPlayed")}
         aria-label={item.played ? t("library.markUnplayed") : t("library.markPlayed")} aria-pressed={!!item.played}
         data-testid="played" disabled={update.isPending} onClick={() => update.mutate({ played: !item.played })}>
@@ -517,6 +562,7 @@ export function ItemPage() {
     }
   }, [seasonIds]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useAmbientLight(detail.data?.item.colors);
   if (detail.error) return <div className={`pt-24 ${gutter}`}><ErrorText error={detail.error} /></div>;
   if (!d) return <div role="status" className="flex min-h-[70vh] items-center justify-center"><Spinner /></div>;
   const it = { ...d.item, hasBackdrop: d.hasBackdrop };
@@ -525,38 +571,31 @@ export function ItemPage() {
   const writers = d.crew.filter((p) => p.role !== "Director").map((p) => p.name);
   const rows = d.children.filter((c) => c.kind !== "season");
   const title = isEpisode ? `${episodeLabel(it)} · ${it.title}` : it.title;
-  const sidePoster = "absolute top-28 right-[6vw] -z-10 hidden aspect-[2/3] w-60 overflow-hidden rounded-md shadow-[0_30px_60px_rgb(0_0_0/0.8)] lg:block xl:w-72";
 
   return (
     <div className="flex flex-col gap-12 pb-6">
-      <section className="relative isolate flex min-h-[80vh] flex-col justify-end pt-28 pb-10" data-testid="item-hero">
-        <BillboardArt item={it} hasBackdrop={d.hasBackdrop || (isEpisode && it.hasPoster)} still={!d.hasBackdrop && isEpisode} />
-        <PreviewVideo detail={d} />
-        {!d.hasBackdrop && !isEpisode && (
-          <div className={sidePoster}>
-            {it.hasPoster ? <Art src={imageUrl(it.id, "poster")} loading="eager" className="absolute inset-0 size-full object-cover" /> : <ArtFallback item={it} />}
-          </div>
-        )}
-        <div className={`flex max-w-[48rem] flex-col gap-4 ${gutter}`}>
+      <section className={`grid items-center gap-8 pt-24 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-14 lg:pt-32 ${gutter}`} data-testid="item-hero">
+        <div className="order-2 flex min-w-0 flex-col gap-5 lg:order-1">
           <h1 className="enter">
             {isEpisode
-              ? <span className="block font-display text-[40px] leading-[0.92] text-balance drop-shadow-lg sm:text-6xl lg:text-7xl">{title}</span>
-              : <TitleArt item={{ ...it, hasLogo: d.hasLogo }} className="max-h-[24vh] w-auto max-w-[min(34rem,82vw)]"
-                  textClass="block font-display text-[40px] leading-[0.92] text-balance drop-shadow-lg sm:text-6xl lg:text-7xl" />}
+              ? <span className="block font-display text-[40px] leading-[0.92] text-balance sm:text-6xl">{title}</span>
+              : <TitleArt item={{ ...it, hasLogo: d.hasLogo }} className="max-h-[20vh] w-auto max-w-[min(32rem,82vw)]"
+                  textClass="block font-display text-[44px] leading-[0.9] text-balance sm:text-6xl xl:text-7xl" />}
           </h1>
-          {d.originalTitle && d.originalTitle !== it.title && <p className="-mt-1 text-sm text-white/60">{d.originalTitle}</p>}
+          {d.originalTitle && d.originalTitle !== it.title && <p className="-mt-2 text-sm text-white/55">{d.originalTitle}</p>}
           <Facts item={it} detail={d} className="enter-2" />
+          {d.tagline && <p className="enter-2 font-display text-xl text-[var(--amb-a)]">{d.tagline}</p>}
           <div className="enter-3 mt-1 flex flex-wrap items-center gap-3">
             {d.files.length > 0 && (
               <Link to="/watch/$itemId" params={{ itemId: it.id }} data-testid="play"
-                className={`${pressable} ${buttonVariants.play} tv-focus h-11 rounded-md px-6 text-base font-bold sm:h-12 sm:px-8 sm:text-lg`}>
-                <Play className="size-5 fill-current sm:size-6" aria-hidden />
+                className={`${pressable} ${buttonVariants.lit} tv-focus h-13 rounded-full px-8 text-base font-bold`}>
+                <Play className="size-5 fill-current" aria-hidden />
                 {it.positionMs ? t("player.resume", { time: formatClock(it.positionMs) }) : t("player.play")}
               </Link>
             )}
             {d.files.length > 0 && it.positionMs ? (
               <Link to="/watch/$itemId" params={{ itemId: it.id }} search={{ start: 0 }}
-                className={`${pressable} ${buttonVariants.muted} tv-focus h-11 rounded-md px-5 text-base font-bold sm:h-12`}>
+                className={`${pressable} ${buttonVariants.glass} tv-focus h-13 rounded-full px-6 text-base font-semibold`}>
                 <RotateCcw className="size-5" aria-hidden />{t("player.fromStart")}
               </Link>
             ) : null}
@@ -564,13 +603,21 @@ export function ItemPage() {
             {it.kind !== "season" && <AddToMenu item={it} />}
             {isAdmin && <MetadataMenu d={d} />}
           </div>
-          {progressOf(it) > 0 && <ProgressBar value={progressOf(it)} className="max-w-sm rounded-full" />}
+          {progressOf(it) > 0 && <ProgressBar value={progressOf(it)} className="max-w-sm" />}
         </div>
+        {d.hasBackdrop || isEpisode ? (
+          <Screen item={it} detail={d} still={isEpisode} className="order-1 lg:order-2" />
+        ) : (
+          <div className="screen-glow relative isolate order-1 mx-auto w-[min(60vw,300px)] lg:order-2">
+            <div className="relative aspect-[2/3] overflow-hidden rounded-[28px] ring-1 ring-white/10">
+              {it.hasPoster ? <Art src={imageUrl(it.id, "poster")} loading="eager" className="absolute inset-0 size-full object-cover" /> : <ArtFallback item={it} />}
+            </div>
+          </div>
+        )}
       </section>
 
       <section className={`grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] ${gutter}`}>
         <div className="flex flex-col gap-3">
-          {d.tagline && <p className="text-lg font-semibold text-white/90">{d.tagline}</p>}
           {d.overview && <p className="max-w-[70ch] text-base leading-relaxed text-white/85 sm:text-[17px]" data-testid="overview">{d.overview}</p>}
           {d.metadataError && <p className="text-xs text-muted">{t("library.noMetadata")}</p>}
         </div>

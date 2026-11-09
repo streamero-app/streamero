@@ -1,12 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Check, ChevronDown, ChevronLeft, ChevronRight, Play, Plus, Star } from "lucide-react";
-import { api, unwrap } from "@/api/client";
+import { Check, ChevronLeft, ChevronRight, Play, Star } from "lucide-react";
 import { Art } from "@/components/ui";
-import { formatDuration, imageUrl, placeholderHue, type ItemSummary } from "./format";
+import { useAmbient } from "@/features/ambient/Ambient";
+import { imageUrl, placeholderHue, type ItemSummary } from "./format";
 
 export function progressOf(it: ItemSummary): number {
   return it.positionMs && it.durationMs ? Math.min(100, (it.positionMs / it.durationMs) * 100) : 0;
@@ -16,14 +14,19 @@ export function isPlayable(it: ItemSummary): boolean {
   return it.kind === "movie" || it.kind === "episode";
 }
 
+/** The card's own light (its first palette colour) for the glow. */
+function cardLight(it: ItemSummary): CSSProperties | undefined {
+  return it.colors?.[0] ? ({ "--card-a": it.colors[0] } as CSSProperties) : undefined;
+}
+
 /** Artwork stand-in: the title set large on a muted, title-tinted ground. */
 export function ArtFallback({ item, wide = false }: { item: ItemSummary; wide?: boolean }) {
   const hue = placeholderHue(item.title);
   return (
-    <div className="absolute inset-0 flex flex-col justify-end p-3"
-      style={{ background: `radial-gradient(120% 100% at 15% 0%, hsl(${hue} 18% 26%) 0%, hsl(${(hue + 30) % 360} 12% 13%) 55%, #0e0e0e 100%)` }}>
-      <span className={`font-display leading-[0.95] text-white ${wide ? "line-clamp-2 text-[22px]" : "line-clamp-4 text-2xl"}`}>{item.title}</span>
-      {item.year && !wide && <span className="mt-1 text-xs text-white/55 tabular">{item.year}</span>}
+    <div className="absolute inset-0 flex flex-col justify-end p-[8cqw] [container-type:inline-size]"
+      style={{ background: `radial-gradient(120% 100% at 15% 0%, hsl(${hue} 22% 24%) 0%, hsl(${(hue + 30) % 360} 14% 12%) 55%, #0b0b0e 100%)` }}>
+      <span className={`font-display leading-[0.95] break-words text-white ${wide ? "line-clamp-2 text-[9cqw]" : "line-clamp-4 text-[15cqw]"}`}>{item.title}</span>
+      {item.year && !wide && <span className="mt-[2cqw] text-[8cqw] text-white/55 tabular">{item.year}</span>}
     </div>
   );
 }
@@ -40,188 +43,110 @@ export function TitleArt({ item, className = "", textClass = "" }: { item: ItemS
   return <span className={textClass}>{item.title}</span>;
 }
 
+export function ProgressBar({ value, className = "" }: { value: number; className?: string }) {
+  if (!value) return null;
+  return (
+    <div className={`h-[3px] overflow-hidden rounded-full bg-white/20 ${className}`} aria-hidden>
+      <div className="h-full rounded-full bg-[var(--card-a,var(--amb-a))]" style={{ width: `${value}%` }} />
+    </div>
+  );
+}
+
+/** Portrait artwork: the poster, else a centred crop of the backdrop with the title, else type. */
+export function PortraitArt({ item, broken = false, onError }: { item: ItemSummary; broken?: boolean; onError?: () => void }) {
+  if (item.hasPoster && !broken) {
+    return <Art src={imageUrl(item.id, item.kind === "episode" ? "still" : "poster")} onError={onError} className="absolute inset-0 size-full object-cover" />;
+  }
+  if (item.hasBackdrop && !broken) {
+    return (
+      <>
+        <Art src={imageUrl(item.id, "backdrop")} onError={onError} className="absolute inset-0 size-full object-cover" />
+        <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/85 via-black/10 to-transparent p-[8cqw] [container-type:inline-size]">
+          <span className="line-clamp-3 font-display text-[14cqw] leading-[0.95] break-words text-white">{item.title}</span>
+        </div>
+      </>
+    );
+  }
+  return <ArtFallback item={item} />;
+}
+
 function landscapeSrc(it: ItemSummary): string | null {
   if (it.hasBackdrop) return imageUrl(it.id, "backdrop");
   if (it.kind === "episode" && it.hasPoster) return imageUrl(it.id, "still");
   return null;
 }
 
-export function ProgressBar({ value, className = "" }: { value: number; className?: string }) {
-  if (!value) return null;
-  return (
-    <div className={`h-[3px] overflow-hidden bg-white/25 ${className}`} aria-hidden>
-      <div className="h-full bg-accent" style={{ width: `${value}%` }} />
-    </div>
-  );
+/** Hovering or focusing a card lights the room with the card's colours. */
+function useCardLight(item: ItemSummary) {
+  const { lightSoon } = useAmbient();
+  return { onMouseEnter: () => lightSoon(item.colors), onFocus: () => lightSoon(item.colors) };
 }
 
-/** Landscape art of an item, with the title over it when the art has none. */
-function Landscape({ item, showTitle = true }: { item: ItemSummary; showTitle?: boolean }) {
-  const [broken, setBroken] = useState(false);
-  const src = landscapeSrc(item);
-  return (
-    <>
-      {src && !broken ? <Art src={src} onError={() => setBroken(true)} className="absolute inset-0 size-full object-cover" /> : <ArtFallback item={item} wide />}
-      {src && !broken && showTitle && (
-        <>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/0 to-transparent" />
-          <div className="absolute inset-x-3 bottom-2.5 flex items-end">
-            {item.seriesTitle ? (
-              <span className="min-w-0 drop-shadow">
-                <span className="block truncate text-[15px] leading-tight font-bold tracking-tight text-white">{item.seriesTitle}</span>
-                <span className="block truncate text-xs text-white/75 tabular">S{item.seasonNumber}:E{item.episodeNumber} · {item.title}</span>
-              </span>
-            ) : (
-              <TitleArt item={item} className="max-h-[3.4rem] max-w-[62%]" textClass="line-clamp-2 text-[15px] leading-tight font-bold tracking-tight text-white drop-shadow" />
-            )}
-          </div>
-        </>
-      )}
-    </>
-  );
-}
-
-function useUserData(item: ItemSummary) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (body: { favorite?: boolean; played?: boolean }) =>
-      unwrap(await api.PUT("/items/{itemId}/user-data", { params: { path: { itemId: item.id } }, body })),
-    onSuccess: () => {
-      for (const key of [["item"], ["library-items"], ["favorites"], ["continue"], ["latest"], ["row"]]) void qc.invalidateQueries({ queryKey: key });
-    },
-  });
-}
-
-const roundBtn = "grid size-9 shrink-0 place-items-center rounded-full border-2 border-white/45 bg-black/40 text-white transition-[border-color,transform] duration-150 hover:border-white active:scale-95";
-
-/** The enlarged card shown over a hovered title (desktop): art, quick actions and facts. */
-function Preview({ item, anchor, onClose }: { item: ItemSummary; anchor: DOMRect; onClose: () => void }) {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const update = useUserData(item);
-  const scale = 1.45;
-  const width = anchor.width * scale;
-  // Keep the preview on screen at the row edges.
-  const left = Math.min(Math.max(12, anchor.left + anchor.width / 2 - width / 2), window.innerWidth - width - 12);
-  const top = anchor.top + window.scrollY - (anchor.height * scale - anchor.height) / 2;
-  const origin = anchor.left - left < 20 ? "left" : left + width > window.innerWidth - 30 ? "right" : "center";
-  return createPortal(
-    <div onMouseLeave={onClose} role="dialog" aria-label={item.title}
-      className="absolute z-50 overflow-hidden rounded-md bg-surface shadow-[0_20px_50px_rgb(0_0_0/0.75)] [animation:grow_220ms_var(--ease-out)_both]"
-      style={{ left, top, width, transformOrigin: `${origin} center` }}>
-      <style>{"@keyframes grow{from{opacity:.4;transform:scale(.69)}to{opacity:1;transform:none}}"}</style>
-      <Link to="/item/$itemId" params={{ itemId: item.id }} className="relative block aspect-video">
-        <Landscape item={item} />
-      </Link>
-      <div className="flex flex-col gap-2.5 p-3.5">
-        <div className="flex items-center gap-2">
-          {isPlayable(item) && (
-            <button type="button" aria-label={t("player.play")} className="grid size-9 place-items-center rounded-full bg-white text-black transition-transform hover:bg-white/85 active:scale-95"
-              onClick={() => void navigate({ to: "/watch/$itemId", params: { itemId: item.id } })}>
-              <Play className="ml-0.5 size-4 fill-current" aria-hidden />
-            </button>
-          )}
-          <button type="button" className={roundBtn} aria-label={item.favorite ? t("library.removeFromList") : t("library.addToList")}
-            aria-pressed={!!item.favorite} onClick={() => update.mutate({ favorite: !item.favorite })}>
-            {item.favorite ? <Check className="size-4" aria-hidden /> : <Plus className="size-4" aria-hidden />}
-          </button>
-          <button type="button" className={`${roundBtn} ${item.played ? "!border-accent text-accent" : ""}`} aria-pressed={!!item.played}
-            aria-label={item.played ? t("library.markUnplayed") : t("library.markPlayed")} onClick={() => update.mutate({ played: !item.played })}>
-            <Check className="size-4" strokeWidth={item.played ? 3 : 2} aria-hidden />
-          </button>
-          <Link to="/item/$itemId" params={{ itemId: item.id }} className={`${roundBtn} ml-auto`} aria-label={t("library.details")}>
-            <ChevronDown className="size-4" aria-hidden />
-          </Link>
-        </div>
-        <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] text-white/80 tabular">
-          {item.rating ? <span className="flex items-center gap-1 font-semibold text-white"><Star className="size-3.5 fill-accent text-accent" aria-hidden />{item.rating.toFixed(1)}</span> : null}
-          {item.year && <span>{item.year}</span>}
-          {item.durationMs ? <span>{formatDuration(item.durationMs)}</span> : null}
-          <span className="rounded-sm border border-white/35 px-1 text-[11px] leading-4 text-white/70">{t(`library.kind_${item.kind}`)}</span>
-        </p>
-        <p className="truncate text-sm font-semibold">{item.title}</p>
-        <ProgressBar value={progressOf(item)} className="rounded-full" />
-      </div>
-    </div>,
-    document.body,
-  );
-}
-
-/** Hover intent on a pointer device: open after a short rest, like streaming apps. */
-function useHoverPreview() {
-  const [rect, setRect] = useState<DOMRect | null>(null);
-  const timer = useRef<number | undefined>(undefined);
-  const fine = typeof window !== "undefined" && window.matchMedia?.("(hover: hover) and (pointer: fine)").matches;
-  const enter = (el: HTMLElement) => {
-    if (!fine) return;
-    window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setRect(el.getBoundingClientRect()), 420);
-  };
-  const leave = () => window.clearTimeout(timer.current);
-  useEffect(() => () => window.clearTimeout(timer.current), []);
-  useEffect(() => {
-    if (!rect) return;
-    const close = () => setRect(null);
-    window.addEventListener("scroll", close, { passive: true });
-    return () => window.removeEventListener("scroll", close);
-  }, [rect]);
-  return { rect, enter, leave, close: () => setRect(null) };
-}
-
-/** 16:9 title card used in rows. Continue-watching cards play directly. */
+/**
+ * Landscape card (continue watching, up next, my list). The picture glows in its own
+ * colour on focus; continue-watching cards play directly.
+ */
 export function TitleCard({ item, className = "", play = false }: { item: ItemSummary; className?: string; play?: boolean }) {
-  const hover = useHoverPreview();
-  const ref = useRef<HTMLAnchorElement>(null);
+  const [broken, setBroken] = useState(false);
+  const light = useCardLight(item);
+  const src = landscapeSrc(item);
   const progress = progressOf(item);
   const link = play && isPlayable(item)
     ? { to: "/watch/$itemId" as const, params: { itemId: item.id } }
     : { to: "/item/$itemId" as const, params: { itemId: item.id } };
   return (
-    <>
-      <Link {...link} ref={ref} data-testid="item-card"
-        onMouseEnter={(e) => hover.enter(e.currentTarget)} onMouseLeave={hover.leave}
-        className={`tv-focus group relative block shrink-0 transition-transform duration-200 ease-out ${className}`}>
-        <div className="relative aspect-video overflow-hidden rounded-md bg-surface-2">
-          <Landscape item={item} />
-          {progress > 0 && <ProgressBar value={progress} className="absolute inset-x-2.5 bottom-1.5 rounded-full" />}
-        </div>
-      </Link>
-      {hover.rect && <Preview item={item} anchor={hover.rect} onClose={hover.close} />}
-    </>
-  );
-}
-
-/** Portrait poster card (grids, search). */
-export function ItemCard({ item, className = "" }: { item: ItemSummary; className?: string }) {
-  const { t } = useTranslation();
-  const [broken, setBroken] = useState(false);
-  const art = item.hasPoster && !broken;
-  return (
-    <Link to="/item/$itemId" params={{ itemId: item.id }} data-testid="item-card"
-      className={`tv-focus group flex flex-col gap-2 transition-transform duration-200 ease-out ${className}`}>
-      <div className="relative aspect-[2/3] overflow-hidden rounded-md bg-surface-2 transition-[transform,box-shadow] duration-300 ease-out group-hover:scale-[1.04] group-hover:shadow-[0_16px_40px_rgb(0_0_0/0.6)]">
-        {art ? (
-          <Art src={imageUrl(item.id, item.kind === "episode" ? "still" : "poster")} onError={() => setBroken(true)} className="absolute inset-0 size-full object-cover" />
-        ) : <ArtFallback item={item} />}
-        {item.played && (
-          <span className="absolute top-2 right-2 grid size-6 place-items-center rounded-full bg-black/70 text-accent">
-            <Check className="size-3.5" strokeWidth={3} aria-label={t("library.watched")} />
+    <Link {...link} data-testid="item-card" {...light} style={cardLight(item)}
+      className={`group flex shrink-0 flex-col gap-2.5 rounded-2xl outline-none ${className}`}>
+      <div className="glow relative aspect-video overflow-hidden rounded-2xl bg-surface-2 group-hover:-translate-y-1 group-focus-visible:-translate-y-1 group-focus-visible:scale-[1.03]">
+        {src && !broken ? <Art src={src} onError={() => setBroken(true)} className="absolute inset-0 size-full object-cover" /> : <ArtFallback item={item} wide />}
+        {play && isPlayable(item) && (
+          <span className="absolute inset-0 grid place-items-center opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
+            <span className="grid size-12 place-items-center rounded-full bg-[var(--card-a,var(--amb-a))] text-[var(--amb-ink)] shadow-xl">
+              <Play className="ml-0.5 size-5 fill-current" aria-hidden />
+            </span>
           </span>
         )}
-        <ProgressBar value={progressOf(item)} className="absolute inset-x-0 bottom-0" />
+        {progress > 0 && <ProgressBar value={progress} className="absolute inset-x-3 bottom-2.5" />}
       </div>
-      <div className="min-w-0 px-0.5">
-        <p className="truncate text-[13px] font-medium text-white/85 group-hover:text-white">{item.title}</p>
-        <p className="flex items-center gap-1.5 text-xs text-muted tabular">
-          {item.year}
-          {item.rating ? <>{item.year && <span aria-hidden className="text-faint">·</span>}<Star className="size-3 fill-accent text-accent" aria-hidden />{item.rating.toFixed(1)}</> : null}
+      <div className="min-w-0 px-1">
+        <p className="truncate text-[14px] font-semibold text-white/90 group-hover:text-white">{item.seriesTitle ?? item.title}</p>
+        <p className="truncate text-xs text-white/50 tabular">
+          {item.seriesTitle ? `S${item.seasonNumber}:E${item.episodeNumber} · ${item.title}` : item.year}
         </p>
       </div>
     </Link>
   );
 }
 
-/** A titled horizontal row with edge paddles on hover (desktop) and native swipe (touch). */
+/** Portrait poster card: rounded, glowing in its own colour, lights the room on focus. */
+export function ItemCard({ item, className = "" }: { item: ItemSummary; className?: string }) {
+  const { t } = useTranslation();
+  const [broken, setBroken] = useState(false);
+  const light = useCardLight(item);
+  return (
+    <Link to="/item/$itemId" params={{ itemId: item.id }} data-testid="item-card" {...light} style={cardLight(item)}
+      className={`group flex flex-col gap-2.5 rounded-2xl outline-none ${className}`}>
+      <div className="glow relative aspect-[2/3] overflow-hidden rounded-2xl bg-surface-2 group-hover:-translate-y-1.5 group-focus-visible:-translate-y-1.5 group-focus-visible:scale-[1.04]">
+        <PortraitArt item={item} broken={broken} onError={() => setBroken(true)} />
+        {item.played && (
+          <span className="absolute top-2.5 right-2.5 grid size-7 place-items-center rounded-full bg-black/60 text-white backdrop-blur">
+            <Check className="size-4" strokeWidth={3} aria-label={t("library.watched")} />
+          </span>
+        )}
+        <ProgressBar value={progressOf(item)} className="absolute inset-x-3 bottom-2.5" />
+      </div>
+      <div className="min-w-0 px-1">
+        <p className="truncate text-[13px] font-semibold text-white/85 group-hover:text-white">{item.title}</p>
+        <p className="flex items-center gap-1.5 text-xs text-white/50 tabular">
+          {item.year}
+          {item.rating ? <>{item.year && <span aria-hidden>·</span>}<Star className="size-3 fill-current text-[var(--card-a,var(--amb-a))]" aria-hidden />{item.rating.toFixed(1)}</> : null}
+        </p>
+      </div>
+    </Link>
+  );
+}
+
+/** A section: a large title, then a horizontally scrolling strip (swipe on touch, arrows on desktop). */
 export function Row({ title, testId, count, children, action }: { title: string; testId: string; count: number; children: ReactNode; action?: ReactNode }) {
   const { t } = useTranslation();
   const track = useRef<HTMLDivElement>(null);
@@ -240,63 +165,56 @@ export function Row({ title, testId, count, children, action }: { title: string;
     return () => ro.disconnect();
   }, [count]);
   if (!count) return null;
-  const page = (dir: 1 | -1) => track.current?.scrollBy({ left: dir * track.current.clientWidth * 0.9, behavior: "smooth" });
-  const paddle = "absolute inset-y-0 z-10 hidden w-10 place-items-center bg-black/45 text-white opacity-0 transition-opacity duration-200 group-hover/row:opacity-100 hover:bg-black/65 focus-visible:opacity-100 sm:grid lg:w-14";
+  const page = (dir: 1 | -1) => track.current?.scrollBy({ left: dir * track.current.clientWidth * 0.85, behavior: "smooth" });
+  const arrow = "grid size-10 place-items-center rounded-full bg-white/[0.07] text-white ring-1 ring-white/10 backdrop-blur transition-colors hover:bg-white/15 disabled:opacity-25";
   return (
-    <section className="group/row relative flex flex-col gap-2.5" data-testid={testId}>
-      <div className="flex items-baseline gap-4 px-4 sm:px-8 lg:px-14">
-        <h2 className="text-[17px] font-bold tracking-tight sm:text-xl">{title}</h2>
+    <section className="flex flex-col gap-4" data-testid={testId}>
+      <div className="flex items-end gap-4 px-5 sm:px-10 lg:px-16">
+        <h2 className="font-display text-2xl leading-none sm:text-[32px]">{title}</h2>
         {action}
-      </div>
-      <div className="relative">
-        {edges.left && (
-          <button type="button" aria-label={t("home.scrollLeft")} onClick={() => page(-1)} className={`${paddle} left-0 rounded-r-md`}>
-            <ChevronLeft className="size-8" aria-hidden />
-          </button>
-        )}
-        <div ref={track} onScroll={measure}
-          className="shelf-track flex gap-2 overflow-x-auto scroll-px-4 px-4 py-2 sm:scroll-px-8 sm:px-8 lg:scroll-px-14 lg:px-14">
-          {children}
+        <div className="ml-auto hidden gap-2 sm:flex">
+          <button type="button" aria-label={t("home.scrollLeft")} onClick={() => page(-1)} disabled={!edges.left} className={arrow}><ChevronLeft className="size-5" aria-hidden /></button>
+          <button type="button" aria-label={t("home.scrollRight")} onClick={() => page(1)} disabled={!edges.right} className={arrow}><ChevronRight className="size-5" aria-hidden /></button>
         </div>
-        {edges.right && (
-          <button type="button" aria-label={t("home.scrollRight")} onClick={() => page(1)} className={`${paddle} right-0 rounded-l-md`}>
-            <ChevronRight className="size-8" aria-hidden />
-          </button>
-        )}
+      </div>
+      <div ref={track} onScroll={measure}
+        className="shelf-track flex gap-5 overflow-x-auto scroll-px-5 px-5 pt-2 pb-8 sm:scroll-px-10 sm:px-10 lg:scroll-px-16 lg:px-16">
+        {children}
       </div>
     </section>
   );
 }
 
-/** Width of a landscape card so that a whole number of cards fills the row at each breakpoint. */
-export const rowCard = "w-[44vw] sm:w-[30vw] md:w-[23vw] lg:w-[18.6vw] 2xl:w-[15.5vw]";
+/** Landscape card width: a whole number of cards per row at each breakpoint. */
+export const rowCard = "w-[72vw] sm:w-[40vw] md:w-[30vw] lg:w-[23vw] 2xl:w-[19vw]";
+/** Poster card width in strips. */
+export const posterCard = "w-[40vw] shrink-0 sm:w-[26vw] md:w-[19vw] lg:w-[14vw] 2xl:w-[11.5vw]";
 
-/** "Top 10" card: an outlined rank numeral with the poster leaning on it. */
+/** Ranked poster: the rank set in outlined display type beside the poster. */
 export function RankCard({ item, rank }: { item: ItemSummary; rank: number }) {
   const [broken, setBroken] = useState(false);
+  const light = useCardLight(item);
   return (
-    <Link to="/item/$itemId" params={{ itemId: item.id }} data-testid="item-card" aria-label={`${rank}. ${item.title}`}
-      className="tv-focus group relative flex w-[46vw] shrink-0 items-end transition-transform duration-200 ease-out sm:w-[30vw] md:w-[23vw] lg:w-[18.6vw] 2xl:w-[15.5vw]">
-      <span aria-hidden className="pointer-events-none -mr-[9%] w-[52%] text-right font-display text-[clamp(6rem,12vw,13rem)] leading-[0.74] tracking-[-0.08em] text-bg [-webkit-text-stroke:clamp(2px,0.28vw,5px)_rgb(255_255_255/0.5)] select-none">
+    <Link to="/item/$itemId" params={{ itemId: item.id }} data-testid="item-card" aria-label={`${rank}. ${item.title}`} {...light} style={cardLight(item)}
+      className="group relative flex w-[52vw] shrink-0 items-end rounded-2xl outline-none sm:w-[32vw] md:w-[24vw] lg:w-[18vw] 2xl:w-[15vw]">
+      <span aria-hidden className="pointer-events-none -mr-[8%] w-[48%] text-right font-display text-[clamp(6rem,11vw,12rem)] leading-[0.78] text-transparent [-webkit-text-stroke:clamp(2px,0.22vw,4px)_var(--card-a,var(--amb-a))] select-none">
         {rank}
       </span>
-      <div className="relative aspect-[2/3] w-[52%] overflow-hidden rounded-md bg-surface-2 shadow-[0_10px_30px_rgb(0_0_0/0.5)] transition-transform duration-300 ease-out group-hover:scale-[1.04]">
-        {item.hasPoster && !broken
-          ? <Art src={imageUrl(item.id, "poster")} onError={() => setBroken(true)} className="absolute inset-0 size-full object-cover" />
-          : <ArtFallback item={item} />}
+      <div className="glow relative aspect-[2/3] w-[56%] overflow-hidden rounded-2xl bg-surface-2 group-hover:-translate-y-1.5 group-focus-visible:-translate-y-1.5">
+        <PortraitArt item={item} broken={broken} onError={() => setBroken(true)} />
       </div>
     </Link>
   );
 }
 
-/** Placeholder row while a row's titles load, shaped like the real one. */
+/** Placeholder row while titles load, shaped like the real one. */
 export function RowSkeleton() {
   return (
-    <div aria-hidden className="flex flex-col gap-2.5">
-      <div className="mx-4 h-5 w-44 animate-pulse rounded bg-white/[0.06] sm:mx-8 lg:mx-14" />
-      <div className="flex gap-2 overflow-hidden px-4 py-2 sm:px-8 lg:px-14">
-        {Array.from({ length: 6 }, (_, i) => (
-          <div key={i} className={`${rowCard} aspect-video shrink-0 animate-pulse rounded-md bg-white/[0.05]`} style={{ animationDelay: `${i * 90}ms` }} />
+    <div aria-hidden className="flex flex-col gap-4">
+      <div className="mx-5 h-7 w-56 animate-pulse rounded-lg bg-white/[0.06] sm:mx-10 lg:mx-16" />
+      <div className="flex gap-5 overflow-hidden px-5 py-2 sm:px-10 lg:px-16">
+        {Array.from({ length: 7 }, (_, i) => (
+          <div key={i} className={`${posterCard} aspect-[2/3] animate-pulse rounded-2xl bg-white/[0.05]`} style={{ animationDelay: `${i * 90}ms` }} />
         ))}
       </div>
     </div>

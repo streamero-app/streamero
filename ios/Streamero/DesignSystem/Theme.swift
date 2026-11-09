@@ -25,15 +25,52 @@ enum Theme {
     }
 }
 
-/// Primary action: white with black label (Play), presses down slightly.
+/// The room lit by a title: two soft lights in its colours over near-black.
+struct AmbientBackground: View {
+    var colors: [String]?
+
+    var body: some View {
+        let a = Color(hex: colors?.first ?? "#ffaa45")
+        let b = Color(hex: colors?.dropFirst().first ?? colors?.first ?? "#2f8f9d")
+        ZStack {
+            Theme.background
+            RadialGradient(colors: [a.opacity(0.38), .clear], center: UnitPoint(x: 0.85, y: 0.05), startRadius: 0, endRadius: 520)
+            RadialGradient(colors: [b.opacity(0.26), .clear], center: UnitPoint(x: 0.05, y: 0.95), startRadius: 0, endRadius: 480)
+        }
+        .ignoresSafeArea()
+        .animation(.easeOut(duration: 0.9), value: colors)
+    }
+}
+
+extension Color {
+    /// "#rrggbb" (profile and ambient colours from the server).
+    init(hex: String) {
+        let v = UInt64(hex.trimmingCharacters(in: CharacterSet(charactersIn: "#")), radix: 16) ?? 0xffaa45
+        self.init(red: Double((v >> 16) & 0xff) / 255, green: Double((v >> 8) & 0xff) / 255, blue: Double(v & 0xff) / 255)
+    }
+
+    /// Readable label colour on this colour.
+    static func ink(onHex hex: String?) -> Color {
+        let v = UInt64((hex ?? "#ffffff").trimmingCharacters(in: CharacterSet(charactersIn: "#")), radix: 16) ?? 0xffffff
+        let r = Double((v >> 16) & 0xff) / 255, g = Double((v >> 8) & 0xff) / 255, b = Double(v & 0xff) / 255
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.55 ? .black : .white
+    }
+}
+
+/// Primary action, lit in the title's colour (white when there is none).
 struct PrimaryButtonStyle: ButtonStyle {
+    var hex: String? = nil
+
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
+        let fill = hex.map { Color(hex: $0) } ?? .white
+        let ink = hex == nil ? Color.black : Color.ink(onHex: hex)
+        return configuration.label
             .font(.body.weight(.bold))
-            .foregroundStyle(.black)
-            .tint(.black)
-            .padding(.horizontal, 22).frame(height: 48)
-            .background(.white.opacity(configuration.isPressed ? 0.8 : 1), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .foregroundStyle(ink)
+            .tint(ink)
+            .padding(.horizontal, 24).frame(height: 50)
+            .background(fill.opacity(configuration.isPressed ? 0.8 : 1), in: Capsule())
+            .shadow(color: fill.opacity(hex == nil ? 0 : 0.5), radius: 16, y: 8)
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(.spring(response: 0.25, dampingFraction: 0.8), value: configuration.isPressed)
     }
@@ -69,8 +106,9 @@ struct MutedButtonStyle: ButtonStyle {
         configuration.label
             .font(.body.weight(.bold))
             .foregroundStyle(.white)
-            .padding(.horizontal, 20).frame(height: 48)
-            .background(.white.opacity(configuration.isPressed ? 0.3 : 0.2), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .padding(.horizontal, 20).frame(height: 50)
+            .background(.white.opacity(configuration.isPressed ? 0.2 : 0.1), in: Capsule())
+            .overlay(Capsule().strokeBorder(.white.opacity(0.15)))
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(.spring(response: 0.25, dampingFraction: 0.8), value: configuration.isPressed)
     }

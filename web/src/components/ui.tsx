@@ -2,7 +2,7 @@ import { useId, useState, type ButtonHTMLAttributes, type ImgHTMLAttributes, typ
 import { useTranslation } from "react-i18next";
 import { ApiError } from "@/api/client";
 
-type Variant = "primary" | "secondary" | "danger" | "ghost" | "play" | "muted";
+type Variant = "primary" | "secondary" | "danger" | "ghost" | "play" | "muted" | "lit" | "glass";
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: "md" | "lg" };
 
 /** Shared look of every pressable thing: steps on hover, presses on click. */
@@ -16,6 +16,9 @@ export const buttonVariants: Record<Variant, string> = {
   ghost: "bg-transparent text-muted hover:bg-white/[0.06] hover:text-text",
   play: "bg-white text-black hover:bg-white/80",
   muted: "bg-white/20 text-white backdrop-blur-md hover:bg-white/30",
+  // The ambient primary action: lit in the current title's colour.
+  lit: "bg-[var(--amb-a)] text-[var(--amb-ink)] shadow-[0_12px_40px_-12px_var(--amb-a)] hover:brightness-110",
+  glass: "bg-white/[0.08] text-white ring-1 ring-inset ring-white/15 backdrop-blur-xl hover:bg-white/[0.14]",
 };
 
 const sizes = { md: "h-10 rounded-[10px] px-4 text-sm", lg: "h-12 rounded-xl px-6 text-[15px]" };

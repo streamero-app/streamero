@@ -2629,6 +2629,11 @@ components:
         hasLogo:
           type: boolean
           description: A transparent title logo is available (images/logo, PNG).
+        colors:
+          type: array
+          description: Characteristic colours of the artwork (#rrggbb, primary first) for ambient lighting.
+          items:
+            type: string
         seriesId:
           type: string
           format: uuid

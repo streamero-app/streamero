@@ -288,6 +288,9 @@ func toItemSummary(it library.Item) gen.ItemSummary {
 	if it.Favorite {
 		out.Favorite = gen.NewOptBool(true)
 	}
+	if len(it.Colors) > 0 {
+		out.Colors = it.Colors
+	}
 	if it.SeriesID != nil {
 		out.SeriesId = gen.NewOptUUID(*it.SeriesID)
 		out.SeriesTitle = gen.NewOptString(it.SeriesTitle)

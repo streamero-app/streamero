@@ -196,6 +196,11 @@ func (w *MetadataRefreshWorker) Work(ctx context.Context, job *river.Job[Metadat
 	} else if g > 0 {
 		w.Log.Info("frame artwork created", "library", job.Args.LibraryID, "items", g)
 	}
+	if n, err := w.Refresher.FillPalettes(ctx, job.Args.LibraryID); err != nil {
+		w.Log.Warn("palette extraction failed", "err", err)
+	} else if n > 0 {
+		w.Log.Info("ambient colours computed", "library", job.Args.LibraryID, "items", n)
+	}
 	if w.Analyze != nil {
 		if err := w.Analyze(ctx, job.Args.LibraryID); err != nil {
 			w.Log.Warn("could not queue media analysis", "err", err)
