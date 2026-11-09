@@ -11802,6 +11802,10 @@ func (s *Server) handleListLibraryItemsRequest(args [1]string, argsEscaped bool,
 					Name: "letter",
 					In:   "query",
 				}: params.Letter,
+				{
+					Name: "kind",
+					In:   "query",
+				}: params.Kind,
 			},
 			Raw: r,
 		}

@@ -432,7 +432,10 @@
     "matches_other": "{{count}} rezultata",
     "version": "Verzija",
     "automatic": "Automatski",
-    "unknownLanguage": "Nepoznat jezik"
+    "unknownLanguage": "Nepoznat jezik",
+    "kind_artist": "Izvođač",
+    "kind_album": "Album",
+    "kind_track": "Pjesma"
   },
   "metadata": {
     "connected": "TMDb povezan",
@@ -885,5 +888,38 @@
     "discoverInSearch_hint": "Pretraga prikazuje i naslove koji još nisu ovdje, spremne za zahtjev (treba Seerr).",
     "arrLinks": "Poveznice na Radarr i Sonarr",
     "arrLinks_hint": "Administratori vide gdje se naslov vodi (treba Radarr/Sonarr u Zahtjevima)."
+  },
+  "music": {
+    "queue": "Red reprodukcije",
+    "removeFromQueue": "Ukloni iz reda",
+    "nowPlaying": "Sada svira",
+    "shuffle": "Nasumično",
+    "previous": "Prethodna",
+    "next": "Sljedeća",
+    "repeat_off": "Ponavljanje isključeno",
+    "repeat_all": "Ponovi sve",
+    "repeat_one": "Ponovi jednu",
+    "close": "Zaustavi i zatvori",
+    "disc": "Disk {{n}}",
+    "tab_album": "Albumi",
+    "tab_artist": "Izvođači",
+    "tab_track": "Pjesme",
+    "sortRandom": "Nasumično",
+    "shuffleAll": "Sve nasumično",
+    "empty": "Ovdje još nema glazbe. Stavi albume u mape Izvođač/Album i skeniraj ponovno.",
+    "count_album_one": "{{count}} album",
+    "count_album_few": "{{count}} albuma",
+    "count_album_other": "{{count}} albuma",
+    "count_artist_one": "{{count}} izvođač",
+    "count_artist_few": "{{count}} izvođača",
+    "count_artist_other": "{{count}} izvođača",
+    "count_track_one": "{{count}} pjesma",
+    "count_track_few": "{{count}} pjesme",
+    "count_track_other": "{{count}} pjesama",
+    "album": "Album",
+    "artist": "Izvođač",
+    "albums": "Albumi",
+    "playAll": "Pusti sve",
+    "addToQueue": "Dodaj u red"
   }
 }

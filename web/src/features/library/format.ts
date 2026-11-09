@@ -15,8 +15,12 @@ export function resolutionLabel(width?: number, height?: number): string {
   return "SD";
 }
 
-export function formatDuration(ms?: number): string {
+export function formatDuration(ms?: number, clock = false): string {
   if (!ms) return "";
+  if (clock) {
+    const s = Math.round(ms / 1000);
+    return s >= 3600 ? `${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}` : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  }
   const min = Math.round(ms / 60000);
   if (min < 60) return `${Math.max(1, min)} min`;
   return `${Math.floor(min / 60)} h ${min % 60} min`;

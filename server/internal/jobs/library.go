@@ -202,6 +202,12 @@ func (w *MetadataRefreshWorker) Work(ctx context.Context, job *river.Job[Metadat
 	} else if l > 0 {
 		w.Log.Info("local artwork imported", "library", job.Args.LibraryID, "items", l)
 	}
+	// Music: album covers and artist pictures from folders or embedded art.
+	if m, err := w.Refresher.MusicArtwork(ctx, job.Args.LibraryID); err != nil {
+		w.Log.Warn("music artwork failed", "library", job.Args.LibraryID, "err", err)
+	} else if m > 0 {
+		w.Log.Info("music artwork imported", "library", job.Args.LibraryID, "items", m)
+	}
 	// Whatever TMDb could not illustrate gets a frame from its own video.
 	if g, err := w.Refresher.GrabFrames(ctx, job.Args.LibraryID); err != nil {
 		w.Log.Warn("frame grab failed", "library", job.Args.LibraryID, "err", err)

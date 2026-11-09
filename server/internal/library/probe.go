@@ -38,6 +38,10 @@ type ProbeResult struct {
 	HDR        string
 	Audio      []AudioStream
 	Subtitles  []SubtitleStream
+	// Tags are the container's tags with lower-case keys (artist, album, track, ...).
+	Tags map[string]string
+	// HasCover: the file carries embedded cover art.
+	HasCover bool
 }
 
 // Prober inspects a file (ffprobe in production, a fake in tests).
@@ -45,8 +49,9 @@ type Prober func(ctx context.Context, path string) (ProbeResult, error)
 
 type ffprobeOutput struct {
 	Format struct {
-		FormatName string `json:"format_name"`
-		Duration   string `json:"duration"`
+		FormatName string            `json:"format_name"`
+		Duration   string            `json:"duration"`
+		Tags       map[string]string `json:"tags"`
 	} `json:"format"`
 	Streams []struct {
 		CodecType     string            `json:"codec_type"`
@@ -83,7 +88,12 @@ func parseFFprobe(out []byte, path string) (ProbeResult, error) {
 	if err := json.Unmarshal(out, &o); err != nil {
 		return ProbeResult{}, fmt.Errorf("ffprobe output: %w", err)
 	}
-	r := ProbeResult{Container: containerName(o.Format.FormatName, path)}
+	r := ProbeResult{Container: containerName(o.Format.FormatName, path), Tags: map[string]string{}}
+	for k, v := range o.Format.Tags {
+		if v = strings.TrimSpace(v); v != "" {
+			r.Tags[strings.ToLower(k)] = v
+		}
+	}
 	if d, err := strconv.ParseFloat(o.Format.Duration, 64); err == nil {
 		r.DurationMS = int64(d * 1000)
 	}
@@ -94,8 +104,12 @@ func parseFFprobe(out []byte, path string) (ProbeResult, error) {
 		}
 		switch s.CodecType {
 		case "video":
-			if s.Disposition["attached_pic"] == 1 || r.VideoCodec != "" {
-				continue // cover art or a second video stream
+			if s.Disposition["attached_pic"] == 1 {
+				r.HasCover = true
+				continue
+			}
+			if r.VideoCodec != "" {
+				continue // a second video stream
 			}
 			r.VideoCodec, r.Width, r.Height = s.CodecName, s.Width, s.Height
 			switch s.ColorTransfer {
@@ -110,6 +124,11 @@ func parseFFprobe(out []byte, path string) (ProbeResult, error) {
 				}
 			}
 		case "audio":
+			for k, v := range s.Tags {
+				if k = strings.ToLower(k); r.Tags[k] == "" && strings.TrimSpace(v) != "" && k != "language" && k != "handler_name" {
+					r.Tags[k] = strings.TrimSpace(v)
+				}
+			}
 			r.Audio = append(r.Audio, AudioStream{Codec: s.CodecName, Language: lang, Channels: s.Channels, Title: s.Tags["title"]})
 		case "subtitle":
 			r.Subtitles = append(r.Subtitles, SubtitleStream{Codec: s.CodecName, Language: lang, Forced: s.Disposition["forced"] == 1})

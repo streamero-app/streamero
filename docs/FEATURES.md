@@ -333,3 +333,6 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [x] Nadzorna ploča: poruka gledatelju i zaustavljanje reprodukcije
 - [x] Discover: pretraga i zahtjevi preko Seerr/Jellyseerr (Radarr/Sonarr preuzimaju), kalendar „Uskoro" iz Radarra/Sonarra, zahtjevi i u pretrazi
 - [x] Proširenja (D-020): oznake kvalitete, Iznenadi me, zaslon pauze, uklanjanje iz Nastavi gledati, prečaci, slika u slici, poveznice na Radarr/Sonarr
+- [x] Glazbena biblioteka: tagovi (izvođač, album izvođača, album, broj pjesme/diska, godina, žanr), raspored Izvođač/Album/NN - Naslov kao zamjena, kompilacije, omoti iz mape ili iz datoteke, slike izvođača
+- [x] Glazba na webu: Albumi / Izvođači / Pjesme, stranice albuma i izvođača, trajni player s redom, nasumično, ponavljanje, kontrole na zaključanom zaslonu (Media Session)
+

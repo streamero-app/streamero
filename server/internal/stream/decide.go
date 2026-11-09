@@ -24,6 +24,7 @@ type Plan struct {
 	Height         int  // target height when scaling (0 = keep)
 	ToneMap        bool // HDR → SDR
 	MaxBitrate     int  // video bits per second when the stream must stay under a limit (0 = quality only)
+	AudioOnly      bool // music: no picture (embedded cover art is left out)
 }
 
 // fileBitrate estimates a file's overall bits per second from its size and length.
@@ -73,12 +74,12 @@ func Decide(f library.MediaFile, audioIndex int, d Device) Plan {
 	if videoOK && audioOK && !tooBig && !tooFast && !hdrIssue && has(d.Containers, f.Container) && audioIndex <= 0 {
 		return Plan{Method: "direct"}
 	}
-	p := Plan{}
+	p := Plan{AudioOnly: f.VideoCodec == ""}
 	var reasons []string
 	if !has(d.Containers, f.Container) {
 		reasons = append(reasons, "container "+f.Container)
 	}
-	if !videoOK || tooBig || hdrIssue || tooFast {
+	if !p.AudioOnly && (!videoOK || tooBig || hdrIssue || tooFast) {
 		p.TranscodeVideo = true
 		switch {
 		case !videoOK:

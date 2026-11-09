@@ -432,7 +432,10 @@
     "matches_other": "{{count}} matches",
     "version": "Version",
     "automatic": "Automatic",
-    "unknownLanguage": "Unknown language"
+    "unknownLanguage": "Unknown language",
+    "kind_artist": "Artist",
+    "kind_album": "Album",
+    "kind_track": "Song"
   },
   "metadata": {
     "connected": "TMDb connected",
@@ -885,5 +888,38 @@
     "discoverInSearch_hint": "Search also shows titles that are not here yet, ready to request (needs Seerr).",
     "arrLinks": "Radarr and Sonarr links",
     "arrLinks_hint": "Administrators see where a title is managed (needs Radarr/Sonarr in Requests)."
+  },
+  "music": {
+    "queue": "Queue",
+    "removeFromQueue": "Remove from queue",
+    "nowPlaying": "Now playing",
+    "shuffle": "Shuffle",
+    "previous": "Previous",
+    "next": "Next",
+    "repeat_off": "Repeat off",
+    "repeat_all": "Repeat all",
+    "repeat_one": "Repeat one",
+    "close": "Stop and close",
+    "disc": "Disc {{n}}",
+    "tab_album": "Albums",
+    "tab_artist": "Artists",
+    "tab_track": "Songs",
+    "sortRandom": "Random",
+    "shuffleAll": "Shuffle all",
+    "empty": "No music here yet. Put albums in Artist/Album folders and scan again.",
+    "count_album_one": "{{count}} album",
+    "count_album_few": "{{count}} albums",
+    "count_album_other": "{{count}} albums",
+    "count_artist_one": "{{count}} artist",
+    "count_artist_few": "{{count}} artists",
+    "count_artist_other": "{{count}} artists",
+    "count_track_one": "{{count}} song",
+    "count_track_few": "{{count}} songs",
+    "count_track_other": "{{count}} songs",
+    "album": "Album",
+    "artist": "Artist",
+    "albums": "Albums",
+    "playAll": "Play all",
+    "addToQueue": "Add to queue"
   }
 }

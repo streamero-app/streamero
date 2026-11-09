@@ -5,6 +5,7 @@ import { Link, useParams } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Check, Info, LayoutGrid, List, Play, Plus, RotateCcw, Shuffle, Volume2, VolumeX, X } from "lucide-react";
 import { useEnhancements, useSurprise } from "@/features/enhancements/useEnhancements";
+import { AlbumView, ArtistView, MusicLibrary } from "@/features/music/MusicPages";
 import { api, unwrap } from "@/api/client";
 import type { components } from "@/api/schema.gen";
 import { Art, Badge, Button, ErrorText, IconButton, Select, Spinner, buttonVariants, pressable } from "@/components/ui";
@@ -333,8 +334,8 @@ export function HomeContent() {
       </Row>
     ),
     collections: <CollectionsRow />,
-    top: libs.map((l) => <LibraryTop key={l.id} library={l} />),
-    genres: libs.map((l) => <LibraryRows key={l.id} library={l} />),
+    top: libs.filter((l) => l.kind !== "music").map((l) => <LibraryTop key={l.id} library={l} />),
+    genres: libs.filter((l) => l.kind !== "music").map((l) => <LibraryRows key={l.id} library={l} />),
     libraries: <LibraryShelf />,
   };
   return (
@@ -559,6 +560,7 @@ export function LibraryPage() {
   }, [all, pool, items.data, total]);
   const cols = useCollections();
   const collections = Array.isArray(cols.data) ? cols.data : [];
+  const isMusic = lib?.kind === "music";
   const filtered = !!(genre || status || decade || letter);
   const tabs: { id: LibTab; label: string }[] = [
     { id: "all", label: t("library.tabAll") },
@@ -570,6 +572,7 @@ export function LibraryPage() {
   const tabClass = "relative h-11 shrink-0 px-1 text-[15px] font-medium text-text/60 transition-colors hover:text-text after:absolute after:inset-x-0 after:bottom-0 after:h-[2px] after:scale-x-0 after:bg-[var(--amb-a)] after:transition-transform aria-selected:text-text aria-selected:after:scale-x-100";
   const decades = [2020, 2010, 2000, 1990, 1980, 1970, 1960, 1950];
 
+  if (isMusic && lib) return <MusicLibrary library={lib} />;
   return (
     <div className="flex flex-col gap-6">
       <Billboard pool={pool} />
@@ -951,6 +954,8 @@ export function ItemPage() {
   useAmbientLight(detail.data?.item.colors);
   if (detail.error) return <div className={`pt-24 ${gutter}`}><ErrorText error={detail.error} /></div>;
   if (!d) return <div role="status" className="flex min-h-[70vh] items-center justify-center"><Spinner /></div>;
+  if (d.item.kind === "album") return <AlbumView d={d} />;
+  if (d.item.kind === "artist") return <ArtistView d={d} />;
   const it = { ...d.item, hasBackdrop: d.hasBackdrop };
   const isEpisode = it.kind === "episode";
   const directors = d.crew.filter((p) => p.role === "Director").map((p) => p.name);

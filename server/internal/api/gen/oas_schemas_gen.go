@@ -2613,6 +2613,9 @@ const (
 	ItemKindSeries  ItemKind = "series"
 	ItemKindSeason  ItemKind = "season"
 	ItemKindEpisode ItemKind = "episode"
+	ItemKindArtist  ItemKind = "artist"
+	ItemKindAlbum   ItemKind = "album"
+	ItemKindTrack   ItemKind = "track"
 )
 
 // AllValues returns all ItemKind values.
@@ -2622,6 +2625,9 @@ func (ItemKind) AllValues() []ItemKind {
 		ItemKindSeries,
 		ItemKindSeason,
 		ItemKindEpisode,
+		ItemKindArtist,
+		ItemKindAlbum,
+		ItemKindTrack,
 	}
 }
 
@@ -2635,6 +2641,12 @@ func (s ItemKind) MarshalText() ([]byte, error) {
 	case ItemKindSeason:
 		return []byte(s), nil
 	case ItemKindEpisode:
+		return []byte(s), nil
+	case ItemKindArtist:
+		return []byte(s), nil
+	case ItemKindAlbum:
+		return []byte(s), nil
+	case ItemKindTrack:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -2655,6 +2667,15 @@ func (s *ItemKind) UnmarshalText(data []byte) error {
 		return nil
 	case ItemKindEpisode:
 		*s = ItemKindEpisode
+		return nil
+	case ItemKindArtist:
+		*s = ItemKindArtist
+		return nil
+	case ItemKindAlbum:
+		*s = ItemKindAlbum
+		return nil
+	case ItemKindTrack:
+		*s = ItemKindTrack
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -2710,6 +2731,12 @@ type ItemSummary struct {
 	SeriesTitle OptString `json:"seriesTitle"`
 	// Community rating 0–10.
 	Rating OptFloat64 `json:"rating"`
+	// The album of a track, the artist of an album, the season of an episode.
+	ParentId OptUUID `json:"parentId"`
+	// Music, the performer (album artist for albums, track artist for tracks).
+	Artist OptString `json:"artist"`
+	// A track's album.
+	Album OptString `json:"album"`
 	// Height of the best file's picture (for 4K/HD tags).
 	VideoHeight OptInt `json:"videoHeight"`
 	// HDR format of the best file (HDR10, HLG, Dolby Vision), if any.
@@ -2799,6 +2826,21 @@ func (s *ItemSummary) GetSeriesTitle() OptString {
 // GetRating returns the value of Rating.
 func (s *ItemSummary) GetRating() OptFloat64 {
 	return s.Rating
+}
+
+// GetParentId returns the value of ParentId.
+func (s *ItemSummary) GetParentId() OptUUID {
+	return s.ParentId
+}
+
+// GetArtist returns the value of Artist.
+func (s *ItemSummary) GetArtist() OptString {
+	return s.Artist
+}
+
+// GetAlbum returns the value of Album.
+func (s *ItemSummary) GetAlbum() OptString {
+	return s.Album
 }
 
 // GetVideoHeight returns the value of VideoHeight.
@@ -2904,6 +2946,21 @@ func (s *ItemSummary) SetSeriesTitle(val OptString) {
 // SetRating sets the value of Rating.
 func (s *ItemSummary) SetRating(val OptFloat64) {
 	s.Rating = val
+}
+
+// SetParentId sets the value of ParentId.
+func (s *ItemSummary) SetParentId(val OptUUID) {
+	s.ParentId = val
+}
+
+// SetArtist sets the value of Artist.
+func (s *ItemSummary) SetArtist(val OptString) {
+	s.Artist = val
+}
+
+// SetAlbum sets the value of Album.
+func (s *ItemSummary) SetAlbum(val OptString) {
+	s.Album = val
 }
 
 // SetVideoHeight sets the value of VideoHeight.
@@ -3088,6 +3145,54 @@ func (s *LibraryKind) UnmarshalText(data []byte) error {
 		return nil
 	case LibraryKindMixed:
 		*s = LibraryKindMixed
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ListLibraryItemsKind string
+
+const (
+	ListLibraryItemsKindArtist ListLibraryItemsKind = "artist"
+	ListLibraryItemsKindAlbum  ListLibraryItemsKind = "album"
+	ListLibraryItemsKindTrack  ListLibraryItemsKind = "track"
+)
+
+// AllValues returns all ListLibraryItemsKind values.
+func (ListLibraryItemsKind) AllValues() []ListLibraryItemsKind {
+	return []ListLibraryItemsKind{
+		ListLibraryItemsKindArtist,
+		ListLibraryItemsKindAlbum,
+		ListLibraryItemsKindTrack,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListLibraryItemsKind) MarshalText() ([]byte, error) {
+	switch s {
+	case ListLibraryItemsKindArtist:
+		return []byte(s), nil
+	case ListLibraryItemsKindAlbum:
+		return []byte(s), nil
+	case ListLibraryItemsKindTrack:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListLibraryItemsKind) UnmarshalText(data []byte) error {
+	switch ListLibraryItemsKind(data) {
+	case ListLibraryItemsKindArtist:
+		*s = ListLibraryItemsKindArtist
+		return nil
+	case ListLibraryItemsKindAlbum:
+		*s = ListLibraryItemsKindAlbum
+		return nil
+	case ListLibraryItemsKindTrack:
+		*s = ListLibraryItemsKindTrack
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -4599,6 +4704,52 @@ func (o OptInt64) Get() (v int64, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptInt64) Or(d int64) int64 {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptListLibraryItemsKind returns new OptListLibraryItemsKind with value set to v.
+func NewOptListLibraryItemsKind(v ListLibraryItemsKind) OptListLibraryItemsKind {
+	return OptListLibraryItemsKind{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptListLibraryItemsKind is optional ListLibraryItemsKind.
+type OptListLibraryItemsKind struct {
+	Value ListLibraryItemsKind
+	Set   bool
+}
+
+// IsSet returns true if OptListLibraryItemsKind was set.
+func (o OptListLibraryItemsKind) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptListLibraryItemsKind) Reset() {
+	var v ListLibraryItemsKind
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptListLibraryItemsKind) SetTo(v ListLibraryItemsKind) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptListLibraryItemsKind) Get() (v ListLibraryItemsKind, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptListLibraryItemsKind) Or(d ListLibraryItemsKind) ListLibraryItemsKind {
 	if v, ok := o.Get(); ok {
 		return v
 	}

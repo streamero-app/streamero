@@ -1355,6 +1355,12 @@ func (s ItemKind) Validate() error {
 		return nil
 	case "episode":
 		return nil
+	case "artist":
+		return nil
+	case "album":
+		return nil
+	case "track":
+		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
 	}
@@ -1589,6 +1595,19 @@ func (s LibraryKind) Validate() error {
 	case "music":
 		return nil
 	case "mixed":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s ListLibraryItemsKind) Validate() error {
+	switch s {
+	case "artist":
+		return nil
+	case "album":
+		return nil
+	case "track":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)

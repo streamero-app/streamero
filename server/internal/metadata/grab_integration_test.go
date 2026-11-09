@@ -195,3 +195,69 @@ func TestLocalNFOIntegration(t *testing.T) {
 	}
 	_, _ = pool.Exec(ctx, `DELETE FROM collections WHERE name = 'Open Movies'`)
 }
+
+func TestMusicArtworkIntegration(t *testing.T) {
+	ffmpeg, err := exec.LookPath("ffmpeg")
+	if err != nil {
+		t.Skip("ffmpeg not installed")
+	}
+	ffprobe, _ := exec.LookPath("ffprobe")
+	pool := testPool(t)
+	ctx := context.Background()
+	root := t.TempDir()
+	music := filepath.Join(root, "music")
+	run := func(args ...string) {
+		if out, err := exec.Command(ffmpeg, append([]string{"-v", "error", "-y"}, args...)...).CombinedOutput(); err != nil {
+			t.Fatalf("ffmpeg %v: %v %s", args, err, out)
+		}
+	}
+	a1 := filepath.Join(music, "Band", "Folder Cover (2020)")
+	a2 := filepath.Join(music, "Band", "Embedded (2021)")
+	for _, d := range []string{a1, a2} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	run("-f", "lavfi", "-i", "sine=frequency=440:duration=1", "-metadata", "title=One", "-metadata", "artist=Band",
+		"-metadata", "album=Folder Cover", "-metadata", "track=1", filepath.Join(a1, "01.mp3"))
+	run("-f", "lavfi", "-i", "color=c=blue:s=400x400", "-frames:v", "1", filepath.Join(a1, "cover.jpg"))
+	run("-f", "lavfi", "-i", "sine=frequency=660:duration=1", "-f", "lavfi", "-i", "color=c=red:s=300x300", "-map", "0:a", "-map", "1:v",
+		"-frames:v", "1", "-c:a", "libmp3lame", "-c:v", "mjpeg", "-disposition:v", "attached_pic", "-metadata", "title=Two",
+		"-metadata", "artist=Band", "-metadata", "album=Embedded", "-metadata", "track=1", "-t", "1", filepath.Join(a2, "01.mp3"))
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	roots := library.Roots{root}
+	svc := &library.Service{Pool: pool, Roots: roots, Enqueue: func(context.Context, uuid.UUID) error { return nil }}
+	scanner := &library.Scanner{Pool: pool, Roots: roots, Log: log, Probe: library.FFprobe(ffprobe)}
+	lib, err := svc.Create(ctx, "Music", "music", []string{music})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = svc.Delete(context.Background(), lib.ID) })
+	if _, err := scanner.Scan(ctx, lib.ID); err != nil {
+		t.Fatal(err)
+	}
+	images := filepath.Join(root, "images")
+	r := &Refresher{Pool: pool, ImageDir: images, Log: log, FFmpeg: ffmpeg,
+		ResolvePath: func(p string) (string, error) { return library.ResolveSafePath(roots, p) }}
+	if n, err := r.MusicArtwork(ctx, lib.ID); err != nil || n != 3 {
+		t.Fatalf("music artwork: %d %v", n, err)
+	}
+	rows, _ := pool.Query(ctx, `SELECT kind, title, has_poster, id FROM items WHERE library_id = $1 AND kind IN ('artist', 'album') ORDER BY kind, title`, lib.ID)
+	defer rows.Close()
+	for rows.Next() {
+		var kind, title string
+		var has bool
+		var id uuid.UUID
+		_ = rows.Scan(&kind, &title, &has, &id)
+		if !has {
+			t.Errorf("%s %q has no picture", kind, title)
+		}
+		if st, err := os.Stat(ImagePath(images, id, "poster")); err != nil || st.Size() < 500 {
+			t.Errorf("%s %q picture missing: %v", kind, title, err)
+		}
+	}
+	// Nothing changed: nothing to do.
+	if n, _ := r.MusicArtwork(ctx, lib.ID); n != 0 {
+		t.Fatalf("second run: %d", n)
+	}
+}

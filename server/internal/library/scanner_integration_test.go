@@ -367,3 +367,67 @@ func TestIgnoreMarkerIntegration(t *testing.T) {
 		t.Fatalf("ignored folder scanned: %v", got)
 	}
 }
+
+func TestMusicScanIntegration(t *testing.T) {
+	root := t.TempDir()
+	music := filepath.Join(root, "music")
+	touch(t, music,
+		"Artist A/First (2001)/01 - Opening.flac",
+		"Artist A/First (2001)/02 - Second.flac",
+		"Artist A/First (2001)/cover.jpg",
+		"Various/Hits/01.mp3",
+		"notes.txt",
+	)
+	f := newFixture(t, root)
+	tags := map[string]map[string]string{
+		"01.mp3": {"title": "Hit", "artist": "Guest", "album_artist": "Various Artists", "album": "Hits", "track": "1", "genre": "Pop; Dance", "date": "2010"},
+	}
+	f.scanner.Probe = func(_ context.Context, p string) (ProbeResult, error) {
+		f.probes.Add(1)
+		return ProbeResult{Container: "flac", DurationMS: 200_000, Audio: []AudioStream{{Codec: "flac", Channels: 2}}, Tags: tags[filepath.Base(p)]}, nil
+	}
+	ctx := context.Background()
+	lib, err := f.svc.Create(ctx, "Glazba", "music", []string{music})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = f.svc.Delete(context.Background(), lib.ID) })
+	if res := f.scan(t, lib.ID); res.Files != 3 || res.Probed != 3 {
+		t.Fatalf("first scan: %+v", res)
+	}
+	if n := f.probes.Load(); n != 3 {
+		t.Fatalf("each file probed once, got %d", n)
+	}
+	count := func(kind string) int {
+		var n int
+		_ = f.pool.QueryRow(ctx, `SELECT count(*) FROM items WHERE library_id = $1 AND kind = $2`, lib.ID, kind).Scan(&n)
+		return n
+	}
+	if count("artist") != 2 || count("album") != 2 || count("track") != 3 {
+		t.Fatalf("artists %d albums %d tracks %d", count("artist"), count("album"), count("track"))
+	}
+	var title, artist string
+	var track *int
+	var genres []string
+	_ = f.pool.QueryRow(ctx, `SELECT t.title, COALESCE(t.artist, ''), t.episode_number, a.genres FROM items t JOIN items a ON a.id = t.parent_id
+		WHERE t.library_id = $1 AND t.kind = 'track' AND a.title = 'Hits'`, lib.ID).Scan(&title, &artist, &track, &genres)
+	if title != "Hit" || artist != "Guest" || track == nil || *track != 1 || len(genres) != 2 {
+		t.Fatalf("compilation track: %q %q %v %v", title, artist, track, genres)
+	}
+	_ = f.pool.QueryRow(ctx, `SELECT t.title FROM items t WHERE t.library_id = $1 AND t.kind = 'track' AND t.episode_number = 2`, lib.ID).Scan(&title)
+	if title != "Second" {
+		t.Fatalf("title from the file name: %q", title)
+	}
+	// Unchanged: nothing is probed again.
+	if res := f.scan(t, lib.ID); res.Probed != 0 || f.probes.Load() != 3 {
+		t.Fatalf("rescan: %+v probes=%d", res, f.probes.Load())
+	}
+	// A removed album disappears with its artist.
+	if err := os.RemoveAll(filepath.Join(music, "Various")); err != nil {
+		t.Fatal(err)
+	}
+	f.scan(t, lib.ID)
+	if count("artist") != 1 || count("album") != 1 || count("track") != 2 {
+		t.Fatalf("after removal: artists %d albums %d tracks %d", count("artist"), count("album"), count("track"))
+	}
+}
