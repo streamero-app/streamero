@@ -20,6 +20,11 @@ P4 — Web pregledavanje (u tijeku); izdanja v0.2.0 i **v0.3.0** objavljena. P0 
 - Branch pushan, PR #1 (`phase/P0-foundations` → `main`) otvoren; `main` je prazan početni commit spojen u P0 (repo je bio prazan). CI zelen: `server`, `web`, `e2e`, iOS `build` (prvi uspješan iOS build, artefakt `streamero-ipa`).
 - `scripts/gen-fixtures.sh`: filmovi (H.264, 4K HEVC 10-bit, HDR10, AV1, multi-audio + poglavlja + embedded/external SRT/ASS, verzije, trailer), serija sa zajedničkim introm (2×4 ep.), multi-episode, specials, daily, anime absolute, glazba (FLAC/MP3), fotke.
 
+## Redizajn „Kino platno" (D-019)
+- Web i iOS prepisani na novi vizualni smjer: slika filma preko cijelog ekrana, široki naslovi, pravokutne kontrole, tekstualna navigacija.
+- Server uvozi lokalne postere/pozadine/logotipe iz mapa filmova (`metadata.LocalArtwork`); demo ima službene CC-BY postere Blender filmova.
+- Sljedeće: glazbena biblioteka s audio playerom.
+
 ## v0.6.0 i nakon toga (PR #16–#23)
 - Netflix raspored (top nav, „Tko gleda?", billboard s utišanim pregledom, redovi, Top 10, TV navigacija strelicama), logotipi i fotografije glumaca s TMDb-a, sličice iz videa, demo s CC BY Blender filmovima.
 - Popravak: ponovna skeniranja/osvježavanja više se ne odbacuju (River uniqueness).

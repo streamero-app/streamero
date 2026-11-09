@@ -14,7 +14,7 @@ struct AddServerView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                     .shadow(color: Theme.accent.opacity(0.4), radius: 24, y: 10)
                     .padding(.bottom, 8)
-                Text("app.name").font(Theme.display(44))
+                Text("app.name").font(Theme.display(36)).textCase(.uppercase).minimumScaleFactor(0.6)
                 Text("addServer.subtitle").foregroundStyle(Theme.textMuted)
             }
             VStack(alignment: .leading, spacing: 8) {

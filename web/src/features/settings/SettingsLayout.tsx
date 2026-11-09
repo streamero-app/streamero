@@ -5,12 +5,12 @@ import { useMe } from "@/features/auth/useAuth";
 import { Page } from "@/components/Page";
 
 const tab =
-  "group flex h-9 shrink-0 items-center gap-2.5 rounded-[10px] px-3 text-sm whitespace-nowrap text-muted transition-colors duration-150 hover:bg-white/[0.05] hover:text-text [&.active]:bg-white/[0.08] [&.active]:text-text";
+  "group flex h-9 shrink-0 items-center gap-2.5 rounded-[6px] px-3 text-sm whitespace-nowrap text-muted transition-colors duration-150 hover:bg-white/[0.05] hover:text-text [&.active]:bg-white/[0.08] [&.active]:text-text";
 
 function Tab({ to, icon: Icon, label }: { to: string; icon: LucideIcon; label: string }) {
   return (
     <Link to={to} className={tab}>
-      <Icon className="size-4 text-faint transition-colors group-hover:text-text group-[.active]:text-accent" aria-hidden />
+      <Icon className="size-4 text-faint transition-colors group-hover:text-text group-[.active]:text-text" aria-hidden />
       {label}
     </Link>
   );
@@ -20,9 +20,10 @@ export function SettingsLayout() {
   const { t } = useTranslation();
   const { data: me } = useMe();
   return (
-    <Page className="flex flex-col gap-8 md:flex-row">
+    <Page className="flex flex-col gap-8">
+      <h1 className="font-display text-4xl sm:text-5xl">{t("nav.settings")}</h1>
+      <div className="flex flex-col gap-8 md:flex-row">
       <aside className="md:w-56 md:shrink-0">
-        <h1 className="mb-5 font-display text-5xl leading-none">{t("nav.settings")}</h1>
         <nav className="shelf-track -mx-4 flex gap-1 overflow-x-auto px-4 md:mx-0 md:flex-col md:px-0" aria-label={t("nav.settings")}>
           <Tab to="/settings/account" icon={UserRound} label={t("settings.account")} />
           <Tab to="/settings/playback" icon={Clapperboard} label={t("settings.playback")} />
@@ -48,6 +49,7 @@ export function SettingsLayout() {
       </aside>
       <div className="enter flex min-w-0 max-w-3xl flex-1 flex-col gap-6">
         <Outlet />
+      </div>
       </div>
     </Page>
   );
