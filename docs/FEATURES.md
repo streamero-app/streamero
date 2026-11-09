@@ -74,6 +74,7 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [x] `[JF]` Real-time monitoring (fsnotify) + periodični scan; fallback polling za NFS/SMB (P2)
 - [ ] `[JF]` Redoslijed i on/off metadata providera i image fetchera po tipu (P3)
 - [ ] `[JF]` Spremanje slika/NFO pokraj medija (opcija) (P3)
+- [x] `[JF]` Lokalne slike pokraj medija: `poster`/`folder`/`cover`, `fanart`/`backdrop`/`background`, `logo`/`clearlogo` (imaju prednost pred TMDb-om) (P3)
 - [x] `[JF]` Automatske kolekcije (TMDb box sets) (P3)
 - [ ] `[JF]` Automatsko grupiranje alternativnih verzija (film I epizode) + ručno spajanje/razdvajanje (P2) — *automatsko grupiranje filmova gotovo; epizode i ručno spajanje slijede*
 - [ ] `[JF]` Provider ID u imenu foldera/datoteke: `[tmdbid-123]`, `{tmdb-123}`, `(imdb-tt…)`, aliasi `tmdb/imdb/tvdb` — i na folderima sezona i epizoda (P2) — *film/serija gotovi; sezone/epizode slijede*

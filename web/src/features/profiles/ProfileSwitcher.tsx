@@ -95,16 +95,16 @@ export function ProfileGatePage() {
 
   return (
     <div className="flex min-h-full flex-col items-center justify-center gap-12 bg-bg px-6 py-16" data-testid="profile-gate">
-      <Mark size={44} className="absolute top-6 left-6 rounded-xl sm:left-10" />
-      <h1 className="enter text-center text-4xl font-semibold tracking-tight sm:text-6xl">{t("profiles.whoIsWatching")}</h1>
+      <Mark size={40} className="absolute top-6 left-6 sm:left-10" />
+      <h1 className="enter text-center font-display text-4xl text-balance sm:text-6xl">{t("profiles.whoIsWatching")}</h1>
       <ul className="enter-2 flex flex-wrap justify-center gap-6 sm:gap-10">
         {all.map((p) => {
           const name = p?.name ?? me.username;
           return (
             <li key={p?.id ?? "main"}>
               <button type="button" onClick={() => choose(p)} disabled={select.isPending}
-                className="group flex w-28 flex-col items-center gap-3 rounded-lg outline-none sm:w-40">
-                <span className="relative block rounded-lg ring-white transition-[box-shadow,transform] duration-200 ease-out group-hover:ring-4 group-focus-visible:scale-105 group-focus-visible:ring-4">
+                className="group flex w-28 flex-col items-center gap-3 rounded-[6px] outline-none sm:w-40">
+                <span className="relative block rounded-[6px] outline-3 outline-offset-4 outline-transparent transition-[outline-color,transform] duration-200 ease-out group-hover:outline-text group-focus-visible:-translate-y-1 group-focus-visible:outline-text">
                   <Avatar name={name} color={p?.color ?? MAIN_COLOR} fluid className="size-28 text-5xl sm:size-40 sm:text-7xl" />
                   {p?.hasPin && <Lock className="absolute right-2 bottom-2 size-5 text-white/80" role="img" aria-label={t("profiles.pinLocked")} />}
                 </span>

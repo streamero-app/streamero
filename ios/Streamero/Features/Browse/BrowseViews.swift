@@ -58,7 +58,7 @@ struct ProfileGateView: View {
     var body: some View {
         VStack(spacing: 36) {
             Spacer()
-            Text("profiles.whoIsWatching").font(Theme.display(30)).foregroundStyle(Theme.text)
+            Text("profiles.whoIsWatching").font(Theme.display(26)).textCase(.uppercase).foregroundStyle(Theme.text)
             LazyVGrid(columns: columns, spacing: 28) {
                 avatar(name: user.username, color: "#8a5a2b", locked: false) { Task { try? await client.selectMainProfile(); done() } }
                 ForEach(profiles, id: \.id) { p in
@@ -202,7 +202,7 @@ struct HomeTab: View {
                         }
                     }
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("home.libraries").font(.title3.bold())
+                        Text("home.libraries").font(Theme.head()).textCase(.uppercase)
                         if libraries.isEmpty {
                             Text("home.noLibraries").foregroundStyle(Theme.textMuted)
                         }
@@ -327,7 +327,7 @@ struct TitleArt: View {
                 .shadow(color: .black.opacity(0.5), radius: 10)
                 .accessibilityLabel(Text(title))
         } else {
-            Text(title).font(Theme.display(size)).foregroundStyle(Theme.text).lineLimit(3).minimumScaleFactor(0.6)
+            Text(title).font(Theme.display(size)).textCase(.uppercase).foregroundStyle(Theme.text).lineLimit(3).minimumScaleFactor(0.5)
         }
     }
 }
@@ -356,7 +356,7 @@ struct Shelf<Content: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(title).font(.title3.bold()).padding(.horizontal, 20)
+            Text(title).font(Theme.head()).textCase(.uppercase).padding(.horizontal, 20)
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(alignment: .top, spacing: 14) { content() }
                     .padding(.horizontal, 20)
@@ -377,8 +377,8 @@ struct ProgressStrip: View {
     var body: some View {
         GeometryReader { g in
             ZStack(alignment: .leading) {
-                Capsule().fill(.black.opacity(0.55))
-                Capsule().fill(Theme.accent).frame(width: g.size.width * value)
+                Rectangle().fill(.white.opacity(0.25))
+                Rectangle().fill(Theme.accent).frame(width: g.size.width * value)
             }
         }
         .frame(height: 4)
@@ -480,7 +480,7 @@ struct LibraryTile: View {
     var body: some View {
         HStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 6) {
-                Text(library.name).font(Theme.display(28)).foregroundStyle(Theme.text)
+                Text(library.name).font(Theme.display(26)).textCase(.uppercase).foregroundStyle(Theme.text)
                 Text("home.items \(library.itemCount)").font(.subheadline).foregroundStyle(Theme.textMuted)
             }
             Spacer()
@@ -509,7 +509,7 @@ struct LibraryView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(route.name).font(Theme.display(40)).foregroundStyle(Theme.text)
+                    Text(route.name).font(Theme.display(34)).textCase(.uppercase).foregroundStyle(Theme.text)
                     if loaded { Text("home.items \(total)").font(.subheadline).foregroundStyle(Theme.textMuted) }
                 }
                 LazyVGrid(columns: columns, spacing: 22) {
@@ -592,7 +592,7 @@ struct ItemView: View {
                 }
                 VStack(alignment: .leading, spacing: 8) {
                     if isEpisode {
-                        Text(episodeTitle(it)).font(Theme.display(34)).foregroundStyle(Theme.text).lineLimit(3).minimumScaleFactor(0.6)
+                        Text(episodeTitle(it)).font(Theme.display(30)).textCase(.uppercase).foregroundStyle(Theme.text).lineLimit(3).minimumScaleFactor(0.5)
                     } else {
                         TitleArt(id: it.id, title: it.title, hasLogo: d.hasLogo == true, client: client, size: 34, maxHeight: 90)
                     }
@@ -629,7 +629,7 @@ struct ItemView: View {
                 .accessibilityLabel(Text("library.watched"))
             }
             if let p = progress(it) { ProgressStrip(value: p).frame(maxWidth: 240) }
-            if let tagline = d.tagline { Text(tagline).font(Theme.display(22).italic()).foregroundStyle(Theme.text.opacity(0.9)) }
+            if let tagline = d.tagline { Text(tagline).font(.title3.weight(.medium).italic()).foregroundStyle(Theme.text.opacity(0.9)) }
             if let overview = d.overview { Text(overview).font(.callout).foregroundStyle(Theme.text.opacity(0.82)).lineSpacing(3) }
         }
 
@@ -637,7 +637,7 @@ struct ItemView: View {
         let episodes = d.children.filter { $0.kind == .episode }
         if !seasons.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
-                Text("library.seasons").font(.title3.bold())
+                Text("library.seasons").font(Theme.head()).textCase(.uppercase)
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(alignment: .top, spacing: 14) {
                         ForEach(seasons, id: \.id) { s in
@@ -650,7 +650,7 @@ struct ItemView: View {
         }
         if !episodes.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
-                Text("library.episodes").font(.title3.bold())
+                Text("library.episodes").font(Theme.head()).textCase(.uppercase)
                 ForEach(episodes, id: \.id) { e in
                     NavigationLink(value: e.id) { EpisodeRow(item: e, client: client) }.buttonStyle(CardPressStyle())
                 }
@@ -658,7 +658,7 @@ struct ItemView: View {
         }
         if !d.cast.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
-                Text("library.cast").font(.title3.bold())
+                Text("library.cast").font(Theme.head()).textCase(.uppercase)
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(alignment: .top, spacing: 14) {
                         ForEach(Array(d.cast.prefix(20).enumerated()), id: \.offset) { _, p in

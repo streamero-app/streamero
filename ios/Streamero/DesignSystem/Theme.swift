@@ -1,21 +1,25 @@
 import SwiftUI
 
-/// Design tokens — streaming-service look on near-black, white primary action, amber brand accent. Same palette as the web client.
+/// Design tokens — "Kino platno" (D-019): the film owns the screen, warm near-black around it,
+/// paper-white primary action, titles set wide like opening credits. Same palette as the web client.
 enum Theme {
-    static let background = Color(red: 0.063, green: 0.063, blue: 0.063)
-    static let surface = Color(red: 0.094, green: 0.094, blue: 0.094)
-    static let surface2 = Color(red: 0.137, green: 0.137, blue: 0.137)
-    static let border = Color.white.opacity(0.09)
-    static let text = Color(red: 0.96, green: 0.96, blue: 0.96)
-    static let textMuted = Color(red: 0.64, green: 0.64, blue: 0.64)
-    static let textFaint = Color(red: 0.45, green: 0.45, blue: 0.45)
-    static let accent = Color(red: 1, green: 0.667, blue: 0.271)
-    static let accentContrast = Color(red: 0.11, green: 0.063, blue: 0.024)
-    static let cornerRadius: CGFloat = 14
-    static let posterRadius: CGFloat = 10
+    static let background = Color(red: 0.039, green: 0.031, blue: 0.027)
+    static let surface = Color(red: 0.078, green: 0.067, blue: 0.059)
+    static let surface2 = Color(red: 0.110, green: 0.094, blue: 0.082)
+    static let border = Color(red: 0.957, green: 0.937, blue: 0.914).opacity(0.1)
+    static let text = Color(red: 0.957, green: 0.937, blue: 0.914)
+    static let textMuted = text.opacity(0.64)
+    static let textFaint = text.opacity(0.42)
+    /// The film's light at rest; titles bring their own (items.colors).
+    static let accent = Color(red: 0.839, green: 0.463, blue: 0.247)
+    static let accentContrast = Color(red: 0.043, green: 0.035, blue: 0.031)
+    static let cornerRadius: CGFloat = 8
+    static let posterRadius: CGFloat = 6
 
-    /// Heavy, tight title type for billboards and headings.
-    static func display(_ size: CGFloat) -> Font { .system(size: size, weight: .heavy) }
+    /// Wide, heavy title type (title cards, hero titles). Pair with `.textCase(.uppercase)`.
+    static func display(_ size: CGFloat) -> Font { .system(size: size, weight: .black).width(.expanded) }
+    /// Section heads: the same voice, calmer.
+    static func head(_ size: CGFloat = 19) -> Font { .system(size: size, weight: .heavy).width(.expanded) }
 
     /// Stable, muted hue for artwork placeholders.
     static func hue(for title: String) -> Double {
@@ -25,17 +29,15 @@ enum Theme {
     }
 }
 
-/// The room lit by a title: two soft lights in its colours over near-black.
+/// The dark around the screen, with the film's light pooling low on the left.
 struct AmbientBackground: View {
     var colors: [String]?
 
     var body: some View {
-        let a = Color(hex: colors?.first ?? "#ffaa45")
-        let b = Color(hex: colors?.dropFirst().first ?? colors?.first ?? "#2f8f9d")
+        let a = Color(hex: colors?.first ?? "#d6763f")
         ZStack {
             Theme.background
-            RadialGradient(colors: [a.opacity(0.38), .clear], center: UnitPoint(x: 0.85, y: 0.05), startRadius: 0, endRadius: 520)
-            RadialGradient(colors: [b.opacity(0.26), .clear], center: UnitPoint(x: 0.05, y: 0.95), startRadius: 0, endRadius: 480)
+            RadialGradient(colors: [a.opacity(0.26), .clear], center: UnitPoint(x: 0, y: 0.75), startRadius: 0, endRadius: 460)
         }
         .ignoresSafeArea()
         .animation(.easeOut(duration: 0.9), value: colors)
@@ -57,35 +59,32 @@ extension Color {
     }
 }
 
-/// Primary action, lit in the title's colour (white when there is none).
+/// Primary action: paper white on the dark, plain and rectangular. `hex` is accepted for
+/// call sites that pass the film colour; the film's colour stays on the screen, not the button.
 struct PrimaryButtonStyle: ButtonStyle {
     var hex: String? = nil
 
     func makeBody(configuration: Configuration) -> some View {
-        let fill = hex.map { Color(hex: $0) } ?? .white
-        let ink = hex == nil ? Color.black : Color.ink(onHex: hex)
-        return configuration.label
-            .font(.body.weight(.bold))
-            .foregroundStyle(ink)
-            .tint(ink)
-            .padding(.horizontal, 24).frame(height: 50)
-            .background(fill.opacity(configuration.isPressed ? 0.8 : 1), in: Capsule())
-            .shadow(color: fill.opacity(hex == nil ? 0 : 0.5), radius: 16, y: 8)
+        configuration.label
+            .font(.body.weight(.semibold))
+            .foregroundStyle(Theme.background)
+            .tint(Theme.background)
+            .padding(.horizontal, 22).frame(height: 50)
+            .background(Theme.text.opacity(configuration.isPressed ? 0.8 : 1), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(.spring(response: 0.25, dampingFraction: 0.8), value: configuration.isPressed)
     }
 }
 
-/// Round glass icon toggle (favorite, watched).
+/// Square icon toggle (favorite, watched); paper white when on.
 struct CircleButtonStyle: ButtonStyle {
     var active = false
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: 18, weight: .semibold))
-            .foregroundStyle(active ? Theme.accent : Theme.text)
+            .foregroundStyle(active ? Theme.background : Theme.text)
             .frame(width: 50, height: 50)
-            .background(active ? Theme.accent.opacity(0.16) : Color.white.opacity(0.08), in: Circle())
-            .overlay(Circle().strokeBorder(active ? Theme.accent.opacity(0.4) : Theme.border))
+            .background(active ? Theme.text : Color.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             .scaleEffect(configuration.isPressed ? 0.94 : 1)
             .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
     }
@@ -100,15 +99,14 @@ struct CardPressStyle: ButtonStyle {
     }
 }
 
-/// Secondary action: translucent grey (More info).
+/// Secondary action: translucent, same shape as the primary (More info).
 struct MutedButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.body.weight(.bold))
-            .foregroundStyle(.white)
+            .font(.body.weight(.semibold))
+            .foregroundStyle(Theme.text)
             .padding(.horizontal, 20).frame(height: 50)
-            .background(.white.opacity(configuration.isPressed ? 0.2 : 0.1), in: Capsule())
-            .overlay(Capsule().strokeBorder(.white.opacity(0.15)))
+            .background(.white.opacity(configuration.isPressed ? 0.22 : 0.12), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(.spring(response: 0.25, dampingFraction: 0.8), value: configuration.isPressed)
     }

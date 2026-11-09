@@ -513,12 +513,15 @@ func (r *Refresher) saveImage(ctx context.Context, c *TMDb, id uuid.UUID, kind, 
 	if path == "" || r.ImageDir == "" {
 		return false
 	}
+	dst := ImagePath(r.ImageDir, id, kind)
+	if _, err := os.Stat(LocalMarker(dst)); err == nil {
+		return true // the user's own artwork stays
+	}
 	data, err := c.Image(ctx, path, size)
 	if err != nil {
 		r.Log.Debug("image download failed", "item", id, "kind", kind, "err", err)
 		return false
 	}
-	dst := ImagePath(r.ImageDir, id, kind)
 	if err := os.MkdirAll(filepath.Dir(dst), 0o750); err != nil {
 		return false
 	}

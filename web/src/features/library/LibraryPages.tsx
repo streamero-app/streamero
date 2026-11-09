@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Check, Info, Play, Plus, RotateCcw, Star, Volume2, VolumeX } from "lucide-react";
+import { Check, Info, Play, Plus, RotateCcw, Volume2, VolumeX } from "lucide-react";
 import { api, unwrap } from "@/api/client";
 import type { components } from "@/api/schema.gen";
 import { Art, Badge, Button, ErrorText, Select, Spinner, buttonVariants, pressable } from "@/components/ui";
@@ -37,19 +37,18 @@ function useItemDetail(id?: string) {
   });
 }
 
-/** Backdrop art with soft scrims; a tinted glow when there is no art. */
+/** The picture on the screen: backdrop art, or a tinted ground when there is none. */
 function BillboardArt({ item, hasBackdrop, still = false }: { item: ItemSummary; hasBackdrop: boolean; still?: boolean }) {
   const [broken, setBroken] = useState(false);
   const hue = placeholderHue(item.title);
   return (
-    <div className="absolute inset-0 overflow-hidden" aria-hidden>
+    <div className="screen-settle absolute inset-0 overflow-hidden" aria-hidden>
       {hasBackdrop && !broken ? (
         <Art src={imageUrl(item.id, still ? "still" : "backdrop")} loading="eager" onError={() => setBroken(true)}
-          className="absolute inset-0 size-full object-cover" />
+          className="absolute inset-0 size-full object-cover object-[60%_30%]" />
       ) : (
-        <div className="absolute inset-0" style={{ background: `radial-gradient(80% 90% at 70% 30%, hsl(${hue} 24% 26%) 0%, #101015 75%)` }} />
+        <div className="absolute inset-0" style={{ background: `radial-gradient(80% 90% at 70% 30%, hsl(${hue} 22% 22%) 0%, var(--color-bg) 75%)` }} />
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
     </div>
   );
 }
@@ -67,7 +66,7 @@ function previewable(f?: ItemDetail["files"][number]): boolean {
 }
 
 /**
- * Muted motion preview inside the screen: starts after a short rest, only when the file
+ * Muted motion preview on the screen: starts after a short rest, only when the file
  * plays directly, pauses off-screen, and gives way to the still.
  */
 function PreviewVideo({ detail }: { detail?: ItemDetail }) {
@@ -92,13 +91,13 @@ function PreviewVideo({ detail }: { detail?: ItemDetail }) {
         body: { startMs, device: { containers: [file.container], videoCodecs: [file.videoCodec!], audioCodecs: (file.audio ?? []).map((a) => a.codec), hls: false } },
       });
       if (!cancelled && res.data?.method === "direct") setSrc({ url: res.data.url, startMs });
-    }, 1800);
+    }, 2200);
     return () => { cancelled = true; window.clearTimeout(timer); };
   }, [itemId]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const v = ref.current;
     if (!v || !src || typeof IntersectionObserver === "undefined") return;
-    const io = new IntersectionObserver(([e]) => { if (e && !e.isIntersecting) v.pause(); else if (e?.isIntersecting && !v.ended) void v.play().catch(() => undefined); }, { threshold: 0.4 });
+    const io = new IntersectionObserver(([e]) => { if (e && !e.isIntersecting) v.pause(); else if (e?.isIntersecting && !v.ended) void v.play().catch(() => undefined); }, { threshold: 0.3 });
     io.observe(v);
     return () => io.disconnect();
   }, [src]);
@@ -110,10 +109,10 @@ function PreviewVideo({ detail }: { detail?: ItemDetail }) {
         onPlaying={() => setPlaying(true)}
         onTimeUpdate={(e) => { if (e.currentTarget.currentTime - src.startMs / 1000 > 45) e.currentTarget.pause(); }}
         onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)} onError={() => setSrc(null)}
-        className={`absolute inset-0 size-full object-cover transition-opacity duration-[1200ms] ease-out ${playing ? "opacity-100" : "opacity-0"}`} />
+        className={`absolute inset-0 size-full object-cover object-[60%_30%] transition-opacity duration-[1400ms] ease-out ${playing ? "opacity-100" : "opacity-0"}`} />
       {playing && (
         <button type="button" onClick={() => setMuted(!muted)} aria-label={muted ? t("player.unmute") : t("player.mute")}
-          className="tv-focus absolute right-4 bottom-4 z-10 grid size-10 place-items-center rounded-full bg-black/40 text-white ring-1 ring-white/30 backdrop-blur transition-colors hover:bg-black/60">
+          className="tv-focus absolute top-24 right-5 z-20 grid size-10 place-items-center rounded-[6px] bg-black/45 text-text backdrop-blur transition-colors hover:bg-black/70 sm:right-10 lg:right-16">
           {muted ? <VolumeX className="size-4" aria-hidden /> : <Volume2 className="size-4" aria-hidden />}
         </button>
       )}
@@ -121,41 +120,67 @@ function PreviewVideo({ detail }: { detail?: ItemDetail }) {
   );
 }
 
-/** The screen: the title's picture (and preview) as a lit panel that lights the room. */
-function Screen({ item, detail, still = false, className = "" }: { item: ItemSummary; detail?: ItemDetail; still?: boolean; className?: string }) {
+/**
+ * The screen: the film's picture edge to edge behind the page top, darkened toward the
+ * text and lit low on the left in the film's colour. Content sits on top.
+ */
+function Screen({ item, detail, still = false, children, className = "", testId }: {
+  item: ItemSummary; detail?: ItemDetail; still?: boolean; children: ReactNode; className?: string; testId?: string;
+}) {
   const hasArt = !!item.hasBackdrop || (still && item.hasPoster);
   return (
-    <div className={`screen-glow relative isolate ${className}`}>
-      <div className="relative aspect-video w-full overflow-hidden rounded-[28px] bg-surface-2 shadow-[0_40px_120px_-40px_rgb(0_0_0/0.9)] ring-1 ring-white/10">
-        <BillboardArt item={item} hasBackdrop={hasArt} still={still && !item.hasBackdrop} />
+    <section className={`relative isolate flex flex-col justify-end ${className}`} data-testid={testId}>
+      <div className="absolute inset-x-0 top-0 -z-10 h-[64svh] overflow-hidden md:inset-0 md:h-auto">
+        <BillboardArt key={item.id} item={item} hasBackdrop={hasArt} still={still && !item.hasBackdrop} />
         <PreviewVideo detail={detail} />
+        <div className="screen-scrim absolute inset-0" />
       </div>
-    </div>
+      {children}
+    </section>
   );
 }
 
+/** Year, length, rating and picture as one quiet line of text. */
 function Facts({ item, detail, className = "" }: { item: ItemSummary; detail?: ItemDetail; className?: string }) {
   const { t } = useTranslation();
   const file = detail?.files[0];
   const res = resolutionLabel(file?.width, file?.height);
-  const pill = "inline-flex h-7 items-center gap-1 rounded-full bg-white/[0.08] px-3 text-[13px] text-white/85 ring-1 ring-inset ring-white/10";
+  const parts: ReactNode[] = [];
+  if (item.rating) parts.push(<span key="r" className="font-semibold text-text">★ {item.rating.toFixed(1)}</span>);
+  if (item.year) parts.push(<span key="y">{item.year}</span>);
+  parts.push(<span key="d">{item.durationMs ? formatDuration(item.durationMs) : t(`library.kind_${item.kind}`)}</span>);
+  if (detail?.genres[0]) parts.push(<span key="g">{detail.genres.slice(0, 2).join(", ")}</span>);
+  if (detail?.officialRating) parts.push(<span key="o" className="rounded-[3px] px-1.5 ring-1 ring-text/40">{detail.officialRating}</span>);
+  if (res) parts.push(<span key="q" className="font-semibold text-text">{res === "4K" ? "4K" : "HD"}</span>);
+  if (file?.hdr) parts.push(<span key="h" className="font-semibold text-text">{file.hdr}</span>);
   return (
-    <div className={`flex flex-wrap items-center gap-2 tabular ${className}`}>
-      {item.rating ? <span className={`${pill} font-semibold text-white`}><Star className="size-3.5 fill-[var(--amb-a)] text-[var(--amb-a)]" aria-hidden />{item.rating.toFixed(1)}</span> : null}
-      {item.year && <span className={pill}>{item.year}</span>}
-      {item.durationMs ? <span className={pill}>{formatDuration(item.durationMs)}</span> : <span className={pill}>{t(`library.kind_${item.kind}`)}</span>}
-      {detail?.officialRating && <span className={pill}>{detail.officialRating}</span>}
-      {res && <span className={`${pill} font-semibold`}>{res === "4K" ? "4K" : "HD"}</span>}
-      {file?.hdr && <span className={`${pill} font-semibold`}>{file.hdr}</span>}
+    <p className={`flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[15px] text-text/70 tabular ${className}`}>
+      {parts.map((p, i) => <span key={i} className="contents">{i > 0 && <span aria-hidden className="text-text/35">·</span>}{p}</span>)}
+    </p>
+  );
+}
+
+/** Watched so far, as a line and the time that is left. */
+function Watched({ item }: { item: ItemSummary }) {
+  const { t } = useTranslation();
+  const p = progressOf(item);
+  if (!p || !item.durationMs || !item.positionMs) return null;
+  const left = Math.max(1, Math.round((item.durationMs - item.positionMs) / 60000));
+  return (
+    <div className="flex items-center gap-3 text-[13px] text-text/60 tabular">
+      <ProgressBar value={p} className="w-44" />
+      {t("home.minutesLeft", { count: left })}
     </div>
   );
 }
 
 const stageGutter = "px-5 sm:px-10 lg:px-16";
+const bigButton = "tv-focus h-13 rounded-[6px] px-7 text-base font-semibold";
 
 /**
- * The stage (home): a title on the left, its lit screen on the right, and a strip of
- * posters below; focusing a poster brings that title onto the stage and re-lights the room.
+ * The stage (home and libraries): one film on the screen, its title set like a title
+ * card, and the strip of posters along the bottom; focusing a poster puts that film on
+ * the screen and its colour into the interface.
  */
 export function Billboard({ pool, label }: { pool?: ItemSummary[]; label?: string }) {
   const { t } = useTranslation();
@@ -170,49 +195,50 @@ export function Billboard({ pool, label }: { pool?: ItemSummary[]; label?: strin
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => setPickId(id), 180);
   };
-  if (!pool) return <div aria-hidden className="h-[82vh] min-h-[520px]" />;
+  if (!pool) return <div aria-hidden className="h-[86svh] min-h-[520px]" />;
   if (!pick) return <div className="h-24" />;
   const d = detail.data;
   return (
-    <section className="flex flex-col gap-8 pt-24 lg:pt-28" data-testid="home-hero">
-      <div className={`grid items-center gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-14 ${stageGutter}`}>
-        <div key={pick.id} className="order-2 flex min-w-0 flex-col gap-5 lg:order-1">
-          {label && <p className="enter text-sm font-semibold tracking-wide text-[var(--amb-a)]">{label}</p>}
-          <h2 className="enter">
-            <TitleArt item={pick} className="max-h-[18vh] w-auto max-w-[min(30rem,80vw)]"
-              textClass="block font-display text-[44px] leading-[0.9] text-balance sm:text-6xl xl:text-7xl" />
-          </h2>
-          <Facts item={pick} detail={d} className="enter-2" />
-          {d?.overview && <p className="enter-2 line-clamp-4 max-w-[52ch] text-[15px] leading-relaxed text-white/80 sm:text-base">{d.overview}</p>}
-          <div className="enter-3 mt-1 flex flex-wrap gap-3">
-            {isPlayable(pick) && (
-              <Link to="/watch/$itemId" params={{ itemId: pick.id }} className={`${pressable} ${buttonVariants.lit} tv-focus h-13 rounded-full px-8 text-base font-bold`}>
-                <Play className="size-5 fill-current" aria-hidden />{t("player.play")}
-              </Link>
-            )}
-            <Link to="/item/$itemId" params={{ itemId: pick.id }} className={`${pressable} ${buttonVariants.glass} tv-focus h-13 rounded-full px-6 text-base font-semibold`}>
-              <Info className="size-5" aria-hidden />{t("home.moreInfo")}
+    <Screen item={pick} detail={d} className="min-h-[86svh] pt-[46svh] md:min-h-[min(100svh,980px)] md:pt-32" testId="home-hero">
+      <div className={stageGutter}><div key={pick.id} className="flex max-w-[44rem] min-w-0 flex-col gap-5">
+        <h2 className="enter">
+          <TitleArt item={pick} className="max-h-[22vh] w-auto max-w-[min(34rem,82vw)]"
+            textClass="block font-display text-[clamp(2.9rem,7.4vw,7rem)] text-balance" />
+        </h2>
+        <Facts item={pick} detail={d} className="enter-2" />
+        {d?.overview && <p className="enter-2 line-clamp-3 max-w-[48ch] text-[15px] leading-relaxed text-text/72 sm:text-[17px]">{d.overview}</p>}
+        <div className="enter-3 mt-2 flex flex-wrap gap-3">
+          {isPlayable(pick) && (
+            <Link to="/watch/$itemId" params={{ itemId: pick.id }} className={`${pressable} ${buttonVariants.primary} ${bigButton}`}>
+              <Play className="size-5 fill-current" aria-hidden />
+              {pick.positionMs ? t("player.resume", { time: formatClock(pick.positionMs) }) : t("player.play")}
             </Link>
+          )}
+          <Link to="/item/$itemId" params={{ itemId: pick.id }} className={`${pressable} ${buttonVariants.glass} ${bigButton}`}>
+            <Info className="size-5" aria-hidden />{t("home.moreInfo")}
+          </Link>
+        </div>
+        <Watched item={pick} />
+      </div></div>
+      {choices.length > 1 && (
+        <div className="mt-10 flex flex-col gap-3 md:mt-14">
+          {label && <p className={`font-label text-text/55 ${stageGutter}`}>{label}</p>}
+          <div className="shelf-track flex gap-3 overflow-x-auto px-5 pt-2 pb-8 sm:px-10 lg:gap-4 lg:px-16" role="listbox" aria-label={label ?? t("home.latest")}>
+            {choices.map((it) => {
+              const on = it.id === pick.id;
+              return (
+                <button key={it.id} type="button" role="option" aria-selected={on} aria-label={it.title}
+                  onMouseEnter={() => choose(it.id)} onFocus={() => { window.clearTimeout(timer.current); setPickId(it.id); }}
+                  onClick={() => setPickId(it.id)}
+                  className={`relative aspect-[2/3] w-[96px] shrink-0 overflow-hidden rounded-[6px] bg-surface-2 transition-[transform,opacity,outline-color] duration-300 ease-out outline-2 outline-offset-4 sm:w-[120px] lg:w-[136px] ${on ? "-translate-y-1.5 opacity-100 outline-text" : "opacity-60 outline-transparent hover:opacity-95"}`}>
+                  <PortraitArt item={it} />
+                </button>
+              );
+            })}
           </div>
         </div>
-        <Screen item={pick} detail={d} className="order-1 lg:order-2" />
-      </div>
-      {choices.length > 1 && (
-        <div className="shelf-track flex gap-3 overflow-x-auto px-5 py-3 sm:px-10 lg:px-16" role="listbox" aria-label={label ?? t("home.latest")}>
-          {choices.map((it) => {
-            const on = it.id === pick.id;
-            return (
-              <button key={it.id} type="button" role="option" aria-selected={on} aria-label={it.title}
-                onMouseEnter={() => choose(it.id)} onFocus={() => { window.clearTimeout(timer.current); setPickId(it.id); }}
-                onClick={() => setPickId(it.id)}
-                className={`relative aspect-[2/3] w-[88px] shrink-0 overflow-hidden rounded-xl transition-[transform,opacity,box-shadow] duration-300 ease-out sm:w-[104px] ${on ? "scale-105 opacity-100 shadow-[0_14px_40px_-10px_var(--amb-a)] ring-2 ring-[var(--amb-a)]" : "opacity-55 hover:opacity-90"}`}>
-                <PortraitArt item={it} />
-              </button>
-            );
-          })}
-        </div>
       )}
-    </section>
+    </Screen>
   );
 }
 
@@ -293,7 +319,7 @@ function CollectionsRow() {
   const list = Array.isArray(cols.data) ? cols.data : [];
   return (
     <Row title={t("collections.title")} testId="collections" count={list.length}
-      action={<Link to="/collections" className="text-sm text-white/60 hover:text-white">{t("collections.all")} ›</Link>}>
+      action={<Link to="/collections" className="pb-0.5 text-sm font-semibold text-text/55 hover:text-text">{t("collections.all")}</Link>}>
       {list.map((c) => <CollectionCard key={c.id} c={c} className="w-[30vw] shrink-0 sm:w-[160px] xl:w-[180px]" />)}
     </Row>
   );
@@ -307,26 +333,26 @@ export function LibraryShelf({ asPage = false }: { asPage?: boolean }) {
   if (libraries.data?.length === 0) {
     return (
       <section className={`flex flex-col items-start gap-3 ${gutter} ${asPage ? "pt-24" : ""}`}>
-        <h2 className="text-xl font-bold">{t("home.librariesTitle")}</h2>
+        <h2 className="font-head text-xl">{t("home.librariesTitle")}</h2>
         <p className="max-w-prose text-sm text-muted">{me?.isAdmin ? t("home.noLibrariesAdmin") : t("home.noLibraries")}</p>
-        {me?.isAdmin && <Link to="/settings/libraries" className={`${pressable} ${buttonVariants.lit} h-10 rounded-full px-5 text-sm font-bold`}>{t("libraries.add")}</Link>}
+        {me?.isAdmin && <Link to="/settings/libraries" className={`${pressable} ${buttonVariants.primary} h-10 rounded-[6px] px-5 text-sm font-semibold`}>{t("libraries.add")}</Link>}
       </section>
     );
   }
   return (
-    <section className={`flex flex-col gap-3 ${gutter} ${asPage ? "pt-24" : ""}`}>
+    <section className={`flex flex-col gap-5 ${gutter} ${asPage ? "pt-28" : ""}`}>
       {asPage
-        ? <h1 className="text-3xl font-bold tracking-tight">{t("home.librariesTitle")}</h1>
-        : <h2 className="text-[17px] font-bold tracking-tight sm:text-xl">{t("home.librariesTitle")}</h2>}
+        ? <h1 className="font-display text-4xl sm:text-5xl">{t("home.librariesTitle")}</h1>
+        : <h2 className="font-head text-xl leading-none sm:text-[26px]">{t("home.librariesTitle")}</h2>}
       <ErrorText error={libraries.error} />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {libraries.data?.map((l) => (
           <Link key={l.id} to="/library/$libraryId" params={{ libraryId: l.id }} data-testid="library-card"
-            className="tv-focus group relative flex aspect-[16/7] items-end overflow-hidden rounded-md p-4 ring-1 ring-white/10 transition-transform duration-200 hover:scale-[1.02]"
-            style={{ background: `radial-gradient(120% 120% at 0% 100%, hsl(${placeholderHue(l.name)} 25% 20%) 0%, #181818 65%)` }}>
+            className="tv-focus group relative flex aspect-[16/7] items-end overflow-hidden rounded-[6px] border border-border p-5 transition-colors duration-200 hover:border-border-strong"
+            style={{ background: `linear-gradient(150deg, hsl(${placeholderHue(l.name)} 20% 17%) 0%, var(--color-surface) 70%)` }}>
             <div>
-              <p className="font-display text-3xl leading-none">{l.name}</p>
-              <p className="mt-1.5 text-sm text-white/65">{t(`libraries.kind_${l.kind}`)} · {t("libraries.items", { count: l.itemCount })}</p>
+              <p className="font-display text-3xl">{l.name}</p>
+              <p className="mt-2 text-sm text-text/60">{t(`libraries.kind_${l.kind}`)} · {t("libraries.items", { count: l.itemCount })}</p>
             </div>
           </Link>
         ))}
@@ -343,11 +369,11 @@ export function MyListPage() {
   const { t } = useTranslation();
   const favs = useQuery({ queryKey: ["favorites"], queryFn: async () => unwrap(await api.GET("/home/favorites")) });
   return (
-    <div className={`flex flex-col gap-6 pt-24 ${gutter}`}>
-      <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{t("nav.myList")}</h1>
+    <div className={`flex flex-col gap-8 pt-28 ${gutter}`}>
+      <h1 className="font-display text-4xl sm:text-5xl">{t("nav.myList")}</h1>
       {favs.isPending && <Spinner />}
       {favs.data?.length === 0 && <p className="text-muted">{t("library.myListEmpty")}</p>}
-      <div className="grid grid-cols-2 gap-x-2 gap-y-6 sm:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-6">
+      <div className="grid grid-cols-1 gap-x-5 gap-y-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
         {favs.data?.map((it) => <TitleCard key={it.id} item={it} />)}
       </div>
     </div>
@@ -389,29 +415,29 @@ export function LibraryPage() {
   return (
     <div className="flex flex-col gap-6">
       <Billboard pool={pool} />
-      <div className={`sticky top-[72px] z-30 ${gutter}`}>
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-3 rounded-[28px] bg-black/30 px-5 py-3 ring-1 ring-white/10 backdrop-blur-2xl">
-        <h1 className="font-display text-2xl sm:text-3xl">{lib?.name ?? "…"}</h1>
-        {total !== undefined && <span className="text-sm text-muted tabular">{t("libraries.items", { count: total })}</span>}
-        <div className="flex flex-wrap items-center gap-2 sm:ml-auto" role="group" aria-label={t("library.filters")}>
-          {(genres.data?.length ?? 0) > 0 && (
-            <Select value={genre} onChange={(e) => setGenre(e.target.value)} aria-label={t("library.genre")} className="rounded-full bg-white/[0.06]">
-              <option value="">{t("library.allGenres")}</option>
-              {genres.data?.map((g) => <option key={g} value={g}>{g}</option>)}
+      <div className={`sticky top-0 z-30 border-b border-border bg-bg/85 pt-[4.5rem] pb-3 backdrop-blur-xl md:pt-20 ${gutter}`}>
+        <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
+          <h1 className="font-display text-4xl sm:text-5xl">{lib?.name ?? "…"}</h1>
+          {total !== undefined && <span className="pb-1 text-sm text-text/55 tabular">{t("libraries.items", { count: total })}</span>}
+          <div className="flex flex-wrap items-center gap-2 sm:ml-auto" role="group" aria-label={t("library.filters")}>
+            {(genres.data?.length ?? 0) > 0 && (
+              <Select value={genre} onChange={(e) => setGenre(e.target.value)} aria-label={t("library.genre")}>
+                <option value="">{t("library.allGenres")}</option>
+                {genres.data?.map((g) => <option key={g} value={g}>{g}</option>)}
+              </Select>
+            )}
+            <Select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} aria-label={t("library.sort")}>
+              <option value="added">{t("library.sortAdded")}</option>
+              <option value="title">{t("library.sortTitle")}</option>
+              <option value="year">{t("library.sortYear")}</option>
+              <option value="rating">{t("library.sortRating")}</option>
             </Select>
-          )}
-          <Select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} aria-label={t("library.sort")} className="rounded-full bg-white/[0.06]">
-            <option value="added">{t("library.sortAdded")}</option>
-            <option value="title">{t("library.sortTitle")}</option>
-            <option value="year">{t("library.sortYear")}</option>
-            <option value="rating">{t("library.sortRating")}</option>
-          </Select>
-          <label className={`${pressable} h-9 cursor-pointer rounded-full px-4 text-sm ${unplayed ? "bg-[var(--amb-a)] text-[var(--amb-ink)]" : "bg-white/[0.06] text-white/80 ring-1 ring-inset ring-white/15 hover:text-white"}`}>
-            <input type="checkbox" className="sr-only" checked={unplayed} onChange={(e) => setUnplayed(e.target.checked)} />
-            {unplayed && <Check className="size-3.5" aria-hidden />}
-            {t("library.unplayedOnly")}
-          </label>
-        </div>
+            <label className={`${pressable} h-9 cursor-pointer rounded-[6px] px-3.5 text-sm ${unplayed ? "bg-text text-bg" : "bg-white/[0.06] text-text/80 ring-1 ring-inset ring-border hover:text-text"}`}>
+              <input type="checkbox" className="sr-only" checked={unplayed} onChange={(e) => setUnplayed(e.target.checked)} />
+              {unplayed && <Check className="size-3.5" aria-hidden />}
+              {t("library.unplayedOnly")}
+            </label>
+          </div>
         </div>
       </div>
       <div className={`flex flex-col gap-6 ${gutter}`}>
@@ -447,7 +473,7 @@ function episodeLabel(it: ItemSummary): string {
   return it.episodeNumberEnd ? `E${e}–E${String(it.episodeNumberEnd).padStart(2, "0")}` : `E${e}`;
 }
 
-const circle = "tv-focus grid size-12 shrink-0 place-items-center rounded-full bg-white/[0.08] text-white ring-1 ring-inset ring-white/15 backdrop-blur-xl transition-[background-color,transform] duration-150 hover:bg-white/[0.16] active:scale-95 disabled:opacity-50 sm:size-13";
+const circle = "tv-focus grid size-13 shrink-0 place-items-center rounded-[6px] bg-white/[0.12] text-text backdrop-blur-xl transition-[background-color,transform] duration-150 hover:bg-white/[0.2] active:scale-95 disabled:opacity-50";
 
 /** My list and watched toggles for the current profile. */
 function UserDataButtons({ item }: { item: ItemSummary }) {
@@ -467,7 +493,7 @@ function UserDataButtons({ item }: { item: ItemSummary }) {
         data-testid="favorite" disabled={update.isPending} onClick={() => update.mutate({ favorite: !item.favorite })}>
         {item.favorite ? <Check className="size-5" aria-hidden /> : <Plus className="size-5" aria-hidden />}
       </button>
-      <button type="button" className={`${circle} ${item.played ? "!bg-[var(--amb-a)] !text-[var(--amb-ink)]" : ""}`}
+      <button type="button" className={`${circle} ${item.played ? "!bg-text !text-bg" : ""}`}
         title={item.played ? t("library.markUnplayed") : t("library.markPlayed")}
         aria-label={item.played ? t("library.markUnplayed") : t("library.markPlayed")} aria-pressed={!!item.played}
         data-testid="played" disabled={update.isPending} onClick={() => update.mutate({ played: !item.played })}>
@@ -496,15 +522,15 @@ function EpisodeRow({ item: c }: { item: ItemSummary }) {
   return (
     <li className="border-b border-white/10">
       <Link to={playable ? "/watch/$itemId" : "/item/$itemId"} params={{ itemId: c.id }} data-testid="child-row"
-        className="tv-focus group flex items-center gap-4 rounded-md px-2 py-4 transition-colors hover:bg-white/[0.05] sm:gap-6 sm:px-4">
-        <span className="hidden w-8 shrink-0 text-center text-2xl text-white/60 tabular sm:block">{c.episodeNumber ?? ""}</span>
-        <div className="relative aspect-video w-32 shrink-0 overflow-hidden rounded-md bg-surface-2 sm:w-40">
+        className="tv-focus group flex items-center gap-4 rounded-[6px] px-2 py-4 transition-colors hover:bg-white/[0.04] sm:gap-6 sm:px-4">
+        <span className="hidden w-10 shrink-0 text-center font-display text-3xl text-text/45 tabular sm:block">{c.episodeNumber ?? ""}</span>
+        <div className="relative aspect-video w-32 shrink-0 overflow-hidden rounded-[6px] bg-surface-2 sm:w-44">
           {c.hasPoster && !broken
             ? <Art src={imageUrl(c.id, "still")} onError={() => setBroken(true)} className="absolute inset-0 size-full object-cover" />
             : <ArtFallback item={c} wide />}
           {playable && (
             <span className="absolute inset-0 grid place-items-center bg-black/30 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-              <span className="grid size-10 place-items-center rounded-full border-2 border-white bg-black/50"><Play className="ml-0.5 size-4 fill-white" aria-hidden /></span>
+              <span className="grid size-10 place-items-center rounded-[6px] bg-text text-bg"><Play className="ml-0.5 size-4 fill-current" aria-hidden /></span>
             </span>
           )}
           <ProgressBar value={progressOf(c)} className="absolute inset-x-0 bottom-0" />
@@ -539,11 +565,21 @@ function MoreLikeThis({ detail }: { detail: ItemDetail }) {
   if (!more.data?.length) return null;
   return (
     <section className={`flex flex-col gap-4 ${gutter}`}>
-      <h2 className="text-2xl font-bold tracking-tight">{t("library.moreLikeThis")}</h2>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6">
+      <h2 className="font-head text-xl sm:text-2xl">{t("library.moreLikeThis")}</h2>
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
         {more.data.map((it) => <TitleCard key={it.id} item={it} />)}
       </div>
     </section>
+  );
+}
+
+/** One label/value pair in the details column. */
+function Fact({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <dt className="font-label text-text/50">{label}</dt>
+      <dd className="text-text/90">{children}</dd>
+    </div>
   );
 }
 
@@ -573,29 +609,32 @@ export function ItemPage() {
   const title = isEpisode ? `${episodeLabel(it)} · ${it.title}` : it.title;
 
   return (
-    <div className="flex flex-col gap-12 pb-6">
-      <section className={`grid items-center gap-8 pt-24 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-14 lg:pt-32 ${gutter}`} data-testid="item-hero">
-        <div className="order-2 flex min-w-0 flex-col gap-5 lg:order-1">
+    <div className="flex flex-col gap-14 pb-6">
+      <Screen item={it} detail={d} still={isEpisode} className="min-h-[78svh] pt-[44svh] md:min-h-[min(92svh,900px)] md:pt-32" testId="item-hero">
+        <div className={`pb-4 ${gutter}`}><div className="flex max-w-[52rem] min-w-0 flex-col gap-5">
+          {isEpisode && it.seriesTitle && (
+            <Link to="/item/$itemId" params={{ itemId: it.seriesId! }} className="enter font-head text-lg text-text/75 hover:text-text">{it.seriesTitle}</Link>
+          )}
           <h1 className="enter">
             {isEpisode
-              ? <span className="block font-display text-[40px] leading-[0.92] text-balance sm:text-6xl">{title}</span>
-              : <TitleArt item={{ ...it, hasLogo: d.hasLogo }} className="max-h-[20vh] w-auto max-w-[min(32rem,82vw)]"
-                  textClass="block font-display text-[44px] leading-[0.9] text-balance sm:text-6xl xl:text-7xl" />}
+              ? <span className="block font-display text-[clamp(2.4rem,5.5vw,5rem)] text-balance">{title}</span>
+              : <TitleArt item={{ ...it, hasLogo: d.hasLogo }} className="max-h-[22vh] w-auto max-w-[min(34rem,82vw)]"
+                  textClass="block font-display text-[clamp(2.9rem,7vw,6.6rem)] text-balance" />}
           </h1>
-          {d.originalTitle && d.originalTitle !== it.title && <p className="-mt-2 text-sm text-white/55">{d.originalTitle}</p>}
+          {d.originalTitle && d.originalTitle !== it.title && <p className="-mt-2 text-sm text-text/55">{d.originalTitle}</p>}
           <Facts item={it} detail={d} className="enter-2" />
-          {d.tagline && <p className="enter-2 font-display text-xl text-[var(--amb-a)]">{d.tagline}</p>}
-          <div className="enter-3 mt-1 flex flex-wrap items-center gap-3">
+          {d.tagline && <p className="enter-2 text-lg font-medium text-text/80 italic">{d.tagline}</p>}
+          <div className="enter-3 mt-2 flex flex-wrap items-center gap-3">
             {d.files.length > 0 && (
               <Link to="/watch/$itemId" params={{ itemId: it.id }} data-testid="play"
-                className={`${pressable} ${buttonVariants.lit} tv-focus h-13 rounded-full px-8 text-base font-bold`}>
+                className={`${pressable} ${buttonVariants.primary} ${bigButton} max-sm:w-full`}>
                 <Play className="size-5 fill-current" aria-hidden />
                 {it.positionMs ? t("player.resume", { time: formatClock(it.positionMs) }) : t("player.play")}
               </Link>
             )}
             {d.files.length > 0 && it.positionMs ? (
               <Link to="/watch/$itemId" params={{ itemId: it.id }} search={{ start: 0 }}
-                className={`${pressable} ${buttonVariants.glass} tv-focus h-13 rounded-full px-6 text-base font-semibold`}>
+                className={`${pressable} ${buttonVariants.glass} ${bigButton}`}>
                 <RotateCcw className="size-5" aria-hidden />{t("player.fromStart")}
               </Link>
             ) : null}
@@ -603,45 +642,44 @@ export function ItemPage() {
             {it.kind !== "season" && <AddToMenu item={it} />}
             {isAdmin && <MetadataMenu d={d} />}
           </div>
-          {progressOf(it) > 0 && <ProgressBar value={progressOf(it)} className="max-w-sm" />}
-        </div>
-        {d.hasBackdrop || isEpisode ? (
-          <Screen item={it} detail={d} still={isEpisode} className="order-1 lg:order-2" />
-        ) : (
-          <div className="screen-glow relative isolate order-1 mx-auto w-[min(60vw,300px)] lg:order-2">
-            <div className="relative aspect-[2/3] overflow-hidden rounded-[28px] ring-1 ring-white/10">
-              {it.hasPoster ? <Art src={imageUrl(it.id, "poster")} loading="eager" className="absolute inset-0 size-full object-cover" /> : <ArtFallback item={it} />}
+          <Watched item={it} />
+        </div></div>
+      </Screen>
+
+      <section className={`grid gap-10 md:grid-cols-[minmax(0,13rem)_minmax(0,1fr)] lg:grid-cols-[minmax(0,15rem)_minmax(0,1fr)_minmax(0,20rem)] lg:gap-14 ${gutter}`}>
+        {!isEpisode && (
+          <div className="hidden md:block">
+            <div className="relative aspect-[2/3] overflow-hidden rounded-[6px] bg-surface-2 shadow-[0_30px_60px_-30px_rgb(0_0_0/0.9)]">
+              <PortraitArt item={it} />
             </div>
           </div>
         )}
-      </section>
-
-      <section className={`grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] ${gutter}`}>
-        <div className="flex flex-col gap-3">
-          {d.overview && <p className="max-w-[70ch] text-base leading-relaxed text-white/85 sm:text-[17px]" data-testid="overview">{d.overview}</p>}
+        <div className={`flex min-w-0 flex-col gap-3 ${isEpisode ? "md:col-span-2" : ""}`}>
+          <h2 className="font-head text-xl">{t("library.story")}</h2>
+          {d.overview
+            ? <p className="max-w-[64ch] text-[17px] leading-[1.65] text-text/85" data-testid="overview">{d.overview}</p>
+            : <p className="text-text/55">{t("library.noOverview")}</p>}
           {d.metadataError && <p className="text-xs text-muted">{t("library.noMetadata")}</p>}
         </div>
-        <dl className="flex flex-col gap-2.5 text-sm">
-          {d.cast.length > 0 && <div><dt className="inline text-muted">{t("library.starring")}: </dt><dd className="inline">{d.cast.slice(0, 5).map((p) => p.name).join(", ")}</dd></div>}
-          {d.genres.length > 0 && <div><dt className="inline text-muted">{t("library.genres")}: </dt><dd className="inline">{d.genres.join(", ")}</dd></div>}
+        <dl className="flex flex-col gap-4 text-[15px] md:col-start-2 lg:col-start-auto">
+          {directors.length > 0 && <Fact label={t("library.directedBy")}>{directors.join(", ")}</Fact>}
+          {d.cast.length > 0 && <Fact label={t("library.starring")}>{d.cast.slice(0, 5).map((p) => p.name).join(", ")}</Fact>}
+          {d.genres.length > 0 && <Fact label={t("library.genres")}>{d.genres.join(", ")}</Fact>}
+          {writers.length > 0 && <Fact label={t("library.writtenBy")}>{writers.join(", ")}</Fact>}
           {(d.collections?.length ?? 0) > 0 && (
-            <div><dt className="inline text-muted">{t("collections.partOf")}: </dt>
-              <dd className="inline">{d.collections!.map((c, i) => (
-                <span key={c.id}>{i > 0 && ", "}<Link to="/collection/$collectionId" params={{ collectionId: c.id }} className="underline-offset-2 hover:underline">{c.name}</Link></span>
-              ))}</dd>
-            </div>
+            <Fact label={t("collections.partOf")}>{d.collections!.map((c, i) => (
+              <span key={c.id}>{i > 0 && ", "}<Link to="/collection/$collectionId" params={{ collectionId: c.id }} className="underline underline-offset-4 decoration-text/30 hover:decoration-text">{c.name}</Link></span>
+            ))}</Fact>
           )}
-          {directors.length > 0 && <div><dt className="inline text-muted">{t("library.directedBy")}: </dt><dd className="inline">{directors.join(", ")}</dd></div>}
-          {writers.length > 0 && <div><dt className="inline text-muted">{t("library.writtenBy")}: </dt><dd className="inline">{writers.join(", ")}</dd></div>}
         </dl>
       </section>
 
       {seasons.length > 0 && (
         <section className={`flex flex-col gap-4 ${gutter}`} data-testid="seasons">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-2xl font-bold tracking-tight">{t("library.episodes")}</h2>
+            <h2 className="font-head text-xl sm:text-2xl">{t("library.episodes")}</h2>
             <Select value={season} onChange={(e) => setSeason(e.target.value)} aria-label={t("library.selectSeason")}
-              className="h-11 rounded-sm border-white/30 bg-surface-2 px-4 text-base font-semibold">
+              className="h-11 border-border-strong bg-surface-2 px-4 text-base font-semibold">
               {seasons.map((s) => (
                 <option key={s.id} value={s.id}>{s.seasonNumber === 0 ? t("library.specials") : t("library.season", { n: s.seasonNumber })}</option>
               ))}
@@ -653,7 +691,7 @@ export function ItemPage() {
 
       {rows.length > 0 && (
         <section className={`flex flex-col gap-4 ${gutter}`}>
-          <h2 className="text-2xl font-bold tracking-tight">{t("library.episodes")}</h2>
+          <h2 className="font-head text-xl sm:text-2xl">{t("library.episodes")}</h2>
           <ol className="flex flex-col border-t border-white/10">
             {rows.map((c) => <EpisodeRow key={c.id} item={c} />)}
           </ol>
@@ -662,7 +700,7 @@ export function ItemPage() {
 
       {d.cast.length > 0 && (
         <section className="flex flex-col gap-4">
-          <h2 className={`text-2xl font-bold tracking-tight ${gutter}`}>{t("library.cast")}</h2>
+          <h2 className={`font-head text-xl sm:text-2xl ${gutter}`}>{t("library.cast")}</h2>
           <ul className={`shelf-track flex gap-4 overflow-x-auto pb-2 ${gutter}`} data-testid="cast">
             {d.cast.map((p) => (
               <li key={p.name + (p.role ?? "")} className="flex w-[112px] shrink-0 flex-col items-center gap-2 text-center">
@@ -685,13 +723,13 @@ export function ItemPage() {
 
       {d.files.length > 0 && (
         <section className={`flex flex-col gap-4 ${gutter}`}>
-          <h2 className="text-2xl font-bold tracking-tight">
+          <h2 className="font-head text-xl sm:text-2xl">
             {t("library.mediaInfo")}
             <span className="ml-2 text-sm font-normal text-muted">{d.files.length > 1 ? t("library.versions", { count: d.files.length }) : t("library.file")}</span>
           </h2>
           <ul className="grid gap-3 lg:grid-cols-2">
             {d.files.map((f) => (
-              <li key={f.id} className="flex min-w-0 flex-col gap-3 rounded-md bg-surface p-4 text-sm" data-testid="media-file">
+              <li key={f.id} className="flex min-w-0 flex-col gap-3 rounded-[6px] border border-border bg-surface p-4 text-sm" data-testid="media-file">
                 <div className="flex flex-wrap items-center gap-2">
                   {f.label && <span className="mr-1 font-semibold">{f.label}</span>}
                   {resolutionLabel(f.width, f.height) && <Badge tone="accent">{resolutionLabel(f.width, f.height)}</Badge>}

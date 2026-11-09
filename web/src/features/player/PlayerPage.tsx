@@ -84,7 +84,7 @@ function SeekBar({ positionMs, durationMs, bufferedMs, info, onSeek }: {
   );
 }
 
-const iconBtn = "grid size-11 place-items-center rounded-full text-white transition-[background-color,transform] duration-150 hover:bg-white/15 active:scale-95";
+const iconBtn = "grid size-11 place-items-center rounded-[6px] text-white transition-[background-color,transform] duration-150 hover:bg-white/15 active:scale-95";
 
 export function PlayerPage() {
   const { t } = useTranslation();
@@ -381,7 +381,7 @@ export function PlayerPage() {
 
       {/* Top bar */}
       <div className={`absolute inset-x-0 top-0 flex items-center gap-3 bg-gradient-to-b from-black/80 to-transparent px-4 pt-4 pb-10 transition-opacity duration-300 sm:px-8 ${visible ? "opacity-100" : "pointer-events-none opacity-0"}`}>
-        <Link to="/item/$itemId" params={{ itemId }} className="inline-flex h-10 items-center gap-1.5 rounded-full pr-4 pl-2.5 text-sm font-medium transition-colors hover:bg-white/10" onClick={() => save(true)}>
+        <Link to="/item/$itemId" params={{ itemId }} className="inline-flex h-10 items-center gap-1.5 rounded-[6px] pr-4 pl-2.5 text-sm font-medium transition-colors hover:bg-white/10" onClick={() => save(true)}>
           <ArrowLeft className="size-5" aria-hidden />{t("player.back")}
         </Link>
         <span className="min-w-0 truncate text-lg font-semibold">{title}</span>

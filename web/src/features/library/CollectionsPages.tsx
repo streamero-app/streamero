@@ -98,7 +98,7 @@ export function CollectionPage() {
           {c.overview && <p className="max-w-[65ch] text-white/85">{c.overview}</p>}
           <div className="flex flex-wrap gap-3">
             {first && (
-              <Link to="/watch/$itemId" params={{ itemId: first.id }} className={`${pressable} ${buttonVariants.lit} h-12 rounded-full px-7 text-base font-bold`}>
+              <Link to="/watch/$itemId" params={{ itemId: first.id }} className={`${pressable} ${buttonVariants.primary} h-12 rounded-[6px] px-7 text-base font-semibold`}>
                 <Play className="size-5 fill-current" aria-hidden />{t("player.play")}
               </Link>
             )}
@@ -224,7 +224,7 @@ export function PlaylistPage() {
           <div className="flex flex-wrap items-center gap-3">
             {first && (
               <Link to="/watch/$itemId" params={{ itemId: first.id }} search={{ playlist: p.id }}
-                className={`${pressable} ${buttonVariants.lit} h-12 rounded-full px-7 text-base font-bold`} data-testid="play-all">
+                className={`${pressable} ${buttonVariants.primary} h-12 rounded-[6px] px-7 text-base font-semibold`} data-testid="play-all">
                 <Play className="size-5 fill-current" aria-hidden />{t("playlists.playAll")}
               </Link>
             )}
@@ -316,7 +316,7 @@ export function AddToMenu({ item }: { item: ItemSummary }) {
   return (
     <div className="relative" ref={ref}>
       <button type="button" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)} title={t("playlists.addTo")} aria-label={t("playlists.addTo")}
-        className="tv-focus grid size-11 place-items-center rounded-full border-2 border-white/50 bg-black/40 text-white backdrop-blur transition-[border-color] hover:border-white sm:size-12">
+        className="tv-focus grid size-13 place-items-center rounded-[6px] bg-white/[0.12] text-text backdrop-blur-xl transition-colors hover:bg-white/[0.2]">
         <ListPlus className="size-5" aria-hidden />
       </button>
       {done && <span role="status" className="absolute top-full left-1/2 mt-2 -translate-x-1/2 rounded bg-black/80 px-2 py-1 text-xs whitespace-nowrap">{t("playlists.added", { name: done })}</span>}

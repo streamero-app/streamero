@@ -1,11 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, type ReactNode } from "react";
 
 /**
- * The ambient room: the interface is lit by the title in focus. Colours come from the
- * server (palette of the artwork) and are written to CSS custom properties that are
- * registered with @property, so the browser animates the light between titles.
+ * The film's light: the title on screen tints the few accents of the interface (progress,
+ * the active nav mark, the glow under the title). Colours come from the server (palette of
+ * the artwork) and are written to CSS custom properties registered with @property, so the
+ * browser fades the light between titles.
  */
-export const BRAND: [string, string] = ["#ffaa45", "#2f8f9d"];
+export const BRAND: [string, string] = ["#d6763f", "#3b7f8a"];
 
 type Ctx = { light: (colors?: string[] | null) => void; lightSoon: (colors?: string[] | null) => void };
 const AmbientContext = createContext<Ctx>({ light: () => undefined, lightSoon: () => undefined });
@@ -43,7 +44,6 @@ export function AmbientProvider({ children }: { children: ReactNode }) {
   const value = useMemo(() => ({ light, lightSoon }), [light, lightSoon]);
   return (
     <AmbientContext.Provider value={value}>
-      <div className="ambient-room" aria-hidden />
       {children}
     </AmbientContext.Provider>
   );

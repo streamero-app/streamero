@@ -25,7 +25,7 @@ function Dialog({ title, onClose, children }: { title: string; onClose: () => vo
       className="m-auto w-[min(94vw,720px)] max-h-[88vh] overflow-y-auto rounded-lg border border-white/10 bg-surface p-0 text-text shadow-2xl backdrop:bg-black/70 backdrop:backdrop-blur-sm">
       <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-white/10 bg-surface px-5 py-4">
         <h2 className="text-lg font-semibold">{title}</h2>
-        <button type="button" onClick={onClose} aria-label={t("common.close")} className="ml-auto grid size-8 place-items-center rounded-full hover:bg-white/10">
+        <button type="button" onClick={onClose} aria-label={t("common.close")} className="ml-auto grid size-8 place-items-center rounded-[6px] hover:bg-white/10">
           <X className="size-4" aria-hidden />
         </button>
       </div>
@@ -159,7 +159,7 @@ export function MetadataMenu({ d }: { d: ItemDetail }) {
   return (
     <div className="relative" ref={ref}>
       <button type="button" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)} aria-label={t("metadataEdit.more")} title={t("metadataEdit.more")}
-        className="tv-focus grid size-11 place-items-center rounded-full border-2 border-white/50 bg-black/40 text-white backdrop-blur hover:border-white sm:size-12">
+        className="tv-focus grid size-13 place-items-center rounded-[6px] bg-white/[0.12] text-text backdrop-blur-xl transition-colors hover:bg-white/[0.2]">
         <MoreHorizontal className="size-5" aria-hidden />
       </button>
       {open && (
