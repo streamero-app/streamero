@@ -124,7 +124,7 @@ func (s *Service) List(ctx context.Context) ([]Library, error) {
 	return out, rows.Err()
 }
 
-func (s *Service) validate(name, kind string, paths []string) (string, []string, error) {
+func (s *Service) validate(name, _ string, paths []string) (string, []string, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return "", nil, ErrInvalidName
