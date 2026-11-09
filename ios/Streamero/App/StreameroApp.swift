@@ -30,7 +30,7 @@ struct RootView: View {
                     LoginView(server: server)
                 case .signedIn(let user):
                     if let token = session.token(for: server) {
-                        HomeView(server: server, user: user, client: MediaClient(baseURL: server.url, token: token))
+                        MainView(server: server, client: MediaClient(baseURL: server.url, token: token))
                     } else {
                         SignedInView(server: server, user: user)
                     }

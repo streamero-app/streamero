@@ -24,6 +24,7 @@ struct BearerMiddleware: ClientMiddleware {
 struct APIError: Error, Equatable {
     let status: Int
     let code: String
+    var message: String? = nil
 }
 
 /// Result of a Quick Connect poll.

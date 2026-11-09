@@ -1,156 +1,254 @@
 import Foundation
-import OpenAPIRuntime
-import OpenAPIURLSession
 
-typealias ItemSummary = Components.Schemas.ItemSummary
-typealias ItemDetail = Components.Schemas.ItemDetail
-typealias Library = Components.Schemas.Library
-typealias PlaybackInfo = Components.Schemas.PlaybackInfo
-
-/// Library, item and playback calls through the generated client (signed in).
-struct MediaClient {
+/// A plain JSON client for one Streamero server, signed in with the session token.
+/// Signed stream URLs need no token; everything under /api/v1 gets it. Mirrors the Android
+/// client (`api/Api.kt`); the generated client stays in use for the sign-in calls.
+struct MediaClient: Sendable {
     let baseURL: URL
     let token: String
 
-    private var client: Client {
-        Client(serverURL: ServerURL.apiBase(baseURL), transport: URLSessionTransport(),
-               middlewares: [BearerMiddleware(token: token)])
+    /// Encodes a request body: required fields always (even false/0), nil optionals never.
+    static func encode<B: Encodable>(_ body: B) throws -> Data {
+        try JSONEncoder().encode(body)
     }
 
-    private static func fail(_ status: Int, code: String?) -> APIError {
-        APIError(status: status, code: code ?? "http_\(status)")
+    private func apiURL(_ path: String, query: [String: String?]) -> URL {
+        var url = ServerURL.apiBase(baseURL).appending(path: path)
+        let items = query.compactMap { key, value in value.map { URLQueryItem(name: key, value: $0) } }
+        if !items.isEmpty { url.append(queryItems: items.sorted { $0.name < $1.name }) }
+        return url
     }
 
-    func libraries() async throws -> [Library] {
-        switch try await client.listLibraries() {
-        case .ok(let ok): return try ok.body.json
-        case .default(let status, let r): throw Self.fail(status, code: try? r.body.json.code)
+    /// The URL of an API path; tests use it to check query building.
+    func url(path: String, query: [String: String?] = [:]) -> URL { apiURL(path, query: query) }
+
+    private func perform(_ method: String, _ path: String, query: [String: String?] = [:],
+                         body: Data? = nil, contentType: String? = nil) async throws -> Data {
+        var req = URLRequest(url: apiURL(path, query: query))
+        req.httpMethod = method
+        req.timeoutInterval = 30
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        if let contentType { req.setValue(contentType, forHTTPHeaderField: "Content-Type") }
+        req.httpBody = body
+        let (data, response) = try await URLSession.shared.data(for: req)
+        guard let http = response as? HTTPURLResponse else { throw APIError(status: 0, code: "bad_response") }
+        guard (200..<300).contains(http.statusCode) else {
+            let err = try? JSONDecoder().decode(APIErrorBody.self, from: data)
+            throw APIError(status: http.statusCode, code: err?.code ?? "http_\(http.statusCode)", message: err?.message)
         }
+        return data
     }
 
-    func items(library id: String, offset: Int = 0, limit: Int = 100) async throws -> Components.Schemas.ItemPage {
-        switch try await client.listLibraryItems(path: .init(libraryId: id), query: .init(limit: limit, offset: offset)) {
-        case .ok(let ok): return try ok.body.json
-        case .default(let status, let r): throw Self.fail(status, code: try? r.body.json.code)
-        }
+    func get<T: Decodable>(_ path: String, query: [String: String?] = [:]) async throws -> T {
+        try JSONDecoder().decode(T.self, from: try await perform("GET", path, query: query))
     }
 
-    func item(_ id: String) async throws -> ItemDetail {
-        switch try await client.getItem(path: .init(itemId: id)) {
-        case .ok(let ok): return try ok.body.json
-        case .default(let status, let r): throw Self.fail(status, code: try? r.body.json.code)
-        }
+    func post<B: Encodable, T: Decodable>(_ path: String, _ body: B) async throws -> T {
+        try JSONDecoder().decode(T.self, from: try await perform("POST", path, body: try Self.encode(body), contentType: "application/json"))
     }
 
-    func continueWatching() async throws -> [ItemSummary] {
-        switch try await client.continueWatching() {
-        case .ok(let ok): return try ok.body.json
-        case .default(let status, let r): throw Self.fail(status, code: try? r.body.json.code)
-        }
+    func put<B: Encodable, T: Decodable>(_ path: String, _ body: B) async throws -> T {
+        try JSONDecoder().decode(T.self, from: try await perform("PUT", path, body: try Self.encode(body), contentType: "application/json"))
     }
 
-    func latest() async throws -> [ItemSummary] {
-        switch try await client.recentlyAdded() {
-        case .ok(let ok): return try ok.body.json
-        case .default(let status, let r): throw Self.fail(status, code: try? r.body.json.code)
-        }
+    func patch<B: Encodable, T: Decodable>(_ path: String, _ body: B) async throws -> T {
+        try JSONDecoder().decode(T.self, from: try await perform("PATCH", path, body: try Self.encode(body), contentType: "application/json"))
     }
 
-    func favorites() async throws -> [ItemSummary] {
-        switch try await client.listFavorites() {
-        case .ok(let ok): return try ok.body.json
-        case .default(let status, let r): throw Self.fail(status, code: try? r.body.json.code)
-        }
+    func send<B: Encodable>(_ method: String, _ path: String, _ body: B) async throws {
+        _ = try await perform(method, path, body: try Self.encode(body), contentType: "application/json")
     }
 
-    func search(_ q: String) async throws -> [ItemSummary] {
-        switch try await client.search(query: .init(q: q)) {
-        case .ok(let ok): return try ok.body.json
-        case .default(let status, let r): throw Self.fail(status, code: try? r.body.json.code)
-        }
+    func send(_ method: String, _ path: String) async throws {
+        _ = try await perform(method, path)
     }
 
-    func nextUp() async throws -> [ItemSummary] {
-        switch try await client.nextUp() {
-        case .ok(let ok): return try ok.body.json
-        case .default(let status, let r): throw Self.fail(status, code: try? r.body.json.code)
-        }
+    // MARK: Account
+
+    func me() async throws -> User { try await get("auth/me") }
+    func updateMe(_ update: UpdateMe) async throws -> User { try await put("auth/me", update) }
+
+    func uploadAvatar(_ data: Data) async throws {
+        _ = try await perform("PUT", "auth/me/avatar", body: data, contentType: "application/octet-stream")
     }
+
+    func removeAvatar() async throws { try await send("DELETE", "auth/me/avatar") }
+
+    func changePassword(current: String, new: String) async throws {
+        try await send("POST", "auth/password", ["currentPassword": current, "newPassword": new])
+    }
+
+    func profiles() async throws -> [Profile] { try await get("profiles") }
+
+    /// Switches this device to a profile (PIN when it has one).
+    func selectProfile(_ id: String, pin: String?) async throws {
+        struct Body: Encodable { var pin: String? }
+        try await send("POST", "profiles/\(id)/select", Body(pin: pin))
+    }
+
+    /// Back to the account's main profile (password only needed when leaving a kids profile).
+    func selectMainProfile(password: String = "") async throws {
+        try await send("POST", "profiles/main/select", ["password": password])
+    }
+
+    // MARK: Browse
+
+    func libraries() async throws -> [Library] { try await get("libraries") }
+
+    func items(library id: String, query: [String: String?]) async throws -> ItemPage {
+        try await get("libraries/\(id)/items", query: query)
+    }
+
+    func genres(library id: String) async throws -> [String] { try await get("libraries/\(id)/genres") }
+    func item(_ id: String) async throws -> ItemDetail { try await get("items/\(id)") }
+    func continueWatching() async throws -> [ItemSummary] { try await get("home/continue") }
+    func latest() async throws -> [ItemSummary] { try await get("home/latest") }
+    func nextUp() async throws -> [ItemSummary] { try await get("home/next-up") }
+    func favorites() async throws -> [ItemSummary] { try await get("home/favorites") }
+    func search(_ q: String) async throws -> [ItemSummary] { try await get("search", query: ["q": q]) }
 
     /// The episode after this one (nil after the last one).
     func nextEpisode(_ id: String) async throws -> ItemSummary? {
-        switch try await client.nextEpisode(path: .init(itemId: id)) {
-        case .ok(let ok): return try ok.body.json
-        case .default(let status, _) where status == 404: return nil
-        case .default(let status, let r): throw Self.fail(status, code: try? r.body.json.code)
-        }
-    }
-
-    func preferences() async throws -> Components.Schemas.PlaybackPreferences {
-        switch try await client.getPreferences() {
-        case .ok(let ok): return try ok.body.json
-        case .default(let status, let r): throw Self.fail(status, code: try? r.body.json.code)
+        do {
+            let next: ItemSummary = try await get("items/\(id)/next")
+            return next
+        } catch let error as APIError where error.status == 404 {
+            return nil
         }
     }
 
     /// Favorite / watched for the current profile.
     func setUserData(item id: String, favorite: Bool? = nil, played: Bool? = nil) async throws {
-        switch try await client.updateUserData(path: .init(itemId: id), body: .json(.init(favorite: favorite, played: played))) {
-        case .noContent: return
-        case .default(let status, let r): throw Self.fail(status, code: try? r.body.json.code)
-        }
+        try await send("PUT", "items/\(id)/user-data", UserDataUpdate(favorite: favorite, played: played))
     }
 
-    func profiles() async throws -> [Components.Schemas.Profile] {
-        switch try await client.listProfiles() {
-        case .ok(let ok): return try ok.body.json
-        case .default(let status, let r): throw Self.fail(status, code: try? r.body.json.code)
-        }
-    }
+    func collections() async throws -> [MediaCollection] { try await get("collections") }
+    func collection(_ id: String) async throws -> CollectionDetail { try await get("collections/\(id)") }
+    func playlists() async throws -> [Playlist] { try await get("playlists") }
+    func playlist(_ id: String) async throws -> PlaylistDetail { try await get("playlists/\(id)") }
 
-    /// Switches this device to a profile (PIN when it has one).
-    func selectProfile(_ id: String, pin: String?) async throws {
-        switch try await client.selectProfile(path: .init(profileId: id), body: .json(.init(pin: pin))) {
-        case .noContent: return
-        case .default(let status, let r): throw Self.fail(status, code: try? r.body.json.code)
-        }
-    }
-
-    /// Back to the account's main profile (password only needed when leaving a kids profile).
-    func selectMainProfile(password: String = "") async throws {
-        switch try await client.selectMainProfile(body: .json(.init(password: password))) {
-        case .noContent: return
-        case .default(let status, let r): throw Self.fail(status, code: try? r.body.json.code)
-        }
-    }
+    // MARK: Playback
 
     /// What iOS plays natively: AVPlayer handles MP4/MOV, HEVC (incl. HDR) and HLS with fMP4.
-    static let device = Components.Schemas.DeviceProfile(
+    static let device = DeviceProfile(
         containers: ["mp4", "m4v", "mov"],
         videoCodecs: ["h264", "hevc", "hdr"],
         audioCodecs: ["aac", "ac3", "eac3", "mp3", "alac", "flac"],
         hls: true)
 
-    func startPlayback(item id: String, startMs: Int64? = nil, audioIndex: Int? = nil) async throws -> PlaybackInfo {
-        let body = Components.Schemas.PlaybackRequest(audioIndex: audioIndex, startMs: startMs, device: Self.device)
-        switch try await client.startPlayback(path: .init(itemId: id), body: .json(body)) {
-        case .ok(let ok): return try ok.body.json
-        case .default(let status, let r): throw Self.fail(status, code: try? r.body.json.code)
-        }
+    /// The video profile with the profile's streaming-quality limits (kbps to bits/s).
+    static func device(preferences: Preferences?) -> DeviceProfile {
+        var profile = device
+        profile.maxHeight = preferences?.maxHeight
+        profile.maxBitrate = preferences?.maxBitrateKbps.map { $0 * 1000 }
+        return profile
+    }
+
+    /// What the phone plays for music without help (the server converts anything else).
+    static let audioProfile = DeviceProfile(
+        containers: ["mp3", "flac", "mp4", "aac", "m4a", "wav"],
+        videoCodecs: [],
+        audioCodecs: ["mp3", "flac", "aac", "alac"],
+        hls: true)
+
+    func startPlayback(item id: String, startMs: Int64? = nil, audioIndex: Int? = nil,
+                       fileId: String? = nil, profile: DeviceProfile = MediaClient.device) async throws -> PlaybackInfo {
+        try await post("items/\(id)/playback", PlaybackRequest(device: profile, fileId: fileId, audioIndex: audioIndex, startMs: startMs))
     }
 
     func reportProgress(item id: String, positionMs: Int64, durationMs: Int64?) async {
-        _ = try? await client.reportProgress(path: .init(itemId: id),
-                                             body: .json(.init(positionMs: positionMs, durationMs: durationMs)))
+        try? await send("PUT", "items/\(id)/progress", ProgressReport(positionMs: positionMs, durationMs: durationMs))
     }
+
+    func preferences() async throws -> Preferences { try await get("me/preferences") }
+    func savePreferences(_ p: Preferences) async throws -> Preferences { try await put("me/preferences", p) }
+    func commands() async throws -> [SessionCommand] { try await get("me/commands") }
+
+    /// WebVTT text for an already signed URL.
+    func text(from url: URL) async throws -> String {
+        let (data, response) = try await URLSession.shared.data(from: url)
+        guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw APIError(status: 0, code: "bad_subtitles") }
+        return String(decoding: data, as: UTF8.self)
+    }
+
+    // MARK: Discover
+
+    func discover(_ q: String? = nil, page: Int = 1) async throws -> DiscoverPage {
+        try await get("discover", query: ["q": q.flatMap { $0.isEmpty ? nil : $0 }, "page": String(page)])
+    }
+
+    func request(_ title: DiscoverTitle) async throws -> TitleRequestResult {
+        try await post("discover/request", TitleRequest(tmdbId: title.tmdbId, mediaType: title.mediaType))
+    }
+
+    func upcoming() async throws -> [UpcomingRelease] { try await get("upcoming", query: ["days": "30"]) }
+    func enhancements() async throws -> Enhancements { try await get("enhancements") }
+
+    // MARK: Subtitles (Bazarr)
+
+    func searchSubtitles(item id: String) async throws -> SubtitleSearch { try await get("items/\(id)/subtitles/search") }
+
+    func downloadSubtitle(item id: String, offer: SubtitleOffer) async throws {
+        try await send("POST", "items/\(id)/subtitles/download", offer)
+    }
+
+    func searchMissingSubtitles(item id: String) async throws { try await send("POST", "items/\(id)/subtitles/search-missing") }
+
+    // MARK: Administration
+
+    func dashboard() async throws -> Dashboard { try await get("dashboard") }
+    func sendCommand(sessionKey: String, _ command: SessionCommand) async throws {
+        try await send("POST", "sessions/\(sessionKey)/command", command)
+    }
+    func tasks() async throws -> [TaskInfo] { try await get("tasks") }
+    func runTask(_ key: String) async throws { try await send("POST", "tasks/\(key)/run") }
+    func logs(level: String, q: String?) async throws -> [LogEntry] {
+        try await get("admin/logs", query: ["level": level, "q": q.flatMap { $0.isEmpty ? nil : $0 }, "limit": "300"])
+    }
+    func activity(offset: Int) async throws -> ActivityPage {
+        try await get("admin/activity", query: ["limit": "50", "offset": String(offset)])
+    }
+    func users() async throws -> [User] { try await get("users") }
+    func createUser(_ u: CreateUser) async throws -> User { try await post("users", u) }
+    func updateUser(_ id: String, _ u: UpdateUser) async throws -> User { try await patch("users/\(id)", u) }
+    func deleteUser(_ id: String) async throws { try await send("DELETE", "users/\(id)") }
+    func sessions() async throws -> [SessionInfo] { try await get("sessions") }
+    func revokeSession(_ id: String) async throws { try await send("DELETE", "sessions/\(id)") }
+    func apiKeys() async throws -> [ApiKey] { try await get("apikeys") }
+    func createApiKey(name: String) async throws -> CreatedApiKey { try await post("apikeys", CreateApiKey(name: name)) }
+    func deleteApiKey(_ id: String) async throws { try await send("DELETE", "apikeys/\(id)") }
+    func invites() async throws -> [Invite] { try await get("invites") }
+    func createInvite(_ c: CreateInvite) async throws -> CreatedInvite { try await post("invites", c) }
+    func deleteInvite(_ id: String) async throws { try await send("DELETE", "invites/\(id)") }
+    func createLibrary(_ input: LibraryInput) async throws -> Library { try await post("libraries", input) }
+    func deleteLibrary(_ id: String) async throws { try await send("DELETE", "libraries/\(id)") }
+    func scanLibrary(_ id: String) async throws { try await send("POST", "libraries/\(id)/scan") }
+    func refreshLibraryMetadata(_ id: String) async throws { try await send("POST", "libraries/\(id)/refresh-metadata") }
+    func serverSettings() async throws -> ServerSettings { try await get("settings/server") }
+    func saveServerSettings(_ s: ServerSettings) async throws -> ServerSettings { try await put("settings/server", s) }
+    func metadataSettings() async throws -> MetadataSettings { try await get("settings/metadata") }
+    func saveMetadataSettings(_ s: MetadataSettingsInput) async throws -> MetadataSettings { try await put("settings/metadata", s) }
+    func encoding() async throws -> EncodingSettings { try await get("settings/encoding") }
+    func saveEncoding(_ s: EncodingSettings) async throws -> EncodingSettings { try await put("settings/encoding", s) }
+    func resume() async throws -> ResumeSettings { try await get("settings/resume") }
+    func saveResume(_ s: ResumeSettings) async throws -> ResumeSettings { try await put("settings/resume", s) }
+    func branding() async throws -> BrandingSettings { try await get("settings/branding") }
+    func saveBranding(_ s: BrandingSettings) async throws -> BrandingSettings { try await put("settings/branding", s) }
+    func requestSettings() async throws -> RequestSettings { try await get("settings/requests") }
+    func saveRequestSettings(_ s: RequestSettingsInput) async throws -> RequestSettings { try await put("settings/requests", s) }
+    func testRequestSettings() async throws -> [ConnectionCheck] {
+        try JSONDecoder().decode([ConnectionCheck].self, from: try await perform("POST", "settings/requests/test"))
+    }
+    func saveEnhancements(_ e: Enhancements) async throws -> Enhancements { try await put("enhancements", e) }
 
     /// Approves a Quick Connect code shown on another device (TV, browser).
     func authorizeQuickConnect(code: String) async throws -> String {
-        switch try await client.authorizeQuickConnect(body: .json(.init(code: code))) {
-        case .ok(let ok): return try ok.body.json.deviceName
-        case .default(let status, let r): throw Self.fail(status, code: try? r.body.json.code)
-        }
+        struct Approved: Decodable { var deviceName: String }
+        let approved: Approved = try await post("quickconnect/authorize", ["code": code])
+        return approved.deviceName
     }
+
+    // MARK: URLs
 
     /// Absolute URL for a server-relative link (signed stream URLs, images).
     func absolute(_ path: String) -> URL? {
@@ -160,4 +258,9 @@ struct MediaClient {
     func imageURL(item id: String, type: String) -> URL? {
         absolute("/api/v1/items/\(id)/images/\(type)")
     }
+
+    func avatarURL(owner id: String) -> URL? { absolute("/api/v1/avatars/\(id)") }
+    func collectionImageURL(_ id: String, type: String) -> URL? { absolute("/api/v1/collections/\(id)/images/\(type)") }
+    /// Absolute URL of an invite link on this server.
+    func inviteLink(token: String) -> URL? { absolute("/invite/\(token)") }
 }
