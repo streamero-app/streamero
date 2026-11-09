@@ -200,7 +200,8 @@
     "image_too_large": "Slika je veća od 8 MB.",
     "invalid_url": "Adresa nije ispravna (koristi http:// ili https://).",
     "upstream_failed": "Druga aplikacija nije odgovorila ili je odbila zahtjev.",
-    "not_configured": "Ova veza nije postavljena."
+    "not_configured": "Ova veza nije postavljena.",
+    "not_in_arr": "Radarr ili Sonarr ne vode ovaj naslov, pa ga Bazarr ne može pronaći."
   },
   "notFound": {
     "title": "Stranica nije pronađena",
@@ -580,7 +581,8 @@
     "account.updated": "Promijenjeni podaci računa",
     "title.requested": "Zatražen naslov",
     "settings.requests": "Promijenjene postavke zahtjeva",
-    "settings.enhancements": "Promijenjena proširenja"
+    "settings.enhancements": "Promijenjena proširenja",
+    "subtitle.downloaded": "Preuzet titl"
   },
   "tasks": {
     "title": "Zakazani zadaci",
@@ -874,7 +876,8 @@
     "arrIntro": "Nije obavezno. Koristi se za kalendar „Uskoro“ na stranici Discover.",
     "test": "Provjeri veze",
     "nothingToTest": "Još ništa nije postavljeno.",
-    "connected": "povezano, verzija {{version}}"
+    "connected": "povezano, verzija {{version}}",
+    "bazarrIntro": "Nije obavezno. Traži i preuzima titlove sa stranice naslova. Bazarr naslove pronalazi preko Radarra i Sonarra, pa poveži i njih."
   },
   "enhancements": {
     "title": "Proširenja",
@@ -928,5 +931,18 @@
     "albums": "Albumi",
     "playAll": "Pusti sve",
     "addToQueue": "Dodaj u red"
+  },
+  "subs": {
+    "find": "Pronađi titlove",
+    "searching": "Pitam pružatelje titlova… može potrajati minutu.",
+    "notConfigured": "Traženje titlova radi preko Bazarra, a Bazarr naslove pronalazi preko Radarra i Sonarra.",
+    "setUp": "Poveži Bazarr",
+    "auto": "Neka Bazarr dohvati jezike koji nedostaju",
+    "autoStarted": "Bazarr traži. Novi titlovi pojavit će se nakon sljedećeg skeniranja.",
+    "downloaded": "Preuzeto. Titl će se pojaviti za nekoliko sekundi.",
+    "allLanguages": "Svi jezici",
+    "none": "Nema pronađenih titlova.",
+    "hi": "Za osobe oštećena sluha",
+    "download": "Preuzmi"
   }
 }

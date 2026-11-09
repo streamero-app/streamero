@@ -307,6 +307,12 @@ func encodeDiscoverResponse(response *DiscoverPage, w http.ResponseWriter, span 
 	return nil
 }
 
+func encodeDownloadSubtitleResponse(response *DownloadSubtitleNoContent, w http.ResponseWriter, span trace.Span) error {
+	w.WriteHeader(204)
+
+	return nil
+}
+
 func encodeEditMetadataResponse(response *EditMetadataNoContent, w http.ResponseWriter, span trace.Span) error {
 	w.WriteHeader(204)
 
@@ -1267,6 +1273,25 @@ func encodeSearchResponse(response []ItemSummary, w http.ResponseWriter, span tr
 		elem.Encode(e)
 	}
 	e.ArrEnd()
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
+func encodeSearchMissingSubtitlesResponse(response *SearchMissingSubtitlesNoContent, w http.ResponseWriter, span trace.Span) error {
+	w.WriteHeader(204)
+
+	return nil
+}
+
+func encodeSearchSubtitlesResponse(response *SubtitleSearch, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
 	if _, err := e.WriteTo(w); err != nil {
 		return errors.Wrap(err, "write")
 	}

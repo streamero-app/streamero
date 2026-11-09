@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { Check, Info, LayoutGrid, List, Play, Plus, RotateCcw, Shuffle, Volume2, VolumeX, X } from "lucide-react";
 import { useEnhancements, useSurprise } from "@/features/enhancements/useEnhancements";
 import { AlbumView, ArtistView, MusicLibrary } from "@/features/music/MusicPages";
+import { SubtitleFinder } from "./SubtitleFinder";
 import { api, unwrap } from "@/api/client";
 import type { components } from "@/api/schema.gen";
 import { Art, Badge, Button, ErrorText, IconButton, Select, Spinner, buttonVariants, pressable } from "@/components/ui";
@@ -1107,10 +1108,12 @@ export function ItemPage() {
 
       {d.files.length > 0 && (
         <section className={`flex flex-col gap-4 ${gutter}`}>
-          <h2 className="font-head text-xl sm:text-2xl">
+          <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-head text-xl sm:text-2xl">
             {t("library.mediaInfo")}
             <span className="ml-2 text-sm font-normal text-muted">{d.files.length > 1 ? t("library.versions", { count: d.files.length }) : t("library.file")}</span>
           </h2>
+            {(it.kind === "movie" || it.kind === "episode") && <SubtitleFinder itemId={it.id} />}
+          </div>
           <ul className="grid gap-3 lg:grid-cols-2">
             {d.files.map((f) => (
               <li key={f.id} className="flex min-w-0 flex-col gap-3 rounded-[6px] border border-border bg-surface p-4 text-sm" data-testid="media-file">

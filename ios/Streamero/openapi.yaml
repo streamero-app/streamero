@@ -2305,6 +2305,73 @@ paths:
                 $ref: "#/components/schemas/ArrLink"
         default:
           $ref: "#/components/responses/Error"
+  /items/{itemId}/subtitles/search:
+    parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: searchSubtitles
+      summary: Subtitles Bazarr's providers have for a movie or episode
+      tags: [subtitles]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Offers, best first
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubtitleSearch"
+        default:
+          $ref: "#/components/responses/Error"
+  /items/{itemId}/subtitles/download:
+    parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: downloadSubtitle
+      summary: Download one offer through Bazarr; the library is rescanned to pick it up
+      tags: [subtitles]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubtitleOffer"
+      responses:
+        "204":
+          description: Downloaded
+        default:
+          $ref: "#/components/responses/Error"
+  /items/{itemId}/subtitles/search-missing:
+    parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: searchMissingSubtitles
+      summary: Let Bazarr fetch the missing languages of its profile on its own
+      tags: [subtitles]
+      security:
+        - sessionToken: []
+      responses:
+        "204":
+          description: Started
+        default:
+          $ref: "#/components/responses/Error"
 components:
   securitySchemes:
     sessionToken:
@@ -3847,6 +3914,10 @@ components:
           type: string
         sonarrConfigured:
           type: boolean
+        bazarrUrl:
+          type: string
+        bazarrConfigured:
+          type: boolean
     RequestSettingsInput:
       type: object
       required: [usersCanRequest]
@@ -3871,11 +3942,17 @@ components:
         sonarrApiKey:
           type: string
           maxLength: 200
+        bazarrUrl:
+          type: string
+          maxLength: 300
+        bazarrApiKey:
+          type: string
+          maxLength: 200
         removeKeys:
           type: array
           items:
             type: string
-            enum: [seerr, radarr, sonarr]
+            enum: [seerr, radarr, sonarr, bazarr]
     ConnectionCheck:
       type: object
       required: [app, ok]
@@ -4012,6 +4089,45 @@ components:
           enum: [radarr, sonarr]
         url:
           type: string
+    SubtitleOffer:
+      type: object
+      required: [provider, language, forced, hearingImpaired, score, subtitle, originalFormat]
+      properties:
+        provider:
+          type: string
+          maxLength: 100
+        language:
+          type: string
+          maxLength: 20
+        forced:
+          type: boolean
+        hearingImpaired:
+          type: boolean
+        score:
+          type: number
+        release:
+          type: array
+          items:
+            type: string
+        uploader:
+          type: string
+        subtitle:
+          type: string
+          maxLength: 20000
+          description: Bazarr's handle for this offer, passed back unchanged to download it.
+        originalFormat:
+          type: boolean
+    SubtitleSearch:
+      type: object
+      required: [configured, offers]
+      properties:
+        configured:
+          type: boolean
+          description: Bazarr (and Radarr/Sonarr for the lookup) are connected.
+        offers:
+          type: array
+          items:
+            $ref: "#/components/schemas/SubtitleOffer"
     SystemInfo:
       type: object
       required: [id, name, product, version, apiVersion, setupCompleted, startedAt]

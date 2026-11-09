@@ -1526,6 +1526,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/items/{itemId}/subtitles/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        /** Subtitles Bazarr's providers have for a movie or episode */
+        get: operations["searchSubtitles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/items/{itemId}/subtitles/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Download one offer through Bazarr; the library is rescanned to pick it up */
+        post: operations["downloadSubtitle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/items/{itemId}/subtitles/search-missing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Let Bazarr fetch the missing languages of its profile on its own */
+        post: operations["searchMissingSubtitles"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2286,6 +2343,8 @@ export interface components {
             radarrConfigured: boolean;
             sonarrUrl?: string;
             sonarrConfigured: boolean;
+            bazarrUrl?: string;
+            bazarrConfigured?: boolean;
         };
         RequestSettingsInput: {
             seerrUrl?: string;
@@ -2295,7 +2354,9 @@ export interface components {
             radarrApiKey?: string;
             sonarrUrl?: string;
             sonarrApiKey?: string;
-            removeKeys?: ("seerr" | "radarr" | "sonarr")[];
+            bazarrUrl?: string;
+            bazarrApiKey?: string;
+            removeKeys?: ("seerr" | "radarr" | "sonarr" | "bazarr")[];
         };
         ConnectionCheck: {
             app: string;
@@ -2374,6 +2435,23 @@ export interface components {
             /** @enum {string} */
             app: "radarr" | "sonarr";
             url: string;
+        };
+        SubtitleOffer: {
+            provider: string;
+            language: string;
+            forced: boolean;
+            hearingImpaired: boolean;
+            score: number;
+            release?: string[];
+            uploader?: string;
+            /** @description Bazarr's handle for this offer, passed back unchanged to download it. */
+            subtitle: string;
+            originalFormat: boolean;
+        };
+        SubtitleSearch: {
+            /** @description Bazarr (and Radarr/Sonarr for the lookup) are connected. */
+            configured: boolean;
+            offers: components["schemas"]["SubtitleOffer"][];
         };
         SystemInfo: {
             /**
@@ -4967,6 +5045,75 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ArrLink"];
                 };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    searchSubtitles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Offers, best first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubtitleSearch"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    downloadSubtitle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubtitleOffer"];
+            };
+        };
+        responses: {
+            /** @description Downloaded */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    searchMissingSubtitles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Started */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             default: components["responses"]["Error"];
         };

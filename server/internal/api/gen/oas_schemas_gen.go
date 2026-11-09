@@ -1401,6 +1401,9 @@ func (s *DiscoverTitleStatus) UnmarshalText(data []byte) error {
 	}
 }
 
+// DownloadSubtitleNoContent is response for DownloadSubtitle operation.
+type DownloadSubtitleNoContent struct{}
+
 // EditMetadataNoContent is response for EditMetadata operation.
 type EditMetadataNoContent struct{}
 
@@ -6950,6 +6953,8 @@ type RequestSettings struct {
 	RadarrConfigured bool      `json:"radarrConfigured"`
 	SonarrUrl        OptString `json:"sonarrUrl"`
 	SonarrConfigured bool      `json:"sonarrConfigured"`
+	BazarrUrl        OptString `json:"bazarrUrl"`
+	BazarrConfigured OptBool   `json:"bazarrConfigured"`
 }
 
 // GetSeerrUrl returns the value of SeerrUrl.
@@ -6987,6 +6992,16 @@ func (s *RequestSettings) GetSonarrConfigured() bool {
 	return s.SonarrConfigured
 }
 
+// GetBazarrUrl returns the value of BazarrUrl.
+func (s *RequestSettings) GetBazarrUrl() OptString {
+	return s.BazarrUrl
+}
+
+// GetBazarrConfigured returns the value of BazarrConfigured.
+func (s *RequestSettings) GetBazarrConfigured() OptBool {
+	return s.BazarrConfigured
+}
+
 // SetSeerrUrl sets the value of SeerrUrl.
 func (s *RequestSettings) SetSeerrUrl(val OptString) {
 	s.SeerrUrl = val
@@ -7022,6 +7037,16 @@ func (s *RequestSettings) SetSonarrConfigured(val bool) {
 	s.SonarrConfigured = val
 }
 
+// SetBazarrUrl sets the value of BazarrUrl.
+func (s *RequestSettings) SetBazarrUrl(val OptString) {
+	s.BazarrUrl = val
+}
+
+// SetBazarrConfigured sets the value of BazarrConfigured.
+func (s *RequestSettings) SetBazarrConfigured(val OptBool) {
+	s.BazarrConfigured = val
+}
+
 // Ref: #/components/schemas/RequestSettingsInput
 type RequestSettingsInput struct {
 	SeerrUrl        OptString                            `json:"seerrUrl"`
@@ -7031,6 +7056,8 @@ type RequestSettingsInput struct {
 	RadarrApiKey    OptString                            `json:"radarrApiKey"`
 	SonarrUrl       OptString                            `json:"sonarrUrl"`
 	SonarrApiKey    OptString                            `json:"sonarrApiKey"`
+	BazarrUrl       OptString                            `json:"bazarrUrl"`
+	BazarrApiKey    OptString                            `json:"bazarrApiKey"`
 	RemoveKeys      []RequestSettingsInputRemoveKeysItem `json:"removeKeys"`
 }
 
@@ -7067,6 +7094,16 @@ func (s *RequestSettingsInput) GetSonarrUrl() OptString {
 // GetSonarrApiKey returns the value of SonarrApiKey.
 func (s *RequestSettingsInput) GetSonarrApiKey() OptString {
 	return s.SonarrApiKey
+}
+
+// GetBazarrUrl returns the value of BazarrUrl.
+func (s *RequestSettingsInput) GetBazarrUrl() OptString {
+	return s.BazarrUrl
+}
+
+// GetBazarrApiKey returns the value of BazarrApiKey.
+func (s *RequestSettingsInput) GetBazarrApiKey() OptString {
+	return s.BazarrApiKey
 }
 
 // GetRemoveKeys returns the value of RemoveKeys.
@@ -7109,6 +7146,16 @@ func (s *RequestSettingsInput) SetSonarrApiKey(val OptString) {
 	s.SonarrApiKey = val
 }
 
+// SetBazarrUrl sets the value of BazarrUrl.
+func (s *RequestSettingsInput) SetBazarrUrl(val OptString) {
+	s.BazarrUrl = val
+}
+
+// SetBazarrApiKey sets the value of BazarrApiKey.
+func (s *RequestSettingsInput) SetBazarrApiKey(val OptString) {
+	s.BazarrApiKey = val
+}
+
 // SetRemoveKeys sets the value of RemoveKeys.
 func (s *RequestSettingsInput) SetRemoveKeys(val []RequestSettingsInputRemoveKeysItem) {
 	s.RemoveKeys = val
@@ -7120,6 +7167,7 @@ const (
 	RequestSettingsInputRemoveKeysItemSeerr  RequestSettingsInputRemoveKeysItem = "seerr"
 	RequestSettingsInputRemoveKeysItemRadarr RequestSettingsInputRemoveKeysItem = "radarr"
 	RequestSettingsInputRemoveKeysItemSonarr RequestSettingsInputRemoveKeysItem = "sonarr"
+	RequestSettingsInputRemoveKeysItemBazarr RequestSettingsInputRemoveKeysItem = "bazarr"
 )
 
 // AllValues returns all RequestSettingsInputRemoveKeysItem values.
@@ -7128,6 +7176,7 @@ func (RequestSettingsInputRemoveKeysItem) AllValues() []RequestSettingsInputRemo
 		RequestSettingsInputRemoveKeysItemSeerr,
 		RequestSettingsInputRemoveKeysItemRadarr,
 		RequestSettingsInputRemoveKeysItemSonarr,
+		RequestSettingsInputRemoveKeysItemBazarr,
 	}
 }
 
@@ -7139,6 +7188,8 @@ func (s RequestSettingsInputRemoveKeysItem) MarshalText() ([]byte, error) {
 	case RequestSettingsInputRemoveKeysItemRadarr:
 		return []byte(s), nil
 	case RequestSettingsInputRemoveKeysItemSonarr:
+		return []byte(s), nil
+	case RequestSettingsInputRemoveKeysItemBazarr:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -7156,6 +7207,9 @@ func (s *RequestSettingsInputRemoveKeysItem) UnmarshalText(data []byte) error {
 		return nil
 	case RequestSettingsInputRemoveKeysItemSonarr:
 		*s = RequestSettingsInputRemoveKeysItemSonarr
+		return nil
+	case RequestSettingsInputRemoveKeysItemBazarr:
+		*s = RequestSettingsInputRemoveKeysItemBazarr
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -7313,6 +7367,9 @@ func (s *ScanStatusState) UnmarshalText(data []byte) error {
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
+
+// SearchMissingSubtitlesNoContent is response for SearchMissingSubtitles operation.
+type SearchMissingSubtitlesNoContent struct{}
 
 // SelectMainProfileNoContent is response for SelectMainProfile operation.
 type SelectMainProfileNoContent struct{}
@@ -7777,6 +7834,137 @@ func (s *StorageUsageKind) UnmarshalText(data []byte) error {
 	default:
 		return errors.Errorf("invalid value: %q", data)
 	}
+}
+
+// Ref: #/components/schemas/SubtitleOffer
+type SubtitleOffer struct {
+	Provider        string    `json:"provider"`
+	Language        string    `json:"language"`
+	Forced          bool      `json:"forced"`
+	HearingImpaired bool      `json:"hearingImpaired"`
+	Score           float64   `json:"score"`
+	Release         []string  `json:"release"`
+	Uploader        OptString `json:"uploader"`
+	// Bazarr's handle for this offer, passed back unchanged to download it.
+	Subtitle       string `json:"subtitle"`
+	OriginalFormat bool   `json:"originalFormat"`
+}
+
+// GetProvider returns the value of Provider.
+func (s *SubtitleOffer) GetProvider() string {
+	return s.Provider
+}
+
+// GetLanguage returns the value of Language.
+func (s *SubtitleOffer) GetLanguage() string {
+	return s.Language
+}
+
+// GetForced returns the value of Forced.
+func (s *SubtitleOffer) GetForced() bool {
+	return s.Forced
+}
+
+// GetHearingImpaired returns the value of HearingImpaired.
+func (s *SubtitleOffer) GetHearingImpaired() bool {
+	return s.HearingImpaired
+}
+
+// GetScore returns the value of Score.
+func (s *SubtitleOffer) GetScore() float64 {
+	return s.Score
+}
+
+// GetRelease returns the value of Release.
+func (s *SubtitleOffer) GetRelease() []string {
+	return s.Release
+}
+
+// GetUploader returns the value of Uploader.
+func (s *SubtitleOffer) GetUploader() OptString {
+	return s.Uploader
+}
+
+// GetSubtitle returns the value of Subtitle.
+func (s *SubtitleOffer) GetSubtitle() string {
+	return s.Subtitle
+}
+
+// GetOriginalFormat returns the value of OriginalFormat.
+func (s *SubtitleOffer) GetOriginalFormat() bool {
+	return s.OriginalFormat
+}
+
+// SetProvider sets the value of Provider.
+func (s *SubtitleOffer) SetProvider(val string) {
+	s.Provider = val
+}
+
+// SetLanguage sets the value of Language.
+func (s *SubtitleOffer) SetLanguage(val string) {
+	s.Language = val
+}
+
+// SetForced sets the value of Forced.
+func (s *SubtitleOffer) SetForced(val bool) {
+	s.Forced = val
+}
+
+// SetHearingImpaired sets the value of HearingImpaired.
+func (s *SubtitleOffer) SetHearingImpaired(val bool) {
+	s.HearingImpaired = val
+}
+
+// SetScore sets the value of Score.
+func (s *SubtitleOffer) SetScore(val float64) {
+	s.Score = val
+}
+
+// SetRelease sets the value of Release.
+func (s *SubtitleOffer) SetRelease(val []string) {
+	s.Release = val
+}
+
+// SetUploader sets the value of Uploader.
+func (s *SubtitleOffer) SetUploader(val OptString) {
+	s.Uploader = val
+}
+
+// SetSubtitle sets the value of Subtitle.
+func (s *SubtitleOffer) SetSubtitle(val string) {
+	s.Subtitle = val
+}
+
+// SetOriginalFormat sets the value of OriginalFormat.
+func (s *SubtitleOffer) SetOriginalFormat(val bool) {
+	s.OriginalFormat = val
+}
+
+// Ref: #/components/schemas/SubtitleSearch
+type SubtitleSearch struct {
+	// Bazarr (and Radarr/Sonarr for the lookup) are connected.
+	Configured bool            `json:"configured"`
+	Offers     []SubtitleOffer `json:"offers"`
+}
+
+// GetConfigured returns the value of Configured.
+func (s *SubtitleSearch) GetConfigured() bool {
+	return s.Configured
+}
+
+// GetOffers returns the value of Offers.
+func (s *SubtitleSearch) GetOffers() []SubtitleOffer {
+	return s.Offers
+}
+
+// SetConfigured sets the value of Configured.
+func (s *SubtitleSearch) SetConfigured(val bool) {
+	s.Configured = val
+}
+
+// SetOffers sets the value of Offers.
+func (s *SubtitleSearch) SetOffers(val []SubtitleOffer) {
+	s.Offers = val
 }
 
 // Ref: #/components/schemas/SubtitleStream

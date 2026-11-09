@@ -200,7 +200,8 @@
     "image_too_large": "The picture is larger than 8 MB.",
     "invalid_url": "That address is not valid (use http:// or https://).",
     "upstream_failed": "The other app did not answer or rejected the request.",
-    "not_configured": "This connection is not set up."
+    "not_configured": "This connection is not set up.",
+    "not_in_arr": "Radarr or Sonarr does not manage this title, so Bazarr cannot find it."
   },
   "notFound": {
     "title": "Page not found",
@@ -580,7 +581,8 @@
     "account.updated": "Account details changed",
     "title.requested": "Title requested",
     "settings.requests": "Request settings changed",
-    "settings.enhancements": "Enhancements changed"
+    "settings.enhancements": "Enhancements changed",
+    "subtitle.downloaded": "Subtitle downloaded"
   },
   "tasks": {
     "title": "Scheduled tasks",
@@ -874,7 +876,8 @@
     "arrIntro": "Optional. Used for the “Coming soon” calendar on the Discover page.",
     "test": "Test connections",
     "nothingToTest": "Nothing is set up yet.",
-    "connected": "connected, version {{version}}"
+    "connected": "connected, version {{version}}",
+    "bazarrIntro": "Optional. Finds and downloads subtitles from the title page. Bazarr looks titles up through Radarr and Sonarr, so connect those too."
   },
   "enhancements": {
     "title": "Enhancements",
@@ -928,5 +931,18 @@
     "albums": "Albums",
     "playAll": "Play all",
     "addToQueue": "Add to queue"
+  },
+  "subs": {
+    "find": "Find subtitles",
+    "searching": "Asking the subtitle providers… this can take a minute.",
+    "notConfigured": "Subtitle search uses Bazarr, and Bazarr finds titles through Radarr and Sonarr.",
+    "setUp": "Connect Bazarr",
+    "auto": "Let Bazarr fetch missing languages",
+    "autoStarted": "Bazarr is searching. New subtitles appear after the next scan.",
+    "downloaded": "Downloaded. The subtitle appears in a few seconds.",
+    "allLanguages": "All languages",
+    "none": "No subtitles found.",
+    "hi": "For the hard of hearing",
+    "download": "Download"
   }
 }

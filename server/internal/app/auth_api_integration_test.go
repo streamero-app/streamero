@@ -2002,3 +2002,71 @@ func TestEnhancementsIntegration(t *testing.T) {
 	}
 	_, _ = testPool.Exec(context.Background(), `DELETE FROM settings WHERE key = 'enhancements'`)
 }
+
+func TestBazarrSubtitlesIntegration(t *testing.T) {
+	var downloaded string
+	fake := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/radarr/api/v3/movie":
+			_, _ = w.Write([]byte(`[{"id":7,"tmdbId":603}]`))
+		case r.URL.Path == "/bazarr/api/system/status":
+			_, _ = w.Write([]byte(`{"data":{"bazarr_version":"1.5.1"}}`))
+		case r.URL.Path == "/bazarr/api/providers/movies" && r.Method == http.MethodGet:
+			_, _ = w.Write([]byte(`{"data":[{"provider":"a","language":"en","forced":"False","hearing_impaired":"False","score":50,"subtitle":"low","original_format":"False"},
+				{"provider":"b","language":"hr","forced":"False","hearing_impaired":"False","score":95,"subtitle":"best","original_format":"False"}]}`))
+		case r.URL.Path == "/bazarr/api/providers/movies" && r.Method == http.MethodPost:
+			downloaded = r.URL.Query().Get("subtitle")
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer fake.Close()
+	srv := newAuthTestServer(t)
+	c := newClient(t, srv)
+	setupAdmin(t, c)
+	if _, err := testPool.Exec(context.Background(), `INSERT INTO libraries (id, name, kind, paths) VALUES ('01a1c0b0-0000-7000-8000-000000000001', 'B', 'movies', '{/x}') ON CONFLICT DO NOTHING;
+		INSERT INTO items (id, library_id, kind, path, title, sort_title, provider_ids) VALUES ('01a1c0b0-0000-7000-8000-000000000002', '01a1c0b0-0000-7000-8000-000000000001', 'movie', '/x/m', 'The Matrix', 'Matrix', '{"tmdb":"603"}')
+		ON CONFLICT DO NOTHING`); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_, _ = testPool.Exec(context.Background(), `DELETE FROM libraries WHERE id = '01a1c0b0-0000-7000-8000-000000000001'`)
+	})
+	item := "/items/01a1c0b0-0000-7000-8000-000000000002/subtitles"
+	var search map[string]any
+	if s := c.do("GET", item+"/search", nil, &search); s != 200 || search["configured"] != false {
+		t.Fatalf("unconfigured: HTTP %d %v", s, search)
+	}
+	var rs map[string]any
+	if s := c.do("PUT", "/settings/requests", map[string]any{"usersCanRequest": true, "radarrUrl": fake.URL + "/radarr", "radarrApiKey": "r",
+		"bazarrUrl": fake.URL + "/bazarr", "bazarrApiKey": "b"}, &rs); s != 200 || rs["bazarrConfigured"] != true {
+		t.Fatalf("save: HTTP %d %v", s, rs)
+	}
+	var checks []map[string]any
+	c.do("POST", "/settings/requests/test", nil, &checks)
+	if len(checks) != 2 || checks[1]["app"] != "Bazarr" || checks[1]["version"] != "1.5.1" {
+		t.Fatalf("checks: %v", checks)
+	}
+	search = map[string]any{}
+	if s := c.do("GET", item+"/search", nil, &search); s != 200 {
+		t.Fatalf("search: HTTP %d", s)
+	}
+	offers := search["offers"].([]any)
+	best := offers[0].(map[string]any)
+	if len(offers) != 2 || best["language"] != "hr" {
+		t.Fatalf("offers should be best first: %v", offers)
+	}
+	if s := c.do("POST", item+"/download", best, nil); s != 204 || downloaded != "best" {
+		t.Fatalf("download: HTTP %d %q", s, downloaded)
+	}
+	// A user without the subtitle permission may not.
+	c.do("POST", "/users", map[string]any{"username": "subviewer", "password": "viewer-pass-1"}, nil)
+	u := newClient(t, srv)
+	var login authResult
+	u.do("POST", "/auth/login", map[string]any{"username": "subviewer", "password": "viewer-pass-1", "device": map[string]any{"name": "t"}}, &login)
+	u.token = login.Token
+	if s := u.do("GET", item+"/search", nil, nil); s != 403 {
+		t.Fatalf("viewer: HTTP %d", s)
+	}
+}

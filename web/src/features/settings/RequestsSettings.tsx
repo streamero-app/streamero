@@ -7,23 +7,23 @@ import { Button, Card, ErrorText, Spinner, SuccessText } from "@/components/ui";
 import { SettingRow, Toggle } from "./SettingRow";
 
 const field = "h-10 w-full rounded-[6px] border border-border bg-black/30 px-3 text-[15px] text-text placeholder:text-faint hover:border-border-strong focus:border-accent/70";
-type App = "seerr" | "radarr" | "sonarr";
+type App = "seerr" | "radarr" | "sonarr" | "bazarr";
 
 /** Connections for Discover: Seerr for search and requests, Radarr/Sonarr for the release calendar. */
 export function RequestsSettings() {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const cur = useQuery({ queryKey: ["settings", "requests"], queryFn: async () => unwrap(await api.GET("/settings/requests")) });
-  const [form, setForm] = useState({ seerrUrl: "", seerrApiKey: "", radarrUrl: "", radarrApiKey: "", sonarrUrl: "", sonarrApiKey: "", usersCanRequest: true });
+  const [form, setForm] = useState({ seerrUrl: "", seerrApiKey: "", radarrUrl: "", radarrApiKey: "", sonarrUrl: "", sonarrApiKey: "", bazarrUrl: "", bazarrApiKey: "", usersCanRequest: true });
   const [remove, setRemove] = useState<App[]>([]);
   useEffect(() => {
-    if (cur.data) setForm((f) => ({ ...f, seerrUrl: cur.data.seerrUrl ?? "", radarrUrl: cur.data.radarrUrl ?? "", sonarrUrl: cur.data.sonarrUrl ?? "", usersCanRequest: cur.data.usersCanRequest }));
+    if (cur.data) setForm((f) => ({ ...f, seerrUrl: cur.data.seerrUrl ?? "", radarrUrl: cur.data.radarrUrl ?? "", sonarrUrl: cur.data.sonarrUrl ?? "", bazarrUrl: cur.data.bazarrUrl ?? "", usersCanRequest: cur.data.usersCanRequest }));
   }, [cur.data]);
   const save = useMutation({
     mutationFn: async () => unwrap(await api.PUT("/settings/requests", { body: { ...form, removeKeys: remove } })),
     onSuccess: (d) => {
       qc.setQueryData(["settings", "requests"], d);
-      setForm((f) => ({ ...f, seerrApiKey: "", radarrApiKey: "", sonarrApiKey: "" }));
+      setForm((f) => ({ ...f, seerrApiKey: "", radarrApiKey: "", sonarrApiKey: "", bazarrApiKey: "" }));
       setRemove([]);
       void qc.invalidateQueries({ queryKey: ["discover"] });
     },
@@ -64,6 +64,10 @@ export function RequestsSettings() {
         <p className="mb-4 text-sm text-muted">{t("requests.arrIntro")}</p>
         {app("radarr", "Radarr", "http://radarr:7878", d?.radarrConfigured)}
         {app("sonarr", "Sonarr", "http://sonarr:8989", d?.sonarrConfigured)}
+      </Card>
+      <Card title="Bazarr">
+        <p className="mb-4 text-sm text-muted">{t("requests.bazarrIntro")}</p>
+        {app("bazarr", "Bazarr", "http://bazarr:6767", d?.bazarrConfigured)}
       </Card>
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" disabled={save.isPending}>{t("common.save")}</Button>

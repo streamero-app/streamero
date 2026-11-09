@@ -240,6 +240,15 @@ func (UnimplementedHandler) Discover(ctx context.Context, params DiscoverParams)
 	return r, ht.ErrNotImplemented
 }
 
+// DownloadSubtitle implements downloadSubtitle operation.
+//
+// Download one offer through Bazarr; the library is rescanned to pick it up.
+//
+// POST /items/{itemId}/subtitles/download
+func (UnimplementedHandler) DownloadSubtitle(ctx context.Context, req *SubtitleOffer, params DownloadSubtitleParams) error {
+	return ht.ErrNotImplemented
+}
+
 // EditMetadata implements editMetadata operation.
 //
 // Edit metadata by hand (administrators); locked items keep it on refresh.
@@ -760,6 +769,24 @@ func (UnimplementedHandler) ScanLibrary(ctx context.Context, params ScanLibraryP
 //
 // GET /search
 func (UnimplementedHandler) Search(ctx context.Context, params SearchParams) (r []ItemSummary, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// SearchMissingSubtitles implements searchMissingSubtitles operation.
+//
+// Let Bazarr fetch the missing languages of its profile on its own.
+//
+// POST /items/{itemId}/subtitles/search-missing
+func (UnimplementedHandler) SearchMissingSubtitles(ctx context.Context, params SearchMissingSubtitlesParams) error {
+	return ht.ErrNotImplemented
+}
+
+// SearchSubtitles implements searchSubtitles operation.
+//
+// Subtitles Bazarr's providers have for a movie or episode.
+//
+// GET /items/{itemId}/subtitles/search
+func (UnimplementedHandler) SearchSubtitles(ctx context.Context, params SearchSubtitlesParams) (r *SubtitleSearch, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
