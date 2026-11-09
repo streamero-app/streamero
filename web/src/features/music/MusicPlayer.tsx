@@ -161,7 +161,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     if (!el || !current) return;
     if (el.paused) void el.play(); else el.pause();
   }, [current]);
-  const seek = useCallback((ms: number) => { if (audio.current) audio.current.currentTime = Math.max(0, ms / 1000); }, []);
+  const seek = useCallback((ms: number) => { if (audio.current) audio.current.currentTime = Math.max(0, Math.round(ms) / 1000); }, []);
 
   // Lock screen, headphones and keyboard media keys.
   useEffect(() => {

@@ -126,4 +126,28 @@ describe("player", () => {
     expect(preview).toHaveTextContent("Opening · 1:10");
     expect(preview.querySelector("div")?.getAttribute("style")).toContain("/api/v1/trickplay/f/0");
   });
+
+  it("seeks a transcoded stream with whole milliseconds (the server rejects fractions)", async () => {
+    const starts: unknown[] = [];
+    mockApi(({ method, path, body }) => {
+      if (method === "POST" && path.endsWith("/playback")) {
+        starts.push((body as { startMs?: number }).startMs);
+        return { status: 200, body: { fileId: "f", method: "transcode", url: "/stream/hls/s/index.m3u8?exp=1&sig=x", startMs: 0,
+          durationMs: 5_400_123, audio: [], subtitles: [] } };
+      }
+      if (method === "PUT") return { status: 204 };
+      return { status: 200, body: { item, libraryId: "l", providerIds: {}, files: [], children: [], genres: [], cast: [], crew: [], hasBackdrop: false } };
+    });
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+    renderApp(`/watch/${item.id}`, { me: testUser() });
+    const bar = await screen.findByRole("slider", { name: "Seek" });
+    await waitFor(() => expect(starts).toHaveLength(1));
+    bar.getBoundingClientRect = () => ({ left: 0, width: 333, top: 0, height: 10, right: 333, bottom: 10, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect;
+    fireEvent.pointerDown(bar, { clientX: 217 });
+    fireEvent.pointerUp(bar, { clientX: 217 });
+    await waitFor(() => expect(starts).toHaveLength(2));
+    expect(Number.isInteger(starts[1])).toBe(true);
+    expect(starts[1]).toBe(Math.round((217 / 333) * 5_400_123));
+  });
 });
+
