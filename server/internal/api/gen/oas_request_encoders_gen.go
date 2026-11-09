@@ -310,6 +310,20 @@ func encodeReportProgressRequest(
 	return nil
 }
 
+func encodeRequestTitleRequest(
+	req *TitleRequest,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeSelectMainProfileRequest(
 	req OptPasswordConfirmRequest,
 	r *http.Request,
@@ -347,6 +361,40 @@ func encodeSelectProfileRequest(
 	}
 	encoded := e.Bytes()
 	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeSendSessionCommandRequest(
+	req *SessionCommand,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeSetMyAvatarRequest(
+	req SetMyAvatarReq,
+	r *http.Request,
+) error {
+	const contentType = "application/octet-stream"
+	body := req
+	ht.SetBody(r, body, contentType)
+	return nil
+}
+
+func encodeSetProfileAvatarRequest(
+	req SetProfileAvatarReq,
+	r *http.Request,
+) error {
+	const contentType = "application/octet-stream"
+	body := req
+	ht.SetBody(r, body, contentType)
 	return nil
 }
 
@@ -420,8 +468,36 @@ func encodeUpdateEncodingSettingsRequest(
 	return nil
 }
 
+func encodeUpdateEnhancementsRequest(
+	req *Enhancements,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeUpdateLibraryRequest(
 	req *LibraryInput,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeUpdateMeRequest(
+	req *UpdateMeRequest,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"
@@ -492,6 +568,20 @@ func encodeUpdatePreferencesRequest(
 
 func encodeUpdateProfileRequest(
 	req *ProfileInput,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeUpdateRequestSettingsRequest(
+	req *RequestSettingsInput,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"

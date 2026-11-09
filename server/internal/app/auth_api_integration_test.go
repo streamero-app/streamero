@@ -9,6 +9,10 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/color"
+	_ "image/jpeg"
+	pngenc "image/png"
 	"io"
 	"log/slog"
 	"net/http"
@@ -62,7 +66,7 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 	}
 	t.Cleanup(deps.Close)
 	if _, err := deps.Pool.Exec(ctx, `TRUNCATE users, sessions, audit_log, api_keys, user_totp, recovery_codes, quick_connect, invites, profiles;
-		DELETE FROM settings WHERE key IN ('setup.completed', 'server.name', 'playback.resume', 'encoding', 'branding')`); err != nil {
+		DELETE FROM settings WHERE key IN ('setup.completed', 'server.name', 'playback.resume', 'encoding', 'branding', 'integrations.requests', 'enhancements')`); err != nil {
 		t.Fatal(err)
 	}
 	mediaRoot = t.TempDir()
@@ -1834,4 +1838,170 @@ func TestServerSettingsIntegration(t *testing.T) {
 	if s := adminC.do("GET", "/admin/logs?level=debug", nil, &logs); s != 200 {
 		t.Fatalf("logs: HTTP %d", s)
 	}
+}
+
+func TestAccountAndAvatarIntegration(t *testing.T) {
+	srv := newAuthTestServer(t)
+	c := newClient(t, srv)
+	setupAdmin(t, c)
+	var me map[string]any
+	if s := c.do("PUT", "/auth/me", map[string]any{"displayName": "  Ana Kino ", "email": "ana@example.com", "language": "hr"}, &me); s != 200 {
+		t.Fatalf("update me: HTTP %d", s)
+	}
+	if me["displayName"] != "Ana Kino" || me["email"] != "ana@example.com" || me["language"] != "hr" || me["hasAvatar"] != false {
+		t.Fatalf("me: %v", me)
+	}
+	var e apiError
+	if s := c.do("PUT", "/auth/me", map[string]any{"email": "not an address"}, &e); s != 400 || e.Code != "invalid_email" {
+		t.Fatalf("bad e-mail: HTTP %d %+v", s, e)
+	}
+	// Only the fields sent change.
+	me = map[string]any{}
+	c.do("PUT", "/auth/me", map[string]any{"displayName": ""}, &me)
+	if _, has := me["displayName"]; has || me["email"] != "ana@example.com" {
+		t.Fatalf("partial update: %v", me)
+	}
+
+	upload := func(path string, body []byte) int {
+		req, _ := http.NewRequest("PUT", c.base+path, bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/octet-stream")
+		req.Header.Set("Authorization", "Bearer "+c.token)
+		resp, err := c.http.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = resp.Body.Close()
+		return resp.StatusCode
+	}
+	if s := upload("/auth/me/avatar", []byte("not a picture")); s != 400 {
+		t.Fatalf("garbage upload: HTTP %d", s)
+	}
+	img := image.NewRGBA(image.Rect(0, 0, 900, 600))
+	for y := 0; y < 600; y++ {
+		for x := 0; x < 900; x++ {
+			img.Set(x, y, color.RGBA{200, uint8(x % 256), 40, 255})
+		}
+	}
+	var png bytes.Buffer
+	_ = pngenc.Encode(&png, img)
+	if s := upload("/auth/me/avatar", png.Bytes()); s != 204 {
+		t.Fatalf("upload: HTTP %d", s)
+	}
+	c.do("GET", "/auth/me", nil, &me)
+	if me["hasAvatar"] != true {
+		t.Fatalf("hasAvatar after upload: %v", me)
+	}
+	req, _ := http.NewRequest("GET", c.base+"/avatars/"+me["id"].(string), nil)
+	req.Header.Set("Authorization", "Bearer "+c.token)
+	resp, err := c.http.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pic, _, err := image.Decode(resp.Body)
+	_ = resp.Body.Close()
+	if err != nil || pic.Bounds().Dx() != 256 || pic.Bounds().Dy() != 256 {
+		t.Fatalf("stored picture should be a 256 px square: %v %v", err, pic)
+	}
+	if s := c.do("DELETE", "/auth/me/avatar", nil, nil); s != 204 {
+		t.Fatalf("delete: HTTP %d", s)
+	}
+	if s := c.do("GET", "/avatars/"+me["id"].(string), nil, nil); s != 404 {
+		t.Fatalf("after delete: HTTP %d", s)
+	}
+	// Someone else's profile cannot be given a picture.
+	if s := upload("/profiles/"+uuid.NewString()+"/avatar", png.Bytes()); s != 404 {
+		t.Fatalf("foreign profile: HTTP %d", s)
+	}
+}
+
+func TestDiscoverIntegration(t *testing.T) {
+	seerr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-Api-Key") != "seerr-key" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		switch r.URL.Path {
+		case "/api/v1/search":
+			_, _ = w.Write([]byte(`{"page":1,"totalPages":1,"results":[{"id":603,"mediaType":"movie","title":"The Matrix","releaseDate":"1999-03-30","posterPath":"/m.jpg"}]}`))
+		case "/api/v1/request":
+			_, _ = w.Write([]byte(`{"status":1}`))
+		case "/api/v1/status":
+			_, _ = w.Write([]byte(`{"version":"2.7.3"}`))
+		}
+	}))
+	defer seerr.Close()
+	srv := newAuthTestServer(t)
+	c := newClient(t, srv)
+	setupAdmin(t, c)
+	var page map[string]any
+	if s := c.do("GET", "/discover?q=matrix", nil, &page); s != 200 || page["configured"] != false {
+		t.Fatalf("unconfigured discover: HTTP %d %v", s, page)
+	}
+	var e apiError
+	if s := c.do("PUT", "/settings/requests", map[string]any{"seerrUrl": "seerr:5055", "usersCanRequest": true}, &e); s != 400 || e.Code != "invalid_url" {
+		t.Fatalf("bad url: HTTP %d %+v", s, e)
+	}
+	var rs map[string]any
+	if s := c.do("PUT", "/settings/requests", map[string]any{"seerrUrl": seerr.URL + "/", "seerrApiKey": "seerr-key", "usersCanRequest": false}, &rs); s != 200 ||
+		rs["seerrConfigured"] != true || rs["seerrUrl"] != seerr.URL {
+		t.Fatalf("save: HTTP %d %v", s, rs)
+	}
+	if _, leaked := rs["seerrApiKey"]; leaked {
+		t.Fatal("the key must never be returned")
+	}
+	var checks []map[string]any
+	if c.do("POST", "/settings/requests/test", nil, &checks); len(checks) != 1 || checks[0]["ok"] != true || checks[0]["version"] != "2.7.3" {
+		t.Fatalf("test connection: %v", checks)
+	}
+	// A title already in the library comes back as available with its item id.
+	if _, err := testPool.Exec(context.Background(), `INSERT INTO libraries (id, name, kind, paths) VALUES ('01a1c0a0-0000-7000-8000-000000000001', 'D', 'movies', '{/x}') ON CONFLICT DO NOTHING;
+		INSERT INTO items (id, library_id, kind, path, title, sort_title, provider_ids) VALUES ('01a1c0a0-0000-7000-8000-000000000002', '01a1c0a0-0000-7000-8000-000000000001', 'movie', '/x/m', 'The Matrix', 'Matrix', '{"tmdb":"603"}')
+		ON CONFLICT DO NOTHING`); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_, _ = testPool.Exec(context.Background(), `DELETE FROM libraries WHERE id = '01a1c0a0-0000-7000-8000-000000000001'`)
+	})
+	page = map[string]any{}
+	if s := c.do("GET", "/discover?q=matrix", nil, &page); s != 200 || page["canRequest"] != true {
+		t.Fatalf("discover: HTTP %d %v", s, page)
+	}
+	titles := page["titles"].([]any)
+	first := titles[0].(map[string]any)
+	if first["status"] != "available" || first["itemId"] != "01a1c0a0-0000-7000-8000-000000000002" || first["posterUrl"] != "https://image.tmdb.org/t/p/w342/m.jpg" {
+		t.Fatalf("title: %v", first)
+	}
+	var res map[string]any
+	if s := c.do("POST", "/discover/request", map[string]any{"tmdbId": 603, "mediaType": "movie"}, &res); s != 200 || res["status"] != "pending" {
+		t.Fatalf("request: HTTP %d %v", s, res)
+	}
+	// With usersCanRequest off, a normal user may search but not request.
+	c.do("POST", "/users", map[string]any{"username": "viewer", "password": "viewer-pass-1"}, nil)
+	u := newClient(t, srv)
+	var login authResult
+	u.do("POST", "/auth/login", map[string]any{"username": "viewer", "password": "viewer-pass-1", "device": map[string]any{"name": "t"}}, &login)
+	u.token = login.Token
+	page = map[string]any{}
+	if u.do("GET", "/discover?q=matrix", nil, &page); page["canRequest"] != false {
+		t.Fatalf("viewer canRequest: %v", page)
+	}
+	if s := u.do("POST", "/discover/request", map[string]any{"tmdbId": 603, "mediaType": "movie"}, &e); s != 403 {
+		t.Fatalf("viewer request: HTTP %d", s)
+	}
+}
+
+func TestEnhancementsIntegration(t *testing.T) {
+	srv := newAuthTestServer(t)
+	c := newClient(t, srv)
+	setupAdmin(t, c)
+	var e map[string]any
+	if s := c.do("GET", "/enhancements", nil, &e); s != 200 || e["qualityTags"] != true || e["autoPip"] != false {
+		t.Fatalf("defaults: HTTP %d %v", s, e)
+	}
+	off := map[string]bool{"qualityTags": false, "randomButton": true, "pauseScreen": true, "arrLinks": false, "discoverInSearch": true,
+		"removeFromContinue": true, "shortcutsHelp": true, "autoPip": true}
+	if s := c.do("PUT", "/enhancements", off, &e); s != 200 || e["qualityTags"] != false || e["autoPip"] != true {
+		t.Fatalf("save: HTTP %d %v", s, e)
+	}
+	_, _ = testPool.Exec(context.Background(), `DELETE FROM settings WHERE key = 'enhancements'`)
 }

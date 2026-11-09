@@ -126,6 +126,118 @@ paths:
                 $ref: "#/components/schemas/User"
         default:
           $ref: "#/components/responses/Error"
+    put:
+      operationId: updateMe
+      summary: Change own display name, e-mail and language
+      tags: [auth]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMeRequest"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        default:
+          $ref: "#/components/responses/Error"
+  /auth/me/avatar:
+    put:
+      operationId: setMyAvatar
+      summary: Upload own picture (JPEG, PNG or GIF, up to 8 MB; cropped to a square)
+      tags: [auth]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "204":
+          description: Saved
+        default:
+          $ref: "#/components/responses/Error"
+    delete:
+      operationId: deleteMyAvatar
+      summary: Remove own picture
+      tags: [auth]
+      security:
+        - sessionToken: []
+      responses:
+        "204":
+          description: Removed
+        default:
+          $ref: "#/components/responses/Error"
+  /profiles/{profileId}/avatar:
+    parameters:
+      - $ref: "#/components/parameters/ProfileId"
+    put:
+      operationId: setProfileAvatar
+      summary: Upload a profile's picture
+      tags: [profiles]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "204":
+          description: Saved
+        default:
+          $ref: "#/components/responses/Error"
+    delete:
+      operationId: deleteProfileAvatar
+      summary: Remove a profile's picture
+      tags: [profiles]
+      security:
+        - sessionToken: []
+      responses:
+        "204":
+          description: Removed
+        default:
+          $ref: "#/components/responses/Error"
+  /avatars/{ownerId}:
+    parameters:
+      - name: ownerId
+        in: path
+        required: true
+        description: A user or profile id.
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getAvatar
+      summary: A user's or profile's picture (JPEG)
+      tags: [auth]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Image
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+        default:
+          $ref: "#/components/responses/Error"
   /auth/password:
     post:
       operationId: changePassword
@@ -771,7 +883,7 @@ paths:
         in: query
         schema:
           type: string
-          enum: [title, year, added, rating]
+          enum: [title, year, added, rating, random]
           default: title
       - name: genre
         in: query
@@ -1952,6 +2064,241 @@ paths:
                 $ref: "#/components/schemas/ActivityPage"
         default:
           $ref: "#/components/responses/Error"
+  /sessions/{sessionKey}/command:
+    parameters:
+      - name: sessionKey
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 80
+    post:
+      operationId: sendSessionCommand
+      summary: Show a message on a playing client or stop its playback (admin)
+      tags: [admin]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionCommand"
+      responses:
+        "204":
+          description: Queued
+        default:
+          $ref: "#/components/responses/Error"
+  /me/commands:
+    get:
+      operationId: takeMyCommands
+      summary: Commands an administrator sent to this session (taken once)
+      tags: [playback]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Commands, oldest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SessionCommand"
+        default:
+          $ref: "#/components/responses/Error"
+  /settings/requests:
+    get:
+      operationId: getRequestSettings
+      summary: Seerr / Radarr / Sonarr connections (admin; keys are never returned)
+      tags: [settings]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequestSettings"
+        default:
+          $ref: "#/components/responses/Error"
+    put:
+      operationId: updateRequestSettings
+      summary: Change the connections (admin); an empty key keeps the stored one
+      tags: [settings]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestSettingsInput"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequestSettings"
+        default:
+          $ref: "#/components/responses/Error"
+  /settings/requests/test:
+    post:
+      operationId: testRequestSettings
+      summary: Check each configured connection (admin)
+      tags: [settings]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: One line per app
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ConnectionCheck"
+        default:
+          $ref: "#/components/responses/Error"
+  /discover:
+    get:
+      operationId: discover
+      summary: Search movies and series to request (trending when q is empty)
+      tags: [discover]
+      security:
+        - sessionToken: []
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+            maxLength: 200
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 1
+      responses:
+        "200":
+          description: Results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscoverPage"
+        default:
+          $ref: "#/components/responses/Error"
+  /discover/request:
+    post:
+      operationId: requestTitle
+      summary: Ask Seerr to download a movie or a whole series
+      tags: [discover]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TitleRequest"
+      responses:
+        "200":
+          description: Requested
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TitleRequestResult"
+        default:
+          $ref: "#/components/responses/Error"
+  /upcoming:
+    get:
+      operationId: listUpcoming
+      summary: Releases of the next weeks from Radarr and Sonarr
+      tags: [discover]
+      security:
+        - sessionToken: []
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 90
+            default: 30
+      responses:
+        "200":
+          description: Soonest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UpcomingRelease"
+        default:
+          $ref: "#/components/responses/Error"
+  /enhancements:
+    get:
+      operationId: getEnhancements
+      summary: Built-in enhancements switched on for this server
+      tags: [settings]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Switches
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Enhancements"
+        default:
+          $ref: "#/components/responses/Error"
+    put:
+      operationId: updateEnhancements
+      summary: Switch built-in enhancements on or off (admin)
+      tags: [settings]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Enhancements"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Enhancements"
+        default:
+          $ref: "#/components/responses/Error"
+  /items/{itemId}/arr-link:
+    parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getArrLink
+      summary: Where this title is managed in Radarr or Sonarr (admin)
+      tags: [discover]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Link
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArrLink"
+        default:
+          $ref: "#/components/responses/Error"
 components:
   securitySchemes:
     sessionToken:
@@ -2438,8 +2785,11 @@ components:
           format: int64
     NowPlaying:
       type: object
-      required: [user, device, itemId, title, method, positionMs, updatedAt]
+      required: [key, user, device, itemId, title, method, positionMs, updatedAt]
       properties:
+        key:
+          type: string
+          description: Identifies the playing session for remote commands.
         user:
           type: string
         profile:
@@ -2899,6 +3249,12 @@ components:
         rating:
           type: number
           description: Community rating 0–10.
+        videoHeight:
+          type: integer
+          description: Height of the best file's picture (for 4K/HD tags).
+        hdr:
+          type: string
+          description: HDR format of the best file (HDR10, HLG, Dolby Vision), if any.
         positionMs:
           type: integer
           format: int64
@@ -3088,6 +3444,8 @@ components:
         maxRating:
           type: integer
           description: Highest age rating allowed (e.g. 12); applies from P3 (ratings) on.
+        hasAvatar:
+          type: boolean
     ProfileInput:
       type: object
       required: [name, color, isKid]
@@ -3209,12 +3567,45 @@ components:
           $ref: "#/components/schemas/UserPermissions"
         currentProfile:
           $ref: "#/components/schemas/Profile"
+        displayName:
+          type: string
+        email:
+          type: string
+        language:
+          type: string
+          enum: [en, hr]
+          description: Interface language chosen by the user.
+        hasAvatar:
+          type: boolean
         createdAt:
           type: string
           format: date-time
         lastLoginAt:
           type: string
           format: date-time
+    SessionCommand:
+      type: object
+      required: [kind]
+      properties:
+        kind:
+          type: string
+          enum: [message, stop]
+        text:
+          type: string
+          maxLength: 500
+    UpdateMeRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+          maxLength: 60
+        email:
+          type: string
+          maxLength: 200
+          description: Used for notifications; empty removes it.
+        language:
+          type: string
+          enum: [en, hr]
     CreateUserRequest:
       type: object
       required: [username, password]
@@ -3421,6 +3812,190 @@ components:
             $ref: "#/components/schemas/ActivityEntry"
         total:
           type: integer
+    RequestSettings:
+      type: object
+      required: [seerrConfigured, usersCanRequest, radarrConfigured, sonarrConfigured]
+      properties:
+        seerrUrl:
+          type: string
+        seerrConfigured:
+          type: boolean
+        usersCanRequest:
+          type: boolean
+          description: Everyone (not only administrators) can request titles.
+        radarrUrl:
+          type: string
+        radarrConfigured:
+          type: boolean
+        sonarrUrl:
+          type: string
+        sonarrConfigured:
+          type: boolean
+    RequestSettingsInput:
+      type: object
+      required: [usersCanRequest]
+      properties:
+        seerrUrl:
+          type: string
+          maxLength: 300
+        seerrApiKey:
+          type: string
+          maxLength: 200
+        usersCanRequest:
+          type: boolean
+        radarrUrl:
+          type: string
+          maxLength: 300
+        radarrApiKey:
+          type: string
+          maxLength: 200
+        sonarrUrl:
+          type: string
+          maxLength: 300
+        sonarrApiKey:
+          type: string
+          maxLength: 200
+        removeKeys:
+          type: array
+          items:
+            type: string
+            enum: [seerr, radarr, sonarr]
+    ConnectionCheck:
+      type: object
+      required: [app, ok]
+      properties:
+        app:
+          type: string
+        ok:
+          type: boolean
+        version:
+          type: string
+        error:
+          type: string
+    DiscoverTitle:
+      type: object
+      required: [tmdbId, mediaType, title, status]
+      properties:
+        tmdbId:
+          type: integer
+        mediaType:
+          type: string
+          enum: [movie, tv]
+        title:
+          type: string
+        year:
+          type: integer
+        overview:
+          type: string
+        posterUrl:
+          type: string
+        backdropUrl:
+          type: string
+        rating:
+          type: number
+        status:
+          type: string
+          enum: [none, pending, processing, partial, available]
+        itemId:
+          type: string
+          format: uuid
+          description: The title in this server's libraries, when it is already here.
+    DiscoverPage:
+      type: object
+      required: [configured, canRequest, titles, page, totalPages]
+      properties:
+        configured:
+          type: boolean
+          description: Seerr is connected.
+        canRequest:
+          type: boolean
+        titles:
+          type: array
+          items:
+            $ref: "#/components/schemas/DiscoverTitle"
+        page:
+          type: integer
+        totalPages:
+          type: integer
+    TitleRequest:
+      type: object
+      required: [tmdbId, mediaType]
+      properties:
+        tmdbId:
+          type: integer
+          minimum: 1
+        mediaType:
+          type: string
+          enum: [movie, tv]
+    TitleRequestResult:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [none, pending, processing, partial, available]
+    UpcomingRelease:
+      type: object
+      required: [kind, title, date, downloaded]
+      properties:
+        kind:
+          type: string
+          enum: [movie, episode]
+        title:
+          type: string
+        seriesTitle:
+          type: string
+        season:
+          type: integer
+        episode:
+          type: integer
+        date:
+          type: string
+          format: date-time
+        overview:
+          type: string
+        posterUrl:
+          type: string
+        downloaded:
+          type: boolean
+    Enhancements:
+      type: object
+      description: Features other servers need plugins for, built in and switchable.
+      required: [qualityTags, randomButton, pauseScreen, arrLinks, discoverInSearch, removeFromContinue, shortcutsHelp, autoPip]
+      properties:
+        qualityTags:
+          type: boolean
+          description: 4K / HDR / Dolby Vision tags on posters.
+        randomButton:
+          type: boolean
+          description: A "surprise me" button on home and in libraries.
+        pauseScreen:
+          type: boolean
+          description: Title, year and story on screen while paused.
+        arrLinks:
+          type: boolean
+          description: Open a title in Radarr or Sonarr (administrators).
+        discoverInSearch:
+          type: boolean
+          description: Search also offers titles to request through Seerr.
+        removeFromContinue:
+          type: boolean
+          description: Remove a title from Continue watching.
+        shortcutsHelp:
+          type: boolean
+          description: Show keyboard shortcuts with "?".
+        autoPip:
+          type: boolean
+          description: Keep playing in picture-in-picture when switching tabs.
+    ArrLink:
+      type: object
+      required: [app, url]
+      properties:
+        app:
+          type: string
+          enum: [radarr, sonarr]
+        url:
+          type: string
     SystemInfo:
       type: object
       required: [id, name, product, version, apiVersion, setupCompleted, startedAt]

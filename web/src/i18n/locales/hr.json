@@ -66,7 +66,9 @@
     "topTen": "Top 10 · {{name}}",
     "minutesLeft_one": "Još {{count}} min",
     "minutesLeft_few": "Još {{count}} min",
-    "minutesLeft_other": "Još {{count}} min"
+    "minutesLeft_other": "Još {{count}} min",
+    "surprise": "Iznenadi me",
+    "removeFromContinue": "Ukloni „{{title}}“ iz Nastavi gledati"
   },
   "settings": {
     "account": "Moj račun",
@@ -91,13 +93,27 @@
     "logs": "Logovi",
     "activityLog": "Aktivnost",
     "branding": "Brendiranje",
-    "profileSection": "Profil"
+    "profileSection": "Profil",
+    "requests": "Zahtjevi",
+    "enhancements": "Proširenja"
   },
   "account": {
     "changePassword": "Promijeni lozinku",
     "currentPassword": "Trenutna lozinka",
     "newPassword": "Nova lozinka",
-    "passwordChanged": "Lozinka je promijenjena. Ostali uređaji su odjavljeni."
+    "passwordChanged": "Lozinka je promijenjena. Ostali uređaji su odjavljeni.",
+    "changePicture": "Promijeni sliku",
+    "removePicture": "Ukloni sliku",
+    "twoFactorOn": "Dvofaktorska uključena",
+    "memberSince": "Član od {{date}}",
+    "lastSignIn": "zadnja prijava {{date}}",
+    "profileTitle": "Profil",
+    "displayName": "Ime za prikaz",
+    "displayNameHint": "Prikazuje se u izborniku i administratorima umjesto korisničkog imena.",
+    "email": "E-mail",
+    "emailHint": "Nije obavezno. Za obavijesti i pomoć administratora s lozinkom.",
+    "language": "Jezik",
+    "languageHint": "Vrijedi na svakom uređaju na kojem se prijaviš."
   },
   "devices": {
     "intro": "Uređaji prijavljeni na vaš račun. Odjava uređaja djeluje odmah.",
@@ -178,7 +194,13 @@
     "invalid_notification_target": "Provjeri servis i URL (http ili https; Gotify treba app token).",
     "notification_failed": "Odredište nije prihvatilo poruku. Provjeri URL i token.",
     "tmdb_not_configured": "Prvo dodaj TMDb ključ u Postavke → Metapodaci.",
-    "metadata_locked": "Ovaj naslov je ručno uređen. Za zamjenu podacima s TMDb-a koristi Identificiraj."
+    "metadata_locked": "Ovaj naslov je ručno uređen. Za zamjenu podacima s TMDb-a koristi Identificiraj.",
+    "invalid_email": "Ta e-mail adresa nije ispravna.",
+    "invalid_image": "Datoteka nije JPEG, PNG ili GIF slika.",
+    "image_too_large": "Slika je veća od 8 MB.",
+    "invalid_url": "Adresa nije ispravna (koristi http:// ili https://).",
+    "upstream_failed": "Druga aplikacija nije odgovorila ili je odbila zahtjev.",
+    "not_configured": "Ova veza nije postavljena."
   },
   "notFound": {
     "title": "Stranica nije pronađena",
@@ -407,7 +429,10 @@
     "noMatches": "Nijedan naslov ne odgovara filterima.",
     "matches_one": "{{count}} rezultat",
     "matches_few": "{{count}} rezultata",
-    "matches_other": "{{count}} rezultata"
+    "matches_other": "{{count}} rezultata",
+    "version": "Verzija",
+    "automatic": "Automatski",
+    "unknownLanguage": "Nepoznat jezik"
   },
   "metadata": {
     "connected": "TMDb povezan",
@@ -451,7 +476,19 @@
     "skipIntro": "Preskoči uvod",
     "skipRecap": "Preskoči sažetak",
     "backSeconds": "{{seconds}} s natrag",
-    "forwardSeconds": "{{seconds}} s naprijed"
+    "forwardSeconds": "{{seconds}} s naprijed",
+    "stoppedByAdmin": "Administrator je zaustavio reprodukciju.",
+    "paused": "Pauzirano",
+    "shortcuts": "Prečaci tipkovnice",
+    "keyPlay": "Pusti ili pauziraj",
+    "keyBack": "Skok natrag",
+    "keyForward": "Skok naprijed",
+    "keyVolume": "Glasnoća",
+    "keyMute": "Utišaj",
+    "keyFullscreen": "Cijeli zaslon",
+    "keySubtitles": "Titlovi uključi/isključi",
+    "keyHelp": "Ova pomoć",
+    "keyClose": "Zatvori panel"
   },
   "search": {
     "title": "Pretraga",
@@ -460,7 +497,9 @@
     "none": "Ništa nije pronađeno. Pokušajte drugi pravopis ili ime glumca.",
     "hint": "Filmovi, serije, epizode i osobe.",
     "start": "Upiši naslov, godinu ili ime glumca.",
-    "open": "Otvori pretragu"
+    "open": "Otvori pretragu",
+    "notHereYet": "Još nije ovdje",
+    "openDiscover": "Otvori u Discoveru"
   },
   "integrations": {
     "host": "Host",
@@ -491,7 +530,14 @@
     "version": "Verzija",
     "platform": "Platforma",
     "started": "Radi od",
-    "activity": "Nedavna aktivnost"
+    "activity": "Nedavna aktivnost",
+    "message": "Poruka",
+    "messagePlaceholder": "Prikazat će se na njihovom ekranu…",
+    "send": "Pošalji",
+    "stop": "Zaustavi",
+    "stopConfirm": "Zaustaviti ovu reprodukciju?",
+    "stoppedByAdmin": "Administrator je zaustavio reprodukciju.",
+    "sent": "Poslano"
   },
   "activity": {
     "apikey.created": "API ključ stvoren",
@@ -518,7 +564,13 @@
     "item.edited": "Metapodaci uređeni",
     "settings.encoding": "Promijenjeno transkodiranje",
     "settings.resume": "Promijenjen nastavak gledanja",
-    "settings.branding": "Promijenjeno brendiranje"
+    "settings.branding": "Promijenjeno brendiranje",
+    "session.message": "Poruka poslana gledatelju",
+    "session.stop": "Administrator je zaustavio reprodukciju",
+    "account.updated": "Promijenjeni podaci računa",
+    "title.requested": "Zatražen naslov",
+    "settings.requests": "Promijenjene postavke zahtjeva",
+    "settings.enhancements": "Promijenjena proširenja"
   },
   "tasks": {
     "title": "Zakazani zadaci",
@@ -775,5 +827,63 @@
     "disclaimerHint": "Na primjer kome je server namijenjen ili koga pitati za račun.",
     "css": "Vlastiti CSS",
     "cssHint": "Dodaje se na svaku stranicu web klijenta. Ovdje se mogu promijeniti i tokeni dizajna poput --amb-a ili --color-bg."
+  },
+  "discover": {
+    "title": "Discover",
+    "short": "Otkrij",
+    "intro": "Pronađi bilo koji film ili seriju. Ako još nije ovdje, zatraži ga i automatski će se preuzeti preko Seerra, Radarra i Sonarra.",
+    "placeholder": "Film, serija ili crtić…",
+    "trending": "Popularno sada",
+    "resultsFor": "Rezultati za „{{q}}“",
+    "nothing": "Ništa nije pronađeno.",
+    "upcoming": "Uskoro",
+    "downloaded": "Preuzeto",
+    "movie": "Film",
+    "series": "Serija",
+    "watch": "Gledaj",
+    "requestMovie": "Zatraži",
+    "requestSeries": "Zatraži seriju",
+    "status_none": "Nije zatraženo",
+    "status_pending": "Zatraženo",
+    "status_processing": "Preuzima se",
+    "status_partial": "Djelomično ovdje",
+    "status_available": "Dostupno",
+    "notConfigured": "Zahtjevi još nisu postavljeni na ovom serveru.",
+    "setUp": "Poveži Seerr"
+  },
+  "requests": {
+    "url": "Adresa {{app}}",
+    "key": "API ključ {{app}}",
+    "keyStored": "Ključ je spremljen. Upiši novi da ga zamijeniš.",
+    "keyWhere": "Nalazi se u {{app}} pod Settings → General.",
+    "remove": "Ukloni",
+    "willRemove": "Bit će uklonjen",
+    "seerrIntro": "Seerr ili Jellyseerr pretražuje TMDb i prosljeđuje zahtjeve Radarru i Sonarru. Streameru trebaju samo adresa i API ključ.",
+    "usersCanRequest": "Svi mogu slati zahtjeve",
+    "usersCanRequestHint": "Isključeno: samo administratori. Dječji profili nikad.",
+    "arrIntro": "Nije obavezno. Koristi se za kalendar „Uskoro“ na stranici Discover.",
+    "test": "Provjeri veze",
+    "nothingToTest": "Još ništa nije postavljeno.",
+    "connected": "povezano, verzija {{version}}"
+  },
+  "enhancements": {
+    "title": "Proširenja",
+    "intro": "Funkcije za koje drugi media serveri trebaju pluginove ugrađene su u Streamero. Isključi što ti ne treba; ništa tuđe ne radi unutar servera, pa ih nadogradnje nikad ne pokvare.",
+    "qualityTags": "Oznake kvalitete na posterima",
+    "qualityTags_hint": "Oznake 4K, HD, HDR i Dolby Vision.",
+    "randomButton": "Iznenadi me",
+    "randomButton_hint": "Gumb na početnoj i u bibliotekama koji otvara nasumičan nepogledan naslov.",
+    "pauseScreen": "Zaslon pauze",
+    "pauseScreen_hint": "Naslov, godina i radnja nakon nekoliko sekundi pauze.",
+    "removeFromContinue": "Ukloni iz Nastavi gledati",
+    "removeFromContinue_hint": "× na karticama Nastavi gledati.",
+    "shortcutsHelp": "Pomoć za prečace",
+    "shortcutsHelp_hint": "Pritisni ? u playeru.",
+    "autoPip": "Slika u slici pri napuštanju kartice",
+    "autoPip_hint": "Reprodukcija se nastavlja u malom prozoru dok radiš nešto drugo.",
+    "discoverInSearch": "Zahtjevi u pretrazi",
+    "discoverInSearch_hint": "Pretraga prikazuje i naslove koji još nisu ovdje, spremne za zahtjev (treba Seerr).",
+    "arrLinks": "Poveznice na Radarr i Sonarr",
+    "arrLinks_hint": "Administratori vide gdje se naslov vodi (treba Radarr/Sonarr u Zahtjevima)."
   }
 }

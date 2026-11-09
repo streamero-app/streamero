@@ -51,6 +51,8 @@ type Item struct {
 	SeriesTitle                       string
 	Colors                            []string
 	Rating                            *float64
+	VideoHeight                       *int
+	HDR                               *string
 	PositionMS                        int64
 	Played                            bool
 	Favorite                          bool
@@ -217,7 +219,9 @@ func (s *Service) Scan(ctx context.Context, id uuid.UUID) error {
 const itemCols = `i.id, i.library_id, i.parent_id, i.kind, COALESCE(i.metadata_title, i.title), i.year, i.season_number,
 	i.episode_number, i.episode_number_end, i.added_at, i.provider_ids,
 	(SELECT max(f.duration_ms) FROM media_files f WHERE f.item_id = i.id), i.has_poster, i.has_backdrop, i.has_logo, i.colors, i.community_rating,
-	COALESCE(u.position_ms, 0), COALESCE(u.played, false), COALESCE(u.favorite, false)`
+	COALESCE(u.position_ms, 0), COALESCE(u.played, false), COALESCE(u.favorite, false),
+	(SELECT max(f.height) FROM media_files f WHERE f.item_id = i.id),
+	(SELECT f.hdr FROM media_files f WHERE f.item_id = i.id AND f.hdr <> '' ORDER BY f.height DESC NULLS LAST LIMIT 1)`
 
 // userJoin attaches the viewer's playback state ($owner is the profile or user id).
 func userJoin(owner string) string {
@@ -228,7 +232,8 @@ func scanItem(row pgx.Row) (Item, error) {
 	var it Item
 	var ids []byte
 	err := row.Scan(&it.ID, &it.LibraryID, &it.ParentID, &it.Kind, &it.Title, &it.Year, &it.Season, &it.Episode,
-		&it.EpisodeEnd, &it.AddedAt, &ids, &it.DurationMS, &it.HasPoster, &it.HasBackdrop, &it.HasLogo, &it.Colors, &it.Rating, &it.PositionMS, &it.Played, &it.Favorite)
+		&it.EpisodeEnd, &it.AddedAt, &ids, &it.DurationMS, &it.HasPoster, &it.HasBackdrop, &it.HasLogo, &it.Colors, &it.Rating, &it.PositionMS, &it.Played, &it.Favorite,
+		&it.VideoHeight, &it.HDR)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return it, ErrNotFound
 	}
@@ -256,6 +261,8 @@ func (s *Service) ListItems(ctx context.Context, libID, owner uuid.UUID, sortBy 
 		order = "i.added_at DESC, i.sort_title"
 	case "rating":
 		order = "i.community_rating DESC NULLS LAST, i.sort_title"
+	case "random":
+		order = "random()"
 	}
 	where := ` WHERE i.library_id = $1 AND i.parent_id IS NULL
 		AND ($2 = '' OR i.genres @> ARRAY[$2]::text[]) AND (NOT $3 OR NOT COALESCE(u.played, false))

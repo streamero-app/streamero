@@ -3,7 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { api, unwrap } from "@/api/client";
 import { Badge, Button, Card, ErrorText, TextField } from "@/components/ui";
-import { Avatar, type Profile } from "@/features/profiles/ProfileSwitcher";
+import { AvatarPicker } from "./AvatarPicker";
+import { type Profile } from "@/features/profiles/ProfileSwitcher";
 
 const COLORS = ["#e5484d", "#f76b15", "#ffc53d", "#3dd68c", "#0090ff", "#8e4ec6", "#d6409f", "#6e6e80"];
 const RATINGS = [0, 6, 7, 12, 13, 15, 16, 18];
@@ -56,7 +57,7 @@ export function ProfilesSettings() {
       <ul className="divide-y divide-border">
         {profiles.data?.map((p) => (
           <li key={p.id} className="flex flex-wrap items-center gap-3 py-3" data-testid="profile-row">
-            <Avatar name={p.name} color={p.color} size={36} />
+            <AvatarPicker ownerId={p.id} profileId={p.id} name={p.name} color={p.color} hasAvatar={p.hasAvatar} size={56} />
             <div className="min-w-0 flex-1">
               <p className="font-medium">{p.name}</p>
               <p className="flex gap-1">

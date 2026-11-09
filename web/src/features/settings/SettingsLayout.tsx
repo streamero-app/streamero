@@ -1,6 +1,6 @@
 import { Link, Outlet } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Bell, Captions, Clapperboard, Cable, Cpu, FolderOpen, Gauge, History, House, KeyRound, ListChecks, Mail, MonitorSmartphone, Palette, ScrollText, Server, Sparkles, UserRound, Users, UsersRound, Zap, type LucideIcon } from "lucide-react";
+import { Bell, Captions, Compass, Puzzle, Clapperboard, Cable, Cpu, FolderOpen, Gauge, History, House, KeyRound, ListChecks, Mail, MonitorSmartphone, Palette, ScrollText, Server, Sparkles, UserRound, Users, UsersRound, Zap, type LucideIcon } from "lucide-react";
 import { useMe } from "@/features/auth/useAuth";
 import { Page } from "@/components/Page";
 
@@ -42,6 +42,8 @@ export function SettingsLayout() {
               <Tab to="/settings/transcoding" icon={Cpu} label={t("settings.transcoding")} />
               <Tab to="/settings/users" icon={Users} label={t("settings.users")} />
               <Tab to="/settings/invites" icon={Mail} label={t("settings.invites")} />
+              <Tab to="/settings/requests" icon={Compass} label={t("settings.requests")} />
+              <Tab to="/settings/enhancements" icon={Puzzle} label={t("settings.enhancements")} />
               <Tab to="/settings/integrations" icon={Cable} label={t("settings.integrations")} />
               <Tab to="/settings/notifications" icon={Bell} label={t("settings.notifications")} />
               <Tab to="/settings/tasks" icon={ListChecks} label={t("settings.tasks")} />

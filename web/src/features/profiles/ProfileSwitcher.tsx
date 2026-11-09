@@ -29,12 +29,28 @@ export function markProfilePicked(v = true) {
   }
 }
 
-export function Avatar({ name, color, size = 28, className = "", fluid = false }: { name: string; color: string; size?: number; className?: string; fluid?: boolean }) {
+const bust: Record<string, number> = {};
+
+/** The picture URL of a user or profile; bumped after an upload so the new one shows at once. */
+export function avatarUrl(id: string): string {
+  return `/api/v1/avatars/${id}${bust[id] ? `?v=${bust[id]}` : ""}`;
+}
+
+/** Call after uploading or removing a picture. */
+export function bumpAvatar(id: string) {
+  bust[id] = Date.now();
+}
+
+export function Avatar({ name, color, size = 28, className = "", fluid = false, image }: {
+  name: string; color: string; size?: number; className?: string; fluid?: boolean; image?: string | null;
+}) {
+  const [broken, setBroken] = useState(false);
   const dims = fluid ? {} : { width: size, height: size, fontSize: size * 0.42 };
   return (
-    <span aria-hidden className={`inline-flex shrink-0 items-center justify-center rounded-md font-bold text-white ${className}`}
+    <span aria-hidden className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-md font-bold text-white ${className}`}
       style={{ background: `linear-gradient(160deg, ${color}, color-mix(in srgb, ${color} 55%, black))`, ...dims }}>
       {(name ?? "?").slice(0, 1).toUpperCase()}
+      {image && !broken && <img src={image} alt="" draggable={false} onError={() => setBroken(true)} className="absolute inset-0 size-full object-cover" />}
     </span>
   );
 }
@@ -99,13 +115,14 @@ export function ProfileGatePage() {
       <h1 className="enter text-center font-display text-4xl text-balance sm:text-6xl">{t("profiles.whoIsWatching")}</h1>
       <ul className="enter-2 flex flex-wrap justify-center gap-6 sm:gap-10">
         {all.map((p) => {
-          const name = p?.name ?? me.username;
+          const name = p?.name ?? me.displayName ?? me.username;
           return (
             <li key={p?.id ?? "main"}>
               <button type="button" onClick={() => choose(p)} disabled={select.isPending}
                 className="group flex w-28 flex-col items-center gap-3 rounded-[6px] outline-none sm:w-40">
                 <span className="relative block rounded-[6px] outline-3 outline-offset-4 outline-transparent transition-[outline-color,transform] duration-200 ease-out group-hover:outline-text group-focus-visible:-translate-y-1 group-focus-visible:outline-text">
-                  <Avatar name={name} color={p?.color ?? MAIN_COLOR} fluid className="size-28 text-5xl sm:size-40 sm:text-7xl" />
+                  <Avatar name={name} color={p?.color ?? MAIN_COLOR} fluid className="size-28 text-5xl sm:size-40 sm:text-7xl"
+                    image={p ? (p.hasAvatar ? avatarUrl(p.id) : null) : me.hasAvatar ? avatarUrl(me.id) : null} />
                   {p?.hasPin && <Lock className="absolute right-2 bottom-2 size-5 text-white/80" role="img" aria-label={t("profiles.pinLocked")} />}
                 </span>
                 <span className="text-base text-muted transition-colors group-hover:text-text group-focus-visible:text-text sm:text-lg">

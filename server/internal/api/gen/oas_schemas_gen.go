@@ -237,6 +237,73 @@ func (s *ApiKey) SetLastUsedAt(val OptDateTime) {
 	s.LastUsedAt = val
 }
 
+// Ref: #/components/schemas/ArrLink
+type ArrLink struct {
+	App ArrLinkApp `json:"app"`
+	URL string     `json:"url"`
+}
+
+// GetApp returns the value of App.
+func (s *ArrLink) GetApp() ArrLinkApp {
+	return s.App
+}
+
+// GetURL returns the value of URL.
+func (s *ArrLink) GetURL() string {
+	return s.URL
+}
+
+// SetApp sets the value of App.
+func (s *ArrLink) SetApp(val ArrLinkApp) {
+	s.App = val
+}
+
+// SetURL sets the value of URL.
+func (s *ArrLink) SetURL(val string) {
+	s.URL = val
+}
+
+type ArrLinkApp string
+
+const (
+	ArrLinkAppRadarr ArrLinkApp = "radarr"
+	ArrLinkAppSonarr ArrLinkApp = "sonarr"
+)
+
+// AllValues returns all ArrLinkApp values.
+func (ArrLinkApp) AllValues() []ArrLinkApp {
+	return []ArrLinkApp{
+		ArrLinkAppRadarr,
+		ArrLinkAppSonarr,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ArrLinkApp) MarshalText() ([]byte, error) {
+	switch s {
+	case ArrLinkAppRadarr:
+		return []byte(s), nil
+	case ArrLinkAppSonarr:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ArrLinkApp) UnmarshalText(data []byte) error {
+	switch ArrLinkApp(data) {
+	case ArrLinkAppRadarr:
+		*s = ArrLinkAppRadarr
+		return nil
+	case ArrLinkAppSonarr:
+		*s = ArrLinkAppSonarr
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // Ref: #/components/schemas/AudioStream
 type AudioStream struct {
 	Codec    string    `json:"codec"`
@@ -551,6 +618,54 @@ func (s *CollectionInput) SetItemIds(val []uuid.UUID) {
 	s.ItemIds = val
 }
 
+// Ref: #/components/schemas/ConnectionCheck
+type ConnectionCheck struct {
+	App     string    `json:"app"`
+	Ok      bool      `json:"ok"`
+	Version OptString `json:"version"`
+	Error   OptString `json:"error"`
+}
+
+// GetApp returns the value of App.
+func (s *ConnectionCheck) GetApp() string {
+	return s.App
+}
+
+// GetOk returns the value of Ok.
+func (s *ConnectionCheck) GetOk() bool {
+	return s.Ok
+}
+
+// GetVersion returns the value of Version.
+func (s *ConnectionCheck) GetVersion() OptString {
+	return s.Version
+}
+
+// GetError returns the value of Error.
+func (s *ConnectionCheck) GetError() OptString {
+	return s.Error
+}
+
+// SetApp sets the value of App.
+func (s *ConnectionCheck) SetApp(val string) {
+	s.App = val
+}
+
+// SetOk sets the value of Ok.
+func (s *ConnectionCheck) SetOk(val bool) {
+	s.Ok = val
+}
+
+// SetVersion sets the value of Version.
+func (s *ConnectionCheck) SetVersion(val OptString) {
+	s.Version = val
+}
+
+// SetError sets the value of Error.
+func (s *ConnectionCheck) SetError(val OptString) {
+	s.Error = val
+}
+
 // Ref: #/components/schemas/CreateApiKeyRequest
 type CreateApiKeyRequest struct {
 	// E.g. "Jellyseerr".
@@ -847,8 +962,14 @@ type DeleteInviteNoContent struct{}
 // DeleteLibraryNoContent is response for DeleteLibrary operation.
 type DeleteLibraryNoContent struct{}
 
+// DeleteMyAvatarNoContent is response for DeleteMyAvatar operation.
+type DeleteMyAvatarNoContent struct{}
+
 // DeletePlaylistNoContent is response for DeletePlaylist operation.
 type DeletePlaylistNoContent struct{}
+
+// DeleteProfileAvatarNoContent is response for DeleteProfileAvatar operation.
+type DeleteProfileAvatarNoContent struct{}
 
 // DeleteProfileNoContent is response for DeleteProfile operation.
 type DeleteProfileNoContent struct{}
@@ -1001,6 +1122,284 @@ func (s *DirectoryListing) SetDirectories(val []string) {
 
 // DisableTOTPNoContent is response for DisableTOTP operation.
 type DisableTOTPNoContent struct{}
+
+// Ref: #/components/schemas/DiscoverPage
+type DiscoverPage struct {
+	// Seerr is connected.
+	Configured bool            `json:"configured"`
+	CanRequest bool            `json:"canRequest"`
+	Titles     []DiscoverTitle `json:"titles"`
+	Page       int             `json:"page"`
+	TotalPages int             `json:"totalPages"`
+}
+
+// GetConfigured returns the value of Configured.
+func (s *DiscoverPage) GetConfigured() bool {
+	return s.Configured
+}
+
+// GetCanRequest returns the value of CanRequest.
+func (s *DiscoverPage) GetCanRequest() bool {
+	return s.CanRequest
+}
+
+// GetTitles returns the value of Titles.
+func (s *DiscoverPage) GetTitles() []DiscoverTitle {
+	return s.Titles
+}
+
+// GetPage returns the value of Page.
+func (s *DiscoverPage) GetPage() int {
+	return s.Page
+}
+
+// GetTotalPages returns the value of TotalPages.
+func (s *DiscoverPage) GetTotalPages() int {
+	return s.TotalPages
+}
+
+// SetConfigured sets the value of Configured.
+func (s *DiscoverPage) SetConfigured(val bool) {
+	s.Configured = val
+}
+
+// SetCanRequest sets the value of CanRequest.
+func (s *DiscoverPage) SetCanRequest(val bool) {
+	s.CanRequest = val
+}
+
+// SetTitles sets the value of Titles.
+func (s *DiscoverPage) SetTitles(val []DiscoverTitle) {
+	s.Titles = val
+}
+
+// SetPage sets the value of Page.
+func (s *DiscoverPage) SetPage(val int) {
+	s.Page = val
+}
+
+// SetTotalPages sets the value of TotalPages.
+func (s *DiscoverPage) SetTotalPages(val int) {
+	s.TotalPages = val
+}
+
+// Ref: #/components/schemas/DiscoverTitle
+type DiscoverTitle struct {
+	TmdbId      int                    `json:"tmdbId"`
+	MediaType   DiscoverTitleMediaType `json:"mediaType"`
+	Title       string                 `json:"title"`
+	Year        OptInt                 `json:"year"`
+	Overview    OptString              `json:"overview"`
+	PosterUrl   OptString              `json:"posterUrl"`
+	BackdropUrl OptString              `json:"backdropUrl"`
+	Rating      OptFloat64             `json:"rating"`
+	Status      DiscoverTitleStatus    `json:"status"`
+	// The title in this server's libraries, when it is already here.
+	ItemId OptUUID `json:"itemId"`
+}
+
+// GetTmdbId returns the value of TmdbId.
+func (s *DiscoverTitle) GetTmdbId() int {
+	return s.TmdbId
+}
+
+// GetMediaType returns the value of MediaType.
+func (s *DiscoverTitle) GetMediaType() DiscoverTitleMediaType {
+	return s.MediaType
+}
+
+// GetTitle returns the value of Title.
+func (s *DiscoverTitle) GetTitle() string {
+	return s.Title
+}
+
+// GetYear returns the value of Year.
+func (s *DiscoverTitle) GetYear() OptInt {
+	return s.Year
+}
+
+// GetOverview returns the value of Overview.
+func (s *DiscoverTitle) GetOverview() OptString {
+	return s.Overview
+}
+
+// GetPosterUrl returns the value of PosterUrl.
+func (s *DiscoverTitle) GetPosterUrl() OptString {
+	return s.PosterUrl
+}
+
+// GetBackdropUrl returns the value of BackdropUrl.
+func (s *DiscoverTitle) GetBackdropUrl() OptString {
+	return s.BackdropUrl
+}
+
+// GetRating returns the value of Rating.
+func (s *DiscoverTitle) GetRating() OptFloat64 {
+	return s.Rating
+}
+
+// GetStatus returns the value of Status.
+func (s *DiscoverTitle) GetStatus() DiscoverTitleStatus {
+	return s.Status
+}
+
+// GetItemId returns the value of ItemId.
+func (s *DiscoverTitle) GetItemId() OptUUID {
+	return s.ItemId
+}
+
+// SetTmdbId sets the value of TmdbId.
+func (s *DiscoverTitle) SetTmdbId(val int) {
+	s.TmdbId = val
+}
+
+// SetMediaType sets the value of MediaType.
+func (s *DiscoverTitle) SetMediaType(val DiscoverTitleMediaType) {
+	s.MediaType = val
+}
+
+// SetTitle sets the value of Title.
+func (s *DiscoverTitle) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetYear sets the value of Year.
+func (s *DiscoverTitle) SetYear(val OptInt) {
+	s.Year = val
+}
+
+// SetOverview sets the value of Overview.
+func (s *DiscoverTitle) SetOverview(val OptString) {
+	s.Overview = val
+}
+
+// SetPosterUrl sets the value of PosterUrl.
+func (s *DiscoverTitle) SetPosterUrl(val OptString) {
+	s.PosterUrl = val
+}
+
+// SetBackdropUrl sets the value of BackdropUrl.
+func (s *DiscoverTitle) SetBackdropUrl(val OptString) {
+	s.BackdropUrl = val
+}
+
+// SetRating sets the value of Rating.
+func (s *DiscoverTitle) SetRating(val OptFloat64) {
+	s.Rating = val
+}
+
+// SetStatus sets the value of Status.
+func (s *DiscoverTitle) SetStatus(val DiscoverTitleStatus) {
+	s.Status = val
+}
+
+// SetItemId sets the value of ItemId.
+func (s *DiscoverTitle) SetItemId(val OptUUID) {
+	s.ItemId = val
+}
+
+type DiscoverTitleMediaType string
+
+const (
+	DiscoverTitleMediaTypeMovie DiscoverTitleMediaType = "movie"
+	DiscoverTitleMediaTypeTv    DiscoverTitleMediaType = "tv"
+)
+
+// AllValues returns all DiscoverTitleMediaType values.
+func (DiscoverTitleMediaType) AllValues() []DiscoverTitleMediaType {
+	return []DiscoverTitleMediaType{
+		DiscoverTitleMediaTypeMovie,
+		DiscoverTitleMediaTypeTv,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DiscoverTitleMediaType) MarshalText() ([]byte, error) {
+	switch s {
+	case DiscoverTitleMediaTypeMovie:
+		return []byte(s), nil
+	case DiscoverTitleMediaTypeTv:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DiscoverTitleMediaType) UnmarshalText(data []byte) error {
+	switch DiscoverTitleMediaType(data) {
+	case DiscoverTitleMediaTypeMovie:
+		*s = DiscoverTitleMediaTypeMovie
+		return nil
+	case DiscoverTitleMediaTypeTv:
+		*s = DiscoverTitleMediaTypeTv
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type DiscoverTitleStatus string
+
+const (
+	DiscoverTitleStatusNone       DiscoverTitleStatus = "none"
+	DiscoverTitleStatusPending    DiscoverTitleStatus = "pending"
+	DiscoverTitleStatusProcessing DiscoverTitleStatus = "processing"
+	DiscoverTitleStatusPartial    DiscoverTitleStatus = "partial"
+	DiscoverTitleStatusAvailable  DiscoverTitleStatus = "available"
+)
+
+// AllValues returns all DiscoverTitleStatus values.
+func (DiscoverTitleStatus) AllValues() []DiscoverTitleStatus {
+	return []DiscoverTitleStatus{
+		DiscoverTitleStatusNone,
+		DiscoverTitleStatusPending,
+		DiscoverTitleStatusProcessing,
+		DiscoverTitleStatusPartial,
+		DiscoverTitleStatusAvailable,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DiscoverTitleStatus) MarshalText() ([]byte, error) {
+	switch s {
+	case DiscoverTitleStatusNone:
+		return []byte(s), nil
+	case DiscoverTitleStatusPending:
+		return []byte(s), nil
+	case DiscoverTitleStatusProcessing:
+		return []byte(s), nil
+	case DiscoverTitleStatusPartial:
+		return []byte(s), nil
+	case DiscoverTitleStatusAvailable:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DiscoverTitleStatus) UnmarshalText(data []byte) error {
+	switch DiscoverTitleStatus(data) {
+	case DiscoverTitleStatusNone:
+		*s = DiscoverTitleStatusNone
+		return nil
+	case DiscoverTitleStatusPending:
+		*s = DiscoverTitleStatusPending
+		return nil
+	case DiscoverTitleStatusProcessing:
+		*s = DiscoverTitleStatusProcessing
+		return nil
+	case DiscoverTitleStatusPartial:
+		*s = DiscoverTitleStatusPartial
+		return nil
+	case DiscoverTitleStatusAvailable:
+		*s = DiscoverTitleStatusAvailable
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
 
 // EditMetadataNoContent is response for EditMetadata operation.
 type EditMetadataNoContent struct{}
@@ -1232,6 +1631,107 @@ func (s *EncodingSettingsPreset) UnmarshalText(data []byte) error {
 	}
 }
 
+// Features other servers need plugins for, built in and switchable.
+// Ref: #/components/schemas/Enhancements
+type Enhancements struct {
+	// 4K / HDR / Dolby Vision tags on posters.
+	QualityTags bool `json:"qualityTags"`
+	// A "surprise me" button on home and in libraries.
+	RandomButton bool `json:"randomButton"`
+	// Title, year and story on screen while paused.
+	PauseScreen bool `json:"pauseScreen"`
+	// Open a title in Radarr or Sonarr (administrators).
+	ArrLinks bool `json:"arrLinks"`
+	// Search also offers titles to request through Seerr.
+	DiscoverInSearch bool `json:"discoverInSearch"`
+	// Remove a title from Continue watching.
+	RemoveFromContinue bool `json:"removeFromContinue"`
+	// Show keyboard shortcuts with "?".
+	ShortcutsHelp bool `json:"shortcutsHelp"`
+	// Keep playing in picture-in-picture when switching tabs.
+	AutoPip bool `json:"autoPip"`
+}
+
+// GetQualityTags returns the value of QualityTags.
+func (s *Enhancements) GetQualityTags() bool {
+	return s.QualityTags
+}
+
+// GetRandomButton returns the value of RandomButton.
+func (s *Enhancements) GetRandomButton() bool {
+	return s.RandomButton
+}
+
+// GetPauseScreen returns the value of PauseScreen.
+func (s *Enhancements) GetPauseScreen() bool {
+	return s.PauseScreen
+}
+
+// GetArrLinks returns the value of ArrLinks.
+func (s *Enhancements) GetArrLinks() bool {
+	return s.ArrLinks
+}
+
+// GetDiscoverInSearch returns the value of DiscoverInSearch.
+func (s *Enhancements) GetDiscoverInSearch() bool {
+	return s.DiscoverInSearch
+}
+
+// GetRemoveFromContinue returns the value of RemoveFromContinue.
+func (s *Enhancements) GetRemoveFromContinue() bool {
+	return s.RemoveFromContinue
+}
+
+// GetShortcutsHelp returns the value of ShortcutsHelp.
+func (s *Enhancements) GetShortcutsHelp() bool {
+	return s.ShortcutsHelp
+}
+
+// GetAutoPip returns the value of AutoPip.
+func (s *Enhancements) GetAutoPip() bool {
+	return s.AutoPip
+}
+
+// SetQualityTags sets the value of QualityTags.
+func (s *Enhancements) SetQualityTags(val bool) {
+	s.QualityTags = val
+}
+
+// SetRandomButton sets the value of RandomButton.
+func (s *Enhancements) SetRandomButton(val bool) {
+	s.RandomButton = val
+}
+
+// SetPauseScreen sets the value of PauseScreen.
+func (s *Enhancements) SetPauseScreen(val bool) {
+	s.PauseScreen = val
+}
+
+// SetArrLinks sets the value of ArrLinks.
+func (s *Enhancements) SetArrLinks(val bool) {
+	s.ArrLinks = val
+}
+
+// SetDiscoverInSearch sets the value of DiscoverInSearch.
+func (s *Enhancements) SetDiscoverInSearch(val bool) {
+	s.DiscoverInSearch = val
+}
+
+// SetRemoveFromContinue sets the value of RemoveFromContinue.
+func (s *Enhancements) SetRemoveFromContinue(val bool) {
+	s.RemoveFromContinue = val
+}
+
+// SetShortcutsHelp sets the value of ShortcutsHelp.
+func (s *Enhancements) SetShortcutsHelp(val bool) {
+	s.ShortcutsHelp = val
+}
+
+// SetAutoPip sets the value of AutoPip.
+func (s *Enhancements) SetAutoPip(val bool) {
+	s.AutoPip = val
+}
+
 // Ref: #/components/schemas/Error
 type Error struct {
 	Code    string `json:"code"`
@@ -1281,6 +1781,46 @@ func (s *ErrorStatusCode) SetStatusCode(val int) {
 
 // SetResponse sets the value of Response.
 func (s *ErrorStatusCode) SetResponse(val Error) {
+	s.Response = val
+}
+
+type GetAvatarOK struct {
+	Data io.Reader
+}
+
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s GetAvatarOK) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
+}
+
+// GetAvatarOKHeaders wraps GetAvatarOK with response headers.
+type GetAvatarOKHeaders struct {
+	CacheControl OptString
+	Response     GetAvatarOK
+}
+
+// GetCacheControl returns the value of CacheControl.
+func (s *GetAvatarOKHeaders) GetCacheControl() OptString {
+	return s.CacheControl
+}
+
+// GetResponse returns the value of Response.
+func (s *GetAvatarOKHeaders) GetResponse() GetAvatarOK {
+	return s.Response
+}
+
+// SetCacheControl sets the value of CacheControl.
+func (s *GetAvatarOKHeaders) SetCacheControl(val OptString) {
+	s.CacheControl = val
+}
+
+// SetResponse sets the value of Response.
+func (s *GetAvatarOKHeaders) SetResponse(val GetAvatarOK) {
 	s.Response = val
 }
 
@@ -2170,6 +2710,10 @@ type ItemSummary struct {
 	SeriesTitle OptString `json:"seriesTitle"`
 	// Community rating 0–10.
 	Rating OptFloat64 `json:"rating"`
+	// Height of the best file's picture (for 4K/HD tags).
+	VideoHeight OptInt `json:"videoHeight"`
+	// HDR format of the best file (HDR10, HLG, Dolby Vision), if any.
+	Hdr OptString `json:"hdr"`
 	// Resume position for the current profile.
 	PositionMs OptInt64 `json:"positionMs"`
 	// Watched by the current profile.
@@ -2255,6 +2799,16 @@ func (s *ItemSummary) GetSeriesTitle() OptString {
 // GetRating returns the value of Rating.
 func (s *ItemSummary) GetRating() OptFloat64 {
 	return s.Rating
+}
+
+// GetVideoHeight returns the value of VideoHeight.
+func (s *ItemSummary) GetVideoHeight() OptInt {
+	return s.VideoHeight
+}
+
+// GetHdr returns the value of Hdr.
+func (s *ItemSummary) GetHdr() OptString {
+	return s.Hdr
 }
 
 // GetPositionMs returns the value of PositionMs.
@@ -2350,6 +2904,16 @@ func (s *ItemSummary) SetSeriesTitle(val OptString) {
 // SetRating sets the value of Rating.
 func (s *ItemSummary) SetRating(val OptFloat64) {
 	s.Rating = val
+}
+
+// SetVideoHeight sets the value of VideoHeight.
+func (s *ItemSummary) SetVideoHeight(val OptInt) {
+	s.VideoHeight = val
+}
+
+// SetHdr sets the value of Hdr.
+func (s *ItemSummary) SetHdr(val OptString) {
+	s.Hdr = val
 }
 
 // SetPositionMs sets the value of PositionMs.
@@ -2537,6 +3101,7 @@ const (
 	ListLibraryItemsSortYear   ListLibraryItemsSort = "year"
 	ListLibraryItemsSortAdded  ListLibraryItemsSort = "added"
 	ListLibraryItemsSortRating ListLibraryItemsSort = "rating"
+	ListLibraryItemsSortRandom ListLibraryItemsSort = "random"
 )
 
 // AllValues returns all ListLibraryItemsSort values.
@@ -2546,6 +3111,7 @@ func (ListLibraryItemsSort) AllValues() []ListLibraryItemsSort {
 		ListLibraryItemsSortYear,
 		ListLibraryItemsSortAdded,
 		ListLibraryItemsSortRating,
+		ListLibraryItemsSortRandom,
 	}
 }
 
@@ -2559,6 +3125,8 @@ func (s ListLibraryItemsSort) MarshalText() ([]byte, error) {
 	case ListLibraryItemsSortAdded:
 		return []byte(s), nil
 	case ListLibraryItemsSortRating:
+		return []byte(s), nil
+	case ListLibraryItemsSortRandom:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -2579,6 +3147,9 @@ func (s *ListLibraryItemsSort) UnmarshalText(data []byte) error {
 		return nil
 	case ListLibraryItemsSortRating:
 		*s = ListLibraryItemsSortRating
+		return nil
+	case ListLibraryItemsSortRandom:
+		*s = ListLibraryItemsSortRandom
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -3436,6 +4007,8 @@ func (s *NotificationTargetKind) UnmarshalText(data []byte) error {
 
 // Ref: #/components/schemas/NowPlaying
 type NowPlaying struct {
+	// Identifies the playing session for remote commands.
+	Key     string           `json:"key"`
 	User    string           `json:"user"`
 	Profile OptString        `json:"profile"`
 	Device  string           `json:"device"`
@@ -3448,6 +4021,11 @@ type NowPlaying struct {
 	PositionMs int64     `json:"positionMs"`
 	DurationMs OptInt64  `json:"durationMs"`
 	UpdatedAt  time.Time `json:"updatedAt"`
+}
+
+// GetKey returns the value of Key.
+func (s *NowPlaying) GetKey() string {
+	return s.Key
 }
 
 // GetUser returns the value of User.
@@ -3503,6 +4081,11 @@ func (s *NowPlaying) GetDurationMs() OptInt64 {
 // GetUpdatedAt returns the value of UpdatedAt.
 func (s *NowPlaying) GetUpdatedAt() time.Time {
 	return s.UpdatedAt
+}
+
+// SetKey sets the value of Key.
+func (s *NowPlaying) SetKey(val string) {
+	s.Key = val
 }
 
 // SetUser sets the value of User.
@@ -4614,6 +5197,98 @@ func (o OptUUID) Get() (v uuid.UUID, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptUUID) Or(d uuid.UUID) uuid.UUID {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptUpdateMeRequestLanguage returns new OptUpdateMeRequestLanguage with value set to v.
+func NewOptUpdateMeRequestLanguage(v UpdateMeRequestLanguage) OptUpdateMeRequestLanguage {
+	return OptUpdateMeRequestLanguage{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUpdateMeRequestLanguage is optional UpdateMeRequestLanguage.
+type OptUpdateMeRequestLanguage struct {
+	Value UpdateMeRequestLanguage
+	Set   bool
+}
+
+// IsSet returns true if OptUpdateMeRequestLanguage was set.
+func (o OptUpdateMeRequestLanguage) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUpdateMeRequestLanguage) Reset() {
+	var v UpdateMeRequestLanguage
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUpdateMeRequestLanguage) SetTo(v UpdateMeRequestLanguage) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUpdateMeRequestLanguage) Get() (v UpdateMeRequestLanguage, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUpdateMeRequestLanguage) Or(d UpdateMeRequestLanguage) UpdateMeRequestLanguage {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptUserLanguage returns new OptUserLanguage with value set to v.
+func NewOptUserLanguage(v UserLanguage) OptUserLanguage {
+	return OptUserLanguage{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUserLanguage is optional UserLanguage.
+type OptUserLanguage struct {
+	Value UserLanguage
+	Set   bool
+}
+
+// IsSet returns true if OptUserLanguage was set.
+func (o OptUserLanguage) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUserLanguage) Reset() {
+	var v UserLanguage
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUserLanguage) SetTo(v UserLanguage) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUserLanguage) Get() (v UserLanguage, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUserLanguage) Or(d UserLanguage) UserLanguage {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -5809,7 +6484,8 @@ type Profile struct {
 	HasPin bool   `json:"hasPin"`
 	IsKid  bool   `json:"isKid"`
 	// Highest age rating allowed (e.g. 12); applies from P3 (ratings) on.
-	MaxRating OptInt `json:"maxRating"`
+	MaxRating OptInt  `json:"maxRating"`
+	HasAvatar OptBool `json:"hasAvatar"`
 }
 
 // GetID returns the value of ID.
@@ -5842,6 +6518,11 @@ func (s *Profile) GetMaxRating() OptInt {
 	return s.MaxRating
 }
 
+// GetHasAvatar returns the value of HasAvatar.
+func (s *Profile) GetHasAvatar() OptBool {
+	return s.HasAvatar
+}
+
 // SetID sets the value of ID.
 func (s *Profile) SetID(val uuid.UUID) {
 	s.ID = val
@@ -5870,6 +6551,11 @@ func (s *Profile) SetIsKid(val bool) {
 // SetMaxRating sets the value of MaxRating.
 func (s *Profile) SetMaxRating(val OptInt) {
 	s.MaxRating = val
+}
+
+// SetHasAvatar sets the value of HasAvatar.
+func (s *Profile) SetHasAvatar(val OptBool) {
+	s.HasAvatar = val
 }
 
 // Ref: #/components/schemas/ProfileInput
@@ -6103,6 +6789,228 @@ func (s *RenameSessionRequest) SetDeviceName(val string) {
 // ReportProgressNoContent is response for ReportProgress operation.
 type ReportProgressNoContent struct{}
 
+// Ref: #/components/schemas/RequestSettings
+type RequestSettings struct {
+	SeerrUrl        OptString `json:"seerrUrl"`
+	SeerrConfigured bool      `json:"seerrConfigured"`
+	// Everyone (not only administrators) can request titles.
+	UsersCanRequest  bool      `json:"usersCanRequest"`
+	RadarrUrl        OptString `json:"radarrUrl"`
+	RadarrConfigured bool      `json:"radarrConfigured"`
+	SonarrUrl        OptString `json:"sonarrUrl"`
+	SonarrConfigured bool      `json:"sonarrConfigured"`
+}
+
+// GetSeerrUrl returns the value of SeerrUrl.
+func (s *RequestSettings) GetSeerrUrl() OptString {
+	return s.SeerrUrl
+}
+
+// GetSeerrConfigured returns the value of SeerrConfigured.
+func (s *RequestSettings) GetSeerrConfigured() bool {
+	return s.SeerrConfigured
+}
+
+// GetUsersCanRequest returns the value of UsersCanRequest.
+func (s *RequestSettings) GetUsersCanRequest() bool {
+	return s.UsersCanRequest
+}
+
+// GetRadarrUrl returns the value of RadarrUrl.
+func (s *RequestSettings) GetRadarrUrl() OptString {
+	return s.RadarrUrl
+}
+
+// GetRadarrConfigured returns the value of RadarrConfigured.
+func (s *RequestSettings) GetRadarrConfigured() bool {
+	return s.RadarrConfigured
+}
+
+// GetSonarrUrl returns the value of SonarrUrl.
+func (s *RequestSettings) GetSonarrUrl() OptString {
+	return s.SonarrUrl
+}
+
+// GetSonarrConfigured returns the value of SonarrConfigured.
+func (s *RequestSettings) GetSonarrConfigured() bool {
+	return s.SonarrConfigured
+}
+
+// SetSeerrUrl sets the value of SeerrUrl.
+func (s *RequestSettings) SetSeerrUrl(val OptString) {
+	s.SeerrUrl = val
+}
+
+// SetSeerrConfigured sets the value of SeerrConfigured.
+func (s *RequestSettings) SetSeerrConfigured(val bool) {
+	s.SeerrConfigured = val
+}
+
+// SetUsersCanRequest sets the value of UsersCanRequest.
+func (s *RequestSettings) SetUsersCanRequest(val bool) {
+	s.UsersCanRequest = val
+}
+
+// SetRadarrUrl sets the value of RadarrUrl.
+func (s *RequestSettings) SetRadarrUrl(val OptString) {
+	s.RadarrUrl = val
+}
+
+// SetRadarrConfigured sets the value of RadarrConfigured.
+func (s *RequestSettings) SetRadarrConfigured(val bool) {
+	s.RadarrConfigured = val
+}
+
+// SetSonarrUrl sets the value of SonarrUrl.
+func (s *RequestSettings) SetSonarrUrl(val OptString) {
+	s.SonarrUrl = val
+}
+
+// SetSonarrConfigured sets the value of SonarrConfigured.
+func (s *RequestSettings) SetSonarrConfigured(val bool) {
+	s.SonarrConfigured = val
+}
+
+// Ref: #/components/schemas/RequestSettingsInput
+type RequestSettingsInput struct {
+	SeerrUrl        OptString                            `json:"seerrUrl"`
+	SeerrApiKey     OptString                            `json:"seerrApiKey"`
+	UsersCanRequest bool                                 `json:"usersCanRequest"`
+	RadarrUrl       OptString                            `json:"radarrUrl"`
+	RadarrApiKey    OptString                            `json:"radarrApiKey"`
+	SonarrUrl       OptString                            `json:"sonarrUrl"`
+	SonarrApiKey    OptString                            `json:"sonarrApiKey"`
+	RemoveKeys      []RequestSettingsInputRemoveKeysItem `json:"removeKeys"`
+}
+
+// GetSeerrUrl returns the value of SeerrUrl.
+func (s *RequestSettingsInput) GetSeerrUrl() OptString {
+	return s.SeerrUrl
+}
+
+// GetSeerrApiKey returns the value of SeerrApiKey.
+func (s *RequestSettingsInput) GetSeerrApiKey() OptString {
+	return s.SeerrApiKey
+}
+
+// GetUsersCanRequest returns the value of UsersCanRequest.
+func (s *RequestSettingsInput) GetUsersCanRequest() bool {
+	return s.UsersCanRequest
+}
+
+// GetRadarrUrl returns the value of RadarrUrl.
+func (s *RequestSettingsInput) GetRadarrUrl() OptString {
+	return s.RadarrUrl
+}
+
+// GetRadarrApiKey returns the value of RadarrApiKey.
+func (s *RequestSettingsInput) GetRadarrApiKey() OptString {
+	return s.RadarrApiKey
+}
+
+// GetSonarrUrl returns the value of SonarrUrl.
+func (s *RequestSettingsInput) GetSonarrUrl() OptString {
+	return s.SonarrUrl
+}
+
+// GetSonarrApiKey returns the value of SonarrApiKey.
+func (s *RequestSettingsInput) GetSonarrApiKey() OptString {
+	return s.SonarrApiKey
+}
+
+// GetRemoveKeys returns the value of RemoveKeys.
+func (s *RequestSettingsInput) GetRemoveKeys() []RequestSettingsInputRemoveKeysItem {
+	return s.RemoveKeys
+}
+
+// SetSeerrUrl sets the value of SeerrUrl.
+func (s *RequestSettingsInput) SetSeerrUrl(val OptString) {
+	s.SeerrUrl = val
+}
+
+// SetSeerrApiKey sets the value of SeerrApiKey.
+func (s *RequestSettingsInput) SetSeerrApiKey(val OptString) {
+	s.SeerrApiKey = val
+}
+
+// SetUsersCanRequest sets the value of UsersCanRequest.
+func (s *RequestSettingsInput) SetUsersCanRequest(val bool) {
+	s.UsersCanRequest = val
+}
+
+// SetRadarrUrl sets the value of RadarrUrl.
+func (s *RequestSettingsInput) SetRadarrUrl(val OptString) {
+	s.RadarrUrl = val
+}
+
+// SetRadarrApiKey sets the value of RadarrApiKey.
+func (s *RequestSettingsInput) SetRadarrApiKey(val OptString) {
+	s.RadarrApiKey = val
+}
+
+// SetSonarrUrl sets the value of SonarrUrl.
+func (s *RequestSettingsInput) SetSonarrUrl(val OptString) {
+	s.SonarrUrl = val
+}
+
+// SetSonarrApiKey sets the value of SonarrApiKey.
+func (s *RequestSettingsInput) SetSonarrApiKey(val OptString) {
+	s.SonarrApiKey = val
+}
+
+// SetRemoveKeys sets the value of RemoveKeys.
+func (s *RequestSettingsInput) SetRemoveKeys(val []RequestSettingsInputRemoveKeysItem) {
+	s.RemoveKeys = val
+}
+
+type RequestSettingsInputRemoveKeysItem string
+
+const (
+	RequestSettingsInputRemoveKeysItemSeerr  RequestSettingsInputRemoveKeysItem = "seerr"
+	RequestSettingsInputRemoveKeysItemRadarr RequestSettingsInputRemoveKeysItem = "radarr"
+	RequestSettingsInputRemoveKeysItemSonarr RequestSettingsInputRemoveKeysItem = "sonarr"
+)
+
+// AllValues returns all RequestSettingsInputRemoveKeysItem values.
+func (RequestSettingsInputRemoveKeysItem) AllValues() []RequestSettingsInputRemoveKeysItem {
+	return []RequestSettingsInputRemoveKeysItem{
+		RequestSettingsInputRemoveKeysItemSeerr,
+		RequestSettingsInputRemoveKeysItemRadarr,
+		RequestSettingsInputRemoveKeysItemSonarr,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RequestSettingsInputRemoveKeysItem) MarshalText() ([]byte, error) {
+	switch s {
+	case RequestSettingsInputRemoveKeysItemSeerr:
+		return []byte(s), nil
+	case RequestSettingsInputRemoveKeysItemRadarr:
+		return []byte(s), nil
+	case RequestSettingsInputRemoveKeysItemSonarr:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RequestSettingsInputRemoveKeysItem) UnmarshalText(data []byte) error {
+	switch RequestSettingsInputRemoveKeysItem(data) {
+	case RequestSettingsInputRemoveKeysItemSeerr:
+		*s = RequestSettingsInputRemoveKeysItemSeerr
+		return nil
+	case RequestSettingsInputRemoveKeysItemRadarr:
+		*s = RequestSettingsInputRemoveKeysItemRadarr
+		return nil
+	case RequestSettingsInputRemoveKeysItemSonarr:
+		*s = RequestSettingsInputRemoveKeysItemSonarr
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // Ref: #/components/schemas/ResumeSettings
 type ResumeSettings struct {
 	// Below this much of the length, stopping does not save a position.
@@ -6261,6 +7169,9 @@ type SelectMainProfileNoContent struct{}
 // SelectProfileNoContent is response for SelectProfile operation.
 type SelectProfileNoContent struct{}
 
+// SendSessionCommandNoContent is response for SendSessionCommand operation.
+type SendSessionCommandNoContent struct{}
+
 // Ref: #/components/schemas/ServerSettings
 type ServerSettings struct {
 	ServerName string `json:"serverName"`
@@ -6369,6 +7280,73 @@ func (s *Session) SetCurrent(val bool) {
 	s.Current = val
 }
 
+// Ref: #/components/schemas/SessionCommand
+type SessionCommand struct {
+	Kind SessionCommandKind `json:"kind"`
+	Text OptString          `json:"text"`
+}
+
+// GetKind returns the value of Kind.
+func (s *SessionCommand) GetKind() SessionCommandKind {
+	return s.Kind
+}
+
+// GetText returns the value of Text.
+func (s *SessionCommand) GetText() OptString {
+	return s.Text
+}
+
+// SetKind sets the value of Kind.
+func (s *SessionCommand) SetKind(val SessionCommandKind) {
+	s.Kind = val
+}
+
+// SetText sets the value of Text.
+func (s *SessionCommand) SetText(val OptString) {
+	s.Text = val
+}
+
+type SessionCommandKind string
+
+const (
+	SessionCommandKindMessage SessionCommandKind = "message"
+	SessionCommandKindStop    SessionCommandKind = "stop"
+)
+
+// AllValues returns all SessionCommandKind values.
+func (SessionCommandKind) AllValues() []SessionCommandKind {
+	return []SessionCommandKind{
+		SessionCommandKindMessage,
+		SessionCommandKindStop,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s SessionCommandKind) MarshalText() ([]byte, error) {
+	switch s {
+	case SessionCommandKindMessage:
+		return []byte(s), nil
+	case SessionCommandKindStop:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *SessionCommandKind) UnmarshalText(data []byte) error {
+	switch SessionCommandKind(data) {
+	case SessionCommandKindMessage:
+		*s = SessionCommandKindMessage
+		return nil
+	case SessionCommandKindStop:
+		*s = SessionCommandKindStop
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 type SessionToken struct {
 	Token string
 	Roles []string
@@ -6392,6 +7370,40 @@ func (s *SessionToken) SetToken(val string) {
 // SetRoles sets the value of Roles.
 func (s *SessionToken) SetRoles(val []string) {
 	s.Roles = val
+}
+
+// SetMyAvatarNoContent is response for SetMyAvatar operation.
+type SetMyAvatarNoContent struct{}
+
+type SetMyAvatarReq struct {
+	Data io.Reader
+}
+
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s SetMyAvatarReq) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
+}
+
+// SetProfileAvatarNoContent is response for SetProfileAvatar operation.
+type SetProfileAvatarNoContent struct{}
+
+type SetProfileAvatarReq struct {
+	Data io.Reader
+}
+
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s SetProfileAvatarReq) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
 }
 
 // Ref: #/components/schemas/SetupRequest
@@ -6958,6 +7970,150 @@ func (s *TaskKey) UnmarshalText(data []byte) error {
 // TestNotificationNoContent is response for TestNotification operation.
 type TestNotificationNoContent struct{}
 
+// Ref: #/components/schemas/TitleRequest
+type TitleRequest struct {
+	TmdbId    int                   `json:"tmdbId"`
+	MediaType TitleRequestMediaType `json:"mediaType"`
+}
+
+// GetTmdbId returns the value of TmdbId.
+func (s *TitleRequest) GetTmdbId() int {
+	return s.TmdbId
+}
+
+// GetMediaType returns the value of MediaType.
+func (s *TitleRequest) GetMediaType() TitleRequestMediaType {
+	return s.MediaType
+}
+
+// SetTmdbId sets the value of TmdbId.
+func (s *TitleRequest) SetTmdbId(val int) {
+	s.TmdbId = val
+}
+
+// SetMediaType sets the value of MediaType.
+func (s *TitleRequest) SetMediaType(val TitleRequestMediaType) {
+	s.MediaType = val
+}
+
+type TitleRequestMediaType string
+
+const (
+	TitleRequestMediaTypeMovie TitleRequestMediaType = "movie"
+	TitleRequestMediaTypeTv    TitleRequestMediaType = "tv"
+)
+
+// AllValues returns all TitleRequestMediaType values.
+func (TitleRequestMediaType) AllValues() []TitleRequestMediaType {
+	return []TitleRequestMediaType{
+		TitleRequestMediaTypeMovie,
+		TitleRequestMediaTypeTv,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TitleRequestMediaType) MarshalText() ([]byte, error) {
+	switch s {
+	case TitleRequestMediaTypeMovie:
+		return []byte(s), nil
+	case TitleRequestMediaTypeTv:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TitleRequestMediaType) UnmarshalText(data []byte) error {
+	switch TitleRequestMediaType(data) {
+	case TitleRequestMediaTypeMovie:
+		*s = TitleRequestMediaTypeMovie
+		return nil
+	case TitleRequestMediaTypeTv:
+		*s = TitleRequestMediaTypeTv
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/TitleRequestResult
+type TitleRequestResult struct {
+	Status TitleRequestResultStatus `json:"status"`
+}
+
+// GetStatus returns the value of Status.
+func (s *TitleRequestResult) GetStatus() TitleRequestResultStatus {
+	return s.Status
+}
+
+// SetStatus sets the value of Status.
+func (s *TitleRequestResult) SetStatus(val TitleRequestResultStatus) {
+	s.Status = val
+}
+
+type TitleRequestResultStatus string
+
+const (
+	TitleRequestResultStatusNone       TitleRequestResultStatus = "none"
+	TitleRequestResultStatusPending    TitleRequestResultStatus = "pending"
+	TitleRequestResultStatusProcessing TitleRequestResultStatus = "processing"
+	TitleRequestResultStatusPartial    TitleRequestResultStatus = "partial"
+	TitleRequestResultStatusAvailable  TitleRequestResultStatus = "available"
+)
+
+// AllValues returns all TitleRequestResultStatus values.
+func (TitleRequestResultStatus) AllValues() []TitleRequestResultStatus {
+	return []TitleRequestResultStatus{
+		TitleRequestResultStatusNone,
+		TitleRequestResultStatusPending,
+		TitleRequestResultStatusProcessing,
+		TitleRequestResultStatusPartial,
+		TitleRequestResultStatusAvailable,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TitleRequestResultStatus) MarshalText() ([]byte, error) {
+	switch s {
+	case TitleRequestResultStatusNone:
+		return []byte(s), nil
+	case TitleRequestResultStatusPending:
+		return []byte(s), nil
+	case TitleRequestResultStatusProcessing:
+		return []byte(s), nil
+	case TitleRequestResultStatusPartial:
+		return []byte(s), nil
+	case TitleRequestResultStatusAvailable:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TitleRequestResultStatus) UnmarshalText(data []byte) error {
+	switch TitleRequestResultStatus(data) {
+	case TitleRequestResultStatusNone:
+		*s = TitleRequestResultStatusNone
+		return nil
+	case TitleRequestResultStatusPending:
+		*s = TitleRequestResultStatusPending
+		return nil
+	case TitleRequestResultStatusProcessing:
+		*s = TitleRequestResultStatusProcessing
+		return nil
+	case TitleRequestResultStatusPartial:
+		*s = TitleRequestResultStatusPartial
+		return nil
+	case TitleRequestResultStatusAvailable:
+		*s = TitleRequestResultStatusAvailable
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // Ref: #/components/schemas/TrickplayInfo
 type TrickplayInfo struct {
 	IntervalMs int      `json:"intervalMs"`
@@ -7039,6 +8195,229 @@ func (s *TrickplayInfo) SetSheetUrls(val []string) {
 	s.SheetUrls = val
 }
 
+// Ref: #/components/schemas/UpcomingRelease
+type UpcomingRelease struct {
+	Kind        UpcomingReleaseKind `json:"kind"`
+	Title       string              `json:"title"`
+	SeriesTitle OptString           `json:"seriesTitle"`
+	Season      OptInt              `json:"season"`
+	Episode     OptInt              `json:"episode"`
+	Date        time.Time           `json:"date"`
+	Overview    OptString           `json:"overview"`
+	PosterUrl   OptString           `json:"posterUrl"`
+	Downloaded  bool                `json:"downloaded"`
+}
+
+// GetKind returns the value of Kind.
+func (s *UpcomingRelease) GetKind() UpcomingReleaseKind {
+	return s.Kind
+}
+
+// GetTitle returns the value of Title.
+func (s *UpcomingRelease) GetTitle() string {
+	return s.Title
+}
+
+// GetSeriesTitle returns the value of SeriesTitle.
+func (s *UpcomingRelease) GetSeriesTitle() OptString {
+	return s.SeriesTitle
+}
+
+// GetSeason returns the value of Season.
+func (s *UpcomingRelease) GetSeason() OptInt {
+	return s.Season
+}
+
+// GetEpisode returns the value of Episode.
+func (s *UpcomingRelease) GetEpisode() OptInt {
+	return s.Episode
+}
+
+// GetDate returns the value of Date.
+func (s *UpcomingRelease) GetDate() time.Time {
+	return s.Date
+}
+
+// GetOverview returns the value of Overview.
+func (s *UpcomingRelease) GetOverview() OptString {
+	return s.Overview
+}
+
+// GetPosterUrl returns the value of PosterUrl.
+func (s *UpcomingRelease) GetPosterUrl() OptString {
+	return s.PosterUrl
+}
+
+// GetDownloaded returns the value of Downloaded.
+func (s *UpcomingRelease) GetDownloaded() bool {
+	return s.Downloaded
+}
+
+// SetKind sets the value of Kind.
+func (s *UpcomingRelease) SetKind(val UpcomingReleaseKind) {
+	s.Kind = val
+}
+
+// SetTitle sets the value of Title.
+func (s *UpcomingRelease) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetSeriesTitle sets the value of SeriesTitle.
+func (s *UpcomingRelease) SetSeriesTitle(val OptString) {
+	s.SeriesTitle = val
+}
+
+// SetSeason sets the value of Season.
+func (s *UpcomingRelease) SetSeason(val OptInt) {
+	s.Season = val
+}
+
+// SetEpisode sets the value of Episode.
+func (s *UpcomingRelease) SetEpisode(val OptInt) {
+	s.Episode = val
+}
+
+// SetDate sets the value of Date.
+func (s *UpcomingRelease) SetDate(val time.Time) {
+	s.Date = val
+}
+
+// SetOverview sets the value of Overview.
+func (s *UpcomingRelease) SetOverview(val OptString) {
+	s.Overview = val
+}
+
+// SetPosterUrl sets the value of PosterUrl.
+func (s *UpcomingRelease) SetPosterUrl(val OptString) {
+	s.PosterUrl = val
+}
+
+// SetDownloaded sets the value of Downloaded.
+func (s *UpcomingRelease) SetDownloaded(val bool) {
+	s.Downloaded = val
+}
+
+type UpcomingReleaseKind string
+
+const (
+	UpcomingReleaseKindMovie   UpcomingReleaseKind = "movie"
+	UpcomingReleaseKindEpisode UpcomingReleaseKind = "episode"
+)
+
+// AllValues returns all UpcomingReleaseKind values.
+func (UpcomingReleaseKind) AllValues() []UpcomingReleaseKind {
+	return []UpcomingReleaseKind{
+		UpcomingReleaseKindMovie,
+		UpcomingReleaseKindEpisode,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UpcomingReleaseKind) MarshalText() ([]byte, error) {
+	switch s {
+	case UpcomingReleaseKindMovie:
+		return []byte(s), nil
+	case UpcomingReleaseKindEpisode:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *UpcomingReleaseKind) UnmarshalText(data []byte) error {
+	switch UpcomingReleaseKind(data) {
+	case UpcomingReleaseKindMovie:
+		*s = UpcomingReleaseKindMovie
+		return nil
+	case UpcomingReleaseKindEpisode:
+		*s = UpcomingReleaseKindEpisode
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/UpdateMeRequest
+type UpdateMeRequest struct {
+	DisplayName OptString `json:"displayName"`
+	// Used for notifications; empty removes it.
+	Email    OptString                  `json:"email"`
+	Language OptUpdateMeRequestLanguage `json:"language"`
+}
+
+// GetDisplayName returns the value of DisplayName.
+func (s *UpdateMeRequest) GetDisplayName() OptString {
+	return s.DisplayName
+}
+
+// GetEmail returns the value of Email.
+func (s *UpdateMeRequest) GetEmail() OptString {
+	return s.Email
+}
+
+// GetLanguage returns the value of Language.
+func (s *UpdateMeRequest) GetLanguage() OptUpdateMeRequestLanguage {
+	return s.Language
+}
+
+// SetDisplayName sets the value of DisplayName.
+func (s *UpdateMeRequest) SetDisplayName(val OptString) {
+	s.DisplayName = val
+}
+
+// SetEmail sets the value of Email.
+func (s *UpdateMeRequest) SetEmail(val OptString) {
+	s.Email = val
+}
+
+// SetLanguage sets the value of Language.
+func (s *UpdateMeRequest) SetLanguage(val OptUpdateMeRequestLanguage) {
+	s.Language = val
+}
+
+type UpdateMeRequestLanguage string
+
+const (
+	UpdateMeRequestLanguageEn UpdateMeRequestLanguage = "en"
+	UpdateMeRequestLanguageHr UpdateMeRequestLanguage = "hr"
+)
+
+// AllValues returns all UpdateMeRequestLanguage values.
+func (UpdateMeRequestLanguage) AllValues() []UpdateMeRequestLanguage {
+	return []UpdateMeRequestLanguage{
+		UpdateMeRequestLanguageEn,
+		UpdateMeRequestLanguageHr,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UpdateMeRequestLanguage) MarshalText() ([]byte, error) {
+	switch s {
+	case UpdateMeRequestLanguageEn:
+		return []byte(s), nil
+	case UpdateMeRequestLanguageHr:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *UpdateMeRequestLanguage) UnmarshalText(data []byte) error {
+	switch UpdateMeRequestLanguage(data) {
+	case UpdateMeRequestLanguageEn:
+		*s = UpdateMeRequestLanguageEn
+		return nil
+	case UpdateMeRequestLanguageHr:
+		*s = UpdateMeRequestLanguageHr
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // UpdateUserDataNoContent is response for UpdateUserData operation.
 type UpdateUserDataNoContent struct{}
 
@@ -7112,8 +8491,13 @@ type User struct {
 	TotpEnabled    bool            `json:"totpEnabled"`
 	Permissions    UserPermissions `json:"permissions"`
 	CurrentProfile OptProfile      `json:"currentProfile"`
-	CreatedAt      time.Time       `json:"createdAt"`
-	LastLoginAt    OptDateTime     `json:"lastLoginAt"`
+	DisplayName    OptString       `json:"displayName"`
+	Email          OptString       `json:"email"`
+	// Interface language chosen by the user.
+	Language    OptUserLanguage `json:"language"`
+	HasAvatar   OptBool         `json:"hasAvatar"`
+	CreatedAt   time.Time       `json:"createdAt"`
+	LastLoginAt OptDateTime     `json:"lastLoginAt"`
 }
 
 // GetID returns the value of ID.
@@ -7149,6 +8533,26 @@ func (s *User) GetPermissions() UserPermissions {
 // GetCurrentProfile returns the value of CurrentProfile.
 func (s *User) GetCurrentProfile() OptProfile {
 	return s.CurrentProfile
+}
+
+// GetDisplayName returns the value of DisplayName.
+func (s *User) GetDisplayName() OptString {
+	return s.DisplayName
+}
+
+// GetEmail returns the value of Email.
+func (s *User) GetEmail() OptString {
+	return s.Email
+}
+
+// GetLanguage returns the value of Language.
+func (s *User) GetLanguage() OptUserLanguage {
+	return s.Language
+}
+
+// GetHasAvatar returns the value of HasAvatar.
+func (s *User) GetHasAvatar() OptBool {
+	return s.HasAvatar
 }
 
 // GetCreatedAt returns the value of CreatedAt.
@@ -7196,6 +8600,26 @@ func (s *User) SetCurrentProfile(val OptProfile) {
 	s.CurrentProfile = val
 }
 
+// SetDisplayName sets the value of DisplayName.
+func (s *User) SetDisplayName(val OptString) {
+	s.DisplayName = val
+}
+
+// SetEmail sets the value of Email.
+func (s *User) SetEmail(val OptString) {
+	s.Email = val
+}
+
+// SetLanguage sets the value of Language.
+func (s *User) SetLanguage(val OptUserLanguage) {
+	s.Language = val
+}
+
+// SetHasAvatar sets the value of HasAvatar.
+func (s *User) SetHasAvatar(val OptBool) {
+	s.HasAvatar = val
+}
+
 // SetCreatedAt sets the value of CreatedAt.
 func (s *User) SetCreatedAt(val time.Time) {
 	s.CreatedAt = val
@@ -7230,6 +8654,48 @@ func (s *UserDataUpdate) SetFavorite(val OptBool) {
 // SetPlayed sets the value of Played.
 func (s *UserDataUpdate) SetPlayed(val OptBool) {
 	s.Played = val
+}
+
+// Interface language chosen by the user.
+type UserLanguage string
+
+const (
+	UserLanguageEn UserLanguage = "en"
+	UserLanguageHr UserLanguage = "hr"
+)
+
+// AllValues returns all UserLanguage values.
+func (UserLanguage) AllValues() []UserLanguage {
+	return []UserLanguage{
+		UserLanguageEn,
+		UserLanguageHr,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UserLanguage) MarshalText() ([]byte, error) {
+	switch s {
+	case UserLanguageEn:
+		return []byte(s), nil
+	case UserLanguageHr:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *UserLanguage) UnmarshalText(data []byte) error {
+	switch UserLanguage(data) {
+	case UserLanguageEn:
+		*s = UserLanguageEn
+		return nil
+	case UserLanguageHr:
+		*s = UserLanguageHr
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 // What a non-admin may do (admins may do everything). Each permission is enforced by the feature it

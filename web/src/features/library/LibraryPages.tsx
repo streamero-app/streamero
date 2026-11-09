@@ -3,7 +3,8 @@ import { HOME_SECTIONS, type HomeSection } from "@/features/settings/usePreferen
 import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Check, Info, LayoutGrid, List, Play, Plus, RotateCcw, Volume2, VolumeX, X } from "lucide-react";
+import { Check, Info, LayoutGrid, List, Play, Plus, RotateCcw, Shuffle, Volume2, VolumeX, X } from "lucide-react";
+import { useEnhancements, useSurprise } from "@/features/enhancements/useEnhancements";
 import { api, unwrap } from "@/api/client";
 import type { components } from "@/api/schema.gen";
 import { Art, Badge, Button, ErrorText, IconButton, Select, Spinner, buttonVariants, pressable } from "@/components/ui";
@@ -185,6 +186,9 @@ const bigButton = "tv-focus h-13 rounded-[6px] px-7 text-base font-semibold";
  */
 export function Billboard({ pool, label }: { pool?: ItemSummary[]; label?: string }) {
   const { t } = useTranslation();
+  const enh = useEnhancements();
+  const surprise = useSurprise();
+  const libs = useLibraries();
   const { light } = useAmbient();
   const choices = (pool ?? []).filter((i, n, all) => all.findIndex((x) => x.id === i.id) === n).slice(0, 14);
   const [pickId, setPickId] = useState<string>();
@@ -218,6 +222,13 @@ export function Billboard({ pool, label }: { pool?: ItemSummary[]; label?: strin
           <Link to="/item/$itemId" params={{ itemId: pick.id }} className={`${pressable} ${buttonVariants.glass} ${bigButton}`}>
             <Info className="size-5" aria-hidden />{t("home.moreInfo")}
           </Link>
+          {enh.randomButton && (
+            <button type="button" onClick={() => void surprise((Array.isArray(libs.data) ? libs.data : []).filter((l) => l.kind !== "music").map((l) => l.id))}
+              aria-label={t("home.surprise")} title={t("home.surprise")} data-testid="surprise"
+              className={`${pressable} ${buttonVariants.glass} tv-focus size-13 rounded-[6px]`}>
+              <Shuffle className="size-5" aria-hidden />
+            </button>
+          )}
         </div>
         <Watched item={pick} />
       </div></div>
@@ -499,6 +510,8 @@ function ListRow({ it }: { it: ItemSummary }) {
 
 export function LibraryPage() {
   const { t } = useTranslation();
+  const enh = useEnhancements();
+  const surprise = useSurprise();
   const { libraryId } = useParams({ from: "/app/library/$libraryId" });
   const libraries = useLibraries();
   const lib = libraries.data?.find((l) => l.id === libraryId);
@@ -565,10 +578,17 @@ export function LibraryPage() {
           <h1 className="font-display text-4xl sm:text-5xl">{lib?.name ?? "…"}</h1>
           {libTotal !== undefined && <span className="pb-1 text-sm text-text/55 tabular">{t("libraries.items", { count: libTotal })}</span>}
         </div>
-        <div role="tablist" aria-label={lib?.name} className="shelf-track mt-3 -mb-px flex gap-6 overflow-x-auto">
-          {tabs.map((x) => (
-            <button key={x.id} type="button" role="tab" aria-selected={tab === x.id} onClick={() => setTab(x.id)} className={tabClass}>{x.label}</button>
-          ))}
+        <div className="mt-3 -mb-px flex items-center gap-4">
+          <div role="tablist" aria-label={lib?.name} className="shelf-track flex min-w-0 flex-1 gap-6 overflow-x-auto">
+            {tabs.map((x) => (
+              <button key={x.id} type="button" role="tab" aria-selected={tab === x.id} onClick={() => setTab(x.id)} className={tabClass}>{x.label}</button>
+            ))}
+          </div>
+          {enh.randomButton && (
+            <button type="button" onClick={() => void surprise([libraryId])} className={`${pressable} h-9 shrink-0 rounded-[6px] px-3 text-sm text-text/75 hover:bg-white/10 hover:text-text`}>
+              <Shuffle className="size-4" aria-hidden /><span className="max-sm:sr-only">{t("home.surprise")}</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -822,14 +842,23 @@ function Chapters({ d }: { d: ItemDetail }) {
   );
 }
 
-/** Links to the public databases the title is known by. */
+/** Links to the public databases the title is known by (and to Radarr/Sonarr for admins). */
 function ExternalLinks({ d }: { d: ItemDetail }) {
   const ids = d.providerIds ?? {};
+  const enh = useEnhancements();
+  const isAdmin = !!useMe().data?.isAdmin;
+  const arr = useQuery({
+    queryKey: ["arr-link", d.item.id],
+    enabled: enh.arrLinks && isAdmin && (d.item.kind === "movie" || d.item.kind === "series"),
+    retry: false,
+    queryFn: async () => (await api.GET("/items/{itemId}/arr-link", { params: { path: { itemId: d.item.id } } })).data ?? null,
+  });
   const kind = d.item.kind === "series" ? "tv" : "movie";
   const links = [
     ids.imdb && { label: "IMDb", href: `https://www.imdb.com/title/${ids.imdb}/` },
     ids.tmdb && (d.item.kind === "movie" || d.item.kind === "series") && { label: "TMDb", href: `https://www.themoviedb.org/${kind}/${ids.tmdb}` },
     ids.tvdb && { label: "TheTVDB", href: `https://thetvdb.com/dereferrer/series/${ids.tvdb}` },
+    arr.data && { label: arr.data.app === "radarr" ? "Radarr" : "Sonarr", href: arr.data.url },
   ].filter(Boolean) as { label: string; href: string }[];
   if (!links.length) return null;
   return (
@@ -840,6 +869,55 @@ function ExternalLinks({ d }: { d: ItemDetail }) {
           {l.label}
         </a>
       ))}
+    </div>
+  );
+}
+
+/** Choose the version, audio track and subtitles before playing, like on a disc menu. */
+function PlayOptions({ d, value, onChange }: {
+  d: ItemDetail; value: { file: number; audio?: number; sub?: number }; onChange: (v: { file: number; audio?: number; sub?: number }) => void;
+}) {
+  const { t, i18n } = useTranslation();
+  const f = d.files[value.file];
+  if (!f) return null;
+  const names = new Intl.DisplayNames([i18n.resolvedLanguage ?? "en"], { type: "language" });
+  const lang = (code?: string) => {
+    if (!code) return t("library.unknownLanguage");
+    try { return names.of(code.length === 3 ? ({ eng: "en", hrv: "hr", ger: "de", deu: "de", fre: "fr", fra: "fr", spa: "es", ita: "it", dut: "nl", nld: "nl", pol: "pl", por: "pt", rus: "ru", jpn: "ja", srp: "sr", bos: "bs", slv: "sl", vie: "vi", chi: "zh", zho: "zh" } as Record<string, string>)[code] ?? code : code) ?? code; } catch { return code; }
+  };
+  const audio = f.audio ?? [];
+  const subs = f.subtitles ?? [];
+  if (d.files.length < 2 && audio.length < 2 && subs.length === 0) return null;
+  const sel = "h-10 min-w-0 max-w-[16rem] rounded-[6px] border-white/15 bg-black/45 text-sm backdrop-blur";
+  return (
+    <div className="flex flex-wrap items-end gap-3" data-testid="play-options">
+      {d.files.length > 1 && (
+        <label className="flex flex-col gap-1 text-[12px] font-semibold tracking-wide text-text/55 uppercase">
+          {t("library.version")}
+          <Select className={sel} value={value.file} onChange={(e) => onChange({ file: Number(e.target.value) })}>
+            {d.files.map((x, i) => <option key={x.id} value={i}>{x.label || [resolutionLabel(x.width, x.height), x.hdr, x.videoCodec?.toUpperCase()].filter(Boolean).join(" ")}</option>)}
+          </Select>
+        </label>
+      )}
+      {audio.length > 1 && (
+        <label className="flex flex-col gap-1 text-[12px] font-semibold tracking-wide text-text/55 uppercase">
+          {t("library.audio")}
+          <Select className={sel} value={value.audio ?? ""} onChange={(e) => onChange({ ...value, audio: e.target.value === "" ? undefined : Number(e.target.value) })}>
+            <option value="">{t("library.automatic")}</option>
+            {audio.map((a, i) => <option key={i} value={i}>{[lang(a.language), a.codec.toUpperCase(), channelsLabel(a.channels), a.title].filter(Boolean).join(" · ")}</option>)}
+          </Select>
+        </label>
+      )}
+      {subs.length > 0 && (
+        <label className="flex flex-col gap-1 text-[12px] font-semibold tracking-wide text-text/55 uppercase">
+          {t("library.subtitles")}
+          <Select className={sel} value={value.sub ?? ""} onChange={(e) => onChange({ ...value, sub: e.target.value === "" ? undefined : Number(e.target.value) })}>
+            <option value="">{t("library.automatic")}</option>
+            <option value={-1}>{t("player.off")}</option>
+            {subs.map((x, i) => <option key={i} value={i}>{[lang(x.language), x.forced ? t("library.forced") : "", x.external ? t("library.external") : ""].filter(Boolean).join(" · ")}</option>)}
+          </Select>
+        </label>
+      )}
     </div>
   );
 }
@@ -862,6 +940,7 @@ export function ItemPage() {
   const d = detail.data;
   const seasons = d?.children.filter((c) => c.kind === "season") ?? [];
   const [season, setSeason] = useState("");
+  const [choice, setChoice] = useState<{ file: number; audio?: number; sub?: number }>({ file: 0 });
   const seasonIds = seasons.map((s) => s.id).join();
   useEffect(() => {
     if (seasons.length && !seasons.some((s) => s.id === season)) {
@@ -878,6 +957,11 @@ export function ItemPage() {
   const writers = d.crew.filter((p) => p.role !== "Director").map((p) => p.name);
   const rows = d.children.filter((c) => c.kind !== "season");
   const title = isEpisode ? `${episodeLabel(it)} · ${it.title}` : it.title;
+  const playSearch = {
+    ...(d.files.length > 1 && d.files[choice.file] ? { file: d.files[choice.file]!.id } : {}),
+    ...(choice.audio !== undefined ? { audio: choice.audio } : {}),
+    ...(choice.sub !== undefined ? { sub: choice.sub } : {}),
+  };
 
   return (
     <div className="flex flex-col gap-14 pb-6">
@@ -897,14 +981,14 @@ export function ItemPage() {
           {d.tagline && <p className="enter-2 text-lg font-medium text-text/80 italic">{d.tagline}</p>}
           <div className="enter-3 mt-2 flex flex-wrap items-center gap-3">
             {d.files.length > 0 && (
-              <Link to="/watch/$itemId" params={{ itemId: it.id }} data-testid="play"
+              <Link to="/watch/$itemId" params={{ itemId: it.id }} data-testid="play" search={playSearch}
                 className={`${pressable} ${buttonVariants.primary} ${bigButton} max-sm:w-full`}>
                 <Play className="size-5 fill-current" aria-hidden />
                 {it.positionMs ? t("player.resume", { time: formatClock(it.positionMs) }) : t("player.play")}
               </Link>
             )}
             {d.files.length > 0 && it.positionMs ? (
-              <Link to="/watch/$itemId" params={{ itemId: it.id }} search={{ start: 0 }}
+              <Link to="/watch/$itemId" params={{ itemId: it.id }} search={{ ...playSearch, start: 0 }}
                 className={`${pressable} ${buttonVariants.glass} ${bigButton}`}>
                 <RotateCcw className="size-5" aria-hidden />{t("player.fromStart")}
               </Link>
@@ -913,6 +997,7 @@ export function ItemPage() {
             {it.kind !== "season" && <AddToMenu item={it} />}
             {isAdmin && <MetadataMenu d={d} />}
           </div>
+          <PlayOptions d={d} value={choice} onChange={setChoice} />
           <Watched item={it} />
         </div></div>
       </Screen>

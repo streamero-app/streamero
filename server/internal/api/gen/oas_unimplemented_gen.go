@@ -177,6 +177,15 @@ func (UnimplementedHandler) DeleteLibrary(ctx context.Context, params DeleteLibr
 	return ht.ErrNotImplemented
 }
 
+// DeleteMyAvatar implements deleteMyAvatar operation.
+//
+// Remove own picture.
+//
+// DELETE /auth/me/avatar
+func (UnimplementedHandler) DeleteMyAvatar(ctx context.Context) error {
+	return ht.ErrNotImplemented
+}
+
 // DeletePlaylist implements deletePlaylist operation.
 //
 // Delete a playlist (owner only).
@@ -192,6 +201,15 @@ func (UnimplementedHandler) DeletePlaylist(ctx context.Context, params DeletePla
 //
 // DELETE /profiles/{profileId}
 func (UnimplementedHandler) DeleteProfile(ctx context.Context, params DeleteProfileParams) error {
+	return ht.ErrNotImplemented
+}
+
+// DeleteProfileAvatar implements deleteProfileAvatar operation.
+//
+// Remove a profile's picture.
+//
+// DELETE /profiles/{profileId}/avatar
+func (UnimplementedHandler) DeleteProfileAvatar(ctx context.Context, params DeleteProfileAvatarParams) error {
 	return ht.ErrNotImplemented
 }
 
@@ -211,6 +229,15 @@ func (UnimplementedHandler) DeleteUser(ctx context.Context, params DeleteUserPar
 // POST /auth/totp/disable
 func (UnimplementedHandler) DisableTOTP(ctx context.Context, req *PasswordConfirmRequest) error {
 	return ht.ErrNotImplemented
+}
+
+// Discover implements discover operation.
+//
+// Search movies and series to request (trending when q is empty).
+//
+// GET /discover
+func (UnimplementedHandler) Discover(ctx context.Context, params DiscoverParams) (r *DiscoverPage, _ error) {
+	return r, ht.ErrNotImplemented
 }
 
 // EditMetadata implements editMetadata operation.
@@ -237,6 +264,24 @@ func (UnimplementedHandler) EnableTOTP(ctx context.Context, req *TOTPCodeRequest
 //
 // GET /admin/activity
 func (UnimplementedHandler) GetActivity(ctx context.Context, params GetActivityParams) (r *ActivityPage, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetArrLink implements getArrLink operation.
+//
+// Where this title is managed in Radarr or Sonarr (admin).
+//
+// GET /items/{itemId}/arr-link
+func (UnimplementedHandler) GetArrLink(ctx context.Context, params GetArrLinkParams) (r *ArrLink, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetAvatar implements getAvatar operation.
+//
+// A user's or profile's picture (JPEG).
+//
+// GET /avatars/{ownerId}
+func (UnimplementedHandler) GetAvatar(ctx context.Context, params GetAvatarParams) (r *GetAvatarOKHeaders, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -282,6 +327,15 @@ func (UnimplementedHandler) GetDashboard(ctx context.Context) (r *Dashboard, _ e
 //
 // GET /settings/encoding
 func (UnimplementedHandler) GetEncodingSettings(ctx context.Context) (r *EncodingSettings, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetEnhancements implements getEnhancements operation.
+//
+// Built-in enhancements switched on for this server.
+//
+// GET /enhancements
+func (UnimplementedHandler) GetEnhancements(ctx context.Context) (r *Enhancements, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -363,6 +417,15 @@ func (UnimplementedHandler) GetPlaylist(ctx context.Context, params GetPlaylistP
 //
 // GET /me/preferences
 func (UnimplementedHandler) GetPreferences(ctx context.Context) (r *PlaybackPreferences, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetRequestSettings implements getRequestSettings operation.
+//
+// Seerr / Radarr / Sonarr connections (admin; keys are never returned).
+//
+// GET /settings/requests
+func (UnimplementedHandler) GetRequestSettings(ctx context.Context) (r *RequestSettings, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -538,6 +601,15 @@ func (UnimplementedHandler) ListTasks(ctx context.Context) (r []Task, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
+// ListUpcoming implements listUpcoming operation.
+//
+// Releases of the next weeks from Radarr and Sonarr.
+//
+// GET /upcoming
+func (UnimplementedHandler) ListUpcoming(ctx context.Context, params ListUpcomingParams) (r []UpcomingRelease, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ListUsers implements listUsers operation.
 //
 // List users (admin).
@@ -646,6 +718,15 @@ func (UnimplementedHandler) ReportProgress(ctx context.Context, req *ProgressRep
 	return ht.ErrNotImplemented
 }
 
+// RequestTitle implements requestTitle operation.
+//
+// Ask Seerr to download a movie or a whole series.
+//
+// POST /discover/request
+func (UnimplementedHandler) RequestTitle(ctx context.Context, req *TitleRequest) (r *TitleRequestResult, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // RevokeSession implements revokeSession operation.
 //
 // Own sessions; admins can revoke any session.
@@ -700,6 +781,33 @@ func (UnimplementedHandler) SelectProfile(ctx context.Context, req OptPinRequest
 	return ht.ErrNotImplemented
 }
 
+// SendSessionCommand implements sendSessionCommand operation.
+//
+// Show a message on a playing client or stop its playback (admin).
+//
+// POST /sessions/{sessionKey}/command
+func (UnimplementedHandler) SendSessionCommand(ctx context.Context, req *SessionCommand, params SendSessionCommandParams) error {
+	return ht.ErrNotImplemented
+}
+
+// SetMyAvatar implements setMyAvatar operation.
+//
+// Upload own picture (JPEG, PNG or GIF, up to 8 MB; cropped to a square).
+//
+// PUT /auth/me/avatar
+func (UnimplementedHandler) SetMyAvatar(ctx context.Context, req SetMyAvatarReq) error {
+	return ht.ErrNotImplemented
+}
+
+// SetProfileAvatar implements setProfileAvatar operation.
+//
+// Upload a profile's picture.
+//
+// PUT /profiles/{profileId}/avatar
+func (UnimplementedHandler) SetProfileAvatar(ctx context.Context, req SetProfileAvatarReq, params SetProfileAvatarParams) error {
+	return ht.ErrNotImplemented
+}
+
 // StartPlayback implements startPlayback operation.
 //
 // Returns direct play when the device supports the file as is, otherwise an HLS stream (remux or
@@ -720,6 +828,15 @@ func (UnimplementedHandler) StartTOTPSetup(ctx context.Context) (r *TOTPSetup, _
 	return r, ht.ErrNotImplemented
 }
 
+// TakeMyCommands implements takeMyCommands operation.
+//
+// Commands an administrator sent to this session (taken once).
+//
+// GET /me/commands
+func (UnimplementedHandler) TakeMyCommands(ctx context.Context) (r []SessionCommand, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // TestNotification implements testNotification operation.
 //
 // Send a test message to one target.
@@ -727,6 +844,15 @@ func (UnimplementedHandler) StartTOTPSetup(ctx context.Context) (r *TOTPSetup, _
 // POST /settings/notifications/test
 func (UnimplementedHandler) TestNotification(ctx context.Context, req *NotificationTarget) error {
 	return ht.ErrNotImplemented
+}
+
+// TestRequestSettings implements testRequestSettings operation.
+//
+// Check each configured connection (admin).
+//
+// POST /settings/requests/test
+func (UnimplementedHandler) TestRequestSettings(ctx context.Context) (r []ConnectionCheck, _ error) {
+	return r, ht.ErrNotImplemented
 }
 
 // UpdateBrandingSettings implements updateBrandingSettings operation.
@@ -756,12 +882,30 @@ func (UnimplementedHandler) UpdateEncodingSettings(ctx context.Context, req *Enc
 	return r, ht.ErrNotImplemented
 }
 
+// UpdateEnhancements implements updateEnhancements operation.
+//
+// Switch built-in enhancements on or off (admin).
+//
+// PUT /enhancements
+func (UnimplementedHandler) UpdateEnhancements(ctx context.Context, req *Enhancements) (r *Enhancements, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // UpdateLibrary implements updateLibrary operation.
 //
 // Change a library (admin); changed folders are rescanned.
 //
 // PUT /libraries/{libraryId}
 func (UnimplementedHandler) UpdateLibrary(ctx context.Context, req *LibraryInput, params UpdateLibraryParams) (r *Library, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateMe implements updateMe operation.
+//
+// Change own display name, e-mail and language.
+//
+// PUT /auth/me
+func (UnimplementedHandler) UpdateMe(ctx context.Context, req *UpdateMeRequest) (r *User, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -807,6 +951,15 @@ func (UnimplementedHandler) UpdatePreferences(ctx context.Context, req *Playback
 //
 // PUT /profiles/{profileId}
 func (UnimplementedHandler) UpdateProfile(ctx context.Context, req *ProfileInput, params UpdateProfileParams) (r *Profile, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateRequestSettings implements updateRequestSettings operation.
+//
+// Change the connections (admin); an empty key keeps the stored one.
+//
+// PUT /settings/requests
+func (UnimplementedHandler) UpdateRequestSettings(ctx context.Context, req *RequestSettingsInput) (r *RequestSettings, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

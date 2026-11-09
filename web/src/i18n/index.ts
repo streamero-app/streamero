@@ -3,7 +3,8 @@ import { initReactI18next } from "react-i18next";
 import en from "./locales/en.json";
 import hr from "./locales/hr.json";
 
-export const SUPPORTED_LANGUAGES = ["hr", "en"] as const;
+/** English is the primary language; the others are translations of it. */
+export const SUPPORTED_LANGUAGES = ["en", "hr"] as const;
 export type Language = (typeof SUPPORTED_LANGUAGES)[number];
 const STORAGE_KEY = "streamero.lang";
 
@@ -14,8 +15,8 @@ function initialLanguage(): Language {
   } catch {
     /* storage unavailable */
   }
-  const nav = typeof navigator !== "undefined" ? navigator.language.toLowerCase() : "en";
-  return nav.startsWith("hr") || nav.startsWith("bs") || nav.startsWith("sr") ? "hr" : "en";
+  // English until someone picks another language (on the sign-in page or in their account).
+  return "en";
 }
 
 export function setLanguage(lang: Language) {

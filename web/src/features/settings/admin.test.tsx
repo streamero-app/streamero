@@ -8,7 +8,7 @@ afterEach(() => vi.unstubAllGlobals());
 const dashboard = {
   server: { name: "Kino", version: "0.6.0", os: "linux/amd64", startedAt: new Date().toISOString() },
   storage: [{ kind: "media", path: "/media", totalBytes: 1000 * 1024 ** 3, freeBytes: 400 * 1024 ** 3 }],
-  nowPlaying: [{ user: "ana", device: "iPhone", itemId: "0190a8b0-0000-7000-8000-00000000bbbb", title: "Dune", method: "transcode",
+  nowPlaying: [{ key: "sess-1", user: "ana", device: "iPhone", itemId: "0190a8b0-0000-7000-8000-00000000bbbb", title: "Dune", method: "transcode",
     reason: "video hevc", positionMs: 60_000, durationMs: 120_000, updatedAt: new Date().toISOString() }],
   activeTranscodes: 1,
   activity: [{ at: new Date().toISOString(), user: "ana", action: "login.succeeded", detail: { ip: "10.0.0.5" } }],
@@ -93,5 +93,18 @@ describe("admin pages", () => {
     expect(await screen.findByTestId("log-row")).toHaveTextContent("ffmpeg failed");
     fireEvent.change(screen.getByLabelText("Level"), { target: { value: "error" } });
     await waitFor(() => expect(queries.some((q) => q.includes("level=error"))).toBe(true));
+  });
+
+  it("sends a message to a playing session", async () => {
+    const posts: { url: string; body: unknown }[] = [];
+    mockApi(({ method, path, body }) => {
+      if (method === "POST") { posts.push({ url: path, body }); return { status: 204 }; }
+      return path === "/dashboard" ? { status: 200, body: dashboard } : { status: 200, body: [] };
+    });
+    renderApp("/settings/dashboard", { me: testUser({ isAdmin: true }) });
+    fireEvent.click(await screen.findByRole("button", { name: "Message" }));
+    fireEvent.change(screen.getByLabelText("Message"), { target: { value: "Dinner is ready" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    await waitFor(() => expect(posts).toContainEqual({ url: "/sessions/sess-1/command", body: { kind: "message", text: "Dinner is ready" } }));
   });
 });

@@ -105,6 +105,65 @@ export interface paths {
         };
         /** The signed-in user */
         get: operations["getMe"];
+        /** Change own display name, e-mail and language */
+        put: operations["updateMe"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/me/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Upload own picture (JPEG, PNG or GIF, up to 8 MB; cropped to a square) */
+        put: operations["setMyAvatar"];
+        post?: never;
+        /** Remove own picture */
+        delete: operations["deleteMyAvatar"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profiles/{profileId}/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profileId: components["parameters"]["ProfileId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Upload a profile's picture */
+        put: operations["setProfileAvatar"];
+        post?: never;
+        /** Remove a profile's picture */
+        delete: operations["deleteProfileAvatar"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/avatars/{ownerId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A user or profile id. */
+                ownerId: string;
+            };
+            cookie?: never;
+        };
+        /** A user's or profile's picture (JPEG) */
+        get: operations["getAvatar"];
         put?: never;
         post?: never;
         delete?: never;
@@ -567,7 +626,7 @@ export interface paths {
             query?: {
                 limit?: number;
                 offset?: number;
-                sort?: "title" | "year" | "added" | "rating";
+                sort?: "title" | "year" | "added" | "rating" | "random";
                 genre?: string;
                 /** @description Only items the current profile has not watched. */
                 unplayed?: boolean;
@@ -1306,6 +1365,165 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/sessions/{sessionKey}/command": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionKey: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Show a message on a playing client or stop its playback (admin) */
+        post: operations["sendSessionCommand"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/commands": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Commands an administrator sent to this session (taken once) */
+        get: operations["takeMyCommands"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Seerr / Radarr / Sonarr connections (admin; keys are never returned) */
+        get: operations["getRequestSettings"];
+        /** Change the connections (admin); an empty key keeps the stored one */
+        put: operations["updateRequestSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/requests/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check each configured connection (admin) */
+        post: operations["testRequestSettings"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/discover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search movies and series to request (trending when q is empty) */
+        get: operations["discover"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/discover/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask Seerr to download a movie or a whole series */
+        post: operations["requestTitle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/upcoming": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Releases of the next weeks from Radarr and Sonarr */
+        get: operations["listUpcoming"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/enhancements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Built-in enhancements switched on for this server */
+        get: operations["getEnhancements"];
+        /** Switch built-in enhancements on or off (admin) */
+        put: operations["updateEnhancements"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/items/{itemId}/arr-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        /** Where this title is managed in Radarr or Sonarr (admin) */
+        get: operations["getArrLink"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1525,6 +1743,8 @@ export interface components {
             freeBytes: number;
         };
         NowPlaying: {
+            /** @description Identifies the playing session for remote commands. */
+            key: string;
             user: string;
             profile?: string;
             device: string;
@@ -1754,6 +1974,10 @@ export interface components {
             seriesTitle?: string;
             /** @description Community rating 0–10. */
             rating?: number;
+            /** @description Height of the best file's picture (for 4K/HD tags). */
+            videoHeight?: number;
+            /** @description HDR format of the best file (HDR10, HLG, Dolby Vision), if any. */
+            hdr?: string;
             /**
              * Format: int64
              * @description Resume position for the current profile.
@@ -1851,6 +2075,7 @@ export interface components {
             isKid: boolean;
             /** @description Highest age rating allowed (e.g. 12); applies from P3 (ratings) on. */
             maxRating?: number;
+            hasAvatar?: boolean;
         };
         ProfileInput: {
             name: string;
@@ -1911,10 +2136,30 @@ export interface components {
             totpEnabled: boolean;
             permissions: components["schemas"]["UserPermissions"];
             currentProfile?: components["schemas"]["Profile"];
+            displayName?: string;
+            email?: string;
+            /**
+             * @description Interface language chosen by the user.
+             * @enum {string}
+             */
+            language?: "en" | "hr";
+            hasAvatar?: boolean;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
             lastLoginAt?: string;
+        };
+        SessionCommand: {
+            /** @enum {string} */
+            kind: "message" | "stop";
+            text?: string;
+        };
+        UpdateMeRequest: {
+            displayName?: string;
+            /** @description Used for notifications; empty removes it. */
+            email?: string;
+            /** @enum {string} */
+            language?: "en" | "hr";
         };
         CreateUserRequest: {
             username: components["schemas"]["Username"];
@@ -2020,6 +2265,104 @@ export interface components {
         ActivityPage: {
             entries: components["schemas"]["ActivityEntry"][];
             total: number;
+        };
+        RequestSettings: {
+            seerrUrl?: string;
+            seerrConfigured: boolean;
+            /** @description Everyone (not only administrators) can request titles. */
+            usersCanRequest: boolean;
+            radarrUrl?: string;
+            radarrConfigured: boolean;
+            sonarrUrl?: string;
+            sonarrConfigured: boolean;
+        };
+        RequestSettingsInput: {
+            seerrUrl?: string;
+            seerrApiKey?: string;
+            usersCanRequest: boolean;
+            radarrUrl?: string;
+            radarrApiKey?: string;
+            sonarrUrl?: string;
+            sonarrApiKey?: string;
+            removeKeys?: ("seerr" | "radarr" | "sonarr")[];
+        };
+        ConnectionCheck: {
+            app: string;
+            ok: boolean;
+            version?: string;
+            error?: string;
+        };
+        DiscoverTitle: {
+            tmdbId: number;
+            /** @enum {string} */
+            mediaType: "movie" | "tv";
+            title: string;
+            year?: number;
+            overview?: string;
+            posterUrl?: string;
+            backdropUrl?: string;
+            rating?: number;
+            /** @enum {string} */
+            status: "none" | "pending" | "processing" | "partial" | "available";
+            /**
+             * Format: uuid
+             * @description The title in this server's libraries, when it is already here.
+             */
+            itemId?: string;
+        };
+        DiscoverPage: {
+            /** @description Seerr is connected. */
+            configured: boolean;
+            canRequest: boolean;
+            titles: components["schemas"]["DiscoverTitle"][];
+            page: number;
+            totalPages: number;
+        };
+        TitleRequest: {
+            tmdbId: number;
+            /** @enum {string} */
+            mediaType: "movie" | "tv";
+        };
+        TitleRequestResult: {
+            /** @enum {string} */
+            status: "none" | "pending" | "processing" | "partial" | "available";
+        };
+        UpcomingRelease: {
+            /** @enum {string} */
+            kind: "movie" | "episode";
+            title: string;
+            seriesTitle?: string;
+            season?: number;
+            episode?: number;
+            /** Format: date-time */
+            date: string;
+            overview?: string;
+            posterUrl?: string;
+            downloaded: boolean;
+        };
+        /** @description Features other servers need plugins for, built in and switchable. */
+        Enhancements: {
+            /** @description 4K / HDR / Dolby Vision tags on posters. */
+            qualityTags: boolean;
+            /** @description A "surprise me" button on home and in libraries. */
+            randomButton: boolean;
+            /** @description Title, year and story on screen while paused. */
+            pauseScreen: boolean;
+            /** @description Open a title in Radarr or Sonarr (administrators). */
+            arrLinks: boolean;
+            /** @description Search also offers titles to request through Seerr. */
+            discoverInSearch: boolean;
+            /** @description Remove a title from Continue watching. */
+            removeFromContinue: boolean;
+            /** @description Show keyboard shortcuts with "?". */
+            shortcutsHelp: boolean;
+            /** @description Keep playing in picture-in-picture when switching tabs. */
+            autoPip: boolean;
+        };
+        ArrLink: {
+            /** @enum {string} */
+            app: "radarr" | "sonarr";
+            url: string;
         };
         SystemInfo: {
             /**
@@ -2204,6 +2547,144 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["User"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateMeRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    setMyAvatar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description Saved */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteMyAvatar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    setProfileAvatar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profileId: components["parameters"]["ProfileId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description Saved */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteProfileAvatar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profileId: components["parameters"]["ProfileId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getAvatar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A user or profile id. */
+                ownerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Image */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": string;
                 };
             };
             default: components["responses"]["Error"];
@@ -2974,7 +3455,7 @@ export interface operations {
             query?: {
                 limit?: number;
                 offset?: number;
-                sort?: "title" | "year" | "added" | "rating";
+                sort?: "title" | "year" | "added" | "rating" | "random";
                 genre?: string;
                 /** @description Only items the current profile has not watched. */
                 unplayed?: boolean;
@@ -4218,6 +4699,260 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ActivityPage"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    sendSessionCommand: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SessionCommand"];
+            };
+        };
+        responses: {
+            /** @description Queued */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    takeMyCommands: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Commands, oldest first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionCommand"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getRequestSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateRequestSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    testRequestSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One line per app */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionCheck"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    discover: {
+        parameters: {
+            query?: {
+                q?: string;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Results */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscoverPage"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    requestTitle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TitleRequest"];
+            };
+        };
+        responses: {
+            /** @description Requested */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TitleRequestResult"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listUpcoming: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Soonest first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpcomingRelease"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getEnhancements: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Switches */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Enhancements"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateEnhancements: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Enhancements"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Enhancements"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getArrLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Link */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArrLink"];
                 };
             };
             default: components["responses"]["Error"];

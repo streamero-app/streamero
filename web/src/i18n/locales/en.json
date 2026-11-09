@@ -66,7 +66,9 @@
     "topTen": "Top 10 in {{name}}",
     "minutesLeft_one": "{{count}} min left",
     "minutesLeft_other": "{{count}} min left",
-    "minutesLeft_few": "{{count}} min left"
+    "minutesLeft_few": "{{count}} min left",
+    "surprise": "Surprise me",
+    "removeFromContinue": "Remove “{{title}}” from Continue watching"
   },
   "settings": {
     "account": "My account",
@@ -91,13 +93,27 @@
     "logs": "Logs",
     "activityLog": "Activity",
     "branding": "Branding",
-    "profileSection": "Profile"
+    "profileSection": "Profile",
+    "requests": "Requests",
+    "enhancements": "Enhancements"
   },
   "account": {
     "changePassword": "Change password",
     "currentPassword": "Current password",
     "newPassword": "New password",
-    "passwordChanged": "Password changed. Other devices were signed out."
+    "passwordChanged": "Password changed. Other devices were signed out.",
+    "changePicture": "Change picture",
+    "removePicture": "Remove picture",
+    "twoFactorOn": "Two-factor on",
+    "memberSince": "Member since {{date}}",
+    "lastSignIn": "last sign-in {{date}}",
+    "profileTitle": "Profile",
+    "displayName": "Display name",
+    "displayNameHint": "Shown in the menu and to administrators instead of the username.",
+    "email": "E-mail",
+    "emailHint": "Optional. For notifications and password help from an administrator.",
+    "language": "Language",
+    "languageHint": "Used on every device you sign in on."
   },
   "devices": {
     "intro": "Devices signed in to your account. Signing a device out takes effect immediately.",
@@ -178,7 +194,13 @@
     "invalid_notification_target": "Check the service and URL (http or https; Gotify needs an app token).",
     "notification_failed": "The target did not accept the message. Check the URL and token.",
     "tmdb_not_configured": "Add a TMDb key in Settings → Metadata first.",
-    "metadata_locked": "This title was edited by hand. Use Identify to replace it from TMDb."
+    "metadata_locked": "This title was edited by hand. Use Identify to replace it from TMDb.",
+    "invalid_email": "That e-mail address is not valid.",
+    "invalid_image": "That file is not a JPEG, PNG or GIF picture.",
+    "image_too_large": "The picture is larger than 8 MB.",
+    "invalid_url": "That address is not valid (use http:// or https://).",
+    "upstream_failed": "The other app did not answer or rejected the request.",
+    "not_configured": "This connection is not set up."
   },
   "notFound": {
     "title": "Page not found",
@@ -407,7 +429,10 @@
     "noMatches": "No titles match these filters.",
     "matches_one": "{{count}} match",
     "matches_few": "{{count}} matches",
-    "matches_other": "{{count}} matches"
+    "matches_other": "{{count}} matches",
+    "version": "Version",
+    "automatic": "Automatic",
+    "unknownLanguage": "Unknown language"
   },
   "metadata": {
     "connected": "TMDb connected",
@@ -451,7 +476,19 @@
     "skipIntro": "Skip intro",
     "skipRecap": "Skip recap",
     "backSeconds": "Back {{seconds}} seconds",
-    "forwardSeconds": "Forward {{seconds}} seconds"
+    "forwardSeconds": "Forward {{seconds}} seconds",
+    "stoppedByAdmin": "An administrator stopped playback.",
+    "paused": "Paused",
+    "shortcuts": "Keyboard shortcuts",
+    "keyPlay": "Play or pause",
+    "keyBack": "Skip back",
+    "keyForward": "Skip forward",
+    "keyVolume": "Volume",
+    "keyMute": "Mute",
+    "keyFullscreen": "Full screen",
+    "keySubtitles": "Subtitles on/off",
+    "keyHelp": "This help",
+    "keyClose": "Close a panel"
   },
   "search": {
     "title": "Search",
@@ -460,7 +497,9 @@
     "none": "Nothing found. Try another spelling or an actor's name.",
     "hint": "Movies, shows, episodes and people.",
     "start": "Type a title, a year or an actor.",
-    "open": "Open search"
+    "open": "Open search",
+    "notHereYet": "Not here yet",
+    "openDiscover": "Open in Discover"
   },
   "integrations": {
     "host": "Host",
@@ -491,7 +530,14 @@
     "version": "Version",
     "platform": "Platform",
     "started": "Running since",
-    "activity": "Recent activity"
+    "activity": "Recent activity",
+    "message": "Message",
+    "messagePlaceholder": "Shown on their screen…",
+    "send": "Send",
+    "stop": "Stop",
+    "stopConfirm": "Stop this playback?",
+    "stoppedByAdmin": "An administrator stopped playback.",
+    "sent": "Sent"
   },
   "activity": {
     "apikey.created": "API key created",
@@ -518,7 +564,13 @@
     "item.edited": "Metadata edited",
     "settings.encoding": "Transcoding changed",
     "settings.resume": "Resume settings changed",
-    "settings.branding": "Branding changed"
+    "settings.branding": "Branding changed",
+    "session.message": "Message sent to a viewer",
+    "session.stop": "Playback stopped by an administrator",
+    "account.updated": "Account details changed",
+    "title.requested": "Title requested",
+    "settings.requests": "Request settings changed",
+    "settings.enhancements": "Enhancements changed"
   },
   "tasks": {
     "title": "Scheduled tasks",
@@ -775,5 +827,63 @@
     "disclaimerHint": "For example who the server is for, or whom to ask for an account.",
     "css": "Custom CSS",
     "cssHint": "Added to every page of the web client. Design tokens like --amb-a or --color-bg can be overridden here."
+  },
+  "discover": {
+    "title": "Discover",
+    "short": "Discover",
+    "intro": "Find any movie or series. If it is not here yet, request it and it downloads automatically through Seerr, Radarr and Sonarr.",
+    "placeholder": "Movie, series or cartoon…",
+    "trending": "Trending now",
+    "resultsFor": "Results for “{{q}}”",
+    "nothing": "Nothing found.",
+    "upcoming": "Coming soon",
+    "downloaded": "Downloaded",
+    "movie": "Movie",
+    "series": "Series",
+    "watch": "Watch",
+    "requestMovie": "Request",
+    "requestSeries": "Request series",
+    "status_none": "Not requested",
+    "status_pending": "Requested",
+    "status_processing": "Downloading",
+    "status_partial": "Partly here",
+    "status_available": "Available",
+    "notConfigured": "Requests are not set up on this server yet.",
+    "setUp": "Connect Seerr"
+  },
+  "requests": {
+    "url": "{{app}} address",
+    "key": "{{app}} API key",
+    "keyStored": "A key is stored. Enter a new one to replace it.",
+    "keyWhere": "Found in {{app}} under Settings → General.",
+    "remove": "Remove",
+    "willRemove": "Will be removed",
+    "seerrIntro": "Seerr or Jellyseerr searches TMDb and passes requests to Radarr and Sonarr. Streamero only needs its address and API key.",
+    "usersCanRequest": "Everyone can request",
+    "usersCanRequestHint": "Off: only administrators can request. Kids profiles never can.",
+    "arrIntro": "Optional. Used for the “Coming soon” calendar on the Discover page.",
+    "test": "Test connections",
+    "nothingToTest": "Nothing is set up yet.",
+    "connected": "connected, version {{version}}"
+  },
+  "enhancements": {
+    "title": "Enhancements",
+    "intro": "Features other media servers need plugins for are built into Streamero. Switch off what you do not want; nothing third-party runs inside the server, so updates never break them.",
+    "qualityTags": "Quality tags on posters",
+    "qualityTags_hint": "4K, HD, HDR and Dolby Vision labels.",
+    "randomButton": "Surprise me",
+    "randomButton_hint": "A button on home and in libraries that opens a random unwatched title.",
+    "pauseScreen": "Pause screen",
+    "pauseScreen_hint": "Title, year and story on screen after a few seconds of pause.",
+    "removeFromContinue": "Remove from Continue watching",
+    "removeFromContinue_hint": "A × on Continue watching cards.",
+    "shortcutsHelp": "Keyboard shortcut help",
+    "shortcutsHelp_hint": "Press ? in the player.",
+    "autoPip": "Picture-in-picture when leaving the tab",
+    "autoPip_hint": "Playback continues in a small window while you do something else.",
+    "discoverInSearch": "Requests in search",
+    "discoverInSearch_hint": "Search also shows titles that are not here yet, ready to request (needs Seerr).",
+    "arrLinks": "Radarr and Sonarr links",
+    "arrLinks_hint": "Administrators see where a title is managed (needs Radarr/Sonarr in Requests)."
   }
 }

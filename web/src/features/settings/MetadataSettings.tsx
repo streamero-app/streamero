@@ -4,14 +4,14 @@ import { useTranslation } from "react-i18next";
 import { api, unwrap } from "@/api/client";
 import { Badge, Button, Card, ErrorText, SuccessText, TextField } from "@/components/ui";
 
-const LANGUAGES = ["hr-HR", "en-US", "en-GB", "de-DE", "sr-RS", "bs-BA", "sl-SI", "it-IT", "fr-FR", "es-ES"];
-const COUNTRIES = ["HR", "US", "GB", "DE", "AT", "RS", "BA", "SI", "IT", "FR", "ES"];
+const LANGUAGES = ["en-US", "hr-HR", "en-GB", "de-DE", "sr-RS", "bs-BA", "sl-SI", "it-IT", "fr-FR", "es-ES"];
+const COUNTRIES = ["US", "HR", "GB", "DE", "AT", "RS", "BA", "SI", "IT", "FR", "ES"];
 
 export function MetadataSettings() {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const settings = useQuery({ queryKey: ["settings", "metadata"], queryFn: async () => unwrap(await api.GET("/settings/metadata")) });
-  const [form, setForm] = useState({ key: "", language: "hr-HR", country: "HR" });
+  const [form, setForm] = useState({ key: "", language: "en-US", country: "US" });
   useEffect(() => {
     if (settings.data) setForm((f) => ({ ...f, language: settings.data.language, country: settings.data.country }));
   }, [settings.data]);

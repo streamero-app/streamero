@@ -118,6 +118,12 @@ type Handler interface {
 	//
 	// DELETE /libraries/{libraryId}
 	DeleteLibrary(ctx context.Context, params DeleteLibraryParams) error
+	// DeleteMyAvatar implements deleteMyAvatar operation.
+	//
+	// Remove own picture.
+	//
+	// DELETE /auth/me/avatar
+	DeleteMyAvatar(ctx context.Context) error
 	// DeletePlaylist implements deletePlaylist operation.
 	//
 	// Delete a playlist (owner only).
@@ -130,6 +136,12 @@ type Handler interface {
 	//
 	// DELETE /profiles/{profileId}
 	DeleteProfile(ctx context.Context, params DeleteProfileParams) error
+	// DeleteProfileAvatar implements deleteProfileAvatar operation.
+	//
+	// Remove a profile's picture.
+	//
+	// DELETE /profiles/{profileId}/avatar
+	DeleteProfileAvatar(ctx context.Context, params DeleteProfileAvatarParams) error
 	// DeleteUser implements deleteUser operation.
 	//
 	// Delete a user and all of their sessions (admin).
@@ -142,6 +154,12 @@ type Handler interface {
 	//
 	// POST /auth/totp/disable
 	DisableTOTP(ctx context.Context, req *PasswordConfirmRequest) error
+	// Discover implements discover operation.
+	//
+	// Search movies and series to request (trending when q is empty).
+	//
+	// GET /discover
+	Discover(ctx context.Context, params DiscoverParams) (*DiscoverPage, error)
 	// EditMetadata implements editMetadata operation.
 	//
 	// Edit metadata by hand (administrators); locked items keep it on refresh.
@@ -160,6 +178,18 @@ type Handler interface {
 	//
 	// GET /admin/activity
 	GetActivity(ctx context.Context, params GetActivityParams) (*ActivityPage, error)
+	// GetArrLink implements getArrLink operation.
+	//
+	// Where this title is managed in Radarr or Sonarr (admin).
+	//
+	// GET /items/{itemId}/arr-link
+	GetArrLink(ctx context.Context, params GetArrLinkParams) (*ArrLink, error)
+	// GetAvatar implements getAvatar operation.
+	//
+	// A user's or profile's picture (JPEG).
+	//
+	// GET /avatars/{ownerId}
+	GetAvatar(ctx context.Context, params GetAvatarParams) (*GetAvatarOKHeaders, error)
 	// GetBrandingSettings implements getBrandingSettings operation.
 	//
 	// Login message and custom CSS (admin).
@@ -190,6 +220,12 @@ type Handler interface {
 	//
 	// GET /settings/encoding
 	GetEncodingSettings(ctx context.Context) (*EncodingSettings, error)
+	// GetEnhancements implements getEnhancements operation.
+	//
+	// Built-in enhancements switched on for this server.
+	//
+	// GET /enhancements
+	GetEnhancements(ctx context.Context) (*Enhancements, error)
 	// GetInvite implements getInvite operation.
 	//
 	// Check an invite link (public).
@@ -244,6 +280,12 @@ type Handler interface {
 	//
 	// GET /me/preferences
 	GetPreferences(ctx context.Context) (*PlaybackPreferences, error)
+	// GetRequestSettings implements getRequestSettings operation.
+	//
+	// Seerr / Radarr / Sonarr connections (admin; keys are never returned).
+	//
+	// GET /settings/requests
+	GetRequestSettings(ctx context.Context) (*RequestSettings, error)
 	// GetResumeSettings implements getResumeSettings operation.
 	//
 	// When playback counts as started or watched (admin).
@@ -359,6 +401,12 @@ type Handler interface {
 	//
 	// GET /tasks
 	ListTasks(ctx context.Context) ([]Task, error)
+	// ListUpcoming implements listUpcoming operation.
+	//
+	// Releases of the next weeks from Radarr and Sonarr.
+	//
+	// GET /upcoming
+	ListUpcoming(ctx context.Context, params ListUpcomingParams) ([]UpcomingRelease, error)
 	// ListUsers implements listUsers operation.
 	//
 	// List users (admin).
@@ -431,6 +479,12 @@ type Handler interface {
 	//
 	// PUT /items/{itemId}/progress
 	ReportProgress(ctx context.Context, req *ProgressReport, params ReportProgressParams) error
+	// RequestTitle implements requestTitle operation.
+	//
+	// Ask Seerr to download a movie or a whole series.
+	//
+	// POST /discover/request
+	RequestTitle(ctx context.Context, req *TitleRequest) (*TitleRequestResult, error)
 	// RevokeSession implements revokeSession operation.
 	//
 	// Own sessions; admins can revoke any session.
@@ -467,6 +521,24 @@ type Handler interface {
 	//
 	// POST /profiles/{profileId}/select
 	SelectProfile(ctx context.Context, req OptPinRequest, params SelectProfileParams) error
+	// SendSessionCommand implements sendSessionCommand operation.
+	//
+	// Show a message on a playing client or stop its playback (admin).
+	//
+	// POST /sessions/{sessionKey}/command
+	SendSessionCommand(ctx context.Context, req *SessionCommand, params SendSessionCommandParams) error
+	// SetMyAvatar implements setMyAvatar operation.
+	//
+	// Upload own picture (JPEG, PNG or GIF, up to 8 MB; cropped to a square).
+	//
+	// PUT /auth/me/avatar
+	SetMyAvatar(ctx context.Context, req SetMyAvatarReq) error
+	// SetProfileAvatar implements setProfileAvatar operation.
+	//
+	// Upload a profile's picture.
+	//
+	// PUT /profiles/{profileId}/avatar
+	SetProfileAvatar(ctx context.Context, req SetProfileAvatarReq, params SetProfileAvatarParams) error
 	// StartPlayback implements startPlayback operation.
 	//
 	// Returns direct play when the device supports the file as is, otherwise an HLS stream (remux or
@@ -481,12 +553,24 @@ type Handler interface {
 	//
 	// POST /auth/totp/setup
 	StartTOTPSetup(ctx context.Context) (*TOTPSetup, error)
+	// TakeMyCommands implements takeMyCommands operation.
+	//
+	// Commands an administrator sent to this session (taken once).
+	//
+	// GET /me/commands
+	TakeMyCommands(ctx context.Context) ([]SessionCommand, error)
 	// TestNotification implements testNotification operation.
 	//
 	// Send a test message to one target.
 	//
 	// POST /settings/notifications/test
 	TestNotification(ctx context.Context, req *NotificationTarget) error
+	// TestRequestSettings implements testRequestSettings operation.
+	//
+	// Check each configured connection (admin).
+	//
+	// POST /settings/requests/test
+	TestRequestSettings(ctx context.Context) ([]ConnectionCheck, error)
 	// UpdateBrandingSettings implements updateBrandingSettings operation.
 	//
 	// Update branding (admin).
@@ -505,12 +589,24 @@ type Handler interface {
 	//
 	// PUT /settings/encoding
 	UpdateEncodingSettings(ctx context.Context, req *EncodingSettings) (*EncodingSettings, error)
+	// UpdateEnhancements implements updateEnhancements operation.
+	//
+	// Switch built-in enhancements on or off (admin).
+	//
+	// PUT /enhancements
+	UpdateEnhancements(ctx context.Context, req *Enhancements) (*Enhancements, error)
 	// UpdateLibrary implements updateLibrary operation.
 	//
 	// Change a library (admin); changed folders are rescanned.
 	//
 	// PUT /libraries/{libraryId}
 	UpdateLibrary(ctx context.Context, req *LibraryInput, params UpdateLibraryParams) (*Library, error)
+	// UpdateMe implements updateMe operation.
+	//
+	// Change own display name, e-mail and language.
+	//
+	// PUT /auth/me
+	UpdateMe(ctx context.Context, req *UpdateMeRequest) (*User, error)
 	// UpdateMetadataSettings implements updateMetadataSettings operation.
 	//
 	// Save metadata settings (admin); a new TMDb key is verified with TMDb first.
@@ -541,6 +637,12 @@ type Handler interface {
 	//
 	// PUT /profiles/{profileId}
 	UpdateProfile(ctx context.Context, req *ProfileInput, params UpdateProfileParams) (*Profile, error)
+	// UpdateRequestSettings implements updateRequestSettings operation.
+	//
+	// Change the connections (admin); an empty key keeps the stored one.
+	//
+	// PUT /settings/requests
+	UpdateRequestSettings(ctx context.Context, req *RequestSettingsInput) (*RequestSettings, error)
 	// UpdateResumeSettings implements updateResumeSettings operation.
 	//
 	// Update resume thresholds (admin).

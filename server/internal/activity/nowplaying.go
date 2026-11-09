@@ -33,6 +33,7 @@ type Registry struct {
 
 	mu       sync.Mutex
 	sessions map[string]Session
+	commands map[string][]Command
 }
 
 func (r *Registry) now() time.Time {
@@ -91,4 +92,42 @@ func (r *Registry) Active() []Session {
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].UpdatedAt.After(out[j].UpdatedAt) })
 	return out
+}
+
+// Command is something an administrator asks a playing client to do.
+type Command struct {
+	Kind string // "message" or "stop"
+	Text string
+	At   time.Time
+}
+
+// Send queues a command for a live session; it reports whether the session exists.
+func (r *Registry) Send(key string, c Command) bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	s, ok := r.sessions[key]
+	if !ok || s.UpdatedAt.Before(r.now().Add(-r.ttl())) {
+		return false
+	}
+	if r.commands == nil {
+		r.commands = map[string][]Command{}
+	}
+	c.At = r.now()
+	// A client that stopped polling should not collect an endless queue.
+	if q := r.commands[key]; len(q) < 20 {
+		r.commands[key] = append(q, c)
+	}
+	if c.Kind == "stop" {
+		delete(r.sessions, key)
+	}
+	return true
+}
+
+// Take returns and clears the queued commands of a session.
+func (r *Registry) Take(key string) []Command {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	q := r.commands[key]
+	delete(r.commands, key)
+	return q
 }

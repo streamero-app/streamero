@@ -30,6 +30,9 @@ import { ProfileGatePage } from "@/features/profiles/ProfileSwitcher";
 import { CollectionPage, CollectionsPage, PlaylistPage, PlaylistsPage } from "@/features/library/CollectionsPages";
 import { PlayerPage } from "@/features/player/PlayerPage";
 import { SearchPage } from "@/features/library/SearchPage";
+import { DiscoverPage } from "@/features/discover/DiscoverPage";
+import { RequestsSettings } from "@/features/settings/RequestsSettings";
+import { EnhancementsSettings } from "@/features/settings/EnhancementsSettings";
 import { NotFoundPage } from "@/routes/NotFoundPage";
 
 /** The administrator's extra CSS (Settings → Branding), on every page. */
@@ -72,14 +75,26 @@ const searchRoute = createRoute({
   component: SearchPage,
   validateSearch: (s: Record<string, unknown>): { q?: string } => (typeof s.q === "string" && s.q ? { q: s.q } : {}),
 });
+const discoverRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/discover",
+  component: DiscoverPage,
+  validateSearch: (s: Record<string, unknown>): { q?: string } => (typeof s.q === "string" && s.q ? { q: s.q } : {}),
+});
 const watchRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/watch/$itemId",
   component: PlayerPage,
-  validateSearch: (s: Record<string, unknown>): { start?: number; playlist?: string } => ({
-    ...(s.start === undefined || Number.isNaN(Number(s.start)) ? {} : { start: Number(s.start) }),
-    ...(typeof s.playlist === "string" && s.playlist ? { playlist: s.playlist } : {}),
-  }),
+  validateSearch: (s: Record<string, unknown>): { start?: number; playlist?: string; file?: string; audio?: number; sub?: number } => {
+    const num = (v: unknown) => (v === undefined || v === "" || Number.isNaN(Number(v)) ? undefined : Number(v));
+    const out: { start?: number; playlist?: string; file?: string; audio?: number; sub?: number } = {};
+    if (num(s.start) !== undefined) out.start = num(s.start);
+    if (typeof s.playlist === "string" && s.playlist) out.playlist = s.playlist;
+    if (typeof s.file === "string" && /^[0-9a-f-]{36}$/i.test(s.file)) out.file = s.file;
+    if (num(s.audio) !== undefined) out.audio = num(s.audio);
+    if (num(s.sub) !== undefined) out.sub = num(s.sub);
+    return out;
+  },
 });
 
 function adminOnly(Page: ComponentType) {
@@ -121,6 +136,8 @@ const homePrefsRoute = createRoute({ getParentRoute: () => settingsRoute, path: 
 const transcodingRoute = createRoute({ getParentRoute: () => settingsRoute, path: "transcoding", component: adminOnly(TranscodingSettings) });
 const logsRoute = createRoute({ getParentRoute: () => settingsRoute, path: "logs", component: adminOnly(LogsSettings) });
 const activityRoute = createRoute({ getParentRoute: () => settingsRoute, path: "activity", component: adminOnly(ActivitySettings) });
+const requestsRoute = createRoute({ getParentRoute: () => settingsRoute, path: "requests", component: adminOnly(RequestsSettings) });
+const enhancementsRoute = createRoute({ getParentRoute: () => settingsRoute, path: "enhancements", component: adminOnly(EnhancementsSettings) });
 const brandingRoute = createRoute({ getParentRoute: () => settingsRoute, path: "branding", component: adminOnly(BrandingSettings) });
 
 export const routeTree = rootRoute.addChildren([
@@ -140,8 +157,9 @@ export const routeTree = rootRoute.addChildren([
     librariesRoute2,
     watchRoute,
     searchRoute,
+    discoverRoute,
     settingsRoute.addChildren([settingsIndex, playbackRoute, dashboardRoute, tasksRoute, notificationsRoute, accountRoute, profilesRoute, devicesRoute, quickConnectRoute, serverRoute, librariesRoute, metadataRoute, integrationsRoute, usersRoute, invitesRoute, apiKeysRoute,
-      subtitleLookRoute, homePrefsRoute, transcodingRoute, logsRoute, activityRoute, brandingRoute]),
+      subtitleLookRoute, homePrefsRoute, transcodingRoute, logsRoute, activityRoute, brandingRoute, requestsRoute, enhancementsRoute]),
   ]),
 ]);
 export const router = createRouter({ routeTree });

@@ -32,7 +32,7 @@ const KeySettings = "metadata"
 
 // LoadSettings returns the stored settings with defaults.
 func LoadSettings(ctx context.Context, st *settings.Store) (Settings, error) {
-	s := Settings{Language: "hr-HR", Country: "HR"}
+	s := Settings{Language: "en-US", Country: "US"}
 	_, err := st.Get(ctx, KeySettings, &s)
 	return s, err
 }
