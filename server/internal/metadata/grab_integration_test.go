@@ -73,3 +73,70 @@ func TestGrabFramesIntegration(t *testing.T) {
 		t.Fatalf("second grab: %d", n)
 	}
 }
+
+func TestLocalArtworkIntegration(t *testing.T) {
+	ffmpeg, err := exec.LookPath("ffmpeg")
+	if err != nil {
+		t.Skip("ffmpeg not installed")
+	}
+	pool := testPool(t)
+	ctx := context.Background()
+	root := t.TempDir()
+	dir := filepath.Join(root, "media", "Local Art (2021)")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "Local Art (2021).mkv"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	// A big poster and a transparent logo, as a user would drop them in.
+	for name, src := range map[string]string{"poster.png": "color=c=red:s=2000x3000", "clearlogo.png": "color=c=white@0.5:s=1200x400,format=rgba"} {
+		if out, err := exec.Command(ffmpeg, "-v", "error", "-f", "lavfi", "-i", src, "-frames:v", "1", filepath.Join(dir, name)).CombinedOutput(); err != nil {
+			t.Fatalf("make %s: %v %s", name, err, out)
+		}
+	}
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	roots := library.Roots{root}
+	svc := &library.Service{Pool: pool, Roots: roots, Enqueue: func(context.Context, uuid.UUID) error { return nil }}
+	scanner := &library.Scanner{Pool: pool, Roots: roots, Log: log,
+		Probe: func(context.Context, string) (library.ProbeResult, error) {
+			return library.ProbeResult{Container: "mkv", DurationMS: 4000}, nil
+		}}
+	lib, err := svc.Create(ctx, "Local", "movies", []string{filepath.Join(root, "media")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = svc.Delete(context.Background(), lib.ID) })
+	if _, err := scanner.Scan(ctx, lib.ID); err != nil {
+		t.Fatal(err)
+	}
+	images := filepath.Join(root, "images")
+	r := &Refresher{Pool: pool, ImageDir: images, Log: log, FFmpeg: ffmpeg,
+		ResolvePath: func(p string) (string, error) { return library.ResolveSafePath(roots, p) }}
+	if n, err := r.LocalArtwork(ctx, lib.ID); err != nil || n != 1 {
+		t.Fatalf("import: %d %v", n, err)
+	}
+	items, _, _ := svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 10, 0, library.ItemFilter{})
+	if len(items) != 1 || !items[0].HasPoster || !items[0].HasLogo || items[0].HasBackdrop {
+		t.Fatalf("flags: %+v", items)
+	}
+	poster := ImagePath(images, items[0].ID, "poster")
+	data, err := os.ReadFile(poster)
+	if err != nil || len(data) < 3 || data[0] != 0xff || data[1] != 0xd8 {
+		t.Fatalf("poster should be a JPEG: %v", err)
+	}
+	logo, _ := os.ReadFile(ImagePath(images, items[0].ID, "logo"))
+	if len(logo) < 8 || string(logo[1:4]) != "PNG" {
+		t.Fatal("logo should keep its transparency as PNG")
+	}
+	// Unchanged files are not imported again; downloads never replace them.
+	if n, _ := r.LocalArtwork(ctx, lib.ID); n != 0 {
+		t.Fatalf("second import: %d", n)
+	}
+	if !r.saveImage(ctx, nil, items[0].ID, "poster", "/x.jpg", "w500") {
+		t.Fatal("local poster should count as present")
+	}
+	if got, _ := os.ReadFile(poster); string(got) != string(data) {
+		t.Fatal("download replaced the user's poster")
+	}
+}

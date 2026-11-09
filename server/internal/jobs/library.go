@@ -190,6 +190,12 @@ func (w *MetadataRefreshWorker) Work(ctx context.Context, job *river.Job[Metadat
 		return err
 	}
 	w.Log.Info("metadata refreshed", "library", job.Args.LibraryID, "items", n)
+	// Artwork the user keeps beside the media wins over anything downloaded.
+	if l, err := w.Refresher.LocalArtwork(ctx, job.Args.LibraryID); err != nil {
+		w.Log.Warn("local artwork import failed", "library", job.Args.LibraryID, "err", err)
+	} else if l > 0 {
+		w.Log.Info("local artwork imported", "library", job.Args.LibraryID, "items", l)
+	}
 	// Whatever TMDb could not illustrate gets a frame from its own video.
 	if g, err := w.Refresher.GrabFrames(ctx, job.Args.LibraryID); err != nil {
 		w.Log.Warn("frame grab failed", "library", job.Args.LibraryID, "err", err)
