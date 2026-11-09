@@ -200,7 +200,7 @@ export function Billboard({ pool, label }: { pool?: ItemSummary[]; label?: strin
   const d = detail.data;
   return (
     <Screen item={pick} detail={d} className="min-h-[86svh] pt-[46svh] md:min-h-[min(100svh,980px)] md:pt-32" testId="home-hero">
-      <div key={pick.id} className={`flex max-w-[44rem] min-w-0 flex-col gap-5 ${stageGutter}`}>
+      <div className={stageGutter}><div key={pick.id} className="flex max-w-[44rem] min-w-0 flex-col gap-5">
         <h2 className="enter">
           <TitleArt item={pick} className="max-h-[22vh] w-auto max-w-[min(34rem,82vw)]"
             textClass="block font-display text-[clamp(2.9rem,7.4vw,7rem)] text-balance" />
@@ -219,7 +219,7 @@ export function Billboard({ pool, label }: { pool?: ItemSummary[]; label?: strin
           </Link>
         </div>
         <Watched item={pick} />
-      </div>
+      </div></div>
       {choices.length > 1 && (
         <div className="mt-10 flex flex-col gap-3 md:mt-14">
           {label && <p className={`font-label text-text/55 ${stageGutter}`}>{label}</p>}
@@ -611,7 +611,7 @@ export function ItemPage() {
   return (
     <div className="flex flex-col gap-14 pb-6">
       <Screen item={it} detail={d} still={isEpisode} className="min-h-[78svh] pt-[44svh] md:min-h-[min(92svh,900px)] md:pt-32" testId="item-hero">
-        <div className={`flex max-w-[46rem] min-w-0 flex-col gap-5 pb-4 ${gutter}`}>
+        <div className={`pb-4 ${gutter}`}><div className="flex max-w-[52rem] min-w-0 flex-col gap-5">
           {isEpisode && it.seriesTitle && (
             <Link to="/item/$itemId" params={{ itemId: it.seriesId! }} className="enter font-head text-lg text-text/75 hover:text-text">{it.seriesTitle}</Link>
           )}
@@ -627,7 +627,7 @@ export function ItemPage() {
           <div className="enter-3 mt-2 flex flex-wrap items-center gap-3">
             {d.files.length > 0 && (
               <Link to="/watch/$itemId" params={{ itemId: it.id }} data-testid="play"
-                className={`${pressable} ${buttonVariants.primary} ${bigButton}`}>
+                className={`${pressable} ${buttonVariants.primary} ${bigButton} max-sm:w-full`}>
                 <Play className="size-5 fill-current" aria-hidden />
                 {it.positionMs ? t("player.resume", { time: formatClock(it.positionMs) }) : t("player.play")}
               </Link>
@@ -643,7 +643,7 @@ export function ItemPage() {
             {isAdmin && <MetadataMenu d={d} />}
           </div>
           <Watched item={it} />
-        </div>
+        </div></div>
       </Screen>
 
       <section className={`grid gap-10 md:grid-cols-[minmax(0,13rem)_minmax(0,1fr)] lg:grid-cols-[minmax(0,15rem)_minmax(0,1fr)_minmax(0,20rem)] lg:gap-14 ${gutter}`}>
