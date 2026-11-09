@@ -551,6 +551,54 @@ func (s *CollectionInput) SetItemIds(val []uuid.UUID) {
 	s.ItemIds = val
 }
 
+// Ref: #/components/schemas/ConnectionCheck
+type ConnectionCheck struct {
+	App     string    `json:"app"`
+	Ok      bool      `json:"ok"`
+	Version OptString `json:"version"`
+	Error   OptString `json:"error"`
+}
+
+// GetApp returns the value of App.
+func (s *ConnectionCheck) GetApp() string {
+	return s.App
+}
+
+// GetOk returns the value of Ok.
+func (s *ConnectionCheck) GetOk() bool {
+	return s.Ok
+}
+
+// GetVersion returns the value of Version.
+func (s *ConnectionCheck) GetVersion() OptString {
+	return s.Version
+}
+
+// GetError returns the value of Error.
+func (s *ConnectionCheck) GetError() OptString {
+	return s.Error
+}
+
+// SetApp sets the value of App.
+func (s *ConnectionCheck) SetApp(val string) {
+	s.App = val
+}
+
+// SetOk sets the value of Ok.
+func (s *ConnectionCheck) SetOk(val bool) {
+	s.Ok = val
+}
+
+// SetVersion sets the value of Version.
+func (s *ConnectionCheck) SetVersion(val OptString) {
+	s.Version = val
+}
+
+// SetError sets the value of Error.
+func (s *ConnectionCheck) SetError(val OptString) {
+	s.Error = val
+}
+
 // Ref: #/components/schemas/CreateApiKeyRequest
 type CreateApiKeyRequest struct {
 	// E.g. "Jellyseerr".
@@ -1007,6 +1055,284 @@ func (s *DirectoryListing) SetDirectories(val []string) {
 
 // DisableTOTPNoContent is response for DisableTOTP operation.
 type DisableTOTPNoContent struct{}
+
+// Ref: #/components/schemas/DiscoverPage
+type DiscoverPage struct {
+	// Seerr is connected.
+	Configured bool            `json:"configured"`
+	CanRequest bool            `json:"canRequest"`
+	Titles     []DiscoverTitle `json:"titles"`
+	Page       int             `json:"page"`
+	TotalPages int             `json:"totalPages"`
+}
+
+// GetConfigured returns the value of Configured.
+func (s *DiscoverPage) GetConfigured() bool {
+	return s.Configured
+}
+
+// GetCanRequest returns the value of CanRequest.
+func (s *DiscoverPage) GetCanRequest() bool {
+	return s.CanRequest
+}
+
+// GetTitles returns the value of Titles.
+func (s *DiscoverPage) GetTitles() []DiscoverTitle {
+	return s.Titles
+}
+
+// GetPage returns the value of Page.
+func (s *DiscoverPage) GetPage() int {
+	return s.Page
+}
+
+// GetTotalPages returns the value of TotalPages.
+func (s *DiscoverPage) GetTotalPages() int {
+	return s.TotalPages
+}
+
+// SetConfigured sets the value of Configured.
+func (s *DiscoverPage) SetConfigured(val bool) {
+	s.Configured = val
+}
+
+// SetCanRequest sets the value of CanRequest.
+func (s *DiscoverPage) SetCanRequest(val bool) {
+	s.CanRequest = val
+}
+
+// SetTitles sets the value of Titles.
+func (s *DiscoverPage) SetTitles(val []DiscoverTitle) {
+	s.Titles = val
+}
+
+// SetPage sets the value of Page.
+func (s *DiscoverPage) SetPage(val int) {
+	s.Page = val
+}
+
+// SetTotalPages sets the value of TotalPages.
+func (s *DiscoverPage) SetTotalPages(val int) {
+	s.TotalPages = val
+}
+
+// Ref: #/components/schemas/DiscoverTitle
+type DiscoverTitle struct {
+	TmdbId      int                    `json:"tmdbId"`
+	MediaType   DiscoverTitleMediaType `json:"mediaType"`
+	Title       string                 `json:"title"`
+	Year        OptInt                 `json:"year"`
+	Overview    OptString              `json:"overview"`
+	PosterUrl   OptString              `json:"posterUrl"`
+	BackdropUrl OptString              `json:"backdropUrl"`
+	Rating      OptFloat64             `json:"rating"`
+	Status      DiscoverTitleStatus    `json:"status"`
+	// The title in this server's libraries, when it is already here.
+	ItemId OptUUID `json:"itemId"`
+}
+
+// GetTmdbId returns the value of TmdbId.
+func (s *DiscoverTitle) GetTmdbId() int {
+	return s.TmdbId
+}
+
+// GetMediaType returns the value of MediaType.
+func (s *DiscoverTitle) GetMediaType() DiscoverTitleMediaType {
+	return s.MediaType
+}
+
+// GetTitle returns the value of Title.
+func (s *DiscoverTitle) GetTitle() string {
+	return s.Title
+}
+
+// GetYear returns the value of Year.
+func (s *DiscoverTitle) GetYear() OptInt {
+	return s.Year
+}
+
+// GetOverview returns the value of Overview.
+func (s *DiscoverTitle) GetOverview() OptString {
+	return s.Overview
+}
+
+// GetPosterUrl returns the value of PosterUrl.
+func (s *DiscoverTitle) GetPosterUrl() OptString {
+	return s.PosterUrl
+}
+
+// GetBackdropUrl returns the value of BackdropUrl.
+func (s *DiscoverTitle) GetBackdropUrl() OptString {
+	return s.BackdropUrl
+}
+
+// GetRating returns the value of Rating.
+func (s *DiscoverTitle) GetRating() OptFloat64 {
+	return s.Rating
+}
+
+// GetStatus returns the value of Status.
+func (s *DiscoverTitle) GetStatus() DiscoverTitleStatus {
+	return s.Status
+}
+
+// GetItemId returns the value of ItemId.
+func (s *DiscoverTitle) GetItemId() OptUUID {
+	return s.ItemId
+}
+
+// SetTmdbId sets the value of TmdbId.
+func (s *DiscoverTitle) SetTmdbId(val int) {
+	s.TmdbId = val
+}
+
+// SetMediaType sets the value of MediaType.
+func (s *DiscoverTitle) SetMediaType(val DiscoverTitleMediaType) {
+	s.MediaType = val
+}
+
+// SetTitle sets the value of Title.
+func (s *DiscoverTitle) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetYear sets the value of Year.
+func (s *DiscoverTitle) SetYear(val OptInt) {
+	s.Year = val
+}
+
+// SetOverview sets the value of Overview.
+func (s *DiscoverTitle) SetOverview(val OptString) {
+	s.Overview = val
+}
+
+// SetPosterUrl sets the value of PosterUrl.
+func (s *DiscoverTitle) SetPosterUrl(val OptString) {
+	s.PosterUrl = val
+}
+
+// SetBackdropUrl sets the value of BackdropUrl.
+func (s *DiscoverTitle) SetBackdropUrl(val OptString) {
+	s.BackdropUrl = val
+}
+
+// SetRating sets the value of Rating.
+func (s *DiscoverTitle) SetRating(val OptFloat64) {
+	s.Rating = val
+}
+
+// SetStatus sets the value of Status.
+func (s *DiscoverTitle) SetStatus(val DiscoverTitleStatus) {
+	s.Status = val
+}
+
+// SetItemId sets the value of ItemId.
+func (s *DiscoverTitle) SetItemId(val OptUUID) {
+	s.ItemId = val
+}
+
+type DiscoverTitleMediaType string
+
+const (
+	DiscoverTitleMediaTypeMovie DiscoverTitleMediaType = "movie"
+	DiscoverTitleMediaTypeTv    DiscoverTitleMediaType = "tv"
+)
+
+// AllValues returns all DiscoverTitleMediaType values.
+func (DiscoverTitleMediaType) AllValues() []DiscoverTitleMediaType {
+	return []DiscoverTitleMediaType{
+		DiscoverTitleMediaTypeMovie,
+		DiscoverTitleMediaTypeTv,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DiscoverTitleMediaType) MarshalText() ([]byte, error) {
+	switch s {
+	case DiscoverTitleMediaTypeMovie:
+		return []byte(s), nil
+	case DiscoverTitleMediaTypeTv:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DiscoverTitleMediaType) UnmarshalText(data []byte) error {
+	switch DiscoverTitleMediaType(data) {
+	case DiscoverTitleMediaTypeMovie:
+		*s = DiscoverTitleMediaTypeMovie
+		return nil
+	case DiscoverTitleMediaTypeTv:
+		*s = DiscoverTitleMediaTypeTv
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type DiscoverTitleStatus string
+
+const (
+	DiscoverTitleStatusNone       DiscoverTitleStatus = "none"
+	DiscoverTitleStatusPending    DiscoverTitleStatus = "pending"
+	DiscoverTitleStatusProcessing DiscoverTitleStatus = "processing"
+	DiscoverTitleStatusPartial    DiscoverTitleStatus = "partial"
+	DiscoverTitleStatusAvailable  DiscoverTitleStatus = "available"
+)
+
+// AllValues returns all DiscoverTitleStatus values.
+func (DiscoverTitleStatus) AllValues() []DiscoverTitleStatus {
+	return []DiscoverTitleStatus{
+		DiscoverTitleStatusNone,
+		DiscoverTitleStatusPending,
+		DiscoverTitleStatusProcessing,
+		DiscoverTitleStatusPartial,
+		DiscoverTitleStatusAvailable,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DiscoverTitleStatus) MarshalText() ([]byte, error) {
+	switch s {
+	case DiscoverTitleStatusNone:
+		return []byte(s), nil
+	case DiscoverTitleStatusPending:
+		return []byte(s), nil
+	case DiscoverTitleStatusProcessing:
+		return []byte(s), nil
+	case DiscoverTitleStatusPartial:
+		return []byte(s), nil
+	case DiscoverTitleStatusAvailable:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DiscoverTitleStatus) UnmarshalText(data []byte) error {
+	switch DiscoverTitleStatus(data) {
+	case DiscoverTitleStatusNone:
+		*s = DiscoverTitleStatusNone
+		return nil
+	case DiscoverTitleStatusPending:
+		*s = DiscoverTitleStatusPending
+		return nil
+	case DiscoverTitleStatusProcessing:
+		*s = DiscoverTitleStatusProcessing
+		return nil
+	case DiscoverTitleStatusPartial:
+		*s = DiscoverTitleStatusPartial
+		return nil
+	case DiscoverTitleStatusAvailable:
+		*s = DiscoverTitleStatusAvailable
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
 
 // EditMetadataNoContent is response for EditMetadata operation.
 type EditMetadataNoContent struct{}
@@ -6264,6 +6590,228 @@ func (s *RenameSessionRequest) SetDeviceName(val string) {
 // ReportProgressNoContent is response for ReportProgress operation.
 type ReportProgressNoContent struct{}
 
+// Ref: #/components/schemas/RequestSettings
+type RequestSettings struct {
+	SeerrUrl        OptString `json:"seerrUrl"`
+	SeerrConfigured bool      `json:"seerrConfigured"`
+	// Everyone (not only administrators) can request titles.
+	UsersCanRequest  bool      `json:"usersCanRequest"`
+	RadarrUrl        OptString `json:"radarrUrl"`
+	RadarrConfigured bool      `json:"radarrConfigured"`
+	SonarrUrl        OptString `json:"sonarrUrl"`
+	SonarrConfigured bool      `json:"sonarrConfigured"`
+}
+
+// GetSeerrUrl returns the value of SeerrUrl.
+func (s *RequestSettings) GetSeerrUrl() OptString {
+	return s.SeerrUrl
+}
+
+// GetSeerrConfigured returns the value of SeerrConfigured.
+func (s *RequestSettings) GetSeerrConfigured() bool {
+	return s.SeerrConfigured
+}
+
+// GetUsersCanRequest returns the value of UsersCanRequest.
+func (s *RequestSettings) GetUsersCanRequest() bool {
+	return s.UsersCanRequest
+}
+
+// GetRadarrUrl returns the value of RadarrUrl.
+func (s *RequestSettings) GetRadarrUrl() OptString {
+	return s.RadarrUrl
+}
+
+// GetRadarrConfigured returns the value of RadarrConfigured.
+func (s *RequestSettings) GetRadarrConfigured() bool {
+	return s.RadarrConfigured
+}
+
+// GetSonarrUrl returns the value of SonarrUrl.
+func (s *RequestSettings) GetSonarrUrl() OptString {
+	return s.SonarrUrl
+}
+
+// GetSonarrConfigured returns the value of SonarrConfigured.
+func (s *RequestSettings) GetSonarrConfigured() bool {
+	return s.SonarrConfigured
+}
+
+// SetSeerrUrl sets the value of SeerrUrl.
+func (s *RequestSettings) SetSeerrUrl(val OptString) {
+	s.SeerrUrl = val
+}
+
+// SetSeerrConfigured sets the value of SeerrConfigured.
+func (s *RequestSettings) SetSeerrConfigured(val bool) {
+	s.SeerrConfigured = val
+}
+
+// SetUsersCanRequest sets the value of UsersCanRequest.
+func (s *RequestSettings) SetUsersCanRequest(val bool) {
+	s.UsersCanRequest = val
+}
+
+// SetRadarrUrl sets the value of RadarrUrl.
+func (s *RequestSettings) SetRadarrUrl(val OptString) {
+	s.RadarrUrl = val
+}
+
+// SetRadarrConfigured sets the value of RadarrConfigured.
+func (s *RequestSettings) SetRadarrConfigured(val bool) {
+	s.RadarrConfigured = val
+}
+
+// SetSonarrUrl sets the value of SonarrUrl.
+func (s *RequestSettings) SetSonarrUrl(val OptString) {
+	s.SonarrUrl = val
+}
+
+// SetSonarrConfigured sets the value of SonarrConfigured.
+func (s *RequestSettings) SetSonarrConfigured(val bool) {
+	s.SonarrConfigured = val
+}
+
+// Ref: #/components/schemas/RequestSettingsInput
+type RequestSettingsInput struct {
+	SeerrUrl        OptString                            `json:"seerrUrl"`
+	SeerrApiKey     OptString                            `json:"seerrApiKey"`
+	UsersCanRequest bool                                 `json:"usersCanRequest"`
+	RadarrUrl       OptString                            `json:"radarrUrl"`
+	RadarrApiKey    OptString                            `json:"radarrApiKey"`
+	SonarrUrl       OptString                            `json:"sonarrUrl"`
+	SonarrApiKey    OptString                            `json:"sonarrApiKey"`
+	RemoveKeys      []RequestSettingsInputRemoveKeysItem `json:"removeKeys"`
+}
+
+// GetSeerrUrl returns the value of SeerrUrl.
+func (s *RequestSettingsInput) GetSeerrUrl() OptString {
+	return s.SeerrUrl
+}
+
+// GetSeerrApiKey returns the value of SeerrApiKey.
+func (s *RequestSettingsInput) GetSeerrApiKey() OptString {
+	return s.SeerrApiKey
+}
+
+// GetUsersCanRequest returns the value of UsersCanRequest.
+func (s *RequestSettingsInput) GetUsersCanRequest() bool {
+	return s.UsersCanRequest
+}
+
+// GetRadarrUrl returns the value of RadarrUrl.
+func (s *RequestSettingsInput) GetRadarrUrl() OptString {
+	return s.RadarrUrl
+}
+
+// GetRadarrApiKey returns the value of RadarrApiKey.
+func (s *RequestSettingsInput) GetRadarrApiKey() OptString {
+	return s.RadarrApiKey
+}
+
+// GetSonarrUrl returns the value of SonarrUrl.
+func (s *RequestSettingsInput) GetSonarrUrl() OptString {
+	return s.SonarrUrl
+}
+
+// GetSonarrApiKey returns the value of SonarrApiKey.
+func (s *RequestSettingsInput) GetSonarrApiKey() OptString {
+	return s.SonarrApiKey
+}
+
+// GetRemoveKeys returns the value of RemoveKeys.
+func (s *RequestSettingsInput) GetRemoveKeys() []RequestSettingsInputRemoveKeysItem {
+	return s.RemoveKeys
+}
+
+// SetSeerrUrl sets the value of SeerrUrl.
+func (s *RequestSettingsInput) SetSeerrUrl(val OptString) {
+	s.SeerrUrl = val
+}
+
+// SetSeerrApiKey sets the value of SeerrApiKey.
+func (s *RequestSettingsInput) SetSeerrApiKey(val OptString) {
+	s.SeerrApiKey = val
+}
+
+// SetUsersCanRequest sets the value of UsersCanRequest.
+func (s *RequestSettingsInput) SetUsersCanRequest(val bool) {
+	s.UsersCanRequest = val
+}
+
+// SetRadarrUrl sets the value of RadarrUrl.
+func (s *RequestSettingsInput) SetRadarrUrl(val OptString) {
+	s.RadarrUrl = val
+}
+
+// SetRadarrApiKey sets the value of RadarrApiKey.
+func (s *RequestSettingsInput) SetRadarrApiKey(val OptString) {
+	s.RadarrApiKey = val
+}
+
+// SetSonarrUrl sets the value of SonarrUrl.
+func (s *RequestSettingsInput) SetSonarrUrl(val OptString) {
+	s.SonarrUrl = val
+}
+
+// SetSonarrApiKey sets the value of SonarrApiKey.
+func (s *RequestSettingsInput) SetSonarrApiKey(val OptString) {
+	s.SonarrApiKey = val
+}
+
+// SetRemoveKeys sets the value of RemoveKeys.
+func (s *RequestSettingsInput) SetRemoveKeys(val []RequestSettingsInputRemoveKeysItem) {
+	s.RemoveKeys = val
+}
+
+type RequestSettingsInputRemoveKeysItem string
+
+const (
+	RequestSettingsInputRemoveKeysItemSeerr  RequestSettingsInputRemoveKeysItem = "seerr"
+	RequestSettingsInputRemoveKeysItemRadarr RequestSettingsInputRemoveKeysItem = "radarr"
+	RequestSettingsInputRemoveKeysItemSonarr RequestSettingsInputRemoveKeysItem = "sonarr"
+)
+
+// AllValues returns all RequestSettingsInputRemoveKeysItem values.
+func (RequestSettingsInputRemoveKeysItem) AllValues() []RequestSettingsInputRemoveKeysItem {
+	return []RequestSettingsInputRemoveKeysItem{
+		RequestSettingsInputRemoveKeysItemSeerr,
+		RequestSettingsInputRemoveKeysItemRadarr,
+		RequestSettingsInputRemoveKeysItemSonarr,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RequestSettingsInputRemoveKeysItem) MarshalText() ([]byte, error) {
+	switch s {
+	case RequestSettingsInputRemoveKeysItemSeerr:
+		return []byte(s), nil
+	case RequestSettingsInputRemoveKeysItemRadarr:
+		return []byte(s), nil
+	case RequestSettingsInputRemoveKeysItemSonarr:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RequestSettingsInputRemoveKeysItem) UnmarshalText(data []byte) error {
+	switch RequestSettingsInputRemoveKeysItem(data) {
+	case RequestSettingsInputRemoveKeysItemSeerr:
+		*s = RequestSettingsInputRemoveKeysItemSeerr
+		return nil
+	case RequestSettingsInputRemoveKeysItemRadarr:
+		*s = RequestSettingsInputRemoveKeysItemRadarr
+		return nil
+	case RequestSettingsInputRemoveKeysItemSonarr:
+		*s = RequestSettingsInputRemoveKeysItemSonarr
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // Ref: #/components/schemas/ResumeSettings
 type ResumeSettings struct {
 	// Below this much of the length, stopping does not save a position.
@@ -7223,6 +7771,150 @@ func (s *TaskKey) UnmarshalText(data []byte) error {
 // TestNotificationNoContent is response for TestNotification operation.
 type TestNotificationNoContent struct{}
 
+// Ref: #/components/schemas/TitleRequest
+type TitleRequest struct {
+	TmdbId    int                   `json:"tmdbId"`
+	MediaType TitleRequestMediaType `json:"mediaType"`
+}
+
+// GetTmdbId returns the value of TmdbId.
+func (s *TitleRequest) GetTmdbId() int {
+	return s.TmdbId
+}
+
+// GetMediaType returns the value of MediaType.
+func (s *TitleRequest) GetMediaType() TitleRequestMediaType {
+	return s.MediaType
+}
+
+// SetTmdbId sets the value of TmdbId.
+func (s *TitleRequest) SetTmdbId(val int) {
+	s.TmdbId = val
+}
+
+// SetMediaType sets the value of MediaType.
+func (s *TitleRequest) SetMediaType(val TitleRequestMediaType) {
+	s.MediaType = val
+}
+
+type TitleRequestMediaType string
+
+const (
+	TitleRequestMediaTypeMovie TitleRequestMediaType = "movie"
+	TitleRequestMediaTypeTv    TitleRequestMediaType = "tv"
+)
+
+// AllValues returns all TitleRequestMediaType values.
+func (TitleRequestMediaType) AllValues() []TitleRequestMediaType {
+	return []TitleRequestMediaType{
+		TitleRequestMediaTypeMovie,
+		TitleRequestMediaTypeTv,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TitleRequestMediaType) MarshalText() ([]byte, error) {
+	switch s {
+	case TitleRequestMediaTypeMovie:
+		return []byte(s), nil
+	case TitleRequestMediaTypeTv:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TitleRequestMediaType) UnmarshalText(data []byte) error {
+	switch TitleRequestMediaType(data) {
+	case TitleRequestMediaTypeMovie:
+		*s = TitleRequestMediaTypeMovie
+		return nil
+	case TitleRequestMediaTypeTv:
+		*s = TitleRequestMediaTypeTv
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/TitleRequestResult
+type TitleRequestResult struct {
+	Status TitleRequestResultStatus `json:"status"`
+}
+
+// GetStatus returns the value of Status.
+func (s *TitleRequestResult) GetStatus() TitleRequestResultStatus {
+	return s.Status
+}
+
+// SetStatus sets the value of Status.
+func (s *TitleRequestResult) SetStatus(val TitleRequestResultStatus) {
+	s.Status = val
+}
+
+type TitleRequestResultStatus string
+
+const (
+	TitleRequestResultStatusNone       TitleRequestResultStatus = "none"
+	TitleRequestResultStatusPending    TitleRequestResultStatus = "pending"
+	TitleRequestResultStatusProcessing TitleRequestResultStatus = "processing"
+	TitleRequestResultStatusPartial    TitleRequestResultStatus = "partial"
+	TitleRequestResultStatusAvailable  TitleRequestResultStatus = "available"
+)
+
+// AllValues returns all TitleRequestResultStatus values.
+func (TitleRequestResultStatus) AllValues() []TitleRequestResultStatus {
+	return []TitleRequestResultStatus{
+		TitleRequestResultStatusNone,
+		TitleRequestResultStatusPending,
+		TitleRequestResultStatusProcessing,
+		TitleRequestResultStatusPartial,
+		TitleRequestResultStatusAvailable,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TitleRequestResultStatus) MarshalText() ([]byte, error) {
+	switch s {
+	case TitleRequestResultStatusNone:
+		return []byte(s), nil
+	case TitleRequestResultStatusPending:
+		return []byte(s), nil
+	case TitleRequestResultStatusProcessing:
+		return []byte(s), nil
+	case TitleRequestResultStatusPartial:
+		return []byte(s), nil
+	case TitleRequestResultStatusAvailable:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TitleRequestResultStatus) UnmarshalText(data []byte) error {
+	switch TitleRequestResultStatus(data) {
+	case TitleRequestResultStatusNone:
+		*s = TitleRequestResultStatusNone
+		return nil
+	case TitleRequestResultStatusPending:
+		*s = TitleRequestResultStatusPending
+		return nil
+	case TitleRequestResultStatusProcessing:
+		*s = TitleRequestResultStatusProcessing
+		return nil
+	case TitleRequestResultStatusPartial:
+		*s = TitleRequestResultStatusPartial
+		return nil
+	case TitleRequestResultStatusAvailable:
+		*s = TitleRequestResultStatusAvailable
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // Ref: #/components/schemas/TrickplayInfo
 type TrickplayInfo struct {
 	IntervalMs int      `json:"intervalMs"`
@@ -7302,6 +7994,150 @@ func (s *TrickplayInfo) SetCount(val int) {
 // SetSheetUrls sets the value of SheetUrls.
 func (s *TrickplayInfo) SetSheetUrls(val []string) {
 	s.SheetUrls = val
+}
+
+// Ref: #/components/schemas/UpcomingRelease
+type UpcomingRelease struct {
+	Kind        UpcomingReleaseKind `json:"kind"`
+	Title       string              `json:"title"`
+	SeriesTitle OptString           `json:"seriesTitle"`
+	Season      OptInt              `json:"season"`
+	Episode     OptInt              `json:"episode"`
+	Date        time.Time           `json:"date"`
+	Overview    OptString           `json:"overview"`
+	PosterUrl   OptString           `json:"posterUrl"`
+	Downloaded  bool                `json:"downloaded"`
+}
+
+// GetKind returns the value of Kind.
+func (s *UpcomingRelease) GetKind() UpcomingReleaseKind {
+	return s.Kind
+}
+
+// GetTitle returns the value of Title.
+func (s *UpcomingRelease) GetTitle() string {
+	return s.Title
+}
+
+// GetSeriesTitle returns the value of SeriesTitle.
+func (s *UpcomingRelease) GetSeriesTitle() OptString {
+	return s.SeriesTitle
+}
+
+// GetSeason returns the value of Season.
+func (s *UpcomingRelease) GetSeason() OptInt {
+	return s.Season
+}
+
+// GetEpisode returns the value of Episode.
+func (s *UpcomingRelease) GetEpisode() OptInt {
+	return s.Episode
+}
+
+// GetDate returns the value of Date.
+func (s *UpcomingRelease) GetDate() time.Time {
+	return s.Date
+}
+
+// GetOverview returns the value of Overview.
+func (s *UpcomingRelease) GetOverview() OptString {
+	return s.Overview
+}
+
+// GetPosterUrl returns the value of PosterUrl.
+func (s *UpcomingRelease) GetPosterUrl() OptString {
+	return s.PosterUrl
+}
+
+// GetDownloaded returns the value of Downloaded.
+func (s *UpcomingRelease) GetDownloaded() bool {
+	return s.Downloaded
+}
+
+// SetKind sets the value of Kind.
+func (s *UpcomingRelease) SetKind(val UpcomingReleaseKind) {
+	s.Kind = val
+}
+
+// SetTitle sets the value of Title.
+func (s *UpcomingRelease) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetSeriesTitle sets the value of SeriesTitle.
+func (s *UpcomingRelease) SetSeriesTitle(val OptString) {
+	s.SeriesTitle = val
+}
+
+// SetSeason sets the value of Season.
+func (s *UpcomingRelease) SetSeason(val OptInt) {
+	s.Season = val
+}
+
+// SetEpisode sets the value of Episode.
+func (s *UpcomingRelease) SetEpisode(val OptInt) {
+	s.Episode = val
+}
+
+// SetDate sets the value of Date.
+func (s *UpcomingRelease) SetDate(val time.Time) {
+	s.Date = val
+}
+
+// SetOverview sets the value of Overview.
+func (s *UpcomingRelease) SetOverview(val OptString) {
+	s.Overview = val
+}
+
+// SetPosterUrl sets the value of PosterUrl.
+func (s *UpcomingRelease) SetPosterUrl(val OptString) {
+	s.PosterUrl = val
+}
+
+// SetDownloaded sets the value of Downloaded.
+func (s *UpcomingRelease) SetDownloaded(val bool) {
+	s.Downloaded = val
+}
+
+type UpcomingReleaseKind string
+
+const (
+	UpcomingReleaseKindMovie   UpcomingReleaseKind = "movie"
+	UpcomingReleaseKindEpisode UpcomingReleaseKind = "episode"
+)
+
+// AllValues returns all UpcomingReleaseKind values.
+func (UpcomingReleaseKind) AllValues() []UpcomingReleaseKind {
+	return []UpcomingReleaseKind{
+		UpcomingReleaseKindMovie,
+		UpcomingReleaseKindEpisode,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UpcomingReleaseKind) MarshalText() ([]byte, error) {
+	switch s {
+	case UpcomingReleaseKindMovie:
+		return []byte(s), nil
+	case UpcomingReleaseKindEpisode:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *UpcomingReleaseKind) UnmarshalText(data []byte) error {
+	switch UpcomingReleaseKind(data) {
+	case UpcomingReleaseKindMovie:
+		*s = UpcomingReleaseKindMovie
+		return nil
+	case UpcomingReleaseKindEpisode:
+		*s = UpcomingReleaseKindEpisode
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 // Ref: #/components/schemas/UpdateMeRequest

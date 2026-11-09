@@ -231,6 +231,15 @@ func (UnimplementedHandler) DisableTOTP(ctx context.Context, req *PasswordConfir
 	return ht.ErrNotImplemented
 }
 
+// Discover implements discover operation.
+//
+// Search movies and series to request (trending when q is empty).
+//
+// GET /discover
+func (UnimplementedHandler) Discover(ctx context.Context, params DiscoverParams) (r *DiscoverPage, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // EditMetadata implements editMetadata operation.
 //
 // Edit metadata by hand (administrators); locked items keep it on refresh.
@@ -390,6 +399,15 @@ func (UnimplementedHandler) GetPlaylist(ctx context.Context, params GetPlaylistP
 //
 // GET /me/preferences
 func (UnimplementedHandler) GetPreferences(ctx context.Context) (r *PlaybackPreferences, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetRequestSettings implements getRequestSettings operation.
+//
+// Seerr / Radarr / Sonarr connections (admin; keys are never returned).
+//
+// GET /settings/requests
+func (UnimplementedHandler) GetRequestSettings(ctx context.Context) (r *RequestSettings, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -565,6 +583,15 @@ func (UnimplementedHandler) ListTasks(ctx context.Context) (r []Task, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
+// ListUpcoming implements listUpcoming operation.
+//
+// Releases of the next weeks from Radarr and Sonarr.
+//
+// GET /upcoming
+func (UnimplementedHandler) ListUpcoming(ctx context.Context, params ListUpcomingParams) (r []UpcomingRelease, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ListUsers implements listUsers operation.
 //
 // List users (admin).
@@ -671,6 +698,15 @@ func (UnimplementedHandler) RenameSession(ctx context.Context, req *RenameSessio
 // PUT /items/{itemId}/progress
 func (UnimplementedHandler) ReportProgress(ctx context.Context, req *ProgressReport, params ReportProgressParams) error {
 	return ht.ErrNotImplemented
+}
+
+// RequestTitle implements requestTitle operation.
+//
+// Ask Seerr to download a movie or a whole series.
+//
+// POST /discover/request
+func (UnimplementedHandler) RequestTitle(ctx context.Context, req *TitleRequest) (r *TitleRequestResult, _ error) {
+	return r, ht.ErrNotImplemented
 }
 
 // RevokeSession implements revokeSession operation.
@@ -792,6 +828,15 @@ func (UnimplementedHandler) TestNotification(ctx context.Context, req *Notificat
 	return ht.ErrNotImplemented
 }
 
+// TestRequestSettings implements testRequestSettings operation.
+//
+// Check each configured connection (admin).
+//
+// POST /settings/requests/test
+func (UnimplementedHandler) TestRequestSettings(ctx context.Context) (r []ConnectionCheck, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // UpdateBrandingSettings implements updateBrandingSettings operation.
 //
 // Update branding (admin).
@@ -879,6 +924,15 @@ func (UnimplementedHandler) UpdatePreferences(ctx context.Context, req *Playback
 //
 // PUT /profiles/{profileId}
 func (UnimplementedHandler) UpdateProfile(ctx context.Context, req *ProfileInput, params UpdateProfileParams) (r *Profile, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateRequestSettings implements updateRequestSettings operation.
+//
+// Change the connections (admin); an empty key keeps the stored one.
+//
+// PUT /settings/requests
+func (UnimplementedHandler) UpdateRequestSettings(ctx context.Context, req *RequestSettingsInput) (r *RequestSettings, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

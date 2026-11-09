@@ -154,6 +154,12 @@ type Handler interface {
 	//
 	// POST /auth/totp/disable
 	DisableTOTP(ctx context.Context, req *PasswordConfirmRequest) error
+	// Discover implements discover operation.
+	//
+	// Search movies and series to request (trending when q is empty).
+	//
+	// GET /discover
+	Discover(ctx context.Context, params DiscoverParams) (*DiscoverPage, error)
 	// EditMetadata implements editMetadata operation.
 	//
 	// Edit metadata by hand (administrators); locked items keep it on refresh.
@@ -262,6 +268,12 @@ type Handler interface {
 	//
 	// GET /me/preferences
 	GetPreferences(ctx context.Context) (*PlaybackPreferences, error)
+	// GetRequestSettings implements getRequestSettings operation.
+	//
+	// Seerr / Radarr / Sonarr connections (admin; keys are never returned).
+	//
+	// GET /settings/requests
+	GetRequestSettings(ctx context.Context) (*RequestSettings, error)
 	// GetResumeSettings implements getResumeSettings operation.
 	//
 	// When playback counts as started or watched (admin).
@@ -377,6 +389,12 @@ type Handler interface {
 	//
 	// GET /tasks
 	ListTasks(ctx context.Context) ([]Task, error)
+	// ListUpcoming implements listUpcoming operation.
+	//
+	// Releases of the next weeks from Radarr and Sonarr.
+	//
+	// GET /upcoming
+	ListUpcoming(ctx context.Context, params ListUpcomingParams) ([]UpcomingRelease, error)
 	// ListUsers implements listUsers operation.
 	//
 	// List users (admin).
@@ -449,6 +467,12 @@ type Handler interface {
 	//
 	// PUT /items/{itemId}/progress
 	ReportProgress(ctx context.Context, req *ProgressReport, params ReportProgressParams) error
+	// RequestTitle implements requestTitle operation.
+	//
+	// Ask Seerr to download a movie or a whole series.
+	//
+	// POST /discover/request
+	RequestTitle(ctx context.Context, req *TitleRequest) (*TitleRequestResult, error)
 	// RevokeSession implements revokeSession operation.
 	//
 	// Own sessions; admins can revoke any session.
@@ -529,6 +553,12 @@ type Handler interface {
 	//
 	// POST /settings/notifications/test
 	TestNotification(ctx context.Context, req *NotificationTarget) error
+	// TestRequestSettings implements testRequestSettings operation.
+	//
+	// Check each configured connection (admin).
+	//
+	// POST /settings/requests/test
+	TestRequestSettings(ctx context.Context) ([]ConnectionCheck, error)
 	// UpdateBrandingSettings implements updateBrandingSettings operation.
 	//
 	// Update branding (admin).
@@ -589,6 +619,12 @@ type Handler interface {
 	//
 	// PUT /profiles/{profileId}
 	UpdateProfile(ctx context.Context, req *ProfileInput, params UpdateProfileParams) (*Profile, error)
+	// UpdateRequestSettings implements updateRequestSettings operation.
+	//
+	// Change the connections (admin); an empty key keeps the stored one.
+	//
+	// PUT /settings/requests
+	UpdateRequestSettings(ctx context.Context, req *RequestSettingsInput) (*RequestSettings, error)
 	// UpdateResumeSettings implements updateResumeSettings operation.
 	//
 	// Update resume thresholds (admin).

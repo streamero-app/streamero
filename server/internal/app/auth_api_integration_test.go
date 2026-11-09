@@ -1913,3 +1913,79 @@ func TestAccountAndAvatarIntegration(t *testing.T) {
 		t.Fatalf("foreign profile: HTTP %d", s)
 	}
 }
+
+func TestDiscoverIntegration(t *testing.T) {
+	seerr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-Api-Key") != "seerr-key" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		switch r.URL.Path {
+		case "/api/v1/search":
+			_, _ = w.Write([]byte(`{"page":1,"totalPages":1,"results":[{"id":603,"mediaType":"movie","title":"The Matrix","releaseDate":"1999-03-30","posterPath":"/m.jpg"}]}`))
+		case "/api/v1/request":
+			_, _ = w.Write([]byte(`{"status":1}`))
+		case "/api/v1/status":
+			_, _ = w.Write([]byte(`{"version":"2.7.3"}`))
+		}
+	}))
+	defer seerr.Close()
+	srv := newAuthTestServer(t)
+	c := newClient(t, srv)
+	setupAdmin(t, c)
+	var page map[string]any
+	if s := c.do("GET", "/discover?q=matrix", nil, &page); s != 200 || page["configured"] != false {
+		t.Fatalf("unconfigured discover: HTTP %d %v", s, page)
+	}
+	var e apiError
+	if s := c.do("PUT", "/settings/requests", map[string]any{"seerrUrl": "seerr:5055", "usersCanRequest": true}, &e); s != 400 || e.Code != "invalid_url" {
+		t.Fatalf("bad url: HTTP %d %+v", s, e)
+	}
+	var rs map[string]any
+	if s := c.do("PUT", "/settings/requests", map[string]any{"seerrUrl": seerr.URL + "/", "seerrApiKey": "seerr-key", "usersCanRequest": false}, &rs); s != 200 ||
+		rs["seerrConfigured"] != true || rs["seerrUrl"] != seerr.URL {
+		t.Fatalf("save: HTTP %d %v", s, rs)
+	}
+	if _, leaked := rs["seerrApiKey"]; leaked {
+		t.Fatal("the key must never be returned")
+	}
+	var checks []map[string]any
+	if c.do("POST", "/settings/requests/test", nil, &checks); len(checks) != 1 || checks[0]["ok"] != true || checks[0]["version"] != "2.7.3" {
+		t.Fatalf("test connection: %v", checks)
+	}
+	// A title already in the library comes back as available with its item id.
+	if _, err := testPool.Exec(context.Background(), `INSERT INTO libraries (id, name, kind, paths) VALUES ('01a1c0a0-0000-7000-8000-000000000001', 'D', 'movies', '{/x}') ON CONFLICT DO NOTHING;
+		INSERT INTO items (id, library_id, kind, path, title, sort_title, provider_ids) VALUES ('01a1c0a0-0000-7000-8000-000000000002', '01a1c0a0-0000-7000-8000-000000000001', 'movie', '/x/m', 'The Matrix', 'Matrix', '{"tmdb":"603"}')
+		ON CONFLICT DO NOTHING`); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_, _ = testPool.Exec(context.Background(), `DELETE FROM libraries WHERE id = '01a1c0a0-0000-7000-8000-000000000001'`)
+	})
+	page = map[string]any{}
+	if s := c.do("GET", "/discover?q=matrix", nil, &page); s != 200 || page["canRequest"] != true {
+		t.Fatalf("discover: HTTP %d %v", s, page)
+	}
+	titles := page["titles"].([]any)
+	first := titles[0].(map[string]any)
+	if first["status"] != "available" || first["itemId"] != "01a1c0a0-0000-7000-8000-000000000002" || first["posterUrl"] != "https://image.tmdb.org/t/p/w342/m.jpg" {
+		t.Fatalf("title: %v", first)
+	}
+	var res map[string]any
+	if s := c.do("POST", "/discover/request", map[string]any{"tmdbId": 603, "mediaType": "movie"}, &res); s != 200 || res["status"] != "pending" {
+		t.Fatalf("request: HTTP %d %v", s, res)
+	}
+	// With usersCanRequest off, a normal user may search but not request.
+	c.do("POST", "/users", map[string]any{"username": "viewer", "password": "viewer-pass-1"}, nil)
+	u := newClient(t, srv)
+	var login authResult
+	u.do("POST", "/auth/login", map[string]any{"username": "viewer", "password": "viewer-pass-1", "device": map[string]any{"name": "t"}}, &login)
+	u.token = login.Token
+	page = map[string]any{}
+	if u.do("GET", "/discover?q=matrix", nil, &page); page["canRequest"] != false {
+		t.Fatalf("viewer canRequest: %v", page)
+	}
+	if s := u.do("POST", "/discover/request", map[string]any{"tmdbId": 603, "mediaType": "movie"}, &e); s != 403 {
+		t.Fatalf("viewer request: HTTP %d", s)
+	}
+}

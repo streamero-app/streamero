@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, Navigate, Outlet, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Bookmark, Clapperboard, Film, House, LogOut, Music, Search, Settings, Tv, Users, type LucideIcon } from "lucide-react";
+import { Bookmark, Clapperboard, Compass, Film, House, LogOut, Music, Search, Settings, Tv, Users, type LucideIcon } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Spinner } from "@/components/ui";
@@ -148,6 +148,10 @@ export function AppShell() {
           </nav>
           <div className="ml-auto flex items-center gap-3">
             <div className="hidden sm:block"><SearchBox /></div>
+            <Link to="/discover" aria-label={t("discover.title")} title={t("discover.title")} data-testid="discover-link"
+              className="tv-focus grid size-10 place-items-center rounded-[6px] text-text/85 transition-colors hover:bg-white/10 hover:text-text [&.active]:text-[var(--amb-a)]">
+              <Compass className="size-5" aria-hidden />
+            </Link>
             <AccountMenu />
           </div>
         </header>
@@ -164,10 +168,11 @@ export function AppShell() {
 
       {!watching && (
         <nav aria-label={t("nav.libraries")}
-          className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-border bg-bg/92 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden">
+          className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-border bg-bg/92 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden">
           {[
             { to: "/", icon: House, label: t("nav.home"), exact: true },
             { to: "/search", icon: Search, label: t("nav.search") },
+            { to: "/discover", icon: Compass, label: t("discover.short") },
             { to: "/my-list", icon: Bookmark, label: t("nav.myList") },
             { to: "/libraries", icon: Clapperboard, label: t("nav.libraries") },
           ].map(({ to, icon: Icon, label, exact }) => (

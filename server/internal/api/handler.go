@@ -4,7 +4,6 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"github.com/streamero-app/streamero/server/internal/logbuf"
 	"log/slog"
 	"net/http"
 	"time"
@@ -15,8 +14,10 @@ import (
 	"github.com/streamero-app/streamero/server/internal/api/gen"
 	"github.com/streamero-app/streamero/server/internal/auth"
 	"github.com/streamero-app/streamero/server/internal/library"
+	"github.com/streamero-app/streamero/server/internal/logbuf"
 	"github.com/streamero-app/streamero/server/internal/metadata"
 	"github.com/streamero-app/streamero/server/internal/notify"
+	"github.com/streamero-app/streamero/server/internal/requests"
 	"github.com/streamero-app/streamero/server/internal/settings"
 	"github.com/streamero-app/streamero/server/internal/stream"
 	"github.com/streamero-app/streamero/server/internal/version"
@@ -43,6 +44,8 @@ type Handler struct {
 	Stream func() *stream.Server
 	// Logs holds recent log records of the server and worker (admin log viewer).
 	Logs *logbuf.Buffer
+	// Requests talks to Seerr, Radarr and Sonarr (nil = default HTTP client).
+	Requests *requests.Client
 	// NewTMDb builds a TMDb client (tests use a fake server).
 	NewTMDb func(key string) *metadata.TMDb
 	// NowPlaying tracks active playback for the dashboard (nil disables it).

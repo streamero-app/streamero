@@ -310,6 +310,20 @@ func encodeReportProgressRequest(
 	return nil
 }
 
+func encodeRequestTitleRequest(
+	req *TitleRequest,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeSelectMainProfileRequest(
 	req OptPasswordConfirmRequest,
 	r *http.Request,
@@ -540,6 +554,20 @@ func encodeUpdatePreferencesRequest(
 
 func encodeUpdateProfileRequest(
 	req *ProfileInput,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeUpdateRequestSettingsRequest(
+	req *RequestSettingsInput,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"

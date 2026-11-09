@@ -30,6 +30,8 @@ import { ProfileGatePage } from "@/features/profiles/ProfileSwitcher";
 import { CollectionPage, CollectionsPage, PlaylistPage, PlaylistsPage } from "@/features/library/CollectionsPages";
 import { PlayerPage } from "@/features/player/PlayerPage";
 import { SearchPage } from "@/features/library/SearchPage";
+import { DiscoverPage } from "@/features/discover/DiscoverPage";
+import { RequestsSettings } from "@/features/settings/RequestsSettings";
 import { NotFoundPage } from "@/routes/NotFoundPage";
 
 /** The administrator's extra CSS (Settings → Branding), on every page. */
@@ -70,6 +72,12 @@ const searchRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/search",
   component: SearchPage,
+  validateSearch: (s: Record<string, unknown>): { q?: string } => (typeof s.q === "string" && s.q ? { q: s.q } : {}),
+});
+const discoverRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/discover",
+  component: DiscoverPage,
   validateSearch: (s: Record<string, unknown>): { q?: string } => (typeof s.q === "string" && s.q ? { q: s.q } : {}),
 });
 const watchRoute = createRoute({
@@ -127,6 +135,7 @@ const homePrefsRoute = createRoute({ getParentRoute: () => settingsRoute, path: 
 const transcodingRoute = createRoute({ getParentRoute: () => settingsRoute, path: "transcoding", component: adminOnly(TranscodingSettings) });
 const logsRoute = createRoute({ getParentRoute: () => settingsRoute, path: "logs", component: adminOnly(LogsSettings) });
 const activityRoute = createRoute({ getParentRoute: () => settingsRoute, path: "activity", component: adminOnly(ActivitySettings) });
+const requestsRoute = createRoute({ getParentRoute: () => settingsRoute, path: "requests", component: adminOnly(RequestsSettings) });
 const brandingRoute = createRoute({ getParentRoute: () => settingsRoute, path: "branding", component: adminOnly(BrandingSettings) });
 
 export const routeTree = rootRoute.addChildren([
@@ -146,8 +155,9 @@ export const routeTree = rootRoute.addChildren([
     librariesRoute2,
     watchRoute,
     searchRoute,
+    discoverRoute,
     settingsRoute.addChildren([settingsIndex, playbackRoute, dashboardRoute, tasksRoute, notificationsRoute, accountRoute, profilesRoute, devicesRoute, quickConnectRoute, serverRoute, librariesRoute, metadataRoute, integrationsRoute, usersRoute, invitesRoute, apiKeysRoute,
-      subtitleLookRoute, homePrefsRoute, transcodingRoute, logsRoute, activityRoute, brandingRoute]),
+      subtitleLookRoute, homePrefsRoute, transcodingRoute, logsRoute, activityRoute, brandingRoute, requestsRoute]),
   ]),
 ]);
 export const router = createRouter({ routeTree });

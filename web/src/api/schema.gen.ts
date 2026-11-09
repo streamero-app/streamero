@@ -1401,6 +1401,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/settings/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Seerr / Radarr / Sonarr connections (admin; keys are never returned) */
+        get: operations["getRequestSettings"];
+        /** Change the connections (admin); an empty key keeps the stored one */
+        put: operations["updateRequestSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/requests/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check each configured connection (admin) */
+        post: operations["testRequestSettings"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/discover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search movies and series to request (trending when q is empty) */
+        get: operations["discover"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/discover/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask Seerr to download a movie or a whole series */
+        post: operations["requestTitle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/upcoming": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Releases of the next weeks from Radarr and Sonarr */
+        get: operations["listUpcoming"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2138,6 +2224,80 @@ export interface components {
         ActivityPage: {
             entries: components["schemas"]["ActivityEntry"][];
             total: number;
+        };
+        RequestSettings: {
+            seerrUrl?: string;
+            seerrConfigured: boolean;
+            /** @description Everyone (not only administrators) can request titles. */
+            usersCanRequest: boolean;
+            radarrUrl?: string;
+            radarrConfigured: boolean;
+            sonarrUrl?: string;
+            sonarrConfigured: boolean;
+        };
+        RequestSettingsInput: {
+            seerrUrl?: string;
+            seerrApiKey?: string;
+            usersCanRequest: boolean;
+            radarrUrl?: string;
+            radarrApiKey?: string;
+            sonarrUrl?: string;
+            sonarrApiKey?: string;
+            removeKeys?: ("seerr" | "radarr" | "sonarr")[];
+        };
+        ConnectionCheck: {
+            app: string;
+            ok: boolean;
+            version?: string;
+            error?: string;
+        };
+        DiscoverTitle: {
+            tmdbId: number;
+            /** @enum {string} */
+            mediaType: "movie" | "tv";
+            title: string;
+            year?: number;
+            overview?: string;
+            posterUrl?: string;
+            backdropUrl?: string;
+            rating?: number;
+            /** @enum {string} */
+            status: "none" | "pending" | "processing" | "partial" | "available";
+            /**
+             * Format: uuid
+             * @description The title in this server's libraries, when it is already here.
+             */
+            itemId?: string;
+        };
+        DiscoverPage: {
+            /** @description Seerr is connected. */
+            configured: boolean;
+            canRequest: boolean;
+            titles: components["schemas"]["DiscoverTitle"][];
+            page: number;
+            totalPages: number;
+        };
+        TitleRequest: {
+            tmdbId: number;
+            /** @enum {string} */
+            mediaType: "movie" | "tv";
+        };
+        TitleRequestResult: {
+            /** @enum {string} */
+            status: "none" | "pending" | "processing" | "partial" | "available";
+        };
+        UpcomingRelease: {
+            /** @enum {string} */
+            kind: "movie" | "episode";
+            title: string;
+            seriesTitle?: string;
+            season?: number;
+            episode?: number;
+            /** Format: date-time */
+            date: string;
+            overview?: string;
+            posterUrl?: string;
+            downloaded: boolean;
         };
         SystemInfo: {
             /**
@@ -4520,6 +4680,145 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SessionCommand"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getRequestSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateRequestSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    testRequestSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One line per app */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionCheck"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    discover: {
+        parameters: {
+            query?: {
+                q?: string;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Results */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscoverPage"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    requestTitle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TitleRequest"];
+            };
+        };
+        responses: {
+            /** @description Requested */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TitleRequestResult"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listUpcoming: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Soonest first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpcomingRelease"][];
                 };
             };
             default: components["responses"]["Error"];
