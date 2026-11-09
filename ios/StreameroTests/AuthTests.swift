@@ -47,7 +47,7 @@ final class AuthTests: XCTestCase {
 final class MediaClientTests: XCTestCase {
     func testDeviceProfileAsksForHLSAndHEVC() {
         let d = MediaClient.device
-        XCTAssertTrue(d.hls ?? false)
+        XCTAssertTrue(d.hls)
         XCTAssertTrue(d.videoCodecs.contains("hevc"))
         XCTAssertTrue(d.containers.contains("mp4"))
     }
