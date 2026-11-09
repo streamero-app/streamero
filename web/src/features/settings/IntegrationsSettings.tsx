@@ -41,6 +41,7 @@ export function IntegrationsSettings() {
       </Card>
       <Card title="Bazarr">
         <p className="text-sm text-muted">{t("integrations.bazarr")}</p>
+        <Link to="/settings/requests" className="mt-3 inline-flex text-sm font-semibold underline underline-offset-4">{t("subs.setUp")}</Link>
       </Card>
     </div>
   );

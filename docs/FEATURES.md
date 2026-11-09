@@ -335,4 +335,4 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [x] Proširenja (D-020): oznake kvalitete, Iznenadi me, zaslon pauze, uklanjanje iz Nastavi gledati, prečaci, slika u slici, poveznice na Radarr/Sonarr
 - [x] Glazbena biblioteka: tagovi (izvođač, album izvođača, album, broj pjesme/diska, godina, žanr), raspored Izvođač/Album/NN - Naslov kao zamjena, kompilacije, omoti iz mape ili iz datoteke, slike izvođača
 - [x] Glazba na webu: Albumi / Izvođači / Pjesme, stranice albuma i izvođača, trajni player s redom, nasumično, ponavljanje, kontrole na zaključanom zaslonu (Media Session)
-
+- [x] Bazarr: traženje i preuzimanje titlova sa stranice naslova (preko Radarra/Sonarra), „neka Bazarr dohvati što nedostaje", ponovno skeniranje nakon preuzimanja

@@ -37,3 +37,28 @@ describe("discover", () => {
     expect(screen.getByRole("link", { name: "Connect Seerr" })).toBeInTheDocument();
   });
 });
+
+describe("subtitles", () => {
+  beforeEach(() => setLanguage("en"));
+
+  it("finds subtitles through Bazarr and downloads one", async () => {
+    const posts: unknown[] = [];
+    const movie = { id: "0190a8b0-0000-7000-8000-00000000dddd", kind: "movie", title: "Film", addedAt: new Date().toISOString(), hasPoster: false };
+    mockApi(({ method, path, body }) => {
+      if (path === `/items/${movie.id}`) {
+        return { status: 200, body: { item: movie, libraryId: "l", providerIds: { tmdb: "1" }, children: [], genres: [], cast: [], crew: [], hasBackdrop: false,
+          files: [{ id: "f", path: "/m/f.mkv", size: 1, container: "mkv" }] } };
+      }
+      if (path.endsWith("/subtitles/search")) {
+        return { status: 200, body: { configured: true, offers: [{ provider: "opensubtitles", language: "hr", forced: false, hearingImpaired: false, score: 91, subtitle: "x", originalFormat: false, release: ["Film.1080p"] }] } };
+      }
+      if (method === "POST" && path.endsWith("/subtitles/download")) { posts.push(body); return { status: 204 }; }
+      return { status: 200, body: [] };
+    });
+    renderApp(`/item/${movie.id}`, { me: testUser({ isAdmin: true }) });
+    fireEvent.click(await screen.findByTestId("find-subtitles"));
+    expect(await screen.findByTestId("subtitle-offers")).toHaveTextContent("Croatian");
+    fireEvent.click(screen.getByRole("button", { name: "Download" }));
+    await waitFor(() => expect(posts).toContainEqual(expect.objectContaining({ subtitle: "x", language: "hr" })));
+  });
+});

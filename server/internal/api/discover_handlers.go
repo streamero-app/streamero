@@ -38,7 +38,8 @@ func (h *Handler) requestsClient() *requests.Client {
 func toRequestSettings(s requests.Settings) *gen.RequestSettings {
 	return &gen.RequestSettings{SeerrUrl: optString(s.SeerrURL), SeerrConfigured: s.SeerrReady(), UsersCanRequest: s.UsersCanRequest,
 		RadarrUrl: optString(s.RadarrURL), RadarrConfigured: s.RadarrURL != "" && s.RadarrKey != "",
-		SonarrUrl: optString(s.SonarrURL), SonarrConfigured: s.SonarrURL != "" && s.SonarrKey != ""}
+		SonarrUrl: optString(s.SonarrURL), SonarrConfigured: s.SonarrURL != "" && s.SonarrKey != "",
+		BazarrUrl: optString(s.BazarrURL), BazarrConfigured: gen.NewOptBool(s.BazarrReady())}
 }
 
 // GetRequestSettings implements GET /settings/requests.
@@ -81,6 +82,9 @@ func (h *Handler) UpdateRequestSettings(ctx context.Context, req *gen.RequestSet
 	if err := set(&s.SonarrURL, &s.SonarrKey, req.SonarrUrl, req.SonarrApiKey); err != nil {
 		return nil, err
 	}
+	if err := set(&s.BazarrURL, &s.BazarrKey, req.BazarrUrl, req.BazarrApiKey); err != nil {
+		return nil, err
+	}
 	for _, k := range req.RemoveKeys {
 		switch k {
 		case gen.RequestSettingsInputRemoveKeysItemSeerr:
@@ -89,6 +93,8 @@ func (h *Handler) UpdateRequestSettings(ctx context.Context, req *gen.RequestSet
 			s.RadarrKey = ""
 		case gen.RequestSettingsInputRemoveKeysItemSonarr:
 			s.SonarrKey = ""
+		case gen.RequestSettingsInputRemoveKeysItemBazarr:
+			s.BazarrKey = ""
 		}
 	}
 	s.UsersCanRequest = req.UsersCanRequest
@@ -106,14 +112,21 @@ func (h *Handler) TestRequestSettings(ctx context.Context) ([]gen.ConnectionChec
 	}
 	s := h.requestSettings(ctx)
 	out := []gen.ConnectionCheck{}
-	for _, c := range []struct{ app, url, key string }{{"Seerr", s.SeerrURL, s.SeerrKey}, {"Radarr", s.RadarrURL, s.RadarrKey}, {"Sonarr", s.SonarrURL, s.SonarrKey}} {
+	for _, c := range []struct{ app, url, key string }{{"Seerr", s.SeerrURL, s.SeerrKey}, {"Radarr", s.RadarrURL, s.RadarrKey}, {"Sonarr", s.SonarrURL, s.SonarrKey}, {"Bazarr", s.BazarrURL, s.BazarrKey}} {
 		if c.url == "" {
 			continue
 		}
 		check := gen.ConnectionCheck{App: c.app}
+		var v string
+		var err error
+		if c.app == "Bazarr" && c.key != "" {
+			v, err = h.requestsClient().BazarrVersion(ctx, s)
+		} else if c.key != "" {
+			v, err = h.requestsClient().Ping(ctx, c.app, c.url, c.key)
+		}
 		if c.key == "" {
 			check.Error = gen.NewOptString("no API key")
-		} else if v, err := h.requestsClient().Ping(ctx, c.app, c.url, c.key); err != nil {
+		} else if err != nil {
 			check.Error = gen.NewOptString(err.Error())
 		} else {
 			check.Ok, check.Version = true, optString(v)

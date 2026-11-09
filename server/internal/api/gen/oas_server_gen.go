@@ -160,6 +160,12 @@ type Handler interface {
 	//
 	// GET /discover
 	Discover(ctx context.Context, params DiscoverParams) (*DiscoverPage, error)
+	// DownloadSubtitle implements downloadSubtitle operation.
+	//
+	// Download one offer through Bazarr; the library is rescanned to pick it up.
+	//
+	// POST /items/{itemId}/subtitles/download
+	DownloadSubtitle(ctx context.Context, req *SubtitleOffer, params DownloadSubtitleParams) error
 	// EditMetadata implements editMetadata operation.
 	//
 	// Edit metadata by hand (administrators); locked items keep it on refresh.
@@ -509,6 +515,18 @@ type Handler interface {
 	//
 	// GET /search
 	Search(ctx context.Context, params SearchParams) ([]ItemSummary, error)
+	// SearchMissingSubtitles implements searchMissingSubtitles operation.
+	//
+	// Let Bazarr fetch the missing languages of its profile on its own.
+	//
+	// POST /items/{itemId}/subtitles/search-missing
+	SearchMissingSubtitles(ctx context.Context, params SearchMissingSubtitlesParams) error
+	// SearchSubtitles implements searchSubtitles operation.
+	//
+	// Subtitles Bazarr's providers have for a movie or episode.
+	//
+	// GET /items/{itemId}/subtitles/search
+	SearchSubtitles(ctx context.Context, params SearchSubtitlesParams) (*SubtitleSearch, error)
 	// SelectMainProfile implements selectMainProfile operation.
 	//
 	// From a kids profile this needs the account password.

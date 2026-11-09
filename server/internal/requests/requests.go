@@ -28,6 +28,8 @@ type Settings struct {
 	RadarrKey       string `json:"radarrKey,omitempty"`
 	SonarrURL       string `json:"sonarrUrl,omitempty"`
 	SonarrKey       string `json:"sonarrKey,omitempty"`
+	BazarrURL       string `json:"bazarrUrl,omitempty"`
+	BazarrKey       string `json:"bazarrKey,omitempty"`
 }
 
 // SeerrReady reports whether search and requests can work.
