@@ -98,7 +98,7 @@ export function CollectionPage() {
           {c.overview && <p className="max-w-[65ch] text-white/85">{c.overview}</p>}
           <div className="flex flex-wrap gap-3">
             {first && (
-              <Link to="/watch/$itemId" params={{ itemId: first.id }} className={`${pressable} ${buttonVariants.play} h-11 rounded-md px-6 text-base font-bold`}>
+              <Link to="/watch/$itemId" params={{ itemId: first.id }} className={`${pressable} ${buttonVariants.lit} h-12 rounded-full px-7 text-base font-bold`}>
                 <Play className="size-5 fill-current" aria-hidden />{t("player.play")}
               </Link>
             )}
@@ -224,7 +224,7 @@ export function PlaylistPage() {
           <div className="flex flex-wrap items-center gap-3">
             {first && (
               <Link to="/watch/$itemId" params={{ itemId: first.id }} search={{ playlist: p.id }}
-                className={`${pressable} ${buttonVariants.play} h-11 rounded-md px-6 text-base font-bold`} data-testid="play-all">
+                className={`${pressable} ${buttonVariants.lit} h-12 rounded-full px-7 text-base font-bold`} data-testid="play-all">
                 <Play className="size-5 fill-current" aria-hidden />{t("playlists.playAll")}
               </Link>
             )}
