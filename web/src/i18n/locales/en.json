@@ -97,7 +97,19 @@
     "changePassword": "Change password",
     "currentPassword": "Current password",
     "newPassword": "New password",
-    "passwordChanged": "Password changed. Other devices were signed out."
+    "passwordChanged": "Password changed. Other devices were signed out.",
+    "changePicture": "Change picture",
+    "removePicture": "Remove picture",
+    "twoFactorOn": "Two-factor on",
+    "memberSince": "Member since {{date}}",
+    "lastSignIn": "last sign-in {{date}}",
+    "profileTitle": "Profile",
+    "displayName": "Display name",
+    "displayNameHint": "Shown in the menu and to administrators instead of the username.",
+    "email": "E-mail",
+    "emailHint": "Optional. For notifications and password help from an administrator.",
+    "language": "Language",
+    "languageHint": "Used on every device you sign in on."
   },
   "devices": {
     "intro": "Devices signed in to your account. Signing a device out takes effect immediately.",
@@ -178,7 +190,10 @@
     "invalid_notification_target": "Check the service and URL (http or https; Gotify needs an app token).",
     "notification_failed": "The target did not accept the message. Check the URL and token.",
     "tmdb_not_configured": "Add a TMDb key in Settings → Metadata first.",
-    "metadata_locked": "This title was edited by hand. Use Identify to replace it from TMDb."
+    "metadata_locked": "This title was edited by hand. Use Identify to replace it from TMDb.",
+    "invalid_email": "That e-mail address is not valid.",
+    "invalid_image": "That file is not a JPEG, PNG or GIF picture.",
+    "image_too_large": "The picture is larger than 8 MB."
   },
   "notFound": {
     "title": "Page not found",

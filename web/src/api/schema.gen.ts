@@ -105,6 +105,65 @@ export interface paths {
         };
         /** The signed-in user */
         get: operations["getMe"];
+        /** Change own display name, e-mail and language */
+        put: operations["updateMe"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/me/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Upload own picture (JPEG, PNG or GIF, up to 8 MB; cropped to a square) */
+        put: operations["setMyAvatar"];
+        post?: never;
+        /** Remove own picture */
+        delete: operations["deleteMyAvatar"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profiles/{profileId}/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profileId: components["parameters"]["ProfileId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Upload a profile's picture */
+        put: operations["setProfileAvatar"];
+        post?: never;
+        /** Remove a profile's picture */
+        delete: operations["deleteProfileAvatar"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/avatars/{ownerId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A user or profile id. */
+                ownerId: string;
+            };
+            cookie?: never;
+        };
+        /** A user's or profile's picture (JPEG) */
+        get: operations["getAvatar"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1851,6 +1910,7 @@ export interface components {
             isKid: boolean;
             /** @description Highest age rating allowed (e.g. 12); applies from P3 (ratings) on. */
             maxRating?: number;
+            hasAvatar?: boolean;
         };
         ProfileInput: {
             name: string;
@@ -1911,10 +1971,25 @@ export interface components {
             totpEnabled: boolean;
             permissions: components["schemas"]["UserPermissions"];
             currentProfile?: components["schemas"]["Profile"];
+            displayName?: string;
+            email?: string;
+            /**
+             * @description Interface language chosen by the user.
+             * @enum {string}
+             */
+            language?: "en" | "hr";
+            hasAvatar?: boolean;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
             lastLoginAt?: string;
+        };
+        UpdateMeRequest: {
+            displayName?: string;
+            /** @description Used for notifications; empty removes it. */
+            email?: string;
+            /** @enum {string} */
+            language?: "en" | "hr";
         };
         CreateUserRequest: {
             username: components["schemas"]["Username"];
@@ -2204,6 +2279,144 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["User"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateMeRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    setMyAvatar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description Saved */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteMyAvatar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    setProfileAvatar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profileId: components["parameters"]["ProfileId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description Saved */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteProfileAvatar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profileId: components["parameters"]["ProfileId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getAvatar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A user or profile id. */
+                ownerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Image */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": string;
                 };
             };
             default: components["responses"]["Error"];

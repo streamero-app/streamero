@@ -258,6 +258,12 @@ func encodeDeleteLibraryResponse(response *DeleteLibraryNoContent, w http.Respon
 	return nil
 }
 
+func encodeDeleteMyAvatarResponse(response *DeleteMyAvatarNoContent, w http.ResponseWriter, span trace.Span) error {
+	w.WriteHeader(204)
+
+	return nil
+}
+
 func encodeDeletePlaylistResponse(response *DeletePlaylistNoContent, w http.ResponseWriter, span trace.Span) error {
 	w.WriteHeader(204)
 
@@ -265,6 +271,12 @@ func encodeDeletePlaylistResponse(response *DeletePlaylistNoContent, w http.Resp
 }
 
 func encodeDeleteProfileResponse(response *DeleteProfileNoContent, w http.ResponseWriter, span trace.Span) error {
+	w.WriteHeader(204)
+
+	return nil
+}
+
+func encodeDeleteProfileAvatarResponse(response *DeleteProfileAvatarNoContent, w http.ResponseWriter, span trace.Span) error {
 	w.WriteHeader(204)
 
 	return nil
@@ -308,6 +320,40 @@ func encodeGetActivityResponse(response *ActivityPage, w http.ResponseWriter, sp
 	e := new(jx.Encoder)
 	response.Encode(e)
 	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
+func encodeGetAvatarResponse(response *GetAvatarOKHeaders, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "image/jpeg")
+	// Encoding response headers.
+	{
+		h := uri.NewHeaderEncoder(w.Header())
+		// Encode "Cache-Control" header.
+		{
+			cfg := uri.HeaderParameterEncodingConfig{
+				Name:    "Cache-Control",
+				Explode: false,
+			}
+			if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+				if val, ok := response.CacheControl.Get(); ok {
+					return e.EncodeValue(conv.StringToString(val))
+				}
+				return nil
+			}); err != nil {
+				return errors.Wrap(err, "encode Cache-Control header")
+			}
+		}
+	}
+	w.WriteHeader(200)
+
+	writer := w
+	if closer, ok := response.Response.Data.(io.Closer); ok {
+		defer closer.Close()
+	}
+	if _, err := io.Copy(writer, response.Response); err != nil {
 		return errors.Wrap(err, "write")
 	}
 
@@ -1158,6 +1204,18 @@ func encodeSelectProfileResponse(response *SelectProfileNoContent, w http.Respon
 	return nil
 }
 
+func encodeSetMyAvatarResponse(response *SetMyAvatarNoContent, w http.ResponseWriter, span trace.Span) error {
+	w.WriteHeader(204)
+
+	return nil
+}
+
+func encodeSetProfileAvatarResponse(response *SetProfileAvatarNoContent, w http.ResponseWriter, span trace.Span) error {
+	w.WriteHeader(204)
+
+	return nil
+}
+
 func encodeStartPlaybackResponse(response *PlaybackInfo, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
@@ -1230,6 +1288,19 @@ func encodeUpdateEncodingSettingsResponse(response *EncodingSettings, w http.Res
 }
 
 func encodeUpdateLibraryResponse(response *Library, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
+func encodeUpdateMeResponse(response *User, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
 

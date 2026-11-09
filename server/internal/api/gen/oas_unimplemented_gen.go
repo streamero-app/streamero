@@ -177,6 +177,15 @@ func (UnimplementedHandler) DeleteLibrary(ctx context.Context, params DeleteLibr
 	return ht.ErrNotImplemented
 }
 
+// DeleteMyAvatar implements deleteMyAvatar operation.
+//
+// Remove own picture.
+//
+// DELETE /auth/me/avatar
+func (UnimplementedHandler) DeleteMyAvatar(ctx context.Context) error {
+	return ht.ErrNotImplemented
+}
+
 // DeletePlaylist implements deletePlaylist operation.
 //
 // Delete a playlist (owner only).
@@ -192,6 +201,15 @@ func (UnimplementedHandler) DeletePlaylist(ctx context.Context, params DeletePla
 //
 // DELETE /profiles/{profileId}
 func (UnimplementedHandler) DeleteProfile(ctx context.Context, params DeleteProfileParams) error {
+	return ht.ErrNotImplemented
+}
+
+// DeleteProfileAvatar implements deleteProfileAvatar operation.
+//
+// Remove a profile's picture.
+//
+// DELETE /profiles/{profileId}/avatar
+func (UnimplementedHandler) DeleteProfileAvatar(ctx context.Context, params DeleteProfileAvatarParams) error {
 	return ht.ErrNotImplemented
 }
 
@@ -237,6 +255,15 @@ func (UnimplementedHandler) EnableTOTP(ctx context.Context, req *TOTPCodeRequest
 //
 // GET /admin/activity
 func (UnimplementedHandler) GetActivity(ctx context.Context, params GetActivityParams) (r *ActivityPage, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetAvatar implements getAvatar operation.
+//
+// A user's or profile's picture (JPEG).
+//
+// GET /avatars/{ownerId}
+func (UnimplementedHandler) GetAvatar(ctx context.Context, params GetAvatarParams) (r *GetAvatarOKHeaders, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -700,6 +727,24 @@ func (UnimplementedHandler) SelectProfile(ctx context.Context, req OptPinRequest
 	return ht.ErrNotImplemented
 }
 
+// SetMyAvatar implements setMyAvatar operation.
+//
+// Upload own picture (JPEG, PNG or GIF, up to 8 MB; cropped to a square).
+//
+// PUT /auth/me/avatar
+func (UnimplementedHandler) SetMyAvatar(ctx context.Context, req SetMyAvatarReq) error {
+	return ht.ErrNotImplemented
+}
+
+// SetProfileAvatar implements setProfileAvatar operation.
+//
+// Upload a profile's picture.
+//
+// PUT /profiles/{profileId}/avatar
+func (UnimplementedHandler) SetProfileAvatar(ctx context.Context, req SetProfileAvatarReq, params SetProfileAvatarParams) error {
+	return ht.ErrNotImplemented
+}
+
 // StartPlayback implements startPlayback operation.
 //
 // Returns direct play when the device supports the file as is, otherwise an HLS stream (remux or
@@ -762,6 +807,15 @@ func (UnimplementedHandler) UpdateEncodingSettings(ctx context.Context, req *Enc
 //
 // PUT /libraries/{libraryId}
 func (UnimplementedHandler) UpdateLibrary(ctx context.Context, req *LibraryInput, params UpdateLibraryParams) (r *Library, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateMe implements updateMe operation.
+//
+// Change own display name, e-mail and language.
+//
+// PUT /auth/me
+func (UnimplementedHandler) UpdateMe(ctx context.Context, req *UpdateMeRequest) (r *User, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

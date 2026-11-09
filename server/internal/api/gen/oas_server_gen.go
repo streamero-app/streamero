@@ -118,6 +118,12 @@ type Handler interface {
 	//
 	// DELETE /libraries/{libraryId}
 	DeleteLibrary(ctx context.Context, params DeleteLibraryParams) error
+	// DeleteMyAvatar implements deleteMyAvatar operation.
+	//
+	// Remove own picture.
+	//
+	// DELETE /auth/me/avatar
+	DeleteMyAvatar(ctx context.Context) error
 	// DeletePlaylist implements deletePlaylist operation.
 	//
 	// Delete a playlist (owner only).
@@ -130,6 +136,12 @@ type Handler interface {
 	//
 	// DELETE /profiles/{profileId}
 	DeleteProfile(ctx context.Context, params DeleteProfileParams) error
+	// DeleteProfileAvatar implements deleteProfileAvatar operation.
+	//
+	// Remove a profile's picture.
+	//
+	// DELETE /profiles/{profileId}/avatar
+	DeleteProfileAvatar(ctx context.Context, params DeleteProfileAvatarParams) error
 	// DeleteUser implements deleteUser operation.
 	//
 	// Delete a user and all of their sessions (admin).
@@ -160,6 +172,12 @@ type Handler interface {
 	//
 	// GET /admin/activity
 	GetActivity(ctx context.Context, params GetActivityParams) (*ActivityPage, error)
+	// GetAvatar implements getAvatar operation.
+	//
+	// A user's or profile's picture (JPEG).
+	//
+	// GET /avatars/{ownerId}
+	GetAvatar(ctx context.Context, params GetAvatarParams) (*GetAvatarOKHeaders, error)
 	// GetBrandingSettings implements getBrandingSettings operation.
 	//
 	// Login message and custom CSS (admin).
@@ -467,6 +485,18 @@ type Handler interface {
 	//
 	// POST /profiles/{profileId}/select
 	SelectProfile(ctx context.Context, req OptPinRequest, params SelectProfileParams) error
+	// SetMyAvatar implements setMyAvatar operation.
+	//
+	// Upload own picture (JPEG, PNG or GIF, up to 8 MB; cropped to a square).
+	//
+	// PUT /auth/me/avatar
+	SetMyAvatar(ctx context.Context, req SetMyAvatarReq) error
+	// SetProfileAvatar implements setProfileAvatar operation.
+	//
+	// Upload a profile's picture.
+	//
+	// PUT /profiles/{profileId}/avatar
+	SetProfileAvatar(ctx context.Context, req SetProfileAvatarReq, params SetProfileAvatarParams) error
 	// StartPlayback implements startPlayback operation.
 	//
 	// Returns direct play when the device supports the file as is, otherwise an HLS stream (remux or
@@ -511,6 +541,12 @@ type Handler interface {
 	//
 	// PUT /libraries/{libraryId}
 	UpdateLibrary(ctx context.Context, req *LibraryInput, params UpdateLibraryParams) (*Library, error)
+	// UpdateMe implements updateMe operation.
+	//
+	// Change own display name, e-mail and language.
+	//
+	// PUT /auth/me
+	UpdateMe(ctx context.Context, req *UpdateMeRequest) (*User, error)
 	// UpdateMetadataSettings implements updateMetadataSettings operation.
 	//
 	// Save metadata settings (admin); a new TMDb key is verified with TMDb first.

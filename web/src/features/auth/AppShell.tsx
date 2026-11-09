@@ -7,9 +7,10 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Spinner } from "@/components/ui";
 import { useSystemInfo } from "@/features/server/useSystemInfo";
 import { useLibraries } from "@/features/library/LibraryPages";
-import { Avatar, MAIN_COLOR, profilePicked, markProfilePicked, useProfiles } from "@/features/profiles/ProfileSwitcher";
+import { Avatar, MAIN_COLOR, avatarUrl, profilePicked, markProfilePicked, useProfiles } from "@/features/profiles/ProfileSwitcher";
 import { installSpatialNav } from "@/features/tv/spatialNav";
 import { useLogout, useMe } from "./useAuth";
+import { setLanguage } from "@/i18n";
 
 export const libraryIcon: Record<string, LucideIcon> = { movies: Film, shows: Tv, mixed: Clapperboard, music: Music };
 
@@ -64,12 +65,13 @@ function AccountMenu() {
     <div className="relative" ref={ref}>
       <button type="button" aria-haspopup="menu" aria-expanded={open} aria-label={t("nav.profileMenu")} data-testid="account-menu"
         onClick={() => setOpen(!open)} className="flex items-center gap-2 rounded-md">
-        <Avatar name={current?.name ?? me.username} color={current?.color ?? MAIN_COLOR} size={32} />
+        <Avatar name={current?.name ?? me.displayName ?? me.username} color={current?.color ?? MAIN_COLOR} size={32}
+          image={current ? (current.hasAvatar ? avatarUrl(current.id) : null) : me.hasAvatar ? avatarUrl(me.id) : null} />
       </button>
       {open && (
         <div role="menu" className="absolute right-0 z-50 mt-3 w-64 origin-top-right overflow-hidden rounded-[8px] border border-border bg-surface/95 py-2 shadow-2xl backdrop-blur-xl [animation:pop_160ms_var(--ease-out)_both]">
           <style>{"@keyframes pop{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}"}</style>
-          <p className="truncate px-4 pt-1 pb-2 text-sm font-semibold">{current?.name ?? me.username}</p>
+          <p className="truncate px-4 pt-1 pb-2 text-sm font-semibold">{current?.name ?? me.displayName ?? me.username}</p>
           {(profiles.data?.length ?? 0) > 0 && (
             <Link to="/who" role="menuitem" className={item} onClick={() => { markProfilePicked(false); setOpen(false); }}>
               <Users className="size-4 text-text/55" aria-hidden />{t("nav.switchProfile")}
@@ -110,6 +112,11 @@ export function AppShell() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
   useEffect(() => installSpatialNav(() => router.history.back()), [router]);
+  // The account's language follows the user to every device.
+  const { i18n } = useTranslation();
+  useEffect(() => {
+    if (me?.language && me.language !== i18n.resolvedLanguage) setLanguage(me.language);
+  }, [me?.language]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (info && !info.setupCompleted) return <Navigate to="/setup" />;
   if (isPending) {

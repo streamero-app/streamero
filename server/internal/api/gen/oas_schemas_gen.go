@@ -847,8 +847,14 @@ type DeleteInviteNoContent struct{}
 // DeleteLibraryNoContent is response for DeleteLibrary operation.
 type DeleteLibraryNoContent struct{}
 
+// DeleteMyAvatarNoContent is response for DeleteMyAvatar operation.
+type DeleteMyAvatarNoContent struct{}
+
 // DeletePlaylistNoContent is response for DeletePlaylist operation.
 type DeletePlaylistNoContent struct{}
+
+// DeleteProfileAvatarNoContent is response for DeleteProfileAvatar operation.
+type DeleteProfileAvatarNoContent struct{}
 
 // DeleteProfileNoContent is response for DeleteProfile operation.
 type DeleteProfileNoContent struct{}
@@ -1281,6 +1287,46 @@ func (s *ErrorStatusCode) SetStatusCode(val int) {
 
 // SetResponse sets the value of Response.
 func (s *ErrorStatusCode) SetResponse(val Error) {
+	s.Response = val
+}
+
+type GetAvatarOK struct {
+	Data io.Reader
+}
+
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s GetAvatarOK) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
+}
+
+// GetAvatarOKHeaders wraps GetAvatarOK with response headers.
+type GetAvatarOKHeaders struct {
+	CacheControl OptString
+	Response     GetAvatarOK
+}
+
+// GetCacheControl returns the value of CacheControl.
+func (s *GetAvatarOKHeaders) GetCacheControl() OptString {
+	return s.CacheControl
+}
+
+// GetResponse returns the value of Response.
+func (s *GetAvatarOKHeaders) GetResponse() GetAvatarOK {
+	return s.Response
+}
+
+// SetCacheControl sets the value of CacheControl.
+func (s *GetAvatarOKHeaders) SetCacheControl(val OptString) {
+	s.CacheControl = val
+}
+
+// SetResponse sets the value of Response.
+func (s *GetAvatarOKHeaders) SetResponse(val GetAvatarOK) {
 	s.Response = val
 }
 
@@ -4620,6 +4666,98 @@ func (o OptUUID) Or(d uuid.UUID) uuid.UUID {
 	return d
 }
 
+// NewOptUpdateMeRequestLanguage returns new OptUpdateMeRequestLanguage with value set to v.
+func NewOptUpdateMeRequestLanguage(v UpdateMeRequestLanguage) OptUpdateMeRequestLanguage {
+	return OptUpdateMeRequestLanguage{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUpdateMeRequestLanguage is optional UpdateMeRequestLanguage.
+type OptUpdateMeRequestLanguage struct {
+	Value UpdateMeRequestLanguage
+	Set   bool
+}
+
+// IsSet returns true if OptUpdateMeRequestLanguage was set.
+func (o OptUpdateMeRequestLanguage) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUpdateMeRequestLanguage) Reset() {
+	var v UpdateMeRequestLanguage
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUpdateMeRequestLanguage) SetTo(v UpdateMeRequestLanguage) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUpdateMeRequestLanguage) Get() (v UpdateMeRequestLanguage, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUpdateMeRequestLanguage) Or(d UpdateMeRequestLanguage) UpdateMeRequestLanguage {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptUserLanguage returns new OptUserLanguage with value set to v.
+func NewOptUserLanguage(v UserLanguage) OptUserLanguage {
+	return OptUserLanguage{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUserLanguage is optional UserLanguage.
+type OptUserLanguage struct {
+	Value UserLanguage
+	Set   bool
+}
+
+// IsSet returns true if OptUserLanguage was set.
+func (o OptUserLanguage) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUserLanguage) Reset() {
+	var v UserLanguage
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUserLanguage) SetTo(v UserLanguage) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUserLanguage) Get() (v UserLanguage, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUserLanguage) Or(d UserLanguage) UserLanguage {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptUserPermissions returns new OptUserPermissions with value set to v.
 func NewOptUserPermissions(v UserPermissions) OptUserPermissions {
 	return OptUserPermissions{
@@ -5809,7 +5947,8 @@ type Profile struct {
 	HasPin bool   `json:"hasPin"`
 	IsKid  bool   `json:"isKid"`
 	// Highest age rating allowed (e.g. 12); applies from P3 (ratings) on.
-	MaxRating OptInt `json:"maxRating"`
+	MaxRating OptInt  `json:"maxRating"`
+	HasAvatar OptBool `json:"hasAvatar"`
 }
 
 // GetID returns the value of ID.
@@ -5842,6 +5981,11 @@ func (s *Profile) GetMaxRating() OptInt {
 	return s.MaxRating
 }
 
+// GetHasAvatar returns the value of HasAvatar.
+func (s *Profile) GetHasAvatar() OptBool {
+	return s.HasAvatar
+}
+
 // SetID sets the value of ID.
 func (s *Profile) SetID(val uuid.UUID) {
 	s.ID = val
@@ -5870,6 +6014,11 @@ func (s *Profile) SetIsKid(val bool) {
 // SetMaxRating sets the value of MaxRating.
 func (s *Profile) SetMaxRating(val OptInt) {
 	s.MaxRating = val
+}
+
+// SetHasAvatar sets the value of HasAvatar.
+func (s *Profile) SetHasAvatar(val OptBool) {
+	s.HasAvatar = val
 }
 
 // Ref: #/components/schemas/ProfileInput
@@ -6392,6 +6541,40 @@ func (s *SessionToken) SetToken(val string) {
 // SetRoles sets the value of Roles.
 func (s *SessionToken) SetRoles(val []string) {
 	s.Roles = val
+}
+
+// SetMyAvatarNoContent is response for SetMyAvatar operation.
+type SetMyAvatarNoContent struct{}
+
+type SetMyAvatarReq struct {
+	Data io.Reader
+}
+
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s SetMyAvatarReq) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
+}
+
+// SetProfileAvatarNoContent is response for SetProfileAvatar operation.
+type SetProfileAvatarNoContent struct{}
+
+type SetProfileAvatarReq struct {
+	Data io.Reader
+}
+
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s SetProfileAvatarReq) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
 }
 
 // Ref: #/components/schemas/SetupRequest
@@ -7039,6 +7222,85 @@ func (s *TrickplayInfo) SetSheetUrls(val []string) {
 	s.SheetUrls = val
 }
 
+// Ref: #/components/schemas/UpdateMeRequest
+type UpdateMeRequest struct {
+	DisplayName OptString `json:"displayName"`
+	// Used for notifications; empty removes it.
+	Email    OptString                  `json:"email"`
+	Language OptUpdateMeRequestLanguage `json:"language"`
+}
+
+// GetDisplayName returns the value of DisplayName.
+func (s *UpdateMeRequest) GetDisplayName() OptString {
+	return s.DisplayName
+}
+
+// GetEmail returns the value of Email.
+func (s *UpdateMeRequest) GetEmail() OptString {
+	return s.Email
+}
+
+// GetLanguage returns the value of Language.
+func (s *UpdateMeRequest) GetLanguage() OptUpdateMeRequestLanguage {
+	return s.Language
+}
+
+// SetDisplayName sets the value of DisplayName.
+func (s *UpdateMeRequest) SetDisplayName(val OptString) {
+	s.DisplayName = val
+}
+
+// SetEmail sets the value of Email.
+func (s *UpdateMeRequest) SetEmail(val OptString) {
+	s.Email = val
+}
+
+// SetLanguage sets the value of Language.
+func (s *UpdateMeRequest) SetLanguage(val OptUpdateMeRequestLanguage) {
+	s.Language = val
+}
+
+type UpdateMeRequestLanguage string
+
+const (
+	UpdateMeRequestLanguageEn UpdateMeRequestLanguage = "en"
+	UpdateMeRequestLanguageHr UpdateMeRequestLanguage = "hr"
+)
+
+// AllValues returns all UpdateMeRequestLanguage values.
+func (UpdateMeRequestLanguage) AllValues() []UpdateMeRequestLanguage {
+	return []UpdateMeRequestLanguage{
+		UpdateMeRequestLanguageEn,
+		UpdateMeRequestLanguageHr,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UpdateMeRequestLanguage) MarshalText() ([]byte, error) {
+	switch s {
+	case UpdateMeRequestLanguageEn:
+		return []byte(s), nil
+	case UpdateMeRequestLanguageHr:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *UpdateMeRequestLanguage) UnmarshalText(data []byte) error {
+	switch UpdateMeRequestLanguage(data) {
+	case UpdateMeRequestLanguageEn:
+		*s = UpdateMeRequestLanguageEn
+		return nil
+	case UpdateMeRequestLanguageHr:
+		*s = UpdateMeRequestLanguageHr
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // UpdateUserDataNoContent is response for UpdateUserData operation.
 type UpdateUserDataNoContent struct{}
 
@@ -7112,8 +7374,13 @@ type User struct {
 	TotpEnabled    bool            `json:"totpEnabled"`
 	Permissions    UserPermissions `json:"permissions"`
 	CurrentProfile OptProfile      `json:"currentProfile"`
-	CreatedAt      time.Time       `json:"createdAt"`
-	LastLoginAt    OptDateTime     `json:"lastLoginAt"`
+	DisplayName    OptString       `json:"displayName"`
+	Email          OptString       `json:"email"`
+	// Interface language chosen by the user.
+	Language    OptUserLanguage `json:"language"`
+	HasAvatar   OptBool         `json:"hasAvatar"`
+	CreatedAt   time.Time       `json:"createdAt"`
+	LastLoginAt OptDateTime     `json:"lastLoginAt"`
 }
 
 // GetID returns the value of ID.
@@ -7149,6 +7416,26 @@ func (s *User) GetPermissions() UserPermissions {
 // GetCurrentProfile returns the value of CurrentProfile.
 func (s *User) GetCurrentProfile() OptProfile {
 	return s.CurrentProfile
+}
+
+// GetDisplayName returns the value of DisplayName.
+func (s *User) GetDisplayName() OptString {
+	return s.DisplayName
+}
+
+// GetEmail returns the value of Email.
+func (s *User) GetEmail() OptString {
+	return s.Email
+}
+
+// GetLanguage returns the value of Language.
+func (s *User) GetLanguage() OptUserLanguage {
+	return s.Language
+}
+
+// GetHasAvatar returns the value of HasAvatar.
+func (s *User) GetHasAvatar() OptBool {
+	return s.HasAvatar
 }
 
 // GetCreatedAt returns the value of CreatedAt.
@@ -7196,6 +7483,26 @@ func (s *User) SetCurrentProfile(val OptProfile) {
 	s.CurrentProfile = val
 }
 
+// SetDisplayName sets the value of DisplayName.
+func (s *User) SetDisplayName(val OptString) {
+	s.DisplayName = val
+}
+
+// SetEmail sets the value of Email.
+func (s *User) SetEmail(val OptString) {
+	s.Email = val
+}
+
+// SetLanguage sets the value of Language.
+func (s *User) SetLanguage(val OptUserLanguage) {
+	s.Language = val
+}
+
+// SetHasAvatar sets the value of HasAvatar.
+func (s *User) SetHasAvatar(val OptBool) {
+	s.HasAvatar = val
+}
+
 // SetCreatedAt sets the value of CreatedAt.
 func (s *User) SetCreatedAt(val time.Time) {
 	s.CreatedAt = val
@@ -7230,6 +7537,48 @@ func (s *UserDataUpdate) SetFavorite(val OptBool) {
 // SetPlayed sets the value of Played.
 func (s *UserDataUpdate) SetPlayed(val OptBool) {
 	s.Played = val
+}
+
+// Interface language chosen by the user.
+type UserLanguage string
+
+const (
+	UserLanguageEn UserLanguage = "en"
+	UserLanguageHr UserLanguage = "hr"
+)
+
+// AllValues returns all UserLanguage values.
+func (UserLanguage) AllValues() []UserLanguage {
+	return []UserLanguage{
+		UserLanguageEn,
+		UserLanguageHr,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UserLanguage) MarshalText() ([]byte, error) {
+	switch s {
+	case UserLanguageEn:
+		return []byte(s), nil
+	case UserLanguageHr:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *UserLanguage) UnmarshalText(data []byte) error {
+	switch UserLanguage(data) {
+	case UserLanguageEn:
+		*s = UserLanguageEn
+		return nil
+	case UserLanguageHr:
+		*s = UserLanguageHr
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 // What a non-admin may do (admins may do everything). Each permission is enforced by the feature it

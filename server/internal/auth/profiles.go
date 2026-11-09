@@ -34,6 +34,7 @@ type Profile struct {
 	HasPin    bool
 	IsKid     bool
 	MaxRating *int
+	HasAvatar bool
 }
 
 // ProfileInput holds the editable fields of a profile.
@@ -49,11 +50,11 @@ type ProfileInput struct {
 // IsKid reports whether the caller is using a kids profile.
 func (p Principal) IsKid() bool { return p.Profile != nil && p.Profile.IsKid }
 
-const profileCols = `id, name, color, pin_hash IS NOT NULL, is_kid, max_rating`
+const profileCols = `id, name, color, pin_hash IS NOT NULL, is_kid, max_rating, has_avatar`
 
 func scanProfile(row pgx.Row) (Profile, error) {
 	var pr Profile
-	err := row.Scan(&pr.ID, &pr.Name, &pr.Color, &pr.HasPin, &pr.IsKid, &pr.MaxRating)
+	err := row.Scan(&pr.ID, &pr.Name, &pr.Color, &pr.HasPin, &pr.IsKid, &pr.MaxRating, &pr.HasAvatar)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return pr, ErrNotFound
 	}

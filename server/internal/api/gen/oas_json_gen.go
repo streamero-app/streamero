@@ -8595,6 +8595,72 @@ func (s *OptUUID) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes UpdateMeRequestLanguage as json.
+func (o OptUpdateMeRequestLanguage) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	e.Str(string(o.Value))
+}
+
+// Decode decodes UpdateMeRequestLanguage from json.
+func (o *OptUpdateMeRequestLanguage) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptUpdateMeRequestLanguage to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptUpdateMeRequestLanguage) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptUpdateMeRequestLanguage) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UserLanguage as json.
+func (o OptUserLanguage) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	e.Str(string(o.Value))
+}
+
+// Decode decodes UserLanguage from json.
+func (o *OptUserLanguage) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptUserLanguage to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptUserLanguage) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptUserLanguage) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes UserPermissions as json.
 func (o OptUserPermissions) Encode(e *jx.Encoder) {
 	if !o.Set {
@@ -10926,15 +10992,22 @@ func (s *Profile) encodeFields(e *jx.Encoder) {
 			s.MaxRating.Encode(e)
 		}
 	}
+	{
+		if s.HasAvatar.Set {
+			e.FieldStart("hasAvatar")
+			s.HasAvatar.Encode(e)
+		}
+	}
 }
 
-var jsonFieldsNameOfProfile = [6]string{
+var jsonFieldsNameOfProfile = [7]string{
 	0: "id",
 	1: "name",
 	2: "color",
 	3: "hasPin",
 	4: "isKid",
 	5: "maxRating",
+	6: "hasAvatar",
 }
 
 // Decode decodes Profile from json.
@@ -11015,6 +11088,16 @@ func (s *Profile) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"maxRating\"")
+			}
+		case "hasAvatar":
+			if err := func() error {
+				s.HasAvatar.Reset()
+				if err := s.HasAvatar.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"hasAvatar\"")
 			}
 		default:
 			return d.Skip()
@@ -13960,6 +14043,143 @@ func (s *TrickplayInfo) UnmarshalJSON(data []byte) error {
 }
 
 // Encode implements json.Marshaler.
+func (s *UpdateMeRequest) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *UpdateMeRequest) encodeFields(e *jx.Encoder) {
+	{
+		if s.DisplayName.Set {
+			e.FieldStart("displayName")
+			s.DisplayName.Encode(e)
+		}
+	}
+	{
+		if s.Email.Set {
+			e.FieldStart("email")
+			s.Email.Encode(e)
+		}
+	}
+	{
+		if s.Language.Set {
+			e.FieldStart("language")
+			s.Language.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfUpdateMeRequest = [3]string{
+	0: "displayName",
+	1: "email",
+	2: "language",
+}
+
+// Decode decodes UpdateMeRequest from json.
+func (s *UpdateMeRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateMeRequest to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "displayName":
+			if err := func() error {
+				s.DisplayName.Reset()
+				if err := s.DisplayName.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"displayName\"")
+			}
+		case "email":
+			if err := func() error {
+				s.Email.Reset()
+				if err := s.Email.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"email\"")
+			}
+		case "language":
+			if err := func() error {
+				s.Language.Reset()
+				if err := s.Language.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"language\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UpdateMeRequest")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateMeRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateMeRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateMeRequestLanguage as json.
+func (s UpdateMeRequestLanguage) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes UpdateMeRequestLanguage from json.
+func (s *UpdateMeRequestLanguage) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateMeRequestLanguage to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch UpdateMeRequestLanguage(v) {
+	case UpdateMeRequestLanguageEn:
+		*s = UpdateMeRequestLanguageEn
+	case UpdateMeRequestLanguageHr:
+		*s = UpdateMeRequestLanguageHr
+	default:
+		*s = UpdateMeRequestLanguage(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s UpdateMeRequestLanguage) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateMeRequestLanguage) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
 func (s *UpdateUserRequest) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
@@ -14130,6 +14350,30 @@ func (s *User) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.DisplayName.Set {
+			e.FieldStart("displayName")
+			s.DisplayName.Encode(e)
+		}
+	}
+	{
+		if s.Email.Set {
+			e.FieldStart("email")
+			s.Email.Encode(e)
+		}
+	}
+	{
+		if s.Language.Set {
+			e.FieldStart("language")
+			s.Language.Encode(e)
+		}
+	}
+	{
+		if s.HasAvatar.Set {
+			e.FieldStart("hasAvatar")
+			s.HasAvatar.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("createdAt")
 		json.EncodeDateTime(e, s.CreatedAt)
 	}
@@ -14141,16 +14385,20 @@ func (s *User) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfUser = [9]string{
-	0: "id",
-	1: "username",
-	2: "isAdmin",
-	3: "disabled",
-	4: "totpEnabled",
-	5: "permissions",
-	6: "currentProfile",
-	7: "createdAt",
-	8: "lastLoginAt",
+var jsonFieldsNameOfUser = [13]string{
+	0:  "id",
+	1:  "username",
+	2:  "isAdmin",
+	3:  "disabled",
+	4:  "totpEnabled",
+	5:  "permissions",
+	6:  "currentProfile",
+	7:  "displayName",
+	8:  "email",
+	9:  "language",
+	10: "hasAvatar",
+	11: "createdAt",
+	12: "lastLoginAt",
 }
 
 // Decode decodes User from json.
@@ -14242,8 +14490,48 @@ func (s *User) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"currentProfile\"")
 			}
+		case "displayName":
+			if err := func() error {
+				s.DisplayName.Reset()
+				if err := s.DisplayName.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"displayName\"")
+			}
+		case "email":
+			if err := func() error {
+				s.Email.Reset()
+				if err := s.Email.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"email\"")
+			}
+		case "language":
+			if err := func() error {
+				s.Language.Reset()
+				if err := s.Language.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"language\"")
+			}
+		case "hasAvatar":
+			if err := func() error {
+				s.HasAvatar.Reset()
+				if err := s.HasAvatar.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"hasAvatar\"")
+			}
 		case "createdAt":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.CreatedAt = v
@@ -14274,8 +14562,8 @@ func (s *User) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
-		0b10111111,
-		0b00000000,
+		0b00111111,
+		0b00001000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -14397,6 +14685,46 @@ func (s *UserDataUpdate) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *UserDataUpdate) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UserLanguage as json.
+func (s UserLanguage) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes UserLanguage from json.
+func (s *UserLanguage) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UserLanguage to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch UserLanguage(v) {
+	case UserLanguageEn:
+		*s = UserLanguageEn
+	case UserLanguageHr:
+		*s = UserLanguageHr
+	default:
+		*s = UserLanguage(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s UserLanguage) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UserLanguage) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

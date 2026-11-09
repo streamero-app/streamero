@@ -646,6 +646,71 @@ func decodeDeleteProfileParams(args [1]string, argsEscaped bool, r *http.Request
 	return params, nil
 }
 
+// DeleteProfileAvatarParams is parameters of deleteProfileAvatar operation.
+type DeleteProfileAvatarParams struct {
+	ProfileId uuid.UUID
+}
+
+func unpackDeleteProfileAvatarParams(packed middleware.Parameters) (params DeleteProfileAvatarParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "profileId",
+			In:   "path",
+		}
+		params.ProfileId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeDeleteProfileAvatarParams(args [1]string, argsEscaped bool, r *http.Request) (params DeleteProfileAvatarParams, _ error) {
+	// Decode path: profileId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "profileId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ProfileId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "profileId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // DeleteUserParams is parameters of deleteUser operation.
 type DeleteUserParams struct {
 	UserId uuid.UUID
@@ -945,6 +1010,72 @@ func decodeGetActivityParams(args [0]string, argsEscaped bool, r *http.Request) 
 		return params, &ogenerrors.DecodeParamError{
 			Name: "offset",
 			In:   "query",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// GetAvatarParams is parameters of getAvatar operation.
+type GetAvatarParams struct {
+	// A user or profile id.
+	OwnerId uuid.UUID
+}
+
+func unpackGetAvatarParams(packed middleware.Parameters) (params GetAvatarParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "ownerId",
+			In:   "path",
+		}
+		params.OwnerId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeGetAvatarParams(args [1]string, argsEscaped bool, r *http.Request) (params GetAvatarParams, _ error) {
+	// Decode path: ownerId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "ownerId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.OwnerId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "ownerId",
+			In:   "path",
 			Err:  err,
 		}
 	}
@@ -3737,6 +3868,71 @@ func unpackSelectProfileParams(packed middleware.Parameters) (params SelectProfi
 }
 
 func decodeSelectProfileParams(args [1]string, argsEscaped bool, r *http.Request) (params SelectProfileParams, _ error) {
+	// Decode path: profileId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "profileId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ProfileId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "profileId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// SetProfileAvatarParams is parameters of setProfileAvatar operation.
+type SetProfileAvatarParams struct {
+	ProfileId uuid.UUID
+}
+
+func unpackSetProfileAvatarParams(packed middleware.Parameters) (params SetProfileAvatarParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "profileId",
+			In:   "path",
+		}
+		params.ProfileId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeSetProfileAvatarParams(args [1]string, argsEscaped bool, r *http.Request) (params SetProfileAvatarParams, _ error) {
 	// Decode path: profileId.
 	if err := func() error {
 		param := args[0]

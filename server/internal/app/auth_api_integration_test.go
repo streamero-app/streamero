@@ -9,6 +9,10 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/color"
+	_ "image/jpeg"
+	pngenc "image/png"
 	"io"
 	"log/slog"
 	"net/http"
@@ -1833,5 +1837,79 @@ func TestServerSettingsIntegration(t *testing.T) {
 	var logs []map[string]any
 	if s := adminC.do("GET", "/admin/logs?level=debug", nil, &logs); s != 200 {
 		t.Fatalf("logs: HTTP %d", s)
+	}
+}
+
+func TestAccountAndAvatarIntegration(t *testing.T) {
+	srv := newAuthTestServer(t)
+	c := newClient(t, srv)
+	setupAdmin(t, c)
+	var me map[string]any
+	if s := c.do("PUT", "/auth/me", map[string]any{"displayName": "  Ana Kino ", "email": "ana@example.com", "language": "hr"}, &me); s != 200 {
+		t.Fatalf("update me: HTTP %d", s)
+	}
+	if me["displayName"] != "Ana Kino" || me["email"] != "ana@example.com" || me["language"] != "hr" || me["hasAvatar"] != false {
+		t.Fatalf("me: %v", me)
+	}
+	var e apiError
+	if s := c.do("PUT", "/auth/me", map[string]any{"email": "not an address"}, &e); s != 400 || e.Code != "invalid_email" {
+		t.Fatalf("bad e-mail: HTTP %d %+v", s, e)
+	}
+	// Only the fields sent change.
+	me = map[string]any{}
+	c.do("PUT", "/auth/me", map[string]any{"displayName": ""}, &me)
+	if _, has := me["displayName"]; has || me["email"] != "ana@example.com" {
+		t.Fatalf("partial update: %v", me)
+	}
+
+	upload := func(path string, body []byte) int {
+		req, _ := http.NewRequest("PUT", c.base+path, bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/octet-stream")
+		req.Header.Set("Authorization", "Bearer "+c.token)
+		resp, err := c.http.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = resp.Body.Close()
+		return resp.StatusCode
+	}
+	if s := upload("/auth/me/avatar", []byte("not a picture")); s != 400 {
+		t.Fatalf("garbage upload: HTTP %d", s)
+	}
+	img := image.NewRGBA(image.Rect(0, 0, 900, 600))
+	for y := 0; y < 600; y++ {
+		for x := 0; x < 900; x++ {
+			img.Set(x, y, color.RGBA{200, uint8(x % 256), 40, 255})
+		}
+	}
+	var png bytes.Buffer
+	_ = pngenc.Encode(&png, img)
+	if s := upload("/auth/me/avatar", png.Bytes()); s != 204 {
+		t.Fatalf("upload: HTTP %d", s)
+	}
+	c.do("GET", "/auth/me", nil, &me)
+	if me["hasAvatar"] != true {
+		t.Fatalf("hasAvatar after upload: %v", me)
+	}
+	req, _ := http.NewRequest("GET", c.base+"/avatars/"+me["id"].(string), nil)
+	req.Header.Set("Authorization", "Bearer "+c.token)
+	resp, err := c.http.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pic, _, err := image.Decode(resp.Body)
+	_ = resp.Body.Close()
+	if err != nil || pic.Bounds().Dx() != 256 || pic.Bounds().Dy() != 256 {
+		t.Fatalf("stored picture should be a 256 px square: %v %v", err, pic)
+	}
+	if s := c.do("DELETE", "/auth/me/avatar", nil, nil); s != 204 {
+		t.Fatalf("delete: HTTP %d", s)
+	}
+	if s := c.do("GET", "/avatars/"+me["id"].(string), nil, nil); s != 404 {
+		t.Fatalf("after delete: HTTP %d", s)
+	}
+	// Someone else's profile cannot be given a picture.
+	if s := upload("/profiles/"+uuid.NewString()+"/avatar", png.Bytes()); s != 404 {
+		t.Fatalf("foreign profile: HTTP %d", s)
 	}
 }

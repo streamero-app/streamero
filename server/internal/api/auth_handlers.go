@@ -175,6 +175,13 @@ func (h *Handler) GetMe(ctx context.Context) (*gen.User, error) {
 	if p.Profile != nil {
 		u.CurrentProfile = gen.NewOptProfile(toProfile(*p.Profile))
 	}
+	if a, err := h.Auth().Account(ctx, p.User.ID); err == nil {
+		u.DisplayName, u.Email = optString(a.DisplayName), optString(a.Email)
+		u.HasAvatar = gen.NewOptBool(a.HasAvatar)
+		if a.Language != "" {
+			u.Language = gen.NewOptUserLanguage(gen.UserLanguage(a.Language))
+		}
+	}
 	return &u, nil
 }
 
@@ -690,7 +697,7 @@ func (h *Handler) SelectMainProfile(ctx context.Context, req gen.OptPasswordConf
 }
 
 func toProfile(pr auth.Profile) gen.Profile {
-	out := gen.Profile{ID: pr.ID, Name: pr.Name, Color: pr.Color, HasPin: pr.HasPin, IsKid: pr.IsKid}
+	out := gen.Profile{ID: pr.ID, Name: pr.Name, Color: pr.Color, HasPin: pr.HasPin, IsKid: pr.IsKid, HasAvatar: gen.NewOptBool(pr.HasAvatar)}
 	if pr.MaxRating != nil {
 		out.MaxRating = gen.NewOptInt(*pr.MaxRating)
 	}

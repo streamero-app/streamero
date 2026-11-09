@@ -126,6 +126,118 @@ paths:
                 $ref: "#/components/schemas/User"
         default:
           $ref: "#/components/responses/Error"
+    put:
+      operationId: updateMe
+      summary: Change own display name, e-mail and language
+      tags: [auth]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMeRequest"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        default:
+          $ref: "#/components/responses/Error"
+  /auth/me/avatar:
+    put:
+      operationId: setMyAvatar
+      summary: Upload own picture (JPEG, PNG or GIF, up to 8 MB; cropped to a square)
+      tags: [auth]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "204":
+          description: Saved
+        default:
+          $ref: "#/components/responses/Error"
+    delete:
+      operationId: deleteMyAvatar
+      summary: Remove own picture
+      tags: [auth]
+      security:
+        - sessionToken: []
+      responses:
+        "204":
+          description: Removed
+        default:
+          $ref: "#/components/responses/Error"
+  /profiles/{profileId}/avatar:
+    parameters:
+      - $ref: "#/components/parameters/ProfileId"
+    put:
+      operationId: setProfileAvatar
+      summary: Upload a profile's picture
+      tags: [profiles]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "204":
+          description: Saved
+        default:
+          $ref: "#/components/responses/Error"
+    delete:
+      operationId: deleteProfileAvatar
+      summary: Remove a profile's picture
+      tags: [profiles]
+      security:
+        - sessionToken: []
+      responses:
+        "204":
+          description: Removed
+        default:
+          $ref: "#/components/responses/Error"
+  /avatars/{ownerId}:
+    parameters:
+      - name: ownerId
+        in: path
+        required: true
+        description: A user or profile id.
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getAvatar
+      summary: A user's or profile's picture (JPEG)
+      tags: [auth]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Image
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+        default:
+          $ref: "#/components/responses/Error"
   /auth/password:
     post:
       operationId: changePassword
@@ -3088,6 +3200,8 @@ components:
         maxRating:
           type: integer
           description: Highest age rating allowed (e.g. 12); applies from P3 (ratings) on.
+        hasAvatar:
+          type: boolean
     ProfileInput:
       type: object
       required: [name, color, isKid]
@@ -3209,12 +3323,35 @@ components:
           $ref: "#/components/schemas/UserPermissions"
         currentProfile:
           $ref: "#/components/schemas/Profile"
+        displayName:
+          type: string
+        email:
+          type: string
+        language:
+          type: string
+          enum: [en, hr]
+          description: Interface language chosen by the user.
+        hasAvatar:
+          type: boolean
         createdAt:
           type: string
           format: date-time
         lastLoginAt:
           type: string
           format: date-time
+    UpdateMeRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+          maxLength: 60
+        email:
+          type: string
+          maxLength: 200
+          description: Used for notifications; empty removes it.
+        language:
+          type: string
+          enum: [en, hr]
     CreateUserRequest:
       type: object
       required: [username, password]

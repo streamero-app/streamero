@@ -97,7 +97,19 @@
     "changePassword": "Promijeni lozinku",
     "currentPassword": "Trenutna lozinka",
     "newPassword": "Nova lozinka",
-    "passwordChanged": "Lozinka je promijenjena. Ostali uređaji su odjavljeni."
+    "passwordChanged": "Lozinka je promijenjena. Ostali uređaji su odjavljeni.",
+    "changePicture": "Promijeni sliku",
+    "removePicture": "Ukloni sliku",
+    "twoFactorOn": "Dvofaktorska uključena",
+    "memberSince": "Član od {{date}}",
+    "lastSignIn": "zadnja prijava {{date}}",
+    "profileTitle": "Profil",
+    "displayName": "Ime za prikaz",
+    "displayNameHint": "Prikazuje se u izborniku i administratorima umjesto korisničkog imena.",
+    "email": "E-mail",
+    "emailHint": "Nije obavezno. Za obavijesti i pomoć administratora s lozinkom.",
+    "language": "Jezik",
+    "languageHint": "Vrijedi na svakom uređaju na kojem se prijaviš."
   },
   "devices": {
     "intro": "Uređaji prijavljeni na vaš račun. Odjava uređaja djeluje odmah.",
@@ -178,7 +190,10 @@
     "invalid_notification_target": "Provjeri servis i URL (http ili https; Gotify treba app token).",
     "notification_failed": "Odredište nije prihvatilo poruku. Provjeri URL i token.",
     "tmdb_not_configured": "Prvo dodaj TMDb ključ u Postavke → Metapodaci.",
-    "metadata_locked": "Ovaj naslov je ručno uređen. Za zamjenu podacima s TMDb-a koristi Identificiraj."
+    "metadata_locked": "Ovaj naslov je ručno uređen. Za zamjenu podacima s TMDb-a koristi Identificiraj.",
+    "invalid_email": "Ta e-mail adresa nije ispravna.",
+    "invalid_image": "Datoteka nije JPEG, PNG ili GIF slika.",
+    "image_too_large": "Slika je veća od 8 MB."
   },
   "notFound": {
     "title": "Stranica nije pronađena",

@@ -350,6 +350,26 @@ func encodeSelectProfileRequest(
 	return nil
 }
 
+func encodeSetMyAvatarRequest(
+	req SetMyAvatarReq,
+	r *http.Request,
+) error {
+	const contentType = "application/octet-stream"
+	body := req
+	ht.SetBody(r, body, contentType)
+	return nil
+}
+
+func encodeSetProfileAvatarRequest(
+	req SetProfileAvatarReq,
+	r *http.Request,
+) error {
+	const contentType = "application/octet-stream"
+	body := req
+	ht.SetBody(r, body, contentType)
+	return nil
+}
+
 func encodeStartPlaybackRequest(
 	req *PlaybackRequest,
 	r *http.Request,
@@ -422,6 +442,20 @@ func encodeUpdateEncodingSettingsRequest(
 
 func encodeUpdateLibraryRequest(
 	req *LibraryInput,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeUpdateMeRequest(
+	req *UpdateMeRequest,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"
