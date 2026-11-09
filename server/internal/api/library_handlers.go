@@ -135,7 +135,9 @@ func (h *Handler) ListLibraryItems(ctx context.Context, params gen.ListLibraryIt
 		return nil, err
 	}
 	items, total, err := h.lib().ListItems(ctx, params.LibraryId, stream.Owner(p), string(params.Sort.Or(gen.ListLibraryItemsSortTitle)),
-		params.Limit.Or(100), params.Offset.Or(0), library.ItemFilter{Genre: params.Genre.Value, Unplayed: params.Unplayed.Value})
+		params.Limit.Or(100), params.Offset.Or(0), library.ItemFilter{Genre: params.Genre.Value, Unplayed: params.Unplayed.Value,
+			Favorite: params.Favorite.Value, Resumable: params.Resumable.Value, YearFrom: params.YearFrom.Value, YearTo: params.YearTo.Value,
+			Letter: params.Letter.Value})
 	if err != nil {
 		return nil, err
 	}
@@ -179,6 +181,16 @@ func (h *Handler) GetItem(ctx context.Context, params gen.GetItemParams) (*gen.I
 		out.Genres = []string{}
 	}
 	out.Cast, out.Crew = toPeople(m.Cast), toPeople(m.Crew)
+	out.Studios = m.Studios
+	if len(files) > 0 && h.Stream != nil && h.Stream() != nil {
+		chs, tp := h.Stream().Analysis(ctx, files[0].ID)
+		for _, c := range chs {
+			out.Chapters = append(out.Chapters, gen.Chapter{StartMs: c.StartMS, Title: c.Title})
+		}
+		if tp != nil {
+			out.Trickplay = gen.NewOptTrickplayInfo(trickplayInfo(files[0].ID, tp))
+		}
+	}
 	if cs, err := h.lib().ItemCollections(ctx, it.ID); err == nil {
 		for _, c := range cs {
 			out.Collections = append(out.Collections, toCollection(c))
@@ -467,6 +479,15 @@ func (h *Handler) StartPlayback(ctx context.Context, req *gen.PlaybackRequest, p
 	r := stream.Request{Device: stream.Device{Containers: req.Device.Containers, VideoCodecs: req.Device.VideoCodecs,
 		AudioCodecs: req.Device.AudioCodecs, HLS: req.Device.Hls.Value, MaxHeight: req.Device.MaxHeight.Value,
 		MaxBitrate: req.Device.MaxBitrate.Value}}
+	if prefs, err := h.lib().GetPrefs(ctx, stream.Owner(p)); err == nil {
+		// The profile's limits win over what the device asks for.
+		if prefs.MaxBitrateKbps > 0 && (r.Device.MaxBitrate == 0 || r.Device.MaxBitrate > prefs.MaxBitrateKbps*1000) {
+			r.Device.MaxBitrate = prefs.MaxBitrateKbps * 1000
+		}
+		if prefs.MaxHeight > 0 && (r.Device.MaxHeight == 0 || r.Device.MaxHeight > prefs.MaxHeight) {
+			r.Device.MaxHeight = prefs.MaxHeight
+		}
+	}
 	if v, ok := req.FileId.Get(); ok {
 		r.FileID = &v
 	}
@@ -520,14 +541,18 @@ func (h *Handler) StartPlayback(ctx context.Context, req *gen.PlaybackRequest, p
 		out.Segments = append(out.Segments, gen.MediaSegment{Kind: gen.MediaSegmentKind(sg.Kind), StartMs: sg.StartMS, EndMs: sg.EndMS})
 	}
 	if tp := info.Trickplay; tp != nil {
-		urls := make([]string, tp.Sheets)
-		for i := range urls {
-			urls[i] = fmt.Sprintf("/api/v1/trickplay/%s/%d", info.FileID, i)
-		}
-		out.Trickplay = gen.NewOptTrickplayInfo(gen.TrickplayInfo{IntervalMs: tp.IntervalMS, Width: tp.Width, Height: tp.Height,
-			Columns: tp.Columns, Rows: tp.Rows, Count: tp.Count, SheetUrls: urls})
+		out.Trickplay = gen.NewOptTrickplayInfo(trickplayInfo(info.FileID, tp))
 	}
 	return out, nil
+}
+
+func trickplayInfo(fileID uuid.UUID, tp *stream.Trickplay) gen.TrickplayInfo {
+	urls := make([]string, tp.Sheets)
+	for i := range urls {
+		urls[i] = fmt.Sprintf("/api/v1/trickplay/%s/%d", fileID, i)
+	}
+	return gen.TrickplayInfo{IntervalMs: tp.IntervalMS, Width: tp.Width, Height: tp.Height,
+		Columns: tp.Columns, Rows: tp.Rows, Count: tp.Count, SheetUrls: urls}
 }
 
 // ReportProgress implements PUT /items/{itemId}/progress.
@@ -717,7 +742,18 @@ func (h *Handler) UpdatePreferences(ctx context.Context, req *gen.PlaybackPrefer
 	}
 	autoplay := req.AutoplayNext
 	prefs := library.Prefs{AudioLanguage: strings.ToLower(req.AudioLanguage.Value), SubtitleLanguage: strings.ToLower(req.SubtitleLanguage.Value),
-		SubtitleMode: mode, AutoplayNext: &autoplay}
+		SubtitleMode: mode, AutoplayNext: &autoplay,
+		SkipBackSeconds: req.SkipBackSeconds.Value, SkipForwardSeconds: req.SkipForwardSeconds.Value,
+		MaxBitrateKbps: req.MaxBitrateKbps.Value, MaxHeight: req.MaxHeight.Value,
+		SkipIntro: string(req.SkipIntro.Value), SkipCredits: string(req.SkipCredits.Value),
+		SubtitleSize: string(req.SubtitleSize.Value), SubtitleColor: string(req.SubtitleColor.Value),
+		SubtitleBackground: string(req.SubtitleBackground.Value), SubtitlePosition: req.SubtitlePosition.Value}
+	if v, ok := req.UpNextSeconds.Get(); ok {
+		prefs.UpNextSeconds = &v
+	}
+	for _, sct := range req.HomeSections {
+		prefs.HomeSections = append(prefs.HomeSections, string(sct))
+	}
 	if err := h.lib().SavePrefs(ctx, stream.Owner(p), prefs); err != nil {
 		return nil, err
 	}
@@ -731,6 +767,35 @@ func toPrefs(p library.Prefs) *gen.PlaybackPreferences {
 	}
 	if p.SubtitleLanguage != "" {
 		out.SubtitleLanguage = gen.NewOptString(p.SubtitleLanguage)
+	}
+	optInt := func(v int) gen.OptInt {
+		if v == 0 {
+			return gen.OptInt{}
+		}
+		return gen.NewOptInt(v)
+	}
+	out.SkipBackSeconds, out.SkipForwardSeconds = optInt(p.SkipBackSeconds), optInt(p.SkipForwardSeconds)
+	out.MaxBitrateKbps, out.MaxHeight, out.SubtitlePosition = optInt(p.MaxBitrateKbps), optInt(p.MaxHeight), optInt(p.SubtitlePosition)
+	if p.UpNextSeconds != nil {
+		out.UpNextSeconds = gen.NewOptInt(*p.UpNextSeconds)
+	}
+	if p.SkipIntro != "" {
+		out.SkipIntro = gen.NewOptPlaybackPreferencesSkipIntro(gen.PlaybackPreferencesSkipIntro(p.SkipIntro))
+	}
+	if p.SkipCredits != "" {
+		out.SkipCredits = gen.NewOptPlaybackPreferencesSkipCredits(gen.PlaybackPreferencesSkipCredits(p.SkipCredits))
+	}
+	if p.SubtitleSize != "" {
+		out.SubtitleSize = gen.NewOptPlaybackPreferencesSubtitleSize(gen.PlaybackPreferencesSubtitleSize(p.SubtitleSize))
+	}
+	if p.SubtitleColor != "" {
+		out.SubtitleColor = gen.NewOptPlaybackPreferencesSubtitleColor(gen.PlaybackPreferencesSubtitleColor(p.SubtitleColor))
+	}
+	if p.SubtitleBackground != "" {
+		out.SubtitleBackground = gen.NewOptPlaybackPreferencesSubtitleBackground(gen.PlaybackPreferencesSubtitleBackground(p.SubtitleBackground))
+	}
+	for _, sct := range p.HomeSections {
+		out.HomeSections = append(out.HomeSections, gen.PlaybackPreferencesHomeSectionsItem(sct))
 	}
 	return out
 }

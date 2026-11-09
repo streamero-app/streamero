@@ -571,6 +571,14 @@ export interface paths {
                 genre?: string;
                 /** @description Only items the current profile has not watched. */
                 unplayed?: boolean;
+                /** @description Only items on the current profile's list. */
+                favorite?: boolean;
+                /** @description Only items started but not finished. */
+                resumable?: boolean;
+                yearFrom?: number;
+                yearTo?: number;
+                /** @description First letter of the sort title ("#" for digits and symbols). */
+                letter?: string;
             };
             header?: never;
             path: {
@@ -1210,6 +1218,94 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/settings/encoding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Transcoding settings (admin) */
+        get: operations["getEncodingSettings"];
+        /** Update transcoding settings (admin) */
+        put: operations["updateEncodingSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** When playback counts as started or watched (admin) */
+        get: operations["getResumeSettings"];
+        /** Update resume thresholds (admin) */
+        put: operations["updateResumeSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/branding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Login message and custom CSS (admin) */
+        get: operations["getBrandingSettings"];
+        /** Update branding (admin) */
+        put: operations["updateBrandingSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recent log lines of the server and worker (admin) */
+        get: operations["getServerLogs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sign-ins, account and settings changes (admin) */
+        get: operations["getActivity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1500,6 +1596,28 @@ export interface components {
             subtitleMode: "default" | "smart" | "always" | "forced" | "none";
             /** @description Play the next episode automatically. */
             autoplayNext: boolean;
+            skipBackSeconds?: number;
+            skipForwardSeconds?: number;
+            /** @description Streaming limit for this profile; 0 = no limit. */
+            maxBitrateKbps?: number;
+            /** @description Highest picture height to stream (e.g. 1080); 0 = original. */
+            maxHeight?: number;
+            /** @description Countdown before the next episode; 0 = show the card without counting down. */
+            upNextSeconds?: number;
+            /** @enum {string} */
+            skipIntro?: "button" | "auto" | "off";
+            /** @enum {string} */
+            skipCredits?: "button" | "auto" | "off";
+            /** @enum {string} */
+            subtitleSize?: "small" | "normal" | "large" | "xlarge";
+            /** @enum {string} */
+            subtitleColor?: "white" | "yellow" | "cyan";
+            /** @enum {string} */
+            subtitleBackground?: "none" | "shadow" | "box";
+            /** @description Lift from the bottom edge, in percent of the picture height. */
+            subtitlePosition?: number;
+            /** @description Order and visibility of the sections on the home page. */
+            homeSections?: ("continue" | "nextUp" | "latest" | "favorites" | "collections" | "top" | "genres" | "libraries")[];
         };
         Collection: {
             /** Format: uuid */
@@ -1690,6 +1808,11 @@ export interface components {
             tagline?: string;
             originalTitle?: string;
             genres: string[];
+            /** @description Production companies or networks. */
+            studios?: string[];
+            /** @description Chapters of the first file (for the chapter list on the item page). */
+            chapters?: components["schemas"]["Chapter"][];
+            trickplay?: components["schemas"]["TrickplayInfo"];
             /** @description Age rating for the configured country, e.g. "12" or "PG-13". */
             officialRating?: string;
             /** Format: date */
@@ -1853,6 +1976,51 @@ export interface components {
         Pong: {
             ok: boolean;
         };
+        EncodingSettings: {
+            /** @enum {string} */
+            hardwareAcceleration: "none" | "vaapi" | "qsv" | "nvenc";
+            /** @description Render node for VAAPI, e.g. /dev/dri/renderD128. */
+            vaapiDevice?: string;
+            /** @enum {string} */
+            preset: "ultrafast" | "superfast" | "veryfast" | "faster" | "fast" | "medium" | "slow";
+            /** @description Constant quality (CRF / CQ / QP); lower is better and larger. */
+            quality: number;
+            audioBitrateKbps: number;
+            segmentSeconds: number;
+            /** @description Transcodes at once; 0 = no limit. */
+            maxSessions: number;
+            /** @description Convert HDR to SDR when transcoding for screens without HDR. */
+            toneMapping: boolean;
+        };
+        ResumeSettings: {
+            /** @description Below this much of the length, stopping does not save a position. */
+            minResumePercent: number;
+            /** @description From this much of the length, the title counts as watched. */
+            maxResumePercent: number;
+            /** @description Shorter titles never keep a position. */
+            minResumeDurationSeconds: number;
+        };
+        BrandingSettings: {
+            /** @description Shown under the sign-in form. */
+            loginDisclaimer: string;
+            /** @description Extra CSS added to every page of the web client. */
+            customCss: string;
+        };
+        LogEntry: {
+            /** Format: date-time */
+            time: string;
+            /** @enum {string} */
+            level: "debug" | "info" | "warn" | "error";
+            message: string;
+            /** @description serve or worker. */
+            source: string;
+            /** @description The record's fields as key=value pairs. */
+            attrs?: string;
+        };
+        ActivityPage: {
+            entries: components["schemas"]["ActivityEntry"][];
+            total: number;
+        };
         SystemInfo: {
             /**
              * Format: uuid
@@ -1869,6 +2037,8 @@ export interface components {
             setupCompleted: boolean;
             /** Format: date-time */
             startedAt: string;
+            loginDisclaimer?: string;
+            customCss?: string;
         };
         Error: {
             code: string;
@@ -2808,6 +2978,14 @@ export interface operations {
                 genre?: string;
                 /** @description Only items the current profile has not watched. */
                 unplayed?: boolean;
+                /** @description Only items on the current profile's list. */
+                favorite?: boolean;
+                /** @description Only items started but not finished. */
+                resumable?: boolean;
+                yearFrom?: number;
+                yearTo?: number;
+                /** @description First letter of the sort title ("#" for digits and symbols). */
+                letter?: string;
             };
             header?: never;
             path: {
@@ -3853,6 +4031,193 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ServerSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getEncodingSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EncodingSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateEncodingSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EncodingSettings"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EncodingSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getResumeSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumeSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateResumeSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResumeSettings"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumeSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getBrandingSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrandingSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateBrandingSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BrandingSettings"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrandingSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getServerLogs: {
+        parameters: {
+            query?: {
+                level?: "debug" | "info" | "warn" | "error";
+                q?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Newest first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogEntry"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getActivity: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Newest first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityPage"];
                 };
             };
             default: components["responses"]["Error"];

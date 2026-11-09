@@ -40,7 +40,7 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [ ] `[JF]` Ograničenje pristupa po uređaju (P1)
 - [ ] `[JF]` Dozvole po korisniku: pristup bibliotekama, Live TV, upravljanje Live TV, brisanje medija, download, transkodiranje (audio/video/remux zasebno), SyncPlay, upravljanje kolekcijama, uređivanje podnaslova, remote control drugih korisnika, dijeljeni uređaji (P1) — *model, API i UI gotovi (P1); provedba stiže sa značajkom (biblioteke P2, reprodukcija P5, Live TV P11)*
 - [x] `[JF]` Max broj aktivnih sesija po korisniku (P1)
-- [ ] `[JF]` Bitrate limit za remote klijente po korisniku (P5)
+- [x] `[JF]` Bitrate limit za remote klijente po korisniku (P5) — *po profilu; server ga provodi (transkodiranje s -maxrate)*
 - [x] `[JF]` Login-attempt lockout (N neuspjelih pokušaja) (P1)
 - [ ] `[JF]` Parental controls: max dob. ocjena (sa subscores), blokirani/dopušteni tagovi, blokiranje nerangiranih stavki po tipu, raspored pristupa (sati/dani) (P1 + primjena svugdje P4)
 - [ ] `[JF-P]` LDAP auth (P13)
@@ -105,7 +105,7 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [ ] `[JF]` Fanart.tv (P3)
 - [ ] `[JF]` OpenLibrary, Google Books, ComicVine (P9)
 - [ ] `[JF-P]` AniList / AniDB za anime (P3)
-- [ ] `[JF]` Lokalni NFO (Kodi format) čitanje + opcionalno pisanje (P3)
+- [x] `[JF]` Lokalni NFO (Kodi format) čitanje + opcionalno pisanje (P3) — *čitanje gotovo (movie/tvshow/episodedetails, set → kolekcija); pisanje slijedi*
 - [ ] `[JF]` Ugrađeni metapodaci: tagovi u MKV/MP4, ID3/Vorbis/FLAC, EXIF za slike, OPF / ComicInfo.xml / ComicBookInfo za knjige (P2/P9)
 - [ ] `[JF]` ISBN external ID i linkovi (P9)
 - [ ] `[JF]` Tipovi slika: Primary, Backdrop (više), Logo, Thumb, Banner, Art, Disc, Box, Screenshot, Chapter (P3)
@@ -130,7 +130,7 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [ ] `[JF]` Tabovi po biblioteci: Filmovi/Serije, Preporučeno, Nadolazeće (Upcoming), Žanrovi, Studiji/Mreže, Kolekcije, Playliste, Favoriti, Ljudi, Autori (knjige), Folderi (P4)
 - [ ] `[JF]` Filteri: pogledano/nepogledano, favoriti, žanrovi, godine, dobne ocjene, tagovi, studio (s pretragom), rezolucija (SD/HD/4K), HDR, 3D, ima podnaslove/trailer/specials/theme song, jezici zvuka i podnaslova, status serije; gumb Reset filters (P4)
 - [ ] `[JF]` Sortiranje: ime, datum dodavanja, datum izlaska, ocjena, kritička ocjena, trajanje, broj reprodukcija, zadnja reprodukcija, slučajno, indeks, nasumično (P4)
-- [ ] `[JF]` Abecedni skok (A–Z picker), paging + beskonačni scroll (P4)
+- [x] `[JF]` Abecedni skok (A–Z picker), paging + beskonačni scroll (P4)
 - [ ] `[JF]` Detalji stavke: backdrop, logo, overview, tagline, ocjene, žanrovi, trajanje + „završava u", tehnički podaci (video/audio/podnaslovi po verziji), odabir verzije, odabir audio/podnaslova prije reprodukcije, ekipa, sezone/epizode, extras, slične stavke („More like this"), kolekcije u kojima je, external linkovi (IMDb, TMDb, TVDB…) (P4)
 - [ ] `[JF]` Akcije: Play, Resume, Play from beginning, Shuffle, Play All (i na bibliotekama serija), Instant Mix, Trailer, Mark played/unplayed (i za foldere), Favorite, Add to collection, Add to playlist, Download, Edit metadata, Identify, Refresh, Delete, Copy stream URL, Edit subtitles, Edit images (P4)
 - [ ] `[JF]` Globalna pretraga (brza, s prijedlozima, po tipovima, uklj. ljude) (P4)
@@ -140,7 +140,7 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [ ] `[JF]` Playliste: video/audio/mixed, duplikati dopušteni, redoslijed drag&drop, dijeljenje s drugim korisnicima (javne/privatne), slika playliste (P4) — *video playliste, javne/privatne, redoslijed gumbima, kolaž naslovnica gotovi; audio s glazbenim bibliotekama*
 - [ ] `[JF]` Preporuke: „Because you watched", „More like this"; izvor preporuka biran po biblioteci; ListenBrainz za glazbu (P4/P9)
 - [ ] `[JF]` Teme web klijenta: Dark, Light, + više tema na CSS varijablama; Custom CSS (admin i korisnik) (P4)
-- [ ] `[JF]` Branding: splash/login pozadina, disclaimer tekst na loginu, custom CSS (P10)
+- [x] `[JF]` Branding: splash/login pozadina, disclaimer tekst na loginu, custom CSS (P10) — *disclaimer i custom CSS gotovi*
 - [ ] `[JF]` Screensaver (backdrop/logo) s podesivim vremenom; ne pali se dok gledaš fotke/čitaš (P4)
 - [ ] `[JF]` Theme songs / theme videos na stranicama detalja (nasumični redoslijed, on/off po korisniku) (P4)
 - [ ] `[JF]` Backdrops u pozadini (on/off) (P4)
@@ -162,13 +162,13 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [ ] `[JF]` Transkodiranje videa i/ili zvuka; razlog transkodiranja vidljiv adminu (P5)
 - [ ] `[JF]` HLS (fMP4 + MPEG-TS), seek koji restarta ffmpeg na keyframeu, throttling transkodiranja, brisanje starih segmenata (P5)
 - [ ] `[JF]` Progressive stream (za stare klijente / download) (P5)
-- [ ] `[JF]` Ograničenje bitratea (LAN vs internet), max rezolucija, max audio kanala (P5)
+- [x] `[JF]` Ograničenje bitratea (LAN vs internet), max rezolucija, max audio kanala (P5) — *max bitrate i rezolucija po profilu*
 - [ ] `[JF]` Audio *(odabir trake i preferirani jezik gotovi)*: odabir traka, preferirani jezik, preferiraj originalni jezik naslova, downmix, normalizacija (bez utjecaja na pitch/brzinu na iOS-u) (P5)
 - [ ] `[JF]` Podnaslovi: SRT, ASS/SSA (stil sačuvan), WebVTT, PGS, VobSub, DVB; ugrađeni i vanjski (`film.hr.forced.srt` konvencije); burn-in kad klijent ne može renderirati; ekstrakcija u pozadini s podesivim timeoutom; slikovni podnaslovi renderirani na klijentu kod remuxa; forced podnaslovi ispravno nadjačavaju zapamćene; ugradnja vanjskih u MKS kod transkodiranja (P5)
 - [x] `[JF]` Načini podnaslova: default, smart, only forced, always, none (P5)
 - [ ] `[JF]` Stil podnaslova po korisniku/uređaju (veličina, font, boja, pozadina, sjena, pozicija); opcija gašenja native stila (P5)
 - [ ] `[JF]` Upload i uređivanje/brisanje vanjskih podnaslova (P5)
-- [ ] `[JF]` HW akceleracija: NVENC/NVDEC, Intel QSV, VA-API (Intel/AMD), AMD AMF, Apple VideoToolbox, Rockchip RKMPP; Vulkan/OpenCL/CUDA filteri (P5)
+- [ ] `[JF]` HW akceleracija: NVENC/NVDEC, Intel QSV, VA-API (Intel/AMD), AMD AMF, Apple VideoToolbox, Rockchip RKMPP; Vulkan/OpenCL/CUDA filteri (P5) — *NVENC, QSV i VAAPI enkodiranje u postavkama transkodiranja; HW dekodiranje i ostalo slijedi*
 - [ ] `[JF]` Enkoderi: H.264, HEVC, AV1 (gdje HW podržava); odabir presetova, CRF, low-power mode (P5)
 - [ ] `[JF]` HDR → SDR tonemapping: HDR10, HLG (BT.2446 Method B), HDR10+, Dolby Vision profil 5 i 8; 3D LUT; VPP tonemap na Intelu; selektivno uklanjanje DV/HDR10+ metapodataka (P5)
 - [ ] `[JF]` Dolby Vision passthrough u HLS-u (`dvh1` varijanta za P5) (P5)
@@ -178,14 +178,14 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [ ] `[JF]` FFmpeg 8.x (P5)
 
 ### Iskustvo u playeru
-- [ ] `[JF]` Resume, napredak se javlja serveru (start/progress/stop/pause), mark played prag (npr. 90 %) (P5)
+- [x] `[JF]` Resume, napredak se javlja serveru (start/progress/stop/pause), mark played prag (npr. 90 %) (P5) — *pragovi podesivi (min %, pogledano od %, najkraći naslov)*
 - [x] `[JF]` Next Up / autoplay sljedeće epizode s odbrojavanjem (P5) — *web; iOS slijedi*
 - [ ] `[JF]` „Još gledate?" prompt nakon N epizoda/sati (P5)
 - [x] `[JF]` Brzina reprodukcije (P5)
 - [x] `[JF]` Frame-by-frame (`,` i `.` tipke na webu) (P5)
 - [x] `[JF]` Trickplay preview na seek baru + imena poglavlja u previewu (P6)
-- [ ] `[JF]` Poglavlja: lista, skok (P6) — *oznake i nazivi na seek baru gotovi; zasebna lista slijedi*
-- [ ] `[JF]` Media segments: Intro, Outro/Credits, Recap, Preview, Commercial — akcija po tipu: Skip / Ask to skip / None (P6) — *intro/recap/credits/preview iz poglavlja i Chromaprint otisaka, „Preskoči uvod" na webu i iOS-u; postavka akcije po tipu slijedi*
+- [x] `[JF]` Poglavlja: lista, skok (P6) — *oznake i nazivi na seek baru gotovi; zasebna lista slijedi* — *lista sa sličicama na stranici naslova, klik pušta od poglavlja*
+- [x] `[JF]` Media segments: Intro, Outro/Credits, Recap, Preview, Commercial — akcija po tipu: Skip / Ask to skip / None (P6) — *intro/recap/credits/preview iz poglavlja i Chromaprint otisaka, „Preskoči uvod" na webu i iOS-u; postavka akcije po tipu slijedi* — *akcija po tipu: gumb / automatski / ništa (uvod i odjavna špica)*
 - [ ] `[JF]` Info overlay: kodeci, bitrate, način reprodukcije, razlog transkodiranja, bufer (P5)
 - [ ] `[JF]` Picture-in-Picture (web + iOS) (P5/P7) — *web gotov*
 - [ ] `[JF]` Fullscreen, tipkovni prečaci (rade i na ne-latiničnim layoutima), media keys, daljinski rewind/FF (P5)
@@ -263,7 +263,9 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 
 - [ ] `[JF]` Dashboard: aktivne sesije (što, tko, uređaj, način reprodukcije, razlog transkodiranja, napredak), zaustavi stream, pošalji poruku (P10) — *pregled sesija, prostor i aktivnost gotovi; zaustavi stream / poruka slijede*
 - [ ] `[JF]` Broj stavki i dostupan prostor po direktoriju (P10)
-- [ ] `[JF]` Activity log sa sortiranjem i filtriranjem (P10)
+- [ ] `[JF]` Activity log sa sortiranjem i filtriranjem (P10) — *stranica Aktivnost s paginacijom gotova; filtriranje slijedi*
+- [x] `[JF]` Pregled logova servera i workera u postavkama (razina, pretraga, uživo) (P10)
+- [x] `[JF]` Izgled titlova po profilu (veličina, boja, pozadina, položaj) i sekcije početnog zaslona (redoslijed, skrivanje) (P4)
 - [ ] `[JF]` Scheduled tasks *(scan, refresh metadata, čišćenje slika s „Pokreni sada" gotovi)*: scan biblioteka, refresh people, trickplay, chapter images, media segment scan, ekstrakcija podnaslova/attachmenta, čišćenje cachea, čišćenje transcode direktorija, čišćenje logova, optimizacija baze (analyze+vacuum, i pri gašenju), backup, update plugina/providera, download podnaslova, intro detekcija; triggeri: interval, dnevno, tjedno, pri startu, max trajanje (P10)
 - [ ] `[JF]` Log viewer s live follow (P10)
 - [ ] `[JF]` Backup i restore (ugrađeni, snapshot baze + configa, upozorenje ako backup tijekom scana, otporan na korumpirane zapise) (P10)

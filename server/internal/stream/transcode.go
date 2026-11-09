@@ -35,12 +35,14 @@ type session struct {
 
 // Manager runs ffmpeg HLS sessions under Dir (a tmpfs in production).
 type Manager struct {
-	Dir     string
-	FFmpeg  string
-	Log     *slog.Logger
-	Idle    time.Duration // stop a session after this long without requests (default 90s)
-	mu      sync.Mutex
-	streams map[string]*session
+	Dir    string
+	FFmpeg string
+	Log    *slog.Logger
+	Idle   time.Duration // stop a session after this long without requests (default 90s)
+	// Encoding returns the administrator's transcoding settings (defaults when nil).
+	Encoding Loader
+	mu       sync.Mutex
+	streams  map[string]*session
 }
 
 // ErrNoSession is returned for unknown or finished sessions.
@@ -53,18 +55,13 @@ func newID() string {
 }
 
 // Args builds the ffmpeg command line for a job (exported for tests).
-func Args(j Job, dir string) []string {
+func Args(j Job, dir string, enc Encoding) []string {
+	enc = enc.Normalize()
 	a := []string{"-nostdin", "-hide_banner", "-loglevel", "error"}
-	if j.StartMS > 0 {
-		a = append(a, "-ss", strconv.FormatFloat(float64(j.StartMS)/1000, 'f', 3, 64))
-	}
-	a = append(a, "-i", j.Input, "-map", "0:v:0")
-	if j.AudioIndex >= 0 {
-		a = append(a, "-map", fmt.Sprintf("0:a:%d?", j.AudioIndex))
-	}
+	var encode []string
 	if j.Plan.TranscodeVideo {
 		var filters []string
-		if j.Plan.ToneMap {
+		if j.Plan.ToneMap && enc.ToneMaps() {
 			// HDR (PQ/HLG) to SDR BT.709 with the Hable curve.
 			filters = append(filters, "zscale=t=linear:npl=100", "format=gbrpf32le", "zscale=p=bt709",
 				"tonemap=tonemap=hable:desat=0", "zscale=t=bt709:m=bt709:r=tv")
@@ -72,26 +69,44 @@ func Args(j Job, dir string) []string {
 		if j.Plan.Height > 0 {
 			filters = append(filters, fmt.Sprintf("scale=-2:%d", j.Plan.Height))
 		}
-		filters = append(filters, "format=yuv420p")
-		a = append(a, "-vf", strings.Join(filters, ","), "-c:v", "libx264", "-preset", "veryfast", "-crf", "22",
-			"-profile:v", "high", "-g", "48", "-keyint_min", "48", "-sc_threshold", "0")
+		in, out := enc.videoArgs(filters)
+		a = append(a, in...)
+		encode = append(out, "-g", enc.gop(), "-keyint_min", enc.gop(), "-sc_threshold", "0")
+		if j.Plan.MaxBitrate > 0 {
+			encode = append(encode, "-maxrate", strconv.Itoa(j.Plan.MaxBitrate), "-bufsize", strconv.Itoa(j.Plan.MaxBitrate*2))
+		}
 	} else {
-		a = append(a, "-c:v", "copy")
+		encode = []string{"-c:v", "copy"}
 	}
+	if j.StartMS > 0 {
+		a = append(a, "-ss", strconv.FormatFloat(float64(j.StartMS)/1000, 'f', 3, 64))
+	}
+	a = append(a, "-i", j.Input, "-map", "0:v:0")
+	if j.AudioIndex >= 0 {
+		a = append(a, "-map", fmt.Sprintf("0:a:%d?", j.AudioIndex))
+	}
+	a = append(a, encode...)
 	if j.AudioIndex >= 0 {
 		if j.Plan.TranscodeAudio {
-			a = append(a, "-c:a", "aac", "-b:a", "192k", "-ac", "2")
+			a = append(a, "-c:a", "aac", "-b:a", fmt.Sprintf("%dk", enc.AudioKbps), "-ac", "2")
 		} else {
 			a = append(a, "-c:a", "copy")
 		}
 	}
-	return append(a, "-f", "hls", "-hls_time", "6", "-hls_playlist_type", "event", "-hls_segment_type", "fmp4",
+	return append(a, "-f", "hls", "-hls_time", strconv.Itoa(enc.SegmentSeconds), "-hls_playlist_type", "event", "-hls_segment_type", "fmp4",
 		"-hls_fmp4_init_filename", "init.mp4", "-hls_segment_filename", filepath.Join(dir, "seg_%05d.m4s"),
 		"-start_number", "0", filepath.Join(dir, "index.m3u8"))
 }
 
 // Start launches ffmpeg and waits until the first segment is listed.
 func (m *Manager) Start(ctx context.Context, j Job) (string, error) {
+	enc := DefaultEncoding()
+	if m.Encoding != nil {
+		enc = m.Encoding(ctx).Normalize()
+	}
+	if j.Plan.TranscodeVideo && enc.MaxSessions > 0 && m.Active() >= enc.MaxSessions {
+		return "", ErrBusy
+	}
 	id := newID()
 	dir := filepath.Join(m.Dir, id)
 	if err := os.MkdirAll(dir, 0o750); err != nil {
@@ -99,7 +114,7 @@ func (m *Manager) Start(ctx context.Context, j Job) (string, error) {
 	}
 	runCtx, cancel := context.WithCancel(context.Background())
 	// #nosec G204 -- fixed binary; the input path was validated with ResolveSafePath.
-	cmd := exec.CommandContext(runCtx, m.FFmpeg, Args(j, dir)...)
+	cmd := exec.CommandContext(runCtx, m.FFmpeg, Args(j, dir, enc)...)
 	var stderr strings.Builder
 	cmd.Stderr = &limitedWriter{w: &stderr, n: 4096}
 	if err := cmd.Start(); err != nil {

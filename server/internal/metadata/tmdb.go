@@ -227,7 +227,13 @@ type Details struct {
 	PosterPath    string  `json:"poster_path"`
 	BackdropPath  string  `json:"backdrop_path"`
 	IMDbID        string  `json:"imdb_id"`
-	Genres        []struct {
+	Companies     []struct {
+		Name string `json:"name"`
+	} `json:"production_companies"`
+	Networks []struct {
+		Name string `json:"name"`
+	} `json:"networks"`
+	Genres []struct {
 		Name string `json:"name"`
 	} `json:"genres"`
 	Images struct {
@@ -412,4 +418,20 @@ func (c *TMDb) Image(ctx context.Context, path, size string) ([]byte, error) {
 		return nil, fmt.Errorf("image %s: HTTP %d", path, resp.StatusCode)
 	}
 	return io.ReadAll(io.LimitReader(resp.Body, 20<<20))
+}
+
+// StudioNames lists the networks (series) and production companies, at most five.
+func (d Details) StudioNames() []string {
+	out := []string{}
+	for _, n := range d.Networks {
+		out = append(out, n.Name)
+	}
+	for _, c := range d.Companies {
+		out = append(out, c.Name)
+	}
+	out = clean(out)
+	if len(out) > 5 {
+		out = out[:5]
+	}
+	return out
 }

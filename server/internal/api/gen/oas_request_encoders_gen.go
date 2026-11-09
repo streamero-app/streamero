@@ -378,8 +378,36 @@ func encodeTestNotificationRequest(
 	return nil
 }
 
+func encodeUpdateBrandingSettingsRequest(
+	req *BrandingSettings,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeUpdateCollectionRequest(
 	req *CollectionInput,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeUpdateEncodingSettingsRequest(
+	req *EncodingSettings,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"
@@ -464,6 +492,20 @@ func encodeUpdatePreferencesRequest(
 
 func encodeUpdateProfileRequest(
 	req *ProfileInput,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeUpdateResumeSettingsRequest(
+	req *ResumeSettings,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"

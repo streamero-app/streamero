@@ -125,6 +125,32 @@ func (s *ActivityEntryDetail) init() ActivityEntryDetail {
 	return m
 }
 
+// Ref: #/components/schemas/ActivityPage
+type ActivityPage struct {
+	Entries []ActivityEntry `json:"entries"`
+	Total   int             `json:"total"`
+}
+
+// GetEntries returns the value of Entries.
+func (s *ActivityPage) GetEntries() []ActivityEntry {
+	return s.Entries
+}
+
+// GetTotal returns the value of Total.
+func (s *ActivityPage) GetTotal() int {
+	return s.Total
+}
+
+// SetEntries sets the value of Entries.
+func (s *ActivityPage) SetEntries(val []ActivityEntry) {
+	s.Entries = val
+}
+
+// SetTotal sets the value of Total.
+func (s *ActivityPage) SetTotal(val int) {
+	s.Total = val
+}
+
 type AddToPlaylistReq struct {
 	ItemIds []uuid.UUID `json:"itemIds"`
 }
@@ -295,6 +321,34 @@ func (s *AuthResult) SetSessionId(val uuid.UUID) {
 // SetUser sets the value of User.
 func (s *AuthResult) SetUser(val User) {
 	s.User = val
+}
+
+// Ref: #/components/schemas/BrandingSettings
+type BrandingSettings struct {
+	// Shown under the sign-in form.
+	LoginDisclaimer string `json:"loginDisclaimer"`
+	// Extra CSS added to every page of the web client.
+	CustomCss string `json:"customCss"`
+}
+
+// GetLoginDisclaimer returns the value of LoginDisclaimer.
+func (s *BrandingSettings) GetLoginDisclaimer() string {
+	return s.LoginDisclaimer
+}
+
+// GetCustomCss returns the value of CustomCss.
+func (s *BrandingSettings) GetCustomCss() string {
+	return s.CustomCss
+}
+
+// SetLoginDisclaimer sets the value of LoginDisclaimer.
+func (s *BrandingSettings) SetLoginDisclaimer(val string) {
+	s.LoginDisclaimer = val
+}
+
+// SetCustomCss sets the value of CustomCss.
+func (s *BrandingSettings) SetCustomCss(val string) {
+	s.CustomCss = val
 }
 
 // ChangePasswordNoContent is response for ChangePassword operation.
@@ -951,6 +1005,233 @@ type DisableTOTPNoContent struct{}
 // EditMetadataNoContent is response for EditMetadata operation.
 type EditMetadataNoContent struct{}
 
+// Ref: #/components/schemas/EncodingSettings
+type EncodingSettings struct {
+	HardwareAcceleration EncodingSettingsHardwareAcceleration `json:"hardwareAcceleration"`
+	// Render node for VAAPI, e.g. /dev/dri/renderD128.
+	VaapiDevice OptString              `json:"vaapiDevice"`
+	Preset      EncodingSettingsPreset `json:"preset"`
+	// Constant quality (CRF / CQ / QP); lower is better and larger.
+	Quality          int `json:"quality"`
+	AudioBitrateKbps int `json:"audioBitrateKbps"`
+	SegmentSeconds   int `json:"segmentSeconds"`
+	// Transcodes at once; 0 = no limit.
+	MaxSessions int `json:"maxSessions"`
+	// Convert HDR to SDR when transcoding for screens without HDR.
+	ToneMapping bool `json:"toneMapping"`
+}
+
+// GetHardwareAcceleration returns the value of HardwareAcceleration.
+func (s *EncodingSettings) GetHardwareAcceleration() EncodingSettingsHardwareAcceleration {
+	return s.HardwareAcceleration
+}
+
+// GetVaapiDevice returns the value of VaapiDevice.
+func (s *EncodingSettings) GetVaapiDevice() OptString {
+	return s.VaapiDevice
+}
+
+// GetPreset returns the value of Preset.
+func (s *EncodingSettings) GetPreset() EncodingSettingsPreset {
+	return s.Preset
+}
+
+// GetQuality returns the value of Quality.
+func (s *EncodingSettings) GetQuality() int {
+	return s.Quality
+}
+
+// GetAudioBitrateKbps returns the value of AudioBitrateKbps.
+func (s *EncodingSettings) GetAudioBitrateKbps() int {
+	return s.AudioBitrateKbps
+}
+
+// GetSegmentSeconds returns the value of SegmentSeconds.
+func (s *EncodingSettings) GetSegmentSeconds() int {
+	return s.SegmentSeconds
+}
+
+// GetMaxSessions returns the value of MaxSessions.
+func (s *EncodingSettings) GetMaxSessions() int {
+	return s.MaxSessions
+}
+
+// GetToneMapping returns the value of ToneMapping.
+func (s *EncodingSettings) GetToneMapping() bool {
+	return s.ToneMapping
+}
+
+// SetHardwareAcceleration sets the value of HardwareAcceleration.
+func (s *EncodingSettings) SetHardwareAcceleration(val EncodingSettingsHardwareAcceleration) {
+	s.HardwareAcceleration = val
+}
+
+// SetVaapiDevice sets the value of VaapiDevice.
+func (s *EncodingSettings) SetVaapiDevice(val OptString) {
+	s.VaapiDevice = val
+}
+
+// SetPreset sets the value of Preset.
+func (s *EncodingSettings) SetPreset(val EncodingSettingsPreset) {
+	s.Preset = val
+}
+
+// SetQuality sets the value of Quality.
+func (s *EncodingSettings) SetQuality(val int) {
+	s.Quality = val
+}
+
+// SetAudioBitrateKbps sets the value of AudioBitrateKbps.
+func (s *EncodingSettings) SetAudioBitrateKbps(val int) {
+	s.AudioBitrateKbps = val
+}
+
+// SetSegmentSeconds sets the value of SegmentSeconds.
+func (s *EncodingSettings) SetSegmentSeconds(val int) {
+	s.SegmentSeconds = val
+}
+
+// SetMaxSessions sets the value of MaxSessions.
+func (s *EncodingSettings) SetMaxSessions(val int) {
+	s.MaxSessions = val
+}
+
+// SetToneMapping sets the value of ToneMapping.
+func (s *EncodingSettings) SetToneMapping(val bool) {
+	s.ToneMapping = val
+}
+
+type EncodingSettingsHardwareAcceleration string
+
+const (
+	EncodingSettingsHardwareAccelerationNone  EncodingSettingsHardwareAcceleration = "none"
+	EncodingSettingsHardwareAccelerationVaapi EncodingSettingsHardwareAcceleration = "vaapi"
+	EncodingSettingsHardwareAccelerationQsv   EncodingSettingsHardwareAcceleration = "qsv"
+	EncodingSettingsHardwareAccelerationNvenc EncodingSettingsHardwareAcceleration = "nvenc"
+)
+
+// AllValues returns all EncodingSettingsHardwareAcceleration values.
+func (EncodingSettingsHardwareAcceleration) AllValues() []EncodingSettingsHardwareAcceleration {
+	return []EncodingSettingsHardwareAcceleration{
+		EncodingSettingsHardwareAccelerationNone,
+		EncodingSettingsHardwareAccelerationVaapi,
+		EncodingSettingsHardwareAccelerationQsv,
+		EncodingSettingsHardwareAccelerationNvenc,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s EncodingSettingsHardwareAcceleration) MarshalText() ([]byte, error) {
+	switch s {
+	case EncodingSettingsHardwareAccelerationNone:
+		return []byte(s), nil
+	case EncodingSettingsHardwareAccelerationVaapi:
+		return []byte(s), nil
+	case EncodingSettingsHardwareAccelerationQsv:
+		return []byte(s), nil
+	case EncodingSettingsHardwareAccelerationNvenc:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *EncodingSettingsHardwareAcceleration) UnmarshalText(data []byte) error {
+	switch EncodingSettingsHardwareAcceleration(data) {
+	case EncodingSettingsHardwareAccelerationNone:
+		*s = EncodingSettingsHardwareAccelerationNone
+		return nil
+	case EncodingSettingsHardwareAccelerationVaapi:
+		*s = EncodingSettingsHardwareAccelerationVaapi
+		return nil
+	case EncodingSettingsHardwareAccelerationQsv:
+		*s = EncodingSettingsHardwareAccelerationQsv
+		return nil
+	case EncodingSettingsHardwareAccelerationNvenc:
+		*s = EncodingSettingsHardwareAccelerationNvenc
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type EncodingSettingsPreset string
+
+const (
+	EncodingSettingsPresetUltrafast EncodingSettingsPreset = "ultrafast"
+	EncodingSettingsPresetSuperfast EncodingSettingsPreset = "superfast"
+	EncodingSettingsPresetVeryfast  EncodingSettingsPreset = "veryfast"
+	EncodingSettingsPresetFaster    EncodingSettingsPreset = "faster"
+	EncodingSettingsPresetFast      EncodingSettingsPreset = "fast"
+	EncodingSettingsPresetMedium    EncodingSettingsPreset = "medium"
+	EncodingSettingsPresetSlow      EncodingSettingsPreset = "slow"
+)
+
+// AllValues returns all EncodingSettingsPreset values.
+func (EncodingSettingsPreset) AllValues() []EncodingSettingsPreset {
+	return []EncodingSettingsPreset{
+		EncodingSettingsPresetUltrafast,
+		EncodingSettingsPresetSuperfast,
+		EncodingSettingsPresetVeryfast,
+		EncodingSettingsPresetFaster,
+		EncodingSettingsPresetFast,
+		EncodingSettingsPresetMedium,
+		EncodingSettingsPresetSlow,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s EncodingSettingsPreset) MarshalText() ([]byte, error) {
+	switch s {
+	case EncodingSettingsPresetUltrafast:
+		return []byte(s), nil
+	case EncodingSettingsPresetSuperfast:
+		return []byte(s), nil
+	case EncodingSettingsPresetVeryfast:
+		return []byte(s), nil
+	case EncodingSettingsPresetFaster:
+		return []byte(s), nil
+	case EncodingSettingsPresetFast:
+		return []byte(s), nil
+	case EncodingSettingsPresetMedium:
+		return []byte(s), nil
+	case EncodingSettingsPresetSlow:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *EncodingSettingsPreset) UnmarshalText(data []byte) error {
+	switch EncodingSettingsPreset(data) {
+	case EncodingSettingsPresetUltrafast:
+		*s = EncodingSettingsPresetUltrafast
+		return nil
+	case EncodingSettingsPresetSuperfast:
+		*s = EncodingSettingsPresetSuperfast
+		return nil
+	case EncodingSettingsPresetVeryfast:
+		*s = EncodingSettingsPresetVeryfast
+		return nil
+	case EncodingSettingsPresetFaster:
+		*s = EncodingSettingsPresetFaster
+		return nil
+	case EncodingSettingsPresetFast:
+		*s = EncodingSettingsPresetFast
+		return nil
+	case EncodingSettingsPresetMedium:
+		*s = EncodingSettingsPresetMedium
+		return nil
+	case EncodingSettingsPresetSlow:
+		*s = EncodingSettingsPresetSlow
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // Ref: #/components/schemas/Error
 type Error struct {
 	Code    string `json:"code"`
@@ -1219,6 +1500,61 @@ func (s *GetPersonImageOKHeaders) SetResponse(val GetPersonImageOK) {
 	s.Response = val
 }
 
+type GetServerLogsLevel string
+
+const (
+	GetServerLogsLevelDebug GetServerLogsLevel = "debug"
+	GetServerLogsLevelInfo  GetServerLogsLevel = "info"
+	GetServerLogsLevelWarn  GetServerLogsLevel = "warn"
+	GetServerLogsLevelError GetServerLogsLevel = "error"
+)
+
+// AllValues returns all GetServerLogsLevel values.
+func (GetServerLogsLevel) AllValues() []GetServerLogsLevel {
+	return []GetServerLogsLevel{
+		GetServerLogsLevelDebug,
+		GetServerLogsLevelInfo,
+		GetServerLogsLevelWarn,
+		GetServerLogsLevelError,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s GetServerLogsLevel) MarshalText() ([]byte, error) {
+	switch s {
+	case GetServerLogsLevelDebug:
+		return []byte(s), nil
+	case GetServerLogsLevelInfo:
+		return []byte(s), nil
+	case GetServerLogsLevelWarn:
+		return []byte(s), nil
+	case GetServerLogsLevelError:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *GetServerLogsLevel) UnmarshalText(data []byte) error {
+	switch GetServerLogsLevel(data) {
+	case GetServerLogsLevelDebug:
+		*s = GetServerLogsLevelDebug
+		return nil
+	case GetServerLogsLevelInfo:
+		*s = GetServerLogsLevelInfo
+		return nil
+	case GetServerLogsLevelWarn:
+		*s = GetServerLogsLevelWarn
+		return nil
+	case GetServerLogsLevelError:
+		*s = GetServerLogsLevelError
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 type GetTrickplaySheetOK struct {
 	Data io.Reader
 }
@@ -1475,6 +1811,11 @@ type ItemDetail struct {
 	Tagline       OptString    `json:"tagline"`
 	OriginalTitle OptString    `json:"originalTitle"`
 	Genres        []string     `json:"genres"`
+	// Production companies or networks.
+	Studios []string `json:"studios"`
+	// Chapters of the first file (for the chapter list on the item page).
+	Chapters  []Chapter        `json:"chapters"`
+	Trickplay OptTrickplayInfo `json:"trickplay"`
 	// Age rating for the configured country, e.g. "12" or "PG-13".
 	OfficialRating OptString `json:"officialRating"`
 	PremiereDate   OptDate   `json:"premiereDate"`
@@ -1525,6 +1866,21 @@ func (s *ItemDetail) GetOriginalTitle() OptString {
 // GetGenres returns the value of Genres.
 func (s *ItemDetail) GetGenres() []string {
 	return s.Genres
+}
+
+// GetStudios returns the value of Studios.
+func (s *ItemDetail) GetStudios() []string {
+	return s.Studios
+}
+
+// GetChapters returns the value of Chapters.
+func (s *ItemDetail) GetChapters() []Chapter {
+	return s.Chapters
+}
+
+// GetTrickplay returns the value of Trickplay.
+func (s *ItemDetail) GetTrickplay() OptTrickplayInfo {
+	return s.Trickplay
 }
 
 // GetOfficialRating returns the value of OfficialRating.
@@ -1620,6 +1976,21 @@ func (s *ItemDetail) SetOriginalTitle(val OptString) {
 // SetGenres sets the value of Genres.
 func (s *ItemDetail) SetGenres(val []string) {
 	s.Genres = val
+}
+
+// SetStudios sets the value of Studios.
+func (s *ItemDetail) SetStudios(val []string) {
+	s.Studios = val
+}
+
+// SetChapters sets the value of Chapters.
+func (s *ItemDetail) SetChapters(val []Chapter) {
+	s.Chapters = val
+}
+
+// SetTrickplay sets the value of Trickplay.
+func (s *ItemDetail) SetTrickplay(val OptTrickplayInfo) {
+	s.Trickplay = val
 }
 
 // SetOfficialRating sets the value of OfficialRating.
@@ -2208,6 +2579,122 @@ func (s *ListLibraryItemsSort) UnmarshalText(data []byte) error {
 		return nil
 	case ListLibraryItemsSortRating:
 		*s = ListLibraryItemsSortRating
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/LogEntry
+type LogEntry struct {
+	Time    time.Time     `json:"time"`
+	Level   LogEntryLevel `json:"level"`
+	Message string        `json:"message"`
+	// Serve or worker.
+	Source string `json:"source"`
+	// The record's fields as key=value pairs.
+	Attrs OptString `json:"attrs"`
+}
+
+// GetTime returns the value of Time.
+func (s *LogEntry) GetTime() time.Time {
+	return s.Time
+}
+
+// GetLevel returns the value of Level.
+func (s *LogEntry) GetLevel() LogEntryLevel {
+	return s.Level
+}
+
+// GetMessage returns the value of Message.
+func (s *LogEntry) GetMessage() string {
+	return s.Message
+}
+
+// GetSource returns the value of Source.
+func (s *LogEntry) GetSource() string {
+	return s.Source
+}
+
+// GetAttrs returns the value of Attrs.
+func (s *LogEntry) GetAttrs() OptString {
+	return s.Attrs
+}
+
+// SetTime sets the value of Time.
+func (s *LogEntry) SetTime(val time.Time) {
+	s.Time = val
+}
+
+// SetLevel sets the value of Level.
+func (s *LogEntry) SetLevel(val LogEntryLevel) {
+	s.Level = val
+}
+
+// SetMessage sets the value of Message.
+func (s *LogEntry) SetMessage(val string) {
+	s.Message = val
+}
+
+// SetSource sets the value of Source.
+func (s *LogEntry) SetSource(val string) {
+	s.Source = val
+}
+
+// SetAttrs sets the value of Attrs.
+func (s *LogEntry) SetAttrs(val OptString) {
+	s.Attrs = val
+}
+
+type LogEntryLevel string
+
+const (
+	LogEntryLevelDebug LogEntryLevel = "debug"
+	LogEntryLevelInfo  LogEntryLevel = "info"
+	LogEntryLevelWarn  LogEntryLevel = "warn"
+	LogEntryLevelError LogEntryLevel = "error"
+)
+
+// AllValues returns all LogEntryLevel values.
+func (LogEntryLevel) AllValues() []LogEntryLevel {
+	return []LogEntryLevel{
+		LogEntryLevelDebug,
+		LogEntryLevelInfo,
+		LogEntryLevelWarn,
+		LogEntryLevelError,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s LogEntryLevel) MarshalText() ([]byte, error) {
+	switch s {
+	case LogEntryLevelDebug:
+		return []byte(s), nil
+	case LogEntryLevelInfo:
+		return []byte(s), nil
+	case LogEntryLevelWarn:
+		return []byte(s), nil
+	case LogEntryLevelError:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *LogEntryLevel) UnmarshalText(data []byte) error {
+	switch LogEntryLevel(data) {
+	case LogEntryLevelDebug:
+		*s = LogEntryLevelDebug
+		return nil
+	case LogEntryLevelInfo:
+		*s = LogEntryLevelInfo
+		return nil
+	case LogEntryLevelWarn:
+		*s = LogEntryLevelWarn
+		return nil
+	case LogEntryLevelError:
+		*s = LogEntryLevelError
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -3397,6 +3884,52 @@ func (o OptFloat64) Or(d float64) float64 {
 	return d
 }
 
+// NewOptGetServerLogsLevel returns new OptGetServerLogsLevel with value set to v.
+func NewOptGetServerLogsLevel(v GetServerLogsLevel) OptGetServerLogsLevel {
+	return OptGetServerLogsLevel{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptGetServerLogsLevel is optional GetServerLogsLevel.
+type OptGetServerLogsLevel struct {
+	Value GetServerLogsLevel
+	Set   bool
+}
+
+// IsSet returns true if OptGetServerLogsLevel was set.
+func (o OptGetServerLogsLevel) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptGetServerLogsLevel) Reset() {
+	var v GetServerLogsLevel
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptGetServerLogsLevel) SetTo(v GetServerLogsLevel) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptGetServerLogsLevel) Get() (v GetServerLogsLevel, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptGetServerLogsLevel) Or(d GetServerLogsLevel) GetServerLogsLevel {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptInt returns new OptInt with value set to v.
 func NewOptInt(v int) OptInt {
 	return OptInt{
@@ -3667,6 +4200,236 @@ func (o OptPinRequest) Get() (v PinRequest, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptPinRequest) Or(d PinRequest) PinRequest {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptPlaybackPreferencesSkipCredits returns new OptPlaybackPreferencesSkipCredits with value set to v.
+func NewOptPlaybackPreferencesSkipCredits(v PlaybackPreferencesSkipCredits) OptPlaybackPreferencesSkipCredits {
+	return OptPlaybackPreferencesSkipCredits{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptPlaybackPreferencesSkipCredits is optional PlaybackPreferencesSkipCredits.
+type OptPlaybackPreferencesSkipCredits struct {
+	Value PlaybackPreferencesSkipCredits
+	Set   bool
+}
+
+// IsSet returns true if OptPlaybackPreferencesSkipCredits was set.
+func (o OptPlaybackPreferencesSkipCredits) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptPlaybackPreferencesSkipCredits) Reset() {
+	var v PlaybackPreferencesSkipCredits
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptPlaybackPreferencesSkipCredits) SetTo(v PlaybackPreferencesSkipCredits) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptPlaybackPreferencesSkipCredits) Get() (v PlaybackPreferencesSkipCredits, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptPlaybackPreferencesSkipCredits) Or(d PlaybackPreferencesSkipCredits) PlaybackPreferencesSkipCredits {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptPlaybackPreferencesSkipIntro returns new OptPlaybackPreferencesSkipIntro with value set to v.
+func NewOptPlaybackPreferencesSkipIntro(v PlaybackPreferencesSkipIntro) OptPlaybackPreferencesSkipIntro {
+	return OptPlaybackPreferencesSkipIntro{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptPlaybackPreferencesSkipIntro is optional PlaybackPreferencesSkipIntro.
+type OptPlaybackPreferencesSkipIntro struct {
+	Value PlaybackPreferencesSkipIntro
+	Set   bool
+}
+
+// IsSet returns true if OptPlaybackPreferencesSkipIntro was set.
+func (o OptPlaybackPreferencesSkipIntro) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptPlaybackPreferencesSkipIntro) Reset() {
+	var v PlaybackPreferencesSkipIntro
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptPlaybackPreferencesSkipIntro) SetTo(v PlaybackPreferencesSkipIntro) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptPlaybackPreferencesSkipIntro) Get() (v PlaybackPreferencesSkipIntro, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptPlaybackPreferencesSkipIntro) Or(d PlaybackPreferencesSkipIntro) PlaybackPreferencesSkipIntro {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptPlaybackPreferencesSubtitleBackground returns new OptPlaybackPreferencesSubtitleBackground with value set to v.
+func NewOptPlaybackPreferencesSubtitleBackground(v PlaybackPreferencesSubtitleBackground) OptPlaybackPreferencesSubtitleBackground {
+	return OptPlaybackPreferencesSubtitleBackground{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptPlaybackPreferencesSubtitleBackground is optional PlaybackPreferencesSubtitleBackground.
+type OptPlaybackPreferencesSubtitleBackground struct {
+	Value PlaybackPreferencesSubtitleBackground
+	Set   bool
+}
+
+// IsSet returns true if OptPlaybackPreferencesSubtitleBackground was set.
+func (o OptPlaybackPreferencesSubtitleBackground) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptPlaybackPreferencesSubtitleBackground) Reset() {
+	var v PlaybackPreferencesSubtitleBackground
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptPlaybackPreferencesSubtitleBackground) SetTo(v PlaybackPreferencesSubtitleBackground) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptPlaybackPreferencesSubtitleBackground) Get() (v PlaybackPreferencesSubtitleBackground, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptPlaybackPreferencesSubtitleBackground) Or(d PlaybackPreferencesSubtitleBackground) PlaybackPreferencesSubtitleBackground {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptPlaybackPreferencesSubtitleColor returns new OptPlaybackPreferencesSubtitleColor with value set to v.
+func NewOptPlaybackPreferencesSubtitleColor(v PlaybackPreferencesSubtitleColor) OptPlaybackPreferencesSubtitleColor {
+	return OptPlaybackPreferencesSubtitleColor{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptPlaybackPreferencesSubtitleColor is optional PlaybackPreferencesSubtitleColor.
+type OptPlaybackPreferencesSubtitleColor struct {
+	Value PlaybackPreferencesSubtitleColor
+	Set   bool
+}
+
+// IsSet returns true if OptPlaybackPreferencesSubtitleColor was set.
+func (o OptPlaybackPreferencesSubtitleColor) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptPlaybackPreferencesSubtitleColor) Reset() {
+	var v PlaybackPreferencesSubtitleColor
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptPlaybackPreferencesSubtitleColor) SetTo(v PlaybackPreferencesSubtitleColor) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptPlaybackPreferencesSubtitleColor) Get() (v PlaybackPreferencesSubtitleColor, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptPlaybackPreferencesSubtitleColor) Or(d PlaybackPreferencesSubtitleColor) PlaybackPreferencesSubtitleColor {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptPlaybackPreferencesSubtitleSize returns new OptPlaybackPreferencesSubtitleSize with value set to v.
+func NewOptPlaybackPreferencesSubtitleSize(v PlaybackPreferencesSubtitleSize) OptPlaybackPreferencesSubtitleSize {
+	return OptPlaybackPreferencesSubtitleSize{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptPlaybackPreferencesSubtitleSize is optional PlaybackPreferencesSubtitleSize.
+type OptPlaybackPreferencesSubtitleSize struct {
+	Value PlaybackPreferencesSubtitleSize
+	Set   bool
+}
+
+// IsSet returns true if OptPlaybackPreferencesSubtitleSize was set.
+func (o OptPlaybackPreferencesSubtitleSize) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptPlaybackPreferencesSubtitleSize) Reset() {
+	var v PlaybackPreferencesSubtitleSize
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptPlaybackPreferencesSubtitleSize) SetTo(v PlaybackPreferencesSubtitleSize) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptPlaybackPreferencesSubtitleSize) Get() (v PlaybackPreferencesSubtitleSize, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptPlaybackPreferencesSubtitleSize) Or(d PlaybackPreferencesSubtitleSize) PlaybackPreferencesSubtitleSize {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -4184,7 +4947,24 @@ type PlaybackPreferences struct {
 	// language; forced: forced subtitles only; none: off.
 	SubtitleMode PlaybackPreferencesSubtitleMode `json:"subtitleMode"`
 	// Play the next episode automatically.
-	AutoplayNext bool `json:"autoplayNext"`
+	AutoplayNext       bool   `json:"autoplayNext"`
+	SkipBackSeconds    OptInt `json:"skipBackSeconds"`
+	SkipForwardSeconds OptInt `json:"skipForwardSeconds"`
+	// Streaming limit for this profile; 0 = no limit.
+	MaxBitrateKbps OptInt `json:"maxBitrateKbps"`
+	// Highest picture height to stream (e.g. 1080); 0 = original.
+	MaxHeight OptInt `json:"maxHeight"`
+	// Countdown before the next episode; 0 = show the card without counting down.
+	UpNextSeconds      OptInt                                   `json:"upNextSeconds"`
+	SkipIntro          OptPlaybackPreferencesSkipIntro          `json:"skipIntro"`
+	SkipCredits        OptPlaybackPreferencesSkipCredits        `json:"skipCredits"`
+	SubtitleSize       OptPlaybackPreferencesSubtitleSize       `json:"subtitleSize"`
+	SubtitleColor      OptPlaybackPreferencesSubtitleColor      `json:"subtitleColor"`
+	SubtitleBackground OptPlaybackPreferencesSubtitleBackground `json:"subtitleBackground"`
+	// Lift from the bottom edge, in percent of the picture height.
+	SubtitlePosition OptInt `json:"subtitlePosition"`
+	// Order and visibility of the sections on the home page.
+	HomeSections []PlaybackPreferencesHomeSectionsItem `json:"homeSections"`
 }
 
 // GetAudioLanguage returns the value of AudioLanguage.
@@ -4207,6 +4987,66 @@ func (s *PlaybackPreferences) GetAutoplayNext() bool {
 	return s.AutoplayNext
 }
 
+// GetSkipBackSeconds returns the value of SkipBackSeconds.
+func (s *PlaybackPreferences) GetSkipBackSeconds() OptInt {
+	return s.SkipBackSeconds
+}
+
+// GetSkipForwardSeconds returns the value of SkipForwardSeconds.
+func (s *PlaybackPreferences) GetSkipForwardSeconds() OptInt {
+	return s.SkipForwardSeconds
+}
+
+// GetMaxBitrateKbps returns the value of MaxBitrateKbps.
+func (s *PlaybackPreferences) GetMaxBitrateKbps() OptInt {
+	return s.MaxBitrateKbps
+}
+
+// GetMaxHeight returns the value of MaxHeight.
+func (s *PlaybackPreferences) GetMaxHeight() OptInt {
+	return s.MaxHeight
+}
+
+// GetUpNextSeconds returns the value of UpNextSeconds.
+func (s *PlaybackPreferences) GetUpNextSeconds() OptInt {
+	return s.UpNextSeconds
+}
+
+// GetSkipIntro returns the value of SkipIntro.
+func (s *PlaybackPreferences) GetSkipIntro() OptPlaybackPreferencesSkipIntro {
+	return s.SkipIntro
+}
+
+// GetSkipCredits returns the value of SkipCredits.
+func (s *PlaybackPreferences) GetSkipCredits() OptPlaybackPreferencesSkipCredits {
+	return s.SkipCredits
+}
+
+// GetSubtitleSize returns the value of SubtitleSize.
+func (s *PlaybackPreferences) GetSubtitleSize() OptPlaybackPreferencesSubtitleSize {
+	return s.SubtitleSize
+}
+
+// GetSubtitleColor returns the value of SubtitleColor.
+func (s *PlaybackPreferences) GetSubtitleColor() OptPlaybackPreferencesSubtitleColor {
+	return s.SubtitleColor
+}
+
+// GetSubtitleBackground returns the value of SubtitleBackground.
+func (s *PlaybackPreferences) GetSubtitleBackground() OptPlaybackPreferencesSubtitleBackground {
+	return s.SubtitleBackground
+}
+
+// GetSubtitlePosition returns the value of SubtitlePosition.
+func (s *PlaybackPreferences) GetSubtitlePosition() OptInt {
+	return s.SubtitlePosition
+}
+
+// GetHomeSections returns the value of HomeSections.
+func (s *PlaybackPreferences) GetHomeSections() []PlaybackPreferencesHomeSectionsItem {
+	return s.HomeSections
+}
+
 // SetAudioLanguage sets the value of AudioLanguage.
 func (s *PlaybackPreferences) SetAudioLanguage(val OptString) {
 	s.AudioLanguage = val
@@ -4225,6 +5065,341 @@ func (s *PlaybackPreferences) SetSubtitleMode(val PlaybackPreferencesSubtitleMod
 // SetAutoplayNext sets the value of AutoplayNext.
 func (s *PlaybackPreferences) SetAutoplayNext(val bool) {
 	s.AutoplayNext = val
+}
+
+// SetSkipBackSeconds sets the value of SkipBackSeconds.
+func (s *PlaybackPreferences) SetSkipBackSeconds(val OptInt) {
+	s.SkipBackSeconds = val
+}
+
+// SetSkipForwardSeconds sets the value of SkipForwardSeconds.
+func (s *PlaybackPreferences) SetSkipForwardSeconds(val OptInt) {
+	s.SkipForwardSeconds = val
+}
+
+// SetMaxBitrateKbps sets the value of MaxBitrateKbps.
+func (s *PlaybackPreferences) SetMaxBitrateKbps(val OptInt) {
+	s.MaxBitrateKbps = val
+}
+
+// SetMaxHeight sets the value of MaxHeight.
+func (s *PlaybackPreferences) SetMaxHeight(val OptInt) {
+	s.MaxHeight = val
+}
+
+// SetUpNextSeconds sets the value of UpNextSeconds.
+func (s *PlaybackPreferences) SetUpNextSeconds(val OptInt) {
+	s.UpNextSeconds = val
+}
+
+// SetSkipIntro sets the value of SkipIntro.
+func (s *PlaybackPreferences) SetSkipIntro(val OptPlaybackPreferencesSkipIntro) {
+	s.SkipIntro = val
+}
+
+// SetSkipCredits sets the value of SkipCredits.
+func (s *PlaybackPreferences) SetSkipCredits(val OptPlaybackPreferencesSkipCredits) {
+	s.SkipCredits = val
+}
+
+// SetSubtitleSize sets the value of SubtitleSize.
+func (s *PlaybackPreferences) SetSubtitleSize(val OptPlaybackPreferencesSubtitleSize) {
+	s.SubtitleSize = val
+}
+
+// SetSubtitleColor sets the value of SubtitleColor.
+func (s *PlaybackPreferences) SetSubtitleColor(val OptPlaybackPreferencesSubtitleColor) {
+	s.SubtitleColor = val
+}
+
+// SetSubtitleBackground sets the value of SubtitleBackground.
+func (s *PlaybackPreferences) SetSubtitleBackground(val OptPlaybackPreferencesSubtitleBackground) {
+	s.SubtitleBackground = val
+}
+
+// SetSubtitlePosition sets the value of SubtitlePosition.
+func (s *PlaybackPreferences) SetSubtitlePosition(val OptInt) {
+	s.SubtitlePosition = val
+}
+
+// SetHomeSections sets the value of HomeSections.
+func (s *PlaybackPreferences) SetHomeSections(val []PlaybackPreferencesHomeSectionsItem) {
+	s.HomeSections = val
+}
+
+type PlaybackPreferencesHomeSectionsItem string
+
+const (
+	PlaybackPreferencesHomeSectionsItemContinue    PlaybackPreferencesHomeSectionsItem = "continue"
+	PlaybackPreferencesHomeSectionsItemNextUp      PlaybackPreferencesHomeSectionsItem = "nextUp"
+	PlaybackPreferencesHomeSectionsItemLatest      PlaybackPreferencesHomeSectionsItem = "latest"
+	PlaybackPreferencesHomeSectionsItemFavorites   PlaybackPreferencesHomeSectionsItem = "favorites"
+	PlaybackPreferencesHomeSectionsItemCollections PlaybackPreferencesHomeSectionsItem = "collections"
+	PlaybackPreferencesHomeSectionsItemTop         PlaybackPreferencesHomeSectionsItem = "top"
+	PlaybackPreferencesHomeSectionsItemGenres      PlaybackPreferencesHomeSectionsItem = "genres"
+	PlaybackPreferencesHomeSectionsItemLibraries   PlaybackPreferencesHomeSectionsItem = "libraries"
+)
+
+// AllValues returns all PlaybackPreferencesHomeSectionsItem values.
+func (PlaybackPreferencesHomeSectionsItem) AllValues() []PlaybackPreferencesHomeSectionsItem {
+	return []PlaybackPreferencesHomeSectionsItem{
+		PlaybackPreferencesHomeSectionsItemContinue,
+		PlaybackPreferencesHomeSectionsItemNextUp,
+		PlaybackPreferencesHomeSectionsItemLatest,
+		PlaybackPreferencesHomeSectionsItemFavorites,
+		PlaybackPreferencesHomeSectionsItemCollections,
+		PlaybackPreferencesHomeSectionsItemTop,
+		PlaybackPreferencesHomeSectionsItemGenres,
+		PlaybackPreferencesHomeSectionsItemLibraries,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s PlaybackPreferencesHomeSectionsItem) MarshalText() ([]byte, error) {
+	switch s {
+	case PlaybackPreferencesHomeSectionsItemContinue:
+		return []byte(s), nil
+	case PlaybackPreferencesHomeSectionsItemNextUp:
+		return []byte(s), nil
+	case PlaybackPreferencesHomeSectionsItemLatest:
+		return []byte(s), nil
+	case PlaybackPreferencesHomeSectionsItemFavorites:
+		return []byte(s), nil
+	case PlaybackPreferencesHomeSectionsItemCollections:
+		return []byte(s), nil
+	case PlaybackPreferencesHomeSectionsItemTop:
+		return []byte(s), nil
+	case PlaybackPreferencesHomeSectionsItemGenres:
+		return []byte(s), nil
+	case PlaybackPreferencesHomeSectionsItemLibraries:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *PlaybackPreferencesHomeSectionsItem) UnmarshalText(data []byte) error {
+	switch PlaybackPreferencesHomeSectionsItem(data) {
+	case PlaybackPreferencesHomeSectionsItemContinue:
+		*s = PlaybackPreferencesHomeSectionsItemContinue
+		return nil
+	case PlaybackPreferencesHomeSectionsItemNextUp:
+		*s = PlaybackPreferencesHomeSectionsItemNextUp
+		return nil
+	case PlaybackPreferencesHomeSectionsItemLatest:
+		*s = PlaybackPreferencesHomeSectionsItemLatest
+		return nil
+	case PlaybackPreferencesHomeSectionsItemFavorites:
+		*s = PlaybackPreferencesHomeSectionsItemFavorites
+		return nil
+	case PlaybackPreferencesHomeSectionsItemCollections:
+		*s = PlaybackPreferencesHomeSectionsItemCollections
+		return nil
+	case PlaybackPreferencesHomeSectionsItemTop:
+		*s = PlaybackPreferencesHomeSectionsItemTop
+		return nil
+	case PlaybackPreferencesHomeSectionsItemGenres:
+		*s = PlaybackPreferencesHomeSectionsItemGenres
+		return nil
+	case PlaybackPreferencesHomeSectionsItemLibraries:
+		*s = PlaybackPreferencesHomeSectionsItemLibraries
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type PlaybackPreferencesSkipCredits string
+
+const (
+	PlaybackPreferencesSkipCreditsButton PlaybackPreferencesSkipCredits = "button"
+	PlaybackPreferencesSkipCreditsAuto   PlaybackPreferencesSkipCredits = "auto"
+	PlaybackPreferencesSkipCreditsFalse  PlaybackPreferencesSkipCredits = "false"
+)
+
+// AllValues returns all PlaybackPreferencesSkipCredits values.
+func (PlaybackPreferencesSkipCredits) AllValues() []PlaybackPreferencesSkipCredits {
+	return []PlaybackPreferencesSkipCredits{
+		PlaybackPreferencesSkipCreditsButton,
+		PlaybackPreferencesSkipCreditsAuto,
+		PlaybackPreferencesSkipCreditsFalse,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s PlaybackPreferencesSkipCredits) MarshalText() ([]byte, error) {
+	switch s {
+	case PlaybackPreferencesSkipCreditsButton:
+		return []byte(s), nil
+	case PlaybackPreferencesSkipCreditsAuto:
+		return []byte(s), nil
+	case PlaybackPreferencesSkipCreditsFalse:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *PlaybackPreferencesSkipCredits) UnmarshalText(data []byte) error {
+	switch PlaybackPreferencesSkipCredits(data) {
+	case PlaybackPreferencesSkipCreditsButton:
+		*s = PlaybackPreferencesSkipCreditsButton
+		return nil
+	case PlaybackPreferencesSkipCreditsAuto:
+		*s = PlaybackPreferencesSkipCreditsAuto
+		return nil
+	case PlaybackPreferencesSkipCreditsFalse:
+		*s = PlaybackPreferencesSkipCreditsFalse
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type PlaybackPreferencesSkipIntro string
+
+const (
+	PlaybackPreferencesSkipIntroButton PlaybackPreferencesSkipIntro = "button"
+	PlaybackPreferencesSkipIntroAuto   PlaybackPreferencesSkipIntro = "auto"
+	PlaybackPreferencesSkipIntroFalse  PlaybackPreferencesSkipIntro = "false"
+)
+
+// AllValues returns all PlaybackPreferencesSkipIntro values.
+func (PlaybackPreferencesSkipIntro) AllValues() []PlaybackPreferencesSkipIntro {
+	return []PlaybackPreferencesSkipIntro{
+		PlaybackPreferencesSkipIntroButton,
+		PlaybackPreferencesSkipIntroAuto,
+		PlaybackPreferencesSkipIntroFalse,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s PlaybackPreferencesSkipIntro) MarshalText() ([]byte, error) {
+	switch s {
+	case PlaybackPreferencesSkipIntroButton:
+		return []byte(s), nil
+	case PlaybackPreferencesSkipIntroAuto:
+		return []byte(s), nil
+	case PlaybackPreferencesSkipIntroFalse:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *PlaybackPreferencesSkipIntro) UnmarshalText(data []byte) error {
+	switch PlaybackPreferencesSkipIntro(data) {
+	case PlaybackPreferencesSkipIntroButton:
+		*s = PlaybackPreferencesSkipIntroButton
+		return nil
+	case PlaybackPreferencesSkipIntroAuto:
+		*s = PlaybackPreferencesSkipIntroAuto
+		return nil
+	case PlaybackPreferencesSkipIntroFalse:
+		*s = PlaybackPreferencesSkipIntroFalse
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type PlaybackPreferencesSubtitleBackground string
+
+const (
+	PlaybackPreferencesSubtitleBackgroundNone   PlaybackPreferencesSubtitleBackground = "none"
+	PlaybackPreferencesSubtitleBackgroundShadow PlaybackPreferencesSubtitleBackground = "shadow"
+	PlaybackPreferencesSubtitleBackgroundBox    PlaybackPreferencesSubtitleBackground = "box"
+)
+
+// AllValues returns all PlaybackPreferencesSubtitleBackground values.
+func (PlaybackPreferencesSubtitleBackground) AllValues() []PlaybackPreferencesSubtitleBackground {
+	return []PlaybackPreferencesSubtitleBackground{
+		PlaybackPreferencesSubtitleBackgroundNone,
+		PlaybackPreferencesSubtitleBackgroundShadow,
+		PlaybackPreferencesSubtitleBackgroundBox,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s PlaybackPreferencesSubtitleBackground) MarshalText() ([]byte, error) {
+	switch s {
+	case PlaybackPreferencesSubtitleBackgroundNone:
+		return []byte(s), nil
+	case PlaybackPreferencesSubtitleBackgroundShadow:
+		return []byte(s), nil
+	case PlaybackPreferencesSubtitleBackgroundBox:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *PlaybackPreferencesSubtitleBackground) UnmarshalText(data []byte) error {
+	switch PlaybackPreferencesSubtitleBackground(data) {
+	case PlaybackPreferencesSubtitleBackgroundNone:
+		*s = PlaybackPreferencesSubtitleBackgroundNone
+		return nil
+	case PlaybackPreferencesSubtitleBackgroundShadow:
+		*s = PlaybackPreferencesSubtitleBackgroundShadow
+		return nil
+	case PlaybackPreferencesSubtitleBackgroundBox:
+		*s = PlaybackPreferencesSubtitleBackgroundBox
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type PlaybackPreferencesSubtitleColor string
+
+const (
+	PlaybackPreferencesSubtitleColorWhite  PlaybackPreferencesSubtitleColor = "white"
+	PlaybackPreferencesSubtitleColorYellow PlaybackPreferencesSubtitleColor = "yellow"
+	PlaybackPreferencesSubtitleColorCyan   PlaybackPreferencesSubtitleColor = "cyan"
+)
+
+// AllValues returns all PlaybackPreferencesSubtitleColor values.
+func (PlaybackPreferencesSubtitleColor) AllValues() []PlaybackPreferencesSubtitleColor {
+	return []PlaybackPreferencesSubtitleColor{
+		PlaybackPreferencesSubtitleColorWhite,
+		PlaybackPreferencesSubtitleColorYellow,
+		PlaybackPreferencesSubtitleColorCyan,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s PlaybackPreferencesSubtitleColor) MarshalText() ([]byte, error) {
+	switch s {
+	case PlaybackPreferencesSubtitleColorWhite:
+		return []byte(s), nil
+	case PlaybackPreferencesSubtitleColorYellow:
+		return []byte(s), nil
+	case PlaybackPreferencesSubtitleColorCyan:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *PlaybackPreferencesSubtitleColor) UnmarshalText(data []byte) error {
+	switch PlaybackPreferencesSubtitleColor(data) {
+	case PlaybackPreferencesSubtitleColorWhite:
+		*s = PlaybackPreferencesSubtitleColorWhite
+		return nil
+	case PlaybackPreferencesSubtitleColorYellow:
+		*s = PlaybackPreferencesSubtitleColorYellow
+		return nil
+	case PlaybackPreferencesSubtitleColorCyan:
+		*s = PlaybackPreferencesSubtitleColorCyan
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 // Default: forced subtitles in the audio language, else the preferred language when the audio differs;
@@ -4286,6 +5461,61 @@ func (s *PlaybackPreferencesSubtitleMode) UnmarshalText(data []byte) error {
 		return nil
 	case PlaybackPreferencesSubtitleModeNone:
 		*s = PlaybackPreferencesSubtitleModeNone
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type PlaybackPreferencesSubtitleSize string
+
+const (
+	PlaybackPreferencesSubtitleSizeSmall  PlaybackPreferencesSubtitleSize = "small"
+	PlaybackPreferencesSubtitleSizeNormal PlaybackPreferencesSubtitleSize = "normal"
+	PlaybackPreferencesSubtitleSizeLarge  PlaybackPreferencesSubtitleSize = "large"
+	PlaybackPreferencesSubtitleSizeXlarge PlaybackPreferencesSubtitleSize = "xlarge"
+)
+
+// AllValues returns all PlaybackPreferencesSubtitleSize values.
+func (PlaybackPreferencesSubtitleSize) AllValues() []PlaybackPreferencesSubtitleSize {
+	return []PlaybackPreferencesSubtitleSize{
+		PlaybackPreferencesSubtitleSizeSmall,
+		PlaybackPreferencesSubtitleSizeNormal,
+		PlaybackPreferencesSubtitleSizeLarge,
+		PlaybackPreferencesSubtitleSizeXlarge,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s PlaybackPreferencesSubtitleSize) MarshalText() ([]byte, error) {
+	switch s {
+	case PlaybackPreferencesSubtitleSizeSmall:
+		return []byte(s), nil
+	case PlaybackPreferencesSubtitleSizeNormal:
+		return []byte(s), nil
+	case PlaybackPreferencesSubtitleSizeLarge:
+		return []byte(s), nil
+	case PlaybackPreferencesSubtitleSizeXlarge:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *PlaybackPreferencesSubtitleSize) UnmarshalText(data []byte) error {
+	switch PlaybackPreferencesSubtitleSize(data) {
+	case PlaybackPreferencesSubtitleSizeSmall:
+		*s = PlaybackPreferencesSubtitleSizeSmall
+		return nil
+	case PlaybackPreferencesSubtitleSizeNormal:
+		*s = PlaybackPreferencesSubtitleSizeNormal
+		return nil
+	case PlaybackPreferencesSubtitleSizeLarge:
+		*s = PlaybackPreferencesSubtitleSizeLarge
+		return nil
+	case PlaybackPreferencesSubtitleSizeXlarge:
+		*s = PlaybackPreferencesSubtitleSizeXlarge
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -4873,6 +6103,46 @@ func (s *RenameSessionRequest) SetDeviceName(val string) {
 // ReportProgressNoContent is response for ReportProgress operation.
 type ReportProgressNoContent struct{}
 
+// Ref: #/components/schemas/ResumeSettings
+type ResumeSettings struct {
+	// Below this much of the length, stopping does not save a position.
+	MinResumePercent int `json:"minResumePercent"`
+	// From this much of the length, the title counts as watched.
+	MaxResumePercent int `json:"maxResumePercent"`
+	// Shorter titles never keep a position.
+	MinResumeDurationSeconds int `json:"minResumeDurationSeconds"`
+}
+
+// GetMinResumePercent returns the value of MinResumePercent.
+func (s *ResumeSettings) GetMinResumePercent() int {
+	return s.MinResumePercent
+}
+
+// GetMaxResumePercent returns the value of MaxResumePercent.
+func (s *ResumeSettings) GetMaxResumePercent() int {
+	return s.MaxResumePercent
+}
+
+// GetMinResumeDurationSeconds returns the value of MinResumeDurationSeconds.
+func (s *ResumeSettings) GetMinResumeDurationSeconds() int {
+	return s.MinResumeDurationSeconds
+}
+
+// SetMinResumePercent sets the value of MinResumePercent.
+func (s *ResumeSettings) SetMinResumePercent(val int) {
+	s.MinResumePercent = val
+}
+
+// SetMaxResumePercent sets the value of MaxResumePercent.
+func (s *ResumeSettings) SetMaxResumePercent(val int) {
+	s.MaxResumePercent = val
+}
+
+// SetMinResumeDurationSeconds sets the value of MinResumeDurationSeconds.
+func (s *ResumeSettings) SetMinResumeDurationSeconds(val int) {
+	s.MinResumeDurationSeconds = val
+}
+
 // RevokeSessionNoContent is response for RevokeSession operation.
 type RevokeSessionNoContent struct{}
 
@@ -5401,12 +6671,14 @@ type SystemInfo struct {
 	// Human readable server name.
 	Name string `json:"name"`
 	// Always "Streamero".
-	Product        string    `json:"product"`
-	Version        string    `json:"version"`
-	Commit         OptString `json:"commit"`
-	ApiVersion     string    `json:"apiVersion"`
-	SetupCompleted bool      `json:"setupCompleted"`
-	StartedAt      time.Time `json:"startedAt"`
+	Product         string    `json:"product"`
+	Version         string    `json:"version"`
+	Commit          OptString `json:"commit"`
+	ApiVersion      string    `json:"apiVersion"`
+	SetupCompleted  bool      `json:"setupCompleted"`
+	StartedAt       time.Time `json:"startedAt"`
+	LoginDisclaimer OptString `json:"loginDisclaimer"`
+	CustomCss       OptString `json:"customCss"`
 }
 
 // GetID returns the value of ID.
@@ -5449,6 +6721,16 @@ func (s *SystemInfo) GetStartedAt() time.Time {
 	return s.StartedAt
 }
 
+// GetLoginDisclaimer returns the value of LoginDisclaimer.
+func (s *SystemInfo) GetLoginDisclaimer() OptString {
+	return s.LoginDisclaimer
+}
+
+// GetCustomCss returns the value of CustomCss.
+func (s *SystemInfo) GetCustomCss() OptString {
+	return s.CustomCss
+}
+
 // SetID sets the value of ID.
 func (s *SystemInfo) SetID(val uuid.UUID) {
 	s.ID = val
@@ -5487,6 +6769,16 @@ func (s *SystemInfo) SetSetupCompleted(val bool) {
 // SetStartedAt sets the value of StartedAt.
 func (s *SystemInfo) SetStartedAt(val time.Time) {
 	s.StartedAt = val
+}
+
+// SetLoginDisclaimer sets the value of LoginDisclaimer.
+func (s *SystemInfo) SetLoginDisclaimer(val OptString) {
+	s.LoginDisclaimer = val
+}
+
+// SetCustomCss sets the value of CustomCss.
+func (s *SystemInfo) SetCustomCss(val OptString) {
+	s.CustomCss = val
 }
 
 func (*SystemInfo) getSystemInfoRes() {}

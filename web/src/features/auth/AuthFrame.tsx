@@ -26,6 +26,7 @@ export function AuthFrame({ title, intro, children, wide = false }: { title: str
           {intro ? <div className="mb-6 text-sm leading-relaxed text-muted">{intro}</div> : <div className="mb-5" />}
           {children}
         </div>
+        {info?.loginDisclaimer && <p className="mt-5 text-center text-[13px] leading-relaxed whitespace-pre-line text-text/60" data-testid="login-disclaimer">{info.loginDisclaimer}</p>}
         {info && (
           <p className="mt-6 text-center text-xs text-faint">
             {info.name} · {t("server.version", { version: info.version })}

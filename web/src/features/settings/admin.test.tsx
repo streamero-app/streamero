@@ -64,4 +64,34 @@ describe("admin pages", () => {
     expect(saved.events).toEqual(["item.added", "login.failed"]);
     expect(await screen.findByText("Saved.")).toBeInTheDocument();
   });
+
+  it("saves transcoding with hardware acceleration", async () => {
+    const puts: unknown[] = [];
+    mockApi(({ method, path, body }) => {
+      if (path === "/settings/encoding" && method === "PUT") { puts.push(body); return { status: 200, body }; }
+      if (path === "/settings/encoding") return { status: 200, body: { hardwareAcceleration: "none", preset: "veryfast", quality: 22, audioBitrateKbps: 192, segmentSeconds: 6, maxSessions: 0, toneMapping: true } };
+      if (path === "/settings/resume") return { status: 200, body: { minResumePercent: 5, maxResumePercent: 90, minResumeDurationSeconds: 300 } };
+      return { status: 200, body: [] };
+    });
+    renderApp("/settings/transcoding", { me: testUser({ isAdmin: true }) });
+    fireEvent.change(await screen.findByLabelText("Hardware acceleration"), { target: { value: "vaapi" } });
+    expect(screen.getByLabelText("VAAPI device")).toHaveValue("/dev/dri/renderD128");
+    fireEvent.click(screen.getAllByRole("button", { name: "Save" })[0]!);
+    await waitFor(() => expect(puts[0]).toMatchObject({ hardwareAcceleration: "vaapi", quality: 22 }));
+  });
+
+  it("shows and filters server logs", async () => {
+    const queries: string[] = [];
+    mockApi(({ path, query }) => {
+      if (path === "/admin/logs") {
+        queries.push(query.toString());
+        return { status: 200, body: [{ time: new Date().toISOString(), level: "error", message: "ffmpeg failed", source: "serve", attrs: "code=1" }] };
+      }
+      return { status: 200, body: [] };
+    });
+    renderApp("/settings/logs", { me: testUser({ isAdmin: true }) });
+    expect(await screen.findByTestId("log-row")).toHaveTextContent("ffmpeg failed");
+    fireEvent.change(screen.getByLabelText("Level"), { target: { value: "error" } });
+    await waitFor(() => expect(queries.some((q) => q.includes("level=error"))).toBe(true));
+  });
 });

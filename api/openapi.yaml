@@ -783,6 +783,34 @@ paths:
         description: Only items the current profile has not watched.
         schema:
           type: boolean
+      - name: favorite
+        in: query
+        description: Only items on the current profile's list.
+        schema:
+          type: boolean
+      - name: resumable
+        in: query
+        description: Only items started but not finished.
+        schema:
+          type: boolean
+      - name: yearFrom
+        in: query
+        schema:
+          type: integer
+          minimum: 1800
+          maximum: 3000
+      - name: yearTo
+        in: query
+        schema:
+          type: integer
+          minimum: 1800
+          maximum: 3000
+      - name: letter
+        in: query
+        description: First letter of the sort title ("#" for digits and symbols).
+        schema:
+          type: string
+          maxLength: 1
     get:
       operationId: listLibraryItems
       summary: Top-level items of a library (movies, series), paged
@@ -1746,6 +1774,184 @@ paths:
                 $ref: "#/components/schemas/ServerSettings"
         default:
           $ref: "#/components/responses/Error"
+  /settings/encoding:
+    get:
+      operationId: getEncodingSettings
+      summary: Transcoding settings (admin)
+      tags: [settings]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EncodingSettings"
+        default:
+          $ref: "#/components/responses/Error"
+    put:
+      operationId: updateEncodingSettings
+      summary: Update transcoding settings (admin)
+      tags: [settings]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EncodingSettings"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EncodingSettings"
+        default:
+          $ref: "#/components/responses/Error"
+  /settings/resume:
+    get:
+      operationId: getResumeSettings
+      summary: When playback counts as started or watched (admin)
+      tags: [settings]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResumeSettings"
+        default:
+          $ref: "#/components/responses/Error"
+    put:
+      operationId: updateResumeSettings
+      summary: Update resume thresholds (admin)
+      tags: [settings]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResumeSettings"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResumeSettings"
+        default:
+          $ref: "#/components/responses/Error"
+  /settings/branding:
+    get:
+      operationId: getBrandingSettings
+      summary: Login message and custom CSS (admin)
+      tags: [settings]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandingSettings"
+        default:
+          $ref: "#/components/responses/Error"
+    put:
+      operationId: updateBrandingSettings
+      summary: Update branding (admin)
+      tags: [settings]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BrandingSettings"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandingSettings"
+        default:
+          $ref: "#/components/responses/Error"
+  /admin/logs:
+    get:
+      operationId: getServerLogs
+      summary: Recent log lines of the server and worker (admin)
+      tags: [admin]
+      security:
+        - sessionToken: []
+      parameters:
+        - name: level
+          in: query
+          schema:
+            type: string
+            enum: [debug, info, warn, error]
+            default: info
+        - name: q
+          in: query
+          schema:
+            type: string
+            maxLength: 200
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 300
+      responses:
+        "200":
+          description: Newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LogEntry"
+        default:
+          $ref: "#/components/responses/Error"
+  /admin/activity:
+    get:
+      operationId: getActivity
+      summary: Sign-ins, account and settings changes (admin)
+      tags: [admin]
+      security:
+        - sessionToken: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: Newest first
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityPage"
+        default:
+          $ref: "#/components/responses/Error"
 components:
   securitySchemes:
     sessionToken:
@@ -2361,6 +2567,56 @@ components:
         autoplayNext:
           type: boolean
           description: Play the next episode automatically.
+        skipBackSeconds:
+          type: integer
+          minimum: 5
+          maximum: 60
+        skipForwardSeconds:
+          type: integer
+          minimum: 5
+          maximum: 120
+        maxBitrateKbps:
+          type: integer
+          minimum: 0
+          maximum: 200000
+          description: Streaming limit for this profile; 0 = no limit.
+        maxHeight:
+          type: integer
+          minimum: 0
+          maximum: 4320
+          description: Highest picture height to stream (e.g. 1080); 0 = original.
+        upNextSeconds:
+          type: integer
+          minimum: 0
+          maximum: 60
+          description: Countdown before the next episode; 0 = show the card without counting down.
+        skipIntro:
+          type: string
+          enum: [button, auto, off]
+        skipCredits:
+          type: string
+          enum: [button, auto, off]
+        subtitleSize:
+          type: string
+          enum: [small, normal, large, xlarge]
+        subtitleColor:
+          type: string
+          enum: [white, yellow, cyan]
+        subtitleBackground:
+          type: string
+          enum: [none, shadow, box]
+        subtitlePosition:
+          type: integer
+          minimum: 0
+          maximum: 40
+          description: Lift from the bottom edge, in percent of the picture height.
+        homeSections:
+          type: array
+          description: Order and visibility of the sections on the home page.
+          maxItems: 12
+          items:
+            type: string
+            enum: [continue, nextUp, latest, favorites, collections, top, genres, libraries]
     Collection:
       type: object
       required: [id, name, itemCount, hasPoster, hasBackdrop, auto]
@@ -2747,6 +3003,18 @@ components:
           type: array
           items:
             type: string
+        studios:
+          type: array
+          description: Production companies or networks.
+          items:
+            type: string
+        chapters:
+          type: array
+          description: Chapters of the first file (for the chapter list on the item page).
+          items:
+            $ref: "#/components/schemas/Chapter"
+        trickplay:
+          $ref: "#/components/schemas/TrickplayInfo"
         officialRating:
           type: string
           description: Age rating for the configured country, e.g. "12" or "PG-13".
@@ -3059,6 +3327,100 @@ components:
       properties:
         ok:
           type: boolean
+    EncodingSettings:
+      type: object
+      required: [hardwareAcceleration, preset, quality, audioBitrateKbps, segmentSeconds, maxSessions, toneMapping]
+      properties:
+        hardwareAcceleration:
+          type: string
+          enum: [none, vaapi, qsv, nvenc]
+        vaapiDevice:
+          type: string
+          maxLength: 100
+          description: Render node for VAAPI, e.g. /dev/dri/renderD128.
+        preset:
+          type: string
+          enum: [ultrafast, superfast, veryfast, faster, fast, medium, slow]
+        quality:
+          type: integer
+          minimum: 14
+          maximum: 35
+          description: Constant quality (CRF / CQ / QP); lower is better and larger.
+        audioBitrateKbps:
+          type: integer
+          minimum: 64
+          maximum: 640
+        segmentSeconds:
+          type: integer
+          minimum: 2
+          maximum: 10
+        maxSessions:
+          type: integer
+          minimum: 0
+          maximum: 64
+          description: Transcodes at once; 0 = no limit.
+        toneMapping:
+          type: boolean
+          description: Convert HDR to SDR when transcoding for screens without HDR.
+    ResumeSettings:
+      type: object
+      required: [minResumePercent, maxResumePercent, minResumeDurationSeconds]
+      properties:
+        minResumePercent:
+          type: integer
+          minimum: 0
+          maximum: 50
+          description: Below this much of the length, stopping does not save a position.
+        maxResumePercent:
+          type: integer
+          minimum: 50
+          maximum: 100
+          description: From this much of the length, the title counts as watched.
+        minResumeDurationSeconds:
+          type: integer
+          minimum: 0
+          maximum: 3600
+          description: Shorter titles never keep a position.
+    BrandingSettings:
+      type: object
+      required: [loginDisclaimer, customCss]
+      properties:
+        loginDisclaimer:
+          type: string
+          maxLength: 2000
+          description: Shown under the sign-in form.
+        customCss:
+          type: string
+          maxLength: 20000
+          description: Extra CSS added to every page of the web client.
+    LogEntry:
+      type: object
+      required: [time, level, message, source]
+      properties:
+        time:
+          type: string
+          format: date-time
+        level:
+          type: string
+          enum: [debug, info, warn, error]
+        message:
+          type: string
+        source:
+          type: string
+          description: serve or worker.
+        attrs:
+          type: string
+          description: The record's fields as key=value pairs.
+    ActivityPage:
+      type: object
+      required: [entries, total]
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityEntry"
+        total:
+          type: integer
     SystemInfo:
       type: object
       required: [id, name, product, version, apiVersion, setupCompleted, startedAt]
@@ -3084,6 +3446,10 @@ components:
         startedAt:
           type: string
           format: date-time
+        loginDisclaimer:
+          type: string
+        customCss:
+          type: string
     Error:
       type: object
       required: [code, message]

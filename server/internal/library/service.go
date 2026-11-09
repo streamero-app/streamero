@@ -87,6 +87,8 @@ type Service struct {
 	EnqueueMetadata func(ctx context.Context, libraryID uuid.UUID, force bool) error
 	// ImageDir holds cached artwork (<dir>/<item id>/<kind>.jpg).
 	ImageDir string
+	// Resume returns the administrator's resume thresholds (defaults when nil).
+	Resume func(ctx context.Context) Resume
 }
 
 const libCols = `l.id, l.name, l.kind, l.paths, l.scan_state, COALESCE(l.scan_error, ''), l.last_scan_at, l.files_seen,
@@ -236,8 +238,12 @@ func scanItem(row pgx.Row) (Item, error) {
 
 // ItemFilter narrows a library listing.
 type ItemFilter struct {
-	Genre    string
-	Unplayed bool
+	Genre            string
+	Unplayed         bool
+	Favorite         bool
+	Resumable        bool
+	YearFrom, YearTo int    // 0 = open
+	Letter           string // "A".."Z", "#" for anything else, "" = all
 }
 
 // ListItems returns a filtered page of top-level items (movies, series) with the viewer's state.
@@ -252,14 +258,18 @@ func (s *Service) ListItems(ctx context.Context, libID, owner uuid.UUID, sortBy 
 		order = "i.community_rating DESC NULLS LAST, i.sort_title"
 	}
 	where := ` WHERE i.library_id = $1 AND i.parent_id IS NULL
-		AND ($2 = '' OR i.genres @> ARRAY[$2]::text[]) AND (NOT $3 OR NOT COALESCE(u.played, false))`
+		AND ($2 = '' OR i.genres @> ARRAY[$2]::text[]) AND (NOT $3 OR NOT COALESCE(u.played, false))
+		AND (NOT $5 OR COALESCE(u.favorite, false)) AND (NOT $6 OR (COALESCE(u.position_ms, 0) > 0 AND NOT COALESCE(u.played, false)))
+		AND ($7 = 0 OR i.year >= $7) AND ($8 = 0 OR i.year <= $8)
+		AND ($9 = '' OR ($9 = '#' AND upper(left(i.sort_title, 1)) !~ '^[A-ZČĆĐŠŽ]') OR upper(left(i.sort_title, 1)) = $9)`
+	args := []any{libID, f.Genre, f.Unplayed, owner, f.Favorite, f.Resumable, f.YearFrom, f.YearTo, strings.ToUpper(f.Letter)}
 	var total int
-	if err := s.Pool.QueryRow(ctx, `SELECT count(*) FROM items i`+userJoin("$4")+where, libID, f.Genre, f.Unplayed, owner).Scan(&total); err != nil {
+	if err := s.Pool.QueryRow(ctx, `SELECT count(*) FROM items i`+userJoin("$4")+where, args...).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 	// #nosec G202 -- order is one of the constants above
 	rows, err := s.Pool.Query(ctx, `SELECT `+itemCols+` FROM items i`+userJoin("$4")+where+`
-		ORDER BY `+order+` LIMIT $5 OFFSET $6`, libID, f.Genre, f.Unplayed, owner, limit, offset)
+		ORDER BY `+order+` LIMIT $10 OFFSET $11`, append(args, limit, offset)...)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -355,7 +365,7 @@ func (s *Service) Browse(path string) (string, string, []string, error) {
 // ItemMetadata is the descriptive part of an item.
 type ItemMetadata struct {
 	Overview, Tagline, OriginalTitle, OfficialRating, Error string
-	Genres                                                  []string
+	Genres, Studios                                         []string
 	Premiere                                                *time.Time
 	HasBackdrop                                             bool
 	HasLogo                                                 bool
@@ -367,9 +377,9 @@ type ItemMetadata struct {
 func (s *Service) GetMetadata(ctx context.Context, id uuid.UUID) (ItemMetadata, error) {
 	var m ItemMetadata
 	err := s.Pool.QueryRow(ctx, `SELECT COALESCE(overview, ''), COALESCE(tagline, ''), COALESCE(original_title, ''),
-			COALESCE(official_rating, ''), COALESCE(metadata_error, ''), genres, premiere_date, has_backdrop, has_logo, metadata_locked
+			COALESCE(official_rating, ''), COALESCE(metadata_error, ''), genres, studios, premiere_date, has_backdrop, has_logo, metadata_locked
 		FROM items WHERE id = $1`, id).Scan(&m.Overview, &m.Tagline, &m.OriginalTitle, &m.OfficialRating, &m.Error,
-		&m.Genres, &m.Premiere, &m.HasBackdrop, &m.HasLogo, &m.Locked)
+		&m.Genres, &m.Studios, &m.Premiere, &m.HasBackdrop, &m.HasLogo, &m.Locked)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return m, ErrNotFound
 	}
@@ -397,8 +407,21 @@ func (s *Service) GetMetadata(ctx context.Context, id uuid.UUID) (ItemMetadata, 
 	return m, rows.Err()
 }
 
-// SaveProgress records a playback position for owner (profile or user). Past 90%
-// of the duration the item counts as watched and the position resets.
+// Resume says when a stopped title keeps its position and when it counts as watched.
+type Resume struct {
+	MinPercent         int `json:"minResumePercent"`
+	MaxPercent         int `json:"maxResumePercent"`
+	MinDurationSeconds int `json:"minResumeDurationSeconds"`
+}
+
+// KeyResume is the settings key of the resume thresholds.
+const KeyResume = "playback.resume"
+
+// DefaultResume keeps positions between 5% and 90%, for titles of five minutes or more.
+func DefaultResume() Resume { return Resume{MinPercent: 5, MaxPercent: 90, MinDurationSeconds: 300} }
+
+// SaveProgress records a playback position for owner (profile or user). Past the
+// resume maximum (90% by default) the item counts as watched and the position resets.
 func (s *Service) SaveProgress(ctx context.Context, owner, itemID uuid.UUID, positionMS int64, durationMS *int64, played bool) error {
 	var dur int64
 	if durationMS != nil {
@@ -406,8 +429,16 @@ func (s *Service) SaveProgress(ctx context.Context, owner, itemID uuid.UUID, pos
 	} else {
 		_ = s.Pool.QueryRow(ctx, `SELECT COALESCE(max(duration_ms), 0) FROM media_files WHERE item_id = $1`, itemID).Scan(&dur)
 	}
-	if dur > 0 && positionMS >= dur*9/10 {
+	r := DefaultResume()
+	if s.Resume != nil {
+		r = s.Resume(ctx)
+	}
+	if dur > 0 && positionMS*100 >= dur*int64(r.MaxPercent) {
 		played = true
+	}
+	// Too early, or too short a title, to be worth resuming.
+	if !played && (dur > 0 && positionMS*100 < dur*int64(r.MinPercent) || dur > 0 && dur < int64(r.MinDurationSeconds)*1000) {
+		positionMS = 0
 	}
 	if played {
 		positionMS = 0

@@ -23,6 +23,29 @@ type Plan struct {
 	TranscodeAudio bool
 	Height         int  // target height when scaling (0 = keep)
 	ToneMap        bool // HDR → SDR
+	MaxBitrate     int  // video bits per second when the stream must stay under a limit (0 = quality only)
+}
+
+// fileBitrate estimates a file's overall bits per second from its size and length.
+func fileBitrate(f library.MediaFile) int {
+	if f.DurationMS == nil || *f.DurationMS <= 0 || f.Size <= 0 {
+		return 0
+	}
+	return int(f.Size * 8 * 1000 / *f.DurationMS)
+}
+
+// heightFor picks a picture height that looks good at a bit rate.
+func heightFor(bps int) int {
+	switch {
+	case bps >= 4_000_000:
+		return 1080
+	case bps >= 2_000_000:
+		return 720
+	case bps >= 1_000_000:
+		return 480
+	default:
+		return 360
+	}
 }
 
 func has(list []string, v string) bool {
@@ -38,6 +61,7 @@ func Decide(f library.MediaFile, audioIndex int, d Device) Plan {
 		height = *f.Height
 	}
 	tooBig := d.MaxHeight > 0 && height > d.MaxHeight
+	tooFast := d.MaxBitrate > 0 && fileBitrate(f) > d.MaxBitrate
 	hdrIssue := f.HDR != "" && !has(d.VideoCodecs, "hdr") // clients announce HDR support explicitly
 	audioOK := true
 	audioCodec := ""
@@ -46,7 +70,7 @@ func Decide(f library.MediaFile, audioIndex int, d Device) Plan {
 		audioOK = has(d.AudioCodecs, audioCodec)
 	}
 	// Direct play needs the container and the first audio track (players pick track 0).
-	if videoOK && audioOK && !tooBig && !hdrIssue && has(d.Containers, f.Container) && audioIndex <= 0 {
+	if videoOK && audioOK && !tooBig && !tooFast && !hdrIssue && has(d.Containers, f.Container) && audioIndex <= 0 {
 		return Plan{Method: "direct"}
 	}
 	p := Plan{}
@@ -54,7 +78,7 @@ func Decide(f library.MediaFile, audioIndex int, d Device) Plan {
 	if !has(d.Containers, f.Container) {
 		reasons = append(reasons, "container "+f.Container)
 	}
-	if !videoOK || tooBig || hdrIssue {
+	if !videoOK || tooBig || hdrIssue || tooFast {
 		p.TranscodeVideo = true
 		switch {
 		case !videoOK:
@@ -62,8 +86,18 @@ func Decide(f library.MediaFile, audioIndex int, d Device) Plan {
 		case tooBig:
 			reasons = append(reasons, fmt.Sprintf("resolution %dp", height))
 			p.Height = d.MaxHeight
-		default:
+		case hdrIssue:
 			reasons = append(reasons, f.HDR)
+		}
+		if tooFast {
+			reasons = append(reasons, fmt.Sprintf("bitrate limit %d kbps", d.MaxBitrate/1000))
+		}
+		if d.MaxBitrate > 0 {
+			// Leave room for the audio track.
+			p.MaxBitrate = max(d.MaxBitrate-256_000, 300_000)
+			if h := heightFor(p.MaxBitrate); height > h && (p.Height == 0 || p.Height > h) {
+				p.Height = h
+			}
 		}
 		p.ToneMap = f.HDR != ""
 	}
