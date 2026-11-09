@@ -119,11 +119,11 @@ func (b *Buffer) Recent(ctx context.Context, level, q string, limit int) []Entry
 		}
 		b.mu.Unlock()
 	}
-	min := order[level]
+	floor := order[level]
 	q = strings.ToLower(strings.TrimSpace(q))
 	out := []Entry{}
 	for _, e := range all {
-		if order[e.Level] < min {
+		if order[e.Level] < floor {
 			continue
 		}
 		if q != "" && !strings.Contains(strings.ToLower(e.Message+" "+e.Attrs), q) {

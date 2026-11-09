@@ -3,6 +3,7 @@ package metadata
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -193,7 +194,7 @@ func (r *Refresher) applyNFO(ctx context.Context, id uuid.UUID, n *NFO) error {
 		if set := strings.TrimSpace(n.Set.Name); set != "" {
 			var cid uuid.UUID
 			err := tx.QueryRow(ctx, `SELECT id FROM collections WHERE lower(name) = lower($1) ORDER BY created_at LIMIT 1`, set).Scan(&cid)
-			if err == pgx.ErrNoRows {
+			if errors.Is(err, pgx.ErrNoRows) {
 				cid = uuid.Must(uuid.NewV7())
 				_, err = tx.Exec(ctx, `INSERT INTO collections (id, name) VALUES ($1, $2)`, cid, set)
 			}

@@ -417,7 +417,7 @@ type Resume struct {
 // KeyResume is the settings key of the resume thresholds.
 const KeyResume = "playback.resume"
 
-// DefaultResume: keep positions between 5% and 90%, for titles of five minutes or more.
+// DefaultResume keeps positions between 5% and 90%, for titles of five minutes or more.
 func DefaultResume() Resume { return Resume{MinPercent: 5, MaxPercent: 90, MinDurationSeconds: 300} }
 
 // SaveProgress records a playback position for owner (profile or user). Past the

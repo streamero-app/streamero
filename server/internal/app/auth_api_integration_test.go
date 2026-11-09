@@ -1835,4 +1835,3 @@ func TestServerSettingsIntegration(t *testing.T) {
 		t.Fatalf("logs: HTTP %d", s)
 	}
 }
-
