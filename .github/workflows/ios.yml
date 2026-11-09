@@ -34,7 +34,8 @@ jobs:
           if [ -z "$UDID" ]; then echo "No iPhone simulator on this runner"; xcrun simctl list runtimes; exit 1; fi
           xcodebuild test -project Streamero.xcodeproj -scheme Streamero \
             -destination "platform=iOS Simulator,id=$UDID" \
-            -skipPackagePluginValidation -skipMacroValidation | xcpretty; exit ${PIPESTATUS[0]}
+            -skipPackagePluginValidation -skipMacroValidation \
+            CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- | xcpretty; exit ${PIPESTATUS[0]}
       - name: Build unsigned .ipa
         run: |
           xcodebuild -project Streamero.xcodeproj -scheme Streamero -configuration Release \
