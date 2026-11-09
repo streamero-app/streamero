@@ -86,7 +86,7 @@
     <string name="hw_none">Bez (procesor)</string>
     <string name="intros">Uvod i sažetak</string>
     <string name="invites">Pozivnice</string>
-    <string name="items_count">Stavki: %1$d</string>
+    <plurals name="items_count"><item quantity="one">%1$d stavka</item><item quantity="few">%1$d stavke</item><item quantity="other">%1$d stavki</item></plurals>
     <string name="kind">Vrsta</string>
     <string name="language">Jezik</string>
     <string name="large">Velika</string>
