@@ -1,34 +1,19 @@
-# Screenshots
+# Screenshots — Ambient
 
-Demo content: Blender Foundation open movies (Sintel, Tears of Steel, Elephants Dream, Big Buck Bunny; © Blender Foundation, CC BY). The demo has no TMDb key, so the artwork is Streamero's own frame grabs; with a key, posters, title logos and cast photos replace them.
+Streamero's own look: the room is lit by the title in focus. The background, glow and Play button take the colours of the film (extracted from its artwork). The home *stage* shows the title next to its lit *screen*, with a muted preview inside.
 
-![Billboard with muted preview](screenshots/desktop-0-pregled.png)
+Demo content: Blender Foundation open movies (© Blender Foundation, CC BY). No TMDb key on the demo, so the artwork is frames from the films.
 
-**Desktop**
+![Home — Big Buck Bunny lights the room teal](screenshots/ambient-2-pocetna-bbb.png)
+![Title page — Sintel lights it orange](screenshots/ambient-3-sintel.png)
+![Library](screenshots/ambient-4-biblioteka.png)
 
-| | |
-|---|---|
-| ![Home](screenshots/desktop-1-pocetna.png) | ![Hover preview](screenshots/desktop-6-hover.png) |
-| ![Library](screenshots/desktop-2-biblioteka.png) | ![Movie](screenshots/desktop-3-film.png) |
-| ![Series](screenshots/desktop-4-serija.png) | ![My list](screenshots/desktop-5-moja-lista.png) |
-
-**TV (1920×1080, remote focus)**
-
-![TV](screenshots/tv-1-fokus.png)
-
-**Phone**
-
-<img src="screenshots/mobitel-1-pocetna.png" width="220"> <img src="screenshots/mobitel-2-serija.png" width="220"> <img src="screenshots/mobitel-3-biblioteke.png" width="220">
-
-**App icon**
-
-<img src="screenshots/ikona.png" width="160">
-
-**Administration**
-
-![Dashboard](screenshots/admin-nadzorna-ploca.png)
-![Notifications](screenshots/admin-obavijesti.png)
+<img src="screenshots/ambient-5-mobitel.png" width="280">
 
 **Player** (trickplay + chapters on the seek bar)
 
 ![Player](screenshots/player-trickplay.png)
+
+**Administration**
+
+![Dashboard](screenshots/admin-nadzorna-ploca.png)
