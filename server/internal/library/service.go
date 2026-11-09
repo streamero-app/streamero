@@ -236,8 +236,12 @@ func scanItem(row pgx.Row) (Item, error) {
 
 // ItemFilter narrows a library listing.
 type ItemFilter struct {
-	Genre    string
-	Unplayed bool
+	Genre            string
+	Unplayed         bool
+	Favorite         bool
+	Resumable        bool
+	YearFrom, YearTo int    // 0 = open
+	Letter           string // "A".."Z", "#" for anything else, "" = all
 }
 
 // ListItems returns a filtered page of top-level items (movies, series) with the viewer's state.
@@ -252,14 +256,18 @@ func (s *Service) ListItems(ctx context.Context, libID, owner uuid.UUID, sortBy 
 		order = "i.community_rating DESC NULLS LAST, i.sort_title"
 	}
 	where := ` WHERE i.library_id = $1 AND i.parent_id IS NULL
-		AND ($2 = '' OR i.genres @> ARRAY[$2]::text[]) AND (NOT $3 OR NOT COALESCE(u.played, false))`
+		AND ($2 = '' OR i.genres @> ARRAY[$2]::text[]) AND (NOT $3 OR NOT COALESCE(u.played, false))
+		AND (NOT $5 OR COALESCE(u.favorite, false)) AND (NOT $6 OR (COALESCE(u.position_ms, 0) > 0 AND NOT COALESCE(u.played, false)))
+		AND ($7 = 0 OR i.year >= $7) AND ($8 = 0 OR i.year <= $8)
+		AND ($9 = '' OR ($9 = '#' AND upper(left(i.sort_title, 1)) !~ '^[A-ZČĆĐŠŽ]') OR upper(left(i.sort_title, 1)) = $9)`
+	args := []any{libID, f.Genre, f.Unplayed, owner, f.Favorite, f.Resumable, f.YearFrom, f.YearTo, strings.ToUpper(f.Letter)}
 	var total int
-	if err := s.Pool.QueryRow(ctx, `SELECT count(*) FROM items i`+userJoin("$4")+where, libID, f.Genre, f.Unplayed, owner).Scan(&total); err != nil {
+	if err := s.Pool.QueryRow(ctx, `SELECT count(*) FROM items i`+userJoin("$4")+where, args...).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 	// #nosec G202 -- order is one of the constants above
 	rows, err := s.Pool.Query(ctx, `SELECT `+itemCols+` FROM items i`+userJoin("$4")+where+`
-		ORDER BY `+order+` LIMIT $5 OFFSET $6`, libID, f.Genre, f.Unplayed, owner, limit, offset)
+		ORDER BY `+order+` LIMIT $10 OFFSET $11`, append(args, limit, offset)...)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -355,7 +363,7 @@ func (s *Service) Browse(path string) (string, string, []string, error) {
 // ItemMetadata is the descriptive part of an item.
 type ItemMetadata struct {
 	Overview, Tagline, OriginalTitle, OfficialRating, Error string
-	Genres                                                  []string
+	Genres, Studios                                         []string
 	Premiere                                                *time.Time
 	HasBackdrop                                             bool
 	HasLogo                                                 bool
@@ -367,9 +375,9 @@ type ItemMetadata struct {
 func (s *Service) GetMetadata(ctx context.Context, id uuid.UUID) (ItemMetadata, error) {
 	var m ItemMetadata
 	err := s.Pool.QueryRow(ctx, `SELECT COALESCE(overview, ''), COALESCE(tagline, ''), COALESCE(original_title, ''),
-			COALESCE(official_rating, ''), COALESCE(metadata_error, ''), genres, premiere_date, has_backdrop, has_logo, metadata_locked
+			COALESCE(official_rating, ''), COALESCE(metadata_error, ''), genres, studios, premiere_date, has_backdrop, has_logo, metadata_locked
 		FROM items WHERE id = $1`, id).Scan(&m.Overview, &m.Tagline, &m.OriginalTitle, &m.OfficialRating, &m.Error,
-		&m.Genres, &m.Premiere, &m.HasBackdrop, &m.HasLogo, &m.Locked)
+		&m.Genres, &m.Studios, &m.Premiere, &m.HasBackdrop, &m.HasLogo, &m.Locked)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return m, ErrNotFound
 	}

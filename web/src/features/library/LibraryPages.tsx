@@ -2,10 +2,10 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Check, Info, Play, Plus, RotateCcw, Volume2, VolumeX } from "lucide-react";
+import { Check, Info, LayoutGrid, List, Play, Plus, RotateCcw, Volume2, VolumeX, X } from "lucide-react";
 import { api, unwrap } from "@/api/client";
 import type { components } from "@/api/schema.gen";
-import { Art, Badge, Button, ErrorText, Select, Spinner, buttonVariants, pressable } from "@/components/ui";
+import { Art, Badge, Button, ErrorText, IconButton, Select, Spinner, buttonVariants, pressable } from "@/components/ui";
 import { useMe } from "@/features/auth/useAuth";
 import { channelsLabel, formatDuration, formatSize, imageUrl, placeholderHue, resolutionLabel, type ItemSummary, type Library } from "./format";
 import { AddToMenu, CollectionCard, useCollections } from "./CollectionsPages";
@@ -380,24 +380,129 @@ export function MyListPage() {
   );
 }
 
+type LibTab = "all" | "suggested" | "genres" | "collections" | "favorites";
+type Status = "" | "unplayed" | "resumable" | "favorite";
+const LETTERS = ["#", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
+
+/** Recommendations inside one library: what is started, newest, best rated, and by genre. */
+function LibrarySuggestions({ library }: { library: Library }) {
+  const { t } = useTranslation();
+  const q = (key: string, query: Record<string, unknown>) => ({
+    queryKey: ["row", key, library.id],
+    queryFn: async () => unwrap(await api.GET("/libraries/{libraryId}/items", { params: { path: { libraryId: library.id }, query: { limit: 20, ...query } } })).items,
+  });
+  const resume = useQuery(q("resume", { resumable: true, sort: "added" }));
+  const latest = useQuery(q("latest", { sort: "added" }));
+  const unwatched = useQuery(q("unwatched", { unplayed: true, sort: "rating" }));
+  return (
+    <div className="flex flex-col gap-12">
+      <Row title={t("home.continue")} testId="lib-resume" count={resume.data?.length ?? 0}>
+        {resume.data?.map((it) => <TitleCard key={it.id} item={it} className={rowCard} play />)}
+      </Row>
+      <Row title={t("home.latest")} testId="lib-latest" count={latest.data?.length ?? 0}>
+        {latest.data?.map((it) => <ItemCard key={it.id} item={it} className={posterCard} />)}
+      </Row>
+      <Row title={t("library.notWatchedYet")} testId="lib-unwatched" count={unwatched.data?.length ?? 0}>
+        {unwatched.data?.map((it) => <TitleCard key={it.id} item={it} className={rowCard} />)}
+      </Row>
+      <LibraryRows library={library} />
+    </div>
+  );
+}
+
+/** Genre tiles, each shown through a picture from one of its titles. */
+function GenreGrid({ library, onPick }: { library: Library; onPick: (g: string) => void }) {
+  const { t } = useTranslation();
+  const genres = useQuery({
+    queryKey: ["genres", library.id],
+    queryFn: async () => unwrap(await api.GET("/libraries/{libraryId}/genres", { params: { path: { libraryId: library.id } } })),
+  });
+  const list = genres.data ?? [];
+  const covers = useQueries({
+    queries: list.map((g) => ({
+      queryKey: ["row", `genre-cover-${library.id}-${g}`],
+      queryFn: async () => unwrap(await api.GET("/libraries/{libraryId}/items", {
+        params: { path: { libraryId: library.id }, query: { limit: 6, sort: "rating" as const, genre: g } },
+      })),
+    })),
+  });
+  if (genres.isPending) return <div className="flex justify-center py-20"><Spinner /></div>;
+  if (!list.length) return <p className="py-16 text-center text-sm text-muted">{t("library.noGenres")}</p>;
+  return (
+    <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 ${gutter}`}>
+      {list.map((g, i) => {
+        const page = covers[i]?.data;
+        const cover = page?.items.find((x) => x.hasBackdrop) ?? page?.items[0];
+        return (
+          <button key={g} type="button" onClick={() => onPick(g)} data-testid="genre-tile"
+            className="tv-focus group relative aspect-[16/8] overflow-hidden rounded-[6px] bg-surface-2 text-left">
+            {cover?.hasBackdrop && <Art src={imageUrl(cover.id, "backdrop")} className="absolute inset-0 size-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" />}
+            <span className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10" />
+            <span className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-5">
+              <span className="font-display text-3xl">{g}</span>
+              {page && <span className="pb-1 text-sm text-text/65 tabular">{t("libraries.items", { count: page.total })}</span>}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** One row of the list view: poster, title, year, length, genres and the watched state. */
+function ListRow({ it }: { it: ItemSummary }) {
+  const { t } = useTranslation();
+  return (
+    <li className="border-b border-border">
+      <Link to="/item/$itemId" params={{ itemId: it.id }} data-testid="item-card"
+        className="tv-focus group flex items-center gap-4 rounded-[6px] px-2 py-3 transition-colors hover:bg-white/[0.04] sm:gap-6">
+        <div className="relative aspect-[2/3] w-14 shrink-0 overflow-hidden rounded-[4px] bg-surface-2 sm:w-16"><PortraitArt item={it} /></div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[15px] font-semibold">{it.title}</p>
+          <p className="mt-0.5 truncate text-[13px] text-text/55 tabular">
+            {[it.year, it.durationMs ? formatDuration(it.durationMs) : null, it.rating ? `★ ${it.rating.toFixed(1)}` : null].filter(Boolean).join(" · ")}
+          </p>
+        </div>
+        {it.played && <span className="hidden text-[13px] text-text/55 sm:block">{t("library.watched")}</span>}
+        {progressOf(it) > 0 && <ProgressBar value={progressOf(it)} className="hidden w-28 sm:block" />}
+      </Link>
+    </li>
+  );
+}
+
 export function LibraryPage() {
   const { t } = useTranslation();
   const { libraryId } = useParams({ from: "/app/library/$libraryId" });
   const libraries = useLibraries();
   const lib = libraries.data?.find((l) => l.id === libraryId);
+  const [tab, setTab] = useState<LibTab>("all");
   const [sort, setSort] = useState<"title" | "year" | "added" | "rating">("added");
   const [genre, setGenre] = useState("");
-  const [unplayed, setUnplayed] = useState(false);
+  const [status, setStatus] = useState<Status>("");
+  const [decade, setDecade] = useState("");
+  const [letter, setLetter] = useState("");
+  const [view, setView] = useState<"posters" | "list">(() => {
+    try { return localStorage.getItem("library-view") === "list" ? "list" : "posters"; } catch { return "posters"; }
+  });
+  useEffect(() => { try { localStorage.setItem("library-view", view); } catch { /* private mode */ } }, [view]);
   const genres = useQuery({
     queryKey: ["genres", libraryId],
     queryFn: async () => unwrap(await api.GET("/libraries/{libraryId}/genres", { params: { path: { libraryId } } })),
   });
+  const effectiveStatus: Status = tab === "favorites" ? "favorite" : status;
+  const yearFrom = decade ? Number(decade) : undefined;
+  const yearTo = decade ? Number(decade) + 9 : undefined;
   const items = useInfiniteQuery({
-    queryKey: ["library-items", libraryId, sort, genre, unplayed],
+    queryKey: ["library-items", libraryId, sort, genre, effectiveStatus, decade, letter],
+    enabled: tab === "all" || tab === "favorites",
     initialPageParam: 0,
     queryFn: async ({ pageParam }) =>
       unwrap(await api.GET("/libraries/{libraryId}/items", {
-        params: { path: { libraryId }, query: { limit: PAGE, offset: pageParam, sort, genre: genre || undefined, unplayed: unplayed || undefined } },
+        params: { path: { libraryId }, query: {
+          limit: PAGE, offset: pageParam, sort, genre: genre || undefined, letter: letter || undefined, yearFrom, yearTo,
+          unplayed: effectiveStatus === "unplayed" || undefined, resumable: effectiveStatus === "resumable" || undefined,
+          favorite: effectiveStatus === "favorite" || undefined,
+        } },
       })),
     getNextPageParam: (last, pages) => {
       const loaded = pages.reduce((n, p) => n + p.items.length, 0);
@@ -407,54 +512,118 @@ export function LibraryPage() {
   const all = items.data?.pages.flatMap((p) => p.items) ?? [];
   const total = items.data?.pages[0]?.total;
   const [pool, setPool] = useState<ItemSummary[]>();
-  // The billboard keeps the newest titles even while filters change the grid.
+  const [libTotal, setLibTotal] = useState<number>();
+  // The stage keeps the newest titles even while filters change the grid.
   useEffect(() => {
-    if (!pool && items.data) setPool(all.slice(0, 10));
-  }, [all, pool, items.data]);
+    if (!pool && items.data) { setPool(all.slice(0, 10)); setLibTotal(total); }
+  }, [all, pool, items.data, total]);
+  const cols = useCollections();
+  const collections = Array.isArray(cols.data) ? cols.data : [];
+  const filtered = !!(genre || status || decade || letter);
+  const tabs: { id: LibTab; label: string }[] = [
+    { id: "all", label: t("library.tabAll") },
+    { id: "suggested", label: t("library.tabSuggested") },
+    { id: "genres", label: t("library.genres") },
+    { id: "collections", label: t("collections.title") },
+    { id: "favorites", label: t("nav.myList") },
+  ];
+  const tabClass = "relative h-11 shrink-0 px-1 text-[15px] font-medium text-text/60 transition-colors hover:text-text after:absolute after:inset-x-0 after:bottom-0 after:h-[2px] after:scale-x-0 after:bg-[var(--amb-a)] after:transition-transform aria-selected:text-text aria-selected:after:scale-x-100";
+  const decades = [2020, 2010, 2000, 1990, 1980, 1970, 1960, 1950];
 
   return (
     <div className="flex flex-col gap-6">
       <Billboard pool={pool} />
-      <div className={`sticky top-0 z-30 border-b border-border bg-bg/85 pt-[4.5rem] pb-3 backdrop-blur-xl md:pt-20 ${gutter}`}>
-        <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
+      <div className={`sticky top-0 z-30 border-b border-border bg-bg/88 pt-[4.5rem] backdrop-blur-xl md:pt-20 ${gutter}`}>
+        <div className="flex flex-wrap items-end gap-x-5 gap-y-2">
           <h1 className="font-display text-4xl sm:text-5xl">{lib?.name ?? "…"}</h1>
-          {total !== undefined && <span className="pb-1 text-sm text-text/55 tabular">{t("libraries.items", { count: total })}</span>}
-          <div className="flex flex-wrap items-center gap-2 sm:ml-auto" role="group" aria-label={t("library.filters")}>
+          {libTotal !== undefined && <span className="pb-1 text-sm text-text/55 tabular">{t("libraries.items", { count: libTotal })}</span>}
+        </div>
+        <div role="tablist" aria-label={lib?.name} className="shelf-track mt-3 -mb-px flex gap-6 overflow-x-auto">
+          {tabs.map((x) => (
+            <button key={x.id} type="button" role="tab" aria-selected={tab === x.id} onClick={() => setTab(x.id)} className={tabClass}>{x.label}</button>
+          ))}
+        </div>
+      </div>
+
+      {(tab === "all" || tab === "favorites") && (
+        <div className={`flex flex-col gap-5 ${gutter}`}>
+          <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t("library.filters")}>
             {(genres.data?.length ?? 0) > 0 && (
               <Select value={genre} onChange={(e) => setGenre(e.target.value)} aria-label={t("library.genre")}>
                 <option value="">{t("library.allGenres")}</option>
                 {genres.data?.map((g) => <option key={g} value={g}>{g}</option>)}
               </Select>
             )}
+            {tab === "all" && (
+              <Select value={status} onChange={(e) => setStatus(e.target.value as Status)} aria-label={t("library.status")}>
+                <option value="">{t("library.statusAll")}</option>
+                <option value="unplayed">{t("library.unplayedOnly")}</option>
+                <option value="resumable">{t("library.statusResumable")}</option>
+                <option value="favorite">{t("nav.myList")}</option>
+              </Select>
+            )}
+            <Select value={decade} onChange={(e) => setDecade(e.target.value)} aria-label={t("library.decade")}>
+              <option value="">{t("library.allYears")}</option>
+              {decades.map((d) => <option key={d} value={d}>{t("library.decadeLabel", { decade: d })}</option>)}
+            </Select>
             <Select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} aria-label={t("library.sort")}>
               <option value="added">{t("library.sortAdded")}</option>
               <option value="title">{t("library.sortTitle")}</option>
               <option value="year">{t("library.sortYear")}</option>
               <option value="rating">{t("library.sortRating")}</option>
             </Select>
-            <label className={`${pressable} h-9 cursor-pointer rounded-[6px] px-3.5 text-sm ${unplayed ? "bg-text text-bg" : "bg-white/[0.06] text-text/80 ring-1 ring-inset ring-border hover:text-text"}`}>
-              <input type="checkbox" className="sr-only" checked={unplayed} onChange={(e) => setUnplayed(e.target.checked)} />
-              {unplayed && <Check className="size-3.5" aria-hidden />}
-              {t("library.unplayedOnly")}
-            </label>
+            {filtered && (
+              <button type="button" onClick={() => { setGenre(""); setStatus(""); setDecade(""); setLetter(""); }}
+                className={`${pressable} h-9 rounded-[6px] px-3 text-sm text-text/70 hover:text-text`}>
+                <X className="size-4" aria-hidden />{t("library.clearFilters")}
+              </button>
+            )}
+            {filtered && total !== undefined && <span className="text-sm text-text/50 tabular sm:ml-2">{t("library.matches", { count: total })}</span>}
+            <div className="ml-auto flex gap-1" role="group" aria-label={t("library.view")}>
+              <IconButton label={t("library.viewPosters")} active={view === "posters"} onClick={() => setView("posters")}><LayoutGrid className="size-4" aria-hidden /></IconButton>
+              <IconButton label={t("library.viewList")} active={view === "list"} onClick={() => setView("list")}><List className="size-4" aria-hidden /></IconButton>
+            </div>
           </div>
+          <nav aria-label={t("library.jumpTo")} className="shelf-track -mt-1 flex gap-0.5 overflow-x-auto">
+            {LETTERS.map((l) => (
+              <button key={l} type="button" aria-pressed={letter === l} onClick={() => setLetter(letter === l ? "" : l)}
+                className="grid h-8 min-w-8 place-items-center rounded-[4px] text-[13px] font-semibold text-text/50 transition-colors hover:bg-white/[0.06] hover:text-text aria-pressed:bg-text aria-pressed:text-bg">
+                {l}
+              </button>
+            ))}
+          </nav>
+          <ErrorText error={items.error} />
+          {items.isPending && <div className="flex justify-center py-20"><Spinner /></div>}
+          {total === 0 && (
+            <p className="py-16 text-center text-sm text-muted">
+              {tab === "favorites" ? t("library.myListEmpty") : filtered ? t("library.noMatches") : lib && ["queued", "scanning"].includes(lib.scan.state) ? t("library.scanning") : t("library.empty")}
+            </p>
+          )}
+          {view === "posters" ? (
+            <div className="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
+              {all.map((it) => <ItemCard key={it.id} item={it} />)}
+            </div>
+          ) : (
+            <ul className="flex flex-col border-t border-border">{all.map((it) => <ListRow key={it.id} it={it} />)}</ul>
+          )}
+          {items.hasNextPage && (
+            <Button variant="secondary" className="self-center" disabled={items.isFetchingNextPage} onClick={() => void items.fetchNextPage()}>
+              {items.isFetchingNextPage && <Spinner className="size-4" />}{t("library.more")}
+            </Button>
+          )}
         </div>
-      </div>
-      <div className={`flex flex-col gap-6 ${gutter}`}>
-        <ErrorText error={items.error} />
-        {items.isPending && <div className="flex justify-center py-20"><Spinner /></div>}
-        {total === 0 && (
-          <p className="py-16 text-center text-sm text-muted">{lib && ["queued", "scanning"].includes(lib.scan.state) ? t("library.scanning") : t("library.empty")}</p>
-        )}
-        <div className="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
-          {all.map((it) => <ItemCard key={it.id} item={it} />)}
+      )}
+      {tab === "suggested" && lib && <LibrarySuggestions library={lib} />}
+      {tab === "genres" && lib && <GenreGrid library={lib} onPick={(g) => { setGenre(g); setTab("all"); }} />}
+      {tab === "collections" && (
+        <div className={gutter}>
+          {collections.length === 0
+            ? <p className="py-16 text-center text-sm text-muted">{t("collections.empty")}</p>
+            : <div className="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                {collections.map((c) => <CollectionCard key={c.id} c={c} />)}
+              </div>}
         </div>
-        {items.hasNextPage && (
-          <Button variant="secondary" className="self-center" disabled={items.isFetchingNextPage} onClick={() => void items.fetchNextPage()}>
-            {items.isFetchingNextPage && <Spinner className="size-4" />}{t("library.more")}
-          </Button>
-        )}
-      </div>
+      )}
     </div>
   );
 }
@@ -573,6 +742,75 @@ function MoreLikeThis({ detail }: { detail: ItemDetail }) {
   );
 }
 
+type Trick = NonNullable<ItemDetail["trickplay"]>;
+
+/** One frame of the trickplay sheets at a time, drawn as a sprite. */
+function TrickFrame({ tp, ms, className = "" }: { tp: Trick; ms: number; className?: string }) {
+  const idx = Math.min(tp.count - 1, Math.floor(ms / tp.intervalMs));
+  const perSheet = tp.columns * tp.rows;
+  const sheet = tp.sheetUrls[Math.floor(idx / perSheet)];
+  if (!sheet) return null;
+  const local = idx % perSheet;
+  const col = local % tp.columns;
+  const row = Math.floor(local / tp.columns);
+  return (
+    <div aria-hidden className={`bg-no-repeat ${className}`} style={{
+      backgroundImage: `url(${sheet})`,
+      backgroundSize: `${tp.columns * 100}% ${tp.rows * 100}%`,
+      backgroundPosition: `${tp.columns > 1 ? (col / (tp.columns - 1)) * 100 : 0}% ${tp.rows > 1 ? (row / (tp.rows - 1)) * 100 : 0}%`,
+    }} />
+  );
+}
+
+/** Chapters with a frame from each, starting playback at that point. */
+function Chapters({ d }: { d: ItemDetail }) {
+  const { t } = useTranslation();
+  const chapters = d.chapters ?? [];
+  if (chapters.length < 2) return null;
+  const tp = d.trickplay;
+  return (
+    <section className="flex flex-col gap-4" data-testid="chapters">
+      <h2 className={`font-head text-xl sm:text-2xl ${gutter}`}>{t("library.chapters")}</h2>
+      <ol className={`shelf-track flex gap-4 overflow-x-auto pb-4 ${gutter}`}>
+        {chapters.map((c, i) => (
+          <li key={c.startMs} className="w-[62vw] shrink-0 sm:w-[260px]">
+            <Link to="/watch/$itemId" params={{ itemId: d.item.id }} search={{ start: c.startMs }}
+              className="tv-focus group flex flex-col gap-2 rounded-[6px] outline-none">
+              <div className="poster-lift relative aspect-video overflow-hidden rounded-[6px] bg-surface-2">
+                {tp ? <TrickFrame tp={tp} ms={c.startMs + 2000} className="absolute inset-0" /> : <ArtFallback item={d.item} wide />}
+                <span className="absolute bottom-2 left-2 rounded-[3px] bg-black/75 px-1.5 py-0.5 text-xs font-semibold tabular">{formatClock(c.startMs)}</span>
+              </div>
+              <p className="truncate text-sm text-text/85 group-hover:text-text"><span className="mr-2 text-text/45 tabular">{i + 1}</span>{c.title}</p>
+            </Link>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+/** Links to the public databases the title is known by. */
+function ExternalLinks({ d }: { d: ItemDetail }) {
+  const ids = d.providerIds ?? {};
+  const kind = d.item.kind === "series" ? "tv" : "movie";
+  const links = [
+    ids.imdb && { label: "IMDb", href: `https://www.imdb.com/title/${ids.imdb}/` },
+    ids.tmdb && (d.item.kind === "movie" || d.item.kind === "series") && { label: "TMDb", href: `https://www.themoviedb.org/${kind}/${ids.tmdb}` },
+    ids.tvdb && { label: "TheTVDB", href: `https://thetvdb.com/dereferrer/series/${ids.tvdb}` },
+  ].filter(Boolean) as { label: string; href: string }[];
+  if (!links.length) return null;
+  return (
+    <div className="flex flex-wrap gap-2">
+      {links.map((l) => (
+        <a key={l.label} href={l.href} target="_blank" rel="noreferrer noopener"
+          className={`${pressable} h-8 rounded-[4px] px-3 text-[13px] font-semibold text-text/80 ring-1 ring-inset ring-border hover:text-text hover:ring-border-strong`}>
+          {l.label}
+        </a>
+      ))}
+    </div>
+  );
+}
+
 /** One label/value pair in the details column. */
 function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -584,7 +822,7 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
 }
 
 export function ItemPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isAdmin = !!useMe().data?.isAdmin;
   const { itemId } = useParams({ from: "/app/item/$itemId" });
   const detail = useItemDetail(itemId);
@@ -666,13 +904,18 @@ export function ItemPage() {
           {d.cast.length > 0 && <Fact label={t("library.starring")}>{d.cast.slice(0, 5).map((p) => p.name).join(", ")}</Fact>}
           {d.genres.length > 0 && <Fact label={t("library.genres")}>{d.genres.join(", ")}</Fact>}
           {writers.length > 0 && <Fact label={t("library.writtenBy")}>{writers.join(", ")}</Fact>}
+          {(d.studios?.length ?? 0) > 0 && <Fact label={t("library.studios")}>{d.studios!.join(", ")}</Fact>}
+          {d.premiereDate && <Fact label={t("library.released")}>{new Date(d.premiereDate).toLocaleDateString(i18n.resolvedLanguage === "hr" ? "hr-HR" : "en-GB", { day: "numeric", month: "long", year: "numeric" })}</Fact>}
           {(d.collections?.length ?? 0) > 0 && (
             <Fact label={t("collections.partOf")}>{d.collections!.map((c, i) => (
               <span key={c.id}>{i > 0 && ", "}<Link to="/collection/$collectionId" params={{ collectionId: c.id }} className="underline underline-offset-4 decoration-text/30 hover:decoration-text">{c.name}</Link></span>
             ))}</Fact>
           )}
+          <ExternalLinks d={d} />
         </dl>
       </section>
+
+      <Chapters d={d} />
 
       {seasons.length > 0 && (
         <section className={`flex flex-col gap-4 ${gutter}`} data-testid="seasons">

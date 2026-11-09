@@ -1861,6 +1861,14 @@ type ListLibraryItemsParams struct {
 	Genre     OptString               `json:",omitempty,omitzero"`
 	// Only items the current profile has not watched.
 	Unplayed OptBool `json:",omitempty,omitzero"`
+	// Only items on the current profile's list.
+	Favorite OptBool `json:",omitempty,omitzero"`
+	// Only items started but not finished.
+	Resumable OptBool `json:",omitempty,omitzero"`
+	YearFrom  OptInt  `json:",omitempty,omitzero"`
+	YearTo    OptInt  `json:",omitempty,omitzero"`
+	// First letter of the sort title ("#" for digits and symbols).
+	Letter OptString `json:",omitempty,omitzero"`
 }
 
 func unpackListLibraryItemsParams(packed middleware.Parameters) (params ListLibraryItemsParams) {
@@ -1914,6 +1922,51 @@ func unpackListLibraryItemsParams(packed middleware.Parameters) (params ListLibr
 		}
 		if v, ok := packed[key]; ok {
 			params.Unplayed = v.(OptBool)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "favorite",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Favorite = v.(OptBool)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "resumable",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Resumable = v.(OptBool)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "yearFrom",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.YearFrom = v.(OptInt)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "yearTo",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.YearTo = v.(OptInt)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "letter",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Letter = v.(OptString)
 		}
 	}
 	return params
@@ -2274,6 +2327,288 @@ func decodeListLibraryItemsParams(args [1]string, argsEscaped bool, r *http.Requ
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "unplayed",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: favorite.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "favorite",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotFavoriteVal bool
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToBool(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotFavoriteVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Favorite.SetTo(paramsDotFavoriteVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "favorite",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: resumable.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "resumable",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotResumableVal bool
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToBool(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotResumableVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Resumable.SetTo(paramsDotResumableVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "resumable",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: yearFrom.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "yearFrom",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotYearFromVal int
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToInt(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotYearFromVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.YearFrom.SetTo(paramsDotYearFromVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.YearFrom.Get(); ok {
+					if err := func() error {
+						if err := (validate.Int{
+							MinSet:        true,
+							Min:           1800,
+							MaxSet:        true,
+							Max:           3000,
+							MinExclusive:  false,
+							MaxExclusive:  false,
+							MultipleOfSet: false,
+							MultipleOf:    0,
+							Pattern:       nil,
+						}).Validate(int64(value)); err != nil {
+							return errors.Wrap(err, "int")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "yearFrom",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: yearTo.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "yearTo",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotYearToVal int
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToInt(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotYearToVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.YearTo.SetTo(paramsDotYearToVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.YearTo.Get(); ok {
+					if err := func() error {
+						if err := (validate.Int{
+							MinSet:        true,
+							Min:           1800,
+							MaxSet:        true,
+							Max:           3000,
+							MinExclusive:  false,
+							MaxExclusive:  false,
+							MultipleOfSet: false,
+							MultipleOf:    0,
+							Pattern:       nil,
+						}).Validate(int64(value)); err != nil {
+							return errors.Wrap(err, "int")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "yearTo",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: letter.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "letter",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotLetterVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotLetterVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Letter.SetTo(paramsDotLetterVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.Letter.Get(); ok {
+					if err := func() error {
+						if err := (validate.String{
+							MinLength:     0,
+							MinLengthSet:  false,
+							MaxLength:     1,
+							MaxLengthSet:  true,
+							Email:         false,
+							Hostname:      false,
+							Regex:         nil,
+							MinNumeric:    0,
+							MinNumericSet: false,
+							MaxNumeric:    0,
+							MaxNumericSet: false,
+						}).Validate(string(value)); err != nil {
+							return errors.Wrap(err, "string")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "letter",
 			In:   "query",
 			Err:  err,
 		}

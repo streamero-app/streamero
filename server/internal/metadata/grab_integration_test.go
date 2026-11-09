@@ -140,3 +140,58 @@ func TestLocalArtworkIntegration(t *testing.T) {
 		t.Fatal("download replaced the user's poster")
 	}
 }
+
+func TestLocalNFOIntegration(t *testing.T) {
+	pool := testPool(t)
+	ctx := context.Background()
+	root := t.TempDir()
+	dir := filepath.Join(root, "media", "Nfo Movie (2010)")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "Nfo Movie (2010).mkv"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	nfo := `<movie><title>Proper Title</title><plot>The plot.</plot><genre>Drama</genre><studio>Blender Institute</studio>
+<director>Ana</director><actor><name>Ivo</name><role>Hero</role></actor><set>Open Movies</set><rating>7.5</rating></movie>`
+	if err := os.WriteFile(filepath.Join(dir, "movie.nfo"), []byte(nfo), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	roots := library.Roots{root}
+	svc := &library.Service{Pool: pool, Roots: roots, Enqueue: func(context.Context, uuid.UUID) error { return nil }}
+	scanner := &library.Scanner{Pool: pool, Roots: roots, Log: log,
+		Probe: func(context.Context, string) (library.ProbeResult, error) {
+			return library.ProbeResult{Container: "mkv"}, nil
+		}}
+	lib, err := svc.Create(ctx, "Nfo", "movies", []string{filepath.Join(root, "media")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = svc.Delete(context.Background(), lib.ID) })
+	if _, err := scanner.Scan(ctx, lib.ID); err != nil {
+		t.Fatal(err)
+	}
+	r := &Refresher{Pool: pool, Log: log, ResolvePath: func(p string) (string, error) { return library.ResolveSafePath(roots, p) }}
+	if n, err := r.LocalNFO(ctx, lib.ID); err != nil || n != 1 {
+		t.Fatalf("apply: %d %v", n, err)
+	}
+	items, _, _ := svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 10, 0, library.ItemFilter{})
+	if len(items) != 1 || items[0].Title != "Proper Title" || items[0].Rating == nil || *items[0].Rating != 7.5 {
+		t.Fatalf("item: %+v", items)
+	}
+	m, err := svc.GetMetadata(ctx, items[0].ID)
+	if err != nil || m.Overview != "The plot." || len(m.Genres) != 1 || len(m.Studios) != 1 || len(m.Cast) != 1 || m.Crew[0].Name != "Ana" {
+		t.Fatalf("metadata: %+v %v", m, err)
+	}
+	var cols int
+	_ = pool.QueryRow(ctx, `SELECT count(*) FROM collection_items ci JOIN collections c ON c.id = ci.collection_id WHERE c.name = 'Open Movies' AND ci.item_id = $1`, items[0].ID).Scan(&cols)
+	if cols != 1 {
+		t.Fatal("set should become a collection")
+	}
+	// Unchanged file: nothing to do.
+	if n, _ := r.LocalNFO(ctx, lib.ID); n != 0 {
+		t.Fatalf("second apply: %d", n)
+	}
+	_, _ = pool.Exec(ctx, `DELETE FROM collections WHERE name = 'Open Movies'`)
+}

@@ -129,6 +129,20 @@ func TestMovieLibraryScanIntegration(t *testing.T) {
 	if got := titles(items); len(got) != 3 || got[0] != "Big Test Movie" || got[1] != "Dune" || got[2] != "The Dark Knight" {
 		t.Fatalf("titles: %v", got)
 	}
+	// Filters: first letter, year range, the viewer's list and started titles.
+	// "The Dark Knight" files under D: the letter follows the sort title, without the article.
+	if got, _, _ := f.svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 100, 0, ItemFilter{Letter: "d"}); len(got) != 2 || got[0].Title != "The Dark Knight" && got[0].Title != "Dune" {
+		t.Fatalf("letter filter: %v", titles(got))
+	}
+	if got, _, _ := f.svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 100, 0, ItemFilter{YearFrom: 2020, YearTo: 2021}); len(got) != 2 {
+		t.Fatalf("year filter: %v", titles(got))
+	}
+	if _, n, _ := f.svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 100, 0, ItemFilter{Favorite: true}); n != 0 {
+		t.Fatalf("favorite filter without a list: %d", n)
+	}
+	if _, n, _ := f.svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 100, 0, ItemFilter{Resumable: true}); n != 0 {
+		t.Fatalf("resumable filter: %d", n)
+	}
 	var big Item
 	for _, it := range items {
 		if it.Title == "Big Test Movie" {

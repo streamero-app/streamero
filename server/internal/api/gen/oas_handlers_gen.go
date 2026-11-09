@@ -9456,6 +9456,26 @@ func (s *Server) handleListLibraryItemsRequest(args [1]string, argsEscaped bool,
 					Name: "unplayed",
 					In:   "query",
 				}: params.Unplayed,
+				{
+					Name: "favorite",
+					In:   "query",
+				}: params.Favorite,
+				{
+					Name: "resumable",
+					In:   "query",
+				}: params.Resumable,
+				{
+					Name: "yearFrom",
+					In:   "query",
+				}: params.YearFrom,
+				{
+					Name: "yearTo",
+					In:   "query",
+				}: params.YearTo,
+				{
+					Name: "letter",
+					In:   "query",
+				}: params.Letter,
 			},
 			Raw: r,
 		}

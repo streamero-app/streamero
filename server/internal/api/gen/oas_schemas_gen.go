@@ -1475,6 +1475,11 @@ type ItemDetail struct {
 	Tagline       OptString    `json:"tagline"`
 	OriginalTitle OptString    `json:"originalTitle"`
 	Genres        []string     `json:"genres"`
+	// Production companies or networks.
+	Studios []string `json:"studios"`
+	// Chapters of the first file (for the chapter list on the item page).
+	Chapters  []Chapter        `json:"chapters"`
+	Trickplay OptTrickplayInfo `json:"trickplay"`
 	// Age rating for the configured country, e.g. "12" or "PG-13".
 	OfficialRating OptString `json:"officialRating"`
 	PremiereDate   OptDate   `json:"premiereDate"`
@@ -1525,6 +1530,21 @@ func (s *ItemDetail) GetOriginalTitle() OptString {
 // GetGenres returns the value of Genres.
 func (s *ItemDetail) GetGenres() []string {
 	return s.Genres
+}
+
+// GetStudios returns the value of Studios.
+func (s *ItemDetail) GetStudios() []string {
+	return s.Studios
+}
+
+// GetChapters returns the value of Chapters.
+func (s *ItemDetail) GetChapters() []Chapter {
+	return s.Chapters
+}
+
+// GetTrickplay returns the value of Trickplay.
+func (s *ItemDetail) GetTrickplay() OptTrickplayInfo {
+	return s.Trickplay
 }
 
 // GetOfficialRating returns the value of OfficialRating.
@@ -1620,6 +1640,21 @@ func (s *ItemDetail) SetOriginalTitle(val OptString) {
 // SetGenres sets the value of Genres.
 func (s *ItemDetail) SetGenres(val []string) {
 	s.Genres = val
+}
+
+// SetStudios sets the value of Studios.
+func (s *ItemDetail) SetStudios(val []string) {
+	s.Studios = val
+}
+
+// SetChapters sets the value of Chapters.
+func (s *ItemDetail) SetChapters(val []Chapter) {
+	s.Chapters = val
+}
+
+// SetTrickplay sets the value of Trickplay.
+func (s *ItemDetail) SetTrickplay(val OptTrickplayInfo) {
+	s.Trickplay = val
 }
 
 // SetOfficialRating sets the value of OfficialRating.

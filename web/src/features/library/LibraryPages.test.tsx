@@ -138,7 +138,7 @@ describe("browse", () => {
 
     renderApp(`/library/${lib.id}`, { me: testUser() });
     fireEvent.change(await screen.findByLabelText("Genre"), { target: { value: "Drama" } });
-    fireEvent.click(screen.getByLabelText("Unwatched only"));
+    fireEvent.change(screen.getByLabelText("Status"), { target: { value: "unplayed" } });
     await waitFor(() => expect(queries.some((q) => q.includes("genre=Drama") && q.includes("unplayed=true"))).toBe(true));
   });
 });

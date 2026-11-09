@@ -783,6 +783,34 @@ paths:
         description: Only items the current profile has not watched.
         schema:
           type: boolean
+      - name: favorite
+        in: query
+        description: Only items on the current profile's list.
+        schema:
+          type: boolean
+      - name: resumable
+        in: query
+        description: Only items started but not finished.
+        schema:
+          type: boolean
+      - name: yearFrom
+        in: query
+        schema:
+          type: integer
+          minimum: 1800
+          maximum: 3000
+      - name: yearTo
+        in: query
+        schema:
+          type: integer
+          minimum: 1800
+          maximum: 3000
+      - name: letter
+        in: query
+        description: First letter of the sort title ("#" for digits and symbols).
+        schema:
+          type: string
+          maxLength: 1
     get:
       operationId: listLibraryItems
       summary: Top-level items of a library (movies, series), paged
@@ -2747,6 +2775,18 @@ components:
           type: array
           items:
             type: string
+        studios:
+          type: array
+          description: Production companies or networks.
+          items:
+            type: string
+        chapters:
+          type: array
+          description: Chapters of the first file (for the chapter list on the item page).
+          items:
+            $ref: "#/components/schemas/Chapter"
+        trickplay:
+          $ref: "#/components/schemas/TrickplayInfo"
         officialRating:
           type: string
           description: Age rating for the configured country, e.g. "12" or "PG-13".

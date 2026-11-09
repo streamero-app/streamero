@@ -135,7 +135,9 @@ func (h *Handler) ListLibraryItems(ctx context.Context, params gen.ListLibraryIt
 		return nil, err
 	}
 	items, total, err := h.lib().ListItems(ctx, params.LibraryId, stream.Owner(p), string(params.Sort.Or(gen.ListLibraryItemsSortTitle)),
-		params.Limit.Or(100), params.Offset.Or(0), library.ItemFilter{Genre: params.Genre.Value, Unplayed: params.Unplayed.Value})
+		params.Limit.Or(100), params.Offset.Or(0), library.ItemFilter{Genre: params.Genre.Value, Unplayed: params.Unplayed.Value,
+			Favorite: params.Favorite.Value, Resumable: params.Resumable.Value, YearFrom: params.YearFrom.Value, YearTo: params.YearTo.Value,
+			Letter: params.Letter.Value})
 	if err != nil {
 		return nil, err
 	}
@@ -179,6 +181,16 @@ func (h *Handler) GetItem(ctx context.Context, params gen.GetItemParams) (*gen.I
 		out.Genres = []string{}
 	}
 	out.Cast, out.Crew = toPeople(m.Cast), toPeople(m.Crew)
+	out.Studios = m.Studios
+	if len(files) > 0 && h.Stream != nil && h.Stream() != nil {
+		chs, tp := h.Stream().Analysis(ctx, files[0].ID)
+		for _, c := range chs {
+			out.Chapters = append(out.Chapters, gen.Chapter{StartMs: c.StartMS, Title: c.Title})
+		}
+		if tp != nil {
+			out.Trickplay = gen.NewOptTrickplayInfo(trickplayInfo(files[0].ID, tp))
+		}
+	}
 	if cs, err := h.lib().ItemCollections(ctx, it.ID); err == nil {
 		for _, c := range cs {
 			out.Collections = append(out.Collections, toCollection(c))
@@ -520,14 +532,18 @@ func (h *Handler) StartPlayback(ctx context.Context, req *gen.PlaybackRequest, p
 		out.Segments = append(out.Segments, gen.MediaSegment{Kind: gen.MediaSegmentKind(sg.Kind), StartMs: sg.StartMS, EndMs: sg.EndMS})
 	}
 	if tp := info.Trickplay; tp != nil {
-		urls := make([]string, tp.Sheets)
-		for i := range urls {
-			urls[i] = fmt.Sprintf("/api/v1/trickplay/%s/%d", info.FileID, i)
-		}
-		out.Trickplay = gen.NewOptTrickplayInfo(gen.TrickplayInfo{IntervalMs: tp.IntervalMS, Width: tp.Width, Height: tp.Height,
-			Columns: tp.Columns, Rows: tp.Rows, Count: tp.Count, SheetUrls: urls})
+		out.Trickplay = gen.NewOptTrickplayInfo(trickplayInfo(info.FileID, tp))
 	}
 	return out, nil
+}
+
+func trickplayInfo(fileID uuid.UUID, tp *stream.Trickplay) gen.TrickplayInfo {
+	urls := make([]string, tp.Sheets)
+	for i := range urls {
+		urls[i] = fmt.Sprintf("/api/v1/trickplay/%s/%d", fileID, i)
+	}
+	return gen.TrickplayInfo{IntervalMs: tp.IntervalMS, Width: tp.Width, Height: tp.Height,
+		Columns: tp.Columns, Rows: tp.Rows, Count: tp.Count, SheetUrls: urls}
 }
 
 // ReportProgress implements PUT /items/{itemId}/progress.

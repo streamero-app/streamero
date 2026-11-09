@@ -113,6 +113,12 @@ func (s *Server) analysis(ctx context.Context, fileID uuid.UUID) ([]Chapter, []S
 	return chs, segs, tp
 }
 
+// Analysis returns the chapters and trickplay of a file for the item page.
+func (s *Server) Analysis(ctx context.Context, fileID uuid.UUID) ([]Chapter, *Trickplay) {
+	chs, _, tp := s.analysis(ctx, fileID)
+	return chs, tp
+}
+
 // Owner returns the id that playback state belongs to (active profile or user).
 func Owner(p auth.Principal) uuid.UUID {
 	if p.Profile != nil {

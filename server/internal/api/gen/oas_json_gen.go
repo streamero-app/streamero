@@ -3788,6 +3788,32 @@ func (s *ItemDetail) encodeFields(e *jx.Encoder) {
 		e.ArrEnd()
 	}
 	{
+		if s.Studios != nil {
+			e.FieldStart("studios")
+			e.ArrStart()
+			for _, elem := range s.Studios {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.Chapters != nil {
+			e.FieldStart("chapters")
+			e.ArrStart()
+			for _, elem := range s.Chapters {
+				elem.Encode(e)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.Trickplay.Set {
+			e.FieldStart("trickplay")
+			s.Trickplay.Encode(e)
+		}
+	}
+	{
 		if s.OfficialRating.Set {
 			e.FieldStart("officialRating")
 			s.OfficialRating.Encode(e)
@@ -3861,7 +3887,7 @@ func (s *ItemDetail) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfItemDetail = [19]string{
+var jsonFieldsNameOfItemDetail = [22]string{
 	0:  "locked",
 	1:  "collections",
 	2:  "hasLogo",
@@ -3869,18 +3895,21 @@ var jsonFieldsNameOfItemDetail = [19]string{
 	4:  "tagline",
 	5:  "originalTitle",
 	6:  "genres",
-	7:  "officialRating",
-	8:  "premiereDate",
-	9:  "cast",
-	10: "crew",
-	11: "hasBackdrop",
-	12: "metadataError",
-	13: "item",
-	14: "libraryId",
-	15: "parentId",
-	16: "providerIds",
-	17: "files",
-	18: "children",
+	7:  "studios",
+	8:  "chapters",
+	9:  "trickplay",
+	10: "officialRating",
+	11: "premiereDate",
+	12: "cast",
+	13: "crew",
+	14: "hasBackdrop",
+	15: "metadataError",
+	16: "item",
+	17: "libraryId",
+	18: "parentId",
+	19: "providerIds",
+	20: "files",
+	21: "children",
 }
 
 // Decode decodes ItemDetail from json.
@@ -3979,6 +4008,52 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"genres\"")
 			}
+		case "studios":
+			if err := func() error {
+				s.Studios = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.Studios = append(s.Studios, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"studios\"")
+			}
+		case "chapters":
+			if err := func() error {
+				s.Chapters = make([]Chapter, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem Chapter
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Chapters = append(s.Chapters, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"chapters\"")
+			}
+		case "trickplay":
+			if err := func() error {
+				s.Trickplay.Reset()
+				if err := s.Trickplay.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"trickplay\"")
+			}
 		case "officialRating":
 			if err := func() error {
 				s.OfficialRating.Reset()
@@ -4000,7 +4075,7 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"premiereDate\"")
 			}
 		case "cast":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				s.Cast = make([]Person, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -4018,7 +4093,7 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"cast\"")
 			}
 		case "crew":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 5
 			if err := func() error {
 				s.Crew = make([]Person, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -4036,7 +4111,7 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"crew\"")
 			}
 		case "hasBackdrop":
-			requiredBitSet[1] |= 1 << 3
+			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				v, err := d.Bool()
 				s.HasBackdrop = bool(v)
@@ -4058,7 +4133,7 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"metadataError\"")
 			}
 		case "item":
-			requiredBitSet[1] |= 1 << 5
+			requiredBitSet[2] |= 1 << 0
 			if err := func() error {
 				if err := s.Item.Decode(d); err != nil {
 					return err
@@ -4068,7 +4143,7 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"item\"")
 			}
 		case "libraryId":
-			requiredBitSet[1] |= 1 << 6
+			requiredBitSet[2] |= 1 << 1
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.LibraryId = v
@@ -4090,7 +4165,7 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"parentId\"")
 			}
 		case "providerIds":
-			requiredBitSet[2] |= 1 << 0
+			requiredBitSet[2] |= 1 << 3
 			if err := func() error {
 				if err := s.ProviderIds.Decode(d); err != nil {
 					return err
@@ -4100,7 +4175,7 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"providerIds\"")
 			}
 		case "files":
-			requiredBitSet[2] |= 1 << 1
+			requiredBitSet[2] |= 1 << 4
 			if err := func() error {
 				s.Files = make([]MediaFile, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -4118,7 +4193,7 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"files\"")
 			}
 		case "children":
-			requiredBitSet[2] |= 1 << 2
+			requiredBitSet[2] |= 1 << 5
 			if err := func() error {
 				s.Children = make([]ItemSummary, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -4146,8 +4221,8 @@ func (s *ItemDetail) Decode(d *jx.Decoder) error {
 	var failures []validate.FieldError
 	for i, mask := range [3]uint8{
 		0b01000000,
-		0b01101110,
-		0b00000111,
+		0b01110000,
+		0b00111011,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

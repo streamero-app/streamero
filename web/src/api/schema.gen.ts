@@ -571,6 +571,14 @@ export interface paths {
                 genre?: string;
                 /** @description Only items the current profile has not watched. */
                 unplayed?: boolean;
+                /** @description Only items on the current profile's list. */
+                favorite?: boolean;
+                /** @description Only items started but not finished. */
+                resumable?: boolean;
+                yearFrom?: number;
+                yearTo?: number;
+                /** @description First letter of the sort title ("#" for digits and symbols). */
+                letter?: string;
             };
             header?: never;
             path: {
@@ -1690,6 +1698,11 @@ export interface components {
             tagline?: string;
             originalTitle?: string;
             genres: string[];
+            /** @description Production companies or networks. */
+            studios?: string[];
+            /** @description Chapters of the first file (for the chapter list on the item page). */
+            chapters?: components["schemas"]["Chapter"][];
+            trickplay?: components["schemas"]["TrickplayInfo"];
             /** @description Age rating for the configured country, e.g. "12" or "PG-13". */
             officialRating?: string;
             /** Format: date */
@@ -2808,6 +2821,14 @@ export interface operations {
                 genre?: string;
                 /** @description Only items the current profile has not watched. */
                 unplayed?: boolean;
+                /** @description Only items on the current profile's list. */
+                favorite?: boolean;
+                /** @description Only items started but not finished. */
+                resumable?: boolean;
+                yearFrom?: number;
+                yearTo?: number;
+                /** @description First letter of the sort title ("#" for digits and symbols). */
+                letter?: string;
             };
             header?: never;
             path: {

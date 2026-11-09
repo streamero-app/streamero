@@ -816,6 +816,24 @@ func (s *ItemDetail) Validate() error {
 		})
 	}
 	if err := func() error {
+		if value, ok := s.Trickplay.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "trickplay",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if s.Cast == nil {
 			return errors.New("nil is invalid value")
 		}

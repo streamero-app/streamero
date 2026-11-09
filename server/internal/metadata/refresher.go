@@ -406,9 +406,10 @@ func (r *Refresher) store(ctx context.Context, id uuid.UUID, d Details, country 
 				original_title = NULLIF($4, ''), overview = NULLIF($5, ''), tagline = NULLIF($6, ''), genres = $7,
 				community_rating = $8, official_rating = NULLIF($9, ''), premiere_date = $10, has_poster = ($11 OR has_poster),
 				has_backdrop = ($12 OR has_backdrop), provider_ids = $13, year = COALESCE(year, $14), metadata_refreshed_at = now(),
-				metadata_error = NULL, has_logo = ($15 OR has_logo), colors = CASE WHEN $11 OR $12 THEN NULL ELSE colors END, updated_at = now()
+				metadata_error = NULL, has_logo = ($15 OR has_logo), colors = CASE WHEN $11 OR $12 THEN NULL ELSE colors END,
+				studios = $16, nfo_read_at = NULL, updated_at = now()
 			WHERE id = $1`, id, title, library.SortTitle(title), d.Original(), d.Overview, d.Tagline, genres, rating,
-			d.Certification(country), premiere, a.poster, a.backdrop, rawIDs, yearOf(premiere), a.logo); err != nil {
+			d.Certification(country), premiere, a.poster, a.backdrop, rawIDs, yearOf(premiere), a.logo, d.StudioNames()); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(ctx, `DELETE FROM item_people WHERE item_id = $1`, id); err != nil {
@@ -465,7 +466,7 @@ func (r *Refresher) refreshSeasons(ctx context.Context, c *TMDb, cfg Settings, s
 		if err != nil && !errors.Is(err, errNotFound) {
 			return err
 		}
-		_, _ = r.Pool.Exec(ctx, `UPDATE items SET has_poster = ($2 OR has_poster), overview = NULLIF($3, ''), metadata_refreshed_at = now() WHERE id = $1`,
+		_, _ = r.Pool.Exec(ctx, `UPDATE items SET has_poster = ($2 OR has_poster), overview = NULLIF($3, ''), metadata_refreshed_at = now(), nfo_read_at = NULL WHERE id = $1`,
 			s.id, poster, overview)
 		byNumber := map[int]Episode{}
 		for _, e := range eps {
@@ -499,7 +500,7 @@ func (r *Refresher) refreshSeasons(ctx context.Context, c *TMDb, cfg Settings, s
 				rating = &v
 			}
 			if _, err := r.Pool.Exec(ctx, `UPDATE items SET metadata_title = NULLIF($2, ''), overview = NULLIF($3, ''),
-					premiere_date = $4, community_rating = $5, has_poster = ($6 OR has_poster), metadata_refreshed_at = now(), metadata_error = NULL
+					premiere_date = $4, community_rating = $5, has_poster = ($6 OR has_poster), metadata_refreshed_at = now(), metadata_error = NULL, nfo_read_at = NULL
 				WHERE id = $1`, e.id, meta.Name, meta.Overview, air, rating, still); err != nil {
 				return err
 			}

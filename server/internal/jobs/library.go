@@ -190,6 +190,12 @@ func (w *MetadataRefreshWorker) Work(ctx context.Context, job *river.Job[Metadat
 		return err
 	}
 	w.Log.Info("metadata refreshed", "library", job.Args.LibraryID, "items", n)
+	// .nfo files the user keeps beside the media win over downloaded metadata.
+	if l, err := w.Refresher.LocalNFO(ctx, job.Args.LibraryID); err != nil {
+		w.Log.Warn("local nfo import failed", "library", job.Args.LibraryID, "err", err)
+	} else if l > 0 {
+		w.Log.Info("local nfo applied", "library", job.Args.LibraryID, "items", l)
+	}
 	// Artwork the user keeps beside the media wins over anything downloaded.
 	if l, err := w.Refresher.LocalArtwork(ctx, job.Args.LibraryID); err != nil {
 		w.Log.Warn("local artwork import failed", "library", job.Args.LibraryID, "err", err)
