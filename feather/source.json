@@ -15,6 +15,15 @@
       "category": "entertainment",
       "versions": [
         {
+          "version": "0.8.2",
+          "buildVersion": "0.8.2",
+          "date": "2026-11-09",
+          "downloadURL": "https://github.com/streamero-app/streamero/releases/download/v0.8.2/Streamero-v0.8.2.ipa",
+          "size": 3109300,
+          "localizedDescription": "Streamero 0.8.2",
+          "minOSVersion": "17.0"
+        },
+        {
           "version": "0.8.1",
           "buildVersion": "0.8.1",
           "date": "2026-11-09",
