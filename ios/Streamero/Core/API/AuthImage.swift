@@ -29,6 +29,17 @@ struct AuthImage: View {
     @State private var image: UIImage?
 
     var body: some View {
+        // A filled image would report its own (wider) size and push the whole screen past
+        // the display edge; Color.clear takes the size the caller gives and the picture is
+        // drawn into it.
+        if fit {
+            content
+        } else {
+            Color.clear.overlay { content }.clipped()
+        }
+    }
+
+    private var content: some View {
         ZStack {
             if !fit { PosterPlaceholder(title: title, year: year).opacity(image == nil ? 1 : 0) }
             if let image {

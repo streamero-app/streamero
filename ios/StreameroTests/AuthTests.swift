@@ -39,6 +39,29 @@ final class AuthTests: XCTestCase {
     }
 
     @MainActor
+    func testFirstLaunchOfAnInstallForgetsOldSessions() {
+        let defaults = UserDefaults(suiteName: "test-\(UUID().uuidString)")!
+        let tokens = MemoryTokenStore()
+        tokens.setToken("left-from-old-install", for: "s1")
+        _ = SessionStore(tokens: tokens, defaults: defaults)
+        XCTAssertNil(tokens.token(for: "s1"))
+        tokens.setToken("fresh", for: "s1")
+        _ = SessionStore(tokens: tokens, defaults: defaults)
+        XCTAssertEqual(tokens.token(for: "s1"), "fresh", "later launches keep the session")
+    }
+
+    @MainActor
+    func testAddingAServerAsksToSignIn() {
+        let defaults = UserDefaults(suiteName: "test-\(UUID().uuidString)")!
+        let tokens = MemoryTokenStore()
+        let session = SessionStore(tokens: tokens, defaults: defaults)
+        tokens.setToken("old", for: "s1")
+        session.forget(serverID: "s1")
+        XCTAssertNil(tokens.token(for: "s1"))
+        XCTAssertEqual(session.state, .signedOut)
+    }
+
+    @MainActor
     func testDeviceInfoNamesTheClient() {
         XCTAssertEqual(AuthClient.device.client?.hasPrefix("Streamero iOS"), true)
     }

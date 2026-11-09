@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AddServerView: View {
     @Environment(ServerStore.self) private var store
+    @Environment(SessionStore.self) private var session
     @State private var address = ""
     @State private var checking = false
     @State private var error: LocalizedStringKey?
@@ -67,6 +68,7 @@ struct AddServerView: View {
         defer { checking = false }
         do {
             let info = try await SystemClient(baseURL: url).info()
+            session.forget(serverID: info.id)
             store.add(SavedServer(id: info.id, name: info.name, url: url, version: info.version))
         } catch ServerCheckError.starting {
             error = "addServer.error.starting"

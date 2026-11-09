@@ -82,7 +82,7 @@ struct DiscoverCard: View {
                 Theme.surface2
                 // TMDb poster URLs are public CDN images, loaded without the session.
                 if let poster = title.posterUrl.flatMap(URL.init(string:)) {
-                    AsyncImage(url: poster) { $0.resizable().scaledToFill() } placeholder: { Color.clear }
+                    Color.clear.overlay { AsyncImage(url: poster) { $0.resizable().scaledToFill() } placeholder: { Color.clear } }.clipped()
                 }
                 if currentStatus != "none" {
                     Text(statusLabel(currentStatus)).font(.system(size: 10, weight: .bold)).textCase(.uppercase).foregroundStyle(Theme.text)
