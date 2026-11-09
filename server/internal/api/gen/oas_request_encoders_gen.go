@@ -468,6 +468,20 @@ func encodeUpdateEncodingSettingsRequest(
 	return nil
 }
 
+func encodeUpdateEnhancementsRequest(
+	req *Enhancements,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeUpdateLibraryRequest(
 	req *LibraryInput,
 	r *http.Request,

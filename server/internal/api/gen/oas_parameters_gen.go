@@ -1188,6 +1188,71 @@ func decodeGetActivityParams(args [0]string, argsEscaped bool, r *http.Request) 
 	return params, nil
 }
 
+// GetArrLinkParams is parameters of getArrLink operation.
+type GetArrLinkParams struct {
+	ItemId uuid.UUID
+}
+
+func unpackGetArrLinkParams(packed middleware.Parameters) (params GetArrLinkParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "itemId",
+			In:   "path",
+		}
+		params.ItemId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeGetArrLinkParams(args [1]string, argsEscaped bool, r *http.Request) (params GetArrLinkParams, _ error) {
+	// Decode path: itemId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "itemId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ItemId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "itemId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // GetAvatarParams is parameters of getAvatar operation.
 type GetAvatarParams struct {
 	// A user or profile id.

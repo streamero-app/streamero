@@ -32,6 +32,7 @@ import { PlayerPage } from "@/features/player/PlayerPage";
 import { SearchPage } from "@/features/library/SearchPage";
 import { DiscoverPage } from "@/features/discover/DiscoverPage";
 import { RequestsSettings } from "@/features/settings/RequestsSettings";
+import { EnhancementsSettings } from "@/features/settings/EnhancementsSettings";
 import { NotFoundPage } from "@/routes/NotFoundPage";
 
 /** The administrator's extra CSS (Settings → Branding), on every page. */
@@ -136,6 +137,7 @@ const transcodingRoute = createRoute({ getParentRoute: () => settingsRoute, path
 const logsRoute = createRoute({ getParentRoute: () => settingsRoute, path: "logs", component: adminOnly(LogsSettings) });
 const activityRoute = createRoute({ getParentRoute: () => settingsRoute, path: "activity", component: adminOnly(ActivitySettings) });
 const requestsRoute = createRoute({ getParentRoute: () => settingsRoute, path: "requests", component: adminOnly(RequestsSettings) });
+const enhancementsRoute = createRoute({ getParentRoute: () => settingsRoute, path: "enhancements", component: adminOnly(EnhancementsSettings) });
 const brandingRoute = createRoute({ getParentRoute: () => settingsRoute, path: "branding", component: adminOnly(BrandingSettings) });
 
 export const routeTree = rootRoute.addChildren([
@@ -157,7 +159,7 @@ export const routeTree = rootRoute.addChildren([
     searchRoute,
     discoverRoute,
     settingsRoute.addChildren([settingsIndex, playbackRoute, dashboardRoute, tasksRoute, notificationsRoute, accountRoute, profilesRoute, devicesRoute, quickConnectRoute, serverRoute, librariesRoute, metadataRoute, integrationsRoute, usersRoute, invitesRoute, apiKeysRoute,
-      subtitleLookRoute, homePrefsRoute, transcodingRoute, logsRoute, activityRoute, brandingRoute, requestsRoute]),
+      subtitleLookRoute, homePrefsRoute, transcodingRoute, logsRoute, activityRoute, brandingRoute, requestsRoute, enhancementsRoute]),
   ]),
 ]);
 export const router = createRouter({ routeTree });

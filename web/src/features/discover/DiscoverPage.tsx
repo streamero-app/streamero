@@ -21,7 +21,7 @@ function StatusBadge({ status }: { status: Status }) {
 }
 
 /** One searchable title: poster, name, year, and what can be done with it. */
-function DiscoverCard({ title, canRequest }: { title: Title; canRequest: boolean }) {
+export function DiscoverCard({ title, canRequest }: { title: Title; canRequest: boolean }) {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const [status, setStatus] = useState<Status>(title.status);

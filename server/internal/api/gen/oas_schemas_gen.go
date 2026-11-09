@@ -237,6 +237,73 @@ func (s *ApiKey) SetLastUsedAt(val OptDateTime) {
 	s.LastUsedAt = val
 }
 
+// Ref: #/components/schemas/ArrLink
+type ArrLink struct {
+	App ArrLinkApp `json:"app"`
+	URL string     `json:"url"`
+}
+
+// GetApp returns the value of App.
+func (s *ArrLink) GetApp() ArrLinkApp {
+	return s.App
+}
+
+// GetURL returns the value of URL.
+func (s *ArrLink) GetURL() string {
+	return s.URL
+}
+
+// SetApp sets the value of App.
+func (s *ArrLink) SetApp(val ArrLinkApp) {
+	s.App = val
+}
+
+// SetURL sets the value of URL.
+func (s *ArrLink) SetURL(val string) {
+	s.URL = val
+}
+
+type ArrLinkApp string
+
+const (
+	ArrLinkAppRadarr ArrLinkApp = "radarr"
+	ArrLinkAppSonarr ArrLinkApp = "sonarr"
+)
+
+// AllValues returns all ArrLinkApp values.
+func (ArrLinkApp) AllValues() []ArrLinkApp {
+	return []ArrLinkApp{
+		ArrLinkAppRadarr,
+		ArrLinkAppSonarr,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ArrLinkApp) MarshalText() ([]byte, error) {
+	switch s {
+	case ArrLinkAppRadarr:
+		return []byte(s), nil
+	case ArrLinkAppSonarr:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ArrLinkApp) UnmarshalText(data []byte) error {
+	switch ArrLinkApp(data) {
+	case ArrLinkAppRadarr:
+		*s = ArrLinkAppRadarr
+		return nil
+	case ArrLinkAppSonarr:
+		*s = ArrLinkAppSonarr
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // Ref: #/components/schemas/AudioStream
 type AudioStream struct {
 	Codec    string    `json:"codec"`
@@ -1564,6 +1631,107 @@ func (s *EncodingSettingsPreset) UnmarshalText(data []byte) error {
 	}
 }
 
+// Features other servers need plugins for, built in and switchable.
+// Ref: #/components/schemas/Enhancements
+type Enhancements struct {
+	// 4K / HDR / Dolby Vision tags on posters.
+	QualityTags bool `json:"qualityTags"`
+	// A "surprise me" button on home and in libraries.
+	RandomButton bool `json:"randomButton"`
+	// Title, year and story on screen while paused.
+	PauseScreen bool `json:"pauseScreen"`
+	// Open a title in Radarr or Sonarr (administrators).
+	ArrLinks bool `json:"arrLinks"`
+	// Search also offers titles to request through Seerr.
+	DiscoverInSearch bool `json:"discoverInSearch"`
+	// Remove a title from Continue watching.
+	RemoveFromContinue bool `json:"removeFromContinue"`
+	// Show keyboard shortcuts with "?".
+	ShortcutsHelp bool `json:"shortcutsHelp"`
+	// Keep playing in picture-in-picture when switching tabs.
+	AutoPip bool `json:"autoPip"`
+}
+
+// GetQualityTags returns the value of QualityTags.
+func (s *Enhancements) GetQualityTags() bool {
+	return s.QualityTags
+}
+
+// GetRandomButton returns the value of RandomButton.
+func (s *Enhancements) GetRandomButton() bool {
+	return s.RandomButton
+}
+
+// GetPauseScreen returns the value of PauseScreen.
+func (s *Enhancements) GetPauseScreen() bool {
+	return s.PauseScreen
+}
+
+// GetArrLinks returns the value of ArrLinks.
+func (s *Enhancements) GetArrLinks() bool {
+	return s.ArrLinks
+}
+
+// GetDiscoverInSearch returns the value of DiscoverInSearch.
+func (s *Enhancements) GetDiscoverInSearch() bool {
+	return s.DiscoverInSearch
+}
+
+// GetRemoveFromContinue returns the value of RemoveFromContinue.
+func (s *Enhancements) GetRemoveFromContinue() bool {
+	return s.RemoveFromContinue
+}
+
+// GetShortcutsHelp returns the value of ShortcutsHelp.
+func (s *Enhancements) GetShortcutsHelp() bool {
+	return s.ShortcutsHelp
+}
+
+// GetAutoPip returns the value of AutoPip.
+func (s *Enhancements) GetAutoPip() bool {
+	return s.AutoPip
+}
+
+// SetQualityTags sets the value of QualityTags.
+func (s *Enhancements) SetQualityTags(val bool) {
+	s.QualityTags = val
+}
+
+// SetRandomButton sets the value of RandomButton.
+func (s *Enhancements) SetRandomButton(val bool) {
+	s.RandomButton = val
+}
+
+// SetPauseScreen sets the value of PauseScreen.
+func (s *Enhancements) SetPauseScreen(val bool) {
+	s.PauseScreen = val
+}
+
+// SetArrLinks sets the value of ArrLinks.
+func (s *Enhancements) SetArrLinks(val bool) {
+	s.ArrLinks = val
+}
+
+// SetDiscoverInSearch sets the value of DiscoverInSearch.
+func (s *Enhancements) SetDiscoverInSearch(val bool) {
+	s.DiscoverInSearch = val
+}
+
+// SetRemoveFromContinue sets the value of RemoveFromContinue.
+func (s *Enhancements) SetRemoveFromContinue(val bool) {
+	s.RemoveFromContinue = val
+}
+
+// SetShortcutsHelp sets the value of ShortcutsHelp.
+func (s *Enhancements) SetShortcutsHelp(val bool) {
+	s.ShortcutsHelp = val
+}
+
+// SetAutoPip sets the value of AutoPip.
+func (s *Enhancements) SetAutoPip(val bool) {
+	s.AutoPip = val
+}
+
 // Ref: #/components/schemas/Error
 type Error struct {
 	Code    string `json:"code"`
@@ -2542,6 +2710,10 @@ type ItemSummary struct {
 	SeriesTitle OptString `json:"seriesTitle"`
 	// Community rating 0–10.
 	Rating OptFloat64 `json:"rating"`
+	// Height of the best file's picture (for 4K/HD tags).
+	VideoHeight OptInt `json:"videoHeight"`
+	// HDR format of the best file (HDR10, HLG, Dolby Vision), if any.
+	Hdr OptString `json:"hdr"`
 	// Resume position for the current profile.
 	PositionMs OptInt64 `json:"positionMs"`
 	// Watched by the current profile.
@@ -2627,6 +2799,16 @@ func (s *ItemSummary) GetSeriesTitle() OptString {
 // GetRating returns the value of Rating.
 func (s *ItemSummary) GetRating() OptFloat64 {
 	return s.Rating
+}
+
+// GetVideoHeight returns the value of VideoHeight.
+func (s *ItemSummary) GetVideoHeight() OptInt {
+	return s.VideoHeight
+}
+
+// GetHdr returns the value of Hdr.
+func (s *ItemSummary) GetHdr() OptString {
+	return s.Hdr
 }
 
 // GetPositionMs returns the value of PositionMs.
@@ -2722,6 +2904,16 @@ func (s *ItemSummary) SetSeriesTitle(val OptString) {
 // SetRating sets the value of Rating.
 func (s *ItemSummary) SetRating(val OptFloat64) {
 	s.Rating = val
+}
+
+// SetVideoHeight sets the value of VideoHeight.
+func (s *ItemSummary) SetVideoHeight(val OptInt) {
+	s.VideoHeight = val
+}
+
+// SetHdr sets the value of Hdr.
+func (s *ItemSummary) SetHdr(val OptString) {
+	s.Hdr = val
 }
 
 // SetPositionMs sets the value of PositionMs.
@@ -2909,6 +3101,7 @@ const (
 	ListLibraryItemsSortYear   ListLibraryItemsSort = "year"
 	ListLibraryItemsSortAdded  ListLibraryItemsSort = "added"
 	ListLibraryItemsSortRating ListLibraryItemsSort = "rating"
+	ListLibraryItemsSortRandom ListLibraryItemsSort = "random"
 )
 
 // AllValues returns all ListLibraryItemsSort values.
@@ -2918,6 +3111,7 @@ func (ListLibraryItemsSort) AllValues() []ListLibraryItemsSort {
 		ListLibraryItemsSortYear,
 		ListLibraryItemsSortAdded,
 		ListLibraryItemsSortRating,
+		ListLibraryItemsSortRandom,
 	}
 }
 
@@ -2931,6 +3125,8 @@ func (s ListLibraryItemsSort) MarshalText() ([]byte, error) {
 	case ListLibraryItemsSortAdded:
 		return []byte(s), nil
 	case ListLibraryItemsSortRating:
+		return []byte(s), nil
+	case ListLibraryItemsSortRandom:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -2951,6 +3147,9 @@ func (s *ListLibraryItemsSort) UnmarshalText(data []byte) error {
 		return nil
 	case ListLibraryItemsSortRating:
 		*s = ListLibraryItemsSortRating
+		return nil
+	case ListLibraryItemsSortRandom:
+		*s = ListLibraryItemsSortRandom
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)

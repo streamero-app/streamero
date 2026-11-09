@@ -66,7 +66,9 @@
     "topTen": "Top 10 in {{name}}",
     "minutesLeft_one": "{{count}} min left",
     "minutesLeft_other": "{{count}} min left",
-    "minutesLeft_few": "{{count}} min left"
+    "minutesLeft_few": "{{count}} min left",
+    "surprise": "Surprise me",
+    "removeFromContinue": "Remove “{{title}}” from Continue watching"
   },
   "settings": {
     "account": "My account",
@@ -92,7 +94,8 @@
     "activityLog": "Activity",
     "branding": "Branding",
     "profileSection": "Profile",
-    "requests": "Requests"
+    "requests": "Requests",
+    "enhancements": "Enhancements"
   },
   "account": {
     "changePassword": "Change password",
@@ -474,7 +477,18 @@
     "skipRecap": "Skip recap",
     "backSeconds": "Back {{seconds}} seconds",
     "forwardSeconds": "Forward {{seconds}} seconds",
-    "stoppedByAdmin": "An administrator stopped playback."
+    "stoppedByAdmin": "An administrator stopped playback.",
+    "paused": "Paused",
+    "shortcuts": "Keyboard shortcuts",
+    "keyPlay": "Play or pause",
+    "keyBack": "Skip back",
+    "keyForward": "Skip forward",
+    "keyVolume": "Volume",
+    "keyMute": "Mute",
+    "keyFullscreen": "Full screen",
+    "keySubtitles": "Subtitles on/off",
+    "keyHelp": "This help",
+    "keyClose": "Close a panel"
   },
   "search": {
     "title": "Search",
@@ -483,7 +497,9 @@
     "none": "Nothing found. Try another spelling or an actor's name.",
     "hint": "Movies, shows, episodes and people.",
     "start": "Type a title, a year or an actor.",
-    "open": "Open search"
+    "open": "Open search",
+    "notHereYet": "Not here yet",
+    "openDiscover": "Open in Discover"
   },
   "integrations": {
     "host": "Host",
@@ -553,7 +569,8 @@
     "session.stop": "Playback stopped by an administrator",
     "account.updated": "Account details changed",
     "title.requested": "Title requested",
-    "settings.requests": "Request settings changed"
+    "settings.requests": "Request settings changed",
+    "settings.enhancements": "Enhancements changed"
   },
   "tasks": {
     "title": "Scheduled tasks",
@@ -848,5 +865,25 @@
     "test": "Test connections",
     "nothingToTest": "Nothing is set up yet.",
     "connected": "connected, version {{version}}"
+  },
+  "enhancements": {
+    "title": "Enhancements",
+    "intro": "Features other media servers need plugins for are built into Streamero. Switch off what you do not want; nothing third-party runs inside the server, so updates never break them.",
+    "qualityTags": "Quality tags on posters",
+    "qualityTags_hint": "4K, HD, HDR and Dolby Vision labels.",
+    "randomButton": "Surprise me",
+    "randomButton_hint": "A button on home and in libraries that opens a random unwatched title.",
+    "pauseScreen": "Pause screen",
+    "pauseScreen_hint": "Title, year and story on screen after a few seconds of pause.",
+    "removeFromContinue": "Remove from Continue watching",
+    "removeFromContinue_hint": "A × on Continue watching cards.",
+    "shortcutsHelp": "Keyboard shortcut help",
+    "shortcutsHelp_hint": "Press ? in the player.",
+    "autoPip": "Picture-in-picture when leaving the tab",
+    "autoPip_hint": "Playback continues in a small window while you do something else.",
+    "discoverInSearch": "Requests in search",
+    "discoverInSearch_hint": "Search also shows titles that are not here yet, ready to request (needs Seerr).",
+    "arrLinks": "Radarr and Sonarr links",
+    "arrLinks_hint": "Administrators see where a title is managed (needs Radarr/Sonarr in Requests)."
   }
 }

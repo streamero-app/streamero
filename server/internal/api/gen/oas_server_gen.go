@@ -178,6 +178,12 @@ type Handler interface {
 	//
 	// GET /admin/activity
 	GetActivity(ctx context.Context, params GetActivityParams) (*ActivityPage, error)
+	// GetArrLink implements getArrLink operation.
+	//
+	// Where this title is managed in Radarr or Sonarr (admin).
+	//
+	// GET /items/{itemId}/arr-link
+	GetArrLink(ctx context.Context, params GetArrLinkParams) (*ArrLink, error)
 	// GetAvatar implements getAvatar operation.
 	//
 	// A user's or profile's picture (JPEG).
@@ -214,6 +220,12 @@ type Handler interface {
 	//
 	// GET /settings/encoding
 	GetEncodingSettings(ctx context.Context) (*EncodingSettings, error)
+	// GetEnhancements implements getEnhancements operation.
+	//
+	// Built-in enhancements switched on for this server.
+	//
+	// GET /enhancements
+	GetEnhancements(ctx context.Context) (*Enhancements, error)
 	// GetInvite implements getInvite operation.
 	//
 	// Check an invite link (public).
@@ -577,6 +589,12 @@ type Handler interface {
 	//
 	// PUT /settings/encoding
 	UpdateEncodingSettings(ctx context.Context, req *EncodingSettings) (*EncodingSettings, error)
+	// UpdateEnhancements implements updateEnhancements operation.
+	//
+	// Switch built-in enhancements on or off (admin).
+	//
+	// PUT /enhancements
+	UpdateEnhancements(ctx context.Context, req *Enhancements) (*Enhancements, error)
 	// UpdateLibrary implements updateLibrary operation.
 	//
 	// Change a library (admin); changed folders are rescanned.

@@ -1,9 +1,12 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Check, ChevronLeft, ChevronRight, Play } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Play, X } from "lucide-react";
 import { Art } from "@/components/ui";
 import { useAmbient } from "@/features/ambient/Ambient";
+import { qualityTags, useEnhancements } from "@/features/enhancements/useEnhancements";
+import { useQueryClient } from "@tanstack/react-query";
+import { api } from "@/api/client";
 import { imageUrl, placeholderHue, type ItemSummary } from "./format";
 
 export function progressOf(it: ItemSummary): number {
@@ -89,6 +92,13 @@ function useCardLight(item: ItemSummary) {
  */
 export function TitleCard({ item, className = "", play = false }: { item: ItemSummary; className?: string; play?: boolean }) {
   const { t } = useTranslation();
+  const enh = useEnhancements();
+  const qc = useQueryClient();
+  const removable = play && enh.removeFromContinue && progressOf(item) > 0;
+  const forget = async () => {
+    await api.PUT("/items/{itemId}/progress", { params: { path: { itemId: item.id } }, body: { positionMs: 0 } });
+    void qc.invalidateQueries({ queryKey: ["continue"] });
+  };
   const [broken, setBroken] = useState(false);
   const light = useCardLight(item);
   const src = landscapeSrc(item);
@@ -99,8 +109,9 @@ export function TitleCard({ item, className = "", play = false }: { item: ItemSu
     : { to: "/item/$itemId" as const, params: { itemId: item.id } };
   const left = progress > 0 && item.durationMs && item.positionMs ? Math.max(1, Math.round((item.durationMs - item.positionMs) / 60000)) : 0;
   return (
+    <div className={`group/card relative shrink-0 ${className}`}>
     <Link {...link} data-testid="item-card" {...light} style={cardLight(item)}
-      className={`tv-focus group flex shrink-0 flex-col outline-none ${className}`}>
+      className="tv-focus group flex flex-col outline-none">
       <div className="poster-lift relative aspect-video overflow-hidden rounded-[6px] bg-surface-2">
         {src && !broken ? <Art src={src} onError={() => setBroken(true)} className="absolute inset-0 size-full object-cover" /> : <ArtFallback item={item} wide />}
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
@@ -118,12 +129,22 @@ export function TitleCard({ item, className = "", play = false }: { item: ItemSu
         {progress > 0 && <ProgressBar value={progress} className="absolute inset-x-0 bottom-0" />}
       </div>
     </Link>
+    {removable && (
+      <button type="button" onClick={() => void forget()} aria-label={t("home.removeFromContinue", { title: item.seriesTitle ?? item.title })}
+        title={t("home.removeFromContinue", { title: item.seriesTitle ?? item.title })}
+        className="tv-focus absolute top-3 left-3 grid size-8 place-items-center rounded-[6px] bg-black/70 text-text opacity-0 backdrop-blur transition-opacity group-hover/card:opacity-100 focus-visible:opacity-100 max-md:opacity-100">
+        <X className="size-4" aria-hidden />
+      </button>
+    )}
+    </div>
   );
 }
 
 /** Portrait poster card: the poster carries everything; the name sits quietly below. */
 export function ItemCard({ item, className = "" }: { item: ItemSummary; className?: string }) {
   const { t } = useTranslation();
+  const enh = useEnhancements();
+  const tags = qualityTags(item.videoHeight, item.hdr);
   const [broken, setBroken] = useState(false);
   const light = useCardLight(item);
   return (
@@ -134,6 +155,11 @@ export function ItemCard({ item, className = "" }: { item: ItemSummary; classNam
         {item.played && (
           <span className="absolute top-2 right-2 grid size-7 place-items-center rounded-[4px] bg-black/70 text-text backdrop-blur">
             <Check className="size-4" strokeWidth={3} aria-label={t("library.watched")} />
+          </span>
+        )}
+        {enh.qualityTags && tags.length > 0 && (
+          <span className="absolute bottom-2 left-2 flex gap-1" data-testid="quality-tags">
+            {tags.map((q) => <span key={q} className="rounded-[3px] bg-black/75 px-1.5 py-px text-[10px] font-bold tracking-wide text-text backdrop-blur">{q}</span>)}
           </span>
         )}
         <ProgressBar value={progressOf(item)} className="absolute inset-x-0 bottom-0" />

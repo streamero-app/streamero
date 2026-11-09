@@ -325,3 +325,11 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [ ] Home screen widget „Continue Watching" (rizik: app group kod sideloada) (P14)
 - [ ] Lokalizacija HR + EN (P7)
 - [ ] Auto-update kroz Feather source (repo JSON) (P0)
+
+## Streamero dodaci (ovo izdanje)
+- [x] Moj račun: ime za prikaz, e-mail, jezik koji prati korisnika, slika računa i slika svakog profila
+- [x] Engleski kao glavni jezik sučelja i metapodataka, hrvatski kao prijevod
+- [x] Odabir verzije, zvuka i titlova prije reprodukcije
+- [x] Nadzorna ploča: poruka gledatelju i zaustavljanje reprodukcije
+- [x] Discover: pretraga i zahtjevi preko Seerr/Jellyseerr (Radarr/Sonarr preuzimaju), kalendar „Uskoro" iz Radarra/Sonarra, zahtjevi i u pretrazi
+- [x] Proširenja (D-020): oznake kvalitete, Iznenadi me, zaslon pauze, uklanjanje iz Nastavi gledati, prečaci, slika u slici, poveznice na Radarr/Sonarr

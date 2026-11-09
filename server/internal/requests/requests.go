@@ -370,3 +370,47 @@ func (c *Client) Calendar(ctx context.Context, s Settings, from, to time.Time) (
 	}
 	return out, nil
 }
+
+// Link finds where a title is managed: Radarr by TMDb id, Sonarr by TVDB or TMDb id.
+// It returns the app ("radarr"/"sonarr") and the page URL in that app.
+func (c *Client) Link(ctx context.Context, s Settings, kind string, ids map[string]string) (string, string, error) {
+	switch kind {
+	case "movie":
+		if s.RadarrURL == "" || s.RadarrKey == "" || ids["tmdb"] == "" {
+			return "", "", ErrNotConfigured
+		}
+		var movies []struct {
+			TitleSlug string `json:"titleSlug"`
+			TMDbID    int    `json:"tmdbId"`
+		}
+		if err := c.do(ctx, "Radarr", http.MethodGet, s.RadarrURL, s.RadarrKey, "/api/v3/movie?tmdbId="+url.QueryEscape(ids["tmdb"]), nil, &movies); err != nil {
+			return "", "", err
+		}
+		for _, m := range movies {
+			if fmt.Sprint(m.TMDbID) == ids["tmdb"] && m.TitleSlug != "" {
+				return "radarr", s.RadarrURL + "/movie/" + url.PathEscape(m.TitleSlug), nil
+			}
+		}
+	case "series":
+		if s.SonarrURL == "" || s.SonarrKey == "" || (ids["tvdb"] == "" && ids["tmdb"] == "") {
+			return "", "", ErrNotConfigured
+		}
+		var series []struct {
+			TitleSlug string `json:"titleSlug"`
+			TVDbID    int    `json:"tvdbId"`
+			TMDbID    int    `json:"tmdbId"`
+		}
+		if err := c.do(ctx, "Sonarr", http.MethodGet, s.SonarrURL, s.SonarrKey, "/api/v3/series", nil, &series); err != nil {
+			return "", "", err
+		}
+		for _, x := range series {
+			if (ids["tvdb"] != "" && fmt.Sprint(x.TVDbID) == ids["tvdb"]) || (ids["tmdb"] != "" && fmt.Sprint(x.TMDbID) == ids["tmdb"]) {
+				return "sonarr", s.SonarrURL + "/series/" + url.PathEscape(x.TitleSlug), nil
+			}
+		}
+	}
+	return "", "", ErrNotFound
+}
+
+// ErrNotFound means the app does not manage this title.
+var ErrNotFound = errors.New("not managed there")

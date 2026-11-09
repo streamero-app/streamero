@@ -66,7 +66,7 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 	}
 	t.Cleanup(deps.Close)
 	if _, err := deps.Pool.Exec(ctx, `TRUNCATE users, sessions, audit_log, api_keys, user_totp, recovery_codes, quick_connect, invites, profiles;
-		DELETE FROM settings WHERE key IN ('setup.completed', 'server.name', 'playback.resume', 'encoding', 'branding')`); err != nil {
+		DELETE FROM settings WHERE key IN ('setup.completed', 'server.name', 'playback.resume', 'encoding', 'branding', 'integrations.requests', 'enhancements')`); err != nil {
 		t.Fatal(err)
 	}
 	mediaRoot = t.TempDir()
@@ -1988,4 +1988,20 @@ func TestDiscoverIntegration(t *testing.T) {
 	if s := u.do("POST", "/discover/request", map[string]any{"tmdbId": 603, "mediaType": "movie"}, &e); s != 403 {
 		t.Fatalf("viewer request: HTTP %d", s)
 	}
+}
+
+func TestEnhancementsIntegration(t *testing.T) {
+	srv := newAuthTestServer(t)
+	c := newClient(t, srv)
+	setupAdmin(t, c)
+	var e map[string]any
+	if s := c.do("GET", "/enhancements", nil, &e); s != 200 || e["qualityTags"] != true || e["autoPip"] != false {
+		t.Fatalf("defaults: HTTP %d %v", s, e)
+	}
+	off := map[string]bool{"qualityTags": false, "randomButton": true, "pauseScreen": true, "arrLinks": false, "discoverInSearch": true,
+		"removeFromContinue": true, "shortcutsHelp": true, "autoPip": true}
+	if s := c.do("PUT", "/enhancements", off, &e); s != 200 || e["qualityTags"] != false || e["autoPip"] != true {
+		t.Fatalf("save: HTTP %d %v", s, e)
+	}
+	_, _ = testPool.Exec(context.Background(), `DELETE FROM settings WHERE key = 'enhancements'`)
 }

@@ -112,3 +112,26 @@ func TestCleanURL(t *testing.T) {
 		}
 	}
 }
+
+func TestLinkFindsTitleInRadarrAndSonarr(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v3/movie":
+			_, _ = w.Write([]byte(`[{"titleSlug":"the-matrix-603","tmdbId":603}]`))
+		case "/api/v3/series":
+			_, _ = w.Write([]byte(`[{"titleSlug":"other","tvdbId":1},{"titleSlug":"caminandes","tvdbId":7,"tmdbId":42}]`))
+		}
+	}))
+	defer srv.Close()
+	s := Settings{RadarrURL: srv.URL, RadarrKey: "a", SonarrURL: srv.URL, SonarrKey: "b"}
+	c := &Client{}
+	if app, u, err := c.Link(context.Background(), s, "movie", map[string]string{"tmdb": "603"}); err != nil || app != "radarr" || u != srv.URL+"/movie/the-matrix-603" {
+		t.Fatalf("radarr: %s %s %v", app, u, err)
+	}
+	if app, u, err := c.Link(context.Background(), s, "series", map[string]string{"tmdb": "42"}); err != nil || app != "sonarr" || u != srv.URL+"/series/caminandes" {
+		t.Fatalf("sonarr: %s %s %v", app, u, err)
+	}
+	if _, _, err := c.Link(context.Background(), s, "movie", map[string]string{"tmdb": "1"}); err != ErrNotFound {
+		t.Fatalf("missing: %v", err)
+	}
+}

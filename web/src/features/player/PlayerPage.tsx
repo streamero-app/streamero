@@ -7,6 +7,8 @@ import {
   ArrowLeft, Captions, Gauge, Maximize, MessageSquare, Minimize, Pause, PictureInPicture2, Play, RotateCcw, RotateCw, SkipForward, Volume1, Volume2, VolumeX, X,
 } from "lucide-react";
 import { api, unwrap } from "@/api/client";
+import { useEnhancements } from "@/features/enhancements/useEnhancements";
+import { formatDuration } from "@/features/library/format";
 import type { components } from "@/api/schema.gen";
 import { ErrorText, Spinner } from "@/components/ui";
 import { imageUrl } from "@/features/library/format";
@@ -122,6 +124,8 @@ export function PlayerPage() {
   const [position, setPosition] = useState(0);
   const [buffered, setBuffered] = useState(0);
   const [paused, setPaused] = useState(true);
+  const helpAllowed = useRef(false);
+  const helpOpen = useRef(false);
   const [waiting, setWaiting] = useState(false);
   const [volume, setVolume] = useState(1);
   const [muted, setMuted] = useState(false);
@@ -393,11 +397,12 @@ export function PlayerPage() {
         case "m": case "M": v.muted = !v.muted; break;
         case "f": case "F": toggleFullscreen(); break;
         case "c": case "C": if (info?.subtitles.length) setSubtitle((s) => (s >= 0 ? -1 : (info.subtitleDefault ?? 0))); break;
+        case "?": if (helpAllowed.current) setHelp((h) => !h); break;
         case "s": case "S": if (skippable) seekTo(skippable.endMs); else handled = false; break;
         case "n": case "N": if (next.data) playNext(); else handled = false; break;
         case ",": if (v.paused) v.currentTime = Math.max(0, v.currentTime - 1 / 24); break;
         case ".": if (v.paused) v.currentTime += 1 / 24; break;
-        case "Escape": if (panel) setPanel(null); else handled = false; break;
+        case "Escape": if (helpOpen.current) setHelp(false); else if (panel) setPanel(null); else handled = false; break;
         default: handled = false;
       }
       if (handled) {
@@ -411,6 +416,27 @@ export function PlayerPage() {
   }, [togglePlay, seekTo, absolute, toggleFullscreen, info, skippable, next.data, playNext, panel, poke]);
 
   const VolumeIcon = muted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
+  // Enhancements: pause screen, keyboard help, picture-in-picture when leaving the tab.
+  const enh = useEnhancements();
+  const [help, setHelp] = useState(false);
+  helpAllowed.current = enh.shortcutsHelp;
+  helpOpen.current = help;
+  const [pauseScreen, setPauseScreen] = useState(false);
+  useEffect(() => {
+    setPauseScreen(false);
+    if (!paused || ended || !enh.pauseScreen) return;
+    const id = window.setTimeout(() => setPauseScreen(true), 4000);
+    return () => window.clearTimeout(id);
+  }, [paused, ended, enh.pauseScreen]);
+  useEffect(() => {
+    if (!enh.autoPip) return;
+    const onVis = () => {
+      const v = videoRef.current;
+      if (document.visibilityState === "hidden" && v && !v.paused && !document.pictureInPictureElement) void v.requestPictureInPicture?.().catch(() => undefined);
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [enh.autoPip]);
   const title = it ? (isEpisode && it.seasonNumber !== undefined && it.episodeNumber !== undefined
     ? `S${it.seasonNumber}:E${it.episodeNumber} · ${it.title}` : it.title) : "";
   const visible = chrome || paused || !!panel;
@@ -453,6 +479,33 @@ export function PlayerPage() {
         {info && <span className="ml-auto hidden rounded bg-white/10 px-2 py-1 text-xs text-white/70 sm:inline" data-testid="play-method">{t(`player.method_${info.method}`)}</span>}
       </div>
 
+      {pauseScreen && it && (
+        <div className="pointer-events-none absolute inset-0 z-[5] flex items-end bg-gradient-to-r from-black/85 via-black/45 to-transparent p-8 pb-36 [animation:rise_500ms_var(--ease-out)_both] sm:p-14 sm:pb-40" data-testid="pause-screen">
+          <div className="max-w-[40rem]">
+            <p className="font-label text-white/60">{t("player.paused")}</p>
+            <h2 className="mt-3 font-display text-5xl sm:text-7xl">{it.seriesTitle ?? it.title}</h2>
+            {isEpisode && <p className="mt-3 text-xl font-semibold text-white/85">{title}</p>}
+            <p className="mt-3 text-[15px] text-white/60 tabular">{[it.year, durationMs ? formatDuration(durationMs) : null].filter(Boolean).join(" · ")}</p>
+            {detail.data?.overview && <p className="mt-4 line-clamp-4 text-[17px] leading-relaxed text-white/80">{detail.data.overview}</p>}
+          </div>
+        </div>
+      )}
+      {help && (
+        <div role="dialog" aria-label={t("player.shortcuts")} className="absolute inset-0 z-40 grid place-items-center bg-black/70 backdrop-blur-sm" onClick={() => setHelp(false)} data-testid="shortcuts-help">
+          <div className="w-[min(92vw,520px)] rounded-[8px] bg-surface p-6 ring-1 ring-white/10" onClick={(e) => e.stopPropagation()}>
+            <h2 className="mb-4 font-head text-xl">{t("player.shortcuts")}</h2>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2.5 text-[15px]">
+              {([["Space / K", "player.keyPlay"], ["← / J", "player.keyBack"], ["→ / L", "player.keyForward"], ["↑ ↓", "player.keyVolume"], ["M", "player.keyMute"],
+                ["F", "player.keyFullscreen"], ["C", "player.keySubtitles"], ["?", "player.keyHelp"], ["Esc", "player.keyClose"]] as const).map(([k, label]) => (
+                <div key={k} className="contents">
+                  <dt><kbd className="rounded-[4px] bg-white/10 px-2 py-0.5 font-mono text-[13px]">{k}</kbd></dt>
+                  <dd className="text-text/80">{t(label)}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </div>
+      )}
       {notice && (
         <div role="status" data-testid="admin-message"
           className="absolute top-20 left-1/2 z-30 flex w-[min(92vw,560px)] -translate-x-1/2 items-start gap-3 rounded-[8px] bg-black/85 p-4 text-white shadow-2xl ring-1 ring-white/15 backdrop-blur [animation:rise_300ms_var(--ease-out)_both]">

@@ -115,6 +115,40 @@ func (s *AddToPlaylistReq) Validate() error {
 	return nil
 }
 
+func (s *ArrLink) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.App.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "app",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s ArrLinkApp) Validate() error {
+	switch s {
+	case "radarr":
+		return nil
+	case "sonarr":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *AuthResult) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -1570,6 +1604,8 @@ func (s ListLibraryItemsSort) Validate() error {
 	case "added":
 		return nil
 	case "rating":
+		return nil
+	case "random":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)

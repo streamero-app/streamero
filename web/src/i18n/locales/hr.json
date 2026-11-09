@@ -66,7 +66,9 @@
     "topTen": "Top 10 · {{name}}",
     "minutesLeft_one": "Još {{count}} min",
     "minutesLeft_few": "Još {{count}} min",
-    "minutesLeft_other": "Još {{count}} min"
+    "minutesLeft_other": "Još {{count}} min",
+    "surprise": "Iznenadi me",
+    "removeFromContinue": "Ukloni „{{title}}“ iz Nastavi gledati"
   },
   "settings": {
     "account": "Moj račun",
@@ -92,7 +94,8 @@
     "activityLog": "Aktivnost",
     "branding": "Brendiranje",
     "profileSection": "Profil",
-    "requests": "Zahtjevi"
+    "requests": "Zahtjevi",
+    "enhancements": "Proširenja"
   },
   "account": {
     "changePassword": "Promijeni lozinku",
@@ -474,7 +477,18 @@
     "skipRecap": "Preskoči sažetak",
     "backSeconds": "{{seconds}} s natrag",
     "forwardSeconds": "{{seconds}} s naprijed",
-    "stoppedByAdmin": "Administrator je zaustavio reprodukciju."
+    "stoppedByAdmin": "Administrator je zaustavio reprodukciju.",
+    "paused": "Pauzirano",
+    "shortcuts": "Prečaci tipkovnice",
+    "keyPlay": "Pusti ili pauziraj",
+    "keyBack": "Skok natrag",
+    "keyForward": "Skok naprijed",
+    "keyVolume": "Glasnoća",
+    "keyMute": "Utišaj",
+    "keyFullscreen": "Cijeli zaslon",
+    "keySubtitles": "Titlovi uključi/isključi",
+    "keyHelp": "Ova pomoć",
+    "keyClose": "Zatvori panel"
   },
   "search": {
     "title": "Pretraga",
@@ -483,7 +497,9 @@
     "none": "Ništa nije pronađeno. Pokušajte drugi pravopis ili ime glumca.",
     "hint": "Filmovi, serije, epizode i osobe.",
     "start": "Upiši naslov, godinu ili ime glumca.",
-    "open": "Otvori pretragu"
+    "open": "Otvori pretragu",
+    "notHereYet": "Još nije ovdje",
+    "openDiscover": "Otvori u Discoveru"
   },
   "integrations": {
     "host": "Host",
@@ -553,7 +569,8 @@
     "session.stop": "Administrator je zaustavio reprodukciju",
     "account.updated": "Promijenjeni podaci računa",
     "title.requested": "Zatražen naslov",
-    "settings.requests": "Promijenjene postavke zahtjeva"
+    "settings.requests": "Promijenjene postavke zahtjeva",
+    "settings.enhancements": "Promijenjena proširenja"
   },
   "tasks": {
     "title": "Zakazani zadaci",
@@ -848,5 +865,25 @@
     "test": "Provjeri veze",
     "nothingToTest": "Još ništa nije postavljeno.",
     "connected": "povezano, verzija {{version}}"
+  },
+  "enhancements": {
+    "title": "Proširenja",
+    "intro": "Funkcije za koje drugi media serveri trebaju pluginove ugrađene su u Streamero. Isključi što ti ne treba; ništa tuđe ne radi unutar servera, pa ih nadogradnje nikad ne pokvare.",
+    "qualityTags": "Oznake kvalitete na posterima",
+    "qualityTags_hint": "Oznake 4K, HD, HDR i Dolby Vision.",
+    "randomButton": "Iznenadi me",
+    "randomButton_hint": "Gumb na početnoj i u bibliotekama koji otvara nasumičan nepogledan naslov.",
+    "pauseScreen": "Zaslon pauze",
+    "pauseScreen_hint": "Naslov, godina i radnja nakon nekoliko sekundi pauze.",
+    "removeFromContinue": "Ukloni iz Nastavi gledati",
+    "removeFromContinue_hint": "× na karticama Nastavi gledati.",
+    "shortcutsHelp": "Pomoć za prečace",
+    "shortcutsHelp_hint": "Pritisni ? u playeru.",
+    "autoPip": "Slika u slici pri napuštanju kartice",
+    "autoPip_hint": "Reprodukcija se nastavlja u malom prozoru dok radiš nešto drugo.",
+    "discoverInSearch": "Zahtjevi u pretrazi",
+    "discoverInSearch_hint": "Pretraga prikazuje i naslove koji još nisu ovdje, spremne za zahtjev (treba Seerr).",
+    "arrLinks": "Poveznice na Radarr i Sonarr",
+    "arrLinks_hint": "Administratori vide gdje se naslov vodi (treba Radarr/Sonarr u Zahtjevima)."
   }
 }

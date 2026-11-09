@@ -267,6 +267,15 @@ func (UnimplementedHandler) GetActivity(ctx context.Context, params GetActivityP
 	return r, ht.ErrNotImplemented
 }
 
+// GetArrLink implements getArrLink operation.
+//
+// Where this title is managed in Radarr or Sonarr (admin).
+//
+// GET /items/{itemId}/arr-link
+func (UnimplementedHandler) GetArrLink(ctx context.Context, params GetArrLinkParams) (r *ArrLink, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetAvatar implements getAvatar operation.
 //
 // A user's or profile's picture (JPEG).
@@ -318,6 +327,15 @@ func (UnimplementedHandler) GetDashboard(ctx context.Context) (r *Dashboard, _ e
 //
 // GET /settings/encoding
 func (UnimplementedHandler) GetEncodingSettings(ctx context.Context) (r *EncodingSettings, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetEnhancements implements getEnhancements operation.
+//
+// Built-in enhancements switched on for this server.
+//
+// GET /enhancements
+func (UnimplementedHandler) GetEnhancements(ctx context.Context) (r *Enhancements, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -861,6 +879,15 @@ func (UnimplementedHandler) UpdateCollection(ctx context.Context, req *Collectio
 //
 // PUT /settings/encoding
 func (UnimplementedHandler) UpdateEncodingSettings(ctx context.Context, req *EncodingSettings) (r *EncodingSettings, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateEnhancements implements updateEnhancements operation.
+//
+// Switch built-in enhancements on or off (admin).
+//
+// PUT /enhancements
+func (UnimplementedHandler) UpdateEnhancements(ctx context.Context, req *Enhancements) (r *Enhancements, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

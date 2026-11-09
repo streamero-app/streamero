@@ -626,7 +626,7 @@ export interface paths {
             query?: {
                 limit?: number;
                 offset?: number;
-                sort?: "title" | "year" | "added" | "rating";
+                sort?: "title" | "year" | "added" | "rating" | "random";
                 genre?: string;
                 /** @description Only items the current profile has not watched. */
                 unplayed?: boolean;
@@ -1487,6 +1487,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/enhancements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Built-in enhancements switched on for this server */
+        get: operations["getEnhancements"];
+        /** Switch built-in enhancements on or off (admin) */
+        put: operations["updateEnhancements"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/items/{itemId}/arr-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        /** Where this title is managed in Radarr or Sonarr (admin) */
+        get: operations["getArrLink"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1937,6 +1974,10 @@ export interface components {
             seriesTitle?: string;
             /** @description Community rating 0–10. */
             rating?: number;
+            /** @description Height of the best file's picture (for 4K/HD tags). */
+            videoHeight?: number;
+            /** @description HDR format of the best file (HDR10, HLG, Dolby Vision), if any. */
+            hdr?: string;
             /**
              * Format: int64
              * @description Resume position for the current profile.
@@ -2298,6 +2339,30 @@ export interface components {
             overview?: string;
             posterUrl?: string;
             downloaded: boolean;
+        };
+        /** @description Features other servers need plugins for, built in and switchable. */
+        Enhancements: {
+            /** @description 4K / HDR / Dolby Vision tags on posters. */
+            qualityTags: boolean;
+            /** @description A "surprise me" button on home and in libraries. */
+            randomButton: boolean;
+            /** @description Title, year and story on screen while paused. */
+            pauseScreen: boolean;
+            /** @description Open a title in Radarr or Sonarr (administrators). */
+            arrLinks: boolean;
+            /** @description Search also offers titles to request through Seerr. */
+            discoverInSearch: boolean;
+            /** @description Remove a title from Continue watching. */
+            removeFromContinue: boolean;
+            /** @description Show keyboard shortcuts with "?". */
+            shortcutsHelp: boolean;
+            /** @description Keep playing in picture-in-picture when switching tabs. */
+            autoPip: boolean;
+        };
+        ArrLink: {
+            /** @enum {string} */
+            app: "radarr" | "sonarr";
+            url: string;
         };
         SystemInfo: {
             /**
@@ -3390,7 +3455,7 @@ export interface operations {
             query?: {
                 limit?: number;
                 offset?: number;
-                sort?: "title" | "year" | "added" | "rating";
+                sort?: "title" | "year" | "added" | "rating" | "random";
                 genre?: string;
                 /** @description Only items the current profile has not watched. */
                 unplayed?: boolean;
@@ -4819,6 +4884,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UpcomingRelease"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getEnhancements: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Switches */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Enhancements"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateEnhancements: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Enhancements"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Enhancements"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getArrLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Link */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArrLink"];
                 };
             };
             default: components["responses"]["Error"];

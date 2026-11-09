@@ -3,7 +3,8 @@ import { HOME_SECTIONS, type HomeSection } from "@/features/settings/usePreferen
 import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Check, Info, LayoutGrid, List, Play, Plus, RotateCcw, Volume2, VolumeX, X } from "lucide-react";
+import { Check, Info, LayoutGrid, List, Play, Plus, RotateCcw, Shuffle, Volume2, VolumeX, X } from "lucide-react";
+import { useEnhancements, useSurprise } from "@/features/enhancements/useEnhancements";
 import { api, unwrap } from "@/api/client";
 import type { components } from "@/api/schema.gen";
 import { Art, Badge, Button, ErrorText, IconButton, Select, Spinner, buttonVariants, pressable } from "@/components/ui";
@@ -185,6 +186,9 @@ const bigButton = "tv-focus h-13 rounded-[6px] px-7 text-base font-semibold";
  */
 export function Billboard({ pool, label }: { pool?: ItemSummary[]; label?: string }) {
   const { t } = useTranslation();
+  const enh = useEnhancements();
+  const surprise = useSurprise();
+  const libs = useLibraries();
   const { light } = useAmbient();
   const choices = (pool ?? []).filter((i, n, all) => all.findIndex((x) => x.id === i.id) === n).slice(0, 14);
   const [pickId, setPickId] = useState<string>();
@@ -218,6 +222,13 @@ export function Billboard({ pool, label }: { pool?: ItemSummary[]; label?: strin
           <Link to="/item/$itemId" params={{ itemId: pick.id }} className={`${pressable} ${buttonVariants.glass} ${bigButton}`}>
             <Info className="size-5" aria-hidden />{t("home.moreInfo")}
           </Link>
+          {enh.randomButton && (
+            <button type="button" onClick={() => void surprise((Array.isArray(libs.data) ? libs.data : []).filter((l) => l.kind !== "music").map((l) => l.id))}
+              aria-label={t("home.surprise")} title={t("home.surprise")} data-testid="surprise"
+              className={`${pressable} ${buttonVariants.glass} tv-focus size-13 rounded-[6px]`}>
+              <Shuffle className="size-5" aria-hidden />
+            </button>
+          )}
         </div>
         <Watched item={pick} />
       </div></div>
@@ -499,6 +510,8 @@ function ListRow({ it }: { it: ItemSummary }) {
 
 export function LibraryPage() {
   const { t } = useTranslation();
+  const enh = useEnhancements();
+  const surprise = useSurprise();
   const { libraryId } = useParams({ from: "/app/library/$libraryId" });
   const libraries = useLibraries();
   const lib = libraries.data?.find((l) => l.id === libraryId);
@@ -565,10 +578,17 @@ export function LibraryPage() {
           <h1 className="font-display text-4xl sm:text-5xl">{lib?.name ?? "…"}</h1>
           {libTotal !== undefined && <span className="pb-1 text-sm text-text/55 tabular">{t("libraries.items", { count: libTotal })}</span>}
         </div>
-        <div role="tablist" aria-label={lib?.name} className="shelf-track mt-3 -mb-px flex gap-6 overflow-x-auto">
-          {tabs.map((x) => (
-            <button key={x.id} type="button" role="tab" aria-selected={tab === x.id} onClick={() => setTab(x.id)} className={tabClass}>{x.label}</button>
-          ))}
+        <div className="mt-3 -mb-px flex items-center gap-4">
+          <div role="tablist" aria-label={lib?.name} className="shelf-track flex min-w-0 flex-1 gap-6 overflow-x-auto">
+            {tabs.map((x) => (
+              <button key={x.id} type="button" role="tab" aria-selected={tab === x.id} onClick={() => setTab(x.id)} className={tabClass}>{x.label}</button>
+            ))}
+          </div>
+          {enh.randomButton && (
+            <button type="button" onClick={() => void surprise([libraryId])} className={`${pressable} h-9 shrink-0 rounded-[6px] px-3 text-sm text-text/75 hover:bg-white/10 hover:text-text`}>
+              <Shuffle className="size-4" aria-hidden /><span className="max-sm:sr-only">{t("home.surprise")}</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -822,14 +842,23 @@ function Chapters({ d }: { d: ItemDetail }) {
   );
 }
 
-/** Links to the public databases the title is known by. */
+/** Links to the public databases the title is known by (and to Radarr/Sonarr for admins). */
 function ExternalLinks({ d }: { d: ItemDetail }) {
   const ids = d.providerIds ?? {};
+  const enh = useEnhancements();
+  const isAdmin = !!useMe().data?.isAdmin;
+  const arr = useQuery({
+    queryKey: ["arr-link", d.item.id],
+    enabled: enh.arrLinks && isAdmin && (d.item.kind === "movie" || d.item.kind === "series"),
+    retry: false,
+    queryFn: async () => (await api.GET("/items/{itemId}/arr-link", { params: { path: { itemId: d.item.id } } })).data ?? null,
+  });
   const kind = d.item.kind === "series" ? "tv" : "movie";
   const links = [
     ids.imdb && { label: "IMDb", href: `https://www.imdb.com/title/${ids.imdb}/` },
     ids.tmdb && (d.item.kind === "movie" || d.item.kind === "series") && { label: "TMDb", href: `https://www.themoviedb.org/${kind}/${ids.tmdb}` },
     ids.tvdb && { label: "TheTVDB", href: `https://thetvdb.com/dereferrer/series/${ids.tvdb}` },
+    arr.data && { label: arr.data.app === "radarr" ? "Radarr" : "Sonarr", href: arr.data.url },
   ].filter(Boolean) as { label: string; href: string }[];
   if (!links.length) return null;
   return (

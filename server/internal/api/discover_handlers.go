@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"sort"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/streamero-app/streamero/server/internal/api/gen"
 	"github.com/streamero-app/streamero/server/internal/auth"
+	"github.com/streamero-app/streamero/server/internal/library"
 	"github.com/streamero-app/streamero/server/internal/requests"
 )
 
@@ -268,4 +270,79 @@ func (h *Handler) ListUpcoming(ctx context.Context, params gen.ListUpcomingParam
 		out = append(out, r)
 	}
 	return out, nil
+}
+
+// KeyEnhancements is the settings key of the built-in enhancement switches.
+const KeyEnhancements = "enhancements"
+
+// Enhancements are features other media servers add with plugins.
+type Enhancements struct {
+	QualityTags        bool `json:"qualityTags"`
+	RandomButton       bool `json:"randomButton"`
+	PauseScreen        bool `json:"pauseScreen"`
+	ArrLinks           bool `json:"arrLinks"`
+	DiscoverInSearch   bool `json:"discoverInSearch"`
+	RemoveFromContinue bool `json:"removeFromContinue"`
+	ShortcutsHelp      bool `json:"shortcutsHelp"`
+	AutoPip            bool `json:"autoPip"`
+}
+
+func (h *Handler) enhancements(ctx context.Context) Enhancements {
+	e := Enhancements{true, true, true, true, true, true, true, false}
+	if h.Settings != nil && h.Settings() != nil {
+		_, _ = h.Settings().Get(ctx, KeyEnhancements, &e)
+	}
+	return e
+}
+
+func toEnhancements(e Enhancements) *gen.Enhancements {
+	return &gen.Enhancements{QualityTags: e.QualityTags, RandomButton: e.RandomButton, PauseScreen: e.PauseScreen, ArrLinks: e.ArrLinks,
+		DiscoverInSearch: e.DiscoverInSearch, RemoveFromContinue: e.RemoveFromContinue, ShortcutsHelp: e.ShortcutsHelp, AutoPip: e.AutoPip}
+}
+
+// GetEnhancements implements GET /enhancements.
+func (h *Handler) GetEnhancements(ctx context.Context) (*gen.Enhancements, error) {
+	if _, err := principal(ctx); err != nil {
+		return nil, err
+	}
+	return toEnhancements(h.enhancements(ctx)), nil
+}
+
+// UpdateEnhancements implements PUT /enhancements.
+func (h *Handler) UpdateEnhancements(ctx context.Context, req *gen.Enhancements) (*gen.Enhancements, error) {
+	p, err := admin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	e := Enhancements{req.QualityTags, req.RandomButton, req.PauseScreen, req.ArrLinks, req.DiscoverInSearch, req.RemoveFromContinue, req.ShortcutsHelp, req.AutoPip}
+	if err := h.Settings().Set(ctx, KeyEnhancements, e); err != nil {
+		return nil, err
+	}
+	_ = h.Auth().Audit(ctx, &p.User.ID, "settings.enhancements", nil)
+	return toEnhancements(e), nil
+}
+
+// GetArrLink implements GET /items/{itemId}/arr-link.
+func (h *Handler) GetArrLink(ctx context.Context, params gen.GetArrLinkParams) (*gen.ArrLink, error) {
+	if _, err := admin(ctx); err != nil {
+		return nil, err
+	}
+	if h.lib() == nil {
+		return nil, errStarting
+	}
+	var kind string
+	var raw []byte
+	if err := h.lib().Pool.QueryRow(ctx, `SELECT kind, provider_ids FROM items WHERE id = $1`, params.ItemId).Scan(&kind, &raw); err != nil {
+		return nil, library.ErrNotFound
+	}
+	ids := map[string]string{}
+	_ = json.Unmarshal(raw, &ids)
+	app, link, err := h.requestsClient().Link(ctx, h.requestSettings(ctx), kind, ids)
+	if errors.Is(err, requests.ErrNotFound) || errors.Is(err, requests.ErrNotConfigured) {
+		return nil, library.ErrNotFound
+	}
+	if err != nil {
+		return nil, upstream(err)
+	}
+	return &gen.ArrLink{App: gen.ArrLinkApp(app), URL: link}, nil
 }

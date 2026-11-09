@@ -775,6 +775,157 @@ func (s *ApiKey) UnmarshalJSON(data []byte) error {
 }
 
 // Encode implements json.Marshaler.
+func (s *ArrLink) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *ArrLink) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("app")
+		s.App.Encode(e)
+	}
+	{
+		e.FieldStart("url")
+		e.Str(s.URL)
+	}
+}
+
+var jsonFieldsNameOfArrLink = [2]string{
+	0: "app",
+	1: "url",
+}
+
+// Decode decodes ArrLink from json.
+func (s *ArrLink) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ArrLink to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "app":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.App.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"app\"")
+			}
+		case "url":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.URL = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"url\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode ArrLink")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfArrLink) {
+					name = jsonFieldsNameOfArrLink[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ArrLink) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ArrLink) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ArrLinkApp as json.
+func (s ArrLinkApp) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes ArrLinkApp from json.
+func (s *ArrLinkApp) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ArrLinkApp to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch ArrLinkApp(v) {
+	case ArrLinkAppRadarr:
+		*s = ArrLinkAppRadarr
+	case ArrLinkAppSonarr:
+		*s = ArrLinkAppSonarr
+	default:
+		*s = ArrLinkApp(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s ArrLinkApp) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ArrLinkApp) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
 func (s *AudioStream) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
@@ -4209,6 +4360,221 @@ func (s *EncodingSettingsPreset) UnmarshalJSON(data []byte) error {
 }
 
 // Encode implements json.Marshaler.
+func (s *Enhancements) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *Enhancements) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("qualityTags")
+		e.Bool(s.QualityTags)
+	}
+	{
+		e.FieldStart("randomButton")
+		e.Bool(s.RandomButton)
+	}
+	{
+		e.FieldStart("pauseScreen")
+		e.Bool(s.PauseScreen)
+	}
+	{
+		e.FieldStart("arrLinks")
+		e.Bool(s.ArrLinks)
+	}
+	{
+		e.FieldStart("discoverInSearch")
+		e.Bool(s.DiscoverInSearch)
+	}
+	{
+		e.FieldStart("removeFromContinue")
+		e.Bool(s.RemoveFromContinue)
+	}
+	{
+		e.FieldStart("shortcutsHelp")
+		e.Bool(s.ShortcutsHelp)
+	}
+	{
+		e.FieldStart("autoPip")
+		e.Bool(s.AutoPip)
+	}
+}
+
+var jsonFieldsNameOfEnhancements = [8]string{
+	0: "qualityTags",
+	1: "randomButton",
+	2: "pauseScreen",
+	3: "arrLinks",
+	4: "discoverInSearch",
+	5: "removeFromContinue",
+	6: "shortcutsHelp",
+	7: "autoPip",
+}
+
+// Decode decodes Enhancements from json.
+func (s *Enhancements) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode Enhancements to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "qualityTags":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Bool()
+				s.QualityTags = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"qualityTags\"")
+			}
+		case "randomButton":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Bool()
+				s.RandomButton = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"randomButton\"")
+			}
+		case "pauseScreen":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Bool()
+				s.PauseScreen = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"pauseScreen\"")
+			}
+		case "arrLinks":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Bool()
+				s.ArrLinks = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"arrLinks\"")
+			}
+		case "discoverInSearch":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Bool()
+				s.DiscoverInSearch = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"discoverInSearch\"")
+			}
+		case "removeFromContinue":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Bool()
+				s.RemoveFromContinue = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"removeFromContinue\"")
+			}
+		case "shortcutsHelp":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Bool()
+				s.ShortcutsHelp = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"shortcutsHelp\"")
+			}
+		case "autoPip":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				v, err := d.Bool()
+				s.AutoPip = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"autoPip\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode Enhancements")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b11111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfEnhancements) {
+					name = jsonFieldsNameOfEnhancements[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *Enhancements) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *Enhancements) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
 func (s *Error) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
@@ -5785,6 +6151,18 @@ func (s *ItemSummary) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.VideoHeight.Set {
+			e.FieldStart("videoHeight")
+			s.VideoHeight.Encode(e)
+		}
+	}
+	{
+		if s.Hdr.Set {
+			e.FieldStart("hdr")
+			s.Hdr.Encode(e)
+		}
+	}
+	{
 		if s.PositionMs.Set {
 			e.FieldStart("positionMs")
 			s.PositionMs.Encode(e)
@@ -5804,7 +6182,7 @@ func (s *ItemSummary) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfItemSummary = [19]string{
+var jsonFieldsNameOfItemSummary = [21]string{
 	0:  "id",
 	1:  "kind",
 	2:  "title",
@@ -5821,9 +6199,11 @@ var jsonFieldsNameOfItemSummary = [19]string{
 	13: "seriesId",
 	14: "seriesTitle",
 	15: "rating",
-	16: "positionMs",
-	17: "played",
-	18: "favorite",
+	16: "videoHeight",
+	17: "hdr",
+	18: "positionMs",
+	19: "played",
+	20: "favorite",
 }
 
 // Decode decodes ItemSummary from json.
@@ -6011,6 +6391,26 @@ func (s *ItemSummary) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"rating\"")
+			}
+		case "videoHeight":
+			if err := func() error {
+				s.VideoHeight.Reset()
+				if err := s.VideoHeight.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"videoHeight\"")
+			}
+		case "hdr":
+			if err := func() error {
+				s.Hdr.Reset()
+				if err := s.Hdr.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"hdr\"")
 			}
 		case "positionMs":
 			if err := func() error {

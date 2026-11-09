@@ -300,6 +300,12 @@ func toItemSummary(it library.Item) gen.ItemSummary {
 	if it.Favorite {
 		out.Favorite = gen.NewOptBool(true)
 	}
+	if it.VideoHeight != nil && *it.VideoHeight > 0 {
+		out.VideoHeight = gen.NewOptInt(*it.VideoHeight)
+	}
+	if it.HDR != nil {
+		out.Hdr = gen.NewOptString(*it.HDR)
+	}
 	if len(it.Colors) > 0 {
 		out.Colors = it.Colors
 	}

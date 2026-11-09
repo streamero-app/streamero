@@ -883,7 +883,7 @@ paths:
         in: query
         schema:
           type: string
-          enum: [title, year, added, rating]
+          enum: [title, year, added, rating, random]
           default: title
       - name: genre
         in: query
@@ -2239,6 +2239,66 @@ paths:
                   $ref: "#/components/schemas/UpcomingRelease"
         default:
           $ref: "#/components/responses/Error"
+  /enhancements:
+    get:
+      operationId: getEnhancements
+      summary: Built-in enhancements switched on for this server
+      tags: [settings]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Switches
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Enhancements"
+        default:
+          $ref: "#/components/responses/Error"
+    put:
+      operationId: updateEnhancements
+      summary: Switch built-in enhancements on or off (admin)
+      tags: [settings]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Enhancements"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Enhancements"
+        default:
+          $ref: "#/components/responses/Error"
+  /items/{itemId}/arr-link:
+    parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getArrLink
+      summary: Where this title is managed in Radarr or Sonarr (admin)
+      tags: [discover]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Link
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArrLink"
+        default:
+          $ref: "#/components/responses/Error"
 components:
   securitySchemes:
     sessionToken:
@@ -3189,6 +3249,12 @@ components:
         rating:
           type: number
           description: Community rating 0–10.
+        videoHeight:
+          type: integer
+          description: Height of the best file's picture (for 4K/HD tags).
+        hdr:
+          type: string
+          description: HDR format of the best file (HDR10, HLG, Dolby Vision), if any.
         positionMs:
           type: integer
           format: int64
@@ -3892,6 +3958,44 @@ components:
           type: string
         downloaded:
           type: boolean
+    Enhancements:
+      type: object
+      description: Features other servers need plugins for, built in and switchable.
+      required: [qualityTags, randomButton, pauseScreen, arrLinks, discoverInSearch, removeFromContinue, shortcutsHelp, autoPip]
+      properties:
+        qualityTags:
+          type: boolean
+          description: 4K / HDR / Dolby Vision tags on posters.
+        randomButton:
+          type: boolean
+          description: A "surprise me" button on home and in libraries.
+        pauseScreen:
+          type: boolean
+          description: Title, year and story on screen while paused.
+        arrLinks:
+          type: boolean
+          description: Open a title in Radarr or Sonarr (administrators).
+        discoverInSearch:
+          type: boolean
+          description: Search also offers titles to request through Seerr.
+        removeFromContinue:
+          type: boolean
+          description: Remove a title from Continue watching.
+        shortcutsHelp:
+          type: boolean
+          description: Show keyboard shortcuts with "?".
+        autoPip:
+          type: boolean
+          description: Keep playing in picture-in-picture when switching tabs.
+    ArrLink:
+      type: object
+      required: [app, url]
+      properties:
+        app:
+          type: string
+          enum: [radarr, sonarr]
+        url:
+          type: string
     SystemInfo:
       type: object
       required: [id, name, product, version, apiVersion, setupCompleted, startedAt]
