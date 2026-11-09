@@ -27,7 +27,6 @@ final class MusicPlayer {
     private var loadTask: Task<Void, Never>?
     private var endObserver: (any NSObjectProtocol)?
     private var timeObserver: Any?
-    private var remoteReady = false
 
     init(client: MediaClient) {
         self.client = client
@@ -218,39 +217,44 @@ final class MusicPlayer {
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
     }
 
+    /// The player the lock-screen commands act on; the handlers stay registered for the app's lifetime.
+    private static weak var active: MusicPlayer?
+    private static var remoteRegistered = false
+
     private func setupRemoteIfNeeded() {
-        guard !remoteReady else { return }
-        remoteReady = true
-        Self.registerRemoteCommands(self)
+        Self.active = self
+        guard !Self.remoteRegistered else { return }
+        Self.remoteRegistered = true
+        Self.registerRemoteCommands()
     }
 
     /// Nonisolated: command handlers must not capture main-actor isolation.
-    nonisolated private static func registerRemoteCommands(_ player: MusicPlayer) {
+    nonisolated private static func registerRemoteCommands() {
         let center = MPRemoteCommandCenter.shared()
-        _ = center.playCommand.addTarget { [weak player] _ in
-            Task { @MainActor in if player?.playing == false { player?.toggle() } }
+        _ = center.playCommand.addTarget { _ in
+            Task { @MainActor in if active?.playing == false { active?.toggle() } }
             return .success
         }
-        _ = center.pauseCommand.addTarget { [weak player] _ in
-            Task { @MainActor in player?.pause() }
+        _ = center.pauseCommand.addTarget { _ in
+            Task { @MainActor in active?.pause() }
             return .success
         }
-        _ = center.togglePlayPauseCommand.addTarget { [weak player] _ in
-            Task { @MainActor in player?.toggle() }
+        _ = center.togglePlayPauseCommand.addTarget { _ in
+            Task { @MainActor in active?.toggle() }
             return .success
         }
-        _ = center.nextTrackCommand.addTarget { [weak player] _ in
-            Task { @MainActor in player?.next() }
+        _ = center.nextTrackCommand.addTarget { _ in
+            Task { @MainActor in active?.next() }
             return .success
         }
-        _ = center.previousTrackCommand.addTarget { [weak player] _ in
-            Task { @MainActor in player?.prev() }
+        _ = center.previousTrackCommand.addTarget { _ in
+            Task { @MainActor in active?.prev() }
             return .success
         }
-        _ = center.changePlaybackPositionCommand.addTarget { [weak player] event in
+        _ = center.changePlaybackPositionCommand.addTarget { event in
             guard let event = event as? MPChangePlaybackPositionCommandEvent else { return .commandFailed }
             let ms = Int64(event.positionTime * 1000)
-            Task { @MainActor in player?.seek(ms) }
+            Task { @MainActor in active?.seek(ms) }
             return .success
         }
     }

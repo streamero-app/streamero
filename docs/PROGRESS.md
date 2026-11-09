@@ -20,6 +20,12 @@ P4 — Web pregledavanje (u tijeku); izdanja v0.2.0 i **v0.3.0** objavljena. P0 
 - Branch pushan, PR #1 (`phase/P0-foundations` → `main`) otvoren; `main` je prazan početni commit spojen u P0 (repo je bio prazan). CI zelen: `server`, `web`, `e2e`, iOS `build` (prvi uspješan iOS build, artefakt `streamero-ipa`).
 - `scripts/gen-fixtures.sh`: filmovi (H.264, 4K HEVC 10-bit, HDR10, AV1, multi-audio + poglavlja + embedded/external SRT/ASS, verzije, trailer), serija sa zajedničkim introm (2×4 ep.), multi-episode, specials, daily, anime absolute, glazba (FLAC/MP3), fotke.
 
+## iOS paritet s Androidom (branch `feat/ios-parity`, PR #38, 2026-11-09)
+Nativna iOS aplikacija dobila je sve ekrane Android aplikacije: Home/Search/Discover/Libraries/Me, filtre biblioteke, Discover sa zahtjevima, stranicu naslova, player (napredak, naredbe s nadzorne ploče, preskakanje uvoda, sljedeća epizoda, titlovi preko videa), glazbu s pozadinskim zvukom, Bazarr, račun i sve administratorske stranice.
+- Provjera samo kroz CI (xcodebuild test + iphoneos build); na uređaju i protiv pravog servera još nije isprobano.
+- Poznato: skok naprijed/natrag iz postavki ne primjenjuje se u AVKit kontrolama (isto kao na Androidu).
+- Sljedeće: ručna provjera na uređaju (reprodukcija, glazba na zaključanom ekranu).
+
 ## v0.8.1 (2026-11-09)
 Popravak premotavanja (#33), upit za TMDb ključ (#34), Bazarr titlovi (#35), nativna Android aplikacija (#36). iOS `.ipa` još nema puni paritet s webom.
 
