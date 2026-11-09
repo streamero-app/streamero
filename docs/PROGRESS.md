@@ -23,7 +23,10 @@ P4 — Web pregledavanje (u tijeku); izdanja v0.2.0 i **v0.3.0** objavljena. P0 
 ## Redizajn „Kino platno" (D-019)
 - Web i iOS prepisani na novi vizualni smjer: slika filma preko cijelog ekrana, široki naslovi, pravokutne kontrole, tekstualna navigacija.
 - Server uvozi lokalne postere/pozadine/logotipe iz mapa filmova (`metadata.LocalArtwork`); demo ima službene CC-BY postere Blender filmova.
-- Sljedeće: glazbena biblioteka s audio playerom.
+- Bogatiji sadržaj i funkcije (PR „richer library"): čitanje Kodi .nfo datoteka (opis, žanrovi, studiji, ekipa, set → kolekcija), studiji s TMDb-a (migracija 00019), poglavlja sa sličicama, poveznice IMDb/TMDb, kartice biblioteke (Sve, Preporučeno, Žanrovi, Kolekcije, Moja lista), filteri (status, desetljeće, A–Z), prikaz posteri/popis.
+- Postavke: transkodiranje (VAAPI/QSV/NVENC, preset, kvaliteta, zvuk, segmenti, HDR→SDR, najviše istovremenih), nastavak gledanja (pragovi), brendiranje (poruka na prijavi, CSS), logovi (serve + worker preko Valkeyja), aktivnost; po profilu: kontrole (skokovi, uvod/špica, odbrojavanje), kvaliteta (max rezolucija i bitrate, provodi server), izgled titlova, sekcije početne.
+- Demo: 9 CC-BY Blender filmova i serija Caminandes (3 epizode) s .nfo opisima na hrvatskom i službenim posterima.
+- Sljedeće: odabir verzije/zvuka/titlova prije reprodukcije, zaustavi stream / poruka s nadzorne ploče, glazbena biblioteka s audio playerom.
 
 ## v0.6.0 i nakon toga (PR #16–#23)
 - Netflix raspored (top nav, „Tko gleda?", billboard s utišanim pregledom, redovi, Top 10, TV navigacija strelicama), logotipi i fotografije glumaca s TMDb-a, sličice iz videa, demo s CC BY Blender filmovima.
