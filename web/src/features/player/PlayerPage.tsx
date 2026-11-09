@@ -153,7 +153,7 @@ export function PlayerPage() {
       unwrap(await api.POST("/items/{itemId}/playback", {
         params: { path: { itemId } },
         // The version chosen on the title page stays for audio switches and seeks.
-        body: { device: detectDeviceProfile(), audioIndex: v.audioIndex, startMs: v.startMs, fileId: search.file },
+        body: { device: detectDeviceProfile(), audioIndex: v.audioIndex, startMs: v.startMs === undefined ? undefined : Math.round(v.startMs), fileId: search.file },
       })),
     onSuccess: (data) => {
       setInfo(data);
@@ -304,7 +304,8 @@ export function PlayerPage() {
   const seekTo = useCallback((ms: number) => {
     const v = videoRef.current;
     if (!v || !info) return;
-    const target = Math.max(0, Math.min(ms, durationMs || ms));
+    // The seek bar gives fractions of a millisecond; the server takes whole ones.
+    const target = Math.round(Math.max(0, Math.min(ms, durationMs || ms)));
     if (info.method === "direct") {
       v.currentTime = target / 1000;
     } else {
