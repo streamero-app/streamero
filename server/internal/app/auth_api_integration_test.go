@@ -49,6 +49,9 @@ var mediaRoot string
 // testPool is the database pool of the most recent test server.
 var testPool *pgxpool.Pool
 
+// testState is the state of the most recent test server.
+var testState *State
+
 // newAuthTestServer starts the full router on a clean database.
 // Integration: needs STREAMERO_TEST_DB_URL / STREAMERO_TEST_VALKEY_URL.
 func newAuthTestServer(t *testing.T) *httptest.Server {
@@ -73,10 +76,10 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 	mediaRoot = t.TempDir()
 	state.SetLibrary(&library.Service{Pool: deps.Pool, Roots: library.Roots{mediaRoot},
 		Enqueue: func(context.Context, uuid.UUID) error { return nil }})
-	testPool = deps.Pool
+	testPool, testState = deps.Pool, state
 	state.SetStream(&stream.Server{Pool: deps.Pool, Roots: library.Roots{mediaRoot}, Signer: stream.Signer{Key: []byte("test-key")},
 		HLS: &stream.Manager{Dir: t.TempDir(), FFmpeg: "ffmpeg-not-installed", Log: log}, FFmpeg: "ffmpeg-not-installed"})
-	state.SetCompat(&compat.Server{Pool: deps.Pool, Auth: state.Auth(), Libraries: state.Library(), ServerID: state.ServerID(),
+	state.SetCompat(&compat.Server{Pool: deps.Pool, Auth: state.Auth(), Libraries: state.Library(), Stream: state.Stream(), ServerID: state.ServerID(),
 		Log: log, ServerName: func(context.Context) string { return "Kino" }})
 	h := &api.Handler{State: state, ServerName: "Default", StartedAt: time.Now(), Auth: state.Auth, Settings: state.Settings,
 		Library: state.Library, Stream: state.Stream, NowPlaying: &activity.Registry{},
@@ -93,6 +96,8 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 	h.Backup.Store(&api.Backups{Service: testBackups, Enqueue: func(context.Context) error { ranTasks = append(ranTasks, "backup"); return nil }})
 	state.Library().Resume = h.LoadResume
 	h.Stream().HLS.Encoding = h.LoadEncoding
+	state.Compat().OnPlayback, state.Compat().OnProgress = h.TrackPlayback, h.TrackProgress
+	testNowPlaying = h.NowPlaying
 	router, err := NewRouter(state, h)
 	if err != nil {
 		t.Fatal(err)
@@ -104,6 +109,9 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 
 // testBackups is the backup service of the most recent test server.
 var testBackups *backup.Service
+
+// testNowPlaying is the "now playing" registry of the most recent test server.
+var testNowPlaying *activity.Registry
 
 // fakeTMDbURL points the API's TMDb client at a test server when set.
 var fakeTMDbURL string
@@ -1244,7 +1252,7 @@ func TestCompatAPIIntegration(t *testing.T) {
 	}
 
 	var pub map[string]any
-	if s := call("GET", "/System/Info/Public", "", nil, &pub); s != 200 || pub["ProductName"] != "Streamero" || pub["ServerName"] != "Kino" || pub["Version"] == "" {
+	if s := call("GET", "/System/Info/Public", "", nil, &pub); s != 200 || pub["ProductName"] != compat.ProductName || pub["ServerName"] != "Kino" || pub["Version"] == "" {
 		t.Fatalf("public info: %d %v", s, pub)
 	}
 	if s := call("POST", "/Users/AuthenticateByName", "", map[string]any{"Username": "admin", "Pw": "wrong"}, nil); s != 401 {

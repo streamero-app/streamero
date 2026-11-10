@@ -283,6 +283,16 @@ func (h *Handler) TestNotification(ctx context.Context, req *gen.NotificationTar
 	return nil
 }
 
+// TrackPlayback records a playback start reported outside this API (compat clients).
+func (h *Handler) TrackPlayback(ctx context.Context, p auth.Principal, itemID uuid.UUID, method, reason string, durationMS *int64, startMS int64) {
+	h.trackPlayback(ctx, p, itemID, method, reason, durationMS, startMS)
+}
+
+// TrackProgress records a playback position reported outside this API (compat clients).
+func (h *Handler) TrackProgress(p auth.Principal, itemID uuid.UUID, positionMS int64) {
+	h.trackProgress(p, itemID, positionMS)
+}
+
 // trackPlayback records a playback start for the dashboard and notifications.
 func (h *Handler) trackPlayback(ctx context.Context, p auth.Principal, itemID uuid.UUID, method, reason string, durationMS *int64, startMS int64) {
 	if h.NowPlaying == nil || h.lib() == nil {

@@ -33,7 +33,10 @@ func rateLimited(r *http.Request) bool {
 		return true
 	case strings.HasPrefix(p, "/api/v1/invite/"):
 		return true
-	case r.Method == http.MethodPost && strings.EqualFold(p, "/compat/Users/AuthenticateByName"):
+	case r.Method == http.MethodPost && (strings.EqualFold(p, "/compat/Users/AuthenticateByName") ||
+		strings.EqualFold(p, "/compat/Users/AuthenticateWithQuickConnect")):
+		return true
+	case strings.EqualFold(p, "/compat/QuickConnect/Initiate"):
 		return true
 	case r.Method == http.MethodPost && strings.HasPrefix(p, "/api/v1/profiles/") && strings.HasSuffix(p, "/select"):
 		return true

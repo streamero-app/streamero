@@ -1,7 +1,9 @@
 // Package compat serves the subset of the Jellyfin-style HTTP API that request
-// managers such as Seerr/Jellyseerr and the *arr "Emby/Jellyfin" connection use.
-// It is written from the public OpenAPI description only (clean-room, D-011/D-016);
-// responses always identify the product as Streamero.
+// managers (Seerr/Jellyseerr), the *arr "Emby/Jellyfin" connection and media
+// clients (Infuse, Swiftfin, the Kodi add-on, TV apps) use. It is written from
+// the public OpenAPI description and observed client behaviour only (clean-room,
+// D-011/D-016/D-022). Only system info names the product the way those clients
+// expect (D-022); everything else identifies the server as Streamero.
 package compat
 
 import (
@@ -15,7 +17,6 @@ import (
 	"net/http"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -26,23 +27,34 @@ import (
 
 	"github.com/streamero-app/streamero/server/internal/auth"
 	"github.com/streamero-app/streamero/server/internal/library"
-	"github.com/streamero-app/streamero/server/internal/metadata"
+	"github.com/streamero-app/streamero/server/internal/stream"
 )
 
 // APIVersion is the API level this layer implements (what clients compare against).
 const APIVersion = "10.10.0"
+
+// ProductName is reported in system info. Clients of this API check it to
+// recognise a compatible server (D-022); it is never shown in Streamero's own UI.
+const ProductName = "Jellyfin Server"
 
 // Server is the compat HTTP surface, mounted under a prefix (default /compat).
 type Server struct {
 	Pool       *pgxpool.Pool
 	Auth       *auth.Service
 	Libraries  *library.Service
+	Stream     *stream.Server // nil = no playback (tests of the browse API)
 	ServerID   uuid.UUID
 	ServerName func(ctx context.Context) string
 	Log        *slog.Logger
+	// OnPlayback and OnProgress feed the admin dashboard's "now playing" (optional).
+	OnPlayback func(ctx context.Context, p auth.Principal, itemID uuid.UUID, method, reason string, durationMS *int64, startMS int64)
+	OnProgress func(p auth.Principal, itemID uuid.UUID, positionMS int64)
 
 	keysMu sync.Mutex
 	keys   []recentKey // secrets of keys created here, readable for a short time
+
+	playsMu sync.Mutex
+	plays   map[string]playMemo
 }
 
 type recentKey struct {
@@ -60,27 +72,108 @@ func (s *Server) Routes() http.Handler {
 	r := chi.NewRouter()
 	r.Use(lowercasePath)
 	r.Get("/system/info/public", s.publicInfo)
+	r.Get("/system/ping", s.ping)
+	r.Post("/system/ping", s.ping)
+	r.Get("/branding/configuration", branding)
+	r.Get("/branding/css", brandingCSS)
+	r.Get("/branding/css.css", brandingCSS)
+	r.Get("/users/public", emptyList) // user names are not listed to anonymous callers
+	r.Get("/quickconnect/enabled", quickConnectEnabled)
+	r.Get("/quickconnect/initiate", s.quickConnectInitiate)
+	r.Post("/quickconnect/initiate", s.quickConnectInitiate)
+	r.Get("/quickconnect/connect", s.quickConnectConnect)
+	r.Post("/users/authenticatewithquickconnect", s.quickConnectAuthenticate)
 	r.Get("/web", webRedirect)
 	r.Get("/web/*", webRedirect)
 	r.Post("/users/authenticatebyname", s.authenticateByName)
+	// Artwork is public like in the reference API (players load it without
+	// headers); IDs are random UUIDs, person photos are public TMDb pictures.
+	for _, p := range []string{"/items/{itemId}/images/{type}", "/items/{itemId}/images/{type}/{index}"} {
+		r.Get(p, s.image)
+		r.Head(p, s.image)
+	}
 	r.Group(func(r chi.Router) {
 		r.Use(s.requireAuth)
 		r.Get("/system/info", s.info)
 		r.Get("/system/configuration", s.configuration)
+		r.Get("/system/endpoint", endpointInfo)
 		r.Post("/notifications/admin", accepted)
 		r.Get("/users/me", s.me)
 		r.Get("/users", s.users)
 		r.Get("/users/{userId}", s.user)
+		r.Post("/quickconnect/authorize", s.quickConnectAuthorize)
+		r.Get("/displaypreferences/{id}", displayPreferences)
+		r.Post("/displaypreferences/{id}", accepted)
+		r.Post("/sessions/capabilities", accepted)
+		r.Post("/sessions/capabilities/full", accepted)
+		r.Get("/sessions", emptyList)
+
 		r.Get("/library/mediafolders", s.views)
+		r.Get("/userviews", s.views)
 		r.Get("/users/{userId}/views", s.views)
 		r.Get("/items", s.items)
 		r.Get("/users/{userId}/items", s.items)
-		r.Get("/items/{itemId}", s.item)
+		r.Get("/items/latest", s.latest)
 		r.Get("/users/{userId}/items/latest", s.latest)
+		r.Get("/useritems/resume", s.resume)
+		r.Get("/users/{userId}/items/resume", s.resume)
+		r.Get("/items/filters", s.filters(true))
+		r.Get("/items/filters2", s.filters(false))
+		r.Get("/genres", s.genres)
+		r.Get("/search/hints", s.searchHints)
+		r.Get("/items/{itemId}", s.item)
 		r.Get("/users/{userId}/items/{itemId}", s.item)
+		r.Get("/items/{itemId}/similar", s.similar)
+		r.Get("/movies/{itemId}/similar", s.similar)
+		r.Get("/shows/{itemId}/similar", s.similar)
+		r.Get("/items/{itemId}/ancestors", s.ancestors)
+		r.Get("/items/{itemId}/intros", emptyResult)
+		r.Get("/users/{userId}/items/{itemId}/intros", emptyResult)
+		r.Get("/items/{itemId}/localtrailers", emptyList)
+		r.Get("/users/{userId}/items/{itemId}/localtrailers", emptyList)
+		r.Get("/items/{itemId}/specialfeatures", emptyList)
+		r.Get("/users/{userId}/items/{itemId}/specialfeatures", emptyList)
+		r.Get("/items/{itemId}/thememedia", s.themeMedia)
+		r.Get("/items/{itemId}/themesongs", s.themeList)
+		r.Get("/items/{itemId}/themevideos", s.themeList)
+		r.Get("/videos/{itemId}/additionalparts", emptyResult)
+		r.Get("/shows/nextup", s.nextUp)
 		r.Get("/shows/{seriesId}/seasons", s.seasons)
 		r.Get("/shows/{seriesId}/episodes", s.episodes)
-		r.Get("/items/{itemId}/images/{type}", s.image)
+
+		r.Get("/items/{itemId}/playbackinfo", s.playbackInfo)
+		r.Post("/items/{itemId}/playbackinfo", s.playbackInfo)
+		for _, p := range []string{"/videos/{itemId}/{file}", "/audio/{itemId}/{file}"} {
+			r.Get(p, s.media)
+			r.Head(p, s.media)
+		}
+		r.Get("/videos/{itemId}/{sourceId}/subtitles/{index}/{file}", s.subtitle)
+		r.Get("/videos/{itemId}/{sourceId}/subtitles/{index}/{ticks}/{file}", s.subtitle)
+		r.Get("/mediasegments/{itemId}", s.segments)
+		r.Get("/playback/bitratetest", bitrateTest)
+		r.Post("/sessions/playing", s.playing("start"))
+		r.Post("/sessions/playing/progress", s.playing("progress"))
+		r.Post("/sessions/playing/stopped", s.playing("stop"))
+		r.Post("/sessions/playing/ping", accepted)
+		for _, prefix := range []string{"", "/users/{userId}"} {
+			r.Post(prefix+"/playingitems/{itemId}", s.playing("start"))
+			r.Post(prefix+"/playingitems/{itemId}/progress", s.playing("progress"))
+			r.Delete(prefix+"/playingitems/{itemId}", s.playing("stop"))
+		}
+
+		r.Post("/userplayeditems/{itemId}", s.markUserData("played", true))
+		r.Delete("/userplayeditems/{itemId}", s.markUserData("played", false))
+		r.Post("/users/{userId}/playeditems/{itemId}", s.markUserData("played", true))
+		r.Delete("/users/{userId}/playeditems/{itemId}", s.markUserData("played", false))
+		r.Post("/userfavoriteitems/{itemId}", s.markUserData("favorite", true))
+		r.Delete("/userfavoriteitems/{itemId}", s.markUserData("favorite", false))
+		r.Post("/users/{userId}/favoriteitems/{itemId}", s.markUserData("favorite", true))
+		r.Delete("/users/{userId}/favoriteitems/{itemId}", s.markUserData("favorite", false))
+		r.Get("/useritems/{itemId}/userdata", s.getUserData)
+		r.Post("/useritems/{itemId}/userdata", s.postUserData)
+		r.Get("/users/{userId}/items/{itemId}/userdata", s.getUserData)
+		r.Post("/users/{userId}/items/{itemId}/userdata", s.postUserData)
+
 		r.Post("/library/refresh", s.refreshAll)
 		r.Post("/library/media/updated", s.mediaUpdated)
 		r.Post("/library/movies/updated", s.mediaUpdated)
@@ -89,7 +182,19 @@ func (s *Server) Routes() http.Handler {
 		r.Get("/auth/keys", s.listKeys)
 		r.Post("/auth/keys", s.createKey)
 	})
-	return r
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		// Signed media URLs (HLS, subtitles) handed out in PlaybackInfo are relative
+		// to the client's server address, which includes this prefix.
+		if strings.HasPrefix(req.URL.Path, "/stream/") && s.Stream != nil {
+			rest := strings.TrimPrefix(req.URL.Path, "/stream")
+			if rctx := chi.RouteContext(req.Context()); rctx != nil {
+				rctx.RoutePath = rest
+			}
+			http.StripPrefix("/stream", s.Stream.Routes()).ServeHTTP(w, req)
+			return
+		}
+		r.ServeHTTP(w, req)
+	})
 }
 
 // lowercasePath makes routing case-insensitive (clients send "/Users/AuthenticateByName").
@@ -110,47 +215,57 @@ func lowercasePath(next http.Handler) http.Handler {
 
 type ctxKey struct{}
 
-var tokenRe = regexp.MustCompile(`(?i)\btoken="([^"]*)"`)
+// client is what a caller says about itself in the MediaBrowser authorization header.
+type client struct {
+	token, name, device, deviceID, version string
+}
 
-// clientInfo parses `Authorization: MediaBrowser Client="…", Device="…", Token="…"`.
-func clientInfo(r *http.Request) (token, client, device string) {
+var authFieldRe = regexp.MustCompile(`(?i)\b(token|client|device|deviceid|version)="([^"]*)"`)
+
+// clientInfo parses `Authorization: MediaBrowser Client="…", Device="…", Token="…"`
+// (or X-Emby-Authorization, X-Emby-Token, api_key, Bearer).
+func clientInfo(r *http.Request) client {
 	h := r.Header.Get("Authorization")
 	if h == "" {
 		h = r.Header.Get("X-Emby-Authorization")
 	}
-	field := func(name string) string {
-		m := regexp.MustCompile(`(?i)\b` + name + `="([^"]*)"`).FindStringSubmatch(h)
-		if m == nil {
-			return ""
+	var c client
+	for _, m := range authFieldRe.FindAllStringSubmatch(h, -1) {
+		switch strings.ToLower(m[1]) {
+		case "token":
+			c.token = m[2]
+		case "client":
+			c.name = m[2]
+		case "device":
+			c.device = m[2]
+		case "deviceid":
+			c.deviceID = m[2]
+		case "version":
+			c.version = m[2]
 		}
-		return m[1]
 	}
-	if m := tokenRe.FindStringSubmatch(h); m != nil {
-		token = m[1]
-	}
-	if token == "" {
+	if c.token == "" {
 		for _, k := range []string{"X-Emby-Token", "X-MediaBrowser-Token"} {
 			if v := r.Header.Get(k); v != "" {
-				token = v
+				c.token = v
 			}
 		}
 	}
-	if token == "" {
-		token = r.URL.Query().Get("api_key")
-		if token == "" {
-			token = r.URL.Query().Get("ApiKey")
+	if c.token == "" {
+		c.token = param(r, "api_key")
+		if c.token == "" {
+			c.token = param(r, "ApiKey")
 		}
 	}
-	if token == "" && strings.HasPrefix(h, "Bearer ") {
-		token = strings.TrimPrefix(h, "Bearer ")
+	if c.token == "" && strings.HasPrefix(h, "Bearer ") {
+		c.token = strings.TrimPrefix(h, "Bearer ")
 	}
-	return token, field("Client"), field("Device")
+	return c
 }
 
 func (s *Server) requireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token, _, _ := clientInfo(r)
-		p, err := s.Auth.Authenticate(r.Context(), token)
+		p, err := s.Auth.Authenticate(r.Context(), clientInfo(r).token)
 		if err != nil {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
@@ -166,12 +281,6 @@ func principal(r *http.Request) auth.Principal {
 
 // --- helpers ----------------------------------------------------------------
 
-// ID formats a UUID the way clients of this API expect (32 hex digits).
-func ID(u uuid.UUID) string { return strings.ReplaceAll(u.String(), "-", "") }
-
-// ParseID accepts dashed and undashed forms.
-func ParseID(s string) (uuid.UUID, error) { return uuid.Parse(s) }
-
 func writeJSON(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	_ = json.NewEncoder(w).Encode(v)
@@ -184,21 +293,45 @@ func (s *Server) name(ctx context.Context) string {
 	return "Streamero"
 }
 
+// param reads a query parameter case-insensitively.
+func param(r *http.Request, name string) string {
+	for k, v := range r.URL.Query() {
+		if strings.EqualFold(k, name) && len(v) > 0 {
+			return v[0]
+		}
+	}
+	return ""
+}
+
+func ownerOf(p auth.Principal) uuid.UUID {
+	if p.Profile != nil {
+		return p.Profile.ID
+	}
+	return p.User.ID
+}
+
+func canSee(p auth.Principal) bool { return p.User.IsAdmin || p.User.Permissions.AllLibraries }
+
 // --- system & users -----------------------------------------------------------
 
 func (s *Server) publicInfo(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]any{
 		"LocalAddress": "", "ServerName": s.name(r.Context()), "Version": APIVersion,
-		"ProductName": "Streamero", "OperatingSystem": "", "Id": ID(s.ServerID), "StartupWizardCompleted": true,
+		"ProductName": ProductName, "OperatingSystem": "", "Id": ID(s.ServerID), "StartupWizardCompleted": true,
 	})
 }
 
 func (s *Server) info(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]any{
-		"ServerName": s.name(r.Context()), "Version": APIVersion, "ProductName": "Streamero", "Id": ID(s.ServerID),
-		"StartupWizardCompleted": true, "OperatingSystem": "Linux",
+		"ServerName": s.name(r.Context()), "Version": APIVersion, "ProductName": ProductName, "Id": ID(s.ServerID),
+		"StartupWizardCompleted": true, "OperatingSystem": "Linux", "LocalAddress": "",
+		"HasPendingRestart": false, "IsShuttingDown": false, "SupportsLibraryMonitor": true, "WebSocketPortNumber": 0,
+		"CanSelfRestart": false, "CanLaunchWebBrowser": false, "HasUpdateAvailable": false,
+		"CompletedInstallations": []any{}, "CastReceiverApplications": []any{},
 	})
 }
+
+func (s *Server) ping(w http.ResponseWriter, r *http.Request) { writeJSON(w, s.name(r.Context())) }
 
 // configuration is the minimal server configuration object. Sonarr fetches it
 // to test the connection; nothing in it is used by clients.
@@ -209,8 +342,29 @@ func (s *Server) configuration(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func endpointInfo(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, map[string]any{"IsLocal": false, "IsInNetwork": false})
+}
+
+func branding(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, map[string]any{"LoginDisclaimer": "", "CustomCss": "", "SplashscreenEnabled": false})
+}
+
+func brandingCSS(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "text/css; charset=utf-8")
+}
+
+// displayPreferences answers defaults; clients keep working without stored preferences.
+func displayPreferences(w http.ResponseWriter, r *http.Request) {
+	client := param(r, "Client")
+	writeJSON(w, map[string]any{"Id": chi.URLParam(r, "id"), "SortBy": "SortName", "SortOrder": "Ascending",
+		"RememberIndexing": false, "RememberSorting": false, "PrimaryImageHeight": 250, "PrimaryImageWidth": 250,
+		"CustomPrefs": map[string]string{}, "ScrollDirection": "Horizontal", "ShowBackdrop": true, "ShowSidebar": false,
+		"Client": client, "IndexBy": nil})
+}
+
 // accepted acknowledges requests Streamero has no use for (e.g. admin
-// notifications from *arr apps), so senders do not report failures.
+// notifications from *arr apps, client capabilities), so senders do not report failures.
 func accepted(w http.ResponseWriter, r *http.Request) {
 	_, _ = io.Copy(io.Discard, http.MaxBytesReader(w, r.Body, 1<<20))
 	w.WriteHeader(http.StatusNoContent)
@@ -221,15 +375,61 @@ func (s *Server) userDTO(u auth.User) map[string]any {
 	if u.LastLoginAt != nil {
 		last = u.LastLoginAt.UTC().Format(time.RFC3339)
 	}
+	perms := u.Permissions
+	all := u.IsAdmin
 	return map[string]any{
-		"Name": u.Username, "ServerId": ID(s.ServerID), "Id": ID(u.ID), "HasPassword": true,
-		"HasConfiguredPassword": true, "EnableAutoLogin": false, "LastLoginDate": last,
+		"Name": u.Username, "ServerId": ID(s.ServerID), "ServerName": "", "Id": ID(u.ID), "HasPassword": true,
+		"HasConfiguredPassword": true, "HasConfiguredEasyPassword": false, "EnableAutoLogin": false,
+		"LastLoginDate": last, "LastActivityDate": last,
 		"Policy": map[string]any{
-			"IsAdministrator": u.IsAdmin, "IsDisabled": u.Disabled, "IsHidden": false,
-			"EnableAllFolders": u.IsAdmin || u.Permissions.AllLibraries, "EnabledFolders": []string{},
+			"IsAdministrator": u.IsAdmin, "IsDisabled": u.Disabled, "IsHidden": true,
+			"EnableAllFolders": all || perms.AllLibraries, "EnabledFolders": []string{},
+			"EnableCollectionManagement": all || perms.ManageCollections, "EnableSubtitleManagement": all || perms.EditSubtitles,
+			"EnableLyricManagement": false, "EnableUserPreferenceAccess": true,
+			"EnableRemoteControlOfOtherUsers": false, "EnableSharedDeviceControl": false, "EnableRemoteAccess": true,
+			"EnableLiveTvManagement": false, "EnableLiveTvAccess": false, "EnableMediaPlayback": true,
+			"EnableAudioPlaybackTranscoding": all || perms.AudioTranscoding,
+			"EnableVideoPlaybackTranscoding": all || perms.VideoTranscoding, "EnablePlaybackRemuxing": all || perms.Remux,
+			"ForceRemoteSourceTranscoding": false, "EnableContentDeletion": false,
+			"EnableContentDownloading": all || perms.Download, "EnableSyncTranscoding": false, "EnableMediaConversion": false,
+			"EnableAllDevices": true, "EnableAllChannels": false, "EnablePublicSharing": false,
+			"InvalidLoginAttemptCount": 0, "LoginAttemptsBeforeLockout": auth.MaxFailedLogins,
+			"MaxActiveSessions": perms.MaxSessions, "RemoteClientBitrateLimit": 0,
+			"AuthenticationProviderId": "Streamero", "PasswordResetProviderId": "Streamero",
+			"SyncPlayAccess": "None", "BlockedTags": []string{}, "AllowedTags": []string{},
+			"BlockUnratedItems": []string{}, "EnabledDevices": []string{}, "EnabledChannels": []string{},
+			"BlockedMediaFolders": []string{}, "BlockedChannels": []string{}, "AccessSchedules": []any{},
 		},
-		"Configuration": map[string]any{},
+		"Configuration": map[string]any{
+			"PlayDefaultAudioTrack": true, "DisplayMissingEpisodes": false, "GroupedFolders": []string{},
+			"SubtitleMode": "Default", "DisplayCollectionsView": false, "EnableLocalPassword": false,
+			"OrderedViews": []string{}, "LatestItemsExcludes": []string{}, "MyMediaExcludes": []string{},
+			"HidePlayedInLatest": true, "RememberAudioSelections": true, "RememberSubtitleSelections": true,
+			"EnableNextEpisodeAutoPlay": true, "AudioLanguagePreference": "", "SubtitleLanguagePreference": "",
+		},
 	}
+}
+
+// authResult is the sign-in answer (user, token and the new session).
+func (s *Server) authResult(p auth.Principal, token string, c client) map[string]any {
+	now := time.Now().UTC().Format(time.RFC3339)
+	return map[string]any{
+		"User": s.userDTO(p.User), "AccessToken": token, "ServerId": ID(s.ServerID),
+		"SessionInfo": map[string]any{"Id": ID(p.SessionID), "UserId": ID(p.User.ID), "UserName": p.User.Username,
+			"Client": c.name, "DeviceName": c.device, "DeviceId": c.deviceID, "ApplicationVersion": c.version,
+			"ServerId": ID(s.ServerID), "PlayableMediaTypes": []string{"Video", "Audio"}, "LastActivityDate": now,
+			"LastPlaybackCheckIn": now, "IsActive": true, "SupportsMediaControl": false, "SupportsRemoteControl": false,
+			"HasCustomDeviceName": false, "SupportedCommands": []string{}, "AdditionalUsers": []any{},
+			"NowPlayingQueue": []any{}, "NowPlayingQueueFullItems": []any{}},
+	}
+}
+
+func (c client) authDevice() auth.Device {
+	name := c.name
+	if name == "" {
+		name = "Compat client"
+	}
+	return auth.Device{Name: c.device, Client: name}
 }
 
 func (s *Server) authenticateByName(w http.ResponseWriter, r *http.Request) {
@@ -241,28 +441,22 @@ func (s *Server) authenticateByName(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
-	_, client, device := clientInfo(r)
-	if client == "" {
-		client = "Compat client"
-	}
-	p, token, err := s.Auth.Login(r.Context(), body.Username, body.Pw, "", auth.Device{Name: device, Client: client})
+	c := clientInfo(r)
+	p, token, err := s.Auth.Login(r.Context(), body.Username, body.Pw, "", c.authDevice())
 	if err != nil {
 		var locked *auth.LockedError
 		switch {
 		case errors.As(err, &locked):
 			http.Error(w, "account locked", http.StatusTooManyRequests)
 		case errors.Is(err, auth.ErrTOTPRequired):
-			http.Error(w, "two-factor accounts cannot sign in here; use an API key", http.StatusUnauthorized)
+			http.Error(w, "this account uses two-factor sign-in: use Quick Connect and approve the code in "+
+				"Streamero (Settings → Quick Connect), or use an API key", http.StatusUnauthorized)
 		default:
 			http.Error(w, "invalid username or password", http.StatusUnauthorized)
 		}
 		return
 	}
-	writeJSON(w, map[string]any{
-		"User": s.userDTO(p.User), "AccessToken": token, "ServerId": ID(s.ServerID),
-		"SessionInfo": map[string]any{"Id": ID(p.SessionID), "UserId": ID(p.User.ID), "UserName": p.User.Username,
-			"Client": client, "DeviceName": device},
-	})
+	writeJSON(w, s.authResult(p, token, c))
 }
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
@@ -321,9 +515,89 @@ func (s *Server) user(w http.ResponseWriter, r *http.Request) {
 	http.NotFound(w, r)
 }
 
-func canSee(p auth.Principal) bool { return p.User.IsAdmin || p.User.Permissions.AllLibraries }
+// --- Quick Connect ------------------------------------------------------------------
 
-// --- libraries & items ------------------------------------------------------
+func quickConnectEnabled(w http.ResponseWriter, _ *http.Request) { writeJSON(w, true) }
+
+func quickConnectResult(secret string, st auth.QuickConnectState, c client) map[string]any {
+	return map[string]any{"Authenticated": st.Approved, "Secret": secret, "Code": st.Code, "DeviceId": c.deviceID,
+		"DeviceName": st.DeviceName, "AppName": st.Client, "AppVersion": c.version,
+		"DateAdded": st.CreatedAt.UTC().Format(time.RFC3339)}
+}
+
+// quickConnectInitiate starts a request; the user approves the code in Streamero
+// (Settings → Quick Connect) or from a signed-in client. Rate limited by IP.
+func (s *Server) quickConnectInitiate(w http.ResponseWriter, r *http.Request) {
+	c := clientInfo(r)
+	dev := c.authDevice()
+	st, err := s.Auth.InitiateQuickConnect(r.Context(), dev)
+	if err != nil {
+		http.Error(w, "error", http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, quickConnectResult(st.Secret, auth.QuickConnectState{Code: st.Code, DeviceName: dev.Name, Client: dev.Client,
+		CreatedAt: time.Now()}, c))
+}
+
+// quickConnectConnect reports whether the code was approved (the client polls it).
+func (s *Server) quickConnectConnect(w http.ResponseWriter, r *http.Request) {
+	secret := param(r, "Secret")
+	st, err := s.Auth.QuickConnectStatus(r.Context(), secret)
+	if errors.Is(err, auth.ErrNotFound) {
+		http.Error(w, "unknown or expired quick connect request", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		http.Error(w, "error", http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, quickConnectResult(secret, st, clientInfo(r)))
+}
+
+// quickConnectAuthenticate signs the device in once its code was approved.
+// Two-factor accounts sign in this way: the approving session already passed 2FA.
+func (s *Server) quickConnectAuthenticate(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Secret string `json:"Secret"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<16)).Decode(&body); err != nil || body.Secret == "" {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	p, token, err := s.Auth.PollQuickConnect(r.Context(), body.Secret)
+	switch {
+	case errors.Is(err, auth.ErrQuickConnectPending):
+		http.Error(w, "quick connect code not approved yet", http.StatusUnauthorized)
+		return
+	case errors.Is(err, auth.ErrNotFound):
+		http.Error(w, "unknown or expired quick connect request", http.StatusUnauthorized)
+		return
+	case err != nil:
+		http.Error(w, "error", http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, s.authResult(p, token, clientInfo(r)))
+}
+
+// quickConnectAuthorize approves a code from a signed-in client (not an API key).
+func (s *Server) quickConnectAuthorize(w http.ResponseWriter, r *http.Request) {
+	p := principal(r)
+	if p.SessionID == uuid.Nil || p.IsKid() {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+	if _, err := s.Auth.AuthorizeQuickConnect(r.Context(), p, param(r, "Code")); err != nil {
+		if errors.Is(err, auth.ErrNotFound) {
+			http.Error(w, "unknown or expired code", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "error", http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, true)
+}
+
+// --- libraries ------------------------------------------------------------------------
 
 func collectionType(kind string) string {
 	switch kind {
@@ -337,6 +611,15 @@ func collectionType(kind string) string {
 	return "mixed"
 }
 
+func (s *Server) viewDTO(l library.Library) map[string]any {
+	return map[string]any{"Name": l.Name, "Id": ID(l.ID), "ServerId": ID(s.ServerID), "Etag": ID(l.ID)[:16],
+		"Type": "CollectionFolder", "CollectionType": collectionType(l.Kind), "IsFolder": true, "MediaType": "Unknown",
+		"ChildCount": l.ItemCount, "LocationType": "FileSystem", "DisplayPreferencesId": ID(l.ID),
+		"ImageTags": map[string]string{}, "BackdropImageTags": []string{}, "SortName": strings.ToLower(l.Name),
+		"UserData": map[string]any{"PlaybackPositionTicks": 0, "PlayCount": 0, "IsFavorite": false, "Played": false,
+			"Key": ID(l.ID), "ItemId": ID(l.ID)}}
+}
+
 func (s *Server) views(w http.ResponseWriter, r *http.Request) {
 	out := []any{}
 	if canSee(principal(r)) {
@@ -346,363 +629,10 @@ func (s *Server) views(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		for _, l := range libs {
-			out = append(out, map[string]any{"Name": l.Name, "Id": ID(l.ID), "ServerId": ID(s.ServerID),
-				"Type": "CollectionFolder", "CollectionType": collectionType(l.Kind), "IsFolder": true,
-				"ChildCount": l.ItemCount, "LocationType": "FileSystem"})
+			out = append(out, s.viewDTO(l))
 		}
 	}
-	writeJSON(w, map[string]any{"Items": out, "TotalRecordCount": len(out), "StartIndex": 0})
-}
-
-var typeMap = map[string]string{"movie": "Movie", "series": "Series", "season": "Season", "episode": "Episode"}
-
-type row struct {
-	id, libraryID                   uuid.UUID
-	parentID, seriesID              *uuid.UUID
-	kind, title                     string
-	year, season, episode           *int
-	added                           time.Time
-	ids                             map[string]string
-	premiere                        *time.Time
-	overview                        *string
-	rating                          *float64
-	maxWidth, maxHeight, filesCount int
-	durationMS                      *int64
-	hasPoster                       bool
-	played, favorite                bool
-	position                        int64
-}
-
-const rowCols = `i.id, i.library_id, i.parent_id,
-	CASE i.kind WHEN 'episode' THEN (SELECT p.parent_id FROM items p WHERE p.id = i.parent_id) WHEN 'season' THEN i.parent_id END,
-	i.kind, COALESCE(i.metadata_title, i.title), i.year, i.season_number, i.episode_number, i.added_at, i.provider_ids,
-	i.premiere_date, i.overview, i.community_rating,
-	COALESCE((SELECT max(f.width) FROM media_files f WHERE f.item_id = i.id), 0),
-	COALESCE((SELECT max(f.height) FROM media_files f WHERE f.item_id = i.id), 0),
-	(SELECT count(*) FROM media_files f WHERE f.item_id = i.id),
-	(SELECT max(f.duration_ms) FROM media_files f WHERE f.item_id = i.id), i.has_poster,
-	COALESCE(u.played, false), COALESCE(u.favorite, false), COALESCE(u.position_ms, 0)`
-
-func (s *Server) query(ctx context.Context, owner uuid.UUID, where string, args []any, order string, limit, offset int) ([]row, int, error) {
-	n := len(args)
-	var total int
-	if err := s.Pool.QueryRow(ctx, `SELECT count(*) FROM items i LEFT JOIN user_item_data u ON u.item_id = i.id AND u.owner_id = $`+
-		strconv.Itoa(n+1)+` WHERE `+where, append(args, owner)...).Scan(&total); err != nil {
-		return nil, 0, err
-	}
-	// #nosec G202 -- where/order are built from fixed fragments with numbered parameters only
-	rows, err := s.Pool.Query(ctx, `SELECT `+rowCols+` FROM items i LEFT JOIN user_item_data u ON u.item_id = i.id AND u.owner_id = $`+
-		strconv.Itoa(n+1)+` WHERE `+where+` ORDER BY `+order+` LIMIT $`+strconv.Itoa(n+2)+` OFFSET $`+strconv.Itoa(n+3),
-		append(args, owner, limit, offset)...)
-	if err != nil {
-		return nil, 0, err
-	}
-	defer rows.Close()
-	var out []row
-	for rows.Next() {
-		var x row
-		var ids []byte
-		if err := rows.Scan(&x.id, &x.libraryID, &x.parentID, &x.seriesID, &x.kind, &x.title, &x.year, &x.season, &x.episode,
-			&x.added, &ids, &x.premiere, &x.overview, &x.rating, &x.maxWidth, &x.maxHeight, &x.filesCount, &x.durationMS,
-			&x.hasPoster, &x.played, &x.favorite, &x.position); err != nil {
-			return nil, 0, err
-		}
-		_ = json.Unmarshal(ids, &x.ids)
-		out = append(out, x)
-	}
-	return out, total, rows.Err()
-}
-
-func (s *Server) dto(x row) map[string]any {
-	providers := map[string]string{}
-	for k, v := range x.ids {
-		switch k {
-		case "tmdb":
-			providers["Tmdb"] = v
-		case "imdb":
-			providers["Imdb"] = v
-		case "tvdb":
-			providers["Tvdb"] = v
-		}
-	}
-	d := map[string]any{
-		"Name": x.title, "Id": ID(x.id), "ServerId": ID(s.ServerID), "Type": typeMap[x.kind],
-		"IsFolder": x.kind == "series" || x.kind == "season", "ProviderIds": providers, "LocationType": "FileSystem",
-		"DateCreated": x.added.UTC().Format(time.RFC3339), "MediaType": "Video",
-		"UserData": map[string]any{"Played": x.played, "IsFavorite": x.favorite, "PlaybackPositionTicks": x.position * 10_000},
-	}
-	if x.year != nil {
-		d["ProductionYear"] = *x.year
-	}
-	if x.premiere != nil {
-		d["PremiereDate"] = x.premiere.UTC().Format(time.RFC3339)
-	}
-	if x.overview != nil {
-		d["Overview"] = *x.overview
-	}
-	if x.rating != nil {
-		d["CommunityRating"] = *x.rating
-	}
-	if x.durationMS != nil {
-		d["RunTimeTicks"] = *x.durationMS * 10_000 // ticks are 100 ns
-	}
-	if x.hasPoster {
-		d["ImageTags"] = map[string]string{"Primary": ID(x.id)}
-	}
-	if x.parentID != nil {
-		d["ParentId"] = ID(*x.parentID)
-	}
-	switch x.kind {
-	case "season":
-		if x.season != nil {
-			d["IndexNumber"] = *x.season
-		}
-		if x.seriesID != nil {
-			d["SeriesId"] = ID(*x.seriesID)
-		}
-	case "episode":
-		if x.episode != nil {
-			d["IndexNumber"] = *x.episode
-		}
-		if x.season != nil {
-			d["ParentIndexNumber"] = *x.season
-		}
-		if x.parentID != nil {
-			d["SeasonId"] = ID(*x.parentID)
-		}
-		if x.seriesID != nil {
-			d["SeriesId"] = ID(*x.seriesID)
-		}
-	}
-	if x.filesCount > 0 {
-		d["MediaSources"] = []any{map[string]any{"Id": ID(x.id), "Protocol": "File", "Type": "Default",
-			"MediaStreams": []any{map[string]any{"Type": "Video", "Width": x.maxWidth, "Height": x.maxHeight}}}}
-		d["Width"], d["Height"] = x.maxWidth, x.maxHeight
-	}
-	return d
-}
-
-func intParam(r *http.Request, name string, def, maxV int) int {
-	v, err := strconv.Atoi(r.URL.Query().Get(name))
-	if err != nil || v < 0 {
-		return def
-	}
-	return min(v, maxV)
-}
-
-// param reads a query parameter case-insensitively.
-func param(r *http.Request, name string) string {
-	for k, v := range r.URL.Query() {
-		if strings.EqualFold(k, name) && len(v) > 0 {
-			return v[0]
-		}
-	}
-	return ""
-}
-
-func (s *Server) items(w http.ResponseWriter, r *http.Request) {
-	p := principal(r)
-	if !canSee(p) {
-		writeJSON(w, map[string]any{"Items": []any{}, "TotalRecordCount": 0, "StartIndex": 0})
-		return
-	}
-	var conds []string
-	var args []any
-	add := func(cond string, v any) {
-		args = append(args, v)
-		conds = append(conds, strings.ReplaceAll(cond, "?", "$"+strconv.Itoa(len(args))))
-	}
-	if ids := param(r, "Ids"); ids != "" {
-		var list []uuid.UUID
-		for _, s := range strings.Split(ids, ",") {
-			if u, err := ParseID(strings.TrimSpace(s)); err == nil {
-				list = append(list, u)
-			}
-		}
-		add("i.id = ANY(?)", list)
-	}
-	if types := param(r, "IncludeItemTypes"); types != "" {
-		var kinds []string
-		for _, t := range strings.Split(types, ",") {
-			for k, v := range typeMap {
-				if strings.EqualFold(v, strings.TrimSpace(t)) {
-					kinds = append(kinds, k)
-				}
-			}
-		}
-		add("i.kind = ANY(?)", kinds)
-	}
-	recursive := strings.EqualFold(param(r, "Recursive"), "true")
-	if parent := param(r, "ParentId"); parent != "" {
-		pid, err := ParseID(parent)
-		if err != nil {
-			http.Error(w, "bad ParentId", http.StatusBadRequest)
-			return
-		}
-		var isLibrary bool
-		_ = s.Pool.QueryRow(r.Context(), `SELECT EXISTS (SELECT 1 FROM libraries WHERE id = $1)`, pid).Scan(&isLibrary)
-		switch {
-		case isLibrary && recursive:
-			add("i.library_id = ?", pid)
-		case isLibrary:
-			add("i.library_id = ? AND i.parent_id IS NULL", pid)
-		case recursive: // both placeholders become the same parameter
-			add("(i.parent_id = ? OR i.parent_id IN (SELECT id FROM items WHERE parent_id = ?))", pid)
-		default:
-			add("i.parent_id = ?", pid)
-		}
-	} else if !recursive && param(r, "Ids") == "" {
-		conds = append(conds, "i.parent_id IS NULL")
-	}
-	if term := param(r, "SearchTerm"); term != "" {
-		add("lower(COALESCE(i.metadata_title, i.title)) LIKE ?", "%"+strings.ToLower(term)+"%")
-	}
-	if len(conds) == 0 {
-		conds = append(conds, "true")
-	}
-	order := "i.sort_title, i.season_number NULLS FIRST, i.episode_number NULLS FIRST"
-	if strings.Contains(strings.ToLower(param(r, "SortBy")), "datecreated") {
-		order = "i.added_at DESC"
-	}
-	limit := 500
-	if v, err := strconv.Atoi(param(r, "Limit")); err == nil {
-		limit = max(0, min(v, 2000))
-	}
-	offset := 0
-	if v := param(r, "StartIndex"); v != "" {
-		offset, _ = strconv.Atoi(v)
-		offset = max(0, offset)
-	}
-	rows, total, err := s.query(r.Context(), ownerOf(p), strings.Join(conds, " AND "), args, order, limit, offset)
-	if err != nil {
-		s.Log.Warn("compat items query failed", "err", err)
-		http.Error(w, "error", http.StatusInternalServerError)
-		return
-	}
-	out := make([]any, 0, len(rows))
-	for _, x := range rows {
-		out = append(out, s.dto(x))
-	}
-	writeJSON(w, map[string]any{"Items": out, "TotalRecordCount": total, "StartIndex": offset})
-}
-
-func ownerOf(p auth.Principal) uuid.UUID {
-	if p.Profile != nil {
-		return p.Profile.ID
-	}
-	return p.User.ID
-}
-
-func (s *Server) one(w http.ResponseWriter, r *http.Request, id uuid.UUID) {
-	p := principal(r)
-	if !canSee(p) {
-		http.NotFound(w, r)
-		return
-	}
-	rows, _, err := s.query(r.Context(), ownerOf(p), "i.id = $1", []any{id}, "i.id", 1, 0)
-	if err != nil || len(rows) == 0 {
-		http.NotFound(w, r)
-		return
-	}
-	writeJSON(w, s.dto(rows[0]))
-}
-
-func (s *Server) item(w http.ResponseWriter, r *http.Request) {
-	id, err := ParseID(chi.URLParam(r, "itemId"))
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-	// A library ID asked as an item (clients do this for views).
-	var lib library.Library
-	if lib, err = s.Libraries.Get(r.Context(), id); err == nil {
-		writeJSON(w, map[string]any{"Name": lib.Name, "Id": ID(lib.ID), "Type": "CollectionFolder",
-			"CollectionType": collectionType(lib.Kind), "IsFolder": true, "ServerId": ID(s.ServerID)})
-		return
-	}
-	s.one(w, r, id)
-}
-
-func (s *Server) latest(w http.ResponseWriter, r *http.Request) {
-	p := principal(r)
-	if !canSee(p) {
-		writeJSON(w, []any{})
-		return
-	}
-	where, args := "i.parent_id IS NULL", []any{}
-	if parent := param(r, "ParentId"); parent != "" {
-		if pid, err := ParseID(parent); err == nil {
-			where, args = "i.parent_id IS NULL AND i.library_id = $1", []any{pid}
-		}
-	}
-	rows, _, err := s.query(r.Context(), ownerOf(p), where, args, "i.added_at DESC", intParam(r, "Limit", 20, 100), 0)
-	if err != nil {
-		http.Error(w, "error", http.StatusInternalServerError)
-		return
-	}
-	out := make([]any, 0, len(rows))
-	for _, x := range rows {
-		out = append(out, s.dto(x))
-	}
-	writeJSON(w, out)
-}
-
-func (s *Server) seasons(w http.ResponseWriter, r *http.Request) {
-	id, err := ParseID(chi.URLParam(r, "seriesId"))
-	if err != nil || !canSee(principal(r)) {
-		http.NotFound(w, r)
-		return
-	}
-	rows, total, err := s.query(r.Context(), ownerOf(principal(r)), "i.parent_id = $1 AND i.kind = 'season'", []any{id},
-		"i.season_number", 500, 0)
-	s.list(w, rows, total, err)
-}
-
-func (s *Server) episodes(w http.ResponseWriter, r *http.Request) {
-	id, err := ParseID(chi.URLParam(r, "seriesId"))
-	if err != nil || !canSee(principal(r)) {
-		http.NotFound(w, r)
-		return
-	}
-	where, args := "i.kind = 'episode' AND i.parent_id IN (SELECT id FROM items WHERE parent_id = $1)", []any{id}
-	if season := param(r, "SeasonId"); season != "" {
-		if sid, err := ParseID(season); err == nil {
-			where, args = "i.kind = 'episode' AND i.parent_id = $1", []any{sid}
-		}
-	} else if n := param(r, "Season"); n != "" {
-		if num, err := strconv.Atoi(n); err == nil {
-			where = "i.kind = 'episode' AND i.parent_id IN (SELECT id FROM items WHERE parent_id = $1 AND season_number = $2)"
-			args = append(args, num)
-		}
-	}
-	rows, total, err := s.query(r.Context(), ownerOf(principal(r)), where, args, "i.season_number, i.episode_number", 2000, 0)
-	s.list(w, rows, total, err)
-}
-
-func (s *Server) list(w http.ResponseWriter, rows []row, total int, err error) {
-	if err != nil {
-		http.Error(w, "error", http.StatusInternalServerError)
-		return
-	}
-	out := make([]any, 0, len(rows))
-	for _, x := range rows {
-		out = append(out, s.dto(x))
-	}
-	writeJSON(w, map[string]any{"Items": out, "TotalRecordCount": total, "StartIndex": 0})
-}
-
-func (s *Server) image(w http.ResponseWriter, r *http.Request) {
-	id, err := ParseID(chi.URLParam(r, "itemId"))
-	if err != nil || !canSee(principal(r)) || s.Libraries.ImageDir == "" {
-		http.NotFound(w, r)
-		return
-	}
-	kind := "poster"
-	if strings.EqualFold(chi.URLParam(r, "type"), "backdrop") {
-		kind = "backdrop"
-	}
-	// Path from a parsed UUID and a fixed word only.
-	http.ServeFile(w, r, metadata.ImagePath(s.Libraries.ImageDir, id, kind)) // #nosec G703 -- UUID + fixed word
+	writeJSON(w, queryResult(out, len(out), 0))
 }
 
 // --- library change notifications (*arr "Emby/Jellyfin" connection) ---------
