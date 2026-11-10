@@ -65,6 +65,12 @@ type Handler interface {
 	//
 	// POST /apikeys
 	CreateAPIKey(ctx context.Context, req *CreateApiKeyRequest) (*CreatedApiKey, error)
+	// CreateBackup implements createBackup operation.
+	//
+	// Not blocked by a running library scan; the response says so, so the client can warn.
+	//
+	// POST /backups
+	CreateBackup(ctx context.Context) (*BackupQueued, error)
 	// CreateCollection implements createCollection operation.
 	//
 	// Create a collection (administrators).
@@ -107,6 +113,12 @@ type Handler interface {
 	//
 	// DELETE /apikeys/{apiKeyId}
 	DeleteAPIKey(ctx context.Context, params DeleteAPIKeyParams) error
+	// DeleteBackup implements deleteBackup operation.
+	//
+	// Delete a backup file.
+	//
+	// DELETE /backups/{backupName}
+	DeleteBackup(ctx context.Context, params DeleteBackupParams) error
 	// DeleteCollection implements deleteCollection operation.
 	//
 	// Delete a collection (titles stay in the library).
@@ -167,6 +179,12 @@ type Handler interface {
 	//
 	// GET /discover
 	Discover(ctx context.Context, params DiscoverParams) (*DiscoverPage, error)
+	// DownloadBackup implements downloadBackup operation.
+	//
+	// Download a backup archive.
+	//
+	// GET /backups/{backupName}/download
+	DownloadBackup(ctx context.Context, params DownloadBackupParams) (*DownloadBackupOKHeaders, error)
 	// DownloadSubtitle implements downloadSubtitle operation.
 	//
 	// Download one offer through Bazarr; the library is rescanned to pick it up.
@@ -360,6 +378,12 @@ type Handler interface {
 	//
 	// GET /apikeys
 	ListAPIKeys(ctx context.Context) ([]ApiKey, error)
+	// ListBackups implements listBackups operation.
+	//
+	// Backups in the backup folder, backup settings and the last restore (admin).
+	//
+	// GET /backups
+	ListBackups(ctx context.Context) (*BackupOverview, error)
 	// ListCollections implements listCollections operation.
 	//
 	// Collections that contain at least one visible item.
@@ -510,6 +534,15 @@ type Handler interface {
 	//
 	// POST /discover/request
 	RequestTitle(ctx context.Context, req *TitleRequest) (*TitleRequestResult, error)
+	// RestoreBackup implements restoreBackup operation.
+	//
+	// The archive is verified first; a backup from a newer database schema than this server is refused. A
+	// safety backup of the current state is written before anything is changed. The restore runs in the
+	// background and the server restarts when it is done; progress and the result are reported in
+	// `lastRestore` of GET /backups.
+	//
+	// POST /backups/{backupName}/restore
+	RestoreBackup(ctx context.Context, req *RestoreBackupRequest, params RestoreBackupParams) error
 	// RevokeSession implements revokeSession operation.
 	//
 	// Own sessions; admins can revoke any session.
@@ -615,6 +648,12 @@ type Handler interface {
 	//
 	// POST /settings/requests/test
 	TestRequestSettings(ctx context.Context) ([]ConnectionCheck, error)
+	// UpdateBackupSettings implements updateBackupSettings operation.
+	//
+	// Change the backup schedule, retention and whether artwork is included.
+	//
+	// PUT /backups/settings
+	UpdateBackupSettings(ctx context.Context, req *BackupSettings) (*BackupSettings, error)
 	// UpdateBrandingSettings implements updateBrandingSettings operation.
 	//
 	// Update branding (admin).
@@ -711,6 +750,12 @@ type Handler interface {
 	//
 	// PUT /items/{itemId}/user-data
 	UpdateUserData(ctx context.Context, req *UserDataUpdate, params UpdateUserDataParams) error
+	// UploadBackup implements uploadBackup operation.
+	//
+	// Upload a backup archive into the backup folder (it is checked, not restored).
+	//
+	// POST /backups/upload
+	UploadBackup(ctx context.Context, req UploadBackupReq) (*Backup, error)
 	// NewError creates *ErrorStatusCode from error returned by handler.
 	//
 	// Used for common default response.

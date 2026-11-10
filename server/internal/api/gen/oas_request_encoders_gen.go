@@ -352,6 +352,20 @@ func encodeRequestTitleRequest(
 	return nil
 }
 
+func encodeRestoreBackupRequest(
+	req *RestoreBackupRequest,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeSelectMainProfileRequest(
 	req OptPasswordConfirmRequest,
 	r *http.Request,
@@ -456,6 +470,20 @@ func encodeStartPlaybackRequest(
 
 func encodeTestNotificationRequest(
 	req *NotificationTarget,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeUpdateBackupSettingsRequest(
+	req *BackupSettings,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"
@@ -689,5 +717,15 @@ func encodeUpdateUserDataRequest(
 	}
 	encoded := e.Bytes()
 	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeUploadBackupRequest(
+	req UploadBackupReq,
+	r *http.Request,
+) error {
+	const contentType = "application/octet-stream"
+	body := req
+	ht.SetBody(r, body, contentType)
 	return nil
 }

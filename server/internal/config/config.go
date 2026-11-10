@@ -16,6 +16,7 @@ type Config struct {
 	DatabaseURL     string
 	ValkeyURL       string
 	ConfigDir       string
+	BackupDir       string // where backups are written (default <ConfigDir>/backups)
 	CacheDir        string
 	TranscodeDir    string
 	ServerName      string
@@ -49,6 +50,7 @@ func Load() (Config, error) {
 		LogLevel:        env("STREAMERO_LOG_LEVEL", "info"),
 		ShutdownTimeout: 15 * time.Second,
 	}
+	c.BackupDir = env("STREAMERO_BACKUP_DIR", strings.TrimRight(c.ConfigDir, "/")+"/backups")
 	var err error
 	if c.AutoMigrate, err = envBool("STREAMERO_AUTO_MIGRATE", true); err != nil {
 		return c, err

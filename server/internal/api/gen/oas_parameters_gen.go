@@ -321,6 +321,92 @@ func decodeDeleteAPIKeyParams(args [1]string, argsEscaped bool, r *http.Request)
 	return params, nil
 }
 
+// DeleteBackupParams is parameters of deleteBackup operation.
+type DeleteBackupParams struct {
+	// File name of a backup in the backup folder.
+	BackupName string
+}
+
+func unpackDeleteBackupParams(packed middleware.Parameters) (params DeleteBackupParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "backupName",
+			In:   "path",
+		}
+		params.BackupName = packed[key].(string)
+	}
+	return params
+}
+
+func decodeDeleteBackupParams(args [1]string, argsEscaped bool, r *http.Request) (params DeleteBackupParams, _ error) {
+	// Decode path: backupName.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "backupName",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.BackupName = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     0,
+					MinLengthSet:  false,
+					MaxLength:     0,
+					MaxLengthSet:  false,
+					Email:         false,
+					Hostname:      false,
+					Regex:         regexMap["^[A-Za-z0-9][A-Za-z0-9._-]{0,180}\\.tar\\.gz$"],
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(params.BackupName)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "backupName",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // DeleteCollectionParams is parameters of deleteCollection operation.
 type DeleteCollectionParams struct {
 	CollectionId uuid.UUID
@@ -942,6 +1028,92 @@ func decodeDiscoverParams(args [0]string, argsEscaped bool, r *http.Request) (pa
 		return params, &ogenerrors.DecodeParamError{
 			Name: "page",
 			In:   "query",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// DownloadBackupParams is parameters of downloadBackup operation.
+type DownloadBackupParams struct {
+	// File name of a backup in the backup folder.
+	BackupName string
+}
+
+func unpackDownloadBackupParams(packed middleware.Parameters) (params DownloadBackupParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "backupName",
+			In:   "path",
+		}
+		params.BackupName = packed[key].(string)
+	}
+	return params
+}
+
+func decodeDownloadBackupParams(args [1]string, argsEscaped bool, r *http.Request) (params DownloadBackupParams, _ error) {
+	// Decode path: backupName.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "backupName",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.BackupName = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     0,
+					MinLengthSet:  false,
+					MaxLength:     0,
+					MaxLengthSet:  false,
+					Email:         false,
+					Hostname:      false,
+					Regex:         regexMap["^[A-Za-z0-9][A-Za-z0-9._-]{0,180}\\.tar\\.gz$"],
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(params.BackupName)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "backupName",
+			In:   "path",
 			Err:  err,
 		}
 	}
@@ -4011,6 +4183,92 @@ func decodeReportProgressParams(args [1]string, argsEscaped bool, r *http.Reques
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "itemId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// RestoreBackupParams is parameters of restoreBackup operation.
+type RestoreBackupParams struct {
+	// File name of a backup in the backup folder.
+	BackupName string
+}
+
+func unpackRestoreBackupParams(packed middleware.Parameters) (params RestoreBackupParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "backupName",
+			In:   "path",
+		}
+		params.BackupName = packed[key].(string)
+	}
+	return params
+}
+
+func decodeRestoreBackupParams(args [1]string, argsEscaped bool, r *http.Request) (params RestoreBackupParams, _ error) {
+	// Decode path: backupName.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "backupName",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.BackupName = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     0,
+					MinLengthSet:  false,
+					MaxLength:     0,
+					MaxLengthSet:  false,
+					Email:         false,
+					Hostname:      false,
+					Regex:         regexMap["^[A-Za-z0-9][A-Za-z0-9._-]{0,180}\\.tar\\.gz$"],
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(params.BackupName)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "backupName",
 			In:   "path",
 			Err:  err,
 		}

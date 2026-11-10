@@ -34,6 +34,7 @@ import { DiscoverPage } from "@/features/discover/DiscoverPage";
 import { RequestsSettings } from "@/features/settings/RequestsSettings";
 import { ImportSettings } from "@/features/settings/ImportSettings";
 import { EnhancementsSettings } from "@/features/settings/EnhancementsSettings";
+import { BackupSettings } from "@/features/settings/BackupSettings";
 import { NotFoundPage } from "@/routes/NotFoundPage";
 
 /** The administrator's extra CSS (Settings → Branding), on every page. */
@@ -120,6 +121,7 @@ const settingsIndex = createRoute({
 const accountRoute = createRoute({ getParentRoute: () => settingsRoute, path: "account", component: AccountSettings });
 const dashboardRoute = createRoute({ getParentRoute: () => settingsRoute, path: "dashboard", component: adminOnly(DashboardSettings) });
 const tasksRoute = createRoute({ getParentRoute: () => settingsRoute, path: "tasks", component: adminOnly(TasksSettings) });
+const backupsRoute = createRoute({ getParentRoute: () => settingsRoute, path: "backups", component: adminOnly(BackupSettings) });
 const notificationsRoute = createRoute({ getParentRoute: () => settingsRoute, path: "notifications", component: adminOnly(NotificationsSettings) });
 const playbackRoute = createRoute({ getParentRoute: () => settingsRoute, path: "playback", component: PlaybackSettings });
 const profilesRoute = createRoute({ getParentRoute: () => settingsRoute, path: "profiles", component: ProfilesSettings });
@@ -160,7 +162,7 @@ export const routeTree = rootRoute.addChildren([
     watchRoute,
     searchRoute,
     discoverRoute,
-    settingsRoute.addChildren([settingsIndex, playbackRoute, dashboardRoute, tasksRoute, notificationsRoute, accountRoute, profilesRoute, devicesRoute, quickConnectRoute, serverRoute, librariesRoute, metadataRoute, integrationsRoute, usersRoute, invitesRoute, apiKeysRoute,
+    settingsRoute.addChildren([settingsIndex, playbackRoute, dashboardRoute, tasksRoute, backupsRoute, notificationsRoute, accountRoute, profilesRoute, devicesRoute, quickConnectRoute, serverRoute, librariesRoute, metadataRoute, integrationsRoute, usersRoute, invitesRoute, apiKeysRoute,
       subtitleLookRoute, homePrefsRoute, transcodingRoute, logsRoute, activityRoute, brandingRoute, requestsRoute, enhancementsRoute, importRoute]),
   ]),
 ]);

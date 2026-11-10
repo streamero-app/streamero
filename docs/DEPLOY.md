@@ -32,7 +32,8 @@ docker compose up -d
 docker compose logs streamero | grep setup_code   # one-time setup code
 ```
 Open `http://<server>:8787`, enter the setup code and create the admin account.
-Data (database, config, cache) lives in `./data` next to the compose file — back it up.
+Data (database, config, cache) lives in `./data` next to the compose file — see
+[Backup and restore](#backup-and-restore).
 
 Update: change `STREAMERO_VERSION` if pinned, then `docker compose pull && docker compose up -d`
 (migrations run automatically).
@@ -86,6 +87,45 @@ docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/w" -w /w --entrypoint bash 
 Every change is deployed this way; `GET /api/v1/system/info` on the demo shows the branch
 (`version: dev-<branch>`) and commit it was built from (`-dirty` = uncommitted changes).
 
+
+## Backup and restore
+Streamero backs itself up (D-030): **Settings → Backups**, admins only. A backup is one
+`.tar.gz` holding a consistent snapshot of the whole database (users, libraries, watch history,
+settings) and the `/config` folder; downloaded artwork only when "Include artwork" is on. Media
+files are never part of a backup.
+
+- Backups are written to `STREAMERO_BACKUP_DIR` (default `/config/backups`, i.e.
+  `./data/config/backups` on the host) as `streamero-<UTC time>-<version>.tar.gz`. Copy that
+  folder off the server (rsync, restic, …) — a backup on the same disk does not survive the disk.
+- A daily backup runs by default; the last 7 scheduled/manual backups are kept (configurable).
+  "Back up now" queues one immediately. A backup taken during a library scan is still consistent
+  but may miss titles being added at that moment; the UI warns.
+- The same page downloads, deletes, uploads (from another server) and restores backups. A
+  restore asks you to type the backup name, writes a `streamero-pre-restore-…` backup of the
+  current state first, replaces the database and config, and restarts the server.
+- A backup from a **newer** Streamero version is refused (update the server first). A backup
+  from an **older** version is restored into its own schema and then migrated forward.
+
+From the command line (e.g. a scheduled extra backup): `docker compose exec streamero /app/streamero backup [--images]`.
+
+### Restoring a broken install from the CLI
+When the web UI no longer starts (damaged database, failed upgrade, new server), restore with
+the CLI. It needs only the database and the backup file:
+```bash
+cd /opt/streamero
+docker compose stop streamero worker          # nothing else may write while restoring
+docker compose up -d db valkey
+# a backup in ./data/config/backups is found by name:
+docker compose run --rm --no-deps streamero restore streamero-20261110T030000Z-0.9.0.tar.gz
+# a file from elsewhere: copy it into ./data/config/backups first, or mount it:
+docker compose run --rm --no-deps -v /path/to/backup.tar.gz:/restore.tar.gz:ro streamero restore /restore.tar.gz
+docker compose up -d
+```
+The command prints what the backup contains and asks you to type `RESTORE` (`--yes` skips the
+question in scripts). Options: `--no-safety-backup` (do not back up the current state first,
+e.g. when the database is empty or unreadable) and `--skip-files` (database only, leave
+`/config` and avatars as they are). On a fresh server, start from an empty `./data` with the
+same `.env` (`DB_PASSWORD`), run `docker compose up -d db valkey`, then restore as above.
 
 ## Health
 - `GET /healthz` — process is alive

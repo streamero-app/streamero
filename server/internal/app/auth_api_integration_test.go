@@ -31,6 +31,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/activity"
 	"github.com/streamero-app/streamero/server/internal/api"
 	"github.com/streamero-app/streamero/server/internal/auth"
+	"github.com/streamero-app/streamero/server/internal/backup"
 	"github.com/streamero-app/streamero/server/internal/compat"
 	"github.com/streamero-app/streamero/server/internal/config"
 	"github.com/streamero-app/streamero/server/internal/importer"
@@ -93,6 +94,8 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 			return (&importer.Runner{Pool: deps.Pool, Log: log}).Run(ctx, id)
 		}}
 	h.Notify.Server = h.ServerNameFor
+	testBackups = &backup.Service{Pool: deps.Pool, Dir: t.TempDir(), Version: "test"}
+	h.Backup.Store(&api.Backups{Service: testBackups, Enqueue: func(context.Context) error { ranTasks = append(ranTasks, "backup"); return nil }})
 	state.Library().Resume = h.LoadResume
 	h.Stream().HLS.Encoding = h.LoadEncoding
 	router, err := NewRouter(state, h)
@@ -103,6 +106,9 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 	t.Cleanup(srv.Close)
 	return srv
 }
+
+// testBackups is the backup service of the most recent test server.
+var testBackups *backup.Service
 
 // fakeTMDbURL points the API's TMDb client at a test server when set.
 var fakeTMDbURL string
@@ -1431,7 +1437,7 @@ func TestAdminDashboardIntegration(t *testing.T) {
 		Key     string
 		Running bool
 	}
-	if s := adminC.do("GET", "/tasks", nil, &tasks); s != 200 || len(tasks) != 4 {
+	if s := adminC.do("GET", "/tasks", nil, &tasks); s != 200 || len(tasks) != 5 {
 		t.Fatalf("tasks: %d %+v", s, tasks)
 	}
 	if s := adminC.do("POST", "/tasks/refresh_metadata/run", nil, nil); s != 202 || ranTasks[len(ranTasks)-1] != "refresh_metadata" {

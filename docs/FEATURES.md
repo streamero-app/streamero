@@ -268,7 +268,7 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [x] `[JF]` Izgled titlova po profilu (veličina, boja, pozadina, položaj) i sekcije početnog zaslona (redoslijed, skrivanje) (P4)
 - [ ] `[JF]` Scheduled tasks *(scan, refresh metadata, čišćenje slika s „Pokreni sada" gotovi)*: scan biblioteka, refresh people, trickplay, chapter images, media segment scan, ekstrakcija podnaslova/attachmenta, čišćenje cachea, čišćenje transcode direktorija, čišćenje logova, optimizacija baze (analyze+vacuum, i pri gašenju), backup, update plugina/providera, download podnaslova, intro detekcija; triggeri: interval, dnevno, tjedno, pri startu, max trajanje (P10)
 - [ ] `[JF]` Log viewer s live follow (P10)
-- [ ] `[JF]` Backup i restore (ugrađeni, snapshot baze + configa, upozorenje ako backup tijekom scana, otporan na korumpirane zapise) (P10)
+- [ ] `[JF]` Backup i restore (ugrađeni, snapshot baze + configa, upozorenje ako backup tijekom scana, otporan na korumpirane zapise) (P10) *(implementirano, D-030; čeka merge i demo)*
 - [ ] `[JF]` Postavke: općenito (ime servera, jezik, cache putanja, metadata putanja), display, biblioteke, korisnici, uređaji, playback/transcoding, resume postavke (min/max %), streaming, trickplay, Live TV, networking, API ključevi, plugini/integracije, branding, logging (P10)
 - [ ] `[JF]` Networking: base URL, HTTP port, published server URL-ovi, LAN subneti, known proxies, IPv4/IPv6, remote access on/off, IP filter (allow/deny), auto-discovery (P10)
 - [ ] `[JF]` Klijenti mogu tražiti odgovor na određenom jeziku (Accept-Language) (P0)

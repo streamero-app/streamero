@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/fs"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
@@ -89,4 +90,66 @@ func Pending(ctx context.Context, pool *pgxpool.Pool) (bool, error) {
 	}
 	defer func() { _ = sqlDB.Close() }()
 	return p.HasPending(ctx)
+}
+
+// LatestVersion is the newest application migration built into this binary.
+func LatestVersion() (int64, error) {
+	names, err := fs.Glob(dbfs.Migrations, "migrations/*.sql")
+	if err != nil {
+		return 0, err
+	}
+	var latest int64
+	for _, n := range names {
+		v, err := goose.NumericComponent(n)
+		if err != nil {
+			return 0, err
+		}
+		latest = max(latest, v)
+	}
+	return latest, nil
+}
+
+// SchemaVersion is the newest application migration applied to the database
+// (0 for an empty database).
+func SchemaVersion(ctx context.Context, q interface {
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}) (int64, error) {
+	var exists bool
+	if err := q.QueryRow(ctx, `SELECT to_regclass('public.goose_db_version') IS NOT NULL`).Scan(&exists); err != nil || !exists {
+		return 0, err
+	}
+	var v int64
+	err := q.QueryRow(ctx, `SELECT COALESCE(MAX(version_id), 0) FROM goose_db_version WHERE is_applied`).Scan(&v)
+	return v, err
+}
+
+// MigrateTo applies application migrations up to and including version, plus all River
+// migrations. Restoring an older backup recreates its schema this way before loading data.
+func MigrateTo(ctx context.Context, pool *pgxpool.Pool, version int64) error {
+	conn, err := pool.Acquire(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Release()
+	if _, err := conn.Exec(ctx, `SELECT pg_advisory_lock($1)`, migrateLockID); err != nil {
+		return fmt.Errorf("migration lock: %w", err)
+	}
+	defer func() { _, _ = conn.Exec(context.WithoutCancel(ctx), `SELECT pg_advisory_unlock($1)`, migrateLockID) }()
+
+	p, sqlDB, err := gooseProvider(pool)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = sqlDB.Close() }()
+	if _, err := p.UpTo(ctx, version); err != nil {
+		return fmt.Errorf("goose up to %d: %w", version, err)
+	}
+	rm, err := rivermigrate.New(riverpgxv5.New(pool), nil)
+	if err != nil {
+		return err
+	}
+	if _, err := rm.Migrate(ctx, rivermigrate.DirectionUp, nil); err != nil {
+		return fmt.Errorf("river migrate: %w", err)
+	}
+	return nil
 }

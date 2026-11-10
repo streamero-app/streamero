@@ -98,9 +98,10 @@ var taskJobs = map[gen.TaskKey]string{
 	gen.TaskKeyRefreshMetadata: "metadata.refresh_all",
 	gen.TaskKeyCleanupImages:   "images.cleanup",
 	gen.TaskKeyAnalyzeMedia:    "media.analyze_all",
+	gen.TaskKeyBackup:          "backup.create",
 }
 
-var taskIntervals = map[gen.TaskKey]string{gen.TaskKeyScanAll: "6h", gen.TaskKeyCleanupImages: "24h", gen.TaskKeyAnalyzeMedia: "24h"}
+var taskIntervals = map[gen.TaskKey]string{gen.TaskKeyScanAll: "6h", gen.TaskKeyCleanupImages: "24h", gen.TaskKeyAnalyzeMedia: "24h", gen.TaskKeyBackup: "24h"}
 
 // ListTasks implements GET /tasks.
 func (h *Handler) ListTasks(ctx context.Context) ([]gen.Task, error) {
@@ -118,7 +119,7 @@ func (h *Handler) ListTasks(ctx context.Context) ([]gen.Task, error) {
 	running := map[string]bool{}
 	rows, err := h.lib().Pool.Query(ctx, `SELECT kind, state::text, COALESCE(finalized_at, attempted_at)
 		FROM river_job WHERE kind = ANY($1) ORDER BY id DESC LIMIT 500`,
-		[]string{"library.scan_all", "metadata.refresh_all", "images.cleanup", "library.scan", "metadata.refresh_library", "media.analyze_all", "media.analyze"})
+		[]string{"library.scan_all", "metadata.refresh_all", "images.cleanup", "library.scan", "metadata.refresh_library", "media.analyze_all", "media.analyze", "backup.create"})
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +141,7 @@ func (h *Handler) ListTasks(ctx context.Context) ([]gen.Task, error) {
 		return nil, err
 	}
 	out := []gen.Task{}
-	for _, key := range []gen.TaskKey{gen.TaskKeyScanAll, gen.TaskKeyRefreshMetadata, gen.TaskKeyAnalyzeMedia, gen.TaskKeyCleanupImages} {
+	for _, key := range []gen.TaskKey{gen.TaskKeyScanAll, gen.TaskKeyRefreshMetadata, gen.TaskKeyAnalyzeMedia, gen.TaskKeyCleanupImages, gen.TaskKeyBackup} {
 		kind := taskJobs[key]
 		t := gen.Task{Key: key, Running: running[kind]}
 		// The fan-out jobs finish at once; their per-library children are the real work.
