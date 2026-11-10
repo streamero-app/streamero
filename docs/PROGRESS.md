@@ -26,6 +26,12 @@ Nativna iOS aplikacija dobila je sve ekrane Android aplikacije: Home/Search/Disc
 - Poznato: skok naprijed/natrag iz postavki ne primjenjuje se u AVKit kontrolama (isto kao na Androidu).
 - Sljedeće: ručna provjera na uređaju (reprodukcija, glazba na zaključanom ekranu).
 
+## TV aplikacije bez `/compat` (branch `feat/tv-clients`, 2026-11-10)
+Compat API se služi i na korijenu adrese (D-032, `STREAMERO_COMPAT_ROOT`), s CORS-om za web TV aplikacije; `/socket` WebSocket (keepalive + poruka/stop s nadzorne ploče); odgovor na LAN otkrivanje na UDP 7359 (D-033, `STREAMERO_DISCOVERY`, `STREAMERO_DISCOVERY_URL`).
+- Testirano: unit (otkrivanje, nesudaranje sa svim rutama web klijenta iz `router.tsx`, CORS, cookie se ne koristi na compat putanjama, rate limit na korijenu), integracijski protiv Postgresa (`TestCompatRootAndSocketIntegration`: prijava i pregled na korijenu, auth utičnice, keepalive, push naredbi).
+- Nije provjereno u aplikacijama: Android TV na korijenskoj adresi / otkrivanje / socket, Samsung (Tizen) uopće. LG webOS ne radi: aplikacija učitava web klijent sa servera (D-034, odluka vlasnika).
+- Sljedeće: provjera Android TV aplikacije u emulatoru na korijenskoj adresi i s otkrivanjem (host mreža); Samsung na pravom TV-u.
+
 ## Compat API za medijske klijente (branch `feat/compat-clients`, 2026-11-10)
 `/compat` sada služi i Jellyfin-kompatibilne klijente (D-031): prijava imenom i Quick Connect (i za 2FA račune, odobrenje iz weba), pogledi, `/Items` s pagingom/sortiranjem/filterima, serije/sezone/epizode, slike, pretraga, resume/next up/latest, user data, PlaybackInfo (direct play ili HLS), stream, titlovi, izvještaji o reprodukciji, media segmenti. Migracija 00024 sprema profil/razinu/bit dubinu videa iz ffproba.
 - Provjereno sa službenom Android TV aplikacijom 0.19.10 u emulatoru (Android TV 12, x86): otkrivanje servera, Quick Connect za 2FA korisnika, biblioteke, stranica serije s „Next up", favorit, direct play, HLS transcode (H.264 4:4:4 koji emulator ne dekodira), napredak u bazi.

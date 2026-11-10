@@ -297,7 +297,7 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [ ] `[+]` AI prijevod podnaslova (npr. EN → HR) preko lokalnog LLM-a (Ollama) (P13)
 - [x] `[+]` Import iz Jellyfina: watch povijest (pogledano, broj i datum gledanja), napredak, favoriti, playliste po korisniku, probni prolaz i izvještaj (preko Jellyfin API-ja, uz API ključ; D-024)
 - [ ] `[+]` Import iz Jellyfina: korisnički računi i kolekcije (P13)
-- [ ] `[+]` Compat API sloj (`/compat`, osnova iz P4b) proširen da Infuse, Swiftfin, Findroid itd. rade sa Streamerom (P14) — *pregledavanje, reprodukcija (direct + HLS), napredak, user data, titlovi i Quick Connect (i za 2FA) gotovi (D-031); provjereno sa službenom Android TV aplikacijom 0.19.10 u emulatoru; Infuse, Swiftfin, Kodi i Samsung/LG još nisu isprobani*
+- [ ] `[+]` Compat API sloj (`/compat`, osnova iz P4b) proširen da Infuse, Swiftfin, Findroid itd. rade sa Streamerom (P14) — *pregledavanje, reprodukcija (direct + HLS), napredak, user data, titlovi i Quick Connect (i za 2FA) gotovi (D-031); provjereno sa službenom Android TV aplikacijom 0.19.10 u emulatoru; Infuse, Swiftfin, Kodi i Samsung/LG još nisu isprobani; od D-032 i na korijenskoj adresi (bez `/compat`), s CORS-om, `/socket` (keepalive, poruka/stop) i UDP 7359 otkrivanjem (D-033); LG webOS ne radi jer učitava web klijent sa servera (D-034)*
 
 ## 15. API
 

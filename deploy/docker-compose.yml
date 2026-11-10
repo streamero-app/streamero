@@ -15,6 +15,14 @@ x-common: &common
     STREAMERO_AUTH_RATE_LIMIT: ${STREAMERO_AUTH_RATE_LIMIT:-20,10}
     # Folders libraries may use (inside the container); MEDIA_PATH is mounted at /media.
     STREAMERO_MEDIA_ROOTS: ${STREAMERO_MEDIA_ROOTS:-/media}
+    # Media clients (TV apps, Infuse, Swiftfin…) may use the plain server address;
+    # "false" keeps their API under /compat only (docs/INTEGRATIONS.md, D-032).
+    STREAMERO_COMPAT_ROOT: ${STREAMERO_COMPAT_ROOT:-true}
+    # Answer the TV apps' "find servers on my network" broadcast on UDP 7359 (D-033).
+    STREAMERO_DISCOVERY: ${STREAMERO_DISCOVERY:-true}
+    # Address announced to discovering apps, e.g. http://192.168.1.10:8787. Set it with
+    # bridge networking: the container only knows its own internal address.
+    STREAMERO_DISCOVERY_URL: ${STREAMERO_DISCOVERY_URL:-}
   volumes:
     - ${CONFIG_PATH:-./data/config}:/config
     - ${CACHE_PATH:-./data/cache}:/cache
@@ -44,6 +52,10 @@ services:
       valkey: { condition: service_healthy }
     ports:
       - "${HTTP_PORT:-8787}:8787"
+      # Client discovery (UDP). Docker bridge networks usually do not pass LAN
+      # broadcasts into the container: use `network_mode: host` for discovery to
+      # work, or type the server address in the app.
+      - "${DISCOVERY_PORT:-7359}:7359/udp"
     volumes:
       - ${CONFIG_PATH:-./data/config}:/config
       - ${CACHE_PATH:-./data/cache}:/cache
