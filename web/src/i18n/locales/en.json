@@ -95,7 +95,8 @@
     "branding": "Branding",
     "profileSection": "Profile",
     "requests": "Requests",
-    "enhancements": "Enhancements"
+    "enhancements": "Enhancements",
+    "backups": "Backups"
   },
   "account": {
     "changePassword": "Change password",
@@ -201,7 +202,11 @@
     "invalid_url": "That address is not valid (use http:// or https://).",
     "upstream_failed": "The other app did not answer or rejected the request.",
     "not_configured": "This connection is not set up.",
-    "not_in_arr": "Radarr or Sonarr does not manage this title, so Bazarr cannot find it."
+    "not_in_arr": "Radarr or Sonarr does not manage this title, so Bazarr cannot find it.",
+    "backup_newer_schema": "This backup was made by a newer Streamero version. Update the server first.",
+    "invalid_backup": "The file is not a readable Streamero backup.",
+    "backup_busy": "Another backup or restore is running. Try again in a moment.",
+    "backup_confirm_mismatch": "Type the backup name exactly to confirm."
   },
   "notFound": {
     "title": "Page not found",
@@ -600,7 +605,48 @@
     "failed": "Failed",
     "runNow": "Run now",
     "analyze_media": "Analyze media",
-    "analyze_media_hint": "Chapters, intro and credits for skipping, seek-bar thumbnails"
+    "analyze_media_hint": "Chapters, intro and credits for skipping, seek-bar thumbnails",
+    "backup": "Back up",
+    "backup_hint": "Database and settings into the backup folder; old backups are removed by the retention setting"
+  },
+  "backups": {
+    "title": "Backups",
+    "intro": "A backup holds the whole database (users, libraries, watch history, settings) and the config folder. Media files are never included.",
+    "folder": "Folder on the server: {{dir}}",
+    "now": "Back up now",
+    "running": "Backing up…",
+    "scanWarning": "A library scan is running. The backup stays consistent, but titles still being added may be missing from it.",
+    "none": "No backups yet.",
+    "kind_scheduled": "Scheduled",
+    "kind_manual": "Manual",
+    "kind_pre_restore": "Before restore",
+    "kind_uploaded": "Uploaded",
+    "withArtwork": "With artwork",
+    "problem_unreadable": "Unreadable",
+    "problem_newer_schema": "Newer version",
+    "duringScan": "taken during a scan",
+    "skipped": "missing tables: {{tables}}",
+    "download": "Download",
+    "restore": "Restore",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this backup file? This cannot be undone.",
+    "restoreWarning": "Everything in the database is replaced with this backup: users, libraries, watch history and settings made after it are lost. A safety backup of the current state is written first, then the server restarts.",
+    "typeName": "Type {{name}} to confirm",
+    "restoreConfirm": "Restore and restart",
+    "restore_running": "Restoring {{name}}… The server restarts when it is done.",
+    "restore_succeeded": "Restored {{name}} ({{when}}).",
+    "restore_failed": "Restoring {{name}} failed ({{when}}).",
+    "safetyBackup": "The state before the restore is kept as {{name}}.",
+    "upload": "Upload a backup",
+    "uploadHint": "A .tar.gz from another Streamero server. It is checked and stored here, not restored yet.",
+    "uploaded": "Uploaded and checked.",
+    "scheduleTitle": "Schedule",
+    "enabled": "Daily backup",
+    "enabledHint": "The worker writes one backup a day.",
+    "keepLast": "Keep",
+    "keepLastHint": "How many scheduled and manual backups to keep. Uploaded and pre-restore backups are only deleted by hand.",
+    "includeImages": "Include artwork",
+    "includeImagesHint": "Downloaded posters and backdrops can be fetched again, so they are left out by default. Including them makes backups much larger."
   },
   "notifications": {
     "title": "Notifications",

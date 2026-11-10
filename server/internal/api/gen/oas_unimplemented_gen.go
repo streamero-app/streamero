@@ -87,6 +87,15 @@ func (UnimplementedHandler) CreateAPIKey(ctx context.Context, req *CreateApiKeyR
 	return r, ht.ErrNotImplemented
 }
 
+// CreateBackup implements createBackup operation.
+//
+// Not blocked by a running library scan; the response says so, so the client can warn.
+//
+// POST /backups
+func (UnimplementedHandler) CreateBackup(ctx context.Context) (r *BackupQueued, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // CreateCollection implements createCollection operation.
 //
 // Create a collection (administrators).
@@ -147,6 +156,15 @@ func (UnimplementedHandler) CreateUser(ctx context.Context, req *CreateUserReque
 //
 // DELETE /apikeys/{apiKeyId}
 func (UnimplementedHandler) DeleteAPIKey(ctx context.Context, params DeleteAPIKeyParams) error {
+	return ht.ErrNotImplemented
+}
+
+// DeleteBackup implements deleteBackup operation.
+//
+// Delete a backup file.
+//
+// DELETE /backups/{backupName}
+func (UnimplementedHandler) DeleteBackup(ctx context.Context, params DeleteBackupParams) error {
 	return ht.ErrNotImplemented
 }
 
@@ -237,6 +255,15 @@ func (UnimplementedHandler) DisableTOTP(ctx context.Context, req *PasswordConfir
 //
 // GET /discover
 func (UnimplementedHandler) Discover(ctx context.Context, params DiscoverParams) (r *DiscoverPage, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// DownloadBackup implements downloadBackup operation.
+//
+// Download a backup archive.
+//
+// GET /backups/{backupName}/download
+func (UnimplementedHandler) DownloadBackup(ctx context.Context, params DownloadBackupParams) (r *DownloadBackupOKHeaders, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -520,6 +547,15 @@ func (UnimplementedHandler) ListAPIKeys(ctx context.Context) (r []ApiKey, _ erro
 	return r, ht.ErrNotImplemented
 }
 
+// ListBackups implements listBackups operation.
+//
+// Backups in the backup folder, backup settings and the last restore (admin).
+//
+// GET /backups
+func (UnimplementedHandler) ListBackups(ctx context.Context) (r *BackupOverview, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ListCollections implements listCollections operation.
 //
 // Collections that contain at least one visible item.
@@ -736,6 +772,18 @@ func (UnimplementedHandler) RequestTitle(ctx context.Context, req *TitleRequest)
 	return r, ht.ErrNotImplemented
 }
 
+// RestoreBackup implements restoreBackup operation.
+//
+// The archive is verified first; a backup from a newer database schema than this server is refused. A
+// safety backup of the current state is written before anything is changed. The restore runs in the
+// background and the server restarts when it is done; progress and the result are reported in
+// `lastRestore` of GET /backups.
+//
+// POST /backups/{backupName}/restore
+func (UnimplementedHandler) RestoreBackup(ctx context.Context, req *RestoreBackupRequest, params RestoreBackupParams) error {
+	return ht.ErrNotImplemented
+}
+
 // RevokeSession implements revokeSession operation.
 //
 // Own sessions; admins can revoke any session.
@@ -882,6 +930,15 @@ func (UnimplementedHandler) TestRequestSettings(ctx context.Context) (r []Connec
 	return r, ht.ErrNotImplemented
 }
 
+// UpdateBackupSettings implements updateBackupSettings operation.
+//
+// Change the backup schedule, retention and whether artwork is included.
+//
+// PUT /backups/settings
+func (UnimplementedHandler) UpdateBackupSettings(ctx context.Context, req *BackupSettings) (r *BackupSettings, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // UpdateBrandingSettings implements updateBrandingSettings operation.
 //
 // Update branding (admin).
@@ -1024,6 +1081,15 @@ func (UnimplementedHandler) UpdateUser(ctx context.Context, req *UpdateUserReque
 // PUT /items/{itemId}/user-data
 func (UnimplementedHandler) UpdateUserData(ctx context.Context, req *UserDataUpdate, params UpdateUserDataParams) error {
 	return ht.ErrNotImplemented
+}
+
+// UploadBackup implements uploadBackup operation.
+//
+// Upload a backup archive into the backup folder (it is checked, not restored).
+//
+// POST /backups/upload
+func (UnimplementedHandler) UploadBackup(ctx context.Context, req UploadBackupReq) (r *Backup, _ error) {
+	return r, ht.ErrNotImplemented
 }
 
 // NewError creates *ErrorStatusCode from error returned by handler.

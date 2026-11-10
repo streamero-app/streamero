@@ -1150,6 +1150,127 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/backups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Backups in the backup folder, backup settings and the last restore (admin) */
+        get: operations["listBackups"];
+        put?: never;
+        /**
+         * Queue a backup now (the worker writes it)
+         * @description Not blocked by a running library scan; the response says so, so the client can warn.
+         */
+        post: operations["createBackup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/backups/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change the backup schedule, retention and whether artwork is included */
+        put: operations["updateBackupSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/backups/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload a backup archive into the backup folder (it is checked, not restored) */
+        post: operations["uploadBackup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/backups/{backupName}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description File name of a backup in the backup folder. */
+                backupName: components["parameters"]["BackupName"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a backup file */
+        delete: operations["deleteBackup"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/backups/{backupName}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description File name of a backup in the backup folder. */
+                backupName: components["parameters"]["BackupName"];
+            };
+            cookie?: never;
+        };
+        /** Download a backup archive */
+        get: operations["downloadBackup"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/backups/{backupName}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description File name of a backup in the backup folder. */
+                backupName: components["parameters"]["BackupName"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Replace the database (and config) with a backup, then restart
+         * @description The archive is verified first; a backup from a newer database schema than this
+         *     server is refused. A safety backup of the current state is written before anything
+         *     is changed. The restore runs in the background and the server restarts when it is
+         *     done; progress and the result are reported in `lastRestore` of GET /backups.
+         */
+        post: operations["restoreBackup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/settings/notifications": {
         parameters: {
             query?: never;
@@ -1833,7 +1954,7 @@ export interface components {
             };
         };
         /** @enum {string} */
-        TaskKey: "scan_all" | "refresh_metadata" | "cleanup_images" | "analyze_media";
+        TaskKey: "scan_all" | "refresh_metadata" | "cleanup_images" | "analyze_media" | "backup";
         Task: {
             key: components["schemas"]["TaskKey"];
             running: boolean;
@@ -1843,6 +1964,73 @@ export interface components {
             lastState?: string;
             /** @description Automatic schedule, e.g. "6h"; absent when manual only. */
             interval?: string;
+        };
+        /** @enum {string} */
+        BackupKind: "scheduled" | "manual" | "pre_restore" | "uploaded";
+        Backup: {
+            name: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            /** Format: date-time */
+            createdAt: string;
+            kind: components["schemas"]["BackupKind"];
+            serverVersion: string;
+            /** Format: int64 */
+            schemaVersion: number;
+            includesImages: boolean;
+            /** @description A library scan was running while the backup was taken. */
+            scanRunning: boolean;
+            /** @description False when the archive is unreadable or from a newer database schema than this server. */
+            restorable: boolean;
+            /** @description Why the backup cannot be restored (unreadable, newer_schema). */
+            problem?: string;
+            /** @description Tables that could not be read when the backup was taken (damaged rows). */
+            skippedTables?: string[];
+        };
+        BackupSettings: {
+            /** @description Write a backup automatically once a day. */
+            enabled: boolean;
+            /** @description Scheduled and manual backups kept; older ones are deleted. */
+            keepLast: number;
+            /** @description Also archive downloaded artwork (it can be fetched again, so it is off by default). */
+            includeImages: boolean;
+        };
+        RestoreStatus: {
+            backup: string;
+            /** @enum {string} */
+            state: "running" | "succeeded" | "failed";
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            finishedAt?: string;
+            error?: string;
+            /** @description Backup of the state just before the restore. */
+            safetyBackup?: string;
+            warnings?: string[];
+        };
+        BackupOverview: {
+            /** @description Backup folder inside the server container. */
+            dir: string;
+            backups: components["schemas"]["Backup"][];
+            settings: components["schemas"]["BackupSettings"];
+            /** @description A library scan is running now. */
+            scanRunning: boolean;
+            /** @description A backup is queued or being written. */
+            running: boolean;
+            /**
+             * Format: int64
+             * @description Newest database schema this server knows.
+             */
+            schemaVersion: number;
+            lastRestore?: components["schemas"]["RestoreStatus"];
+        };
+        BackupQueued: {
+            /** @description A library scan is running; the backup is still consistent but may miss items being added. */
+            scanRunning: boolean;
+        };
+        RestoreBackupRequest: {
+            /** @description Must repeat the backup name exactly. */
+            confirm: string;
         };
         /** @enum {string} */
         NotificationEvent: "item.added" | "playback.started" | "login.succeeded" | "login.failed" | "scan.failed" | "test";
@@ -2513,6 +2701,8 @@ export interface components {
         LibraryId: string;
         CollectionId: string;
         PlaylistId: string;
+        /** @description File name of a backup in the backup folder. */
+        BackupName: string;
         ProfileId: string;
         UserId: string;
     };
@@ -4368,6 +4558,171 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listBackups: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Backups, newest first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupOverview"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupQueued"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateBackupSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BackupSettings"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    uploadBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description Stored and verified */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Backup"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description File name of a backup in the backup folder. */
+                backupName: components["parameters"]["BackupName"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    downloadBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description File name of a backup in the backup folder. */
+                backupName: components["parameters"]["BackupName"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The archive (.tar.gz) */
+            200: {
+                headers: {
+                    "Content-Disposition"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/gzip": string;
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    restoreBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description File name of a backup in the backup folder. */
+                backupName: components["parameters"]["BackupName"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestoreBackupRequest"];
+            };
+        };
+        responses: {
+            /** @description Restore started */
             202: {
                 headers: {
                     [name: string]: unknown;

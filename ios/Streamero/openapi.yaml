@@ -1686,6 +1686,145 @@ paths:
           description: Queued
         default:
           $ref: "#/components/responses/Error"
+  /backups:
+    get:
+      operationId: listBackups
+      summary: Backups in the backup folder, backup settings and the last restore (admin)
+      tags: [admin]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Backups, newest first
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BackupOverview"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createBackup
+      summary: Queue a backup now (the worker writes it)
+      description: Not blocked by a running library scan; the response says so, so the client can warn.
+      tags: [admin]
+      security:
+        - sessionToken: []
+      responses:
+        "202":
+          description: Queued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BackupQueued"
+        default:
+          $ref: "#/components/responses/Error"
+  /backups/settings:
+    put:
+      operationId: updateBackupSettings
+      summary: Change the backup schedule, retention and whether artwork is included
+      tags: [admin]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BackupSettings"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BackupSettings"
+        default:
+          $ref: "#/components/responses/Error"
+  /backups/upload:
+    post:
+      operationId: uploadBackup
+      summary: Upload a backup archive into the backup folder (it is checked, not restored)
+      tags: [admin]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "201":
+          description: Stored and verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Backup"
+        default:
+          $ref: "#/components/responses/Error"
+  /backups/{backupName}:
+    parameters:
+      - $ref: "#/components/parameters/BackupName"
+    delete:
+      operationId: deleteBackup
+      summary: Delete a backup file
+      tags: [admin]
+      security:
+        - sessionToken: []
+      responses:
+        "204":
+          description: Deleted
+        default:
+          $ref: "#/components/responses/Error"
+  /backups/{backupName}/download:
+    parameters:
+      - $ref: "#/components/parameters/BackupName"
+    get:
+      operationId: downloadBackup
+      summary: Download a backup archive
+      tags: [admin]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: The archive (.tar.gz)
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+          content:
+            application/gzip:
+              schema:
+                type: string
+                format: binary
+        default:
+          $ref: "#/components/responses/Error"
+  /backups/{backupName}/restore:
+    parameters:
+      - $ref: "#/components/parameters/BackupName"
+    post:
+      operationId: restoreBackup
+      summary: Replace the database (and config) with a backup, then restart
+      description: |
+        The archive is verified first; a backup from a newer database schema than this
+        server is refused. A safety backup of the current state is written before anything
+        is changed. The restore runs in the background and the server restarts when it is
+        done; progress and the result are reported in `lastRestore` of GET /backups.
+      tags: [admin]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RestoreBackupRequest"
+      responses:
+        "202":
+          description: Restore started
+        default:
+          $ref: "#/components/responses/Error"
   /settings/notifications:
     get:
       operationId: getNotificationSettings
@@ -2403,6 +2542,14 @@ components:
       schema:
         type: string
         format: uuid
+    BackupName:
+      name: backupName
+      in: path
+      required: true
+      description: File name of a backup in the backup folder.
+      schema:
+        type: string
+        pattern: "^[A-Za-z0-9][A-Za-z0-9._-]{0,180}\\.tar\\.gz$"
     ProfileId:
       name: profileId
       in: path
@@ -2908,7 +3055,7 @@ components:
           additionalProperties: true
     TaskKey:
       type: string
-      enum: [scan_all, refresh_metadata, cleanup_images, analyze_media]
+      enum: [scan_all, refresh_metadata, cleanup_images, analyze_media, backup]
     Task:
       type: object
       required: [key, running]
@@ -2926,6 +3073,122 @@ components:
         interval:
           type: string
           description: Automatic schedule, e.g. "6h"; absent when manual only.
+    BackupKind:
+      type: string
+      enum: [scheduled, manual, pre_restore, uploaded]
+    Backup:
+      type: object
+      required: [name, sizeBytes, createdAt, kind, serverVersion, schemaVersion, includesImages, scanRunning, restorable]
+      properties:
+        name:
+          type: string
+        sizeBytes:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+        kind:
+          $ref: "#/components/schemas/BackupKind"
+        serverVersion:
+          type: string
+        schemaVersion:
+          type: integer
+          format: int64
+        includesImages:
+          type: boolean
+        scanRunning:
+          type: boolean
+          description: A library scan was running while the backup was taken.
+        restorable:
+          type: boolean
+          description: False when the archive is unreadable or from a newer database schema than this server.
+        problem:
+          type: string
+          description: Why the backup cannot be restored (unreadable, newer_schema).
+        skippedTables:
+          type: array
+          description: Tables that could not be read when the backup was taken (damaged rows).
+          items:
+            type: string
+    BackupSettings:
+      type: object
+      required: [enabled, keepLast, includeImages]
+      properties:
+        enabled:
+          type: boolean
+          description: Write a backup automatically once a day.
+        keepLast:
+          type: integer
+          minimum: 1
+          maximum: 100
+          description: Scheduled and manual backups kept; older ones are deleted.
+        includeImages:
+          type: boolean
+          description: Also archive downloaded artwork (it can be fetched again, so it is off by default).
+    RestoreStatus:
+      type: object
+      required: [backup, state, startedAt]
+      properties:
+        backup:
+          type: string
+        state:
+          type: string
+          enum: [running, succeeded, failed]
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+        error:
+          type: string
+        safetyBackup:
+          type: string
+          description: Backup of the state just before the restore.
+        warnings:
+          type: array
+          items:
+            type: string
+    BackupOverview:
+      type: object
+      required: [dir, backups, settings, scanRunning, running, schemaVersion]
+      properties:
+        dir:
+          type: string
+          description: Backup folder inside the server container.
+        backups:
+          type: array
+          items:
+            $ref: "#/components/schemas/Backup"
+        settings:
+          $ref: "#/components/schemas/BackupSettings"
+        scanRunning:
+          type: boolean
+          description: A library scan is running now.
+        running:
+          type: boolean
+          description: A backup is queued or being written.
+        schemaVersion:
+          type: integer
+          format: int64
+          description: Newest database schema this server knows.
+        lastRestore:
+          $ref: "#/components/schemas/RestoreStatus"
+    BackupQueued:
+      type: object
+      required: [scanRunning]
+      properties:
+        scanRunning:
+          type: boolean
+          description: A library scan is running; the backup is still consistent but may miss items being added.
+    RestoreBackupRequest:
+      type: object
+      required: [confirm]
+      properties:
+        confirm:
+          type: string
+          description: Must repeat the backup name exactly.
     NotificationEvent:
       type: string
       enum: [item.added, playback.started, login.succeeded, login.failed, scan.failed, test]
