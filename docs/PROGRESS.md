@@ -26,6 +26,9 @@ Nativna iOS aplikacija dobila je sve ekrane Android aplikacije: Home/Search/Disc
 - Poznato: skok naprijed/natrag iz postavki ne primjenjuje se u AVKit kontrolama (isto kao na Androidu).
 - Sljedeće: ručna provjera na uređaju (reprodukcija, glazba na zaključanom ekranu).
 
+## v0.8.3 (2026-11-10)
+iOS: slike više ne šire ekran preko ruba, a nakon ponovne instalacije i dodavanja servera traži se prijava (#41). Naslovi se prikazuju točno kako ih daje TMDb, umjesto velikim slovima. Spremanje TMDb ključa ponovno pokušava naslove kojima je pretraga propala. Verzija je samo u postavkama (#42).
+
 ## v0.8.2 (2026-11-09)
 iOS aplikacija s gotovo punim paritetom (#38) i ispravljeni oblici množine na Androidu (#39). iOS je preveden i prošao unit testove na CI-ju, ali još nije pokrenut na uređaju.
 
