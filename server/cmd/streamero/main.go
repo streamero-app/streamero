@@ -29,6 +29,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/compat"
 	"github.com/streamero-app/streamero/server/internal/config"
 	"github.com/streamero-app/streamero/server/internal/db"
+	"github.com/streamero-app/streamero/server/internal/importer"
 	"github.com/streamero-app/streamero/server/internal/jobs"
 	"github.com/streamero-app/streamero/server/internal/library"
 	"github.com/streamero-app/streamero/server/internal/logbuf"
@@ -184,6 +185,10 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			_, err := inserter.Insert(ctx, args, nil)
 			return err
 		}
+		h.EnqueueImport = func(ctx context.Context, id uuid.UUID) error {
+			_, err := inserter.Insert(ctx, jobs.ImportArgs{RunID: id}, nil)
+			return err
+		}
 		state.SetLibrary(libs)
 		state.SetCompat(&compat.Server{Pool: deps.Pool, Auth: state.Auth(), Libraries: libs, ServerID: state.ServerID(), Log: log,
 			ServerName: h.ServerNameFor})
@@ -253,6 +258,7 @@ func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			_, err := client.Insert(ctx, jobs.MediaAnalyzeArgs{LibraryID: id}, nil)
 			return err
 		})
+	jobs.RegisterImport(workers, &importer.Runner{Pool: deps.Pool, Log: log})
 	client, err = river.NewClient(riverpgxv5.New(deps.Pool), &river.Config{
 		Logger:  log,
 		Queues:  map[string]river.QueueConfig{river.QueueDefault: {MaxWorkers: 10}},
