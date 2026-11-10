@@ -28,11 +28,12 @@ struct RootView: View {
                     ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity).background(Theme.background)
                 case .signedOut:
                     LoginView(server: server)
-                case .signedIn(let user):
+                case .signedIn:
                     if let token = session.token(for: server) {
                         MainView(server: server, client: MediaClient(baseURL: server.url, token: token))
                     } else {
-                        SignedInView(server: server, user: user)
+                        // The saved sign-in disappeared (for example the Keychain was reset): sign in again.
+                        LoginView(server: server)
                     }
                 }
             }
@@ -40,26 +41,5 @@ struct RootView: View {
         } else {
             AddServerView()
         }
-    }
-}
-
-/// Home after sign-in; libraries and playback arrive in P7.
-struct SignedInView: View {
-    let server: SavedServer
-    let user: Components.Schemas.User
-    @Environment(SessionStore.self) private var session
-
-    var body: some View {
-        VStack(spacing: 16) {
-            Text("home.welcome \(user.username)").font(.title.bold())
-            Text("server.connected \(server.version)").foregroundStyle(Theme.textMuted)
-            Text(server.name).foregroundStyle(Theme.textMuted)
-            Button("nav.logout", role: .destructive) {
-                Task { await session.signOut(server: server) }
-            }
-            .buttonStyle(.bordered)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Theme.background)
     }
 }

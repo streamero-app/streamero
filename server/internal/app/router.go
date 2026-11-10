@@ -69,7 +69,9 @@ func NewRouter(state *State, h *api.Handler, opts ...RouterOptions) (http.Handle
 	r.Get("/readyz", func(w http.ResponseWriter, _ *http.Request) {
 		if !state.Ready() {
 			w.Header().Set("Retry-After", strconv.Itoa(api.RetryAfterSeconds))
-			writeJSON(w, http.StatusServiceUnavailable, map[string]any{"status": "starting", "error": state.LastError()})
+			// The startup error itself is only logged: it can name hosts, ports and users of the
+			// database, and this endpoint needs no sign-in.
+			writeJSON(w, http.StatusServiceUnavailable, map[string]any{"status": "starting", "retrying": state.LastError() != ""})
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"status": "ready"})

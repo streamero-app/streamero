@@ -27,7 +27,7 @@ Nativna iOS aplikacija dobila je sve ekrane Android aplikacije: Home/Search/Disc
 - Sljedeće: ručna provjera na uređaju (reprodukcija, glazba na zaključanom ekranu).
 
 ## Uvoz iz Jellyfina (branch `feat/jellyfin-import`, 2026-11-10)
-Postavke → Uvoz: admin upiše adresu i API ključ starog servera, poveže korisnike (po imenu, može promijeniti/preskočiti), doda preslikavanje mapa i pokrene probni prolaz ili uvoz (River job `import.run`). Prenosi pogledano, broj i datum gledanja, poziciju, favorite i popise; ponovni uvoz ne pravi duplikate i ne pregazi noviji napredak (D-022).
+Postavke → Uvoz: admin upiše adresu i API ključ starog servera, poveže korisnike (po imenu, može promijeniti/preskočiti), doda preslikavanje mapa i pokrene probni prolaz ili uvoz (River job `import.run`). Prenosi pogledano, broj i datum gledanja, poziciju, favorite i popise; ponovni uvoz ne pravi duplikate i ne pregazi noviji napredak (D-024).
 - Testirano: unit (ticks → ms, uparivanje, spajanje/idempotentnost, povezivanje korisnika, lažni Jellyfin HTTP server), integracijski protiv Postgresa (cijeli uvoz dvaput, API s ključem koji se ne vraća), web test.
 - Nije provjereno protiv pravog Jellyfina. Ne uvoze se računi ni kolekcije.
 

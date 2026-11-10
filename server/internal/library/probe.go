@@ -68,7 +68,7 @@ type ffprobeOutput struct {
 	} `json:"streams"`
 }
 
-// FFprobe runs the ffprobe binary (the image ships jellyfin-ffmpeg; only invoked, never linked).
+// FFprobe runs the ffprobe binary (the ffmpeg build in the image; only invoked, never linked).
 func FFprobe(bin string) Prober {
 	return func(ctx context.Context, path string) (ProbeResult, error) {
 		ctx, cancel := context.WithTimeout(ctx, 60*time.Second)

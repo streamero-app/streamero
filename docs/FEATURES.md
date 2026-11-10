@@ -295,7 +295,7 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [ ] `[+]` Auto-sync podnaslova s audiom (ffsubsync/alass) (P13)
 - [ ] `[+]` AI podnaslovi: Whisper (faster-whisper kontejner, GPU) generira podnaslove kad ih nema (P13)
 - [ ] `[+]` AI prijevod podnaslova (npr. EN → HR) preko lokalnog LLM-a (Ollama) (P13)
-- [x] `[+]` Import iz Jellyfina: watch povijest (pogledano, broj i datum gledanja), napredak, favoriti, playliste po korisniku, probni prolaz i izvještaj (preko Jellyfin API-ja, uz API ključ; D-022)
+- [x] `[+]` Import iz Jellyfina: watch povijest (pogledano, broj i datum gledanja), napredak, favoriti, playliste po korisniku, probni prolaz i izvještaj (preko Jellyfin API-ja, uz API ključ; D-024)
 - [ ] `[+]` Import iz Jellyfina: korisnički računi i kolekcije (P13)
 - [ ] `[+]` Compat API sloj (`/compat`, osnova iz P4b) proširen da Infuse, Swiftfin, Findroid itd. rade sa Streamerom (P14)
 

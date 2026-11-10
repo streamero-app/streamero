@@ -9,7 +9,7 @@ services:
       args:
         VERSION: ${STREAMERO_BUILD_VERSION:-dev}
         COMMIT: ${STREAMERO_BUILD_COMMIT:-unknown}
-        FFMPEG_SOURCE: ${FFMPEG_SOURCE:-jellyfin}
+        FFMPEG_SOURCE: ${FFMPEG_SOURCE:-extended}
     environment:
       STREAMERO_LOG_LEVEL: debug
       STREAMERO_MEDIA_ROOTS: /media,/fixtures
