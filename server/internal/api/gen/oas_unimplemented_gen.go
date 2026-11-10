@@ -58,6 +58,16 @@ func (UnimplementedHandler) ChangePassword(ctx context.Context, req *ChangePassw
 	return ht.ErrNotImplemented
 }
 
+// CheckImportSource implements checkImportSource operation.
+//
+// Reads server info and the user list of the server to import from, and suggests a Streamero user for
+// each (same username, case-insensitive). The API key is not stored.
+//
+// POST /import/source
+func (UnimplementedHandler) CheckImportSource(ctx context.Context, req *ImportSource) (r *ImportSourceInfo, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // CompleteSetup implements completeSetup operation.
 //
 // Only allowed while `setupCompleted` is false. Requires the one-time setup code the server prints to
@@ -348,6 +358,15 @@ func (UnimplementedHandler) GetEnhancements(ctx context.Context) (r *Enhancement
 	return r, ht.ErrNotImplemented
 }
 
+// GetImportRun implements getImportRun operation.
+//
+// Progress and report of one import (admin).
+//
+// GET /import/runs/{runId}
+func (UnimplementedHandler) GetImportRun(ctx context.Context, params GetImportRunParams) (r *ImportRun, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetInvite implements getInvite operation.
 //
 // Check an invite link (public).
@@ -535,6 +554,15 @@ func (UnimplementedHandler) ListCollections(ctx context.Context) (r []Collection
 //
 // GET /home/favorites
 func (UnimplementedHandler) ListFavorites(ctx context.Context) (r []ItemSummary, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListImportRuns implements listImportRuns operation.
+//
+// Recent imports, newest first (admin).
+//
+// GET /import/runs
+func (UnimplementedHandler) ListImportRuns(ctx context.Context) (r []ImportRun, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -833,6 +861,16 @@ func (UnimplementedHandler) SetMyAvatar(ctx context.Context, req SetMyAvatarReq)
 // PUT /profiles/{profileId}/avatar
 func (UnimplementedHandler) SetProfileAvatar(ctx context.Context, req SetProfileAvatarReq, params SetProfileAvatarParams) error {
 	return ht.ErrNotImplemented
+}
+
+// StartImport implements startImport operation.
+//
+// The API key is kept only until the job finishes and is never returned. Running the same import again
+// is safe: nothing is duplicated and newer Streamero progress is kept.
+//
+// POST /import/runs
+func (UnimplementedHandler) StartImport(ctx context.Context, req *ImportRequest) (r *ImportRun, _ error) {
+	return r, ht.ErrNotImplemented
 }
 
 // StartPlayback implements startPlayback operation.

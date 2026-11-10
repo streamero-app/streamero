@@ -38,6 +38,13 @@ type Handler interface {
 	//
 	// POST /auth/password
 	ChangePassword(ctx context.Context, req *ChangePasswordRequest) error
+	// CheckImportSource implements checkImportSource operation.
+	//
+	// Reads server info and the user list of the server to import from, and suggests a Streamero user for
+	// each (same username, case-insensitive). The API key is not stored.
+	//
+	// POST /import/source
+	CheckImportSource(ctx context.Context, req *ImportSource) (*ImportSourceInfo, error)
 	// CompleteSetup implements completeSetup operation.
 	//
 	// Only allowed while `setupCompleted` is false. Requires the one-time setup code the server prints to
@@ -232,6 +239,12 @@ type Handler interface {
 	//
 	// GET /enhancements
 	GetEnhancements(ctx context.Context) (*Enhancements, error)
+	// GetImportRun implements getImportRun operation.
+	//
+	// Progress and report of one import (admin).
+	//
+	// GET /import/runs/{runId}
+	GetImportRun(ctx context.Context, params GetImportRunParams) (*ImportRun, error)
 	// GetInvite implements getInvite operation.
 	//
 	// Check an invite link (public).
@@ -359,6 +372,12 @@ type Handler interface {
 	//
 	// GET /home/favorites
 	ListFavorites(ctx context.Context) ([]ItemSummary, error)
+	// ListImportRuns implements listImportRuns operation.
+	//
+	// Recent imports, newest first (admin).
+	//
+	// GET /import/runs
+	ListImportRuns(ctx context.Context) ([]ImportRun, error)
 	// ListInvites implements listInvites operation.
 	//
 	// Invite links (admin).
@@ -557,6 +576,13 @@ type Handler interface {
 	//
 	// PUT /profiles/{profileId}/avatar
 	SetProfileAvatar(ctx context.Context, req SetProfileAvatarReq, params SetProfileAvatarParams) error
+	// StartImport implements startImport operation.
+	//
+	// The API key is kept only until the job finishes and is never returned. Running the same import again
+	// is safe: nothing is duplicated and newer Streamero progress is kept.
+	//
+	// POST /import/runs
+	StartImport(ctx context.Context, req *ImportRequest) (*ImportRun, error)
 	// StartPlayback implements startPlayback operation.
 	//
 	// Returns direct play when the device supports the file as is, otherwise an HLS stream (remux or

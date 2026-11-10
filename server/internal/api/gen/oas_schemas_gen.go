@@ -2226,6 +2226,752 @@ func (s *IdentifyResult) SetPosterUrl(val OptString) {
 	s.PosterUrl = val
 }
 
+// Ref: #/components/schemas/ImportPathMapping
+type ImportPathMapping struct {
+	// Path prefix as the other server sees the media (e.g. /data/movies).
+	From string `json:"from"`
+	// The same folder as Streamero sees it; must be inside the media folders.
+	To string `json:"to"`
+}
+
+// GetFrom returns the value of From.
+func (s *ImportPathMapping) GetFrom() string {
+	return s.From
+}
+
+// GetTo returns the value of To.
+func (s *ImportPathMapping) GetTo() string {
+	return s.To
+}
+
+// SetFrom sets the value of From.
+func (s *ImportPathMapping) SetFrom(val string) {
+	s.From = val
+}
+
+// SetTo sets the value of To.
+func (s *ImportPathMapping) SetTo(val string) {
+	s.To = val
+}
+
+// Ref: #/components/schemas/ImportProgress
+type ImportProgress struct {
+	UsersDone   int       `json:"usersDone"`
+	UsersTotal  int       `json:"usersTotal"`
+	CurrentUser OptString `json:"currentUser"`
+}
+
+// GetUsersDone returns the value of UsersDone.
+func (s *ImportProgress) GetUsersDone() int {
+	return s.UsersDone
+}
+
+// GetUsersTotal returns the value of UsersTotal.
+func (s *ImportProgress) GetUsersTotal() int {
+	return s.UsersTotal
+}
+
+// GetCurrentUser returns the value of CurrentUser.
+func (s *ImportProgress) GetCurrentUser() OptString {
+	return s.CurrentUser
+}
+
+// SetUsersDone sets the value of UsersDone.
+func (s *ImportProgress) SetUsersDone(val int) {
+	s.UsersDone = val
+}
+
+// SetUsersTotal sets the value of UsersTotal.
+func (s *ImportProgress) SetUsersTotal(val int) {
+	s.UsersTotal = val
+}
+
+// SetCurrentUser sets the value of CurrentUser.
+func (s *ImportProgress) SetCurrentUser(val OptString) {
+	s.CurrentUser = val
+}
+
+// Ref: #/components/schemas/ImportReport
+type ImportReport struct {
+	Users                []ImportUserReport `json:"users"`
+	SkippedUsers         []string           `json:"skippedUsers"`
+	MatchedByProvider    int                `json:"matchedByProvider"`
+	MatchedByPath        int                `json:"matchedByPath"`
+	MatchedByTitle       int                `json:"matchedByTitle"`
+	Unmatched            int                `json:"unmatched"`
+	UnmatchedSample      []ImportUnmatched  `json:"unmatchedSample"`
+	PlaylistsCreated     int                `json:"playlistsCreated"`
+	PlaylistsUpdated     int                `json:"playlistsUpdated"`
+	PlaylistItemsMissing int                `json:"playlistItemsMissing"`
+	// Items whose Streamero progress was newer and therefore kept.
+	KeptNewer int `json:"keptNewer"`
+}
+
+// GetUsers returns the value of Users.
+func (s *ImportReport) GetUsers() []ImportUserReport {
+	return s.Users
+}
+
+// GetSkippedUsers returns the value of SkippedUsers.
+func (s *ImportReport) GetSkippedUsers() []string {
+	return s.SkippedUsers
+}
+
+// GetMatchedByProvider returns the value of MatchedByProvider.
+func (s *ImportReport) GetMatchedByProvider() int {
+	return s.MatchedByProvider
+}
+
+// GetMatchedByPath returns the value of MatchedByPath.
+func (s *ImportReport) GetMatchedByPath() int {
+	return s.MatchedByPath
+}
+
+// GetMatchedByTitle returns the value of MatchedByTitle.
+func (s *ImportReport) GetMatchedByTitle() int {
+	return s.MatchedByTitle
+}
+
+// GetUnmatched returns the value of Unmatched.
+func (s *ImportReport) GetUnmatched() int {
+	return s.Unmatched
+}
+
+// GetUnmatchedSample returns the value of UnmatchedSample.
+func (s *ImportReport) GetUnmatchedSample() []ImportUnmatched {
+	return s.UnmatchedSample
+}
+
+// GetPlaylistsCreated returns the value of PlaylistsCreated.
+func (s *ImportReport) GetPlaylistsCreated() int {
+	return s.PlaylistsCreated
+}
+
+// GetPlaylistsUpdated returns the value of PlaylistsUpdated.
+func (s *ImportReport) GetPlaylistsUpdated() int {
+	return s.PlaylistsUpdated
+}
+
+// GetPlaylistItemsMissing returns the value of PlaylistItemsMissing.
+func (s *ImportReport) GetPlaylistItemsMissing() int {
+	return s.PlaylistItemsMissing
+}
+
+// GetKeptNewer returns the value of KeptNewer.
+func (s *ImportReport) GetKeptNewer() int {
+	return s.KeptNewer
+}
+
+// SetUsers sets the value of Users.
+func (s *ImportReport) SetUsers(val []ImportUserReport) {
+	s.Users = val
+}
+
+// SetSkippedUsers sets the value of SkippedUsers.
+func (s *ImportReport) SetSkippedUsers(val []string) {
+	s.SkippedUsers = val
+}
+
+// SetMatchedByProvider sets the value of MatchedByProvider.
+func (s *ImportReport) SetMatchedByProvider(val int) {
+	s.MatchedByProvider = val
+}
+
+// SetMatchedByPath sets the value of MatchedByPath.
+func (s *ImportReport) SetMatchedByPath(val int) {
+	s.MatchedByPath = val
+}
+
+// SetMatchedByTitle sets the value of MatchedByTitle.
+func (s *ImportReport) SetMatchedByTitle(val int) {
+	s.MatchedByTitle = val
+}
+
+// SetUnmatched sets the value of Unmatched.
+func (s *ImportReport) SetUnmatched(val int) {
+	s.Unmatched = val
+}
+
+// SetUnmatchedSample sets the value of UnmatchedSample.
+func (s *ImportReport) SetUnmatchedSample(val []ImportUnmatched) {
+	s.UnmatchedSample = val
+}
+
+// SetPlaylistsCreated sets the value of PlaylistsCreated.
+func (s *ImportReport) SetPlaylistsCreated(val int) {
+	s.PlaylistsCreated = val
+}
+
+// SetPlaylistsUpdated sets the value of PlaylistsUpdated.
+func (s *ImportReport) SetPlaylistsUpdated(val int) {
+	s.PlaylistsUpdated = val
+}
+
+// SetPlaylistItemsMissing sets the value of PlaylistItemsMissing.
+func (s *ImportReport) SetPlaylistItemsMissing(val int) {
+	s.PlaylistItemsMissing = val
+}
+
+// SetKeptNewer sets the value of KeptNewer.
+func (s *ImportReport) SetKeptNewer(val int) {
+	s.KeptNewer = val
+}
+
+// Ref: #/components/schemas/ImportRequest
+type ImportRequest struct {
+	URL    string `json:"url"`
+	ApiKey string `json:"apiKey"`
+	// Match and count only; nothing is written.
+	DryRun       bool                `json:"dryRun"`
+	Users        []ImportUserMapping `json:"users"`
+	PathMappings []ImportPathMapping `json:"pathMappings"`
+	Playlists    OptBool             `json:"playlists"`
+}
+
+// GetURL returns the value of URL.
+func (s *ImportRequest) GetURL() string {
+	return s.URL
+}
+
+// GetApiKey returns the value of ApiKey.
+func (s *ImportRequest) GetApiKey() string {
+	return s.ApiKey
+}
+
+// GetDryRun returns the value of DryRun.
+func (s *ImportRequest) GetDryRun() bool {
+	return s.DryRun
+}
+
+// GetUsers returns the value of Users.
+func (s *ImportRequest) GetUsers() []ImportUserMapping {
+	return s.Users
+}
+
+// GetPathMappings returns the value of PathMappings.
+func (s *ImportRequest) GetPathMappings() []ImportPathMapping {
+	return s.PathMappings
+}
+
+// GetPlaylists returns the value of Playlists.
+func (s *ImportRequest) GetPlaylists() OptBool {
+	return s.Playlists
+}
+
+// SetURL sets the value of URL.
+func (s *ImportRequest) SetURL(val string) {
+	s.URL = val
+}
+
+// SetApiKey sets the value of ApiKey.
+func (s *ImportRequest) SetApiKey(val string) {
+	s.ApiKey = val
+}
+
+// SetDryRun sets the value of DryRun.
+func (s *ImportRequest) SetDryRun(val bool) {
+	s.DryRun = val
+}
+
+// SetUsers sets the value of Users.
+func (s *ImportRequest) SetUsers(val []ImportUserMapping) {
+	s.Users = val
+}
+
+// SetPathMappings sets the value of PathMappings.
+func (s *ImportRequest) SetPathMappings(val []ImportPathMapping) {
+	s.PathMappings = val
+}
+
+// SetPlaylists sets the value of Playlists.
+func (s *ImportRequest) SetPlaylists(val OptBool) {
+	s.Playlists = val
+}
+
+// Ref: #/components/schemas/ImportRun
+type ImportRun struct {
+	ID         uuid.UUID       `json:"id"`
+	Status     ImportRunStatus `json:"status"`
+	DryRun     bool            `json:"dryRun"`
+	SourceUrl  string          `json:"sourceUrl"`
+	CreatedAt  time.Time       `json:"createdAt"`
+	StartedAt  OptDateTime     `json:"startedAt"`
+	FinishedAt OptDateTime     `json:"finishedAt"`
+	Error      OptString       `json:"error"`
+	Progress   ImportProgress  `json:"progress"`
+	Report     OptImportReport `json:"report"`
+}
+
+// GetID returns the value of ID.
+func (s *ImportRun) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetStatus returns the value of Status.
+func (s *ImportRun) GetStatus() ImportRunStatus {
+	return s.Status
+}
+
+// GetDryRun returns the value of DryRun.
+func (s *ImportRun) GetDryRun() bool {
+	return s.DryRun
+}
+
+// GetSourceUrl returns the value of SourceUrl.
+func (s *ImportRun) GetSourceUrl() string {
+	return s.SourceUrl
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *ImportRun) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetStartedAt returns the value of StartedAt.
+func (s *ImportRun) GetStartedAt() OptDateTime {
+	return s.StartedAt
+}
+
+// GetFinishedAt returns the value of FinishedAt.
+func (s *ImportRun) GetFinishedAt() OptDateTime {
+	return s.FinishedAt
+}
+
+// GetError returns the value of Error.
+func (s *ImportRun) GetError() OptString {
+	return s.Error
+}
+
+// GetProgress returns the value of Progress.
+func (s *ImportRun) GetProgress() ImportProgress {
+	return s.Progress
+}
+
+// GetReport returns the value of Report.
+func (s *ImportRun) GetReport() OptImportReport {
+	return s.Report
+}
+
+// SetID sets the value of ID.
+func (s *ImportRun) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetStatus sets the value of Status.
+func (s *ImportRun) SetStatus(val ImportRunStatus) {
+	s.Status = val
+}
+
+// SetDryRun sets the value of DryRun.
+func (s *ImportRun) SetDryRun(val bool) {
+	s.DryRun = val
+}
+
+// SetSourceUrl sets the value of SourceUrl.
+func (s *ImportRun) SetSourceUrl(val string) {
+	s.SourceUrl = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *ImportRun) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetStartedAt sets the value of StartedAt.
+func (s *ImportRun) SetStartedAt(val OptDateTime) {
+	s.StartedAt = val
+}
+
+// SetFinishedAt sets the value of FinishedAt.
+func (s *ImportRun) SetFinishedAt(val OptDateTime) {
+	s.FinishedAt = val
+}
+
+// SetError sets the value of Error.
+func (s *ImportRun) SetError(val OptString) {
+	s.Error = val
+}
+
+// SetProgress sets the value of Progress.
+func (s *ImportRun) SetProgress(val ImportProgress) {
+	s.Progress = val
+}
+
+// SetReport sets the value of Report.
+func (s *ImportRun) SetReport(val OptImportReport) {
+	s.Report = val
+}
+
+type ImportRunStatus string
+
+const (
+	ImportRunStatusQueued  ImportRunStatus = "queued"
+	ImportRunStatusRunning ImportRunStatus = "running"
+	ImportRunStatusDone    ImportRunStatus = "done"
+	ImportRunStatusFailed  ImportRunStatus = "failed"
+)
+
+// AllValues returns all ImportRunStatus values.
+func (ImportRunStatus) AllValues() []ImportRunStatus {
+	return []ImportRunStatus{
+		ImportRunStatusQueued,
+		ImportRunStatusRunning,
+		ImportRunStatusDone,
+		ImportRunStatusFailed,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ImportRunStatus) MarshalText() ([]byte, error) {
+	switch s {
+	case ImportRunStatusQueued:
+		return []byte(s), nil
+	case ImportRunStatusRunning:
+		return []byte(s), nil
+	case ImportRunStatusDone:
+		return []byte(s), nil
+	case ImportRunStatusFailed:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ImportRunStatus) UnmarshalText(data []byte) error {
+	switch ImportRunStatus(data) {
+	case ImportRunStatusQueued:
+		*s = ImportRunStatusQueued
+		return nil
+	case ImportRunStatusRunning:
+		*s = ImportRunStatusRunning
+		return nil
+	case ImportRunStatusDone:
+		*s = ImportRunStatusDone
+		return nil
+	case ImportRunStatusFailed:
+		*s = ImportRunStatusFailed
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/ImportSource
+type ImportSource struct {
+	// Base URL of the server to import from, e.g. http://media:8096.
+	URL string `json:"url"`
+	// An API key created by an administrator of that server.
+	ApiKey string `json:"apiKey"`
+}
+
+// GetURL returns the value of URL.
+func (s *ImportSource) GetURL() string {
+	return s.URL
+}
+
+// GetApiKey returns the value of ApiKey.
+func (s *ImportSource) GetApiKey() string {
+	return s.ApiKey
+}
+
+// SetURL sets the value of URL.
+func (s *ImportSource) SetURL(val string) {
+	s.URL = val
+}
+
+// SetApiKey sets the value of ApiKey.
+func (s *ImportSource) SetApiKey(val string) {
+	s.ApiKey = val
+}
+
+// Ref: #/components/schemas/ImportSourceInfo
+type ImportSourceInfo struct {
+	ServerName string             `json:"serverName"`
+	Version    string             `json:"version"`
+	Users      []ImportSourceUser `json:"users"`
+}
+
+// GetServerName returns the value of ServerName.
+func (s *ImportSourceInfo) GetServerName() string {
+	return s.ServerName
+}
+
+// GetVersion returns the value of Version.
+func (s *ImportSourceInfo) GetVersion() string {
+	return s.Version
+}
+
+// GetUsers returns the value of Users.
+func (s *ImportSourceInfo) GetUsers() []ImportSourceUser {
+	return s.Users
+}
+
+// SetServerName sets the value of ServerName.
+func (s *ImportSourceInfo) SetServerName(val string) {
+	s.ServerName = val
+}
+
+// SetVersion sets the value of Version.
+func (s *ImportSourceInfo) SetVersion(val string) {
+	s.Version = val
+}
+
+// SetUsers sets the value of Users.
+func (s *ImportSourceInfo) SetUsers(val []ImportSourceUser) {
+	s.Users = val
+}
+
+// Ref: #/components/schemas/ImportSourceUser
+type ImportSourceUser struct {
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	IsAdmin bool   `json:"isAdmin"`
+	// Streamero user with the same username (case-insensitive).
+	SuggestedUserId OptUUID `json:"suggestedUserId"`
+}
+
+// GetID returns the value of ID.
+func (s *ImportSourceUser) GetID() string {
+	return s.ID
+}
+
+// GetName returns the value of Name.
+func (s *ImportSourceUser) GetName() string {
+	return s.Name
+}
+
+// GetIsAdmin returns the value of IsAdmin.
+func (s *ImportSourceUser) GetIsAdmin() bool {
+	return s.IsAdmin
+}
+
+// GetSuggestedUserId returns the value of SuggestedUserId.
+func (s *ImportSourceUser) GetSuggestedUserId() OptUUID {
+	return s.SuggestedUserId
+}
+
+// SetID sets the value of ID.
+func (s *ImportSourceUser) SetID(val string) {
+	s.ID = val
+}
+
+// SetName sets the value of Name.
+func (s *ImportSourceUser) SetName(val string) {
+	s.Name = val
+}
+
+// SetIsAdmin sets the value of IsAdmin.
+func (s *ImportSourceUser) SetIsAdmin(val bool) {
+	s.IsAdmin = val
+}
+
+// SetSuggestedUserId sets the value of SuggestedUserId.
+func (s *ImportSourceUser) SetSuggestedUserId(val OptUUID) {
+	s.SuggestedUserId = val
+}
+
+// Ref: #/components/schemas/ImportUnmatched
+type ImportUnmatched struct {
+	User string    `json:"user"`
+	Name string    `json:"name"`
+	Kind string    `json:"kind"`
+	Path OptString `json:"path"`
+}
+
+// GetUser returns the value of User.
+func (s *ImportUnmatched) GetUser() string {
+	return s.User
+}
+
+// GetName returns the value of Name.
+func (s *ImportUnmatched) GetName() string {
+	return s.Name
+}
+
+// GetKind returns the value of Kind.
+func (s *ImportUnmatched) GetKind() string {
+	return s.Kind
+}
+
+// GetPath returns the value of Path.
+func (s *ImportUnmatched) GetPath() OptString {
+	return s.Path
+}
+
+// SetUser sets the value of User.
+func (s *ImportUnmatched) SetUser(val string) {
+	s.User = val
+}
+
+// SetName sets the value of Name.
+func (s *ImportUnmatched) SetName(val string) {
+	s.Name = val
+}
+
+// SetKind sets the value of Kind.
+func (s *ImportUnmatched) SetKind(val string) {
+	s.Kind = val
+}
+
+// SetPath sets the value of Path.
+func (s *ImportUnmatched) SetPath(val OptString) {
+	s.Path = val
+}
+
+// Ref: #/components/schemas/ImportUserMapping
+type ImportUserMapping struct {
+	SourceUserId   string `json:"sourceUserId"`
+	SourceUserName string `json:"sourceUserName"`
+	// Streamero user that receives the data; omitted = skip this user.
+	UserId OptUUID `json:"userId"`
+}
+
+// GetSourceUserId returns the value of SourceUserId.
+func (s *ImportUserMapping) GetSourceUserId() string {
+	return s.SourceUserId
+}
+
+// GetSourceUserName returns the value of SourceUserName.
+func (s *ImportUserMapping) GetSourceUserName() string {
+	return s.SourceUserName
+}
+
+// GetUserId returns the value of UserId.
+func (s *ImportUserMapping) GetUserId() OptUUID {
+	return s.UserId
+}
+
+// SetSourceUserId sets the value of SourceUserId.
+func (s *ImportUserMapping) SetSourceUserId(val string) {
+	s.SourceUserId = val
+}
+
+// SetSourceUserName sets the value of SourceUserName.
+func (s *ImportUserMapping) SetSourceUserName(val string) {
+	s.SourceUserName = val
+}
+
+// SetUserId sets the value of UserId.
+func (s *ImportUserMapping) SetUserId(val OptUUID) {
+	s.UserId = val
+}
+
+// Ref: #/components/schemas/ImportUserReport
+type ImportUserReport struct {
+	SourceUserName string    `json:"sourceUserName"`
+	UserId         uuid.UUID `json:"userId"`
+	Username       string    `json:"username"`
+	// Items with any user data on the other server.
+	Items     int `json:"items"`
+	Matched   int `json:"matched"`
+	Unmatched int `json:"unmatched"`
+	Played    int `json:"played"`
+	Resume    int `json:"resume"`
+	Favorites int `json:"favorites"`
+	Playlists int `json:"playlists"`
+}
+
+// GetSourceUserName returns the value of SourceUserName.
+func (s *ImportUserReport) GetSourceUserName() string {
+	return s.SourceUserName
+}
+
+// GetUserId returns the value of UserId.
+func (s *ImportUserReport) GetUserId() uuid.UUID {
+	return s.UserId
+}
+
+// GetUsername returns the value of Username.
+func (s *ImportUserReport) GetUsername() string {
+	return s.Username
+}
+
+// GetItems returns the value of Items.
+func (s *ImportUserReport) GetItems() int {
+	return s.Items
+}
+
+// GetMatched returns the value of Matched.
+func (s *ImportUserReport) GetMatched() int {
+	return s.Matched
+}
+
+// GetUnmatched returns the value of Unmatched.
+func (s *ImportUserReport) GetUnmatched() int {
+	return s.Unmatched
+}
+
+// GetPlayed returns the value of Played.
+func (s *ImportUserReport) GetPlayed() int {
+	return s.Played
+}
+
+// GetResume returns the value of Resume.
+func (s *ImportUserReport) GetResume() int {
+	return s.Resume
+}
+
+// GetFavorites returns the value of Favorites.
+func (s *ImportUserReport) GetFavorites() int {
+	return s.Favorites
+}
+
+// GetPlaylists returns the value of Playlists.
+func (s *ImportUserReport) GetPlaylists() int {
+	return s.Playlists
+}
+
+// SetSourceUserName sets the value of SourceUserName.
+func (s *ImportUserReport) SetSourceUserName(val string) {
+	s.SourceUserName = val
+}
+
+// SetUserId sets the value of UserId.
+func (s *ImportUserReport) SetUserId(val uuid.UUID) {
+	s.UserId = val
+}
+
+// SetUsername sets the value of Username.
+func (s *ImportUserReport) SetUsername(val string) {
+	s.Username = val
+}
+
+// SetItems sets the value of Items.
+func (s *ImportUserReport) SetItems(val int) {
+	s.Items = val
+}
+
+// SetMatched sets the value of Matched.
+func (s *ImportUserReport) SetMatched(val int) {
+	s.Matched = val
+}
+
+// SetUnmatched sets the value of Unmatched.
+func (s *ImportUserReport) SetUnmatched(val int) {
+	s.Unmatched = val
+}
+
+// SetPlayed sets the value of Played.
+func (s *ImportUserReport) SetPlayed(val int) {
+	s.Played = val
+}
+
+// SetResume sets the value of Resume.
+func (s *ImportUserReport) SetResume(val int) {
+	s.Resume = val
+}
+
+// SetFavorites sets the value of Favorites.
+func (s *ImportUserReport) SetFavorites(val int) {
+	s.Favorites = val
+}
+
+// SetPlaylists sets the value of Playlists.
+func (s *ImportUserReport) SetPlaylists(val int) {
+	s.Playlists = val
+}
+
 // Ref: #/components/schemas/Invite
 type Invite struct {
 	ID          uuid.UUID       `json:"id"`
@@ -4615,6 +5361,52 @@ func (o OptGetServerLogsLevel) Get() (v GetServerLogsLevel, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptGetServerLogsLevel) Or(d GetServerLogsLevel) GetServerLogsLevel {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptImportReport returns new OptImportReport with value set to v.
+func NewOptImportReport(v ImportReport) OptImportReport {
+	return OptImportReport{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptImportReport is optional ImportReport.
+type OptImportReport struct {
+	Value ImportReport
+	Set   bool
+}
+
+// IsSet returns true if OptImportReport was set.
+func (o OptImportReport) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptImportReport) Reset() {
+	var v ImportReport
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptImportReport) SetTo(v ImportReport) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptImportReport) Get() (v ImportReport, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptImportReport) Or(d ImportReport) ImportReport {
 	if v, ok := o.Get(); ok {
 		return v
 	}

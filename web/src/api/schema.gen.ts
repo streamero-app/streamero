@@ -1583,6 +1583,69 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/import/source": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Connect to another media server and list its users (admin)
+         * @description Reads server info and the user list of the server to import from, and suggests a
+         *     Streamero user for each (same username, case-insensitive). The API key is not stored.
+         */
+        post: operations["checkImportSource"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/import/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recent imports, newest first (admin) */
+        get: operations["listImportRuns"];
+        put?: never;
+        /**
+         * Start an import (or a dry run) as a background job (admin)
+         * @description The API key is kept only until the job finishes and is never returned.
+         *     Running the same import again is safe: nothing is duplicated and newer
+         *     Streamero progress is kept.
+         */
+        post: operations["startImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/import/runs/{runId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        /** Progress and report of one import (admin) */
+        get: operations["getImportRun"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2475,6 +2538,108 @@ export interface components {
         Error: {
             code: string;
             message: string;
+        };
+        ImportSource: {
+            /** @description Base URL of the server to import from, e.g. http://media:8096 */
+            url: string;
+            /** @description An API key created by an administrator of that server. */
+            apiKey: string;
+        };
+        ImportSourceUser: {
+            id: string;
+            name: string;
+            isAdmin: boolean;
+            /**
+             * Format: uuid
+             * @description Streamero user with the same username (case-insensitive).
+             */
+            suggestedUserId?: string;
+        };
+        ImportSourceInfo: {
+            serverName: string;
+            version: string;
+            users: components["schemas"]["ImportSourceUser"][];
+        };
+        ImportUserMapping: {
+            sourceUserId: string;
+            sourceUserName: string;
+            /**
+             * Format: uuid
+             * @description Streamero user that receives the data; omitted = skip this user.
+             */
+            userId?: string;
+        };
+        ImportPathMapping: {
+            /** @description Path prefix as the other server sees the media (e.g. /data/movies). */
+            from: string;
+            /** @description The same folder as Streamero sees it; must be inside the media folders. */
+            to: string;
+        };
+        ImportRequest: {
+            url: string;
+            apiKey: string;
+            /** @description Match and count only; nothing is written. */
+            dryRun: boolean;
+            users: components["schemas"]["ImportUserMapping"][];
+            pathMappings?: components["schemas"]["ImportPathMapping"][];
+            /** @default true */
+            playlists: boolean;
+        };
+        ImportProgress: {
+            usersDone: number;
+            usersTotal: number;
+            currentUser?: string;
+        };
+        ImportUnmatched: {
+            user: string;
+            name: string;
+            kind: string;
+            path?: string;
+        };
+        ImportUserReport: {
+            sourceUserName: string;
+            /** Format: uuid */
+            userId: string;
+            username: string;
+            /** @description Items with any user data on the other server. */
+            items: number;
+            matched: number;
+            unmatched: number;
+            played: number;
+            resume: number;
+            favorites: number;
+            playlists: number;
+        };
+        ImportReport: {
+            users: components["schemas"]["ImportUserReport"][];
+            skippedUsers: string[];
+            matchedByProvider: number;
+            matchedByPath: number;
+            matchedByTitle: number;
+            unmatched: number;
+            unmatchedSample: components["schemas"]["ImportUnmatched"][];
+            playlistsCreated: number;
+            playlistsUpdated: number;
+            playlistItemsMissing: number;
+            /** @description Items whose Streamero progress was newer and therefore kept. */
+            keptNewer: number;
+        };
+        ImportRun: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            status: "queued" | "running" | "done" | "failed";
+            dryRun: boolean;
+            sourceUrl: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            startedAt?: string;
+            /** Format: date-time */
+            finishedAt?: string;
+            error?: string;
+            progress: components["schemas"]["ImportProgress"];
+            report?: components["schemas"]["ImportReport"];
         };
     };
     responses: {
@@ -5114,6 +5279,100 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    checkImportSource: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportSource"];
+            };
+        };
+        responses: {
+            /** @description The other server and its users */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportSourceInfo"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listImportRuns: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Runs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportRun"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    startImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportRequest"];
+            };
+        };
+        responses: {
+            /** @description Queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportRun"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getImportRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Run */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportRun"];
+                };
             };
             default: components["responses"]["Error"];
         };

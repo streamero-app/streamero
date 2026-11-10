@@ -25,6 +25,7 @@ tags:
   - name: admin
   - name: collections
   - name: playlists
+  - name: import
 security: []
 paths:
   /system/info:
@@ -2372,6 +2373,97 @@ paths:
           description: Started
         default:
           $ref: "#/components/responses/Error"
+  /import/source:
+    post:
+      operationId: checkImportSource
+      summary: Connect to another media server and list its users (admin)
+      description: |
+        Reads server info and the user list of the server to import from, and suggests a
+        Streamero user for each (same username, case-insensitive). The API key is not stored.
+      tags: [import]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportSource"
+      responses:
+        "200":
+          description: The other server and its users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportSourceInfo"
+        default:
+          $ref: "#/components/responses/Error"
+  /import/runs:
+    get:
+      operationId: listImportRuns
+      summary: Recent imports, newest first (admin)
+      tags: [import]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Runs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ImportRun"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: startImport
+      summary: Start an import (or a dry run) as a background job (admin)
+      description: |
+        The API key is kept only until the job finishes and is never returned.
+        Running the same import again is safe: nothing is duplicated and newer
+        Streamero progress is kept.
+      tags: [import]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportRequest"
+      responses:
+        "202":
+          description: Queued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportRun"
+        default:
+          $ref: "#/components/responses/Error"
+  /import/runs/{runId}:
+    parameters:
+      - name: runId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getImportRun
+      summary: Progress and report of one import (admin)
+      tags: [import]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Run
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportRun"
+        default:
+          $ref: "#/components/responses/Error"
 components:
   securitySchemes:
     sessionToken:
@@ -4165,3 +4257,204 @@ components:
           type: string
         message:
           type: string
+    ImportSource:
+      type: object
+      required: [url, apiKey]
+      properties:
+        url:
+          type: string
+          maxLength: 500
+          description: Base URL of the server to import from, e.g. http://media:8096
+        apiKey:
+          type: string
+          maxLength: 200
+          description: An API key created by an administrator of that server.
+    ImportSourceUser:
+      type: object
+      required: [id, name, isAdmin]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        isAdmin:
+          type: boolean
+        suggestedUserId:
+          type: string
+          format: uuid
+          description: Streamero user with the same username (case-insensitive).
+    ImportSourceInfo:
+      type: object
+      required: [serverName, version, users]
+      properties:
+        serverName:
+          type: string
+        version:
+          type: string
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImportSourceUser"
+    ImportUserMapping:
+      type: object
+      required: [sourceUserId, sourceUserName]
+      properties:
+        sourceUserId:
+          type: string
+          maxLength: 100
+        sourceUserName:
+          type: string
+          maxLength: 200
+        userId:
+          type: string
+          format: uuid
+          description: Streamero user that receives the data; omitted = skip this user.
+    ImportPathMapping:
+      type: object
+      required: [from, to]
+      properties:
+        from:
+          type: string
+          maxLength: 1000
+          description: Path prefix as the other server sees the media (e.g. /data/movies).
+        to:
+          type: string
+          maxLength: 1000
+          description: The same folder as Streamero sees it; must be inside the media folders.
+    ImportRequest:
+      type: object
+      required: [url, apiKey, dryRun, users]
+      properties:
+        url:
+          type: string
+          maxLength: 500
+        apiKey:
+          type: string
+          maxLength: 200
+        dryRun:
+          type: boolean
+          description: Match and count only; nothing is written.
+        users:
+          type: array
+          maxItems: 500
+          items:
+            $ref: "#/components/schemas/ImportUserMapping"
+        pathMappings:
+          type: array
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/ImportPathMapping"
+        playlists:
+          type: boolean
+          default: true
+    ImportProgress:
+      type: object
+      required: [usersDone, usersTotal]
+      properties:
+        usersDone:
+          type: integer
+        usersTotal:
+          type: integer
+        currentUser:
+          type: string
+    ImportUnmatched:
+      type: object
+      required: [user, name, kind]
+      properties:
+        user:
+          type: string
+        name:
+          type: string
+        kind:
+          type: string
+        path:
+          type: string
+    ImportUserReport:
+      type: object
+      required: [sourceUserName, userId, username, items, matched, unmatched, played, resume, favorites, playlists]
+      properties:
+        sourceUserName:
+          type: string
+        userId:
+          type: string
+          format: uuid
+        username:
+          type: string
+        items:
+          type: integer
+          description: Items with any user data on the other server.
+        matched:
+          type: integer
+        unmatched:
+          type: integer
+        played:
+          type: integer
+        resume:
+          type: integer
+        favorites:
+          type: integer
+        playlists:
+          type: integer
+    ImportReport:
+      type: object
+      required: [users, skippedUsers, matchedByProvider, matchedByPath, matchedByTitle, unmatched, unmatchedSample,
+        playlistsCreated, playlistsUpdated, playlistItemsMissing, keptNewer]
+      properties:
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImportUserReport"
+        skippedUsers:
+          type: array
+          items:
+            type: string
+        matchedByProvider:
+          type: integer
+        matchedByPath:
+          type: integer
+        matchedByTitle:
+          type: integer
+        unmatched:
+          type: integer
+        unmatchedSample:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImportUnmatched"
+        playlistsCreated:
+          type: integer
+        playlistsUpdated:
+          type: integer
+        playlistItemsMissing:
+          type: integer
+        keptNewer:
+          type: integer
+          description: Items whose Streamero progress was newer and therefore kept.
+    ImportRun:
+      type: object
+      required: [id, status, dryRun, sourceUrl, createdAt, progress]
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [queued, running, done, failed]
+        dryRun:
+          type: boolean
+        sourceUrl:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+        error:
+          type: string
+        progress:
+          $ref: "#/components/schemas/ImportProgress"
+        report:
+          $ref: "#/components/schemas/ImportReport"
