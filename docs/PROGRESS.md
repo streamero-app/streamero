@@ -43,6 +43,9 @@ Postavke → Uvoz: admin upiše adresu i API ključ starog servera, poveže kori
 - Testirano: unit (ticks → ms, uparivanje, spajanje/idempotentnost, povezivanje korisnika, lažni Jellyfin HTTP server), integracijski protiv Postgresa (cijeli uvoz dvaput, API s ključem koji se ne vraća), web test.
 - Nije provjereno protiv pravog Jellyfina. Ne uvoze se računi ni kolekcije.
 
+## v0.9.1 (2026-11-10)
+TV aplikacije rade s čistom adresom servera (bez `/compat`), automatsko pronalaženje servera u kućnoj mreži (UDP 7359), `/socket` za poruke i zaustavljanje s nadzorne ploče, CORS za Samsung aplikaciju (#51). LG webOS i dalje ne radi (D-034).
+
 ## v0.9.0 (2026-11-10)
 Backup i vraćanje (#46), uvoz povijesti, napretka, favorita i playlista iz Jellyfina (#45), Android TV (#47), kompatibilni sloj za Infuse, Swiftfin, Kodi i TV aplikacije s Quick Connect prijavom (#48), sigurnosne sitnice i uklonjena imena iz koda (#44), ključ uvoza izvan backupa (#49).
 
