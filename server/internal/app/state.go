@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"sync/atomic"
 
 	"github.com/google/uuid"
@@ -19,18 +20,30 @@ type State struct {
 	SetupCode string
 
 	// Library is set by the caller after Bootstrap (needs roots and a job inserter).
-	library  atomic.Pointer[library.Service]
-	stream   atomic.Pointer[stream.Server]
-	compat   atomic.Pointer[compat.Server]
-	ready    atomic.Bool
-	auth     atomic.Pointer[auth.Service]
-	serverID atomic.Pointer[uuid.UUID]
-	settings atomic.Pointer[settings.Store]
-	lastErr  atomic.Pointer[string]
+	library atomic.Pointer[library.Service]
+	stream  atomic.Pointer[stream.Server]
+	compat  atomic.Pointer[compat.Server]
+	ready   atomic.Bool
+	// restoring is set while a backup is being restored: the API answers 503 meanwhile.
+	restoring atomic.Bool
+	auth      atomic.Pointer[auth.Service]
+	serverID  atomic.Pointer[uuid.UUID]
+	settings  atomic.Pointer[settings.Store]
+	lastErr   atomic.Pointer[string]
 }
 
 // Ready reports whether dependencies are connected and migrations are applied.
-func (s *State) Ready() bool { return s.ready.Load() }
+func (s *State) Ready() bool { return s.ready.Load() && !s.restoring.Load() }
+
+// SetRestoring marks a running restore; the API reports "starting" until it ends.
+func (s *State) SetRestoring(on bool) {
+	s.restoring.Store(on)
+	if on {
+		s.setErr(errRestoring)
+	}
+}
+
+var errRestoring = errors.New("restoring a backup")
 
 // ServerID returns the stable server ID (uuid.Nil until ready).
 func (s *State) ServerID() uuid.UUID {

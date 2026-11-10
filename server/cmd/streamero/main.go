@@ -1,6 +1,6 @@
 // Command streamero is the Streamero media server.
 //
-// Subcommands: serve | worker | migrate | healthcheck | version
+// Subcommands: serve | worker | migrate | backup | restore | healthcheck | version
 package main
 
 import (
@@ -26,6 +26,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/api"
 	"github.com/streamero-app/streamero/server/internal/app"
 	"github.com/streamero-app/streamero/server/internal/auth"
+	"github.com/streamero-app/streamero/server/internal/backup"
 	"github.com/streamero-app/streamero/server/internal/compat"
 	"github.com/streamero-app/streamero/server/internal/config"
 	"github.com/streamero-app/streamero/server/internal/db"
@@ -57,12 +58,21 @@ func main() {
 		err = withConfig(ctx, worker)
 	case "migrate":
 		err = withConfig(ctx, migrate)
+	case "backup":
+		err = withConfig(ctx, backupCmd)
+	case "restore":
+		err = withConfig(ctx, restoreCmd)
 	case "healthcheck":
 		err = healthcheck()
 	case "version":
 		fmt.Printf("streamero %s (%s)\n", version.Version, version.Commit)
 	default:
-		err = fmt.Errorf("unknown command %q (want serve|worker|migrate|healthcheck|version)", cmd)
+		err = fmt.Errorf("unknown command %q (want serve|worker|migrate|backup|restore|healthcheck|version)", cmd)
+	}
+	if errors.Is(err, errRestart) {
+		// A restore replaced the database: exit so the container restarts with fresh state.
+		fmt.Fprintln(os.Stderr, "restarting after a backup restore")
+		os.Exit(exitRestart)
 	}
 	if err != nil && !errors.Is(err, context.Canceled) {
 		fmt.Fprintln(os.Stderr, "error:", err)
@@ -135,6 +145,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 
 	// Listen immediately so health checks answer 503 while dependencies come up.
 	errc := make(chan error, 1)
+	restartc := make(chan struct{}, 1)
 	go func() {
 		log.Info("http listening", "addr", cfg.HTTPAddr, "version", version.Version)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -178,6 +189,8 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 				args = jobs.ImagesCleanupArgs{}
 			case "analyze_media":
 				args = jobs.MediaAnalyzeAllArgs{}
+			case "backup":
+				args = jobs.BackupArgs{BackupKind: backup.KindManual}
 			default:
 				return fmt.Errorf("unknown task %q", key)
 			}
@@ -185,6 +198,22 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			return err
 		}
 		state.SetLibrary(libs)
+		valkey := deps.Valkey
+		backups := newBackupService(cfg, deps.Pool, log)
+		backups.RecoverStatus(ctx)
+		h.Backup.Store(&api.Backups{Service: backups,
+			Enqueue: func(ctx context.Context) error {
+				_, err := inserter.Insert(ctx, jobs.BackupArgs{BackupKind: backup.KindManual}, nil)
+				return err
+			},
+			Restoring: state.SetRestoring,
+			AfterRestore: func() {
+				signalRestored(context.Background(), valkey, log)
+				select {
+				case restartc <- struct{}{}:
+				default:
+				}
+			}})
 		state.SetCompat(&compat.Server{Pool: deps.Pool, Auth: state.Auth(), Libraries: libs, ServerID: state.ServerID(), Log: log,
 			ServerName: h.ServerNameFor})
 		log.Info("ready", "server_id", state.ServerID(), "startup", time.Since(h.StartedAt).String())
@@ -194,14 +223,23 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		}
 	}
 
+	restart := false
 	select {
 	case <-ctx.Done():
 	case err := <-errc:
 		return err
+	case <-restartc:
+		restart = true
 	}
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 	defer cancel()
-	return srv.Shutdown(shutdownCtx)
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		return err
+	}
+	if restart {
+		return errRestart
+	}
+	return nil
 }
 
 func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
@@ -253,6 +291,11 @@ func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			_, err := client.Insert(ctx, jobs.MediaAnalyzeArgs{LibraryID: id}, nil)
 			return err
 		})
+	backups := newBackupService(cfg, deps.Pool, log)
+	jobs.RegisterBackup(workers, log, backups, state.Settings(), func(ctx context.Context) error {
+		_, err := client.Insert(ctx, jobs.BackupArgs{BackupKind: backup.KindScheduled}, nil)
+		return err
+	})
 	client, err = river.NewClient(riverpgxv5.New(deps.Pool), &river.Config{
 		Logger:  log,
 		Queues:  map[string]river.QueueConfig{river.QueueDefault: {MaxWorkers: 10}},
@@ -267,6 +310,9 @@ func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 				func() (river.JobArgs, *river.InsertOpts) { return jobs.ImagesCleanupArgs{}, nil }, nil),
 			river.NewPeriodicJob(river.PeriodicInterval(24*time.Hour),
 				func() (river.JobArgs, *river.InsertOpts) { return jobs.MediaAnalyzeAllArgs{}, nil }, nil),
+			river.NewPeriodicJob(river.PeriodicInterval(time.Hour),
+				func() (river.JobArgs, *river.InsertOpts) { return jobs.BackupScheduleArgs{}, nil },
+				&river.PeriodicJobOpts{RunOnStart: true}),
 		},
 	})
 	if err != nil {
@@ -276,16 +322,26 @@ func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		return err
 	}
 	log.Info("worker started")
+	restored := watchRestores(ctx, deps.Valkey, log)
 	go func() {
 		w := &library.Watcher{Pool: deps.Pool, Roots: roots, Log: log, Trigger: libraries.Scan}
 		if err := w.Run(ctx); err != nil {
 			log.Warn("file watcher stopped; periodic scans still run", "err", err)
 		}
 	}()
-	<-ctx.Done()
+	restart := false
+	select {
+	case <-ctx.Done():
+	case <-restored:
+		restart = true
+	}
 	stopCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 	defer cancel()
-	return client.Stop(stopCtx)
+	err = client.Stop(stopCtx)
+	if restart {
+		return errRestart
+	}
+	return err
 }
 
 func migrate(ctx context.Context, cfg config.Config, log *slog.Logger) error {
