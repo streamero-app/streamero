@@ -35,7 +35,10 @@ test("setup wizard creates the admin and signs in", async ({ page }) => {
   await page.getByLabel("Server name").fill("E2E Kino");
   await page.getByRole("button", { name: "Finish setup" }).click();
   await expect(page.getByTestId("home-page")).toBeVisible();
-  await expect(page.getByText("E2E Kino").first()).toBeVisible();
+  // The name is shown in server settings (the version moved there too, off the home page).
+  await page.goto("/settings/server");
+  await expect(page.getByLabel("Server name")).toHaveValue("E2E Kino");
+  await expect(page.getByTestId("settings-version")).toBeVisible();
 });
 
 test("admin adds a user; user signs in; admin signs the device out", async ({ page, browser }) => {

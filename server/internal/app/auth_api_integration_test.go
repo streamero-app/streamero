@@ -1752,8 +1752,16 @@ func TestIdentifyAndEditMetadataIntegration(t *testing.T) {
 	}
 	old, _ := metadata.LoadSettings(context.Background(), settings.New(testPool))
 	t.Cleanup(func() { _ = metadata.SaveSettings(context.Background(), settings.New(testPool), old) })
+	// A lookup that failed earlier is retried once a key is saved.
+	if _, err := testPool.Exec(context.Background(), `UPDATE items SET metadata_refreshed_at = now(), metadata_error = 'no match' WHERE id = $1`, item); err != nil {
+		t.Fatal(err)
+	}
 	if s := adminC.do("PUT", "/settings/metadata", map[string]any{"tmdbApiKey": "k", "language": "hr-HR", "country": "HR"}, nil); s != 200 {
 		t.Fatalf("save key: %d", s)
+	}
+	var retried bool
+	if err := testPool.QueryRow(context.Background(), `SELECT metadata_refreshed_at IS NULL FROM items WHERE id = $1`, item).Scan(&retried); err != nil || !retried {
+		t.Fatalf("failed lookup not reset: %v %v", retried, err)
 	}
 	var cands []struct {
 		TmdbID    int `json:"tmdbId"`

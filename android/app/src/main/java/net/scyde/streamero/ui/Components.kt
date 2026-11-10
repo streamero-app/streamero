@@ -90,7 +90,7 @@ fun PosterCard(item: ItemSummary, imageUrl: (String, String) -> String, width: D
             when {
                 item.hasPoster -> ServerImage(imageUrl(item.id, if (item.kind == "episode") "still" else "poster"), Modifier.fillMaxSize())
                 item.hasBackdrop -> ServerImage(imageUrl(item.id, "backdrop"), Modifier.fillMaxSize())
-                else -> Text(item.title.uppercase(), style = Display.copy(fontSize = 20.sp), color = Kino.text, modifier = Modifier.align(Alignment.BottomStart).padding(10.dp))
+                else -> Text(item.title, style = Display.copy(fontSize = 20.sp), color = Kino.text, modifier = Modifier.align(Alignment.BottomStart).padding(10.dp))
             }
             if (item.played) Icon(Icons.Default.Check, null, tint = Kino.text, modifier = Modifier.align(Alignment.TopEnd).padding(6.dp).background(Color.Black.copy(alpha = 0.7f), RoundedCornerShape(4.dp)).padding(3.dp).size(14.dp))
             if (qualityTags) Row(Modifier.align(Alignment.BottomStart).padding(6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {

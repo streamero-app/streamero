@@ -73,7 +73,7 @@ fun ItemScreen(state: AppState, nav: NavHostController, id: String) {
                     Column(Modifier.align(Alignment.BottomStart).padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         it.seriesTitle?.let { s -> Text(s.uppercase(), style = Head, color = Kino.muted, modifier = Modifier.clickable { it.seriesId?.let { sid -> nav.navigate("item/$sid") } }) }
                         val title = if (it.kind == "episode") "E${it.episodeNumber} · ${it.title}" else it.title
-                        Text(title.uppercase(), style = Display.copy(fontSize = 40.sp), color = Kino.text)
+                        Text(title, style = Display.copy(fontSize = 40.sp), color = Kino.text)
                         Text(listOfNotNull(it.rating?.let { r -> "★ %.1f".format(r) }, it.year?.toString(), it.durationMs?.let { ms -> "${ms / 60000} min" },
                             d.genres.take(2).joinToString(", ").ifBlank { null }, d.officialRating, qualityTags(it.videoHeight, it.hdr).joinToString(" ").ifBlank { null }).joinToString("  ·  "), color = Kino.muted, fontSize = 14.sp)
                         d.tagline?.let { t -> Text(t, color = Kino.text.copy(alpha = 0.8f), fontSize = 16.sp) }
@@ -239,7 +239,7 @@ fun CollectionsScreen(state: AppState, nav: NavHostController) {
     val (pls) = rememberLoad(Unit) { runCatching { api.playlists() }.getOrDefault(emptyList()) }
     LazyVerticalGrid(GridCells.Adaptive(118.dp), Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-        item(span = { GridItemSpan(maxLineSpan) }) { Text(stringResource(R.string.collections).uppercase(), style = Display.copy(fontSize = 34.sp), color = Kino.text, modifier = Modifier.statusBarsPadding().padding(top = 12.dp)) }
+        item(span = { GridItemSpan(maxLineSpan) }) { Text(stringResource(R.string.collections), style = Display.copy(fontSize = 34.sp), color = Kino.text, modifier = Modifier.statusBarsPadding().padding(top = 12.dp)) }
         if (loading) item(span = { GridItemSpan(maxLineSpan) }) { Loading() }
         item(span = { GridItemSpan(maxLineSpan) }) { ErrorLine(error) }
         items(cols.orEmpty(), key = { it.id }) { c -> CollectionTile(api, c, 118.dp) { nav.navigate("collection/${c.id}") } }
@@ -279,7 +279,7 @@ private fun ItemGridPage(state: AppState, nav: NavHostController, title: String,
         horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             Column(Modifier.statusBarsPadding().padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(title.uppercase(), style = Display.copy(fontSize = 34.sp), color = Kino.text)
+                Text(title, style = Display.copy(fontSize = 34.sp), color = Kino.text)
                 overview?.let { Text(it, color = Kino.muted) }
                 playAll?.let { PrimaryButton(stringResource(R.string.play), it, icon = Icons.Default.PlayArrow) }
                 ErrorLine(error)

@@ -67,7 +67,7 @@ fun MeScreen(state: AppState, nav: NavHostController, onSignedOut: () -> Unit, o
                 val p = me.currentProfile
                 Avatar(p?.name ?: me.displayName ?: me.username, p?.color, if (p?.hasAvatar == true) api.avatarUrl(p.id) else if (p == null && me.hasAvatar) api.avatarUrl(me.id) else null, 64.dp)
                 Column {
-                    Text((p?.name ?: me.displayName ?: me.username).uppercase(), style = Display.copy(fontSize = 26.sp), color = Kino.text)
+                    Text((p?.name ?: me.displayName ?: me.username), style = Display.copy(fontSize = 26.sp), color = Kino.text)
                     Text("@${me.username}" + if (state.isAdmin) " · " + stringResource(R.string.administrator) else "", color = Kino.muted, fontSize = 13.sp)
                 }
             }
@@ -101,7 +101,7 @@ fun SettingsPage(state: AppState, nav: NavHostController, page: String) {
     if (adminOnly && !state.isAdmin) { Text(stringResource(R.string.err_forbidden), color = Kino.danger, modifier = Modifier.statusBarsPadding().padding(20.dp)); return }
     val title = (USER_PAGES + ADMIN_PAGES).firstOrNull { it.page == page }?.label ?: R.string.settings
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).statusBarsPadding().padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text(stringResource(title).uppercase(), style = Display.copy(fontSize = 30.sp), color = Kino.text, modifier = Modifier.padding(top = 8.dp))
+        Text(stringResource(title), style = Display.copy(fontSize = 30.sp), color = Kino.text, modifier = Modifier.padding(top = 8.dp))
         when (page) {
             "account" -> AccountPage(state)
             "playback" -> PlaybackPage(state)

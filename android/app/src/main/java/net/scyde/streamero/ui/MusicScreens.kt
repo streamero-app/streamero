@@ -49,7 +49,7 @@ fun MusicLibraryScreen(state: AppState, nav: NavHostController, lib: Library) {
         horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(if (tab == "track") 0.dp else 18.dp)) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             Column(Modifier.statusBarsPadding().padding(top = 12.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(lib.name.uppercase(), style = Display.copy(fontSize = 34.sp), color = Kino.text)
+                Text(lib.name, style = Display.copy(fontSize = 34.sp), color = Kino.text)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("album" to R.string.albums, "artist" to R.string.artists, "track" to R.string.songs).forEach { (k, l) ->
                         GlassButton(stringResource(l), { tab = k }, active = tab == k)
@@ -103,7 +103,7 @@ fun AlbumScreen(state: AppState, nav: NavHostController, d: ItemDetail) {
                 Column(Modifier.statusBarsPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     SquareCover(api, d.item, modifier = Modifier.fillMaxWidth(0.75f).align(Alignment.CenterHorizontally))
                     Text(stringResource(R.string.album).uppercase(), style = Label, color = Kino.faint)
-                    Text(d.item.title.uppercase(), style = Display.copy(fontSize = 32.sp), color = Kino.text)
+                    Text(d.item.title, style = Display.copy(fontSize = 32.sp), color = Kino.text)
                     Text(listOfNotNull(d.item.artist, d.item.year?.toString(), d.genres.firstOrNull(), stringResource(R.string.songs_count, tracks.size)).joinToString(" · "),
                         color = Kino.muted, modifier = Modifier.clickable { d.parentId?.let { nav.navigate("item/$it") } })
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -128,7 +128,7 @@ fun ArtistScreen(state: AppState, nav: NavHostController, d: ItemDetail) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             Column(Modifier.statusBarsPadding().padding(top = 12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 SquareCover(api, d.item, round = true, modifier = Modifier.size(180.dp))
-                Text(d.item.title.uppercase(), style = Display.copy(fontSize = 32.sp), color = Kino.text)
+                Text(d.item.title, style = Display.copy(fontSize = 32.sp), color = Kino.text)
                 Text(stringResource(R.string.albums_count, albums.size), color = Kino.muted)
                 PrimaryButton(stringResource(R.string.play_all), {
                     scope.launch {
@@ -181,7 +181,7 @@ private fun ModalBottomSheetQueue(state: AppState, onClose: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onClose, containerColor = Kino.surface) {
         Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 30.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             m.current?.let { c ->
-                Text(c.title.uppercase(), style = Display.copy(fontSize = 26.sp), color = Kino.text)
+                Text(c.title, style = Display.copy(fontSize = 26.sp), color = Kino.text)
                 Text(listOfNotNull(c.artist, c.album).joinToString(" · "), color = Kino.muted)
             }
             Slider(value = m.position.toFloat(), onValueChange = { m.seek(it.toLong()) }, valueRange = 0f..(m.duration.coerceAtLeast(1)).toFloat(),

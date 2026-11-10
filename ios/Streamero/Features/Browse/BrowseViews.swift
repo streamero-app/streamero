@@ -64,7 +64,7 @@ struct TitleArt: View {
                 .shadow(color: .black.opacity(0.5), radius: 10)
                 .accessibilityLabel(Text(title))
         } else {
-            Text(title).font(Theme.display(size)).textCase(.uppercase).foregroundStyle(Theme.text).lineLimit(3).minimumScaleFactor(0.5)
+            Text(title).font(Theme.display(size)).foregroundStyle(Theme.text).lineLimit(3).minimumScaleFactor(0.5)
         }
     }
 }
@@ -227,7 +227,7 @@ struct LibraryTile: View {
     var body: some View {
         HStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 6) {
-                Text(library.name).font(Theme.display(26)).textCase(.uppercase).foregroundStyle(Theme.text)
+                Text(library.name).font(Theme.display(26)).foregroundStyle(Theme.text)
                 Text("home.items \(library.itemCount)").font(.subheadline).foregroundStyle(Theme.textMuted)
             }
             Spacer()

@@ -67,7 +67,7 @@ struct LibraryView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                Text(verbatim: route.name).font(Theme.display(34)).textCase(.uppercase).foregroundStyle(Theme.text)
+                Text(verbatim: route.name).font(Theme.display(34)).foregroundStyle(Theme.text)
                 if total >= 0 { Text("items_count \(total)").font(.subheadline).foregroundStyle(Theme.textMuted) }
                 HStack(spacing: 8) {
                     filterMenu(selection: $sort, options: sortOptions)
@@ -174,9 +174,9 @@ struct ItemGridPage: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 if let title {
-                    Text(title).font(Theme.display(34)).textCase(.uppercase).foregroundStyle(Theme.text)
+                    Text(title).font(Theme.display(34)).foregroundStyle(Theme.text)
                 } else if let titleText {
-                    Text(verbatim: titleText).font(Theme.display(34)).textCase(.uppercase).foregroundStyle(Theme.text)
+                    Text(verbatim: titleText).font(Theme.display(34)).foregroundStyle(Theme.text)
                 }
                 if let overview { Text(verbatim: overview).foregroundStyle(Theme.textMuted) }
                 if let playAll {
@@ -210,7 +210,7 @@ struct CollectionTile: View {
                 if collection.hasPoster {
                     AuthImage(url: client.collectionImageURL(collection.id, type: "poster"), token: client.token, title: collection.name)
                 } else {
-                    Text(verbatim: collection.name).font(Theme.display(18)).textCase(.uppercase).foregroundStyle(Theme.text).padding(10).lineLimit(4)
+                    Text(verbatim: collection.name).font(Theme.display(18)).foregroundStyle(Theme.text).padding(10).lineLimit(4)
                 }
             }
             .aspectRatio(2 / 3, contentMode: .fit)
