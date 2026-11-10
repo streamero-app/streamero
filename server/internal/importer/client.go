@@ -1,7 +1,6 @@
 // Package importer copies per-user watch history (played state, play counts, resume
 // positions, favourites) and playlists from another media server into Streamero.
-// The source server is read only through its public REST API (the API used by
-// Jellyfin-compatible servers, documented in their public OpenAPI description).
+// The source server is read only through its publicly documented REST API.
 package importer
 
 import (
