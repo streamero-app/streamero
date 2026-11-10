@@ -34,6 +34,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/backup"
 	"github.com/streamero-app/streamero/server/internal/compat"
 	"github.com/streamero-app/streamero/server/internal/config"
+	"github.com/streamero-app/streamero/server/internal/importer"
 	"github.com/streamero-app/streamero/server/internal/library"
 	"github.com/streamero-app/streamero/server/internal/metadata"
 	"github.com/streamero-app/streamero/server/internal/notify"
@@ -69,7 +70,7 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 		t.Fatal(err)
 	}
 	t.Cleanup(deps.Close)
-	if _, err := deps.Pool.Exec(ctx, `TRUNCATE users, sessions, audit_log, api_keys, user_totp, recovery_codes, quick_connect, invites, profiles;
+	if _, err := deps.Pool.Exec(ctx, `TRUNCATE users, sessions, audit_log, api_keys, user_totp, recovery_codes, quick_connect, invites, profiles, import_runs;
 		DELETE FROM settings WHERE key IN ('setup.completed', 'server.name', 'playback.resume', 'encoding', 'branding', 'integrations.requests', 'enhancements')`); err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +91,11 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 			return &metadata.TMDb{Key: key}
 		},
 		Notify: &notify.Dispatcher{Settings: state.Settings}, Paths: api.Paths{Media: []string{mediaRoot}, Cache: t.TempDir()},
-		RunTaskFn: func(_ context.Context, key string) error { ranTasks = append(ranTasks, key); return nil }}
+		RunTaskFn: func(_ context.Context, key string) error { ranTasks = append(ranTasks, key); return nil },
+		// Imports run synchronously here instead of in a worker.
+		EnqueueImport: func(ctx context.Context, id uuid.UUID) error {
+			return (&importer.Runner{Pool: deps.Pool, Log: log}).Run(ctx, id)
+		}}
 	h.Notify.Server = h.ServerNameFor
 	testBackups = &backup.Service{Pool: deps.Pool, Dir: t.TempDir(), Version: "test"}
 	h.Backup.Store(&api.Backups{Service: testBackups, Enqueue: func(context.Context) error { ranTasks = append(ranTasks, "backup"); return nil }})

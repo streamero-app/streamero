@@ -30,6 +30,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/compat"
 	"github.com/streamero-app/streamero/server/internal/config"
 	"github.com/streamero-app/streamero/server/internal/db"
+	"github.com/streamero-app/streamero/server/internal/importer"
 	"github.com/streamero-app/streamero/server/internal/jobs"
 	"github.com/streamero-app/streamero/server/internal/library"
 	"github.com/streamero-app/streamero/server/internal/logbuf"
@@ -197,6 +198,10 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			_, err := inserter.Insert(ctx, args, nil)
 			return err
 		}
+		h.EnqueueImport = func(ctx context.Context, id uuid.UUID) error {
+			_, err := inserter.Insert(ctx, jobs.ImportArgs{RunID: id}, nil)
+			return err
+		}
 		state.SetLibrary(libs)
 		valkey := deps.Valkey
 		backups := newBackupService(cfg, deps.Pool, log)
@@ -291,6 +296,7 @@ func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			_, err := client.Insert(ctx, jobs.MediaAnalyzeArgs{LibraryID: id}, nil)
 			return err
 		})
+	jobs.RegisterImport(workers, &importer.Runner{Pool: deps.Pool, Log: log})
 	backups := newBackupService(cfg, deps.Pool, log)
 	jobs.RegisterBackup(workers, log, backups, state.Settings(), func(ctx context.Context) error {
 		_, err := client.Insert(ctx, jobs.BackupArgs{BackupKind: backup.KindScheduled}, nil)

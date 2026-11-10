@@ -57,6 +57,8 @@ type Handler struct {
 	Paths Paths
 	// RunTaskFn queues a maintenance task by key.
 	RunTaskFn func(ctx context.Context, key string) error
+	// EnqueueImport queues an import run for the worker (nil until ready).
+	EnqueueImport func(ctx context.Context, runID uuid.UUID) error
 	// Backup is set once the database is ready (nil until then).
 	Backup    atomic.Pointer[Backups]
 	restoring atomic.Bool
