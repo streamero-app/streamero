@@ -13,6 +13,7 @@ import (
 
 	"github.com/streamero-app/streamero/server/internal/api"
 	"github.com/streamero-app/streamero/server/internal/api/gen"
+	"github.com/streamero-app/streamero/server/internal/compat"
 	"github.com/streamero-app/streamero/server/internal/netx"
 	"github.com/streamero-app/streamero/server/internal/webui"
 )
@@ -22,6 +23,9 @@ type RouterOptions struct {
 	TrustedProxies []netip.Prefix
 	// AuthLimiter limits sign-in style endpoints per client IP (nil = no limit).
 	AuthLimiter *netx.Limiter
+	// NoCompatAtRoot turns off serving the compat API at Jellyfin-style root
+	// paths (it stays under /compat). Default: served at the root too (D-032).
+	NoCompatAtRoot bool
 }
 
 // rateLimited lists the endpoints that accept secrets from anonymous or
@@ -33,15 +37,32 @@ func rateLimited(r *http.Request) bool {
 		return true
 	case strings.HasPrefix(p, "/api/v1/invite/"):
 		return true
-	case r.Method == http.MethodPost && (strings.EqualFold(p, "/compat/Users/AuthenticateByName") ||
-		strings.EqualFold(p, "/compat/Users/AuthenticateWithQuickConnect")):
+	case r.Method == http.MethodPost && (strings.EqualFold(compatPath(p), "/Users/AuthenticateByName") ||
+		strings.EqualFold(compatPath(p), "/Users/AuthenticateWithQuickConnect")):
 		return true
-	case strings.EqualFold(p, "/compat/QuickConnect/Initiate"):
+	case strings.EqualFold(compatPath(p), "/QuickConnect/Initiate"):
 		return true
 	case r.Method == http.MethodPost && strings.HasPrefix(p, "/api/v1/profiles/") && strings.HasSuffix(p, "/select"):
 		return true
 	}
 	return false
+}
+
+// compatPath strips the optional /compat prefix (the compat API is served
+// there and, by default, at the root).
+func compatPath(p string) string {
+	if len(p) > len(compat.Prefix) && strings.EqualFold(p[:len(compat.Prefix)], compat.Prefix) {
+		return p[len(compat.Prefix):]
+	}
+	return p
+}
+
+// clientStylePath reports a path in the casing media clients use ("/Plugins",
+// "/LiveTv/Channels"). The web client's routes and files are all lower case, so
+// such a path that the compat API does not know gets its 404 (and its debug log
+// line, which is how a client's missing endpoints are found) instead of the web page.
+func clientStylePath(p string) bool {
+	return len(p) > 1 && p[0] == '/' && p[1] >= 'A' && p[1] <= 'Z'
 }
 
 // NewRouter builds the root HTTP handler.
@@ -61,7 +82,7 @@ func NewRouter(state *State, h *api.Handler, opts ...RouterOptions) (http.Handle
 	// setting; chi's RealIP trusts spoofable headers and is deliberately not used.
 	r.Use(middleware.RequestID, middleware.Recoverer)
 	r.Use(middleware.Timeout(60 * time.Second))
-	r.Use(securityHeaders, netx.Middleware(o.TrustedProxies), sessionFromCookie)
+	r.Use(securityHeaders, netx.Middleware(o.TrustedProxies), sessionFromCookie(!o.NoCompatAtRoot))
 	if o.AuthLimiter != nil {
 		r.Use(netx.Limit(o.AuthLimiter, rateLimited))
 	}
@@ -82,15 +103,16 @@ func NewRouter(state *State, h *api.Handler, opts ...RouterOptions) (http.Handle
 
 	r.Mount("/api/v1", startingGuard(state, apiServer))
 	// Compatibility API for request managers and *arr notifications (D-016).
-	r.Mount("/compat", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+	serveCompat := func(w http.ResponseWriter, req *http.Request) {
 		c := state.Compat()
 		if c == nil {
 			w.Header().Set("Retry-After", strconv.Itoa(api.RetryAfterSeconds))
 			http.Error(w, "server is starting", http.StatusServiceUnavailable)
 			return
 		}
-		http.StripPrefix("/compat", c.Routes()).ServeHTTP(w, req)
-	}))
+		c.Routes().ServeHTTP(w, req)
+	}
+	r.Mount(compat.Prefix, http.StripPrefix(compat.Prefix, http.HandlerFunc(serveCompat)))
 	// Media bytes (direct play, HLS, subtitles) behind signed URLs; outside OpenAPI (D-015).
 	r.Mount("/stream", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		s := state.Stream()
@@ -101,7 +123,21 @@ func NewRouter(state *State, h *api.Handler, opts ...RouterOptions) (http.Handle
 		}
 		http.StripPrefix("/stream", s.Routes()).ServeHTTP(w, req)
 	}))
-	r.Handle("/*", webui.Handler())
+	// Everything else is the web client, except the Jellyfin-style paths media
+	// clients call on the plain server address (D-032). Only exact compat routes
+	// are taken, so the web client's own routes (/library/<id>, /settings/…) and
+	// static files never reach the compat API.
+	spa := webui.Handler()
+	r.Handle("/*", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if !o.NoCompatAtRoot && (compat.Matches(req.Method, req.URL.Path) || clientStylePath(req.URL.Path)) {
+			if rctx := chi.RouteContext(req.Context()); rctx != nil {
+				rctx.RoutePath = req.URL.Path
+			}
+			serveCompat(w, req)
+			return
+		}
+		spa.ServeHTTP(w, req)
+	}))
 	return r, nil
 }
 
@@ -120,10 +156,16 @@ func startingGuard(state *State, next http.Handler) http.Handler {
 
 // sessionFromCookie lets the web client authenticate with the HttpOnly session
 // cookie: it becomes a bearer token unless the request already carries one.
+// Compat API requests never use the cookie: its clients send tokens, and its
+// responses allow any origin (CORS for TV web apps).
 // It also records whether the client connection is HTTPS (for the Secure flag).
-func sessionFromCookie(next http.Handler) http.Handler {
+func sessionFromCookie(compatAtRoot bool) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler { return sessionCookieHandler(next, compatAtRoot) }
+}
+
+func sessionCookieHandler(next http.Handler, compatAtRoot bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("Authorization") == "" {
+		if r.Header.Get("Authorization") == "" && !compat.IsCompatPath(r.Method, r.URL.Path, compatAtRoot) {
 			if c, err := r.Cookie(api.SessionCookie); err == nil && c.Value != "" {
 				r.Header.Set("Authorization", "Bearer "+c.Value)
 			}
