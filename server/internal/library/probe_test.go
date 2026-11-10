@@ -4,7 +4,7 @@ import "testing"
 
 func TestParseFFprobe(t *testing.T) {
 	out := []byte(`{"format":{"format_name":"matroska,webm","duration":"12.345"},"streams":[
-	 {"codec_type":"video","codec_name":"hevc","width":3840,"height":2160,"color_transfer":"smpte2084"},
+	 {"codec_type":"video","codec_name":"hevc","width":3840,"height":2160,"color_transfer":"smpte2084","profile":"Main 10","level":153,"pix_fmt":"yuv420p10le"},
 	 {"codec_type":"video","codec_name":"mjpeg","disposition":{"attached_pic":1}},
 	 {"codec_type":"audio","codec_name":"eac3","channels":6,"tags":{"language":"eng","title":"Surround"}},
 	 {"codec_type":"audio","codec_name":"aac","channels":2,"tags":{"language":"und"}},
@@ -15,6 +15,12 @@ func TestParseFFprobe(t *testing.T) {
 	}
 	if r.Container != "mkv" || r.DurationMS != 12345 || r.VideoCodec != "hevc" || r.Width != 3840 || r.HDR != "HDR10" {
 		t.Fatalf("video: %+v", r)
+	}
+	if r.VideoProfile != "Main 10" || r.VideoLevel != 153 || r.VideoBitDepth != 10 {
+		t.Fatalf("video profile: %+v", r)
+	}
+	if bitDepth("8", "yuv420p10le") != 8 || bitDepth("", "yuv420p") != 8 || bitDepth("", "") != 0 || bitDepth("", "yuv444p12le") != 12 {
+		t.Fatal("bit depth")
 	}
 	if len(r.Audio) != 2 || r.Audio[0].Language != "eng" || r.Audio[0].Channels != 6 || r.Audio[1].Language != "" {
 		t.Fatalf("audio: %+v", r.Audio)

@@ -77,6 +77,10 @@ type MediaFile struct {
 	Width, Height *int
 	VideoCodec    string
 	HDR           string
+	// VideoProfile, VideoLevel and VideoBitDepth: "" / 0 when unknown (scanned before they were recorded).
+	VideoProfile  string
+	VideoLevel    int
+	VideoBitDepth int
 	Audio         []AudioStream
 	Subtitles     []SubtitleStream
 }

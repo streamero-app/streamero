@@ -36,8 +36,12 @@ type ProbeResult struct {
 	Height     int
 	VideoCodec string
 	HDR        string
-	Audio      []AudioStream
-	Subtitles  []SubtitleStream
+	// VideoProfile, VideoLevel and VideoBitDepth describe the video stream ("" / 0 = unknown).
+	VideoProfile  string
+	VideoLevel    int
+	VideoBitDepth int
+	Audio         []AudioStream
+	Subtitles     []SubtitleStream
 	// Tags are the container's tags with lower-case keys (artist, album, track, ...).
 	Tags map[string]string
 	// HasCover: the file carries embedded cover art.
@@ -60,6 +64,10 @@ type ffprobeOutput struct {
 		Height        int               `json:"height"`
 		Channels      int               `json:"channels"`
 		ColorTransfer string            `json:"color_transfer"`
+		Profile       string            `json:"profile"`
+		Level         int               `json:"level"`
+		PixFmt        string            `json:"pix_fmt"`
+		BitsPerSample string            `json:"bits_per_raw_sample"`
 		Tags          map[string]string `json:"tags"`
 		Disposition   map[string]int    `json:"disposition"`
 		SideData      []struct {
@@ -112,6 +120,7 @@ func parseFFprobe(out []byte, path string) (ProbeResult, error) {
 				continue // a second video stream
 			}
 			r.VideoCodec, r.Width, r.Height = s.CodecName, s.Width, s.Height
+			r.VideoProfile, r.VideoLevel, r.VideoBitDepth = s.Profile, max(s.Level, 0), bitDepth(s.BitsPerSample, s.PixFmt)
 			switch s.ColorTransfer {
 			case "smpte2084":
 				r.HDR = "HDR10"
@@ -135,6 +144,22 @@ func parseFFprobe(out []byte, path string) (ProbeResult, error) {
 		}
 	}
 	return r, nil
+}
+
+// bitDepth reads a video stream's bit depth from ffprobe (0 = unknown).
+func bitDepth(bitsPerSample, pixFmt string) int {
+	if n, err := strconv.Atoi(bitsPerSample); err == nil && n > 0 {
+		return n
+	}
+	switch {
+	case pixFmt == "":
+		return 0
+	case strings.Contains(pixFmt, "12le") || strings.Contains(pixFmt, "12be"):
+		return 12
+	case strings.Contains(pixFmt, "10le") || strings.Contains(pixFmt, "10be") || pixFmt == "p010le":
+		return 10
+	}
+	return 8
 }
 
 func containerName(format, path string) string {
