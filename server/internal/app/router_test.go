@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -27,6 +28,18 @@ func do(h http.Handler, path string) *httptest.ResponseRecorder {
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
 	return rec
+}
+
+func TestReadyzHidesStartupErrors(t *testing.T) {
+	st := &State{}
+	st.setErr(errors.New("dial tcp db:5432: password authentication failed for user streamero"))
+	rec := do(newTestRouter(t, st), "/readyz")
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status %d, want 503", rec.Code)
+	}
+	if body := rec.Body.String(); strings.Contains(body, "db:5432") || strings.Contains(body, "password") || !strings.Contains(body, `"retrying":true`) {
+		t.Fatalf("readyz body leaks or lacks state: %s", body)
+	}
 }
 
 func TestStartingReturns503WithRetryAfter(t *testing.T) {
