@@ -25,9 +25,10 @@ RUN CGO_ENABLED=0 go build -trimpath \
 
 FROM debian:trixie-slim AS runtime
 ARG TARGETARCH
-# FFMPEG_SOURCE=jellyfin uses the jellyfin-ffmpeg8 package (VA-API/QSV/NVENC/Vulkan/OpenCL builds,
-# invoked only as an external process). FFMPEG_SOURCE=debian falls back to Debian's ffmpeg.
-ARG FFMPEG_SOURCE=jellyfin
+# FFMPEG_SOURCE=extended installs a third-party ffmpeg 8 build with VA-API/QSV/NVENC/Vulkan/OpenCL
+# support (only run as an external process, see THIRD_PARTY.md). FFMPEG_SOURCE=debian uses Debian's
+# ffmpeg. The old value "jellyfin" is still accepted for existing build scripts.
+ARG FFMPEG_SOURCE=extended
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends ca-certificates curl gnupg tzdata libvips42t64 libchromaprint-tools mesa-va-drivers; \
@@ -35,7 +36,7 @@ RUN set -eux; \
       sed -i 's/^Components: main$/Components: main non-free non-free-firmware/' /etc/apt/sources.list.d/debian.sources; \
       apt-get update; apt-get install -y --no-install-recommends intel-media-va-driver-non-free; \
     fi; \
-    if [ "$FFMPEG_SOURCE" = "jellyfin" ]; then \
+    if [ "$FFMPEG_SOURCE" = "extended" ] || [ "$FFMPEG_SOURCE" = "jellyfin" ]; then \
       curl -fsSL https://repo.jellyfin.org/jellyfin_team.gpg.key | gpg --dearmor -o /usr/share/keyrings/jellyfin.gpg; \
       echo "deb [signed-by=/usr/share/keyrings/jellyfin.gpg] https://repo.jellyfin.org/debian trixie main" > /etc/apt/sources.list.d/jellyfin.list; \
       apt-get update; apt-get install -y --no-install-recommends jellyfin-ffmpeg8; \
