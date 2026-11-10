@@ -94,6 +94,7 @@ type compatItem struct {
 type compatSource struct {
 	ID                         string `json:"Id"`
 	Container                  string
+	ETag                       string
 	SupportsDirectPlay         bool
 	SupportsDirectStream       bool
 	IsRemote                   bool
@@ -329,6 +330,19 @@ func TestCompatClientSessionIntegration(t *testing.T) {
 	if s, _, _ := c.raw("GET", "/Videos/"+movie.ID+"/stream?static=true&mediaSourceId="+uuid.NewString(), nil, nil); s != 404 {
 		t.Fatalf("foreign media source: %d", s)
 	}
+	// Players that send no credentials (observed: the Android TV app) pass the
+	// source's signed tag instead; the dashed item id is what that app sends.
+	s, body, _ = anon.raw("GET", "/Videos/"+movieID.String()+"/stream?static=true&container=mkv&mediaSourceId="+src.ID+"&tag="+src.ETag,
+		nil, map[string]string{"Range": "bytes=2-5"})
+	if s != 206 || !bytes.Equal(body, want[2:6]) {
+		t.Fatalf("tagged stream: %d %q", s, body)
+	}
+	if s, _, _ := anon.raw("GET", "/Videos/"+movie.ID+"/stream?static=true&mediaSourceId="+src.ID+"&tag="+src.ETag+"x", nil, nil); s != 401 {
+		t.Fatalf("tampered tag: %d", s)
+	}
+	if s, _, _ := anon.raw("GET", "/Videos/"+movie.ID+"/master.m3u8?mediaSourceId="+src.ID+"&tag="+src.ETag, nil, nil); s != 401 {
+		t.Fatalf("a tag must not start a transcode: %d", s)
+	}
 
 	// Subtitles: the signed URL from PlaybackInfo and the client-built route.
 	if ffmpeg != "" {
@@ -360,6 +374,17 @@ func TestCompatClientSessionIntegration(t *testing.T) {
 		}
 	} else if pb.ErrorCode != "NoCompatibleStream" {
 		t.Fatalf("transcode without ffmpeg: %+v", pb)
+	}
+	// After a failed direct play the Android TV app asks again with EnableDirectPlay=false
+	// (observed); it then needs a stream URL, never direct play.
+	pb.MediaSources, pb.ErrorCode = nil, ""
+	c.call("POST", "/Items/"+movie.ID+"/PlaybackInfo", map[string]any{"DeviceProfile": profile, "MediaSourceId": src.ID,
+		"EnableDirectPlay": false, "EnableDirectStream": true}, &pb)
+	if ffmpeg != "" && (len(pb.MediaSources) != 1 || pb.MediaSources[0].SupportsDirectPlay || pb.MediaSources[0].TranscodingURL == "") {
+		t.Fatalf("retry without direct play: %+v", pb)
+	}
+	if ffmpeg == "" && pb.ErrorCode == "" {
+		t.Fatalf("retry without ffmpeg: %+v", pb)
 	}
 
 	// Progress reports go into Streamero's resume state and the dashboard.

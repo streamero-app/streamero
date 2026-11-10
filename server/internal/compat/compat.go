@@ -2,8 +2,8 @@
 // managers (Seerr/Jellyseerr), the *arr "Emby/Jellyfin" connection and media
 // clients (Infuse, Swiftfin, the Kodi add-on, TV apps) use. It is written from
 // the public OpenAPI description and observed client behaviour only (clean-room,
-// D-011/D-016/D-022). Only system info names the product the way those clients
-// expect (D-022); everything else identifies the server as Streamero.
+// D-011/D-016/D-031). Only system info names the product the way those clients
+// expect (D-031); everything else identifies the server as Streamero.
 package compat
 
 import (
@@ -31,10 +31,10 @@ import (
 )
 
 // APIVersion is the API level this layer implements (what clients compare against).
-const APIVersion = "10.10.0"
+const APIVersion = "10.11.0"
 
 // ProductName is reported in system info. Clients of this API check it to
-// recognise a compatible server (D-022); it is never shown in Streamero's own UI.
+// recognise a compatible server (D-031); it is never shown in Streamero's own UI.
 const ProductName = "Jellyfin Server"
 
 // Server is the compat HTTP surface, mounted under a prefix (default /compat).
@@ -92,6 +92,11 @@ func (s *Server) Routes() http.Handler {
 		r.Get(p, s.image)
 		r.Head(p, s.image)
 	}
+	// Media bytes check the token or a signed media source tag themselves.
+	for _, p := range []string{"/videos/{itemId}/{file}", "/audio/{itemId}/{file}"} {
+		r.Get(p, s.media)
+		r.Head(p, s.media)
+	}
 	r.Group(func(r chi.Router) {
 		r.Use(s.requireAuth)
 		r.Get("/system/info", s.info)
@@ -143,10 +148,6 @@ func (s *Server) Routes() http.Handler {
 
 		r.Get("/items/{itemId}/playbackinfo", s.playbackInfo)
 		r.Post("/items/{itemId}/playbackinfo", s.playbackInfo)
-		for _, p := range []string{"/videos/{itemId}/{file}", "/audio/{itemId}/{file}"} {
-			r.Get(p, s.media)
-			r.Head(p, s.media)
-		}
 		r.Get("/videos/{itemId}/{sourceId}/subtitles/{index}/{file}", s.subtitle)
 		r.Get("/videos/{itemId}/{sourceId}/subtitles/{index}/{ticks}/{file}", s.subtitle)
 		r.Get("/mediasegments/{itemId}", s.segments)
@@ -182,7 +183,18 @@ func (s *Server) Routes() http.Handler {
 		r.Get("/auth/keys", s.listKeys)
 		r.Post("/auth/keys", s.createKey)
 	})
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		// At debug level every call is logged (path only: queries may carry tokens),
+		// which is how a client's needs are diagnosed.
+		w := rw
+		if s.Log != nil && s.Log.Enabled(req.Context(), slog.LevelDebug) {
+			rec := &statusRecorder{ResponseWriter: rw, status: http.StatusOK}
+			w = rec
+			defer func() {
+				s.Log.Debug("compat request", "method", req.Method, "path", req.URL.Path, "status", rec.status,
+					"client", clientInfo(req).name, "params", paramNames(req), "authHeader", authHeaderNames(req))
+			}()
+		}
 		// Signed media URLs (HLS, subtitles) handed out in PlaybackInfo are relative
 		// to the client's server address, which includes this prefix.
 		if strings.HasPrefix(req.URL.Path, "/stream/") && s.Stream != nil {
@@ -196,6 +208,40 @@ func (s *Server) Routes() http.Handler {
 		r.ServeHTTP(w, req)
 	})
 }
+
+// paramNames lists the query parameter names of a request (never their values).
+func paramNames(r *http.Request) []string {
+	var out []string
+	for k := range r.URL.Query() {
+		out = append(out, k)
+	}
+	return out
+}
+
+// authHeaderNames lists which credential headers a request carries (never their values).
+func authHeaderNames(r *http.Request) []string {
+	var out []string
+	for _, h := range []string{"Authorization", "X-Emby-Authorization", "X-Emby-Token", "X-MediaBrowser-Token"} {
+		if r.Header.Get(h) != "" {
+			out = append(out, h)
+		}
+	}
+	return out
+}
+
+// statusRecorder remembers the response status for the debug log.
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (r *statusRecorder) WriteHeader(code int) {
+	r.status = code
+	r.ResponseWriter.WriteHeader(code)
+}
+
+// Unwrap lets http.ResponseController reach the underlying writer (flush, deadlines).
+func (r *statusRecorder) Unwrap() http.ResponseWriter { return r.ResponseWriter }
 
 // lowercasePath makes routing case-insensitive (clients send "/Users/AuthenticateByName").
 // Path values are hex IDs, so lowercasing them is harmless.

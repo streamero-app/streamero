@@ -711,7 +711,7 @@ func (s *Server) dtos(ctx context.Context, rows []row, f fields) ([]any, error) 
 		if fs, ok := files[x.id]; ok && len(fs) > 0 {
 			sources := make([]any, 0, len(fs))
 			for _, mf := range fs {
-				sources = append(sources, mediaSource(mf))
+				sources = append(sources, s.mediaSource(mf))
 			}
 			d["MediaSources"] = sources
 			d["MediaStreams"] = sources[0].(map[string]any)["MediaStreams"]
@@ -736,7 +736,7 @@ func orAny(v []any) []any {
 // filesOf loads the media files of items, best version first.
 func (s *Server) filesOf(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID][]library.MediaFile, error) {
 	rows, err := s.Pool.Query(ctx, `SELECT item_id, id, path, label, size, container, duration_ms, width, height, video_codec, hdr,
-		audio, subtitles FROM media_files WHERE item_id = ANY($1) ORDER BY item_id, height DESC NULLS LAST, path`, ids)
+		audio, subtitles, video_profile, COALESCE(video_level, 0), COALESCE(video_bit_depth, 0) FROM media_files WHERE item_id = ANY($1) ORDER BY item_id, height DESC NULLS LAST, path`, ids)
 	if err != nil {
 		return nil, err
 	}
@@ -747,7 +747,7 @@ func (s *Server) filesOf(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID][]
 		var f library.MediaFile
 		var audio, subs []byte
 		if err := rows.Scan(&item, &f.ID, &f.Path, &f.Label, &f.Size, &f.Container, &f.DurationMS, &f.Width, &f.Height,
-			&f.VideoCodec, &f.HDR, &audio, &subs); err != nil {
+			&f.VideoCodec, &f.HDR, &audio, &subs, &f.VideoProfile, &f.VideoLevel, &f.VideoBitDepth); err != nil {
 			return nil, err
 		}
 		_ = json.Unmarshal(audio, &f.Audio)

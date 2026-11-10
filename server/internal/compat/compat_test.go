@@ -101,13 +101,46 @@ func TestDeviceForProfiles(t *testing.T) {
 		t.Fatalf("matching profile: %+v", plan)
 	}
 	// HDR10 excluded by a VideoRangeType condition: tone-mapped transcode.
-	prof.CodecProfiles = append(prof.CodecProfiles, struct {
-		Type            string
-		Conditions      []profileCondition
-		ApplyConditions []profileCondition
-	}{Type: "Video", Conditions: []profileCondition{{Condition: "EqualsAny", Property: "VideoRangeType", Value: "SDR|HLG"}}})
+	// HDR10 excluded for HEVC (as the Android TV app sends it): tone-mapped transcode.
+	hevc := "hevc"
+	prof.CodecProfiles = append(prof.CodecProfiles, codecProfile{Type: "Video", Codec: &hevc,
+		Conditions: []profileCondition{{Condition: "NotEquals", Property: "VideoRangeType", Value: "DOVI|DOVIWithHDR10|HDR10Plus|HDR10"}}})
 	if plan := stream.Decide(f, 0, deviceFor(prof, f, true)); plan.Method != "transcode" || !plan.ToneMap {
 		t.Fatalf("hdr not allowed: %+v", plan)
+	}
+	// Profile and level conditions for H.264 (values as ffprobe reports them).
+	h264 := "h264"
+	prof.CodecProfiles = append(prof.CodecProfiles,
+		codecProfile{Type: "Video", Codec: &h264, Conditions: []profileCondition{
+			{Condition: "EqualsAny", Property: "VideoProfile", Value: "high|main|baseline|constrained baseline"}}},
+		codecProfile{Type: "Video", Codec: &h264, Conditions: []profileCondition{
+			{Condition: "LessThanEqual", Property: "VideoLevel", Value: "52"}}})
+	hi := file("mkv", "h264", "", "aac")
+	hi.VideoProfile, hi.VideoLevel = "High", 41
+	if plan := stream.Decide(hi, 0, deviceFor(prof, hi, true)); plan.Method != "direct" {
+		t.Fatalf("high profile: %+v", plan)
+	}
+	hi444 := hi
+	hi444.VideoProfile = "High 4:4:4 Predictive"
+	if plan := stream.Decide(hi444, 0, deviceFor(prof, hi444, true)); plan.Method != "transcode" {
+		t.Fatalf("4:4:4 profile: %+v", plan)
+	}
+	tooHigh := hi
+	tooHigh.VideoLevel = 62
+	if plan := stream.Decide(tooHigh, 0, deviceFor(prof, tooHigh, true)); plan.Method != "transcode" {
+		t.Fatalf("level 6.2: %+v", plan)
+	}
+	// Unknown profile (scanned before it was recorded): direct play is tried.
+	unknown := file("mkv", "h264", "", "aac")
+	if plan := stream.Decide(unknown, 0, deviceFor(prof, unknown, true)); plan.Method != "direct" {
+		t.Fatalf("unknown profile: %+v", plan)
+	}
+	// After a failed direct play (EnableDirectPlay=false): copy only a known-good video.
+	if plan := stream.Decide(hi, 0, deviceFor(prof, hi, false)); plan.Method != "remux" {
+		t.Fatalf("retry, known profile: %+v", plan)
+	}
+	if plan := stream.Decide(unknown, 0, deviceFor(prof, unknown, false)); plan.Method != "transcode" {
+		t.Fatalf("retry, unknown profile: %+v", plan)
 	}
 	// Only a missing audio codec: remux with audio transcoding, video copied.
 	g := file("mkv", "h264", "", "truehd")

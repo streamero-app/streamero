@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -66,6 +67,15 @@ func mediaStreams(f library.MediaFile, defaultAudio int) []any {
 		v["Codec"] = f.VideoCodec
 		v["IsDefault"] = true
 		v["VideoRange"], v["VideoRangeType"] = videoRangeType(f.HDR)
+		if f.VideoProfile != "" {
+			v["Profile"] = f.VideoProfile
+		}
+		if f.VideoLevel > 0 {
+			v["Level"] = f.VideoLevel
+		}
+		if f.VideoBitDepth > 0 {
+			v["BitDepth"] = f.VideoBitDepth
+		}
 		if f.Width != nil {
 			v["Width"] = *f.Width
 		}
@@ -122,6 +132,23 @@ func mediaStreams(f library.MediaFile, defaultAudio int) []any {
 	return out
 }
 
+// streamScope is the signing scope of a media file's direct stream.
+func streamScope(fileID uuid.UUID) string { return "/compat/videos/" + fileID.String() + "/" }
+
+// tagTTL bounds how long a media source tag opens the file without a token.
+const tagTTL = 12 * time.Hour
+
+// mediaSource is mediaSource(f) with a signed ETag: some players (observed: the
+// Android TV app) request the direct stream with only the source id and this tag,
+// without credentials, so the tag carries an HMAC signature for that file.
+func (s *Server) mediaSource(f library.MediaFile) map[string]any {
+	src := mediaSource(f)
+	if s.Stream != nil {
+		src["ETag"] = s.Stream.Signer.Token(streamScope(f.ID), tagTTL)
+	}
+	return src
+}
+
 // mediaSource describes one version of an item, playable directly by default.
 func mediaSource(f library.MediaFile) map[string]any {
 	name := f.Label
@@ -160,11 +187,17 @@ type deviceProfile struct {
 	DirectPlayProfiles  []struct {
 		Container, AudioCodec, VideoCodec, Type string
 	} `json:"DirectPlayProfiles"`
-	CodecProfiles []struct {
-		Type            string
-		Conditions      []profileCondition
-		ApplyConditions []profileCondition
-	} `json:"CodecProfiles"`
+	TranscodingProfiles []struct {
+		Container, AudioCodec, VideoCodec, Type, Protocol string
+	} `json:"TranscodingProfiles"`
+	CodecProfiles []codecProfile `json:"CodecProfiles"`
+}
+
+type codecProfile struct {
+	Type            string
+	Codec           *string
+	Conditions      []profileCondition
+	ApplyConditions []profileCondition
 }
 
 type profileCondition struct {
@@ -174,15 +207,13 @@ type profileCondition struct {
 // deviceFor turns a client profile into Streamero's device description for file f.
 // Without a profile the client is assumed to play the file as it is (clients that
 // send none, like many native players, decode everything themselves).
+// allowDirect = false means the client asked for a rebuilt stream (it sends this
+// after direct play failed): the video is then only copied when its profile is
+// known to fit the client, otherwise transcoded.
 func deviceFor(prof *deviceProfile, f library.MediaFile, allowDirect bool) stream.Device {
-	var d stream.Device
-	d.HLS = true
-	if !allowDirect {
-		d.VideoCodecs, d.AudioCodecs = []string{"h264", "hdr"}, []string{"aac", "mp3", "ac3", "eac3"}
-		if prof != nil {
-			d.MaxBitrate = prof.MaxStreamingBitrate
-		}
-		return d
+	d := stream.Device{HLS: true}
+	if prof != nil {
+		d.MaxBitrate = prof.MaxStreamingBitrate
 	}
 	audioCodecs := func() []string {
 		var out []string
@@ -191,15 +222,30 @@ func deviceFor(prof *deviceProfile, f library.MediaFile, allowDirect bool) strea
 		}
 		return out
 	}
-	if prof == nil || len(prof.DirectPlayProfiles) == 0 {
-		d.Containers, d.VideoCodecs, d.AudioCodecs = []string{f.Container}, []string{f.VideoCodec, "hdr"}, audioCodecs()
+	if !allowDirect {
+		d.VideoCodecs, d.AudioCodecs = []string{"h264"}, []string{"aac", "mp3", "ac3", "eac3"}
 		if prof != nil {
-			d.MaxBitrate = prof.MaxStreamingBitrate
+			for _, tp := range prof.TranscodingProfiles {
+				if strings.EqualFold(tp.Type, "Video") {
+					d.VideoCodecs = append(d.VideoCodecs, splitList(strings.ToLower(tp.VideoCodec), ",")...)
+					d.AudioCodecs = append(d.AudioCodecs, splitList(strings.ToLower(tp.AudioCodec), ",")...)
+				}
+			}
+		}
+		if f.VideoProfile == "" || !videoFits(prof, f) {
+			d.VideoCodecs = slices.DeleteFunc(d.VideoCodecs, func(c string) bool { return strings.EqualFold(c, f.VideoCodec) })
+		}
+		if hdrAllowed(prof, f) {
+			d.VideoCodecs = append(d.VideoCodecs, "hdr")
 		}
 		return d
 	}
+	if prof == nil || len(prof.DirectPlayProfiles) == 0 {
+		d.Containers, d.VideoCodecs, d.AudioCodecs = []string{f.Container}, []string{f.VideoCodec, "hdr"}, audioCodecs()
+		return d
+	}
 	want := "video"
-	if f.VideoCodec == "" {
+	if !hasVideo(f) {
 		want = "audio"
 	}
 	for _, dp := range prof.DirectPlayProfiles {
@@ -228,40 +274,128 @@ func deviceFor(prof *deviceProfile, f library.MediaFile, allowDirect bool) strea
 			d.Containers = append(d.Containers, "mkv")
 		}
 	}
-	if hdrAllowed(prof, f.HDR) {
+	if !videoFits(prof, f) {
+		d.VideoCodecs = slices.DeleteFunc(d.VideoCodecs, func(c string) bool { return strings.EqualFold(c, f.VideoCodec) })
+	}
+	if hdrAllowed(prof, f) {
 		d.VideoCodecs = append(d.VideoCodecs, "hdr")
 	}
-	d.MaxBitrate = prof.MaxStreamingBitrate
 	return d
 }
 
-// hdrAllowed reads VideoRangeType conditions of video codec profiles (no condition = allowed).
-func hdrAllowed(prof *deviceProfile, hdr string) bool {
-	if hdr == "" {
-		return true
+// profilesFor returns the video codec profiles that apply to f's codec.
+func profilesFor(prof *deviceProfile, f library.MediaFile) []codecProfile {
+	if prof == nil {
+		return nil
 	}
-	_, want := videoRangeType(hdr)
+	var out []codecProfile
 	for _, cp := range prof.CodecProfiles {
-		if cp.Type != "" && !strings.EqualFold(cp.Type, "Video") {
+		if !strings.EqualFold(cp.Type, "Video") {
 			continue
 		}
-		for _, c := range cp.Conditions {
-			if !strings.EqualFold(c.Property, "VideoRangeType") {
-				continue
+		if cp.Codec != nil && *cp.Codec != "" && !slices.ContainsFunc(splitList(*cp.Codec, ","), func(c string) bool {
+			return strings.EqualFold(c, f.VideoCodec)
+		}) {
+			continue
+		}
+		if !conditionsHold(cp.ApplyConditions, f, false) {
+			continue
+		}
+		out = append(out, cp)
+	}
+	return out
+}
+
+// videoFits checks the profile, level, size and bit depth conditions (not the
+// dynamic range, see hdrAllowed). Unknown values pass: the client tries the file.
+func videoFits(prof *deviceProfile, f library.MediaFile) bool {
+	for _, cp := range profilesFor(prof, f) {
+		if !conditionsHold(cp.Conditions, f, false) {
+			return false
+		}
+	}
+	return true
+}
+
+// hdrAllowed reads VideoRangeType conditions (no condition = allowed).
+func hdrAllowed(prof *deviceProfile, f library.MediaFile) bool {
+	if f.HDR == "" {
+		return true
+	}
+	for _, cp := range profilesFor(prof, f) {
+		if !conditionsHold(cp.Conditions, f, true) {
+			return false
+		}
+	}
+	return true
+}
+
+// conditionsHold evaluates profile conditions against a file. With rangeOnly only
+// VideoRangeType is checked; otherwise everything but VideoRangeType.
+func conditionsHold(conds []profileCondition, f library.MediaFile, rangeOnly bool) bool {
+	for _, c := range conds {
+		prop := strings.ToLower(c.Property)
+		if (prop == "videorangetype") != rangeOnly {
+			continue
+		}
+		var text string
+		var num int
+		switch prop {
+		case "videorangetype":
+			_, text = videoRangeType(f.HDR)
+		case "videoprofile":
+			text = f.VideoProfile
+		case "videolevel":
+			num = f.VideoLevel
+		case "videobitdepth":
+			num = f.VideoBitDepth
+		case "width":
+			if f.Width != nil {
+				num = *f.Width
 			}
-			ok := false
-			for _, v := range strings.Split(c.Value, "|") {
-				if strings.EqualFold(v, want) || (want == "DOVI" && strings.HasPrefix(strings.ToUpper(v), "DOVI")) {
-					ok = true
-				}
+		case "height":
+			if f.Height != nil {
+				num = *f.Height
 			}
-			if strings.EqualFold(c.Condition, "NotEquals") {
-				ok = !ok
+		default:
+			continue // properties Streamero does not know are not checked
+		}
+		if text == "" && num == 0 {
+			continue // unknown value
+		}
+		if !conditionHolds(c, text, num) {
+			return false
+		}
+	}
+	return true
+}
+
+func conditionHolds(c profileCondition, text string, num int) bool {
+	matches := func() bool {
+		for _, v := range strings.Split(c.Value, "|") {
+			if text != "" && strings.EqualFold(strings.TrimSpace(v), text) {
+				return true
 			}
-			if !ok {
-				return false
+			if text == "" && strings.TrimSpace(v) == strconv.Itoa(num) {
+				return true
+			}
+			// "DOVI" also covers the DOVIWith… variants a client lists.
+			if text == "DOVI" && strings.HasPrefix(strings.ToUpper(v), "DOVI") {
+				return true
 			}
 		}
+		return false
+	}
+	limit, err := strconv.Atoi(strings.TrimSpace(c.Value))
+	switch strings.ToLower(c.Condition) {
+	case "equals", "equalsany":
+		return matches()
+	case "notequals":
+		return !matches()
+	case "lessthanequal":
+		return err != nil || text != "" || num <= limit
+	case "greaterthanequal":
+		return err != nil || text != "" || num >= limit
 	}
 	return true
 }
@@ -358,7 +492,8 @@ func (s *Server) playbackInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	f := pickFile(files[id], body.MediaSourceID)
-	allowDirect := (body.EnableDirectPlay == nil || *body.EnableDirectPlay) || (body.EnableDirectStream == nil || *body.EnableDirectStream)
+	// EnableDirectPlay=false (observed after a failed direct play) asks for a rebuilt stream.
+	allowDirect := body.EnableDirectPlay == nil || *body.EnableDirectPlay
 	dev := deviceFor(body.DeviceProfile, f, allowDirect)
 	if body.MaxStreamingBitrate != nil && *body.MaxStreamingBitrate > 0 {
 		dev.MaxBitrate = *body.MaxStreamingBitrate
@@ -395,7 +530,7 @@ func (s *Server) playbackInfo(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, map[string]any{"MediaSources": []any{}, "PlaySessionId": playID, "ErrorCode": code})
 		return
 	}
-	src := mediaSource(f)
+	src := s.mediaSource(f)
 	src["MediaStreams"] = mediaStreams(f, info.AudioIndex)
 	if info.AudioIndex >= 0 {
 		src["DefaultAudioStreamIndex"] = audioBase(f) + info.AudioIndex
@@ -487,21 +622,32 @@ func (s *Server) itemFile(r *http.Request, id uuid.UUID, sourceID string) (libra
 
 // media serves /Videos/{itemId}/{file} and /Audio/{itemId}/{file}: the original
 // file for "stream[.ext]" and "universal", an HLS session for "master.m3u8".
+//
+// It accepts the client's token, or, for the original file only, a media source
+// tag signed for that file (players that send no credentials, see mediaSource).
 func (s *Server) media(w http.ResponseWriter, r *http.Request) {
-	p := principal(r)
 	id, err := ParseID(chi.URLParam(r, "itemId"))
-	if err != nil || !canSee(p) || s.Stream == nil {
+	if err != nil || s.Stream == nil {
 		http.NotFound(w, r)
 		return
 	}
 	name := chi.URLParam(r, "file")
+	direct := name == "stream" || strings.HasPrefix(name, "stream.") || name == "universal" || name == "download"
+	p, authErr := s.Auth.Authenticate(r.Context(), clientInfo(r).token)
 	f, ok := s.itemFile(r, id, param(r, "MediaSourceId"))
-	if !ok {
+	switch {
+	case authErr == nil && !canSee(p):
+		http.NotFound(w, r)
+		return
+	case authErr != nil && (!direct || !ok || !s.Stream.Signer.ValidToken(streamScope(f.ID), param(r, "Tag"))):
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	case !ok:
 		http.NotFound(w, r)
 		return
 	}
 	switch {
-	case name == "stream" || strings.HasPrefix(name, "stream.") || name == "universal" || name == "download":
+	case direct:
 		// Direct play: the file as it is, with byte ranges (path checked by ResolveSafePath).
 		s.Stream.ServeFile(w, r, f.ID)
 	case name == "master.m3u8" || name == "main.m3u8":
