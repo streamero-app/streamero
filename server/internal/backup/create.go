@@ -13,6 +13,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/jackc/pgx/v5"
@@ -127,6 +128,7 @@ func (s *Service) dump(ctx context.Context, dir string) (*Manifest, error) {
 	}
 	for _, t := range tables {
 		cols, err := tableColumns(ctx, tx, t)
+		cols = withoutSecrets(t, cols)
 		if err != nil {
 			return nil, err
 		}
@@ -230,6 +232,28 @@ func dataTables(ctx context.Context, q querier) ([]string, error) {
 		return nil, err
 	}
 	return pgx.CollectRows(rows, pgx.RowTo[string])
+}
+
+// secretColumns are never written into a backup. A restored row gets the column's
+// default (NULL), which is what those features expect after the secret is gone.
+var secretColumns = map[string][]string{
+	// The other server's API key, kept only while an import runs.
+	"import_runs": {"secret"},
+}
+
+// withoutSecrets drops the secretColumns of a table from its column list.
+func withoutSecrets(table string, cols []string) []string {
+	skip := secretColumns[table]
+	if len(skip) == 0 {
+		return cols
+	}
+	out := cols[:0:0]
+	for _, c := range cols {
+		if !slices.Contains(skip, c) {
+			out = append(out, c)
+		}
+	}
+	return out
 }
 
 // tableColumns lists the stored (not generated, not dropped) columns in order.

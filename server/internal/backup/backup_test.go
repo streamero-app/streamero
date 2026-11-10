@@ -9,6 +9,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -279,5 +280,15 @@ func TestExtractStaysInside(t *testing.T) {
 	}
 	if err := s.extract(configPrefix, "out/x", strings.NewReader("x")); err == nil {
 		t.Fatal("followed a symlink out of the config folder")
+	}
+}
+
+func TestBackupLeavesOutSecrets(t *testing.T) {
+	got := withoutSecrets("import_runs", []string{"id", "status", "secret", "source_url"})
+	if slices.Contains(got, "secret") || len(got) != 3 {
+		t.Fatalf("import_runs columns: %v", got)
+	}
+	if got := withoutSecrets("users", []string{"id", "password_hash"}); len(got) != 2 {
+		t.Fatalf("other tables must keep their columns: %v", got)
 	}
 }
