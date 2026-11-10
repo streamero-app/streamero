@@ -95,7 +95,8 @@
     "branding": "Brendiranje",
     "profileSection": "Profil",
     "requests": "Zahtjevi",
-    "enhancements": "Proširenja"
+    "enhancements": "Proširenja",
+    "backups": "Sigurnosne kopije"
   },
   "account": {
     "changePassword": "Promijeni lozinku",
@@ -201,7 +202,11 @@
     "invalid_url": "Adresa nije ispravna (koristi http:// ili https://).",
     "upstream_failed": "Druga aplikacija nije odgovorila ili je odbila zahtjev.",
     "not_configured": "Ova veza nije postavljena.",
-    "not_in_arr": "Radarr ili Sonarr ne vode ovaj naslov, pa ga Bazarr ne može pronaći."
+    "not_in_arr": "Radarr ili Sonarr ne vode ovaj naslov, pa ga Bazarr ne može pronaći.",
+    "backup_newer_schema": "Ovu kopiju napravila je novija verzija Streamera. Najprije ažuriraj server.",
+    "invalid_backup": "Datoteka nije ispravna Streamero sigurnosna kopija.",
+    "backup_busy": "Već je u tijeku izrada ili vraćanje kopije. Pokušaj ponovno za trenutak.",
+    "backup_confirm_mismatch": "Za potvrdu točno upiši naziv kopije."
   },
   "notFound": {
     "title": "Stranica nije pronađena",
@@ -600,7 +605,48 @@
     "failed": "Neuspjelo",
     "runNow": "Pokreni sada",
     "analyze_media": "Analiziraj medije",
-    "analyze_media_hint": "Poglavlja, uvod i odjavna špica za preskakanje, sličice za premotavanje"
+    "analyze_media_hint": "Poglavlja, uvod i odjavna špica za preskakanje, sličice za premotavanje",
+    "backup": "Sigurnosna kopija",
+    "backup_hint": "Baza i postavke u mapu za kopije; stare kopije uklanjaju se prema postavci čuvanja"
+  },
+  "backups": {
+    "title": "Sigurnosne kopije",
+    "intro": "Kopija sadrži cijelu bazu (korisnike, biblioteke, povijest gledanja, postavke) i mapu s konfiguracijom. Medijske datoteke nikad nisu uključene.",
+    "folder": "Mapa na serveru: {{dir}}",
+    "now": "Napravi kopiju sada",
+    "running": "Izrada kopije…",
+    "scanWarning": "Skeniranje biblioteke je u tijeku. Kopija ostaje dosljedna, ali naslovi koji se upravo dodaju možda neće biti u njoj.",
+    "none": "Još nema kopija.",
+    "kind_scheduled": "Zakazana",
+    "kind_manual": "Ručna",
+    "kind_pre_restore": "Prije vraćanja",
+    "kind_uploaded": "Učitana",
+    "withArtwork": "Sa slikama",
+    "problem_unreadable": "Nečitljiva",
+    "problem_newer_schema": "Novija verzija",
+    "duringScan": "napravljena tijekom skeniranja",
+    "skipped": "nedostaju tablice: {{tables}}",
+    "download": "Preuzmi",
+    "restore": "Vrati",
+    "delete": "Obriši",
+    "deleteConfirm": "Obrisati ovu datoteku kopije? To se ne može poništiti.",
+    "restoreWarning": "Sve u bazi zamjenjuje se ovom kopijom: korisnici, biblioteke, povijest gledanja i postavke nastale nakon nje bit će izgubljeni. Najprije se sprema sigurnosna kopija trenutnog stanja, zatim se server ponovno pokreće.",
+    "typeName": "Upiši {{name}} za potvrdu",
+    "restoreConfirm": "Vrati i ponovno pokreni",
+    "restore_running": "Vraćanje kopije {{name}}… Server se ponovno pokreće kad završi.",
+    "restore_succeeded": "Kopija {{name}} je vraćena ({{when}}).",
+    "restore_failed": "Vraćanje kopije {{name}} nije uspjelo ({{when}}).",
+    "safetyBackup": "Stanje prije vraćanja sačuvano je kao {{name}}.",
+    "upload": "Učitaj kopiju",
+    "uploadHint": "Datoteka .tar.gz s drugog Streamero servera. Provjerava se i sprema ovdje, ali se još ne vraća.",
+    "uploaded": "Učitano i provjereno.",
+    "scheduleTitle": "Raspored",
+    "enabled": "Dnevna kopija",
+    "enabledHint": "Worker jednom dnevno napravi kopiju.",
+    "keepLast": "Čuvaj",
+    "keepLastHint": "Koliko zakazanih i ručnih kopija čuvati. Učitane kopije i one prije vraćanja brišu se samo ručno.",
+    "includeImages": "Uključi slike",
+    "includeImagesHint": "Preuzeti posteri i pozadine mogu se ponovno dohvatiti pa su prema zadanom izostavljeni. S njima su kopije puno veće."
   },
   "notifications": {
     "title": "Obavijesti",

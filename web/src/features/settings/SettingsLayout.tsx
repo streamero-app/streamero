@@ -1,6 +1,6 @@
 import { Link, Outlet } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Bell, Captions, Compass, Puzzle, Clapperboard, Cable, Cpu, FolderOpen, Gauge, History, House, KeyRound, ListChecks, Mail, MonitorSmartphone, Palette, ScrollText, Server, Sparkles, UserRound, Users, UsersRound, Zap, type LucideIcon } from "lucide-react";
+import { ArchiveRestore, Bell, Captions, Compass, Puzzle, Clapperboard, Cable, Cpu, FolderOpen, Gauge, History, House, KeyRound, ListChecks, Mail, MonitorSmartphone, Palette, ScrollText, Server, Sparkles, UserRound, Users, UsersRound, Zap, type LucideIcon } from "lucide-react";
 import { useMe } from "@/features/auth/useAuth";
 import { useSystemInfo } from "@/features/server/useSystemInfo";
 import { Page } from "@/components/Page";
@@ -49,6 +49,7 @@ export function SettingsLayout() {
               <Tab to="/settings/integrations" icon={Cable} label={t("settings.integrations")} />
               <Tab to="/settings/notifications" icon={Bell} label={t("settings.notifications")} />
               <Tab to="/settings/tasks" icon={ListChecks} label={t("settings.tasks")} />
+              <Tab to="/settings/backups" icon={ArchiveRestore} label={t("settings.backups")} />
               <Tab to="/settings/activity" icon={History} label={t("settings.activityLog")} />
               <Tab to="/settings/logs" icon={ScrollText} label={t("settings.logs")} />
               <Tab to="/settings/branding" icon={Palette} label={t("settings.branding")} />
