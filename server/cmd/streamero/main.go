@@ -30,6 +30,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/compat"
 	"github.com/streamero-app/streamero/server/internal/config"
 	"github.com/streamero-app/streamero/server/internal/db"
+	"github.com/streamero-app/streamero/server/internal/discovery"
 	"github.com/streamero-app/streamero/server/internal/importer"
 	"github.com/streamero-app/streamero/server/internal/jobs"
 	"github.com/streamero-app/streamero/server/internal/library"
@@ -134,7 +135,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	if err != nil {
 		return err
 	}
-	opts := app.RouterOptions{TrustedProxies: proxies}
+	opts := app.RouterOptions{TrustedProxies: proxies, NoCompatAtRoot: !cfg.CompatAtRoot}
 	if cfg.AuthRatePerMin > 0 {
 		opts.AuthLimiter = netx.NewLimiter(cfg.AuthRatePerMin, cfg.AuthRateBurst)
 	}
@@ -220,7 +221,11 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 				}
 			}})
 		state.SetCompat(&compat.Server{Pool: deps.Pool, Auth: state.Auth(), Libraries: libs, Stream: state.Stream(),
-			ServerID: state.ServerID(), Log: log, ServerName: h.ServerNameFor, OnPlayback: h.TrackPlayback, OnProgress: h.TrackProgress})
+			ServerID: state.ServerID(), Log: log, ServerName: h.ServerNameFor, OnPlayback: h.TrackPlayback, OnProgress: h.TrackProgress,
+			Commands: h.NowPlaying})
+		if cfg.Discovery {
+			startDiscovery(ctx, cfg, state.ServerID(), h.ServerNameFor, log)
+		}
 		log.Info("ready", "server_id", state.ServerID(), "startup", time.Since(h.StartedAt).String())
 		if !state.SetupCompleted(ctx) {
 			// Printed on purpose: whoever can read the server log may create the first admin.
@@ -382,4 +387,17 @@ func healthcheck() error {
 		return fmt.Errorf("healthz: %s", resp.Status)
 	}
 	return nil
+}
+
+// startDiscovery answers media clients' LAN discovery broadcast (D-033). A port
+// that cannot be bound (another server answers there) is logged, not fatal.
+func startDiscovery(ctx context.Context, cfg config.Config, id uuid.UUID, name func(context.Context) string, log *slog.Logger) {
+	r := &discovery.Responder{URL: cfg.DiscoveryURL, HTTPPort: discovery.PortOf(cfg.HTTPAddr), Log: log,
+		Info: func(ctx context.Context) (string, string) { return compat.ID(id), name(ctx) }}
+	go func() {
+		log.Info("answering client discovery", "addr", cfg.DiscoveryAddr)
+		if err := r.ListenAndServe(ctx, cfg.DiscoveryAddr); err != nil {
+			log.Warn("client discovery unavailable", "addr", cfg.DiscoveryAddr, "err", err)
+		}
+	}()
 }
