@@ -26,6 +26,12 @@ Nativna iOS aplikacija dobila je sve ekrane Android aplikacije: Home/Search/Disc
 - Poznato: skok naprijed/natrag iz postavki ne primjenjuje se u AVKit kontrolama (isto kao na Androidu).
 - Sljedeće: ručna provjera na uređaju (reprodukcija, glazba na zaključanom ekranu).
 
+## Compat API za medijske klijente (branch `feat/compat-clients`, 2026-11-10)
+`/compat` sada služi i Jellyfin-kompatibilne klijente (D-031): prijava imenom i Quick Connect (i za 2FA račune, odobrenje iz weba), pogledi, `/Items` s pagingom/sortiranjem/filterima, serije/sezone/epizode, slike, pretraga, resume/next up/latest, user data, PlaybackInfo (direct play ili HLS), stream, titlovi, izvještaji o reprodukciji, media segmenti. Migracija 00024 sprema profil/razinu/bit dubinu videa iz ffproba.
+- Provjereno sa službenom Android TV aplikacijom 0.19.10 u emulatoru (Android TV 12, x86): otkrivanje servera, Quick Connect za 2FA korisnika, biblioteke, stranica serije s „Next up", favorit, direct play, HLS transcode (H.264 4:4:4 koji emulator ne dekodira), napredak u bazi.
+- Nije provjereno: Infuse, Swiftfin, Kodi add-on, Samsung/LG (samo po javnoj dokumentaciji).
+- Poznato: nema `/socket` (WebSocket) → nema daljinskog upravljanja; DisplayPreferences se ne pamte; datoteke skenirane prije 00024 nemaju profil dok se ne promijene.
+
 ## v0.8.3 (2026-11-10)
 iOS: slike više ne šire ekran preko ruba, a nakon ponovne instalacije i dodavanja servera traži se prijava (#41). Naslovi se prikazuju točno kako ih daje TMDb, umjesto velikim slovima. Spremanje TMDb ključa ponovno pokušava naslove kojima je pretraga propala. Verzija je samo u postavkama (#42).
 

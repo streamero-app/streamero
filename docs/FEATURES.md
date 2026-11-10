@@ -296,7 +296,7 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [ ] `[+]` AI podnaslovi: Whisper (faster-whisper kontejner, GPU) generira podnaslove kad ih nema (P13)
 - [ ] `[+]` AI prijevod podnaslova (npr. EN → HR) preko lokalnog LLM-a (Ollama) (P13)
 - [ ] `[+]` Import iz Jellyfina: korisnici, watch povijest, napredak, favoriti, playliste, kolekcije (preko Jellyfin API-ja, uz API ključ) (P13)
-- [ ] `[+]` Compat API sloj (`/compat`, osnova iz P4b) proširen da Infuse, Swiftfin, Findroid itd. rade sa Streamerom (P14)
+- [ ] `[+]` Compat API sloj (`/compat`, osnova iz P4b) proširen da Infuse, Swiftfin, Findroid itd. rade sa Streamerom (P14) — *pregledavanje, reprodukcija (direct + HLS), napredak, user data, titlovi i Quick Connect (i za 2FA) gotovi (D-031); provjereno sa službenom Android TV aplikacijom 0.19.10 u emulatoru; Infuse, Swiftfin, Kodi i Samsung/LG još nisu isprobani*
 
 ## 15. API
 
