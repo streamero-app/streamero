@@ -12,22 +12,30 @@ import (
 
 // Config is the static process configuration.
 type Config struct {
-	HTTPAddr        string
-	DatabaseURL     string
-	ValkeyURL       string
-	ConfigDir       string
-	BackupDir       string // where backups are written (default <ConfigDir>/backups)
-	CacheDir        string
-	TranscodeDir    string
-	ServerName      string
-	SetupCode       string // optional fixed first-run setup code (otherwise random per start)
-	TrustedProxies  string // CIDRs/IPs whose X-Forwarded-For is trusted, comma-separated
-	MediaRoots      string // folders libraries may use, comma-separated
-	FFprobePath     string
-	FFmpegPath      string
-	AuthRatePerMin  int // sign-in style requests per client IP per minute (0 = no limit)
-	AuthRateBurst   int
-	AutoMigrate     bool
+	HTTPAddr       string
+	DatabaseURL    string
+	ValkeyURL      string
+	ConfigDir      string
+	BackupDir      string // where backups are written (default <ConfigDir>/backups)
+	CacheDir       string
+	TranscodeDir   string
+	ServerName     string
+	SetupCode      string // optional fixed first-run setup code (otherwise random per start)
+	TrustedProxies string // CIDRs/IPs whose X-Forwarded-For is trusted, comma-separated
+	MediaRoots     string // folders libraries may use, comma-separated
+	FFprobePath    string
+	FFmpegPath     string
+	AuthRatePerMin int // sign-in style requests per client IP per minute (0 = no limit)
+	AuthRateBurst  int
+	AutoMigrate    bool
+	// CompatAtRoot also serves the compat API at Jellyfin-style root paths (D-032).
+	CompatAtRoot bool
+	// Discovery answers the media clients' LAN discovery broadcast (D-033).
+	Discovery     bool
+	DiscoveryAddr string // UDP listen address, default ":7359"
+	// DiscoveryURL is the server address announced to discovering clients
+	// (default: http://<address of the interface facing the client>:<HTTP port>).
+	DiscoveryURL    string
 	LogLevel        string
 	ShutdownTimeout time.Duration
 }
@@ -55,6 +63,14 @@ func Load() (Config, error) {
 	if c.AutoMigrate, err = envBool("STREAMERO_AUTO_MIGRATE", true); err != nil {
 		return c, err
 	}
+	if c.CompatAtRoot, err = envBool("STREAMERO_COMPAT_ROOT", true); err != nil {
+		return c, err
+	}
+	if c.Discovery, err = envBool("STREAMERO_DISCOVERY", true); err != nil {
+		return c, err
+	}
+	c.DiscoveryAddr = env("STREAMERO_DISCOVERY_ADDR", ":7359")
+	c.DiscoveryURL = strings.TrimRight(os.Getenv("STREAMERO_DISCOVERY_URL"), "/")
 	if c.AuthRatePerMin, c.AuthRateBurst, err = parseRate(env("STREAMERO_AUTH_RATE_LIMIT", "20,10")); err != nil {
 		return c, err
 	}

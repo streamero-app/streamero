@@ -49,6 +49,11 @@ type Server struct {
 	// OnPlayback and OnProgress feed the admin dashboard's "now playing" (optional).
 	OnPlayback func(ctx context.Context, p auth.Principal, itemID uuid.UUID, method, reason string, durationMS *int64, startMS int64)
 	OnProgress func(p auth.Principal, itemID uuid.UUID, positionMS int64)
+	// Commands delivers dashboard session commands over /socket (optional).
+	Commands Commands
+
+	routesOnce sync.Once
+	routes     http.Handler
 
 	keysMu sync.Mutex
 	keys   []recentKey // secrets of keys created here, readable for a short time
@@ -68,9 +73,49 @@ type recentKey struct {
 const recentKeyTTL = 10 * time.Minute
 
 // Routes returns the handler (paths are case-insensitive like the reference API).
+// It is built once per server.
 func (s *Server) Routes() http.Handler {
+	s.routesOnce.Do(func() { s.routes = s.handler(s.mux()) })
+	return s.routes
+}
+
+// matcher is the route table without a server behind it, for Matches.
+var matcher = sync.OnceValue(func() *chi.Mux { return (&Server{}).mux() })
+
+// Matches reports whether the compat API has a route for the request (paths
+// compared case-insensitively). The root router uses it to serve Jellyfin-style
+// paths without the /compat prefix (D-032) and leave everything else to the web
+// client. A CORS preflight matches when any method of the path does.
+func Matches(method, path string) bool {
+	p := strings.ToLower(path)
+	if method == http.MethodOptions {
+		for _, m := range []string{http.MethodGet, http.MethodPost, http.MethodDelete} {
+			if matcher().Match(chi.NewRouteContext(), m, p) {
+				return true
+			}
+		}
+		return false
+	}
+	return matcher().Match(chi.NewRouteContext(), method, p)
+}
+
+// IsCompatPath reports whether a request path belongs to the compat API, under
+// /compat or (when served at the root) at a Jellyfin-style path.
+func IsCompatPath(method, path string, atRoot bool) bool {
+	if len(path) >= len(Prefix) && strings.EqualFold(path[:len(Prefix)], Prefix) &&
+		(len(path) == len(Prefix) || path[len(Prefix)] == '/') {
+		return true
+	}
+	return atRoot && Matches(method, path)
+}
+
+// Prefix is where the compat API is always served.
+const Prefix = "/compat"
+
+func (s *Server) mux() *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(lowercasePath)
+	r.Get("/socket", s.socket)
 	r.Get("/system/info/public", s.publicInfo)
 	r.Get("/system/ping", s.ping)
 	r.Post("/system/ping", s.ping)
@@ -183,6 +228,35 @@ func (s *Server) Routes() http.Handler {
 		r.Get("/auth/keys", s.listKeys)
 		r.Post("/auth/keys", s.createKey)
 	})
+	return r
+}
+
+// corsAllowHeaders are the request headers clients of this API send. TV apps
+// built as web apps (Samsung Tizen) call the server from their own origin.
+const corsAllowHeaders = "Authorization, X-Emby-Authorization, X-Emby-Token, X-MediaBrowser-Token, " +
+	"Content-Type, Accept, Accept-Language, Range, X-Requested-With, If-None-Match, If-Modified-Since"
+
+// cors lets web-based clients call the API from another origin. Credentials
+// are tokens in headers or the query, never cookies, so any origin is allowed
+// and Access-Control-Allow-Credentials is never sent.
+func cors(w http.ResponseWriter, r *http.Request) bool {
+	if r.Header.Get("Origin") == "" {
+		return false
+	}
+	h := w.Header()
+	h.Set("Access-Control-Allow-Origin", "*")
+	h.Set("Access-Control-Expose-Headers", "Content-Length, Content-Range, Accept-Ranges, ETag, Content-Disposition")
+	if r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" {
+		h.Set("Access-Control-Allow-Methods", "GET, HEAD, POST, DELETE, OPTIONS")
+		h.Set("Access-Control-Allow-Headers", corsAllowHeaders)
+		h.Set("Access-Control-Max-Age", "86400")
+		w.WriteHeader(http.StatusNoContent)
+		return true
+	}
+	return false
+}
+
+func (s *Server) handler(r *chi.Mux) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		// At debug level every call is logged (path only: queries may carry tokens),
 		// which is how a client's needs are diagnosed.
@@ -194,6 +268,9 @@ func (s *Server) Routes() http.Handler {
 				s.Log.Debug("compat request", "method", req.Method, "path", req.URL.Path, "status", rec.status,
 					"client", clientInfo(req).name, "params", paramNames(req), "authHeader", authHeaderNames(req))
 			}()
+		}
+		if cors(w, req) {
+			return
 		}
 		// Signed media URLs (HLS, subtitles) handed out in PlaybackInfo are relative
 		// to the client's server address, which includes this prefix.

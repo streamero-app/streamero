@@ -46,10 +46,23 @@ Prowlarr only talks to the *arr apps (indexers); it has no media-server connecti
 
 ## Connecting Infuse / Swiftfin / Kodi / TV apps
 Media clients that speak the Jellyfin client API can browse and play from
-Streamero through the same compat layer (D-031). The server address is your
-Streamero URL **with `/compat`**, e.g. `https://media.example.com/compat` or
-`http://192.168.1.10:8787/compat`. Choose "Jellyfin" as the server type where
-the app asks. Server discovery by UDP broadcast is not offered: type the address.
+Streamero through the same compat layer (D-031). The server address is simply
+your Streamero URL, e.g. `https://media.example.com` or `http://192.168.1.10:8787`:
+the Jellyfin-style paths these apps call (`/System/...`, `/Users/...`, `/Items/...`,
+`/socket`, …) are answered at the root (D-032). The old form with `/compat`
+(`http://192.168.1.10:8787/compat`) keeps working; set `STREAMERO_COMPAT_ROOT=false`
+to serve the API only there. Choose "Jellyfin" as the server type where the app asks.
+
+**Finding the server automatically.** Apps that offer "servers on this network"
+send a broadcast to UDP port 7359; Streamero answers with its address, id and
+name (D-033, on by default, `STREAMERO_DISCOVERY=false` turns it off; only
+senders on private, loopback or link-local addresses get an answer). With Docker:
+- the compose file publishes `7359/udp`, but a **bridge network usually does not
+  pass LAN broadcasts into the container**. For discovery use host networking
+  (`network_mode: host` on the `streamero` service), or just type the address;
+- the container only knows its internal address, so set
+  `STREAMERO_DISCOVERY_URL=http://<LAN address of the host>:8787` in `deploy/.env`,
+  otherwise the app is told an address it cannot reach.
 
 Sign in with a Streamero user name and password. Accounts with **two-factor
 sign-in** cannot use the password there; use **Quick Connect** instead: the app
@@ -63,27 +76,43 @@ up, Latest, watched/favourite/position (read and write), playback info with
 direct play when the app can decode the file and Streamero's HLS transcode
 otherwise, subtitles (sidecar and embedded text tracks; bitmap tracks only in
 direct play), progress reports (resume position, "now playing" on the dashboard),
-intro/credits segments from media analysis.
+intro/credits segments from media analysis, and a WebSocket (`/socket`) over
+which the admin dashboard's **message** and **stop** commands reach the app.
 
-| Client | Status |
-|---|---|
-| Jellyfin for **Android TV** 0.19.10 | **Verified** in an Android TV 12 emulator against a Streamero dev server: add server by address, Quick Connect for a two-factor account (approved from the web), home rows, library grid, series page with Next up, favourite, direct play (H.264/AAC MKV), automatic fallback to HLS transcode when the device cannot decode the file (H.264 4:4:4), progress and resume position saved. |
-| Infuse (iPhone / Apple TV) | Built from the public API description only — not tried. |
-| Swiftfin (iOS / tvOS) | Built from the public API description only — not tried. |
-| Kodi add-on | Built from the public API description only — not tried. "Native" (path) mode cannot work: Streamero does not expose file paths. |
-| Samsung (Tizen) / LG (webOS) apps | Not tried; they use the same API as the Android TV app, so similar behaviour is expected but unconfirmed. |
+### TV apps
+
+| TV | How to connect | Status |
+|---|---|---|
+| **Android TV / Google TV** — official app 0.19.10 | Install "Jellyfin" from Google Play, *Add server*, pick the discovered server or type `http://<server>:8787`, sign in (or Quick Connect). | **Verified** in an Android TV 12 emulator (with `/compat`, previous release): add server, Quick Connect for a two-factor account, home rows, library grid, series page with Next up, favourite, direct play (H.264/AAC MKV), automatic fallback to HLS transcode, progress and resume saved. Root address, discovery and `/socket` are covered by integration tests only, not yet re-checked in the app. |
+| **Samsung (Tizen)** — official app (Samsung store, 2021+ TVs) | Same as above: type `http://<server>:8787` or pick the discovered server. | **Not tried.** The app is a web app with the web client packaged inside it, calling the server API from its own origin; Streamero therefore answers cross-origin requests on the compat API (CORS, any origin, no cookies). Expected to behave like the Android TV app, but it uses more of the API than that app and some calls may be missing — check the debug log (below). |
+| **LG (webOS)** — official app (LG Content Store) | — | **Does not work.** The app is a thin wrapper that loads the web client *from the server* (`/web/index.html`, `/web/manifest.json` and its scripts) and checks that it is there. Streamero does not ship that web client (clean-room, D-031) and its own web app is not built for a TV remote. Use an Android TV / Google TV stick or Infuse on Apple TV meanwhile. See D-034. |
 
 How the Android TV check was done: the official release APK was installed in an
 emulator, driven with remote-control key events, and the server's request log
 (`STREAMERO_LOG_LEVEL=debug` prints every compat call — method, path, status and
 parameter names, never values) was compared with the integration test
-`TestCompatClientSessionIntegration`. No client source code was read.
+`TestCompatClientSessionIntegration`. How the Tizen and webOS apps work was taken
+from public sources only (Jellyfin forum answers by the maintainers, users'
+access logs, store and download pages, LG/Samsung developer documentation); no
+client source code or app package was opened. Neither TV's emulator was run:
+the webOS emulator needs VirtualBox (and LG's newer simulator is a desktop app),
+the Tizen TV emulator needs Tizen Studio plus a GUI, and the official Tizen app is
+only distributed through the TV's store.
 
-Known gaps: no WebSocket (`/socket`), so no remote control, no live "now playing"
-push and no SyncPlay; display preferences are not stored; music is direct play
-only; files scanned before 00024 lack the video profile until they change on
-disk (direct play is then attempted and, if it fails, the stream is transcoded);
-live TV, collections/playlists and parental ratings are not exposed.
+### Other clients
+
+| Client | Status |
+|---|---|
+| Infuse (iPhone / Apple TV) | Built from the public API description only — not tried. |
+| Swiftfin (iOS / tvOS) | Built from the public API description only — not tried. |
+| Kodi add-on | Built from the public API description only — not tried. "Native" (path) mode cannot work: Streamero does not expose file paths. |
+
+Known gaps: `/socket` carries only keepalive and the dashboard's message/stop —
+no remote control from other apps, no live library/user-data events, no SyncPlay;
+display preferences are not stored; music is direct play only; files scanned
+before 00024 lack the video profile until they change on disk (direct play is
+then attempted and, if it fails, the stream is transcoded); live TV,
+collections/playlists and parental ratings are not exposed.
 
 Diagnosing a client: start the server with `STREAMERO_LOG_LEVEL=debug` and look
 for `compat request` lines with status 404 (an endpoint the client needs that

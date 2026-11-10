@@ -34,6 +34,9 @@ type Registry struct {
 	mu       sync.Mutex
 	sessions map[string]Session
 	commands map[string][]Command
+	// watchers are woken when a command is queued for their session key, so
+	// clients with a live connection receive commands without polling.
+	watchers map[string]map[chan struct{}]struct{}
 }
 
 func (r *Registry) now() time.Time {
@@ -120,7 +123,39 @@ func (r *Registry) Send(key string, c Command) bool {
 	if c.Kind == "stop" {
 		delete(r.sessions, key)
 	}
+	for ch := range r.watchers[key] {
+		select {
+		case ch <- struct{}{}:
+		default: // a wake-up is already pending
+		}
+	}
 	return true
+}
+
+// Watch returns a channel that is woken whenever a command is queued for the
+// session key (the watcher then calls Take), and a function that stops watching.
+func (r *Registry) Watch(key string) (<-chan struct{}, func()) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.watchers == nil {
+		r.watchers = map[string]map[chan struct{}]struct{}{}
+	}
+	if r.watchers[key] == nil {
+		r.watchers[key] = map[chan struct{}]struct{}{}
+	}
+	ch := make(chan struct{}, 1)
+	r.watchers[key][ch] = struct{}{}
+	if len(r.commands[key]) > 0 {
+		ch <- struct{}{}
+	}
+	return ch, func() {
+		r.mu.Lock()
+		defer r.mu.Unlock()
+		delete(r.watchers[key], ch)
+		if len(r.watchers[key]) == 0 {
+			delete(r.watchers, key)
+		}
+	}
 }
 
 // Take returns and clears the queued commands of a session.
