@@ -106,7 +106,6 @@ func scanLibrary(row pgx.Row) (Library, error) {
 	return l, err
 }
 
-// List returns all libraries by name.
 // RetryFailedMetadata lets the next metadata pass try again the titles that found
 // nothing before (for example before a TMDb key was set or while TMDb was unreachable).
 func (s *Service) RetryFailedMetadata(ctx context.Context) error {
@@ -115,6 +114,7 @@ func (s *Service) RetryFailedMetadata(ctx context.Context) error {
 	return err
 }
 
+// List returns all libraries by name.
 func (s *Service) List(ctx context.Context) ([]Library, error) {
 	rows, err := s.Pool.Query(ctx, `SELECT `+libCols+` FROM libraries l ORDER BY lower(l.name)`)
 	if err != nil {
