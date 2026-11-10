@@ -96,7 +96,8 @@
     "profileSection": "Profile",
     "requests": "Requests",
     "enhancements": "Enhancements",
-    "backups": "Backups"
+    "backups": "Backups",
+    "import": "Import"
   },
   "account": {
     "changePassword": "Change password",
@@ -206,7 +207,11 @@
     "backup_newer_schema": "This backup was made by a newer Streamero version. Update the server first.",
     "invalid_backup": "The file is not a readable Streamero backup.",
     "backup_busy": "Another backup or restore is running. Try again in a moment.",
-    "backup_confirm_mismatch": "Type the backup name exactly to confirm."
+    "backup_confirm_mismatch": "Type the backup name exactly to confirm.",
+    "invalid_key": "Enter an API key.",
+    "import_key_rejected": "The other server rejected the API key. Create one under Dashboard → API Keys there.",
+    "import_source_failed": "The other server could not be reached or gave an unexpected answer. Check the address.",
+    "import_running": "An import is already running. Wait for it to finish."
   },
   "notFound": {
     "title": "Page not found",
@@ -990,5 +995,54 @@
     "none": "No subtitles found.",
     "hi": "For the hard of hearing",
     "download": "Download"
+  },
+  "import": {
+    "title": "Import from Jellyfin",
+    "intro": "Bring over what each person watched, where they stopped, their favourites and playlists before you switch the old server off. Media files are not copied or changed.",
+    "url": "Server address",
+    "urlHint": "As Streamero's server reaches it, e.g. http://192.168.1.10:8096",
+    "apiKey": "API key",
+    "apiKeyHint": "Create one on the old server under Dashboard → API Keys. It is used only for this import and never shown again.",
+    "connect": "Connect",
+    "connected": "Connected to {{name}} ({{version}})",
+    "users": "Users",
+    "usersHint": "Choose who receives each person's history. Same usernames are matched automatically; the data goes to the main profile.",
+    "sourceAdmin": "Administrator there",
+    "skip": "Skip",
+    "options": "Matching",
+    "pathsHint": "Titles are matched by TMDb, IMDb and TVDB ids first, then by file path, then by title and year. If the old server saw your media under a different folder, add the mapping here.",
+    "pathFrom": "Folder on the old server",
+    "pathTo": "Same folder in Streamero",
+    "addPath": "Add folder mapping",
+    "removePath": "Remove folder mapping",
+    "playlists": "Playlists",
+    "playlistsHint": "Recreate playlists for their owners, in the same order.",
+    "dryRun": "Dry run",
+    "run": "Import",
+    "safeAgain": "Safe to run again: nothing is duplicated and newer Streamero progress is kept.",
+    "lastRun": "Last import",
+    "lastDryRun": "Last dry run",
+    "status": {
+      "queued": "Queued",
+      "running": "Running",
+      "done": "Finished",
+      "failed": "Failed"
+    },
+    "working": "Importing {{user}}…",
+    "waiting": "Finishing…",
+    "failed": "The import stopped:",
+    "dryRunNote": "Dry run: nothing was saved. This is what an import would bring over.",
+    "matchedSummary": "Matched {{provider}} by id, {{path}} by file path and {{title}} by title. Not found: {{unmatched}}.",
+    "colUser": "User",
+    "colMatched": "Matched",
+    "colPlayed": "Watched",
+    "colResume": "In progress",
+    "colFavorites": "Favourites",
+    "colPlaylists": "Playlists",
+    "playlistSummary": "Playlists created: {{created}}, updated: {{updated}}. Entries not found: {{missing}}.",
+    "keptNewer": "Titles where newer Streamero progress was kept: {{count}}.",
+    "skipped": "Skipped: {{users}}",
+    "unmatchedTitle": "Not found in Streamero ({{count}})",
+    "unmatchedHint": "Usually titles that are not in a Streamero library, or a folder mapping is missing. Showing up to 50."
   }
 }

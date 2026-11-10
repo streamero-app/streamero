@@ -96,7 +96,8 @@
     "profileSection": "Profil",
     "requests": "Zahtjevi",
     "enhancements": "Proširenja",
-    "backups": "Sigurnosne kopije"
+    "backups": "Sigurnosne kopije",
+    "import": "Uvoz"
   },
   "account": {
     "changePassword": "Promijeni lozinku",
@@ -206,7 +207,11 @@
     "backup_newer_schema": "Ovu kopiju napravila je novija verzija Streamera. Najprije ažuriraj server.",
     "invalid_backup": "Datoteka nije ispravna Streamero sigurnosna kopija.",
     "backup_busy": "Već je u tijeku izrada ili vraćanje kopije. Pokušaj ponovno za trenutak.",
-    "backup_confirm_mismatch": "Za potvrdu točno upiši naziv kopije."
+    "backup_confirm_mismatch": "Za potvrdu točno upiši naziv kopije.",
+    "invalid_key": "Upišite API ključ.",
+    "import_key_rejected": "Drugi poslužitelj je odbio API ključ. Napravite ga ondje pod Dashboard → API Keys.",
+    "import_source_failed": "Drugi poslužitelj nije dostupan ili je vratio neočekivan odgovor. Provjerite adresu.",
+    "import_running": "Uvoz je već u tijeku. Pričekajte da završi."
   },
   "notFound": {
     "title": "Stranica nije pronađena",
@@ -990,5 +995,54 @@
     "none": "Nema pronađenih titlova.",
     "hi": "Za osobe oštećena sluha",
     "download": "Preuzmi"
+  },
+  "import": {
+    "title": "Uvoz iz Jellyfina",
+    "intro": "Prenesite što je tko gledao, gdje je stao, favorite i popise za reprodukciju prije nego ugasite stari poslužitelj. Medijske datoteke se ne kopiraju niti mijenjaju.",
+    "url": "Adresa poslužitelja",
+    "urlHint": "Kako je vidi Streamero poslužitelj, npr. http://192.168.1.10:8096",
+    "apiKey": "API ključ",
+    "apiKeyHint": "Napravite ga na starom poslužitelju pod Dashboard → API Keys. Koristi se samo za ovaj uvoz i više se ne prikazuje.",
+    "connect": "Poveži",
+    "connected": "Povezano s {{name}} ({{version}})",
+    "users": "Korisnici",
+    "usersHint": "Odaberite tko dobiva čiju povijest. Ista korisnička imena povezuju se automatski; podaci idu u glavni profil.",
+    "sourceAdmin": "Ondje administrator",
+    "skip": "Preskoči",
+    "options": "Uparivanje",
+    "pathsHint": "Naslovi se uparuju prvo po TMDb, IMDb i TVDB oznakama, zatim po putanji datoteke, pa po naslovu i godini. Ako je stari poslužitelj vidio medije pod drugom mapom, dodajte to ovdje.",
+    "pathFrom": "Mapa na starom poslužitelju",
+    "pathTo": "Ista mapa u Streameru",
+    "addPath": "Dodaj preslikavanje mape",
+    "removePath": "Ukloni preslikavanje mape",
+    "playlists": "Popisi za reprodukciju",
+    "playlistsHint": "Ponovno napravi popise njihovim vlasnicima, istim redoslijedom.",
+    "dryRun": "Probni prolaz",
+    "run": "Uvezi",
+    "safeAgain": "Može se pokrenuti ponovno: ništa se ne udvostručuje, a noviji napredak u Streameru ostaje.",
+    "lastRun": "Zadnji uvoz",
+    "lastDryRun": "Zadnji probni prolaz",
+    "status": {
+      "queued": "Na čekanju",
+      "running": "U tijeku",
+      "done": "Gotovo",
+      "failed": "Neuspjelo"
+    },
+    "working": "Uvozim: {{user}}…",
+    "waiting": "Završavam…",
+    "failed": "Uvoz je prekinut:",
+    "dryRunNote": "Probni prolaz: ništa nije spremljeno. Ovo bi uvoz prenio.",
+    "matchedSummary": "Upareno po oznaci: {{provider}}, po putanji: {{path}}, po naslovu: {{title}}. Nije pronađeno: {{unmatched}}.",
+    "colUser": "Korisnik",
+    "colMatched": "Upareno",
+    "colPlayed": "Pogledano",
+    "colResume": "Započeto",
+    "colFavorites": "Favoriti",
+    "colPlaylists": "Popisi",
+    "playlistSummary": "Popisa napravljeno: {{created}}, ažurirano: {{updated}}. Stavki nije pronađeno: {{missing}}.",
+    "keptNewer": "Naslova gdje je zadržan noviji napredak iz Streamera: {{count}}.",
+    "skipped": "Preskočeno: {{users}}",
+    "unmatchedTitle": "Nije pronađeno u Streameru ({{count}})",
+    "unmatchedHint": "Obično naslovi kojih nema u Streamero biblioteci ili nedostaje preslikavanje mape. Prikazano najviše 50."
   }
 }

@@ -32,6 +32,7 @@ import { PlayerPage } from "@/features/player/PlayerPage";
 import { SearchPage } from "@/features/library/SearchPage";
 import { DiscoverPage } from "@/features/discover/DiscoverPage";
 import { RequestsSettings } from "@/features/settings/RequestsSettings";
+import { ImportSettings } from "@/features/settings/ImportSettings";
 import { EnhancementsSettings } from "@/features/settings/EnhancementsSettings";
 import { BackupSettings } from "@/features/settings/BackupSettings";
 import { NotFoundPage } from "@/routes/NotFoundPage";
@@ -140,6 +141,7 @@ const logsRoute = createRoute({ getParentRoute: () => settingsRoute, path: "logs
 const activityRoute = createRoute({ getParentRoute: () => settingsRoute, path: "activity", component: adminOnly(ActivitySettings) });
 const requestsRoute = createRoute({ getParentRoute: () => settingsRoute, path: "requests", component: adminOnly(RequestsSettings) });
 const enhancementsRoute = createRoute({ getParentRoute: () => settingsRoute, path: "enhancements", component: adminOnly(EnhancementsSettings) });
+const importRoute = createRoute({ getParentRoute: () => settingsRoute, path: "import", component: adminOnly(ImportSettings) });
 const brandingRoute = createRoute({ getParentRoute: () => settingsRoute, path: "branding", component: adminOnly(BrandingSettings) });
 
 export const routeTree = rootRoute.addChildren([
@@ -161,7 +163,7 @@ export const routeTree = rootRoute.addChildren([
     searchRoute,
     discoverRoute,
     settingsRoute.addChildren([settingsIndex, playbackRoute, dashboardRoute, tasksRoute, backupsRoute, notificationsRoute, accountRoute, profilesRoute, devicesRoute, quickConnectRoute, serverRoute, librariesRoute, metadataRoute, integrationsRoute, usersRoute, invitesRoute, apiKeysRoute,
-      subtitleLookRoute, homePrefsRoute, transcodingRoute, logsRoute, activityRoute, brandingRoute, requestsRoute, enhancementsRoute]),
+      subtitleLookRoute, homePrefsRoute, transcodingRoute, logsRoute, activityRoute, brandingRoute, requestsRoute, enhancementsRoute, importRoute]),
   ]),
 ]);
 export const router = createRouter({ routeTree });
