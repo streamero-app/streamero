@@ -13,6 +13,10 @@ import kotlinx.serialization.json.JsonElement
 
 @Serializable data class DeviceInfo(val name: String, val client: String)
 @Serializable data class LoginRequest(val username: String, val password: String, val totpCode: String? = null, val device: DeviceInfo)
+@Serializable data class QuickConnectStart(val code: String, val secret: String, val expiresAt: String)
+@Serializable data class QuickConnectPoll(val secret: String)
+@Serializable data class QuickConnectCode(val code: String)
+@Serializable data class QuickConnectApproved(val deviceName: String)
 @Serializable data class AuthResult(val token: String? = null, val sessionId: String, val user: User)
 
 @Serializable data class UserPermissions(
