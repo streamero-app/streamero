@@ -37,6 +37,9 @@ Postavke → Uvoz: admin upiše adresu i API ključ starog servera, poveže kori
 - Testirano: unit (ticks → ms, uparivanje, spajanje/idempotentnost, povezivanje korisnika, lažni Jellyfin HTTP server), integracijski protiv Postgresa (cijeli uvoz dvaput, API s ključem koji se ne vraća), web test.
 - Nije provjereno protiv pravog Jellyfina. Ne uvoze se računi ni kolekcije.
 
+## v0.9.0 (2026-11-10)
+Backup i vraćanje (#46), uvoz povijesti, napretka, favorita i playlista iz Jellyfina (#45), Android TV (#47), kompatibilni sloj za Infuse, Swiftfin, Kodi i TV aplikacije s Quick Connect prijavom (#48), sigurnosne sitnice i uklonjena imena iz koda (#44), ključ uvoza izvan backupa (#49).
+
 ## v0.8.3 (2026-11-10)
 iOS: slike više ne šire ekran preko ruba, a nakon ponovne instalacije i dodavanja servera traži se prijava (#41). Naslovi se prikazuju točno kako ih daje TMDb, umjesto velikim slovima. Spremanje TMDb ključa ponovno pokušava naslove kojima je pretraga propala. Verzija je samo u postavkama (#42).
 
