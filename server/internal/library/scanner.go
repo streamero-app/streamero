@@ -608,15 +608,17 @@ func (s *Scanner) upsertFile(ctx context.Context, libID, itemID uuid.UUID, f pla
 	}
 	tags, _ := json.Marshal(nonNilMap(r.Tags))
 	_, err = s.Pool.Exec(ctx, `INSERT INTO media_files (id, item_id, library_id, path, label, size, mtime, container,
-			duration_ms, width, height, video_codec, hdr, audio, subtitles, probe_error, tags)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NULLIF($10, 0), NULLIF($11, 0), $12, $13, $14, $15, $16, $17)
+			duration_ms, width, height, video_codec, hdr, audio, subtitles, probe_error, tags, video_profile, video_level, video_bit_depth)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NULLIF($10, 0), NULLIF($11, 0), $12, $13, $14, $15, $16, $17, $18,
+			NULLIF($19, 0), NULLIF($20, 0))
 		ON CONFLICT (library_id, path) DO UPDATE SET item_id = EXCLUDED.item_id, label = EXCLUDED.label,
 			size = EXCLUDED.size, mtime = EXCLUDED.mtime, container = EXCLUDED.container, duration_ms = EXCLUDED.duration_ms,
 			width = EXCLUDED.width, height = EXCLUDED.height, video_codec = EXCLUDED.video_codec, hdr = EXCLUDED.hdr,
 			audio = EXCLUDED.audio, subtitles = EXCLUDED.subtitles, probe_error = EXCLUDED.probe_error, tags = EXCLUDED.tags,
+			video_profile = EXCLUDED.video_profile, video_level = EXCLUDED.video_level, video_bit_depth = EXCLUDED.video_bit_depth,
 			analyzed_at = NULL, trickplay = NULL, chapters = '[]'::jsonb`,
 		id, itemID, libID, f.path, f.label, f.size, f.mtime, r.Container, dur, r.Width, r.Height, r.VideoCodec, r.HDR,
-		audio, subs, probeErr, tags)
+		audio, subs, probeErr, tags, r.VideoProfile, r.VideoLevel, r.VideoBitDepth)
 	return err
 }
 

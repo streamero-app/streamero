@@ -26,6 +26,12 @@ Nativna iOS aplikacija dobila je sve ekrane Android aplikacije: Home/Search/Disc
 - Poznato: skok naprijed/natrag iz postavki ne primjenjuje se u AVKit kontrolama (isto kao na Androidu).
 - Sljedeće: ručna provjera na uređaju (reprodukcija, glazba na zaključanom ekranu).
 
+## Compat API za medijske klijente (branch `feat/compat-clients`, 2026-11-10)
+`/compat` sada služi i Jellyfin-kompatibilne klijente (D-031): prijava imenom i Quick Connect (i za 2FA račune, odobrenje iz weba), pogledi, `/Items` s pagingom/sortiranjem/filterima, serije/sezone/epizode, slike, pretraga, resume/next up/latest, user data, PlaybackInfo (direct play ili HLS), stream, titlovi, izvještaji o reprodukciji, media segmenti. Migracija 00024 sprema profil/razinu/bit dubinu videa iz ffproba.
+- Provjereno sa službenom Android TV aplikacijom 0.19.10 u emulatoru (Android TV 12, x86): otkrivanje servera, Quick Connect za 2FA korisnika, biblioteke, stranica serije s „Next up", favorit, direct play, HLS transcode (H.264 4:4:4 koji emulator ne dekodira), napredak u bazi.
+- Nije provjereno: Infuse, Swiftfin, Kodi add-on, Samsung/LG (samo po javnoj dokumentaciji).
+- Poznato: nema `/socket` (WebSocket) → nema daljinskog upravljanja; DisplayPreferences se ne pamte; datoteke skenirane prije 00024 nemaju profil dok se ne promijene.
+
 ## Uvoz iz Jellyfina (branch `feat/jellyfin-import`, 2026-11-10)
 Postavke → Uvoz: admin upiše adresu i API ključ starog servera, poveže korisnike (po imenu, može promijeniti/preskočiti), doda preslikavanje mapa i pokrene probni prolaz ili uvoz (River job `import.run`). Prenosi pogledano, broj i datum gledanja, poziciju, favorite i popise; ponovni uvoz ne pravi duplikate i ne pregazi noviji napredak (D-024).
 - Testirano: unit (ticks → ms, uparivanje, spajanje/idempotentnost, povezivanje korisnika, lažni Jellyfin HTTP server), integracijski protiv Postgresa (cijeli uvoz dvaput, API s ključem koji se ne vraća), web test.

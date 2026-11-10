@@ -237,6 +237,12 @@ func TestRestoreOlderSchemaIntegration(t *testing.T) {
 	if err := db.MigrateTo(ctx, old, latest-1); err != nil {
 		t.Fatal(err)
 	}
+	// Migration numbers may have gaps (reserved by parallel work), so the older
+	// schema is whatever latest-1 resolved to.
+	previous, err := db.SchemaVersion(ctx, old)
+	if err != nil || previous >= latest {
+		t.Fatalf("older schema: %d %v", previous, err)
+	}
 	if err := db.Migrate(ctx, cur); err != nil {
 		t.Fatal(err)
 	}
@@ -250,7 +256,7 @@ func TestRestoreOlderSchemaIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if info.Manifest.SchemaVersion != latest-1 {
+	if info.Manifest.SchemaVersion != previous {
 		t.Fatalf("schema %d", info.Manifest.SchemaVersion)
 	}
 	dst := &Service{Pool: cur, Dir: dir, Version: "9.9.9"}

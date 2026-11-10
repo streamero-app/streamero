@@ -219,8 +219,8 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 				default:
 				}
 			}})
-		state.SetCompat(&compat.Server{Pool: deps.Pool, Auth: state.Auth(), Libraries: libs, ServerID: state.ServerID(), Log: log,
-			ServerName: h.ServerNameFor})
+		state.SetCompat(&compat.Server{Pool: deps.Pool, Auth: state.Auth(), Libraries: libs, Stream: state.Stream(),
+			ServerID: state.ServerID(), Log: log, ServerName: h.ServerNameFor, OnPlayback: h.TrackPlayback, OnProgress: h.TrackProgress})
 		log.Info("ready", "server_id", state.ServerID(), "startup", time.Since(h.StartedAt).String())
 		if !state.SetupCompleted(ctx) {
 			// Printed on purpose: whoever can read the server log may create the first admin.

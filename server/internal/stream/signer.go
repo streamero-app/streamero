@@ -49,6 +49,22 @@ func (s Signer) Valid(scope string, q url.Values) bool {
 	return hmac.Equal([]byte(s.mac(scope, exp)), []byte(q.Get("sig")))
 }
 
+// Token is a compact signature ("<exp>.<sig>") for clients that carry one opaque
+// value instead of a query string (the compat API's media source tag).
+func (s Signer) Token(scope string, ttl time.Duration) string {
+	exp := s.now().Add(ttl).Unix()
+	return strconv.FormatInt(exp, 10) + "." + s.mac(scope, exp)
+}
+
+// ValidToken reports whether tok is an unexpired Token for scope.
+func (s Signer) ValidToken(scope, tok string) bool {
+	expS, sig, ok := strings.Cut(tok, ".")
+	if !ok {
+		return false
+	}
+	return s.Valid(scope, url.Values{"exp": {expS}, "sig": {sig}})
+}
+
 // ScopeOf returns the signing scope of a stream path: everything up to and
 // including the second segment after /stream/ (e.g. "/stream/hls/<session>/").
 func ScopeOf(path string) string {

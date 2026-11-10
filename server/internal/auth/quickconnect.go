@@ -117,3 +117,25 @@ func (s *Service) PollQuickConnect(ctx context.Context, secret string) (Principa
 	})
 	return p, token, err
 }
+
+// QuickConnectState describes a pending request as the new device sees it.
+type QuickConnectState struct {
+	Code       string
+	DeviceName string
+	Client     string
+	CreatedAt  time.Time
+	Approved   bool
+}
+
+// QuickConnectStatus reports whether a request was approved without consuming it
+// (PollQuickConnect signs the device in). ErrNotFound when expired or unknown.
+func (s *Service) QuickConnectStatus(ctx context.Context, secret string) (QuickConnectState, error) {
+	var st QuickConnectState
+	err := s.pool.QueryRow(ctx, `SELECT code, device_name, client, created_at, user_id IS NOT NULL FROM quick_connect
+		WHERE secret_hash = $1 AND expires_at > $2`, hashToken(secret), s.now()).
+		Scan(&st.Code, &st.DeviceName, &st.Client, &st.CreatedAt, &st.Approved)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return st, ErrNotFound
+	}
+	return st, err
+}

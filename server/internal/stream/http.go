@@ -74,6 +74,12 @@ func (s *Server) file(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	s.ServeFile(w, r, id)
+}
+
+// ServeFile sends a media file with Range support. The caller has authorised
+// the request; the stored path is re-validated against the media roots.
+func (s *Server) ServeFile(w http.ResponseWriter, r *http.Request, id uuid.UUID) {
 	p, err := s.FilePath(r.Context(), id)
 	if err != nil {
 		http.NotFound(w, r)
@@ -132,6 +138,24 @@ func (s *Server) subtitle(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	s.ServeSubtitle(w, r, id, index, "vtt")
+}
+
+// subtitleFormats maps requested extensions to an ffmpeg muxer and a content type.
+var subtitleFormats = map[string][2]string{
+	"vtt": {"webvtt", "text/vtt; charset=utf-8"}, "webvtt": {"webvtt", "text/vtt; charset=utf-8"},
+	"srt": {"srt", "application/x-subrip; charset=utf-8"}, "subrip": {"srt", "application/x-subrip; charset=utf-8"},
+	"ass": {"ass", "text/x-ssa; charset=utf-8"}, "ssa": {"ass", "text/x-ssa; charset=utf-8"},
+}
+
+// ServeSubtitle converts subtitle track index (position in the file's subtitle
+// list) to format (vtt, srt or ass). The caller has authorised the request.
+func (s *Server) ServeSubtitle(w http.ResponseWriter, r *http.Request, id uuid.UUID, index int, format string) {
+	muxer, ok := subtitleFormats[strings.ToLower(format)]
+	if !ok || index < 0 {
+		http.NotFound(w, r)
+		return
+	}
 	video, err := s.FilePath(r.Context(), id)
 	if err != nil {
 		http.NotFound(w, r)
@@ -150,7 +174,7 @@ func (s *Server) subtitle(w http.ResponseWriter, r *http.Request) {
 			http.NotFound(w, r)
 			return
 		}
-		args = []string{"-nostdin", "-loglevel", "error", "-i", ext, "-f", "webvtt", "-"}
+		args = []string{"-nostdin", "-loglevel", "error", "-i", ext, "-f", muxer[0], "-"}
 	} else {
 		// Embedded tracks are counted among the file's subtitle streams.
 		embedded := 0
@@ -159,7 +183,7 @@ func (s *Server) subtitle(w http.ResponseWriter, r *http.Request) {
 				embedded++
 			}
 		}
-		args = []string{"-nostdin", "-loglevel", "error", "-i", video, "-map", "0:s:" + strconv.Itoa(embedded), "-f", "webvtt", "-"}
+		args = []string{"-nostdin", "-loglevel", "error", "-i", video, "-map", "0:s:" + strconv.Itoa(embedded), "-f", muxer[0], "-"}
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Minute)
 	defer cancel()
@@ -168,7 +192,7 @@ func (s *Server) subtitle(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "subtitle conversion failed", http.StatusUnprocessableEntity)
 		return
 	}
-	w.Header().Set("Content-Type", "text/vtt; charset=utf-8")
+	w.Header().Set("Content-Type", muxer[1])
 	w.Header().Set("Cache-Control", "private, max-age=3600")
 	_, _ = w.Write(out)
 }
