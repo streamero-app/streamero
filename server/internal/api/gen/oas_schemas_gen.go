@@ -390,6 +390,332 @@ func (s *AuthResult) SetUser(val User) {
 	s.User = val
 }
 
+// Ref: #/components/schemas/Backup
+type Backup struct {
+	Name           string     `json:"name"`
+	SizeBytes      int64      `json:"sizeBytes"`
+	CreatedAt      time.Time  `json:"createdAt"`
+	Kind           BackupKind `json:"kind"`
+	ServerVersion  string     `json:"serverVersion"`
+	SchemaVersion  int64      `json:"schemaVersion"`
+	IncludesImages bool       `json:"includesImages"`
+	// A library scan was running while the backup was taken.
+	ScanRunning bool `json:"scanRunning"`
+	// False when the archive is unreadable or from a newer database schema than this server.
+	Restorable bool `json:"restorable"`
+	// Why the backup cannot be restored (unreadable, newer_schema).
+	Problem OptString `json:"problem"`
+	// Tables that could not be read when the backup was taken (damaged rows).
+	SkippedTables []string `json:"skippedTables"`
+}
+
+// GetName returns the value of Name.
+func (s *Backup) GetName() string {
+	return s.Name
+}
+
+// GetSizeBytes returns the value of SizeBytes.
+func (s *Backup) GetSizeBytes() int64 {
+	return s.SizeBytes
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *Backup) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetKind returns the value of Kind.
+func (s *Backup) GetKind() BackupKind {
+	return s.Kind
+}
+
+// GetServerVersion returns the value of ServerVersion.
+func (s *Backup) GetServerVersion() string {
+	return s.ServerVersion
+}
+
+// GetSchemaVersion returns the value of SchemaVersion.
+func (s *Backup) GetSchemaVersion() int64 {
+	return s.SchemaVersion
+}
+
+// GetIncludesImages returns the value of IncludesImages.
+func (s *Backup) GetIncludesImages() bool {
+	return s.IncludesImages
+}
+
+// GetScanRunning returns the value of ScanRunning.
+func (s *Backup) GetScanRunning() bool {
+	return s.ScanRunning
+}
+
+// GetRestorable returns the value of Restorable.
+func (s *Backup) GetRestorable() bool {
+	return s.Restorable
+}
+
+// GetProblem returns the value of Problem.
+func (s *Backup) GetProblem() OptString {
+	return s.Problem
+}
+
+// GetSkippedTables returns the value of SkippedTables.
+func (s *Backup) GetSkippedTables() []string {
+	return s.SkippedTables
+}
+
+// SetName sets the value of Name.
+func (s *Backup) SetName(val string) {
+	s.Name = val
+}
+
+// SetSizeBytes sets the value of SizeBytes.
+func (s *Backup) SetSizeBytes(val int64) {
+	s.SizeBytes = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *Backup) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetKind sets the value of Kind.
+func (s *Backup) SetKind(val BackupKind) {
+	s.Kind = val
+}
+
+// SetServerVersion sets the value of ServerVersion.
+func (s *Backup) SetServerVersion(val string) {
+	s.ServerVersion = val
+}
+
+// SetSchemaVersion sets the value of SchemaVersion.
+func (s *Backup) SetSchemaVersion(val int64) {
+	s.SchemaVersion = val
+}
+
+// SetIncludesImages sets the value of IncludesImages.
+func (s *Backup) SetIncludesImages(val bool) {
+	s.IncludesImages = val
+}
+
+// SetScanRunning sets the value of ScanRunning.
+func (s *Backup) SetScanRunning(val bool) {
+	s.ScanRunning = val
+}
+
+// SetRestorable sets the value of Restorable.
+func (s *Backup) SetRestorable(val bool) {
+	s.Restorable = val
+}
+
+// SetProblem sets the value of Problem.
+func (s *Backup) SetProblem(val OptString) {
+	s.Problem = val
+}
+
+// SetSkippedTables sets the value of SkippedTables.
+func (s *Backup) SetSkippedTables(val []string) {
+	s.SkippedTables = val
+}
+
+// Ref: #/components/schemas/BackupKind
+type BackupKind string
+
+const (
+	BackupKindScheduled  BackupKind = "scheduled"
+	BackupKindManual     BackupKind = "manual"
+	BackupKindPreRestore BackupKind = "pre_restore"
+	BackupKindUploaded   BackupKind = "uploaded"
+)
+
+// AllValues returns all BackupKind values.
+func (BackupKind) AllValues() []BackupKind {
+	return []BackupKind{
+		BackupKindScheduled,
+		BackupKindManual,
+		BackupKindPreRestore,
+		BackupKindUploaded,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s BackupKind) MarshalText() ([]byte, error) {
+	switch s {
+	case BackupKindScheduled:
+		return []byte(s), nil
+	case BackupKindManual:
+		return []byte(s), nil
+	case BackupKindPreRestore:
+		return []byte(s), nil
+	case BackupKindUploaded:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *BackupKind) UnmarshalText(data []byte) error {
+	switch BackupKind(data) {
+	case BackupKindScheduled:
+		*s = BackupKindScheduled
+		return nil
+	case BackupKindManual:
+		*s = BackupKindManual
+		return nil
+	case BackupKindPreRestore:
+		*s = BackupKindPreRestore
+		return nil
+	case BackupKindUploaded:
+		*s = BackupKindUploaded
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/BackupOverview
+type BackupOverview struct {
+	// Backup folder inside the server container.
+	Dir      string         `json:"dir"`
+	Backups  []Backup       `json:"backups"`
+	Settings BackupSettings `json:"settings"`
+	// A library scan is running now.
+	ScanRunning bool `json:"scanRunning"`
+	// A backup is queued or being written.
+	Running bool `json:"running"`
+	// Newest database schema this server knows.
+	SchemaVersion int64            `json:"schemaVersion"`
+	LastRestore   OptRestoreStatus `json:"lastRestore"`
+}
+
+// GetDir returns the value of Dir.
+func (s *BackupOverview) GetDir() string {
+	return s.Dir
+}
+
+// GetBackups returns the value of Backups.
+func (s *BackupOverview) GetBackups() []Backup {
+	return s.Backups
+}
+
+// GetSettings returns the value of Settings.
+func (s *BackupOverview) GetSettings() BackupSettings {
+	return s.Settings
+}
+
+// GetScanRunning returns the value of ScanRunning.
+func (s *BackupOverview) GetScanRunning() bool {
+	return s.ScanRunning
+}
+
+// GetRunning returns the value of Running.
+func (s *BackupOverview) GetRunning() bool {
+	return s.Running
+}
+
+// GetSchemaVersion returns the value of SchemaVersion.
+func (s *BackupOverview) GetSchemaVersion() int64 {
+	return s.SchemaVersion
+}
+
+// GetLastRestore returns the value of LastRestore.
+func (s *BackupOverview) GetLastRestore() OptRestoreStatus {
+	return s.LastRestore
+}
+
+// SetDir sets the value of Dir.
+func (s *BackupOverview) SetDir(val string) {
+	s.Dir = val
+}
+
+// SetBackups sets the value of Backups.
+func (s *BackupOverview) SetBackups(val []Backup) {
+	s.Backups = val
+}
+
+// SetSettings sets the value of Settings.
+func (s *BackupOverview) SetSettings(val BackupSettings) {
+	s.Settings = val
+}
+
+// SetScanRunning sets the value of ScanRunning.
+func (s *BackupOverview) SetScanRunning(val bool) {
+	s.ScanRunning = val
+}
+
+// SetRunning sets the value of Running.
+func (s *BackupOverview) SetRunning(val bool) {
+	s.Running = val
+}
+
+// SetSchemaVersion sets the value of SchemaVersion.
+func (s *BackupOverview) SetSchemaVersion(val int64) {
+	s.SchemaVersion = val
+}
+
+// SetLastRestore sets the value of LastRestore.
+func (s *BackupOverview) SetLastRestore(val OptRestoreStatus) {
+	s.LastRestore = val
+}
+
+// Ref: #/components/schemas/BackupQueued
+type BackupQueued struct {
+	// A library scan is running; the backup is still consistent but may miss items being added.
+	ScanRunning bool `json:"scanRunning"`
+}
+
+// GetScanRunning returns the value of ScanRunning.
+func (s *BackupQueued) GetScanRunning() bool {
+	return s.ScanRunning
+}
+
+// SetScanRunning sets the value of ScanRunning.
+func (s *BackupQueued) SetScanRunning(val bool) {
+	s.ScanRunning = val
+}
+
+// Ref: #/components/schemas/BackupSettings
+type BackupSettings struct {
+	// Write a backup automatically once a day.
+	Enabled bool `json:"enabled"`
+	// Scheduled and manual backups kept; older ones are deleted.
+	KeepLast int `json:"keepLast"`
+	// Also archive downloaded artwork (it can be fetched again, so it is off by default).
+	IncludeImages bool `json:"includeImages"`
+}
+
+// GetEnabled returns the value of Enabled.
+func (s *BackupSettings) GetEnabled() bool {
+	return s.Enabled
+}
+
+// GetKeepLast returns the value of KeepLast.
+func (s *BackupSettings) GetKeepLast() int {
+	return s.KeepLast
+}
+
+// GetIncludeImages returns the value of IncludeImages.
+func (s *BackupSettings) GetIncludeImages() bool {
+	return s.IncludeImages
+}
+
+// SetEnabled sets the value of Enabled.
+func (s *BackupSettings) SetEnabled(val bool) {
+	s.Enabled = val
+}
+
+// SetKeepLast sets the value of KeepLast.
+func (s *BackupSettings) SetKeepLast(val int) {
+	s.KeepLast = val
+}
+
+// SetIncludeImages sets the value of IncludeImages.
+func (s *BackupSettings) SetIncludeImages(val bool) {
+	s.IncludeImages = val
+}
+
 // Ref: #/components/schemas/BrandingSettings
 type BrandingSettings struct {
 	// Shown under the sign-in form.
@@ -953,6 +1279,9 @@ func (s *DashboardServer) SetStartedAt(val time.Time) {
 // DeleteAPIKeyNoContent is response for DeleteAPIKey operation.
 type DeleteAPIKeyNoContent struct{}
 
+// DeleteBackupNoContent is response for DeleteBackup operation.
+type DeleteBackupNoContent struct{}
+
 // DeleteCollectionNoContent is response for DeleteCollection operation.
 type DeleteCollectionNoContent struct{}
 
@@ -1399,6 +1728,46 @@ func (s *DiscoverTitleStatus) UnmarshalText(data []byte) error {
 	default:
 		return errors.Errorf("invalid value: %q", data)
 	}
+}
+
+type DownloadBackupOK struct {
+	Data io.Reader
+}
+
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s DownloadBackupOK) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
+}
+
+// DownloadBackupOKHeaders wraps DownloadBackupOK with response headers.
+type DownloadBackupOKHeaders struct {
+	ContentDisposition OptString
+	Response           DownloadBackupOK
+}
+
+// GetContentDisposition returns the value of ContentDisposition.
+func (s *DownloadBackupOKHeaders) GetContentDisposition() OptString {
+	return s.ContentDisposition
+}
+
+// GetResponse returns the value of Response.
+func (s *DownloadBackupOKHeaders) GetResponse() DownloadBackupOK {
+	return s.Response
+}
+
+// SetContentDisposition sets the value of ContentDisposition.
+func (s *DownloadBackupOKHeaders) SetContentDisposition(val OptString) {
+	s.ContentDisposition = val
+}
+
+// SetResponse sets the value of Response.
+func (s *DownloadBackupOKHeaders) SetResponse(val DownloadBackupOK) {
+	s.Response = val
 }
 
 // DownloadSubtitleNoContent is response for DownloadSubtitle operation.
@@ -5219,6 +5588,52 @@ func (o OptProfile) Or(d Profile) Profile {
 	return d
 }
 
+// NewOptRestoreStatus returns new OptRestoreStatus with value set to v.
+func NewOptRestoreStatus(v RestoreStatus) OptRestoreStatus {
+	return OptRestoreStatus{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptRestoreStatus is optional RestoreStatus.
+type OptRestoreStatus struct {
+	Value RestoreStatus
+	Set   bool
+}
+
+// IsSet returns true if OptRestoreStatus was set.
+func (o OptRestoreStatus) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptRestoreStatus) Reset() {
+	var v RestoreStatus
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptRestoreStatus) SetTo(v RestoreStatus) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptRestoreStatus) Get() (v RestoreStatus, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptRestoreStatus) Or(d RestoreStatus) RestoreStatus {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptString returns new OptString with value set to v.
 func NewOptString(v string) OptString {
 	return OptString{
@@ -7216,6 +7631,155 @@ func (s *RequestSettingsInputRemoveKeysItem) UnmarshalText(data []byte) error {
 	}
 }
 
+// RestoreBackupAccepted is response for RestoreBackup operation.
+type RestoreBackupAccepted struct{}
+
+// Ref: #/components/schemas/RestoreBackupRequest
+type RestoreBackupRequest struct {
+	// Must repeat the backup name exactly.
+	Confirm string `json:"confirm"`
+}
+
+// GetConfirm returns the value of Confirm.
+func (s *RestoreBackupRequest) GetConfirm() string {
+	return s.Confirm
+}
+
+// SetConfirm sets the value of Confirm.
+func (s *RestoreBackupRequest) SetConfirm(val string) {
+	s.Confirm = val
+}
+
+// Ref: #/components/schemas/RestoreStatus
+type RestoreStatus struct {
+	Backup     string             `json:"backup"`
+	State      RestoreStatusState `json:"state"`
+	StartedAt  time.Time          `json:"startedAt"`
+	FinishedAt OptDateTime        `json:"finishedAt"`
+	Error      OptString          `json:"error"`
+	// Backup of the state just before the restore.
+	SafetyBackup OptString `json:"safetyBackup"`
+	Warnings     []string  `json:"warnings"`
+}
+
+// GetBackup returns the value of Backup.
+func (s *RestoreStatus) GetBackup() string {
+	return s.Backup
+}
+
+// GetState returns the value of State.
+func (s *RestoreStatus) GetState() RestoreStatusState {
+	return s.State
+}
+
+// GetStartedAt returns the value of StartedAt.
+func (s *RestoreStatus) GetStartedAt() time.Time {
+	return s.StartedAt
+}
+
+// GetFinishedAt returns the value of FinishedAt.
+func (s *RestoreStatus) GetFinishedAt() OptDateTime {
+	return s.FinishedAt
+}
+
+// GetError returns the value of Error.
+func (s *RestoreStatus) GetError() OptString {
+	return s.Error
+}
+
+// GetSafetyBackup returns the value of SafetyBackup.
+func (s *RestoreStatus) GetSafetyBackup() OptString {
+	return s.SafetyBackup
+}
+
+// GetWarnings returns the value of Warnings.
+func (s *RestoreStatus) GetWarnings() []string {
+	return s.Warnings
+}
+
+// SetBackup sets the value of Backup.
+func (s *RestoreStatus) SetBackup(val string) {
+	s.Backup = val
+}
+
+// SetState sets the value of State.
+func (s *RestoreStatus) SetState(val RestoreStatusState) {
+	s.State = val
+}
+
+// SetStartedAt sets the value of StartedAt.
+func (s *RestoreStatus) SetStartedAt(val time.Time) {
+	s.StartedAt = val
+}
+
+// SetFinishedAt sets the value of FinishedAt.
+func (s *RestoreStatus) SetFinishedAt(val OptDateTime) {
+	s.FinishedAt = val
+}
+
+// SetError sets the value of Error.
+func (s *RestoreStatus) SetError(val OptString) {
+	s.Error = val
+}
+
+// SetSafetyBackup sets the value of SafetyBackup.
+func (s *RestoreStatus) SetSafetyBackup(val OptString) {
+	s.SafetyBackup = val
+}
+
+// SetWarnings sets the value of Warnings.
+func (s *RestoreStatus) SetWarnings(val []string) {
+	s.Warnings = val
+}
+
+type RestoreStatusState string
+
+const (
+	RestoreStatusStateRunning   RestoreStatusState = "running"
+	RestoreStatusStateSucceeded RestoreStatusState = "succeeded"
+	RestoreStatusStateFailed    RestoreStatusState = "failed"
+)
+
+// AllValues returns all RestoreStatusState values.
+func (RestoreStatusState) AllValues() []RestoreStatusState {
+	return []RestoreStatusState{
+		RestoreStatusStateRunning,
+		RestoreStatusStateSucceeded,
+		RestoreStatusStateFailed,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RestoreStatusState) MarshalText() ([]byte, error) {
+	switch s {
+	case RestoreStatusStateRunning:
+		return []byte(s), nil
+	case RestoreStatusStateSucceeded:
+		return []byte(s), nil
+	case RestoreStatusStateFailed:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RestoreStatusState) UnmarshalText(data []byte) error {
+	switch RestoreStatusState(data) {
+	case RestoreStatusStateRunning:
+		*s = RestoreStatusStateRunning
+		return nil
+	case RestoreStatusStateSucceeded:
+		*s = RestoreStatusStateSucceeded
+		return nil
+	case RestoreStatusStateFailed:
+		*s = RestoreStatusStateFailed
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // Ref: #/components/schemas/ResumeSettings
 type ResumeSettings struct {
 	// Below this much of the length, stopping does not save a position.
@@ -8258,6 +8822,7 @@ const (
 	TaskKeyRefreshMetadata TaskKey = "refresh_metadata"
 	TaskKeyCleanupImages   TaskKey = "cleanup_images"
 	TaskKeyAnalyzeMedia    TaskKey = "analyze_media"
+	TaskKeyBackup          TaskKey = "backup"
 )
 
 // AllValues returns all TaskKey values.
@@ -8267,6 +8832,7 @@ func (TaskKey) AllValues() []TaskKey {
 		TaskKeyRefreshMetadata,
 		TaskKeyCleanupImages,
 		TaskKeyAnalyzeMedia,
+		TaskKeyBackup,
 	}
 }
 
@@ -8280,6 +8846,8 @@ func (s TaskKey) MarshalText() ([]byte, error) {
 	case TaskKeyCleanupImages:
 		return []byte(s), nil
 	case TaskKeyAnalyzeMedia:
+		return []byte(s), nil
+	case TaskKeyBackup:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -8300,6 +8868,9 @@ func (s *TaskKey) UnmarshalText(data []byte) error {
 		return nil
 	case TaskKeyAnalyzeMedia:
 		*s = TaskKeyAnalyzeMedia
+		return nil
+	case TaskKeyBackup:
+		*s = TaskKeyBackup
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -8818,6 +9389,20 @@ func (s *UpdateUserRequest) SetPermissions(val OptUserPermissions) {
 // SetResetTwoFactor sets the value of ResetTwoFactor.
 func (s *UpdateUserRequest) SetResetTwoFactor(val OptBool) {
 	s.ResetTwoFactor = val
+}
+
+type UploadBackupReq struct {
+	Data io.Reader
+}
+
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s UploadBackupReq) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
 }
 
 // Ref: #/components/schemas/User

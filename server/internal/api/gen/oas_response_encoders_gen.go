@@ -156,6 +156,19 @@ func encodeCreateAPIKeyResponse(response *CreatedApiKey, w http.ResponseWriter, 
 	return nil
 }
 
+func encodeCreateBackupResponse(response *BackupQueued, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(202)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
 func encodeCreateCollectionResponse(response *Collection, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(201)
@@ -240,6 +253,12 @@ func encodeDeleteAPIKeyResponse(response *DeleteAPIKeyNoContent, w http.Response
 	return nil
 }
 
+func encodeDeleteBackupResponse(response *DeleteBackupNoContent, w http.ResponseWriter, span trace.Span) error {
+	w.WriteHeader(204)
+
+	return nil
+}
+
 func encodeDeleteCollectionResponse(response *DeleteCollectionNoContent, w http.ResponseWriter, span trace.Span) error {
 	w.WriteHeader(204)
 
@@ -301,6 +320,41 @@ func encodeDiscoverResponse(response *DiscoverPage, w http.ResponseWriter, span 
 	e := new(jx.Encoder)
 	response.Encode(e)
 	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
+func encodeDownloadBackupResponse(response *DownloadBackupOKHeaders, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/gzip")
+	w.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
+	// Encoding response headers.
+	{
+		h := uri.NewHeaderEncoder(w.Header())
+		// Encode "Content-Disposition" header.
+		{
+			cfg := uri.HeaderParameterEncodingConfig{
+				Name:    "Content-Disposition",
+				Explode: false,
+			}
+			if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+				if val, ok := response.ContentDisposition.Get(); ok {
+					return e.EncodeValue(conv.StringToString(val))
+				}
+				return nil
+			}); err != nil {
+				return errors.Wrap(err, "encode Content-Disposition header")
+			}
+		}
+	}
+	w.WriteHeader(200)
+
+	writer := w
+	if closer, ok := response.Response.Data.(io.Closer); ok {
+		defer closer.Close()
+	}
+	if _, err := io.Copy(writer, response.Response); err != nil {
 		return errors.Wrap(err, "write")
 	}
 
@@ -845,6 +899,19 @@ func encodeListAPIKeysResponse(response []ApiKey, w http.ResponseWriter, span tr
 	return nil
 }
 
+func encodeListBackupsResponse(response *BackupOverview, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
 func encodeListCollectionsResponse(response []Collection, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
@@ -1245,6 +1312,12 @@ func encodeRequestTitleResponse(response *TitleRequestResult, w http.ResponseWri
 	return nil
 }
 
+func encodeRestoreBackupResponse(response *RestoreBackupAccepted, w http.ResponseWriter, span trace.Span) error {
+	w.WriteHeader(202)
+
+	return nil
+}
+
 func encodeRevokeSessionResponse(response *RevokeSessionNoContent, w http.ResponseWriter, span trace.Span) error {
 	w.WriteHeader(204)
 
@@ -1388,6 +1461,19 @@ func encodeTestRequestSettingsResponse(response []ConnectionCheck, w http.Respon
 		elem.Encode(e)
 	}
 	e.ArrEnd()
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
+func encodeUpdateBackupSettingsResponse(response *BackupSettings, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
 	if _, err := e.WriteTo(w); err != nil {
 		return errors.Wrap(err, "write")
 	}
@@ -1592,6 +1678,19 @@ func encodeUpdateUserResponse(response *User, w http.ResponseWriter, span trace.
 
 func encodeUpdateUserDataResponse(response *UpdateUserDataNoContent, w http.ResponseWriter, span trace.Span) error {
 	w.WriteHeader(204)
+
+	return nil
+}
+
+func encodeUploadBackupResponse(response *Backup, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(201)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
 
 	return nil
 }
