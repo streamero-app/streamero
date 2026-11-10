@@ -52,7 +52,7 @@ struct SectionHead: View {
 struct PageTitle: View {
     let title: LocalizedStringKey
     var body: some View {
-        Text(title).font(Theme.display(34)).textCase(.uppercase).foregroundStyle(Theme.text)
+        Text(title).font(Theme.display(34)).foregroundStyle(Theme.text)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

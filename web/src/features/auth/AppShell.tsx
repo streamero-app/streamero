@@ -163,11 +163,6 @@ export function AppShell() {
       <main className={watching ? "" : "pb-24 md:pb-20"}>
         <Outlet />
       </main>
-      {!watching && (
-        <footer className="px-5 pt-10 pb-24 text-xs text-faint sm:px-10 md:pb-10 lg:px-16">
-          {info?.name} · {t("server.version", { version: info?.version })}{info?.commit ? ` (${info.commit})` : ""}
-        </footer>
-      )}
 
       {!watching && (
         <nav aria-label={t("nav.libraries")}

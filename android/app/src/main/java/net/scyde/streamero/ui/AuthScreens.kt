@@ -33,7 +33,7 @@ private fun AuthFrame(title: String, subtitle: String?, content: @Composable Col
             Spacer(Modifier.height(40.dp))
             Text("STREAMERO", style = Head.copy(fontSize = 18.sp), color = Kino.text)
             Spacer(Modifier.height(20.dp))
-            Text(title.uppercase(), style = Display.copy(fontSize = 36.sp), color = Kino.text)
+            Text(title, style = Display.copy(fontSize = 36.sp), color = Kino.text)
             if (subtitle != null) Text(subtitle, color = Kino.muted, fontSize = 15.sp)
             content()
         }

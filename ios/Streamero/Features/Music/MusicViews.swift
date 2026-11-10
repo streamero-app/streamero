@@ -37,7 +37,7 @@ struct MusicLibraryView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                Text(verbatim: library.name).font(Theme.display(34)).textCase(.uppercase).foregroundStyle(Theme.text)
+                Text(verbatim: library.name).font(Theme.display(34)).foregroundStyle(Theme.text)
                 HStack(spacing: 8) {
                     tabButton("album", "albums")
                     tabButton("artist", "artists")
@@ -143,7 +143,7 @@ struct AlbumView: View {
             VStack(alignment: .leading, spacing: 12) {
                 SquareCover(item: it, client: client).frame(maxWidth: 280).frame(maxWidth: .infinity)
                 Text("album").font(.caption2.bold()).textCase(.uppercase).foregroundStyle(Theme.textFaint)
-                Text(verbatim: it.title).font(Theme.display(32)).textCase(.uppercase).foregroundStyle(Theme.text)
+                Text(verbatim: it.title).font(Theme.display(32)).foregroundStyle(Theme.text)
                 Group {
                     let meta = [it.artist, it.year.map(String.init), detail.genres.first].compactMap { $0 }.joined(separator: " · ")
                     if let parent = detail.parentId {
@@ -189,7 +189,7 @@ struct ArtistView: View {
         ScrollView {
             VStack(spacing: 12) {
                 SquareCover(item: detail.item, client: client, round: true).frame(width: 180, height: 180)
-                Text(verbatim: detail.item.title).font(Theme.display(32)).textCase(.uppercase).foregroundStyle(Theme.text).multilineTextAlignment(.center)
+                Text(verbatim: detail.item.title).font(Theme.display(32)).foregroundStyle(Theme.text).multilineTextAlignment(.center)
                 Text("albums_count \(albums.count)").foregroundStyle(Theme.textMuted)
                 Button { Task { await playAll() } } label: { Label("play_all", systemImage: "play.fill") }.buttonStyle(PrimaryButtonStyle())
                 LazyVGrid(columns: coverColumns, spacing: 18) {
@@ -276,7 +276,7 @@ struct QueueSheet: View {
         let m = app.music
         VStack(alignment: .leading, spacing: 12) {
             if let c = m.current {
-                Text(verbatim: c.title).font(Theme.display(26)).textCase(.uppercase).foregroundStyle(Theme.text).lineLimit(2)
+                Text(verbatim: c.title).font(Theme.display(26)).foregroundStyle(Theme.text).lineLimit(2)
                 Text(verbatim: [c.artist, c.album].compactMap { $0 }.joined(separator: " · ")).foregroundStyle(Theme.textMuted).lineLimit(1)
             }
             Slider(value: Binding(get: { Double(m.position) }, set: { m.seek(Int64($0)) }), in: 0...max(1, Double(m.duration))).tint(Theme.accent)

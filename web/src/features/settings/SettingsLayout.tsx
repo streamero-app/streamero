@@ -2,6 +2,7 @@ import { Link, Outlet } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Bell, Captions, Compass, Puzzle, Clapperboard, Cable, Cpu, FolderOpen, Gauge, History, House, KeyRound, ListChecks, Mail, MonitorSmartphone, Palette, ScrollText, Server, Sparkles, UserRound, Users, UsersRound, Zap, type LucideIcon } from "lucide-react";
 import { useMe } from "@/features/auth/useAuth";
+import { useSystemInfo } from "@/features/server/useSystemInfo";
 import { Page } from "@/components/Page";
 
 const tab =
@@ -19,6 +20,7 @@ function Tab({ to, icon: Icon, label }: { to: string; icon: LucideIcon; label: s
 export function SettingsLayout() {
   const { t } = useTranslation();
   const { data: me } = useMe();
+  const { data: info } = useSystemInfo();
   return (
     <Page className="flex flex-col gap-8">
       <h1 className="font-display text-4xl sm:text-5xl">{t("nav.settings")}</h1>
@@ -54,6 +56,11 @@ export function SettingsLayout() {
             </>
           )}
         </nav>
+        {info && (
+          <p className="mt-4 px-3 text-xs text-faint md:mt-6" data-testid="settings-version">
+            Streamero · {t("server.version", { version: info.version })}
+          </p>
+        )}
       </aside>
       <div className="enter flex min-w-0 max-w-3xl flex-1 flex-col gap-6">
         <Outlet />

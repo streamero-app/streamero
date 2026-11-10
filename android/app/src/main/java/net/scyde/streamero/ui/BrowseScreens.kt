@@ -66,7 +66,7 @@ fun HomeScreen(state: AppState, nav: NavHostController) {
         val d = data ?: return@LazyColumn
         if (d.latest.isEmpty() && d.cont.isEmpty() && d.nextUp.isEmpty() && d.favorites.isEmpty() && d.collections.isEmpty()) item {
             Column(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 20.dp, vertical = 48.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(stringResource(R.string.home_empty_title).uppercase(), style = Display.copy(fontSize = 34.sp), color = Kino.text)
+                Text(stringResource(R.string.home_empty_title), style = Display.copy(fontSize = 34.sp), color = Kino.text)
                 Text(stringResource(if (state.isAdmin) R.string.home_empty_admin else R.string.home_empty_user), color = Kino.muted, fontSize = 15.sp)
             }
         }
@@ -103,7 +103,7 @@ fun Stage(state: AppState, nav: NavHostController, pool: List<ItemSummary>) {
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Kino.bg.copy(alpha = 0.6f), Color.Transparent, Kino.bg.copy(alpha = 0.7f), Kino.bg))))
         Box(Modifier.fillMaxSize().background(Brush.radialGradient(listOf(accent.copy(alpha = 0.28f), Color.Transparent), radius = 900f, center = androidx.compose.ui.geometry.Offset(0f, 1400f))))
         Column(Modifier.align(Alignment.BottomStart).padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(p.title.uppercase(), style = Display.copy(fontSize = 44.sp), color = Kino.text, maxLines = 3)
+            Text(p.title, style = Display.copy(fontSize = 44.sp), color = Kino.text, maxLines = 3)
             Text(listOfNotNull(p.rating?.let { "★ %.1f".format(it) }, p.year?.toString(), p.durationMs?.let { "${it / 60000} min" }).joinToString("  ·  "), color = Kino.muted)
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (p.kind == "movie") PrimaryButton(stringResource(R.string.play), { nav.watch(p.id) }, icon = Icons.Default.PlayArrow)
@@ -135,7 +135,7 @@ fun Stage(state: AppState, nav: NavHostController, pool: List<ItemSummary>) {
 fun LibraryTile(l: Library, onClick: () -> Unit) {
     Box(Modifier.width(220.dp).height(110.dp).clip(RoundedCornerShape(6.dp)).background(Kino.surface2).clickable(onClick = onClick).padding(16.dp)) {
         Column(Modifier.align(Alignment.BottomStart)) {
-            Text(l.name.uppercase(), style = Display.copy(fontSize = 24.sp), color = Kino.text)
+            Text(l.name, style = Display.copy(fontSize = 24.sp), color = Kino.text)
             Text(itemsCount(l.itemCount), color = Kino.muted, fontSize = 13.sp)
         }
     }
@@ -146,7 +146,7 @@ fun CollectionTile(api: Api, c: MediaCollection, width: androidx.compose.ui.unit
     Column(Modifier.width(width).clickable(onClick = onClick)) {
         Box(Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(CardShape).background(Kino.surface2)) {
             if (c.hasPoster) ServerImage(api.collectionImageUrl(c.id, "poster"), Modifier.fillMaxSize())
-            else Text(c.name.uppercase(), style = Display.copy(fontSize = 18.sp), color = Kino.text, modifier = Modifier.align(Alignment.BottomStart).padding(10.dp))
+            else Text(c.name, style = Display.copy(fontSize = 18.sp), color = Kino.text, modifier = Modifier.align(Alignment.BottomStart).padding(10.dp))
         }
         Spacer(Modifier.height(8.dp))
         Text(c.name, color = Kino.text, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -156,7 +156,7 @@ fun CollectionTile(api: Api, c: MediaCollection, width: androidx.compose.ui.unit
 
 @Composable
 fun PageTitle(text: String, modifier: Modifier = Modifier) {
-    Text(text.uppercase(), style = Display.copy(fontSize = 34.sp), color = Kino.text, modifier = modifier.statusBarsPadding().padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 8.dp))
+    Text(text, style = Display.copy(fontSize = 34.sp), color = Kino.text, modifier = modifier.statusBarsPadding().padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 8.dp))
 }
 
 @Composable
@@ -171,7 +171,7 @@ fun LibrariesScreen(state: AppState, nav: NavHostController) {
             Box(Modifier.padding(horizontal = 20.dp, vertical = 6.dp)) {
                 Box(Modifier.fillMaxWidth().height(110.dp).clip(RoundedCornerShape(6.dp)).background(Kino.surface2).clickable { nav.navigate("library/${l.id}") }.padding(18.dp)) {
                     Column(Modifier.align(Alignment.BottomStart)) {
-                        Text(l.name.uppercase(), style = Display.copy(fontSize = 28.sp), color = Kino.text)
+                        Text(l.name, style = Display.copy(fontSize = 28.sp), color = Kino.text)
                         Text(itemsCount(l.itemCount), color = Kino.muted, fontSize = 13.sp)
                     }
                 }
@@ -217,7 +217,7 @@ fun LibraryScreen(state: AppState, nav: NavHostController, libraryId: String) {
         horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text((lib?.name ?: "").uppercase(), style = Display.copy(fontSize = 34.sp), color = Kino.text, modifier = Modifier.statusBarsPadding().padding(top = 12.dp))
+                Text((lib?.name ?: ""), style = Display.copy(fontSize = 34.sp), color = Kino.text, modifier = Modifier.statusBarsPadding().padding(top = 12.dp))
                 if (total >= 0) Text(itemsCount(total), color = Kino.muted, fontSize = 13.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Picker(sort, listOf("added" to stringResource(R.string.sort_added), "title" to stringResource(R.string.sort_title),
@@ -245,7 +245,7 @@ fun FavoritesScreen(state: AppState, nav: NavHostController) {
     val (favs, loading, error) = rememberLoad(Unit) { api.favorites() }
     LazyVerticalGrid(GridCells.Adaptive(118.dp), Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-        item(span = { GridItemSpan(maxLineSpan) }) { Text(stringResource(R.string.my_list).uppercase(), style = Display.copy(fontSize = 34.sp), color = Kino.text, modifier = Modifier.statusBarsPadding().padding(top = 12.dp)) }
+        item(span = { GridItemSpan(maxLineSpan) }) { Text(stringResource(R.string.my_list), style = Display.copy(fontSize = 34.sp), color = Kino.text, modifier = Modifier.statusBarsPadding().padding(top = 12.dp)) }
         if (loading) item(span = { GridItemSpan(maxLineSpan) }) { Loading() }
         item(span = { GridItemSpan(maxLineSpan) }) { ErrorLine(error) }
         items(favs.orEmpty(), key = { it.id }) { PosterCard(it, api::imageUrl, 118.dp, state.enhancements.qualityTags) { nav.navigate("item/${it.id}") } }
@@ -331,7 +331,7 @@ fun DiscoverScreen(state: AppState, nav: NavHostController) {
         horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             Column(Modifier.statusBarsPadding(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(stringResource(R.string.discover).uppercase(), style = Display.copy(fontSize = 34.sp), color = Kino.text, modifier = Modifier.padding(top = 12.dp))
+                Text(stringResource(R.string.discover), style = Display.copy(fontSize = 34.sp), color = Kino.text, modifier = Modifier.padding(top = 12.dp))
                 Text(stringResource(R.string.discover_intro), color = Kino.muted, fontSize = 14.sp)
                 OutlinedTextField(q, { q = it }, leadingIcon = { Icon(Icons.Outlined.Search, null) }, placeholder = { Text(stringResource(R.string.discover_hint)) },
                     singleLine = true, modifier = Modifier.fillMaxWidth(), shape = CardShape)

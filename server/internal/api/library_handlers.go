@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -471,7 +472,13 @@ func (h *Handler) UpdateMetadataSettings(ctx context.Context, req *gen.MetadataS
 	if err := metadata.SaveSettings(ctx, h.Settings(), s); err != nil {
 		return nil, err
 	}
-	// A new key: fetch metadata for everything that has none yet.
+	// A new key: fetch metadata for everything that has none yet, including titles
+	// whose earlier lookup failed.
+	if newKey && h.lib() != nil {
+		if err := h.lib().RetryFailedMetadata(ctx); err != nil {
+			slog.WarnContext(ctx, "reset failed metadata", "err", err)
+		}
+	}
 	if newKey && h.lib() != nil && h.lib().EnqueueMetadata != nil {
 		if libs, err := h.lib().List(ctx); err == nil {
 			for _, l := range libs {

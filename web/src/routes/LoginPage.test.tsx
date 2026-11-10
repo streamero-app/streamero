@@ -15,10 +15,11 @@ describe("LoginPage", () => {
     setLanguage("en");
   });
 
-  it("shows server version", async () => {
+  it("shows the server name but not its version", async () => {
     setLanguage("en");
     renderApp("/login");
-    expect(await screen.findByText(/Version 0\.1\.0/)).toBeInTheDocument();
+    expect((await screen.findAllByText("Test")).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Version 0\.1\.0/)).not.toBeInTheDocument();
   });
 
   it("sends the setup wizard when the server is not set up", async () => {

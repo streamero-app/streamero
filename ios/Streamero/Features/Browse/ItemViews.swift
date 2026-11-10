@@ -113,7 +113,7 @@ struct ItemView: View {
                         }
                     }
                     if isEpisode {
-                        Text(verbatim: episodeTitle(it)).font(Theme.display(30)).textCase(.uppercase).foregroundStyle(Theme.text).lineLimit(3).minimumScaleFactor(0.5)
+                        Text(verbatim: episodeTitle(it)).font(Theme.display(30)).foregroundStyle(Theme.text).lineLimit(3).minimumScaleFactor(0.5)
                     } else {
                         TitleArt(id: it.id, title: it.title, hasLogo: d.hasLogo == true, client: client, size: 34, maxHeight: 90)
                     }

@@ -91,7 +91,7 @@ select option { background: var(--color-surface); color: var(--color-text); }
 .tabular { font-variant-numeric: tabular-nums; }
 
 /* Display type: wide and heavy, like a title card in the opening credits. */
-.font-display { font-family: var(--font-display); font-weight: 820; font-stretch: 118%; letter-spacing: -0.03em; text-transform: uppercase; line-height: 0.88; }
+.font-display { font-family: var(--font-display); font-weight: 820; font-stretch: 118%; letter-spacing: -0.025em; line-height: 0.95; }
 /* Section heads: the same voice, smaller and calmer. */
 .font-head { font-family: var(--font-display); font-weight: 760; font-stretch: 112%; letter-spacing: -0.005em; text-transform: uppercase; }
 /* Small caps-style labels for metadata. */
