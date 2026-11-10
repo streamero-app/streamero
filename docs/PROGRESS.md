@@ -26,6 +26,11 @@ Nativna iOS aplikacija dobila je sve ekrane Android aplikacije: Home/Search/Disc
 - Poznato: skok naprijed/natrag iz postavki ne primjenjuje se u AVKit kontrolama (isto kao na Androidu).
 - Sljedeće: ručna provjera na uređaju (reprodukcija, glazba na zaključanom ekranu).
 
+## Uvoz iz Jellyfina (branch `feat/jellyfin-import`, 2026-11-10)
+Postavke → Uvoz: admin upiše adresu i API ključ starog servera, poveže korisnike (po imenu, može promijeniti/preskočiti), doda preslikavanje mapa i pokrene probni prolaz ili uvoz (River job `import.run`). Prenosi pogledano, broj i datum gledanja, poziciju, favorite i popise; ponovni uvoz ne pravi duplikate i ne pregazi noviji napredak (D-022).
+- Testirano: unit (ticks → ms, uparivanje, spajanje/idempotentnost, povezivanje korisnika, lažni Jellyfin HTTP server), integracijski protiv Postgresa (cijeli uvoz dvaput, API s ključem koji se ne vraća), web test.
+- Nije provjereno protiv pravog Jellyfina. Ne uvoze se računi ni kolekcije.
+
 ## v0.8.3 (2026-11-10)
 iOS: slike više ne šire ekran preko ruba, a nakon ponovne instalacije i dodavanja servera traži se prijava (#41). Naslovi se prikazuju točno kako ih daje TMDb, umjesto velikim slovima. Spremanje TMDb ključa ponovno pokušava naslove kojima je pretraga propala. Verzija je samo u postavkama (#42).
 
