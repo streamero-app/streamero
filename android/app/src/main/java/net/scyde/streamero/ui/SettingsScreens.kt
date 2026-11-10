@@ -4,6 +4,8 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -37,7 +39,10 @@ private val USER_PAGES = listOf(
     Entry("playback", R.string.playback, Icons.Outlined.Movie),
     Entry("subtitles", R.string.subtitles, Icons.Outlined.ClosedCaption),
     Entry("home", R.string.home_screen, Icons.Outlined.Home),
+    Entry("quickconnect", R.string.quick_connect, Icons.Outlined.Tv),
 )
+/** Pages that work with a remote; administration needs typing and stays on phone and web. */
+private val TV_PAGES = setOf("account", "playback", "subtitles", "home")
 private val ADMIN_PAGES = listOf(
     Entry("dashboard", R.string.dashboard, Icons.Outlined.Dashboard),
     Entry("libraries", R.string.libraries, Icons.Outlined.FolderOpen),
@@ -61,7 +66,9 @@ fun MeScreen(state: AppState, nav: NavHostController, onSignedOut: () -> Unit, o
     val me = state.me ?: return
     val api = state.api ?: return
     val scope = rememberCoroutineScope()
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
+    val tv = LocalTv.current
+    val mem = rememberFocusMemory()
+    LazyColumn(if (tv) Modifier.fillMaxHeight().widthIn(max = 760.dp).padding(horizontal = 20.dp) else Modifier.fillMaxSize(), contentPadding = PaddingValues(top = if (tv) 20.dp else 0.dp, bottom = 24.dp)) {
         item {
             Row(Modifier.statusBarsPadding().padding(20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 val p = me.currentProfile
@@ -72,23 +79,28 @@ fun MeScreen(state: AppState, nav: NavHostController, onSignedOut: () -> Unit, o
                 }
             }
         }
-        if (!state.isKid) items(USER_PAGES) { e -> SettingsLink(e) { nav.navigate("settings/${e.page}") } }
-        if (state.isAdmin) {
+        if (!state.isKid) items(USER_PAGES.filter { !tv || it.page in TV_PAGES }) { e ->
+            SettingsLink(e, Modifier.rememberFocus(mem, e.page, default = e.page == "account")) { nav.navigate("settings/${e.page}") }
+        }
+        if (state.isAdmin && tv) item {
+            Text(stringResource(R.string.tv_admin_elsewhere), color = Kino.faint, fontSize = 14.sp, modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp))
+        }
+        if (state.isAdmin && !tv) {
             item { Text(stringResource(R.string.administration).uppercase(), style = Label, color = Kino.faint, modifier = Modifier.padding(start = 20.dp, top = 20.dp, bottom = 6.dp)) }
             items(ADMIN_PAGES) { e -> SettingsLink(e) { nav.navigate("settings/${e.page}") } }
         }
         item {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                GlassButton(stringResource(R.string.switch_profile), onSwitchProfile, Modifier.fillMaxWidth())
-                GlassButton(stringResource(R.string.sign_out), { scope.launch { state.signOut(); onSignedOut() } }, Modifier.fillMaxWidth())
+                GlassButton(stringResource(R.string.switch_profile), onSwitchProfile, Modifier.fillMaxWidth().rememberFocus(mem, "profile", default = state.isKid))
+                GlassButton(stringResource(R.string.sign_out), { scope.launch { state.signOut(); onSignedOut() } }, Modifier.fillMaxWidth().rememberFocus(mem, "signout"))
             }
         }
     }
 }
 
 @Composable
-private fun SettingsLink(e: Entry, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+private fun SettingsLink(e: Entry, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Row(modifier.fillMaxWidth().focusClickable(scale = 1.02f, onClick = onClick).padding(horizontal = 20.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
         Icon(e.icon, null, tint = Kino.muted)
         Text(stringResource(e.label), color = Kino.text, fontSize = 16.sp, modifier = Modifier.weight(1f))
         Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = Kino.faint)
@@ -100,13 +112,16 @@ fun SettingsPage(state: AppState, nav: NavHostController, page: String) {
     val adminOnly = ADMIN_PAGES.any { it.page == page }
     if (adminOnly && !state.isAdmin) { Text(stringResource(R.string.err_forbidden), color = Kino.danger, modifier = Modifier.statusBarsPadding().padding(20.dp)); return }
     val title = (USER_PAGES + ADMIN_PAGES).firstOrNull { it.page == page }?.label ?: R.string.settings
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).statusBarsPadding().padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    val tv = LocalTv.current
+    Column((if (tv) Modifier.fillMaxHeight().widthIn(max = 860.dp) else Modifier.fillMaxSize()).verticalScroll(rememberScrollState()).statusBarsPadding()
+        .then(if (tv) Modifier.padding(horizontal = 48.dp, vertical = 24.dp) else Modifier.padding(16.dp)), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(stringResource(title), style = Display.copy(fontSize = 30.sp), color = Kino.text, modifier = Modifier.padding(top = 8.dp))
         when (page) {
             "account" -> AccountPage(state)
             "playback" -> PlaybackPage(state)
             "subtitles" -> SubtitleLookPage(state)
             "home" -> HomeSectionsPage(state)
+            "quickconnect" -> QuickConnectPage(state)
             "dashboard" -> DashboardPage(state, nav)
             "libraries" -> LibrariesAdminPage(state)
             "users" -> UsersPage(state)
@@ -143,12 +158,16 @@ private fun <T> SettingsDoc(load: suspend () -> T, save: suspend (T) -> T, conte
 
 @Composable
 private fun Toggle(label: String, hint: String?, checked: Boolean, onChange: (Boolean) -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+    // The whole row toggles, so the remote has one target per setting.
+    val (src, focused) = rememberFocusSource()
+    Row(Modifier.fillMaxWidth().focusRing(focused, scale = 1.02f, width = 2.dp).clip(CardShape)
+        .toggleable(checked, interactionSource = src, indication = tapIndication(), onValueChange = onChange).padding(vertical = 8.dp, horizontal = if (LocalTv.current) 8.dp else 0.dp),
+        verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(label, color = Kino.text, fontSize = 15.sp)
             if (hint != null) Text(hint, color = Kino.faint, fontSize = 13.sp)
         }
-        Switch(checked, onChange, colors = SwitchDefaults.colors(checkedThumbColor = Kino.bg, checkedTrackColor = Kino.text))
+        Switch(checked, null, colors = SwitchDefaults.colors(checkedThumbColor = Kino.bg, checkedTrackColor = Kino.text))
     }
 }
 
@@ -156,7 +175,7 @@ private fun Toggle(label: String, hint: String?, checked: Boolean, onChange: (Bo
 private fun Field(label: String, value: String, onChange: (String) -> Unit, secret: Boolean = false, hint: String? = null) {
     OutlinedTextField(value, onChange, label = { Text(label) }, supportingText = hint?.let { { Text(it) } }, singleLine = true,
         visualTransformation = if (secret) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
-        modifier = Modifier.fillMaxWidth(), shape = CardShape)
+        modifier = Modifier.fillMaxWidth().dpadExit(), shape = CardShape)
 }
 
 // ---- Personal ----
@@ -173,7 +192,8 @@ private fun AccountPage(state: AppState) {
             runCatching { api.uploadAvatar(ctx.contentResolver.openInputStream(uri)!!.use { it.readBytes() }); state.refreshMe() }.onFailure { error = it }
         }
     }
-    Card(null) {
+    // A TV has no photo picker: the picture is changed from a phone or the web.
+    if (!LocalTv.current) Card(null) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             Box(Modifier.clickable { pick.launch("image/*") }) { Avatar(me.displayName ?: me.username, "#8A5A3A", if (me.hasAvatar) api.avatarUrl(me.id) + "?v=" + System.identityHashCode(me) else null, 88.dp) }
             Column {
@@ -567,4 +587,28 @@ private fun BrandingPage(state: AppState) {
             OutlinedTextField(b.customCss, { set(b.copy(customCss = it)) }, label = { Text(stringResource(R.string.custom_css)) }, minLines = 6, modifier = Modifier.fillMaxWidth(), shape = CardShape)
         }
     }
+}
+
+/** Approve a Quick Connect code shown on a TV or another new device. */
+@Composable
+private fun QuickConnectPage(state: AppState) {
+    val api = state.api ?: return
+    var code by remember { mutableStateOf("") }
+    var busy by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<Throwable?>(null) }
+    var approved by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+    Text(stringResource(R.string.qc_approve_intro), color = Kino.muted, fontSize = 15.sp)
+    OutlinedTextField(code, { v -> code = v.filter { it.isDigit() }.take(6); approved = null }, label = { Text(stringResource(R.string.qc_code)) }, singleLine = true,
+        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.NumberPassword),
+        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 28.sp, letterSpacing = 6.sp), modifier = Modifier.fillMaxWidth().dpadExit(), shape = CardShape)
+    PrimaryButton(stringResource(R.string.qc_approve), enabled = !busy && code.length == 6, modifier = Modifier.fillMaxWidth(), onClick = {
+        busy = true; error = null
+        scope.launch {
+            runCatching { api.quickConnectAuthorize(code) }.onSuccess { approved = it.deviceName; code = "" }.onFailure { error = it }
+            busy = false
+        }
+    })
+    approved?.let { Text(stringResource(R.string.qc_approved_device, it), color = Kino.success) }
+    if ((error as? ApiException)?.status == 404) Text(stringResource(R.string.qc_unknown_code), color = Kino.danger) else ErrorLine(error)
 }

@@ -14,7 +14,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.stringResource
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -27,10 +30,13 @@ import net.scyde.streamero.api.Profile
 
 @Composable
 private fun AuthFrame(title: String, subtitle: String?, content: @Composable ColumnScope.() -> Unit) {
+    val tv = LocalTv.current
     Box(Modifier.fillMaxSize().background(Brush.radialGradient(listOf(Kino.accent.copy(alpha = 0.22f), Kino.bg), radius = 1400f))) {
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).systemBarsPadding().imePadding().padding(24.dp),
+        // On a TV the form keeps a readable width on the left instead of spanning the screen.
+        Column((if (tv) Modifier.fillMaxHeight().widthIn(max = 720.dp) else Modifier.fillMaxSize()).verticalScroll(rememberScrollState()).systemBarsPadding().imePadding()
+            .then(if (tv) Modifier.padding(horizontal = 64.dp, vertical = 8.dp) else Modifier.padding(24.dp)),
             verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Spacer(Modifier.height(40.dp))
+            Spacer(Modifier.height(if (tv) 24.dp else 40.dp))
             Text("STREAMERO", style = Head.copy(fontSize = 18.sp), color = Kino.text)
             Spacer(Modifier.height(20.dp))
             Text(title, style = Display.copy(fontSize = 36.sp), color = Kino.text)
@@ -46,22 +52,24 @@ fun ServerScreen(state: AppState, onConnected: () -> Unit) {
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<Throwable?>(null) }
     val scope = rememberCoroutineScope()
+    val connect: () -> Unit = connect@{
+        if (busy || url.length <= 8) return@connect
+        busy = true; error = null
+        scope.launch {
+            val clean = url.trimEnd('/').let { if (it.startsWith("http")) it else "https://$it" }
+            runCatching {
+                val api = state.session.setServer(clean)
+                api.info() // proves it is a Streamero server
+                state.attach(api)
+            }.onSuccess { onConnected() }.onFailure { error = it }
+            busy = false
+        }
+    }
     AuthFrame(stringResource(R.string.server_title), stringResource(R.string.server_intro)) {
         OutlinedTextField(url, { url = it.trim() }, label = { Text(stringResource(R.string.server_address)) }, singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri), modifier = Modifier.fillMaxWidth(), shape = CardShape)
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Go), keyboardActions = KeyboardActions(onGo = { connect() }), modifier = Modifier.fillMaxWidth().initialFocus().dpadExit(), shape = CardShape)
         ErrorLine(error)
-        PrimaryButton(stringResource(R.string.connect), enabled = !busy && url.length > 8, modifier = Modifier.fillMaxWidth(), onClick = {
-            busy = true; error = null
-            scope.launch {
-                val clean = url.trimEnd('/').let { if (it.startsWith("http")) it else "https://$it" }
-                runCatching {
-                    val api = state.session.setServer(clean)
-                    api.info() // proves it is a Streamero server
-                    state.attach(api)
-                }.onSuccess { onConnected() }.onFailure { error = it }
-                busy = false
-            }
-        })
+        PrimaryButton(stringResource(R.string.connect), enabled = !busy && url.length > 8, modifier = Modifier.fillMaxWidth(), onClick = connect)
     }
 }
 
@@ -76,21 +84,25 @@ fun LoginScreen(state: AppState, onChangeServer: () -> Unit, onSignedIn: () -> U
     var disclaimer by remember { mutableStateOf<String?>(null) }
     var serverName by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
+    val tv = LocalTv.current
+    // Typing a password with a remote is painful: a TV signs in with Quick Connect first.
+    var usePassword by rememberSaveable { mutableStateOf(!tv) }
     LaunchedEffect(state.api) {
         runCatching { state.api!!.info() }.onSuccess { serverName = it.name; disclaimer = it.loginDisclaimer }
     }
+    if (!usePassword) { TvQuickConnect(state, serverName, onUsePassword = { usePassword = true }, onChangeServer = onChangeServer, onSignedIn = onSignedIn); return }
     AuthFrame(stringResource(R.string.sign_in), serverName.ifBlank { null }) {
-        OutlinedTextField(user, { user = it }, label = { Text(stringResource(R.string.username)) }, singleLine = true, modifier = Modifier.fillMaxWidth(), shape = CardShape)
+        OutlinedTextField(user, { user = it }, label = { Text(stringResource(R.string.username)) }, singleLine = true, modifier = Modifier.fillMaxWidth().initialFocus().dpadExit(), shape = CardShape)
         OutlinedTextField(pass, { pass = it }, label = { Text(stringResource(R.string.password)) }, singleLine = true, visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), modifier = Modifier.fillMaxWidth(), shape = CardShape)
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), modifier = Modifier.fillMaxWidth().dpadExit(), shape = CardShape)
         if (needTotp) OutlinedTextField(totp, { totp = it }, label = { Text(stringResource(R.string.totp_code)) }, singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword), modifier = Modifier.fillMaxWidth(), shape = CardShape)
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword), modifier = Modifier.fillMaxWidth().dpadExit(), shape = CardShape)
         ErrorLine(error)
         PrimaryButton(stringResource(R.string.sign_in), enabled = !busy && user.isNotBlank() && pass.isNotBlank(), modifier = Modifier.fillMaxWidth(), onClick = {
             busy = true; error = null
             scope.launch {
                 runCatching {
-                    val res = state.api!!.login(user.trim(), pass, totp, DeviceInfo(Build.MODEL ?: "Android", "Streamero Android"))
+                    val res = state.api!!.login(user.trim(), pass, totp, DeviceInfo(Build.MODEL ?: "Android", if (tv) TV_CLIENT else "Streamero Android"))
                     state.session.setToken(res.token)
                     state.refreshMe()
                 }.onSuccess { onSignedIn() }.onFailure {
@@ -99,9 +111,10 @@ fun LoginScreen(state: AppState, onChangeServer: () -> Unit, onSignedIn: () -> U
                 busy = false
             }
         })
-        TextButton(onClick = { scope.launch { state.session.forgetServer(); state.attach(null); onChangeServer() } }) {
-            Text(stringResource(R.string.change_server), color = Kino.muted)
-        }
+        if (tv) GlassButton(stringResource(R.string.qc_use), { usePassword = false }, Modifier.fillMaxWidth())
+        val changeServer: () -> Unit = { scope.launch { state.session.forgetServer(); state.attach(null); onChangeServer() } }
+        if (tv) GlassButton(stringResource(R.string.change_server), changeServer, Modifier.fillMaxWidth())
+        else TextButton(onClick = changeServer) { Text(stringResource(R.string.change_server), color = Kino.muted) }
         disclaimer?.let { Text(it, color = Kino.muted, fontSize = 13.sp) }
     }
 }
@@ -131,7 +144,7 @@ fun ProfileGate(state: AppState, onDone: () -> Unit) {
         all.chunked(2).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 row.forEach { p ->
-                    Column(Modifier.weight(1f).clickable { choose(p) }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(Modifier.weight(1f).initialFocus(p == null).focusClickable(scale = 1.05f) { choose(p) }.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Avatar(p?.name ?: me.displayName ?: me.username, p?.color ?: "#8A5A3A",
                             if (p?.hasAvatar == true) api.avatarUrl(p.id) else if (p == null && me.hasAvatar) api.avatarUrl(me.id) else null, 120.dp)
                         Text(p?.name ?: me.displayName ?: me.username, color = Kino.text)
@@ -142,7 +155,7 @@ fun ProfileGate(state: AppState, onDone: () -> Unit) {
         }
         if (target != null || mainTarget) {
             OutlinedTextField(secret, { secret = it }, label = { Text(stringResource(if (mainTarget) R.string.password else R.string.pin)) }, singleLine = true,
-                visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth(), shape = CardShape)
+                visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth().dpadExit(), shape = CardShape)
             PrimaryButton(stringResource(R.string.open), onClick = { choose(target) }, modifier = Modifier.fillMaxWidth())
         }
         ErrorLine(error)

@@ -21,6 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -59,8 +60,10 @@ fun HomeScreen(state: AppState, nav: NavHostController) {
             runCatching { api.libraries() }.getOrDefault(emptyList()), prefs?.homeSections)
     }
     val img: (String, String) -> String = api::imageUrl
-    LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(28.dp), contentPadding = PaddingValues(bottom = 24.dp)) {
-        item { Stage(state, nav, data?.latest.orEmpty()) }
+    val tv = LocalTv.current
+    val mem = rememberFocusMemory()
+    LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(if (tv) 18.dp else 28.dp), contentPadding = PaddingValues(bottom = 24.dp)) {
+        item { Stage(state, nav, data?.latest.orEmpty(), mem) }
         if (loading) item { Loading() }
         if (error != null) item { Box(Modifier.padding(20.dp)) { ErrorLine(error) } }
         val d = data ?: return@LazyColumn
@@ -73,13 +76,13 @@ fun HomeScreen(state: AppState, nav: NavHostController) {
         val order = d.sections ?: listOf("continue", "nextUp", "latest", "favorites", "collections", "libraries")
         order.forEach { s ->
             when (s) {
-                "continue" -> item { Shelf(stringResource(R.string.continue_watching), d.cont) { WideCard(it, img, 280.dp) { nav.watch(it.id) } } }
-                "nextUp" -> item { Shelf(stringResource(R.string.next_up), d.nextUp) { WideCard(it, img, 280.dp) { nav.watch(it.id) } } }
-                "latest" -> item { Shelf(stringResource(R.string.recently_added), d.latest) { PosterCard(it, img, 130.dp, state.enhancements.qualityTags) { nav.navigate("item/${it.id}") } } }
-                "favorites" -> item { Shelf(stringResource(R.string.my_list), d.favorites) { PosterCard(it, img, 130.dp, state.enhancements.qualityTags) { nav.navigate("item/${it.id}") } } }
-                "collections" -> item { Shelf(stringResource(R.string.collections), d.collections) { c -> CollectionTile(api, c, 130.dp) { nav.navigate("collection/${c.id}") } } }
+                "continue" -> item { Shelf(stringResource(R.string.continue_watching), d.cont) { WideCard(it, img, Dims.wide, Modifier.rememberFocus(mem, "c" + it.id)) { nav.watch(it.id) } } }
+                "nextUp" -> item { Shelf(stringResource(R.string.next_up), d.nextUp) { WideCard(it, img, Dims.wide, Modifier.rememberFocus(mem, "n" + it.id)) { nav.watch(it.id) } } }
+                "latest" -> item { Shelf(stringResource(R.string.recently_added), d.latest) { PosterCard(it, img, Dims.poster, state.enhancements.qualityTags, Modifier.rememberFocus(mem, "l" + it.id)) { nav.navigate("item/${it.id}") } } }
+                "favorites" -> item { Shelf(stringResource(R.string.my_list), d.favorites) { PosterCard(it, img, Dims.poster, state.enhancements.qualityTags, Modifier.rememberFocus(mem, "f" + it.id)) { nav.navigate("item/${it.id}") } } }
+                "collections" -> item { Shelf(stringResource(R.string.collections), d.collections) { c -> CollectionTile(api, c, Dims.poster, Modifier.rememberFocus(mem, "k" + c.id)) { nav.navigate("collection/${c.id}") } } }
                 "libraries" -> item {
-                    Shelf(stringResource(R.string.libraries), d.libraries) { l -> LibraryTile(l) { nav.navigate("library/${l.id}") } }
+                    Shelf(stringResource(R.string.libraries), d.libraries) { l -> LibraryTile(l, Modifier.rememberFocus(mem, "b" + l.id)) { nav.navigate("library/${l.id}") } }
                 }
             }
         }
@@ -91,23 +94,25 @@ private data class HomeData(val latest: List<ItemSummary>, val cont: List<ItemSu
 
 /** The stage: one film edge to edge with its title set large, chosen from the newest titles. */
 @Composable
-fun Stage(state: AppState, nav: NavHostController, pool: List<ItemSummary>) {
+fun Stage(state: AppState, nav: NavHostController, pool: List<ItemSummary>, mem: FocusMemory) {
     val api = state.api ?: return
     val choices = pool.filter { it.kind == "movie" || it.kind == "series" }.take(10)
     var pick by remember(choices.size) { mutableStateOf(choices.firstOrNull { it.hasBackdrop } ?: choices.firstOrNull()) }
     val p = pick ?: run { Spacer(Modifier.height(80.dp)); return }
     val accent = hexColor(p.colors?.firstOrNull())
     val scope = rememberCoroutineScope()
-    Box(Modifier.fillMaxWidth().height(560.dp)) {
+    val tv = LocalTv.current
+    Box(Modifier.fillMaxWidth().height(if (tv) 500.dp else 560.dp)) {
         ServerImage(if (p.hasBackdrop) api.imageUrl(p.id, "backdrop") else null, Modifier.fillMaxSize())
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Kino.bg.copy(alpha = 0.6f), Color.Transparent, Kino.bg.copy(alpha = 0.7f), Kino.bg))))
         Box(Modifier.fillMaxSize().background(Brush.radialGradient(listOf(accent.copy(alpha = 0.28f), Color.Transparent), radius = 900f, center = androidx.compose.ui.geometry.Offset(0f, 1400f))))
-        Column(Modifier.align(Alignment.BottomStart).padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(p.title, style = Display.copy(fontSize = 44.sp), color = Kino.text, maxLines = 3)
+        if (tv) Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Kino.bg.copy(alpha = 0.85f), Color.Transparent), endX = 1400f)))
+        Column(Modifier.align(Alignment.BottomStart).padding(horizontal = Dims.edge).then(if (tv) Modifier.fillMaxWidth(0.62f) else Modifier), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(p.title, style = Display.copy(fontSize = if (tv) 52.sp else 44.sp), color = Kino.text, maxLines = if (tv) 2 else 3, overflow = TextOverflow.Ellipsis)
             Text(listOfNotNull(p.rating?.let { "★ %.1f".format(it) }, p.year?.toString(), p.durationMs?.let { "${it / 60000} min" }).joinToString("  ·  "), color = Kino.muted)
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (p.kind == "movie") PrimaryButton(stringResource(R.string.play), { nav.watch(p.id) }, icon = Icons.Default.PlayArrow)
-                GlassButton(stringResource(R.string.more_info), { nav.navigate("item/${p.id}") }, icon = Icons.Outlined.Info)
+                if (p.kind == "movie") PrimaryButton(stringResource(R.string.play), { nav.watch(p.id) }, Modifier.rememberFocus(mem, "stage-play", default = true), icon = Icons.Default.PlayArrow)
+                GlassButton(stringResource(R.string.more_info), { nav.navigate("item/${p.id}") }, Modifier.rememberFocus(mem, "stage-info", default = p.kind != "movie"), icon = Icons.Outlined.Info)
                 if (state.enhancements.randomButton) GlassButton(null, {
                     scope.launch {
                         val libs = runCatching { api.libraries() }.getOrDefault(emptyList()).filter { it.kind != "music" }.shuffled()
@@ -118,10 +123,12 @@ fun Stage(state: AppState, nav: NavHostController, pool: List<ItemSummary>) {
                     }
                 }, Modifier.width(52.dp), icon = Icons.Default.Shuffle)
             }
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(vertical = 8.dp)) {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(vertical = if (tv) 12.dp else 8.dp, horizontal = if (tv) 6.dp else 0.dp)) {
                 items(choices) { c ->
-                    Box(Modifier.width(78.dp).aspectRatio(2f / 3f).clip(CardShape).background(Kino.surface2)
-                        .then(if (c.id == p.id) Modifier.background(Kino.text) else Modifier).clickable { pick = c }) {
+                    // On a TV, moving the focus over the small posters changes the film on stage.
+                    Box(Modifier.width(if (tv) 64.dp else 78.dp).onFocusChanged { f -> if (f.isFocused) pick = c }.focusClickable(scale = 1.1f) { if (tv) nav.navigate("item/${c.id}") else pick = c }
+                        .aspectRatio(2f / 3f).clip(CardShape).background(Kino.surface2)
+                        .then(if (c.id == p.id) Modifier.background(Kino.text) else Modifier)) {
                         ServerImage(if (c.hasPoster) api.imageUrl(c.id, "poster") else if (c.hasBackdrop) api.imageUrl(c.id, "backdrop") else null,
                             Modifier.fillMaxSize().padding(if (c.id == p.id) 2.dp else 0.dp).clip(CardShape))
                     }
@@ -132,8 +139,8 @@ fun Stage(state: AppState, nav: NavHostController, pool: List<ItemSummary>) {
 }
 
 @Composable
-fun LibraryTile(l: Library, onClick: () -> Unit) {
-    Box(Modifier.width(220.dp).height(110.dp).clip(RoundedCornerShape(6.dp)).background(Kino.surface2).clickable(onClick = onClick).padding(16.dp)) {
+fun LibraryTile(l: Library, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Box(modifier.width(220.dp).height(110.dp).focusClickable(onClick = onClick).clip(RoundedCornerShape(6.dp)).background(Kino.surface2).padding(16.dp)) {
         Column(Modifier.align(Alignment.BottomStart)) {
             Text(l.name, style = Display.copy(fontSize = 24.sp), color = Kino.text)
             Text(itemsCount(l.itemCount), color = Kino.muted, fontSize = 13.sp)
@@ -142,9 +149,10 @@ fun LibraryTile(l: Library, onClick: () -> Unit) {
 }
 
 @Composable
-fun CollectionTile(api: Api, c: MediaCollection, width: androidx.compose.ui.unit.Dp, onClick: () -> Unit) {
-    Column(Modifier.width(width).clickable(onClick = onClick)) {
-        Box(Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(CardShape).background(Kino.surface2)) {
+fun CollectionTile(api: Api, c: MediaCollection, width: androidx.compose.ui.unit.Dp, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val (src, focused) = rememberFocusSource()
+    Column(modifier.width(width).clickable(interactionSource = src, indication = tapIndication(), onClick = onClick)) {
+        Box(Modifier.fillMaxWidth().focusRing(focused).aspectRatio(2f / 3f).clip(CardShape).background(Kino.surface2)) {
             if (c.hasPoster) ServerImage(api.collectionImageUrl(c.id, "poster"), Modifier.fillMaxSize())
             else Text(c.name, style = Display.copy(fontSize = 18.sp), color = Kino.text, modifier = Modifier.align(Alignment.BottomStart).padding(10.dp))
         }
@@ -156,20 +164,22 @@ fun CollectionTile(api: Api, c: MediaCollection, width: androidx.compose.ui.unit
 
 @Composable
 fun PageTitle(text: String, modifier: Modifier = Modifier) {
-    Text(text, style = Display.copy(fontSize = 34.sp), color = Kino.text, modifier = modifier.statusBarsPadding().padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 8.dp))
+    Text(text, style = Display.copy(fontSize = 34.sp), color = Kino.text, modifier = modifier.statusBarsPadding().padding(start = Dims.edge, end = Dims.edge, top = if (LocalTv.current) 28.dp else 20.dp, bottom = 8.dp))
 }
 
 @Composable
 fun LibrariesScreen(state: AppState, nav: NavHostController) {
     val api = state.api ?: return
     val (libs, loading, error) = rememberLoad(Unit) { api.libraries() }
+    val mem = rememberFocusMemory()
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 20.dp)) {
         item { PageTitle(stringResource(R.string.libraries)) }
         if (loading) item { Loading() }
         item { Box(Modifier.padding(horizontal = 20.dp)) { ErrorLine(error) } }
         items(libs.orEmpty()) { l ->
-            Box(Modifier.padding(horizontal = 20.dp, vertical = 6.dp)) {
-                Box(Modifier.fillMaxWidth().height(110.dp).clip(RoundedCornerShape(6.dp)).background(Kino.surface2).clickable { nav.navigate("library/${l.id}") }.padding(18.dp)) {
+            Box(Modifier.padding(horizontal = Dims.edge, vertical = 6.dp)) {
+                Box(Modifier.fillMaxWidth().height(110.dp).rememberFocus(mem, l.id, default = l.id == libs?.firstOrNull()?.id)
+                    .focusClickable(scale = 1.02f) { nav.navigate("library/${l.id}") }.clip(RoundedCornerShape(6.dp)).background(Kino.surface2).padding(18.dp)) {
                     Column(Modifier.align(Alignment.BottomStart)) {
                         Text(l.name, style = Display.copy(fontSize = 28.sp), color = Kino.text)
                         Text(itemsCount(l.itemCount), color = Kino.muted, fontSize = 13.sp)
@@ -178,7 +188,7 @@ fun LibrariesScreen(state: AppState, nav: NavHostController) {
             }
         }
         item {
-            Row(Modifier.padding(20.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(Modifier.padding(Dims.edge, 20.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 GlassButton(stringResource(R.string.collections), { nav.navigate("collections") })
                 GlassButton(stringResource(R.string.my_list), { nav.navigate("library/favorites") })
             }
@@ -213,8 +223,9 @@ fun LibraryScreen(state: AppState, nav: NavHostController, libraryId: String) {
         loading = false
     }
     LaunchedEffect(sort, genre, status) { load(true) }
-    LazyVerticalGrid(GridCells.Adaptive(118.dp), Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+    val mem = rememberFocusMemory()
+    LazyVerticalGrid(GridCells.Adaptive(Dims.gridCell), Modifier.fillMaxSize(), contentPadding = gridPadding(),
+        horizontalArrangement = Arrangement.spacedBy(gridGap()), verticalArrangement = Arrangement.spacedBy(18.dp)) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text((lib?.name ?: ""), style = Display.copy(fontSize = 34.sp), color = Kino.text, modifier = Modifier.statusBarsPadding().padding(top = 12.dp))
@@ -229,7 +240,7 @@ fun LibraryScreen(state: AppState, nav: NavHostController, libraryId: String) {
                 ErrorLine(error)
             }
         }
-        items(items, key = { it.id }) { PosterCard(it, api::imageUrl, 118.dp, state.enhancements.qualityTags) { nav.navigate("item/${it.id}") } }
+        items(items, key = { it.id }) { PosterCard(it, api::imageUrl, Dims.gridCell, state.enhancements.qualityTags, Modifier.rememberFocus(mem, it.id, default = it.id == items.firstOrNull()?.id)) { nav.navigate("item/${it.id}") } }
         if (total > items.size) item(span = { GridItemSpan(maxLineSpan) }) {
             LaunchedEffect(items.size) { if (!loading) load(false) }
             Loading()
@@ -243,18 +254,20 @@ fun LibraryScreen(state: AppState, nav: NavHostController, libraryId: String) {
 fun FavoritesScreen(state: AppState, nav: NavHostController) {
     val api = state.api ?: return
     val (favs, loading, error) = rememberLoad(Unit) { api.favorites() }
-    LazyVerticalGrid(GridCells.Adaptive(118.dp), Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+    val mem = rememberFocusMemory()
+    LazyVerticalGrid(GridCells.Adaptive(Dims.gridCell), Modifier.fillMaxSize(), contentPadding = gridPadding(),
+        horizontalArrangement = Arrangement.spacedBy(gridGap()), verticalArrangement = Arrangement.spacedBy(18.dp)) {
         item(span = { GridItemSpan(maxLineSpan) }) { Text(stringResource(R.string.my_list), style = Display.copy(fontSize = 34.sp), color = Kino.text, modifier = Modifier.statusBarsPadding().padding(top = 12.dp)) }
         if (loading) item(span = { GridItemSpan(maxLineSpan) }) { Loading() }
         item(span = { GridItemSpan(maxLineSpan) }) { ErrorLine(error) }
-        items(favs.orEmpty(), key = { it.id }) { PosterCard(it, api::imageUrl, 118.dp, state.enhancements.qualityTags) { nav.navigate("item/${it.id}") } }
+        items(favs.orEmpty(), key = { it.id }) { PosterCard(it, api::imageUrl, Dims.gridCell, state.enhancements.qualityTags, Modifier.rememberFocus(mem, it.id, default = it.id == favs?.firstOrNull()?.id)) { nav.navigate("item/${it.id}") } }
     }
 }
 
 @Composable
 fun SearchScreen(state: AppState, nav: NavHostController) {
     val api = state.api ?: return
+    if (LocalTv.current) { TvSearchScreen(state, nav); return }
     var q by remember { mutableStateOf("") }
     var results by remember { mutableStateOf<List<ItemSummary>?>(null) }
     var elsewhere by remember { mutableStateOf<DiscoverPage?>(null) }
@@ -287,7 +300,7 @@ fun DiscoverCard(state: AppState, t: DiscoverTitle, canRequest: Boolean, nav: Na
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<Throwable?>(null) }
     val scope = rememberCoroutineScope()
-    Column(Modifier.width(118.dp)) {
+    Column(Modifier.width(Dims.gridCell)) {
         Box(Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(CardShape).background(Kino.surface2)) {
             // TMDb poster URLs are public CDN images, loaded without the session.
             if (t.posterUrl != null) coil.compose.AsyncImage(t.posterUrl, null, Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
@@ -327,14 +340,14 @@ fun DiscoverScreen(state: AppState, nav: NavHostController) {
         delay(if (q.isBlank()) 0 else 350)
         runCatching { api.discover(q) }.onSuccess { page = it; error = null }.onFailure { error = it }
     }
-    LazyVerticalGrid(GridCells.Adaptive(118.dp), Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+    LazyVerticalGrid(GridCells.Adaptive(Dims.gridCell), Modifier.fillMaxSize(), contentPadding = gridPadding(),
+        horizontalArrangement = Arrangement.spacedBy(gridGap()), verticalArrangement = Arrangement.spacedBy(18.dp)) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             Column(Modifier.statusBarsPadding(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(stringResource(R.string.discover), style = Display.copy(fontSize = 34.sp), color = Kino.text, modifier = Modifier.padding(top = 12.dp))
                 Text(stringResource(R.string.discover_intro), color = Kino.muted, fontSize = 14.sp)
                 OutlinedTextField(q, { q = it }, leadingIcon = { Icon(Icons.Outlined.Search, null) }, placeholder = { Text(stringResource(R.string.discover_hint)) },
-                    singleLine = true, modifier = Modifier.fillMaxWidth(), shape = CardShape)
+                    singleLine = true, modifier = Modifier.fillMaxWidth().dpadExit(), shape = CardShape)
                 ErrorLine(error)
                 if (page?.configured == false) Text(stringResource(R.string.discover_not_configured), color = Kino.muted)
             }
@@ -342,9 +355,10 @@ fun DiscoverScreen(state: AppState, nav: NavHostController) {
         if (q.isBlank() && !upcoming.isNullOrEmpty()) item(span = { GridItemSpan(maxLineSpan) }) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(stringResource(R.string.coming_soon).uppercase(), style = Head, color = Kino.text)
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(vertical = if (LocalTv.current) 10.dp else 0.dp, horizontal = if (LocalTv.current) 6.dp else 0.dp)) {
                     items(upcoming!!.take(30)) { u ->
-                        Column(Modifier.width(240.dp).clip(CardShape).background(Kino.surface).padding(12.dp)) {
+                        // Focusable on a TV only so the row can be scrolled with the remote.
+                        Column(Modifier.width(240.dp).then(if (LocalTv.current) Modifier.focusClickable { } else Modifier).clip(CardShape).background(Kino.surface).padding(12.dp)) {
                             Text(u.date.take(10), color = LocalAccent.current, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             Text(u.seriesTitle ?: u.title, color = Kino.text, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text(if (u.kind == "episode") "S${u.season}:E${u.episode} · ${u.title}" else stringResource(R.string.movie), color = Kino.muted, fontSize = 13.sp, maxLines = 1)
@@ -359,3 +373,10 @@ fun DiscoverScreen(state: AppState, nav: NavHostController) {
         }
     }
 }
+
+/** Grid padding: room for overscan and for a focused card to grow on a TV. */
+@Composable
+fun gridPadding(): PaddingValues = if (LocalTv.current) PaddingValues(horizontal = 40.dp, vertical = 20.dp) else PaddingValues(16.dp)
+
+@Composable
+fun gridGap() = if (LocalTv.current) 20.dp else 12.dp

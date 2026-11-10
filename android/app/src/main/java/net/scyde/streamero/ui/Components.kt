@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -49,7 +50,8 @@ val CardShape = RoundedCornerShape(6.dp)
 
 @Composable
 fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null, enabled: Boolean = true) {
-    Button(onClick = onClick, enabled = enabled, modifier = modifier.heightIn(min = 50.dp), shape = CardShape,
+    val (src, focused) = rememberFocusSource()
+    Button(onClick = onClick, enabled = enabled, modifier = modifier.focusRing(focused, scale = 1.05f).heightIn(min = 50.dp), shape = CardShape, interactionSource = src,
         colors = ButtonDefaults.buttonColors(containerColor = Kino.text, contentColor = Kino.bg)) {
         if (icon != null) { Icon(icon, null, Modifier.size(20.dp)); Spacer(Modifier.width(8.dp)) }
         Text(text, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
@@ -58,10 +60,11 @@ fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifi
 
 @Composable
 fun GlassButton(text: String?, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null, active: Boolean = false, enabled: Boolean = true) {
-    Button(onClick = onClick, enabled = enabled, modifier = modifier.heightIn(min = 50.dp), shape = CardShape,
+    val (src, focused) = rememberFocusSource()
+    Button(onClick = onClick, enabled = enabled, modifier = modifier.focusRing(focused, scale = 1.05f).heightIn(min = 50.dp), shape = CardShape, interactionSource = src,
         contentPadding = if (text == null) PaddingValues(0.dp) else ButtonDefaults.ContentPadding,
-        colors = ButtonDefaults.buttonColors(containerColor = if (active) Kino.text else Color.White.copy(alpha = 0.12f),
-            contentColor = if (active) Kino.bg else Kino.text)) {
+        colors = ButtonDefaults.buttonColors(containerColor = if (active || focused) Kino.text else Color.White.copy(alpha = 0.12f),
+            contentColor = if (active || focused) Kino.bg else Kino.text)) {
         if (icon != null) Icon(icon, text, Modifier.size(20.dp))
         if (icon != null && text != null) Spacer(Modifier.width(8.dp))
         if (text != null) Text(text, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
@@ -70,7 +73,7 @@ fun GlassButton(text: String?, onClick: () -> Unit, modifier: Modifier = Modifie
 
 @Composable
 fun SectionTitle(text: String, modifier: Modifier = Modifier) {
-    Text(text.uppercase(), style = Head, color = Kino.text, modifier = modifier.padding(horizontal = 20.dp))
+    Text(text.uppercase(), style = Head, color = Kino.text, modifier = modifier.padding(horizontal = Dims.edge))
 }
 
 @Composable
@@ -84,9 +87,10 @@ fun ProgressLine(value: Float, modifier: Modifier = Modifier) {
 
 /** A poster card (2:3) with name and year. */
 @Composable
-fun PosterCard(item: ItemSummary, imageUrl: (String, String) -> String, width: Dp, qualityTags: Boolean = true, onClick: () -> Unit) {
-    Column(Modifier.width(width).clickable(onClick = onClick)) {
-        Box(Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(CardShape).background(Kino.surface2)) {
+fun PosterCard(item: ItemSummary, imageUrl: (String, String) -> String, width: Dp, qualityTags: Boolean = true, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val (src, focused) = rememberFocusSource()
+    Column(modifier.width(width).clickable(interactionSource = src, indication = tapIndication(), onClick = onClick)) {
+        Box(Modifier.fillMaxWidth().focusRing(focused).aspectRatio(2f / 3f).clip(CardShape).background(Kino.surface2)) {
             when {
                 item.hasPoster -> ServerImage(imageUrl(item.id, if (item.kind == "episode") "still" else "poster"), Modifier.fillMaxSize())
                 item.hasBackdrop -> ServerImage(imageUrl(item.id, "backdrop"), Modifier.fillMaxSize())
@@ -98,7 +102,7 @@ fun PosterCard(item: ItemSummary, imageUrl: (String, String) -> String, width: D
             }
             ProgressLine(item.progress, Modifier.align(Alignment.BottomCenter))
         }
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(if (focused) 12.dp else 8.dp))
         Text(item.title, color = Kino.text, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(listOfNotNull(item.artist?.takeIf { item.kind == "album" }, item.year?.toString()).joinToString(" · "), color = Kino.faint, fontSize = 13.sp, maxLines = 1)
     }
@@ -117,8 +121,9 @@ fun qualityTags(height: Int?, hdr: String?): List<String> = buildList {
 
 /** A landscape card (continue watching): a frame from the film, title over it. */
 @Composable
-fun WideCard(item: ItemSummary, imageUrl: (String, String) -> String, width: Dp, onClick: () -> Unit) {
-    Box(Modifier.width(width).aspectRatio(16f / 9f).clip(CardShape).background(Kino.surface2).clickable(onClick = onClick)) {
+fun WideCard(item: ItemSummary, imageUrl: (String, String) -> String, width: Dp, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val (src, focused) = rememberFocusSource()
+    Box(modifier.width(width).focusRing(focused).aspectRatio(16f / 9f).clip(CardShape).background(Kino.surface2).clickable(interactionSource = src, indication = tapIndication(), onClick = onClick)) {
         val src = when {
             item.hasBackdrop -> imageUrl(item.id, "backdrop")
             item.kind == "episode" && item.hasPoster -> imageUrl(item.id, "still")
@@ -139,9 +144,10 @@ fun WideCard(item: ItemSummary, imageUrl: (String, String) -> String, width: Dp,
 @Composable
 fun <T> Shelf(title: String, items: List<T>, content: @Composable (T) -> Unit) {
     if (items.isEmpty()) return
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    val tv = LocalTv.current
+    Column(verticalArrangement = Arrangement.spacedBy(if (tv) 2.dp else 12.dp)) {
         SectionTitle(title)
-        LazyRow(contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+        LazyRow(contentPadding = Dims.rowPad, horizontalArrangement = Arrangement.spacedBy(if (tv) 18.dp else 14.dp)) {
             items(items) { content(it) }
         }
     }
@@ -207,6 +213,7 @@ fun Card(title: String?, modifier: Modifier = Modifier, content: @Composable Col
 @Composable
 fun <T> Picker(value: T, options: List<Pair<T, String>>, onChange: (T) -> Unit, modifier: Modifier = Modifier) {
     var open by remember { mutableStateOf(false) }
+    if (LocalTv.current) { TvPicker(value, options, onChange, modifier); return }
     ExposedDropdownMenuBox(expanded = open, onExpandedChange = { open = it }, modifier = modifier) {
         OutlinedTextField(value = options.firstOrNull { it.first == value }?.second.orEmpty(), onValueChange = {}, readOnly = true,
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(open) },
@@ -220,3 +227,43 @@ fun <T> Picker(value: T, options: List<Pair<T, String>>, onChange: (T) -> Unit, 
 /** "1 item", "2 items", with the plural forms of the current language. */
 @Composable
 fun itemsCount(n: Int): String = androidx.compose.ui.platform.LocalContext.current.resources.getQuantityString(R.plurals.items_count, n, n)
+
+/** On a TV a dropdown is awkward with a remote: a button that opens a focusable list instead. */
+@Composable
+private fun <T> TvPicker(value: T, options: List<Pair<T, String>>, onChange: (T) -> Unit, modifier: Modifier) {
+    var open by remember { mutableStateOf(false) }
+    val (src, focused) = rememberFocusSource()
+    Row(modifier.fillMaxWidth().focusRing(focused, scale = 1.02f).clip(CardShape).background(if (focused) Kino.surface3 else Kino.surface2)
+        .clickable(interactionSource = src, indication = tapIndication()) { open = true }.padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically) {
+        Text(options.firstOrNull { it.first == value }?.second.orEmpty(), color = Kino.text, fontSize = 16.sp, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Icon(Icons.Default.ExpandMore, null, tint = Kino.muted)
+    }
+    if (open) ChoiceDialog(options, value, onDismiss = { open = false }) { onChange(it); open = false }
+}
+
+/** A list of choices in a dialog, the current one focused first. */
+@Composable
+fun <T> ChoiceDialog(options: List<Pair<T, String>>, selected: T, title: String? = null, onDismiss: () -> Unit, onChoose: (T) -> Unit) {
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Surface(shape = RoundedCornerShape(10.dp), color = Kino.surface, border = BorderStroke(1.dp, Kino.border)) {
+            androidx.compose.foundation.lazy.LazyColumn(Modifier.widthIn(min = 320.dp, max = 480.dp).heightIn(max = 460.dp), contentPadding = PaddingValues(14.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (title != null) item { Text(title.uppercase(), style = Head, color = Kino.text, modifier = Modifier.padding(6.dp, 4.dp, 6.dp, 10.dp)) }
+                items(options) { (v, label) -> ChoiceRow(label, v == selected, Modifier.initialFocus(v == selected)) { onChoose(v) } }
+            }
+        }
+    }
+}
+
+/** One selectable line (a language, a subtitle track...) with a check when chosen. */
+@Composable
+fun ChoiceRow(label: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val (src, focused) = rememberFocusSource()
+    Row(modifier.fillMaxWidth().focusRing(focused, scale = 1.02f, width = 2.dp).clip(CardShape)
+        .background(if (focused) Kino.text else Color.Transparent).clickable(interactionSource = src, indication = tapIndication(), onClick = onClick)
+        .padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Box(Modifier.size(20.dp)) { if (selected) Icon(Icons.Default.Check, null, tint = if (focused) Kino.bg else Kino.text) }
+        Text(label, color = if (focused) Kino.bg else Kino.text, fontSize = 16.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}

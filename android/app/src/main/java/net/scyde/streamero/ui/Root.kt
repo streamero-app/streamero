@@ -1,6 +1,28 @@
 package net.scyde.streamero.ui
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
@@ -38,8 +60,13 @@ fun StreameroRoot(state: AppState) {
             else -> afterSignIn(state)
         }
     }
+    val ctx = LocalContext.current
+    val tv = remember { isTelevision(ctx) }
+    val density = LocalDensity.current
     StreameroTheme {
-        CompositionLocalProvider(LocalImages provides state.images) {
+        // On a TV the type is set a size larger for reading from the sofa.
+        CompositionLocalProvider(LocalImages provides state.images, LocalTv provides tv,
+            LocalDensity provides if (tv) Density(density.density, density.fontScale * 1.12f) else density) {
             Surface(Modifier.fillMaxSize(), color = Kino.bg) {
                 when (gate) {
                     Gate.Loading -> Loading(Modifier.fillMaxSize())
@@ -74,6 +101,7 @@ private fun Main(state: AppState, onSignedOut: () -> Unit, onSwitchProfile: () -
     val entry by nav.currentBackStackEntryAsState()
     val route = entry?.destination?.route.orEmpty()
     val watching = route.startsWith("watch")
+    if (LocalTv.current) { TvMain(state, nav, tabs, route, watching, onSignedOut, onSwitchProfile); return }
     Scaffold(
         containerColor = Kino.bg,
         bottomBar = {
@@ -132,4 +160,61 @@ fun NavHostController.watch(id: String, start: Long? = null, file: String? = nul
         if (sub != null) add("sub=$sub")
     }.joinToString("&")
     navigate(if (q.isEmpty()) "watch/$id" else "watch/$id?$q")
+}
+
+private const val RAIL = 84
+
+/**
+ * The TV frame: a navigation rail on the left of the top-level screens that opens up with
+ * labels while it holds the focus; detail screens and the player use the whole screen.
+ */
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+private fun TvMain(state: AppState, nav: NavHostController, tabs: List<Tab>, route: String, watching: Boolean, onSignedOut: () -> Unit, onSwitchProfile: () -> Unit) {
+    val top = tabs.any { it.route == route }
+    val selected = tabs.indexOfFirst { it.route == route }.coerceAtLeast(0)
+    val requesters = remember { tabs.map { FocusRequester() } }
+    var railFocused by remember { mutableStateOf(false) }
+    Box(Modifier.fillMaxSize().background(Kino.bg)) {
+        Column(Modifier.fillMaxSize().padding(start = if (top) RAIL.dp else 0.dp)) {
+            Box(Modifier.weight(1f)) { Routes(state, nav, onSignedOut, onSwitchProfile) }
+            if (!watching) MiniPlayer(state, nav)
+        }
+        // Back from the content of a top-level screen goes to the rail first; from the rail the
+        // usual back applies (to Home, then out of the app). Composed after the NavHost so it
+        // is asked before the NavHost's own back handling.
+        BackHandler(enabled = top && !railFocused) { runCatching { requesters[selected].requestFocus() } }
+        if (top) {
+            val width by animateDpAsState(if (railFocused) 250.dp else RAIL.dp, tween(200), label = "rail")
+            Column(Modifier.fillMaxHeight().width(width)
+                .background(Brush.horizontalGradient(if (railFocused) listOf(Kino.bg, Kino.bg.copy(alpha = 0.94f), Kino.bg.copy(alpha = 0.0f)) else listOf(Kino.bg, Kino.bg)))
+                .onFocusChanged { railFocused = it.hasFocus }
+                .focusProperties { enter = { requesters[selected] } }
+                .focusGroup()
+                .padding(horizontal = 14.dp, vertical = 28.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Image(painterResource(R.mipmap.ic_launcher), null, Modifier.padding(start = 6.dp, bottom = 22.dp).size(44.dp).clip(RoundedCornerShape(10.dp)))
+                tabs.forEachIndexed { i, t ->
+                    RailItem(t, i == selected, railFocused, Modifier.focusRequester(requesters[i])) {
+                        if (i != selected) nav.navigate(t.route) { popUpTo("home") { saveState = true }; launchSingleTop = true; restoreState = true }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RailItem(t: Tab, selected: Boolean, expanded: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    val (src, focused) = rememberFocusSource()
+    val fg = when { focused -> Kino.bg; selected -> Kino.text; else -> Kino.faint }
+    Row(modifier.fillMaxWidth().height(52.dp).clip(RoundedCornerShape(26.dp)).background(if (focused) Kino.text else Color.Transparent)
+        .clickable(interactionSource = src, indication = null, onClick = onClick).padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        Box(contentAlignment = Alignment.BottomCenter) {
+            Icon(t.icon, stringResource(t.label), tint = fg, modifier = Modifier.size(26.dp))
+            if (selected && !focused && !expanded) Box(Modifier.offset(y = 8.dp).size(5.dp).clip(RoundedCornerShape(3.dp)).background(LocalAccent.current))
+        }
+        if (expanded) Text(stringResource(t.label), color = fg, fontSize = 17.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium, maxLines = 1)
+    }
 }
