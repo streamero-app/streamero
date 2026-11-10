@@ -258,4 +258,25 @@
     <string name="home_empty_title">Ovdje još nema ničega</string>
     <string name="home_empty_admin">Dodaj biblioteku pod Ja → Biblioteke i filmovi i serije pojavit će se ovdje.</string>
     <string name="home_empty_user">Poslužitelj za tebe još nema filmova ni serija.</string>
+    <string name="key_space">Razmak</string>
+    <string name="key_delete">Briši</string>
+    <string name="key_clear">Očisti</string>
+    <string name="tv_search_intro">Tipkajte tipkovnicom s lijeve strane. Rezultati se pojavljuju ovdje dok tipkate.</string>
+    <string name="quick_connect">Quick Connect</string>
+    <string name="qc_tv_intro">Na mobitelu ili računalu na kojem ste već prijavljeni u Streamero otvorite Postavke → Quick Connect i upišite ovaj kod. Televizor će se sam prijaviti.</string>
+    <string name="qc_code">Quick Connect kod</string>
+    <string name="qc_waiting">Čeka se odobrenje…</string>
+    <string name="qc_approved">Odobreno. Prijava…</string>
+    <string name="qc_expired">Kod je istekao. Zatražite novi.</string>
+    <string name="qc_new_code">Novi kod</string>
+    <string name="qc_use_password">Lozinkom</string>
+    <string name="qc_use">Prijava s Quick Connectom</string>
+    <string name="qc_approve_intro">Prijavljujete se na televizoru ili drugom novom uređaju? Upišite šesteroznamenkasti kod koji prikazuje da ga prijavite kao sebe.</string>
+    <string name="qc_approve">Odobri</string>
+    <string name="qc_approved_device">Prijavljeno na uređaju %1$s.</string>
+    <string name="qc_unknown_code">Taj kod ne postoji ili je istekao.</string>
+    <string name="tv_admin_elsewhere">Administracija poslužitelja dostupna je na webu i u aplikaciji za mobitel.</string>
+    <string name="rewind">Premotaj unatrag</string>
+    <string name="pause">Pauza</string>
+    <string name="fast_forward">Premotaj naprijed</string>
 </resources>

@@ -259,4 +259,25 @@
     <string name="home_empty_title">Nothing here yet</string>
     <string name="home_empty_admin">Add a library under Me → Libraries and your films and series will appear here.</string>
     <string name="home_empty_user">Your server has no films or series for you yet.</string>
+    <string name="key_space">Space</string>
+    <string name="key_delete">Delete</string>
+    <string name="key_clear">Clear</string>
+    <string name="tv_search_intro">Type with the keyboard on the left. Results appear here as you type.</string>
+    <string name="quick_connect">Quick Connect</string>
+    <string name="qc_tv_intro">On your phone or computer where you are already signed in to Streamero, open Settings → Quick Connect and enter this code. This TV signs in by itself.</string>
+    <string name="qc_code">Quick Connect code</string>
+    <string name="qc_waiting">Waiting for approval…</string>
+    <string name="qc_approved">Approved. Signing in…</string>
+    <string name="qc_expired">The code expired. Ask for a new one.</string>
+    <string name="qc_new_code">New code</string>
+    <string name="qc_use_password">Use password</string>
+    <string name="qc_use">Sign in with Quick Connect</string>
+    <string name="qc_approve_intro">Signing in on a TV or another new device? Enter the 6-digit code it shows to sign it in as you.</string>
+    <string name="qc_approve">Approve</string>
+    <string name="qc_approved_device">Signed in on %1$s.</string>
+    <string name="qc_unknown_code">That code is unknown or has expired.</string>
+    <string name="tv_admin_elsewhere">Server administration is available on the web and in the phone app.</string>
+    <string name="rewind">Rewind</string>
+    <string name="pause">Pause</string>
+    <string name="fast_forward">Fast forward</string>
 </resources>

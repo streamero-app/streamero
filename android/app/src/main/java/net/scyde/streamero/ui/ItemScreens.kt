@@ -64,44 +64,58 @@ fun ItemScreen(state: AppState, nav: NavHostController, id: String) {
     val seasons = d.children.filter { c -> c.kind == "season" }
     var season by remember(seasons.size) { mutableStateOf(seasons.firstOrNull { s -> s.seasonNumber == 1 }?.id ?: seasons.firstOrNull()?.id) }
     val episodes = d.children.filter { c -> c.kind == "episode" }
+    val tv = LocalTv.current
+    val mem = rememberFocusMemory()
+    val f = d.files.getOrNull(file)?.id?.takeIf { d.files.size > 1 }
+    // Play, resume, my list, watched: under the hero on a phone, inside it on a TV.
+    val actions: @Composable () -> Unit = {
+        if (d.files.isNotEmpty()) {
+            PrimaryButton(if (it.positionMs > 0) stringResource(R.string.resume_from, clock(it.positionMs)) else stringResource(R.string.play),
+                { nav.watch(it.id, file = f, audio = audio, sub = sub) }, if (tv) Modifier.rememberFocus(mem, "play", default = true) else Modifier.fillMaxWidth(), icon = Icons.Default.PlayArrow)
+            if (it.positionMs > 0) GlassButton(stringResource(R.string.from_start), { nav.watch(it.id, 0, f, audio, sub) }, if (tv) Modifier.rememberFocus(mem, "start") else Modifier.fillMaxWidth(), icon = Icons.Default.Replay)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            GlassButton(null, { scope.launch { api.setUserData(it.id, UserDataUpdate(favorite = !it.favorite)); reload++ } }, Modifier.rememberFocus(mem, "fav", default = d.files.isEmpty()).width(52.dp),
+                icon = if (it.favorite) Icons.Default.Check else Icons.Default.Add, active = it.favorite)
+            GlassButton(stringResource(if (it.played) R.string.watched else R.string.mark_watched), { scope.launch { api.setUserData(it.id, UserDataUpdate(played = !it.played)); reload++ } },
+                Modifier.rememberFocus(mem, "played"), icon = Icons.Default.Check, active = it.played)
+        }
+    }
     CompositionLocalProvider(LocalAccent provides accent) {
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 30.dp), verticalArrangement = Arrangement.spacedBy(22.dp)) {
             item {
-                Box(Modifier.fillMaxWidth().height(520.dp)) {
+                Box(Modifier.fillMaxWidth().height(if (tv) 500.dp else 520.dp)) {
                     ServerImage(when { d.hasBackdrop -> api.imageUrl(it.id, "backdrop"); it.kind == "episode" && it.hasPoster -> api.imageUrl(it.id, "still"); else -> null }, Modifier.fillMaxSize())
                     Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Kino.bg.copy(alpha = 0.5f), Color.Transparent, Kino.bg.copy(alpha = 0.8f), Kino.bg))))
-                    Column(Modifier.align(Alignment.BottomStart).padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        it.seriesTitle?.let { s -> Text(s.uppercase(), style = Head, color = Kino.muted, modifier = Modifier.clickable { it.seriesId?.let { sid -> nav.navigate("item/$sid") } }) }
+                    if (tv) Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Kino.bg.copy(alpha = 0.9f), Color.Transparent), endX = 1500f)))
+                    Column(Modifier.align(Alignment.BottomStart).padding(horizontal = Dims.edge).then(if (tv) Modifier.fillMaxWidth(0.62f) else Modifier), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        it.seriesTitle?.let { s -> Text(s.uppercase(), style = Head, color = Kino.muted, modifier = Modifier.focusClickable(scale = 1.02f) { it.seriesId?.let { sid -> nav.navigate("item/$sid") } }.padding(horizontal = if (tv) 4.dp else 0.dp)) }
                         val title = if (it.kind == "episode") "E${it.episodeNumber} · ${it.title}" else it.title
                         Text(title, style = Display.copy(fontSize = 40.sp), color = Kino.text)
                         Text(listOfNotNull(it.rating?.let { r -> "★ %.1f".format(r) }, it.year?.toString(), it.durationMs?.let { ms -> "${ms / 60000} min" },
                             d.genres.take(2).joinToString(", ").ifBlank { null }, d.officialRating, qualityTags(it.videoHeight, it.hdr).joinToString(" ").ifBlank { null }).joinToString("  ·  "), color = Kino.muted, fontSize = 14.sp)
                         d.tagline?.let { t -> Text(t, color = Kino.text.copy(alpha = 0.8f), fontSize = 16.sp) }
+                        if (tv) {
+                            d.overview?.let { o -> Text(o, color = Kino.text.copy(alpha = 0.85f), fontSize = 15.sp, lineHeight = 22.sp, maxLines = 4, overflow = TextOverflow.Ellipsis) }
+                            ProgressLine(it.progress, Modifier.padding(top = 4.dp).fillMaxWidth(0.5f))
+                            Row(Modifier.padding(top = 8.dp, bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) { actions() }
+                        }
                     }
                 }
             }
             item {
-                Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    if (d.files.isNotEmpty()) {
-                        val f = d.files.getOrNull(file)?.id?.takeIf { d.files.size > 1 }
-                        PrimaryButton(if (it.positionMs > 0) stringResource(R.string.resume_from, clock(it.positionMs)) else stringResource(R.string.play),
-                            { nav.watch(it.id, file = f, audio = audio, sub = sub) }, Modifier.fillMaxWidth(), icon = Icons.Default.PlayArrow)
-                        if (it.positionMs > 0) GlassButton(stringResource(R.string.from_start), { nav.watch(it.id, 0, f, audio, sub) }, Modifier.fillMaxWidth(), icon = Icons.Default.Replay)
+                Column(Modifier.padding(horizontal = Dims.edge).then(if (tv) Modifier.fillMaxWidth(0.5f) else Modifier), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (!tv) {
+                        actions()
+                        ProgressLine(it.progress)
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        GlassButton(null, { scope.launch { api.setUserData(it.id, UserDataUpdate(favorite = !it.favorite)); reload++ } }, Modifier.width(52.dp),
-                            icon = if (it.favorite) Icons.Default.Check else Icons.Default.Add, active = it.favorite)
-                        GlassButton(stringResource(if (it.played) R.string.watched else R.string.mark_watched), { scope.launch { api.setUserData(it.id, UserDataUpdate(played = !it.played)); reload++ } },
-                            icon = Icons.Default.Check, active = it.played)
-                    }
-                    ProgressLine(it.progress)
                     PlayOptions(d, file, audio, sub, { f, a, s -> file = f; audio = a; sub = s })
                     if (d.files.isNotEmpty()) SubtitleFinder(state, it.id)
                 }
             }
-            d.overview?.let { o -> item { Text(o, color = Kino.text.copy(alpha = 0.85f), fontSize = 16.sp, lineHeight = 24.sp, modifier = Modifier.padding(horizontal = 20.dp)) } }
+            if (!tv) d.overview?.let { o -> item { Text(o, color = Kino.text.copy(alpha = 0.85f), fontSize = 16.sp, lineHeight = 24.sp, modifier = Modifier.padding(horizontal = 20.dp)) } }
             item {
-                Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.padding(horizontal = Dims.edge), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     val directors = d.crew.filter { p -> p.role == "Director" }.joinToString { p -> p.name }
                     val writers = d.crew.filter { p -> p.role != "Director" }.joinToString { p -> p.name }
                     Fact(stringResource(R.string.directed_by), directors)
@@ -110,7 +124,8 @@ fun ItemScreen(state: AppState, nav: NavHostController, id: String) {
                     Fact(stringResource(R.string.studio), d.studios.joinToString())
                     Fact(stringResource(R.string.released), d.premiereDate.orEmpty())
                     if (d.collections.isNotEmpty()) Fact(stringResource(R.string.collection), d.collections.joinToString { c -> c.name })
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // A TV has no browser for these links.
+                    if (!tv) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         d.providerIds["imdb"]?.let { imdb -> TextButton(onClick = { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.imdb.com/title/$imdb/"))) }) { Text("IMDb", color = Kino.muted) } }
                         d.providerIds["tmdb"]?.let { tmdb -> TextButton(onClick = { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.themoviedb.org/${if (it.kind == "series") "tv" else "movie"}/$tmdb"))) }) { Text("TMDb", color = Kino.muted) } }
                     }
@@ -119,16 +134,17 @@ fun ItemScreen(state: AppState, nav: NavHostController, id: String) {
             if (seasons.isNotEmpty()) item {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     SectionTitle(stringResource(R.string.episodes))
-                    LazyRow(contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(seasons) { s -> GlassButton(if (s.seasonNumber == 0) stringResource(R.string.specials) else stringResource(R.string.season_n, s.seasonNumber ?: 0), { season = s.id }, active = s.id == season) }
+                    LazyRow(contentPadding = Dims.rowPad, horizontalArrangement = Arrangement.spacedBy(if (tv) 12.dp else 8.dp)) {
+                        items(seasons) { s -> GlassButton(if (s.seasonNumber == 0) stringResource(R.string.specials) else stringResource(R.string.season_n, s.seasonNumber ?: 0), { season = s.id },
+                            Modifier.rememberFocus(mem, "s" + s.id), active = s.id == season) }
                     }
-                    season?.let { sid -> SeasonEpisodes(state, nav, sid) }
+                    season?.let { sid -> SeasonEpisodes(state, nav, sid, mem) }
                 }
             }
-            if (episodes.isNotEmpty()) item { Column { episodes.forEach { e -> EpisodeRow(state, nav, e) } } }
+            if (episodes.isNotEmpty()) item { Column { episodes.forEach { e -> EpisodeRow(state, nav, e, mem) } } }
             if (d.chapters.size > 1) item {
                 Shelf(stringResource(R.string.chapters), d.chapters) { c ->
-                    Column(Modifier.width(200.dp).clickable { nav.watch(it.id, c.startMs) }) {
+                    Column(Modifier.width(200.dp).focusClickable { nav.watch(it.id, c.startMs) }) {
                         Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(CardShape).background(Kino.surface2)) {
                             d.trickplay?.let { tp -> TrickFrame(api, tp, c.startMs + 20_000, Modifier.fillMaxSize()) }
                             Box(Modifier.align(Alignment.BottomStart).padding(6.dp)) { Tag(clock(c.startMs)) }
@@ -192,18 +208,25 @@ private fun PlayOptions(d: ItemDetail, file: Int, audio: Int?, sub: Int?, onChan
 }
 
 @Composable
-private fun SeasonEpisodes(state: AppState, nav: NavHostController, seasonId: String) {
+private fun SeasonEpisodes(state: AppState, nav: NavHostController, seasonId: String, mem: FocusMemory) {
     val api = state.api ?: return
     val (season, loading) = rememberLoad(seasonId) { api.item(seasonId) }
     if (loading) { Loading(); return }
-    Column { season?.children?.filter { it.kind == "episode" }?.forEach { e -> EpisodeRow(state, nav, e) } }
+    Column(Modifier.padding(vertical = if (LocalTv.current) 6.dp else 0.dp), verticalArrangement = Arrangement.spacedBy(if (LocalTv.current) 6.dp else 0.dp)) {
+        season?.children?.filter { it.kind == "episode" }?.forEach { e -> EpisodeRow(state, nav, e, mem) }
+    }
 }
 
 @Composable
-private fun EpisodeRow(state: AppState, nav: NavHostController, e: ItemSummary) {
+private fun EpisodeRow(state: AppState, nav: NavHostController, e: ItemSummary, mem: FocusMemory) {
     val api = state.api ?: return
-    Row(Modifier.fillMaxWidth().clickable { nav.watch(e.id) }.padding(horizontal = 20.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.width(140.dp).aspectRatio(16f / 9f).clip(CardShape).background(Kino.surface2)) {
+    val tv = LocalTv.current
+    val (src, focused) = rememberFocusSource()
+    Row(Modifier.fillMaxWidth().padding(horizontal = if (tv) 28.dp else 0.dp).rememberFocus(mem, "e" + e.id)
+        .clip(CardShape).background(if (focused) Kino.surface3 else Color.Transparent)
+        .clickable(interactionSource = src, indication = tapIndication()) { nav.watch(e.id) }.padding(horizontal = if (tv) 12.dp else 20.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(if (tv) 18.dp else 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.width(if (tv) 176.dp else 140.dp).focusRing(focused, scale = 1.04f).aspectRatio(16f / 9f).clip(CardShape).background(Kino.surface2)) {
             if (e.hasPoster) ServerImage(api.imageUrl(e.id, "still"), Modifier.fillMaxSize())
             ProgressLine(e.progress, Modifier.align(Alignment.BottomCenter))
         }
@@ -237,16 +260,16 @@ fun CollectionsScreen(state: AppState, nav: NavHostController) {
     val api = state.api ?: return
     val (cols, loading, error) = rememberLoad(Unit) { api.collections() }
     val (pls) = rememberLoad(Unit) { runCatching { api.playlists() }.getOrDefault(emptyList()) }
-    LazyVerticalGrid(GridCells.Adaptive(118.dp), Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+    LazyVerticalGrid(GridCells.Adaptive(Dims.gridCell), Modifier.fillMaxSize(), contentPadding = gridPadding(),
+        horizontalArrangement = Arrangement.spacedBy(gridGap()), verticalArrangement = Arrangement.spacedBy(18.dp)) {
         item(span = { GridItemSpan(maxLineSpan) }) { Text(stringResource(R.string.collections), style = Display.copy(fontSize = 34.sp), color = Kino.text, modifier = Modifier.statusBarsPadding().padding(top = 12.dp)) }
         if (loading) item(span = { GridItemSpan(maxLineSpan) }) { Loading() }
         item(span = { GridItemSpan(maxLineSpan) }) { ErrorLine(error) }
-        items(cols.orEmpty(), key = { it.id }) { c -> CollectionTile(api, c, 118.dp) { nav.navigate("collection/${c.id}") } }
+        items(cols.orEmpty(), key = { it.id }) { c -> CollectionTile(api, c, Dims.gridCell, Modifier.initialFocus(c.id == cols?.firstOrNull()?.id)) { nav.navigate("collection/${c.id}") } }
         if (!pls.isNullOrEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) { Text(stringResource(R.string.playlists).uppercase(), style = Head, color = Kino.text, modifier = Modifier.padding(top = 16.dp)) }
             items(pls!!, key = { "p" + it.id }) { p ->
-                Column(Modifier.clickable { nav.navigate("playlist/${p.id}") }) {
+                Column(Modifier.focusClickable { nav.navigate("playlist/${p.id}") }) {
                     Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(CardShape).background(Kino.surface2)) {
                         p.coverItemIds.firstOrNull()?.let { cid -> ServerImage(api.imageUrl(cid, "poster"), Modifier.fillMaxSize()) }
                     }
@@ -275,8 +298,8 @@ fun PlaylistScreen(state: AppState, nav: NavHostController, id: String) {
 @Composable
 private fun ItemGridPage(state: AppState, nav: NavHostController, title: String, overview: String?, items: List<ItemSummary>, loading: Boolean, error: Throwable?, playAll: (() -> Unit)? = null) {
     val api = state.api ?: return
-    LazyVerticalGrid(GridCells.Adaptive(118.dp), Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+    LazyVerticalGrid(GridCells.Adaptive(Dims.gridCell), Modifier.fillMaxSize(), contentPadding = gridPadding(),
+        horizontalArrangement = Arrangement.spacedBy(gridGap()), verticalArrangement = Arrangement.spacedBy(18.dp)) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             Column(Modifier.statusBarsPadding().padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(title, style = Display.copy(fontSize = 34.sp), color = Kino.text)
@@ -286,6 +309,6 @@ private fun ItemGridPage(state: AppState, nav: NavHostController, title: String,
             }
         }
         if (loading) item(span = { GridItemSpan(maxLineSpan) }) { Loading() }
-        items(items, key = { it.id }) { PosterCard(it, api::imageUrl, 118.dp, state.enhancements.qualityTags) { nav.navigate("item/${it.id}") } }
+        items(items, key = { it.id }) { PosterCard(it, api::imageUrl, Dims.gridCell, state.enhancements.qualityTags, Modifier.initialFocus(it.id == items.firstOrNull()?.id)) { nav.navigate("item/${it.id}") } }
     }
 }

@@ -82,6 +82,25 @@ class Api(baseUrl: String, @Volatile var token: String? = null) {
     suspend fun login(username: String, password: String, totp: String?, device: DeviceInfo): AuthResult =
         post("auth/login", LoginRequest(username, password, totp?.ifBlank { null }, device))
     suspend fun logout() = send("POST", "auth/logout")
+
+    // Quick Connect: a new device shows a code that a signed-in device approves.
+    suspend fun quickConnectStart(device: DeviceInfo): QuickConnectStart = post("quickconnect/initiate", device)
+    /** The session once the code was approved, null while it is still waiting (202). */
+    suspend fun quickConnectPoll(secret: String): AuthResult? = withContext(Dispatchers.IO) {
+        val req = Request.Builder().url(api("quickconnect/poll")).post(jsonBody(QuickConnectPoll(secret))).build()
+        http.newCall(req).execute().use { resp ->
+            val text = resp.body?.string().orEmpty()
+            when {
+                resp.code == 202 -> null
+                resp.isSuccessful -> json.decodeFromString(AuthResult.serializer(), text)
+                else -> {
+                    val err = runCatching { json.decodeFromString(ApiErrorBody.serializer(), text) }.getOrNull()
+                    throw ApiException(resp.code, err?.code ?: "generic", err?.message ?: "HTTP ${resp.code}")
+                }
+            }
+        }
+    }
+    suspend fun quickConnectAuthorize(code: String): QuickConnectApproved = post("quickconnect/authorize", QuickConnectCode(code.filter { it.isDigit() }))
     suspend fun me(): User = get("auth/me")
     suspend fun updateMe(u: UpdateMe): User = put("auth/me", u)
     suspend fun uploadAvatar(bytes: ByteArray, profileId: String? = null) {
