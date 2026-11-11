@@ -5,6 +5,10 @@ import { mockApi, renderApp, testInfo, testUser } from "@/test-utils";
 
 afterEach(() => vi.unstubAllGlobals());
 
+/** The sign-in requests among all API calls (the page also asks for the sign-in methods). */
+const loginCalls = (fetch: { mock: { calls: unknown[][] } }) =>
+  fetch.mock.calls.map(([r]) => r as Request).filter((r) => r.url.endsWith("/auth/login"));
+
 describe("LoginPage", () => {
   it("renders in English and switches to Croatian", async () => {
     setLanguage("en");
@@ -42,7 +46,7 @@ describe("LoginPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
     await waitFor(() => expect(router.state.location.pathname).toBe("/"));
     expect(await screen.findByRole("heading", { name: "Welcome, ana" })).toBeInTheDocument();
-    const req = fetch.mock.calls[0]![0] as Request;
+    const req = loginCalls(fetch)[0]!;
     expect(await req.json()).toMatchObject({ username: "ana", password: "secret-pass", useCookie: true });
   });
 
@@ -63,7 +67,8 @@ describe("LoginPage two-factor", () => {
 
   it("asks for the code after a correct password and sends it", async () => {
     setLanguage("en");
-    const fetch = mockApi(({ body }) => {
+    const fetch = mockApi(({ path, body }) => {
+      if (path !== "/auth/login") return { status: 404, body: { code: "not_found", message: "" } };
       const b = body as { totpCode?: string };
       if (!b.totpCode) return { status: 401, body: { code: "totp_required", message: "" } };
       return { status: 200, body: { sessionId: "0190a8b0-0000-7000-8000-0000000000bb", user: testUser({ totpEnabled: true }) } };
@@ -77,7 +82,7 @@ describe("LoginPage two-factor", () => {
     fireEvent.change(codeField, { target: { value: "123456" } });
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
     await waitFor(() => expect(router.state.location.pathname).toBe("/"));
-    expect(await (fetch.mock.calls[1]![0] as Request).json()).toMatchObject({ totpCode: "123456" });
+    expect(await loginCalls(fetch)[1]!.json()).toMatchObject({ totpCode: "123456" });
   });
 });
 

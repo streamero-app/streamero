@@ -90,6 +90,8 @@ func tryBootstrap(ctx context.Context, cfg config.Config, deps *Deps, state *Sta
 	}
 	state.serverID.Store(&id)
 	state.settings.Store(st)
-	state.auth.Store(auth.NewService(deps.Pool, state.SetupCode))
+	svc := auth.NewService(deps.Pool, state.SetupCode)
+	svc.PasswordRecovery = cfg.PasswordLoginRecovery
+	state.auth.Store(svc)
 	return nil
 }

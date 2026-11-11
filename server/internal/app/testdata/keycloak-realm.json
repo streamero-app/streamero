@@ -1,0 +1,45 @@
+{
+  "realm": "streamero",
+  "enabled": true,
+  "sslRequired": "none",
+  "groups": [{ "name": "media-admins" }],
+  "users": [
+    {
+      "username": "kcadmin",
+      "enabled": true,
+      "email": "kcadmin@example.org",
+      "emailVerified": true,
+      "firstName": "KC",
+      "lastName": "Admin",
+      "credentials": [{ "type": "password", "value": "kc-pass", "temporary": false }],
+      "groups": ["/media-admins"]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "streamero",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "kc-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://127.0.0.1:18787/api/v1/auth/oidc/keycloak/callback"],
+      "attributes": { "pkce.code.challenge.method": "S256" },
+      "protocolMappers": [
+        {
+          "name": "groups",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "config": {
+            "claim.name": "groups",
+            "full.path": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ]
+}

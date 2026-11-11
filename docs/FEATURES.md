@@ -43,8 +43,8 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [x] `[JF]` Bitrate limit za remote klijente po korisniku (P5) — *po profilu; server ga provodi (transkodiranje s -maxrate)*
 - [x] `[JF]` Login-attempt lockout (N neuspjelih pokušaja) (P1)
 - [ ] `[JF]` Parental controls: max dob. ocjena (sa subscores), blokirani/dopušteni tagovi, blokiranje nerangiranih stavki po tipu, raspored pristupa (sati/dani) (P1 + primjena svugdje P4)
-- [ ] `[JF-P]` LDAP auth (P13)
-- [ ] `[JF-P]` SSO preko OIDC (Authentik, Keycloak, Entra ID, Google) — ugrađeno, bez plugina (P13)
+- [x] `[JF-P]` LDAP auth (P13) — *OpenLDAP/AD, StartTLS/LDAPS s provjerom certifikata, admin/dopuštena grupa, račun pri prvoj prijavi; radi na webu, u aplikacijama i kroz compat API (D-037, docs/SSO.md)*
+- [x] `[JF-P]` SSO preko OIDC (Authentik, Keycloak, Entra ID, Google) — ugrađeno, bez plugina (P13) — *code flow + PKCE, više providera, mapiranje claimova i grupa, povezivanje računa, opcionalno gašenje prijave lozinkom s putem oporavka; web, iOS (ASWebAuthenticationSession) i Android (Custom Tabs) (D-037, docs/SSO.md)*
 - [x] `[+]` 2FA TOTP + recovery kodovi (P1)
 - [ ] `[+]` Passkeys / WebAuthn za web (P13)
 - [ ] `[+]` Profili unutar korisnika (Netflix-style): avatar, PIN po profilu, dječji profil s vlastitim parental limitom, odvojena watch povijest (P1) — *profili, boja/avatar, PIN (s lockoutom), dječji profil s dobnom granicom i zaključanim postavkama gotovi; odvojena watch povijest i provedba dobne granice stižu s P3/P4*

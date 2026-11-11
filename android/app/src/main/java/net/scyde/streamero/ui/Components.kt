@@ -173,6 +173,13 @@ fun errorText(e: Throwable?): String? {
         "totp_required" -> androidx.compose.ui.res.stringResource(R.string.err_totp)
         "forbidden" -> androidx.compose.ui.res.stringResource(R.string.err_forbidden)
         "upstream_failed" -> androidx.compose.ui.res.stringResource(R.string.err_upstream)
+        "invalid_state" -> androidx.compose.ui.res.stringResource(R.string.err_sso_invalid_state)
+        "provider_error", "internal" -> androidx.compose.ui.res.stringResource(R.string.err_sso_provider)
+        "no_account", "identity_taken" -> androidx.compose.ui.res.stringResource(R.string.err_sso_no_account)
+        "not_allowed" -> androidx.compose.ui.res.stringResource(R.string.err_sso_not_allowed)
+        "account_disabled" -> androidx.compose.ui.res.stringResource(R.string.err_sso_disabled)
+        "not_configured", "unknown_provider" -> androidx.compose.ui.res.stringResource(R.string.err_sso_not_configured)
+        "password_login_disabled" -> androidx.compose.ui.res.stringResource(R.string.err_password_disabled)
         null -> androidx.compose.ui.res.stringResource(R.string.err_network)
         else -> e.message ?: androidx.compose.ui.res.stringResource(R.string.err_generic)
     }

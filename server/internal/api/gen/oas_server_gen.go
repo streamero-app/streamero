@@ -89,6 +89,12 @@ type Handler interface {
 	//
 	// POST /libraries
 	CreateLibrary(ctx context.Context, req *LibraryInput) (*Library, error)
+	// CreateOidcProvider implements createOidcProvider operation.
+	//
+	// Add an OpenID Connect provider (admin).
+	//
+	// POST /settings/auth/oidc
+	CreateOidcProvider(ctx context.Context, req *OidcProviderInput) (*OidcProvider, error)
 	// CreatePlaylist implements createPlaylist operation.
 	//
 	// Create a playlist.
@@ -143,6 +149,12 @@ type Handler interface {
 	//
 	// DELETE /auth/me/avatar
 	DeleteMyAvatar(ctx context.Context) error
+	// DeleteOidcProvider implements deleteOidcProvider operation.
+	//
+	// Remove an OpenID Connect provider and its linked identities (admin).
+	//
+	// DELETE /settings/auth/oidc/{providerId}
+	DeleteOidcProvider(ctx context.Context, params DeleteOidcProviderParams) error
 	// DeletePlaylist implements deletePlaylist operation.
 	//
 	// Delete a playlist (owner only).
@@ -215,6 +227,20 @@ type Handler interface {
 	//
 	// GET /items/{itemId}/arr-link
 	GetArrLink(ctx context.Context, params GetArrLinkParams) (*ArrLink, error)
+	// GetAuthProviders implements getAuthProviders operation.
+	//
+	// Unauthenticated. Lists the enabled single sign-on providers with the absolute URL a browser (or an
+	// app's web authentication session) opens to start signing in, and whether username/password sign-in
+	// is offered.
+	//
+	// GET /auth/providers
+	GetAuthProviders(ctx context.Context) (*AuthProviders, error)
+	// GetAuthSettings implements getAuthSettings operation.
+	//
+	// General sign-in settings (admin).
+	//
+	// GET /settings/auth
+	GetAuthSettings(ctx context.Context) (*AuthSettings, error)
 	// GetAvatar implements getAvatar operation.
 	//
 	// A user's or profile's picture (JPEG).
@@ -287,6 +313,12 @@ type Handler interface {
 	//
 	// GET /items/{itemId}/images/{imageType}
 	GetItemImage(ctx context.Context, params GetItemImageParams) (*GetItemImageOKHeaders, error)
+	// GetLdapSettings implements getLdapSettings operation.
+	//
+	// LDAP / Active Directory sign-in (admin; the bind password is never returned).
+	//
+	// GET /settings/auth/ldap
+	GetLdapSettings(ctx context.Context) (*LdapSettings, error)
 	// GetMe implements getMe operation.
 	//
 	// The signed-in user.
@@ -402,6 +434,12 @@ type Handler interface {
 	//
 	// GET /home/favorites
 	ListFavorites(ctx context.Context) ([]ItemSummary, error)
+	// ListIdentities implements listIdentities operation.
+	//
+	// Single sign-on and directory accounts linked to the signed-in user.
+	//
+	// GET /auth/identities
+	ListIdentities(ctx context.Context) (*LinkedIdentities, error)
 	// ListImportRuns implements listImportRuns operation.
 	//
 	// Recent imports, newest first (admin).
@@ -432,6 +470,12 @@ type Handler interface {
 	//
 	// GET /libraries/{libraryId}/items
 	ListLibraryItems(ctx context.Context, params ListLibraryItemsParams) (*ItemPage, error)
+	// ListOidcProviders implements listOidcProviders operation.
+	//
+	// OpenID Connect providers (admin; client secrets are never returned).
+	//
+	// GET /settings/auth/oidc
+	ListOidcProviders(ctx context.Context) ([]OidcProvider, error)
 	// ListPlaylists implements listPlaylists operation.
 	//
 	// The current profile's playlists and public playlists.
@@ -492,6 +536,39 @@ type Handler interface {
 	//
 	// GET /home/next-up
 	NextUp(ctx context.Context) ([]ItemSummary, error)
+	// OidcAuthorize implements oidcAuthorize operation.
+	//
+	// Opened in a browser, never fetched. Creates a single-use sign-in flow (state, nonce, PKCE S256)
+	// bound to this browser by a short-lived cookie and redirects to the provider. Apps pass `client=app`,
+	// their registered `redirectUri` and an S256 `codeChallenge`; after the callback they receive a
+	// one-time code to redeem at /auth/oidc/exchange with the matching verifier. Errors redirect to the
+	// login page.
+	//
+	// GET /auth/oidc/{providerId}/authorize
+	OidcAuthorize(ctx context.Context, params OidcAuthorizeParams) (*OidcRedirect, error)
+	// OidcCallback implements oidcCallback operation.
+	//
+	// Checks state (single use, bound to the browser cookie), exchanges the code with the PKCE verifier,
+	// verifies the ID token (signature via the provider's JWKS, issuer, audience, expiry, nonce) and signs
+	// the user in. The web gets the session cookie and is sent to `/`; apps are sent to their redirect URI
+	// with a one-time `code` (never a session token). Failures redirect with an `sso_error` (web) or
+	// `error` (app) code.
+	//
+	// GET /auth/oidc/{providerId}/callback
+	OidcCallback(ctx context.Context, params OidcCallbackParams) (*OidcRedirect, error)
+	// OidcExchange implements oidcExchange operation.
+	//
+	// Redeem an app's one-time sign-in code for a session.
+	//
+	// POST /auth/oidc/exchange
+	OidcExchange(ctx context.Context, req *OidcExchangeRequest) (*SignedInHeaders, error)
+	// OidcLink implements oidcLink operation.
+	//
+	// Returns the provider URL to open in this browser; sets the flow cookie. After the provider signs the
+	// user in, the identity is linked and the browser returns to /settings/account.
+	//
+	// POST /auth/oidc/{providerId}/link
+	OidcLink(ctx context.Context, params OidcLinkParams) (*OidcLinkStartHeaders, error)
 	// Ping implements ping operation.
 	//
 	// Liveness probe for clients.
@@ -642,18 +719,43 @@ type Handler interface {
 	//
 	// GET /me/commands
 	TakeMyCommands(ctx context.Context) ([]SessionCommand, error)
+	// TestLdapSettings implements testLdapSettings operation.
+	//
+	// Connect and bind with the given settings, optionally looking up a user (admin).
+	//
+	// POST /settings/auth/ldap/test
+	TestLdapSettings(ctx context.Context, req *LdapTestRequest) (*LdapTestResult, error)
 	// TestNotification implements testNotification operation.
 	//
 	// Send a test message to one target.
 	//
 	// POST /settings/notifications/test
 	TestNotification(ctx context.Context, req *NotificationTarget) error
+	// TestOidcProvider implements testOidcProvider operation.
+	//
+	// Fetch a provider's discovery document and signing keys (admin).
+	//
+	// POST /settings/auth/oidc-test
+	TestOidcProvider(ctx context.Context, req *OidcTestRequest) (*OidcTestResult, error)
 	// TestRequestSettings implements testRequestSettings operation.
 	//
 	// Check each configured connection (admin).
 	//
 	// POST /settings/requests/test
 	TestRequestSettings(ctx context.Context) ([]ConnectionCheck, error)
+	// UnlinkIdentity implements unlinkIdentity operation.
+	//
+	// Unlink an identity (refused when it is the account's only way to sign in).
+	//
+	// DELETE /auth/identities/{identityId}
+	UnlinkIdentity(ctx context.Context, params UnlinkIdentityParams) error
+	// UpdateAuthSettings implements updateAuthSettings operation.
+	//
+	// Turning password sign-in off is refused (409 `no_sso_admin`) unless an enabled administrator has a
+	// linked identity of an enabled provider.
+	//
+	// PUT /settings/auth
+	UpdateAuthSettings(ctx context.Context, req *AuthSettingsInput) (*AuthSettings, error)
 	// UpdateBackupSettings implements updateBackupSettings operation.
 	//
 	// Change the backup schedule, retention and whether artwork is included.
@@ -690,6 +792,12 @@ type Handler interface {
 	//
 	// PUT /enhancements
 	UpdateEnhancements(ctx context.Context, req *Enhancements) (*Enhancements, error)
+	// UpdateLdapSettings implements updateLdapSettings operation.
+	//
+	// Save LDAP settings (admin; an empty bind password keeps the stored one).
+	//
+	// PUT /settings/auth/ldap
+	UpdateLdapSettings(ctx context.Context, req *LdapSettingsInput) (*LdapSettings, error)
 	// UpdateLibrary implements updateLibrary operation.
 	//
 	// Change a library (admin); changed folders are rescanned.
@@ -714,6 +822,12 @@ type Handler interface {
 	//
 	// PUT /settings/notifications
 	UpdateNotificationSettings(ctx context.Context, req *NotificationSettings) (*NotificationSettings, error)
+	// UpdateOidcProvider implements updateOidcProvider operation.
+	//
+	// Change an OpenID Connect provider (admin; an empty secret keeps the stored one).
+	//
+	// PUT /settings/auth/oidc/{providerId}
+	UpdateOidcProvider(ctx context.Context, req *OidcProviderInput, params UpdateOidcProviderParams) (*OidcProvider, error)
 	// UpdatePlaylist implements updatePlaylist operation.
 	//
 	// Rename, share and reorder a playlist (owner only).

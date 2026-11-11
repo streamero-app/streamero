@@ -150,6 +150,20 @@ func encodeCreateLibraryRequest(
 	return nil
 }
 
+func encodeCreateOidcProviderRequest(
+	req *OidcProviderInput,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeCreatePlaylistRequest(
 	req *PlaylistInput,
 	r *http.Request,
@@ -284,6 +298,20 @@ func encodeInitiateQuickConnectRequest(
 
 func encodeLoginRequest(
 	req *LoginRequest,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeOidcExchangeRequest(
+	req *OidcExchangeRequest,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"
@@ -468,8 +496,50 @@ func encodeStartPlaybackRequest(
 	return nil
 }
 
+func encodeTestLdapSettingsRequest(
+	req *LdapTestRequest,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeTestNotificationRequest(
 	req *NotificationTarget,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeTestOidcProviderRequest(
+	req *OidcTestRequest,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeUpdateAuthSettingsRequest(
+	req *AuthSettingsInput,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"
@@ -566,6 +636,20 @@ func encodeUpdateEnhancementsRequest(
 	return nil
 }
 
+func encodeUpdateLdapSettingsRequest(
+	req *LdapSettingsInput,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeUpdateLibraryRequest(
 	req *LibraryInput,
 	r *http.Request,
@@ -610,6 +694,20 @@ func encodeUpdateMetadataSettingsRequest(
 
 func encodeUpdateNotificationSettingsRequest(
 	req *NotificationSettings,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeUpdateOidcProviderRequest(
+	req *OidcProviderInput,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"

@@ -602,6 +602,91 @@ func decodeDeleteLibraryParams(args [1]string, argsEscaped bool, r *http.Request
 	return params, nil
 }
 
+// DeleteOidcProviderParams is parameters of deleteOidcProvider operation.
+type DeleteOidcProviderParams struct {
+	ProviderId string
+}
+
+func unpackDeleteOidcProviderParams(packed middleware.Parameters) (params DeleteOidcProviderParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "providerId",
+			In:   "path",
+		}
+		params.ProviderId = packed[key].(string)
+	}
+	return params
+}
+
+func decodeDeleteOidcProviderParams(args [1]string, argsEscaped bool, r *http.Request) (params DeleteOidcProviderParams, _ error) {
+	// Decode path: providerId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "providerId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.ProviderId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     0,
+					MinLengthSet:  false,
+					MaxLength:     0,
+					MaxLengthSet:  false,
+					Email:         false,
+					Hostname:      false,
+					Regex:         regexMap["^[a-z0-9][a-z0-9-]{0,31}$"],
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(params.ProviderId)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "providerId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // DeletePlaylistParams is parameters of deletePlaylist operation.
 type DeletePlaylistParams struct {
 	PlaylistId uuid.UUID
@@ -3930,6 +4015,881 @@ func decodeNextEpisodeParams(args [1]string, argsEscaped bool, r *http.Request) 
 	return params, nil
 }
 
+// OidcAuthorizeParams is parameters of oidcAuthorize operation.
+type OidcAuthorizeParams struct {
+	ProviderId string
+	Client     OptOidcAuthorizeClient `json:",omitempty,omitzero"`
+	// App only; must be exactly `streamero://oidc`.
+	RedirectUri OptString `json:",omitempty,omitzero"`
+	// App only; BASE64URL(SHA-256(verifier)), 43 characters.
+	CodeChallenge OptString `json:",omitempty,omitzero"`
+}
+
+func unpackOidcAuthorizeParams(packed middleware.Parameters) (params OidcAuthorizeParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "providerId",
+			In:   "path",
+		}
+		params.ProviderId = packed[key].(string)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "client",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Client = v.(OptOidcAuthorizeClient)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "redirectUri",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.RedirectUri = v.(OptString)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "codeChallenge",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.CodeChallenge = v.(OptString)
+		}
+	}
+	return params
+}
+
+func decodeOidcAuthorizeParams(args [1]string, argsEscaped bool, r *http.Request) (params OidcAuthorizeParams, _ error) {
+	q := uri.NewQueryDecoder(r.URL.Query())
+	// Decode path: providerId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "providerId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.ProviderId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     0,
+					MinLengthSet:  false,
+					MaxLength:     0,
+					MaxLengthSet:  false,
+					Email:         false,
+					Hostname:      false,
+					Regex:         regexMap["^[a-z0-9][a-z0-9-]{0,31}$"],
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(params.ProviderId)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "providerId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Set default value for query: client.
+	{
+		val := OidcAuthorizeClient("web")
+		params.Client.SetTo(val)
+	}
+	// Decode query: client.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "client",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotClientVal OidcAuthorizeClient
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotClientVal = OidcAuthorizeClient(c)
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Client.SetTo(paramsDotClientVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.Client.Get(); ok {
+					if err := func() error {
+						if err := value.Validate(); err != nil {
+							return err
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "client",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: redirectUri.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "redirectUri",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotRedirectUriVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotRedirectUriVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.RedirectUri.SetTo(paramsDotRedirectUriVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.RedirectUri.Get(); ok {
+					if err := func() error {
+						if err := (validate.String{
+							MinLength:     0,
+							MinLengthSet:  false,
+							MaxLength:     200,
+							MaxLengthSet:  true,
+							Email:         false,
+							Hostname:      false,
+							Regex:         nil,
+							MinNumeric:    0,
+							MinNumericSet: false,
+							MaxNumeric:    0,
+							MaxNumericSet: false,
+						}).Validate(string(value)); err != nil {
+							return errors.Wrap(err, "string")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "redirectUri",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: codeChallenge.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "codeChallenge",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotCodeChallengeVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotCodeChallengeVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.CodeChallenge.SetTo(paramsDotCodeChallengeVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.CodeChallenge.Get(); ok {
+					if err := func() error {
+						if err := (validate.String{
+							MinLength:     0,
+							MinLengthSet:  false,
+							MaxLength:     128,
+							MaxLengthSet:  true,
+							Email:         false,
+							Hostname:      false,
+							Regex:         nil,
+							MinNumeric:    0,
+							MinNumericSet: false,
+							MaxNumeric:    0,
+							MaxNumericSet: false,
+						}).Validate(string(value)); err != nil {
+							return errors.Wrap(err, "string")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "codeChallenge",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// OidcCallbackParams is parameters of oidcCallback operation.
+type OidcCallbackParams struct {
+	ProviderId       string
+	Code             OptString `json:",omitempty,omitzero"`
+	State            OptString `json:",omitempty,omitzero"`
+	Error            OptString `json:",omitempty,omitzero"`
+	ErrorDescription OptString `json:",omitempty,omitzero"`
+	StreameroOidc    OptString `json:",omitempty,omitzero"`
+}
+
+func unpackOidcCallbackParams(packed middleware.Parameters) (params OidcCallbackParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "providerId",
+			In:   "path",
+		}
+		params.ProviderId = packed[key].(string)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "code",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Code = v.(OptString)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "state",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.State = v.(OptString)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "error",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Error = v.(OptString)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "error_description",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.ErrorDescription = v.(OptString)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "streamero_oidc",
+			In:   "cookie",
+		}
+		if v, ok := packed[key]; ok {
+			params.StreameroOidc = v.(OptString)
+		}
+	}
+	return params
+}
+
+func decodeOidcCallbackParams(args [1]string, argsEscaped bool, r *http.Request) (params OidcCallbackParams, _ error) {
+	q := uri.NewQueryDecoder(r.URL.Query())
+	c := uri.NewCookieDecoder(r)
+	// Decode path: providerId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "providerId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.ProviderId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     0,
+					MinLengthSet:  false,
+					MaxLength:     0,
+					MaxLengthSet:  false,
+					Email:         false,
+					Hostname:      false,
+					Regex:         regexMap["^[a-z0-9][a-z0-9-]{0,31}$"],
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(params.ProviderId)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "providerId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode query: code.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "code",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotCodeVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotCodeVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Code.SetTo(paramsDotCodeVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.Code.Get(); ok {
+					if err := func() error {
+						if err := (validate.String{
+							MinLength:     0,
+							MinLengthSet:  false,
+							MaxLength:     4096,
+							MaxLengthSet:  true,
+							Email:         false,
+							Hostname:      false,
+							Regex:         nil,
+							MinNumeric:    0,
+							MinNumericSet: false,
+							MaxNumeric:    0,
+							MaxNumericSet: false,
+						}).Validate(string(value)); err != nil {
+							return errors.Wrap(err, "string")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "code",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: state.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "state",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotStateVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotStateVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.State.SetTo(paramsDotStateVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.State.Get(); ok {
+					if err := func() error {
+						if err := (validate.String{
+							MinLength:     0,
+							MinLengthSet:  false,
+							MaxLength:     256,
+							MaxLengthSet:  true,
+							Email:         false,
+							Hostname:      false,
+							Regex:         nil,
+							MinNumeric:    0,
+							MinNumericSet: false,
+							MaxNumeric:    0,
+							MaxNumericSet: false,
+						}).Validate(string(value)); err != nil {
+							return errors.Wrap(err, "string")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "state",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: error.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "error",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotErrorVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotErrorVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Error.SetTo(paramsDotErrorVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.Error.Get(); ok {
+					if err := func() error {
+						if err := (validate.String{
+							MinLength:     0,
+							MinLengthSet:  false,
+							MaxLength:     256,
+							MaxLengthSet:  true,
+							Email:         false,
+							Hostname:      false,
+							Regex:         nil,
+							MinNumeric:    0,
+							MinNumericSet: false,
+							MaxNumeric:    0,
+							MaxNumericSet: false,
+						}).Validate(string(value)); err != nil {
+							return errors.Wrap(err, "string")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "error",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: error_description.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "error_description",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotErrorDescriptionVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotErrorDescriptionVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.ErrorDescription.SetTo(paramsDotErrorDescriptionVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.ErrorDescription.Get(); ok {
+					if err := func() error {
+						if err := (validate.String{
+							MinLength:     0,
+							MinLengthSet:  false,
+							MaxLength:     2048,
+							MaxLengthSet:  true,
+							Email:         false,
+							Hostname:      false,
+							Regex:         nil,
+							MinNumeric:    0,
+							MinNumericSet: false,
+							MaxNumeric:    0,
+							MaxNumericSet: false,
+						}).Validate(string(value)); err != nil {
+							return errors.Wrap(err, "string")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "error_description",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode cookie: streamero_oidc.
+	if err := func() error {
+		cfg := uri.CookieParameterDecodingConfig{
+			Name:    "streamero_oidc",
+			Explode: true,
+		}
+		if err := c.HasParam(cfg); err == nil {
+			if err := c.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotStreameroOidcVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotStreameroOidcVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.StreameroOidc.SetTo(paramsDotStreameroOidcVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.StreameroOidc.Get(); ok {
+					if err := func() error {
+						if err := (validate.String{
+							MinLength:     0,
+							MinLengthSet:  false,
+							MaxLength:     256,
+							MaxLengthSet:  true,
+							Email:         false,
+							Hostname:      false,
+							Regex:         nil,
+							MinNumeric:    0,
+							MinNumericSet: false,
+							MaxNumeric:    0,
+							MaxNumericSet: false,
+						}).Validate(string(value)); err != nil {
+							return errors.Wrap(err, "string")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "streamero_oidc",
+			In:   "cookie",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// OidcLinkParams is parameters of oidcLink operation.
+type OidcLinkParams struct {
+	ProviderId string
+}
+
+func unpackOidcLinkParams(packed middleware.Parameters) (params OidcLinkParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "providerId",
+			In:   "path",
+		}
+		params.ProviderId = packed[key].(string)
+	}
+	return params
+}
+
+func decodeOidcLinkParams(args [1]string, argsEscaped bool, r *http.Request) (params OidcLinkParams, _ error) {
+	// Decode path: providerId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "providerId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.ProviderId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     0,
+					MinLengthSet:  false,
+					MaxLength:     0,
+					MaxLengthSet:  false,
+					Email:         false,
+					Hostname:      false,
+					Regex:         regexMap["^[a-z0-9][a-z0-9-]{0,31}$"],
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(params.ProviderId)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "providerId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // RefreshItemParams is parameters of refreshItem operation.
 type RefreshItemParams struct {
 	ItemId uuid.UUID
@@ -5047,6 +6007,71 @@ func decodeStartPlaybackParams(args [1]string, argsEscaped bool, r *http.Request
 	return params, nil
 }
 
+// UnlinkIdentityParams is parameters of unlinkIdentity operation.
+type UnlinkIdentityParams struct {
+	IdentityId uuid.UUID
+}
+
+func unpackUnlinkIdentityParams(packed middleware.Parameters) (params UnlinkIdentityParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "identityId",
+			In:   "path",
+		}
+		params.IdentityId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeUnlinkIdentityParams(args [1]string, argsEscaped bool, r *http.Request) (params UnlinkIdentityParams, _ error) {
+	// Decode path: identityId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "identityId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.IdentityId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "identityId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // UpdateCollectionParams is parameters of updateCollection operation.
 type UpdateCollectionParams struct {
 	CollectionId uuid.UUID
@@ -5170,6 +6195,91 @@ func decodeUpdateLibraryParams(args [1]string, argsEscaped bool, r *http.Request
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "libraryId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// UpdateOidcProviderParams is parameters of updateOidcProvider operation.
+type UpdateOidcProviderParams struct {
+	ProviderId string
+}
+
+func unpackUpdateOidcProviderParams(packed middleware.Parameters) (params UpdateOidcProviderParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "providerId",
+			In:   "path",
+		}
+		params.ProviderId = packed[key].(string)
+	}
+	return params
+}
+
+func decodeUpdateOidcProviderParams(args [1]string, argsEscaped bool, r *http.Request) (params UpdateOidcProviderParams, _ error) {
+	// Decode path: providerId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "providerId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.ProviderId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     0,
+					MinLengthSet:  false,
+					MaxLength:     0,
+					MaxLengthSet:  false,
+					Email:         false,
+					Hostname:      false,
+					Regex:         regexMap["^[a-z0-9][a-z0-9-]{0,31}$"],
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(params.ProviderId)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "providerId",
 			In:   "path",
 			Err:  err,
 		}

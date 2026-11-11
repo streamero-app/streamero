@@ -279,4 +279,13 @@
     <string name="rewind">Premotaj unatrag</string>
     <string name="pause">Pauza</string>
     <string name="fast_forward">Premotaj naprijed</string>
+    <string name="sso_continue">Nastavi s: %1$s</string>
+    <string name="sso_no_browser">Za prijavu treba preglednik, a nijedan nije instaliran.</string>
+    <string name="err_sso_invalid_state">Prijava je istekla ili je već iskorištena. Pokušaj ponovno.</string>
+    <string name="err_sso_provider">Pružatelj prijave odbio je prijavu.</string>
+    <string name="err_sso_no_account">Nijedan račun na ovom serveru nije povezan s tom prijavom. Javi se administratoru.</string>
+    <string name="err_sso_not_allowed">Ovaj račun se ne smije prijaviti na ovaj server.</string>
+    <string name="err_sso_disabled">Ovaj račun je onemogućen.</string>
+    <string name="err_sso_not_configured">Jedinstvena prijava na serveru nije do kraja postavljena.</string>
+    <string name="err_password_disabled">Prijava lozinkom na ovom serveru je isključena.</string>
 </resources>

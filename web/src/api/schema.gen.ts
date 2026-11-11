@@ -172,6 +172,259 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Sign-in methods offered on the login screen (public)
+         * @description Unauthenticated. Lists the enabled single sign-on providers with the absolute URL a
+         *     browser (or an app's web authentication session) opens to start signing in, and
+         *     whether username/password sign-in is offered.
+         */
+        get: operations["getAuthProviders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/oidc/{providerId}/authorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Start OpenID Connect sign-in (browser navigation; redirects to the provider)
+         * @description Opened in a browser, never fetched. Creates a single-use sign-in flow (state, nonce,
+         *     PKCE S256) bound to this browser by a short-lived cookie and redirects to the
+         *     provider. Apps pass `client=app`, their registered `redirectUri` and an S256
+         *     `codeChallenge`; after the callback they receive a one-time code to redeem at
+         *     /auth/oidc/exchange with the matching verifier. Errors redirect to the login page.
+         */
+        get: operations["oidcAuthorize"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/oidc/{providerId}/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Redirect target registered at the provider
+         * @description Checks state (single use, bound to the browser cookie), exchanges the code with the
+         *     PKCE verifier, verifies the ID token (signature via the provider's JWKS, issuer,
+         *     audience, expiry, nonce) and signs the user in. The web gets the session cookie and
+         *     is sent to `/`; apps are sent to their redirect URI with a one-time `code` (never a
+         *     session token). Failures redirect with an `sso_error` (web) or `error` (app) code.
+         */
+        get: operations["oidcCallback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/oidc/exchange": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Redeem an app's one-time sign-in code for a session */
+        post: operations["oidcExchange"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/oidc/{providerId}/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start linking an OpenID Connect account to the signed-in user
+         * @description Returns the provider URL to open in this browser; sets the flow cookie. After the
+         *     provider signs the user in, the identity is linked and the browser returns to
+         *     /settings/account.
+         */
+        post: operations["oidcLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/identities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Single sign-on and directory accounts linked to the signed-in user */
+        get: operations["listIdentities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/identities/{identityId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Unlink an identity (refused when it is the account's only way to sign in) */
+        delete: operations["unlinkIdentity"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/auth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** General sign-in settings (admin) */
+        get: operations["getAuthSettings"];
+        /**
+         * Save general sign-in settings (admin)
+         * @description Turning password sign-in off is refused (409 `no_sso_admin`) unless an enabled
+         *     administrator has a linked identity of an enabled provider.
+         */
+        put: operations["updateAuthSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/auth/oidc": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** OpenID Connect providers (admin; client secrets are never returned) */
+        get: operations["listOidcProviders"];
+        put?: never;
+        /** Add an OpenID Connect provider (admin) */
+        post: operations["createOidcProvider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/auth/oidc/{providerId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change an OpenID Connect provider (admin; an empty secret keeps the stored one) */
+        put: operations["updateOidcProvider"];
+        post?: never;
+        /** Remove an OpenID Connect provider and its linked identities (admin) */
+        delete: operations["deleteOidcProvider"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/auth/oidc-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Fetch a provider's discovery document and signing keys (admin) */
+        post: operations["testOidcProvider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/auth/ldap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** LDAP / Active Directory sign-in (admin; the bind password is never returned) */
+        get: operations["getLdapSettings"];
+        /** Save LDAP settings (admin; an empty bind password keeps the stored one) */
+        put: operations["updateLdapSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/auth/ldap/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Connect and bind with the given settings, optionally looking up a user (admin) */
+        post: operations["testLdapSettings"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/password": {
         parameters: {
             query?: never;
@@ -1831,6 +2084,175 @@ export interface components {
             sessionId: string;
             user: components["schemas"]["User"];
         };
+        AuthProviders: {
+            /** @description Username/password sign-in is offered (local accounts or LDAP). */
+            passwordLogin: boolean;
+            /** @description Directory (LDAP) accounts sign in with the username/password fields. */
+            ldap: boolean;
+            oidc: components["schemas"]["OidcProviderButton"][];
+        };
+        OidcProviderButton: {
+            id: string;
+            label: string;
+            /** @description Absolute URL of /auth/oidc/{id}/authorize on the server's public address. */
+            authorizeUrl: string;
+        };
+        OidcExchangeRequest: {
+            code: string;
+            codeVerifier: string;
+            device?: components["schemas"]["DeviceInfo"];
+        };
+        OidcLinkStart: {
+            authorizationUrl: string;
+        };
+        LinkedIdentities: {
+            /** @description The account has a local password. */
+            hasPassword: boolean;
+            identities: components["schemas"]["LinkedIdentity"][];
+        };
+        LinkedIdentity: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "oidc" | "ldap";
+            /** @description The OIDC provider id; empty for LDAP. */
+            providerId: string;
+            providerLabel: string;
+            /** @description E-mail or name at the provider, for display. */
+            label: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            lastLoginAt?: string;
+        };
+        AuthSettings: {
+            /** @description Address users reach the server at, e.g. https://media.example.com. Needed for single sign-on. */
+            publicUrl: string;
+            disablePasswordLogin: boolean;
+            /** @description STREAMERO_PASSWORD_LOGIN_RECOVERY is set, so administrators can sign in with a password. */
+            recoveryActive: boolean;
+        };
+        AuthSettingsInput: {
+            publicUrl: string;
+            disablePasswordLogin: boolean;
+        };
+        OidcProvider: {
+            id: string;
+            label: string;
+            issuer: string;
+            clientId: string;
+            clientSecretSet: boolean;
+            scopes: string[];
+            usernameClaim: string;
+            emailClaim: string;
+            nameClaim: string;
+            groupsClaim: string;
+            adminGroup: string;
+            allowedGroup: string;
+            autoCreate: boolean;
+            linkByEmail: boolean;
+            trustEmail: boolean;
+            enabled: boolean;
+            /** @description The exact redirect URI to register at the provider (empty until the public URL is set). */
+            redirectUri: string;
+        };
+        OidcProviderInput: {
+            /** @description Part of the redirect URI; cannot be changed later. */
+            id: string;
+            label: string;
+            issuer: string;
+            clientId: string;
+            /** @description Empty or omitted keeps the stored secret (or none for a public client). */
+            clientSecret?: string;
+            removeClientSecret?: boolean;
+            scopes?: string[];
+            usernameClaim?: string;
+            emailClaim?: string;
+            nameClaim?: string;
+            groupsClaim?: string;
+            adminGroup?: string;
+            allowedGroup?: string;
+            autoCreate?: boolean;
+            linkByEmail?: boolean;
+            trustEmail?: boolean;
+            enabled?: boolean;
+        };
+        OidcTestRequest: {
+            issuer: string;
+        };
+        OidcTestResult: {
+            issuer: string;
+            authorizationEndpoint: string;
+            tokenEndpoint: string;
+            userinfoEndpoint?: string;
+            /** @description Number of keys in the provider's JWKS. */
+            signingKeys: number;
+            /** @description The provider advertises PKCE S256 (when it says nothing, PKCE is still sent). */
+            pkceS256: boolean;
+            scopesSupported?: string[];
+        };
+        LdapSettings: {
+            enabled: boolean;
+            /** @description ldaps://host:636 or ldap://host:389 */
+            url: string;
+            startTls: boolean;
+            /** @description Do not verify the server certificate (unsafe; for testing only). */
+            skipVerify: boolean;
+            /** @description PEM certificate(s) trusted in addition to the system roots. */
+            caCert: string;
+            bindDn: string;
+            bindPasswordSet: boolean;
+            baseDn: string;
+            /** @description Search filter with {username}, e.g. (&(objectClass=inetOrgPerson)(uid={username})). */
+            userFilter: string;
+            usernameAttribute: string;
+            emailAttribute: string;
+            nameAttribute: string;
+            /** @description User attribute that lists group DNs (memberOf). Used when groupFilter is empty. */
+            groupAttribute: string;
+            /** @description Optional group search filter with {dn} and/or {username}, e.g. (member={dn}). */
+            groupFilter: string;
+            /** @description Group DN whose members are administrators (empty = admin status is managed in Streamero). */
+            adminGroup: string;
+            /** @description Group DN required to sign in (empty = any user the filter finds). */
+            allowedGroup: string;
+        };
+        LdapSettingsInput: {
+            enabled: boolean;
+            url: string;
+            startTls: boolean;
+            skipVerify: boolean;
+            caCert?: string;
+            bindDn?: string;
+            /** @description Empty or omitted keeps the stored password. */
+            bindPassword?: string;
+            removeBindPassword?: boolean;
+            baseDn: string;
+            userFilter: string;
+            usernameAttribute?: string;
+            emailAttribute?: string;
+            nameAttribute?: string;
+            groupAttribute?: string;
+            groupFilter?: string;
+            adminGroup?: string;
+            allowedGroup?: string;
+        };
+        LdapTestRequest: {
+            settings: components["schemas"]["LdapSettingsInput"];
+            /** @description Look this user up (no password is checked). */
+            username?: string;
+        };
+        LdapTestResult: {
+            ok: boolean;
+            message: string;
+            userDn?: string;
+            username?: string;
+            email?: string;
+            displayName?: string;
+            groups?: string[];
+            isAdmin?: boolean;
+            allowed?: boolean;
+        };
         ChangePasswordRequest: {
             currentPassword: string;
             newPassword: components["schemas"]["Password"];
@@ -2923,6 +3345,15 @@ export interface components {
         };
     };
     responses: {
+        /** @description Redirect (to the provider, the web client or the app) */
+        OidcRedirect: {
+            headers: {
+                Location: string;
+                "Set-Cookie"?: string;
+                [name: string]: unknown;
+            };
+            content?: never;
+        };
         /** @description Signed in */
         SignedIn: {
             headers: {
@@ -2955,6 +3386,7 @@ export interface components {
         };
     };
     parameters: {
+        OidcProviderId: string;
         LibraryId: string;
         CollectionId: string;
         PlaylistId: string;
@@ -3221,6 +3653,390 @@ export interface operations {
                 };
                 content: {
                     "image/jpeg": string;
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getAuthProviders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sign-in methods */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthProviders"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    oidcAuthorize: {
+        parameters: {
+            query?: {
+                client?: "web" | "app";
+                /** @description App only; must be exactly `streamero://oidc`. */
+                redirectUri?: string;
+                /** @description App only; BASE64URL(SHA-256(verifier)), 43 characters. */
+                codeChallenge?: string;
+            };
+            header?: never;
+            path: {
+                providerId: components["parameters"]["OidcProviderId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            302: components["responses"]["OidcRedirect"];
+            default: components["responses"]["Error"];
+        };
+    };
+    oidcCallback: {
+        parameters: {
+            query?: {
+                code?: string;
+                state?: string;
+                error?: string;
+                error_description?: string;
+            };
+            header?: never;
+            path: {
+                providerId: components["parameters"]["OidcProviderId"];
+            };
+            cookie?: {
+                streamero_oidc?: string;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            302: components["responses"]["OidcRedirect"];
+            default: components["responses"]["Error"];
+        };
+    };
+    oidcExchange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OidcExchangeRequest"];
+            };
+        };
+        responses: {
+            200: components["responses"]["SignedIn"];
+            default: components["responses"]["Error"];
+        };
+    };
+    oidcLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                providerId: components["parameters"]["OidcProviderId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Provider URL */
+            200: {
+                headers: {
+                    /** @description Short-lived cookie that binds the flow to this browser. */
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OidcLinkStart"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listIdentities: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Linked identities */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkedIdentities"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    unlinkIdentity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identityId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unlinked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getAuthSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateAuthSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listOidcProviders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Providers */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OidcProvider"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createOidcProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OidcProviderInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OidcProvider"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateOidcProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                providerId: components["parameters"]["OidcProviderId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OidcProviderInput"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OidcProvider"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteOidcProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                providerId: components["parameters"]["OidcProviderId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    testOidcProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OidcTestRequest"];
+            };
+        };
+        responses: {
+            /** @description The provider answered correctly */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OidcTestResult"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getLdapSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LdapSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateLdapSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LdapSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LdapSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    testLdapSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LdapTestRequest"];
+            };
+        };
+        responses: {
+            /** @description Result (`ok` false with a message when the directory refused) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LdapTestResult"];
                 };
             };
             default: components["responses"]["Error"];

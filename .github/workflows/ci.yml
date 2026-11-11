@@ -23,9 +23,18 @@ jobs:
       valkey:
         image: valkey/valkey:8-alpine
         ports: ["6379:6379"]
+      # Real directory for the LDAP sign-in tests (D-037); the tests add their own users.
+      openldap:
+        image: osixia/openldap:1.5.0
+        env:
+          LDAP_ORGANISATION: Example
+          LDAP_DOMAIN: example.org
+          LDAP_ADMIN_PASSWORD: admin
+        ports: ["389:389"]
     env:
       STREAMERO_TEST_DB_URL: postgres://streamero:ci@localhost:5432/streamero?sslmode=disable
       STREAMERO_TEST_VALKEY_URL: redis://localhost:6379/0
+      STREAMERO_TEST_LDAP_URL: ldap://localhost:389
     defaults:
       run:
         working-directory: server

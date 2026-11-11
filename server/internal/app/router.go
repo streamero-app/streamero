@@ -29,11 +29,16 @@ type RouterOptions struct {
 }
 
 // rateLimited lists the endpoints that accept secrets from anonymous or
-// low-privilege callers (passwords, setup codes, invite tokens, PINs).
+// low-privilege callers (passwords, setup codes, invite tokens, PINs, single
+// sign-on codes; directory (LDAP) passwords use the same login endpoints).
 func rateLimited(r *http.Request) bool {
 	p := r.URL.Path
 	switch {
 	case r.Method == http.MethodPost && (p == "/api/v1/auth/login" || p == "/api/v1/setup" || p == "/api/v1/quickconnect/initiate"):
+		return true
+	case r.Method == http.MethodPost && p == "/api/v1/auth/oidc/exchange":
+		return true
+	case strings.HasPrefix(p, "/api/v1/auth/oidc/") && (strings.HasSuffix(p, "/authorize") || strings.HasSuffix(p, "/callback")):
 		return true
 	case strings.HasPrefix(p, "/api/v1/invite/"):
 		return true

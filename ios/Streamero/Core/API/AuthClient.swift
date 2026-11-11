@@ -69,6 +69,30 @@ struct AuthClient {
         }
     }
 
+    /// Sign-in methods the server offers (single sign-on buttons, whether passwords work).
+    func providers() async throws -> Components.Schemas.AuthProviders {
+        switch try await client.getAuthProviders() {
+        case .ok(let ok):
+            return try ok.body.json
+        case .default(let status, let response):
+            throw APIError(status: status, code: (try? response.body.json.code) ?? "http_\(status)")
+        }
+    }
+
+    /// Redeems the one-time code from the `streamero://oidc` redirect with the PKCE verifier.
+    func exchangeOIDC(code: String, verifier: String) async throws -> (String, Components.Schemas.User) {
+        let device = await Self.device
+        let body = Components.Schemas.OidcExchangeRequest(code: code, codeVerifier: verifier, device: device)
+        switch try await client.oidcExchange(body: .json(body)) {
+        case .ok(let ok):
+            let result = try ok.body.json
+            guard let token = result.token else { throw APIError(status: 200, code: "no_token") }
+            return (token, result.user)
+        case .default(let status, let response):
+            throw APIError(status: status, code: (try? response.body.json.code) ?? "http_\(status)")
+        }
+    }
+
     func initiateQuickConnect() async throws -> Components.Schemas.QuickConnectStart {
         let device = await Self.device
         switch try await client.initiateQuickConnect(body: .json(device)) {

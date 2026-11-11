@@ -35,6 +35,7 @@ import { RequestsSettings } from "@/features/settings/RequestsSettings";
 import { ImportSettings } from "@/features/settings/ImportSettings";
 import { EnhancementsSettings } from "@/features/settings/EnhancementsSettings";
 import { BackupSettings } from "@/features/settings/BackupSettings";
+import { SsoSettings } from "@/features/settings/SsoSettings";
 import { NotFoundPage } from "@/routes/NotFoundPage";
 
 /** The administrator's extra CSS (Settings → Branding), on every page. */
@@ -142,6 +143,7 @@ const activityRoute = createRoute({ getParentRoute: () => settingsRoute, path: "
 const requestsRoute = createRoute({ getParentRoute: () => settingsRoute, path: "requests", component: adminOnly(RequestsSettings) });
 const enhancementsRoute = createRoute({ getParentRoute: () => settingsRoute, path: "enhancements", component: adminOnly(EnhancementsSettings) });
 const importRoute = createRoute({ getParentRoute: () => settingsRoute, path: "import", component: adminOnly(ImportSettings) });
+const ssoRoute = createRoute({ getParentRoute: () => settingsRoute, path: "sso", component: adminOnly(SsoSettings) });
 const brandingRoute = createRoute({ getParentRoute: () => settingsRoute, path: "branding", component: adminOnly(BrandingSettings) });
 
 export const routeTree = rootRoute.addChildren([
@@ -163,7 +165,7 @@ export const routeTree = rootRoute.addChildren([
     searchRoute,
     discoverRoute,
     settingsRoute.addChildren([settingsIndex, playbackRoute, dashboardRoute, tasksRoute, backupsRoute, notificationsRoute, accountRoute, profilesRoute, devicesRoute, quickConnectRoute, serverRoute, librariesRoute, metadataRoute, integrationsRoute, usersRoute, invitesRoute, apiKeysRoute,
-      subtitleLookRoute, homePrefsRoute, transcodingRoute, logsRoute, activityRoute, brandingRoute, requestsRoute, enhancementsRoute, importRoute]),
+      subtitleLookRoute, homePrefsRoute, transcodingRoute, logsRoute, activityRoute, brandingRoute, requestsRoute, enhancementsRoute, importRoute, ssoRoute]),
   ]),
 ]);
 export const router = createRouter({ routeTree });
