@@ -57,6 +57,40 @@ func newID() string {
 // Args builds the ffmpeg command line for a job (exported for tests).
 func Args(j Job, dir string, enc Encoding) []string {
 	enc = enc.Normalize()
+	a := codecArgs(j, enc)
+	return append(a, "-f", "hls", "-hls_time", strconv.Itoa(enc.SegmentSeconds), "-hls_playlist_type", "event", "-hls_segment_type", "fmp4",
+		"-hls_fmp4_init_filename", "init.mp4", "-hls_segment_filename", filepath.Join(dir, "seg_%05d.m4s"),
+		"-start_number", "0", filepath.Join(dir, "index.m3u8"))
+}
+
+// ProgressiveArgs builds an ffmpeg command line that writes one continuous
+// stream to stdout, for players that want a plain HTTP body instead of HLS
+// (DLNA renderers). Video goes out as MPEG-TS; audio-only plans as format
+// ("mp3" or "adts").
+func ProgressiveArgs(j Job, enc Encoding, format string) []string {
+	enc = enc.Normalize()
+	if j.Plan.AudioOnly {
+		a := []string{"-nostdin", "-hide_banner", "-loglevel", "error"}
+		if j.StartMS > 0 {
+			a = append(a, "-ss", strconv.FormatFloat(float64(j.StartMS)/1000, 'f', 3, 64))
+		}
+		a = append(a, "-i", j.Input, "-vn", "-map", fmt.Sprintf("0:a:%d?", max(j.AudioIndex, 0)))
+		// Audio is always re-encoded: the source codec need not fit the output format.
+		switch format {
+		case "mp3":
+			a = append(a, "-c:a", "libmp3lame", "-b:a", "320k")
+		default:
+			format = "adts"
+			a = append(a, "-c:a", "aac", "-b:a", fmt.Sprintf("%dk", enc.AudioKbps))
+		}
+		return append(a, "-f", format, "pipe:1")
+	}
+	return append(codecArgs(j, enc), "-f", "mpegts", "-muxdelay", "0", "pipe:1")
+}
+
+// codecArgs is everything before the output format: input, seeking, stream
+// selection and encoders.
+func codecArgs(j Job, enc Encoding) []string {
 	a := []string{"-nostdin", "-hide_banner", "-loglevel", "error"}
 	var encode []string
 	videoMap := "0:v:0"
@@ -142,9 +176,7 @@ func Args(j Job, dir string, enc Encoding) []string {
 			a = append(a, "-c:a", "copy")
 		}
 	}
-	return append(a, "-f", "hls", "-hls_time", strconv.Itoa(enc.SegmentSeconds), "-hls_playlist_type", "event", "-hls_segment_type", "fmp4",
-		"-hls_fmp4_init_filename", "init.mp4", "-hls_segment_filename", filepath.Join(dir, "seg_%05d.m4s"),
-		"-start_number", "0", filepath.Join(dir, "index.m3u8"))
+	return a
 }
 
 // Start launches ffmpeg and waits until the first segment is listed.
