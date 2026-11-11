@@ -57,7 +57,7 @@ func newID() string {
 // Args builds the ffmpeg command line for a job (exported for tests).
 func Args(j Job, dir string, enc Encoding) []string {
 	enc = enc.Normalize()
-	a := codecArgs(j, enc)
+	a := codecArgs(j, dir, enc)
 	return append(a, "-f", "hls", "-hls_time", strconv.Itoa(enc.SegmentSeconds), "-hls_playlist_type", "event", "-hls_segment_type", "fmp4",
 		"-hls_fmp4_init_filename", "init.mp4", "-hls_segment_filename", filepath.Join(dir, "seg_%05d.m4s"),
 		"-start_number", "0", filepath.Join(dir, "index.m3u8"))
@@ -85,12 +85,14 @@ func ProgressiveArgs(j Job, enc Encoding, format string) []string {
 		}
 		return append(a, "-f", format, "pipe:1")
 	}
-	return append(codecArgs(j, enc), "-f", "mpegts", "-muxdelay", "0", "pipe:1")
+	// No burn-in here: it needs a session directory, and DLNA offers subtitles as sidecar files.
+	j.Plan.Burn = nil
+	return append(codecArgs(j, "", enc), "-f", "mpegts", "-muxdelay", "0", "pipe:1")
 }
 
 // codecArgs is everything before the output format: input, seeking, stream
-// selection and encoders.
-func codecArgs(j Job, enc Encoding) []string {
+// selection and encoders. dir is the session directory (for burned-in text subtitles).
+func codecArgs(j Job, dir string, enc Encoding) []string {
 	a := []string{"-nostdin", "-hide_banner", "-loglevel", "error"}
 	var encode []string
 	videoMap := "0:v:0"
