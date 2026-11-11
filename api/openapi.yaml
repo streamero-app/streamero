@@ -28,6 +28,10 @@ tags:
   - name: import
   - name: downloads
     description: Offline downloads for the apps and original-file downloads (D-040).
+  - name: livetv
+    description: |
+      Live TV and DVR (D-041). Watching needs the `liveTv` permission; tuners, guides,
+      channel mapping, recordings and series rules need `manageLiveTv`.
   - name: syncplay
     description: |
       Watch together (SyncPlay). Groups are managed here; playback inside a group
@@ -3341,6 +3345,714 @@ paths:
                 $ref: "#/components/schemas/ImportRun"
         default:
           $ref: "#/components/responses/Error"
+  /livetv/channels:
+    get:
+      operationId: listLiveTvChannels
+      summary: Live TV channels with what is on now and next (liveTv permission)
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      parameters:
+        - name: category
+          in: query
+          schema:
+            $ref: "#/components/schemas/LiveTvCategory"
+        - name: favorites
+          in: query
+          description: Only the viewer's favourite channels.
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Channels in channel-number order (favourites are flagged)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LiveTvChannel"
+        default:
+          $ref: "#/components/responses/Error"
+  /livetv/channels/{channelId}:
+    parameters:
+      - $ref: "#/components/parameters/ChannelId"
+    get:
+      operationId: getLiveTvChannel
+      summary: One channel with now/next (liveTv permission)
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Channel
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveTvChannel"
+        default:
+          $ref: "#/components/responses/Error"
+    patch:
+      operationId: updateLiveTvChannel
+      summary: Guide mapping, category and visibility of a channel (manageLiveTv)
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LiveTvChannelUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveTvChannelAdmin"
+        default:
+          $ref: "#/components/responses/Error"
+  /livetv/channels/{channelId}/favorite:
+    parameters:
+      - $ref: "#/components/parameters/ChannelId"
+    put:
+      operationId: addLiveTvFavorite
+      summary: Mark a channel as a favourite of the viewer (profile or account)
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      responses:
+        "204":
+          description: Saved
+        default:
+          $ref: "#/components/responses/Error"
+    delete:
+      operationId: removeLiveTvFavorite
+      summary: Remove a channel from the viewer's favourites
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      responses:
+        "204":
+          description: Removed
+        default:
+          $ref: "#/components/responses/Error"
+  /livetv/channels/{channelId}/play:
+    parameters:
+      - $ref: "#/components/parameters/ChannelId"
+    post:
+      operationId: playLiveTvChannel
+      summary: Tune a channel and get a signed HLS URL (liveTv permission)
+      description: |
+        The channel is always delivered as HLS: remuxed (stream copy) when the device
+        plays the channel's codecs, otherwise transcoded with the server's encoding
+        settings, using the same decision and permissions as on-demand playback. The
+        playlist is a sliding window of `timeshiftSeconds`, so players can pause and
+        rewind within it (time-shift). Viewers of the same channel with the same
+        delivery share one tuner. 503 `tuners_busy` when every tuner of the channel's
+        source is in use.
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LiveTvPlayRequest"
+      responses:
+        "200":
+          description: How to play
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveTvPlayback"
+        default:
+          $ref: "#/components/responses/Error"
+  /livetv/guide:
+    get:
+      operationId: getLiveTvGuide
+      summary: Guide grid for a time window (liveTv permission)
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      parameters:
+        - name: start
+          in: query
+          description: Window start (default now, rounded down to the half hour).
+          schema:
+            type: string
+            format: date-time
+        - name: hours
+          in: query
+          description: Window length in hours (default 3).
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 24
+        - name: category
+          in: query
+          schema:
+            $ref: "#/components/schemas/LiveTvCategory"
+        - name: favorites
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Channels with their programmes in the window
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveTvGuide"
+        default:
+          $ref: "#/components/responses/Error"
+  /livetv/on-now:
+    get:
+      operationId: getLiveTvOnNow
+      summary: Programmes airing now, favourite channels first (Home row)
+      description: Empty when Live TV is not set up or the viewer lacks the liveTv permission.
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+      responses:
+        "200":
+          description: Channels that have a programme now
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LiveTvChannel"
+        default:
+          $ref: "#/components/responses/Error"
+  /livetv/programs/{programId}:
+    parameters:
+      - name: programId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: channelId
+        in: query
+        description: Channel the programme is shown on (a guide channel can be mapped to several).
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getLiveTvProgram
+      summary: One programme (liveTv permission)
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Programme
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveTvProgram"
+        default:
+          $ref: "#/components/responses/Error"
+  /livetv/recordings:
+    get:
+      operationId: listLiveTvRecordings
+      summary: Scheduled, running and finished recordings (liveTv permission)
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      parameters:
+        - name: status
+          in: query
+          description: Only these states (default all but cancelled and deleted).
+          style: form
+          explode: false
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/LiveTvRecordingStatus"
+      responses:
+        "200":
+          description: Recordings, upcoming first by start time, then finished newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LiveTvRecording"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createLiveTvRecording
+      summary: Record one programme (manageLiveTv)
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LiveTvRecordingCreate"
+      responses:
+        "201":
+          description: Scheduled (status scheduled, or conflict when no tuner is free)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveTvRecording"
+        default:
+          $ref: "#/components/responses/Error"
+  /livetv/recordings/{recordingId}:
+    parameters:
+      - name: recordingId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    patch:
+      operationId: updateLiveTvRecording
+      summary: Change padding or priority of a scheduled recording (manageLiveTv)
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LiveTvRecordingUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveTvRecording"
+        default:
+          $ref: "#/components/responses/Error"
+    delete:
+      operationId: deleteLiveTvRecording
+      summary: Cancel a scheduled recording, stop a running one or hide a finished one (manageLiveTv)
+      description: |
+        A finished recording's file is never deleted here: it stays in the recordings
+        library. Files are only removed by the retention rules an administrator turned on.
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      responses:
+        "204":
+          description: Done
+        default:
+          $ref: "#/components/responses/Error"
+  /livetv/series-rules:
+    get:
+      operationId: listLiveTvSeriesRules
+      summary: Series recording rules (liveTv permission)
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Rules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LiveTvSeriesRule"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createLiveTvSeriesRule
+      summary: Record a series (manageLiveTv)
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LiveTvSeriesRuleInput"
+      responses:
+        "201":
+          description: Created; matching airings are scheduled at once
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveTvSeriesRule"
+        default:
+          $ref: "#/components/responses/Error"
+  /livetv/series-rules/{ruleId}:
+    parameters:
+      - name: ruleId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    put:
+      operationId: updateLiveTvSeriesRule
+      summary: Change a series rule (manageLiveTv)
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LiveTvSeriesRuleInput"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveTvSeriesRule"
+        default:
+          $ref: "#/components/responses/Error"
+    delete:
+      operationId: deleteLiveTvSeriesRule
+      summary: Delete a series rule and its upcoming recordings (manageLiveTv)
+      description: Finished recordings of the rule are kept.
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      responses:
+        "204":
+          description: Deleted
+        default:
+          $ref: "#/components/responses/Error"
+  /livetv/tuners:
+    get:
+      operationId: listLiveTvTuners
+      summary: Tuner sources (manageLiveTv)
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Tuners
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LiveTvTuner"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createLiveTvTuner
+      summary: Add an M3U playlist or an HDHomeRun device and load its channels (manageLiveTv)
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LiveTvTunerInput"
+      responses:
+        "201":
+          description: Added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveTvTuner"
+        default:
+          $ref: "#/components/responses/Error"
+  /livetv/tuners/test:
+    post:
+      operationId: testLiveTvTuner
+      summary: Check a tuner configuration without saving it (manageLiveTv)
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LiveTvTunerInput"
+      responses:
+        "200":
+          description: Result (ok false with a message when it does not work)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveTvTestResult"
+        default:
+          $ref: "#/components/responses/Error"
+  /livetv/tuners/discover:
+    get:
+      operationId: discoverLiveTvTuners
+      summary: Find HDHomeRun devices on the local network (manageLiveTv)
+      description: |
+        SSDP search on the server's networks; every answer is confirmed through the
+        device's HTTP API (`/discover.json`). With Docker bridge networking the search
+        usually finds nothing: add the device by its address instead.
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Devices found
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LiveTvDiscoveredTuner"
+        default:
+          $ref: "#/components/responses/Error"
+  /livetv/tuners/{tunerId}:
+    parameters:
+      - name: tunerId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    put:
+      operationId: updateLiveTvTuner
+      summary: Change a tuner source and reload its channels (manageLiveTv)
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LiveTvTunerInput"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveTvTuner"
+        default:
+          $ref: "#/components/responses/Error"
+    delete:
+      operationId: deleteLiveTvTuner
+      summary: Remove a tuner source and its channels (manageLiveTv)
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      responses:
+        "204":
+          description: Removed
+        default:
+          $ref: "#/components/responses/Error"
+  /livetv/tuners/{tunerId}/refresh:
+    parameters:
+      - name: tunerId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: refreshLiveTvTuner
+      summary: Reload the channel list of a tuner source (manageLiveTv)
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Reloaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveTvTuner"
+        default:
+          $ref: "#/components/responses/Error"
+  /livetv/guides:
+    get:
+      operationId: listLiveTvGuides
+      summary: XMLTV guide sources (manageLiveTv)
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Guide sources
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LiveTvGuideSource"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createLiveTvGuide
+      summary: Add an XMLTV guide source; it is loaded in the background (manageLiveTv)
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LiveTvGuideSourceInput"
+      responses:
+        "201":
+          description: Added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveTvGuideSource"
+        default:
+          $ref: "#/components/responses/Error"
+  /livetv/guides/test:
+    post:
+      operationId: testLiveTvGuide
+      summary: Check an XMLTV source without saving it (manageLiveTv)
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LiveTvGuideSourceInput"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveTvTestResult"
+        default:
+          $ref: "#/components/responses/Error"
+  /livetv/guides/{guideId}:
+    parameters:
+      - name: guideId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    put:
+      operationId: updateLiveTvGuide
+      summary: Change an XMLTV guide source (manageLiveTv)
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LiveTvGuideSourceInput"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveTvGuideSource"
+        default:
+          $ref: "#/components/responses/Error"
+    delete:
+      operationId: deleteLiveTvGuide
+      summary: Remove an XMLTV guide source and its programmes (manageLiveTv)
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      responses:
+        "204":
+          description: Removed
+        default:
+          $ref: "#/components/responses/Error"
+  /livetv/guides/{guideId}/refresh:
+    parameters:
+      - name: guideId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: refreshLiveTvGuide
+      summary: Reload a guide source now (queued; manageLiveTv)
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      responses:
+        "202":
+          description: Queued
+        default:
+          $ref: "#/components/responses/Error"
+  /livetv/mapping:
+    get:
+      operationId: getLiveTvMapping
+      summary: Every channel with its guide mapping, and the guide channels to map to (manageLiveTv)
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Mapping
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveTvMapping"
+        default:
+          $ref: "#/components/responses/Error"
+  /livetv/settings:
+    get:
+      operationId: getLiveTvSettings
+      summary: DVR and time-shift settings (manageLiveTv)
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveTvSettings"
+        default:
+          $ref: "#/components/responses/Error"
+    put:
+      operationId: updateLiveTvSettings
+      summary: Change DVR and time-shift settings (manageLiveTv; the post-processing command only by administrators)
+      tags: [livetv]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LiveTvSettings"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveTvSettings"
+        default:
+          $ref: "#/components/responses/Error"
 components:
   securitySchemes:
     sessionToken:
@@ -3403,6 +4115,13 @@ components:
         format: uuid
     UserId:
       name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ChannelId:
+      name: channelId
       in: path
       required: true
       schema:
@@ -4579,7 +5298,7 @@ components:
           additionalProperties: true
     TaskKey:
       type: string
-      enum: [scan_all, refresh_metadata, cleanup_images, analyze_media, detect_segments, backup]
+      enum: [scan_all, refresh_metadata, cleanup_images, analyze_media, detect_segments, backup, refresh_guide]
     Task:
       type: object
       required: [key, running]
@@ -6449,3 +7168,611 @@ components:
           $ref: "#/components/schemas/ImportProgress"
         report:
           $ref: "#/components/schemas/ImportReport"
+    LiveTvCategory:
+      type: string
+      enum: [movies, sports, news, kids]
+      description: Normalised category of a channel or programme (from M3U group-title or XMLTV category).
+    LiveTvProgram:
+      type: object
+      required: [id, channelId, title, start, end, categories, isNew]
+      properties:
+        id:
+          type: string
+          format: uuid
+        channelId:
+          type: string
+          format: uuid
+        channelName:
+          type: string
+        channelNumber:
+          type: string
+        title:
+          type: string
+        subtitle:
+          type: string
+          description: Episode title.
+        description:
+          type: string
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        categories:
+          type: array
+          items:
+            type: string
+          description: Categories as the guide names them.
+        category:
+          $ref: "#/components/schemas/LiveTvCategory"
+        season:
+          type: integer
+        episode:
+          type: integer
+        year:
+          type: integer
+        isNew:
+          type: boolean
+        isPremiere:
+          type: boolean
+        isRepeat:
+          type: boolean
+          description: The guide marks it as previously shown.
+        isLive:
+          type: boolean
+        imageUrl:
+          type: string
+          description: Signed image URL (relative to the server).
+        recordingId:
+          type: string
+          format: uuid
+          description: Recording scheduled for this programme on this channel.
+        recordingStatus:
+          $ref: "#/components/schemas/LiveTvRecordingStatus"
+        seriesRuleId:
+          type: string
+          format: uuid
+    LiveTvChannel:
+      type: object
+      required: [id, number, name, tunerId, favorite]
+      properties:
+        id:
+          type: string
+          format: uuid
+        number:
+          type: string
+        name:
+          type: string
+        group:
+          type: string
+          description: Group as the source names it (M3U group-title).
+        category:
+          $ref: "#/components/schemas/LiveTvCategory"
+        logoUrl:
+          type: string
+          description: Signed logo URL (relative to the server).
+        tunerId:
+          type: string
+          format: uuid
+        favorite:
+          type: boolean
+        hd:
+          type: boolean
+        now:
+          $ref: "#/components/schemas/LiveTvProgram"
+        next:
+          $ref: "#/components/schemas/LiveTvProgram"
+    LiveTvGuideRow:
+      type: object
+      required: [channel, programs]
+      properties:
+        channel:
+          $ref: "#/components/schemas/LiveTvChannel"
+        programs:
+          type: array
+          items:
+            $ref: "#/components/schemas/LiveTvProgram"
+    LiveTvGuide:
+      type: object
+      required: [start, end, rows]
+      properties:
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/LiveTvGuideRow"
+    LiveTvPlayRequest:
+      type: object
+      required: [device]
+      properties:
+        device:
+          $ref: "#/components/schemas/DeviceProfile"
+    LiveTvPlayback:
+      type: object
+      required: [channelId, url, method, timeshiftSeconds]
+      properties:
+        channelId:
+          type: string
+          format: uuid
+        url:
+          type: string
+          description: Signed HLS playlist URL (relative to the server); a sliding live window.
+        method:
+          type: string
+          enum: [remux, transcode]
+        reason:
+          type: string
+        timeshiftSeconds:
+          type: integer
+          description: How far back the viewer can pause or rewind.
+        now:
+          $ref: "#/components/schemas/LiveTvProgram"
+    LiveTvRecordingStatus:
+      type: string
+      enum: [scheduled, conflict, recording, completed, failed, cancelled, deleted]
+    LiveTvRecording:
+      type: object
+      required: [id, title, start, end, prePaddingSeconds, postPaddingSeconds, priority, status, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        channelId:
+          type: string
+          format: uuid
+        channelName:
+          type: string
+        channelNumber:
+          type: string
+        programId:
+          type: string
+          format: uuid
+        seriesRuleId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        subtitle:
+          type: string
+        description:
+          type: string
+        season:
+          type: integer
+        episode:
+          type: integer
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        prePaddingSeconds:
+          type: integer
+        postPaddingSeconds:
+          type: integer
+        priority:
+          type: integer
+          description: Higher wins when tuners run out.
+        status:
+          $ref: "#/components/schemas/LiveTvRecordingStatus"
+        error:
+          type: string
+          description: Why it failed, or which recordings it conflicts with.
+        sizeBytes:
+          type: integer
+          format: int64
+        itemId:
+          type: string
+          format: uuid
+          description: Library item of the finished recording (once scanned).
+        imageUrl:
+          type: string
+        postProcessError:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    LiveTvRecordingCreate:
+      type: object
+      required: [programId]
+      properties:
+        programId:
+          type: string
+          format: uuid
+        channelId:
+          type: string
+          format: uuid
+          description: Channel to record from (default the first channel showing the programme).
+        prePaddingSeconds:
+          type: integer
+          minimum: 0
+          maximum: 3600
+        postPaddingSeconds:
+          type: integer
+          minimum: 0
+          maximum: 7200
+        priority:
+          type: integer
+          minimum: -100
+          maximum: 100
+    LiveTvRecordingUpdate:
+      type: object
+      properties:
+        prePaddingSeconds:
+          type: integer
+          minimum: 0
+          maximum: 3600
+        postPaddingSeconds:
+          type: integer
+          minimum: 0
+          maximum: 7200
+        priority:
+          type: integer
+          minimum: -100
+          maximum: 100
+    LiveTvSeriesRule:
+      type: object
+      required: [id, title, newOnly, priority, keepLast, upcoming, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          description: Programme title to match (case-insensitive).
+        channelId:
+          type: string
+          format: uuid
+          description: Only this channel; absent = any channel.
+        channelName:
+          type: string
+        newOnly:
+          type: boolean
+          description: Skip airings the guide marks as repeats and episodes already recorded or scheduled.
+        priority:
+          type: integer
+        prePaddingSeconds:
+          type: integer
+        postPaddingSeconds:
+          type: integer
+        keepLast:
+          type: integer
+          description: Retention keeps this many newest recordings (0 = the server default); only when retention is turned on.
+        upcoming:
+          type: integer
+          description: Number of scheduled airings.
+        createdAt:
+          type: string
+          format: date-time
+    LiveTvSeriesRuleInput:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 300
+        programId:
+          type: string
+          format: uuid
+          description: Take the title from this programme (when title is absent).
+        channelId:
+          type: string
+          format: uuid
+        newOnly:
+          type: boolean
+        priority:
+          type: integer
+          minimum: -100
+          maximum: 100
+        prePaddingSeconds:
+          type: integer
+          minimum: 0
+          maximum: 3600
+        postPaddingSeconds:
+          type: integer
+          minimum: 0
+          maximum: 7200
+        keepLast:
+          type: integer
+          minimum: 0
+          maximum: 1000
+    LiveTvTunerKind:
+      type: string
+      enum: [m3u, hdhomerun]
+    LiveTvTuner:
+      type: object
+      required: [id, kind, name, tunerCount, enabled, channelCount]
+      properties:
+        id:
+          type: string
+          format: uuid
+        kind:
+          $ref: "#/components/schemas/LiveTvTunerKind"
+        name:
+          type: string
+        url:
+          type: string
+          description: Playlist URL (m3u) or device address (hdhomerun).
+        filePath:
+          type: string
+          description: Playlist file on the server (m3u, instead of url).
+        tunerCount:
+          type: integer
+          description: Simultaneous streams allowed (0 = unlimited, m3u only).
+        userAgent:
+          type: string
+        enabled:
+          type: boolean
+        channelCount:
+          type: integer
+        deviceId:
+          type: string
+        model:
+          type: string
+        lastRefreshAt:
+          type: string
+          format: date-time
+        error:
+          type: string
+    LiveTvTunerInput:
+      type: object
+      required: [kind, name]
+      properties:
+        kind:
+          $ref: "#/components/schemas/LiveTvTunerKind"
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        url:
+          type: string
+          maxLength: 2000
+        filePath:
+          type: string
+          maxLength: 1000
+        tunerCount:
+          type: integer
+          minimum: 0
+          maximum: 64
+          description: "m3u: streams the provider allows at once (0 = unlimited). hdhomerun: absent = the tuner count the device reports."
+        userAgent:
+          type: string
+          maxLength: 300
+        enabled:
+          type: boolean
+    LiveTvTestResult:
+      type: object
+      required: [ok, message]
+      properties:
+        ok:
+          type: boolean
+        message:
+          type: string
+        channelCount:
+          type: integer
+        programCount:
+          type: integer
+        tunerCount:
+          type: integer
+        model:
+          type: string
+    LiveTvDiscoveredTuner:
+      type: object
+      required: [deviceId, name, url, tunerCount, added]
+      properties:
+        deviceId:
+          type: string
+        name:
+          type: string
+        model:
+          type: string
+        url:
+          type: string
+        tunerCount:
+          type: integer
+        added:
+          type: boolean
+          description: A tuner source with this device already exists.
+    LiveTvGuideSource:
+      type: object
+      required: [id, name, refreshHours, enabled, channelCount, programCount]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        url:
+          type: string
+        filePath:
+          type: string
+        timezone:
+          type: string
+          description: IANA zone for guide times without an offset (default UTC).
+        refreshHours:
+          type: integer
+        enabled:
+          type: boolean
+        channelCount:
+          type: integer
+        programCount:
+          type: integer
+        lastRefreshAt:
+          type: string
+          format: date-time
+        lastChangedAt:
+          type: string
+          format: date-time
+          description: Last refresh that found changed programmes.
+        lastResult:
+          type: string
+          description: Summary of the last refresh, e.g. "12 new, 3 changed, 840 unchanged".
+        error:
+          type: string
+    LiveTvGuideSourceInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        url:
+          type: string
+          maxLength: 2000
+        filePath:
+          type: string
+          maxLength: 1000
+        timezone:
+          type: string
+          maxLength: 64
+        refreshHours:
+          type: integer
+          minimum: 1
+          maximum: 168
+        enabled:
+          type: boolean
+    LiveTvMappingMode:
+      type: string
+      enum: [auto, manual, none]
+    LiveTvChannelAdmin:
+      type: object
+      required: [channel, mapping, hidden, tunerName]
+      properties:
+        channel:
+          $ref: "#/components/schemas/LiveTvChannel"
+        tunerName:
+          type: string
+        mapping:
+          $ref: "#/components/schemas/LiveTvMappingMode"
+        guideSourceId:
+          type: string
+          format: uuid
+        guideChannelId:
+          type: string
+          description: XMLTV channel id the channel is mapped to (automatically or by hand).
+        hidden:
+          type: boolean
+        categoryOverride:
+          $ref: "#/components/schemas/LiveTvCategory"
+        videoCodec:
+          type: string
+        audioCodec:
+          type: string
+    LiveTvGuideChannel:
+      type: object
+      required: [sourceId, id, name]
+      properties:
+        sourceId:
+          type: string
+          format: uuid
+        id:
+          type: string
+        name:
+          type: string
+    LiveTvMapping:
+      type: object
+      required: [channels, guideChannels]
+      properties:
+        channels:
+          type: array
+          items:
+            $ref: "#/components/schemas/LiveTvChannelAdmin"
+        guideChannels:
+          type: array
+          items:
+            $ref: "#/components/schemas/LiveTvGuideChannel"
+    LiveTvChannelUpdate:
+      type: object
+      properties:
+        mapping:
+          $ref: "#/components/schemas/LiveTvMappingMode"
+        guideSourceId:
+          type: string
+          format: uuid
+          description: With mapping manual.
+        guideChannelId:
+          type: string
+          description: With mapping manual.
+        hidden:
+          type: boolean
+        category:
+          type: string
+          enum: [auto, movies, sports, news, kids]
+          description: Override the category ("auto" = from the source).
+    LiveTvRetention:
+      type: object
+      required: [enabled, deleteAfterDays, keepLast]
+      description: Opt-in clean-up of finished recordings. Only files the DVR recorded are ever deleted.
+      properties:
+        enabled:
+          type: boolean
+        deleteAfterDays:
+          type: integer
+          minimum: 0
+          maximum: 3650
+          description: Delete recordings older than this (0 = never).
+        keepLast:
+          type: integer
+          minimum: 0
+          maximum: 1000
+          description: Per series rule, keep this many newest recordings (0 = all); rules can override.
+    LiveTvPostProcess:
+      type: object
+      required: [command, args, timeoutMinutes]
+      description: |
+        Program run after every finished recording, without a shell. command is an
+        absolute path to an executable; each element of args is passed as one argument
+        after replacing the placeholders {path} {dir} {filename} {title} {subtitle}
+        {channel} {channelNumber} {start} {end} {season} {episode} {recordingId}.
+        Only administrators may change it. Empty command = off.
+      properties:
+        command:
+          type: string
+          maxLength: 1000
+        args:
+          type: array
+          maxItems: 50
+          items:
+            type: string
+            maxLength: 1000
+        timeoutMinutes:
+          type: integer
+          minimum: 1
+          maximum: 1440
+    LiveTvSettings:
+      type: object
+      required: [prePaddingSeconds, postPaddingSeconds, timeshiftMinutes, retention, postProcess]
+      properties:
+        prePaddingSeconds:
+          type: integer
+          minimum: 0
+          maximum: 3600
+          description: Default start padding of new recordings.
+        postPaddingSeconds:
+          type: integer
+          minimum: 0
+          maximum: 7200
+        timeshiftMinutes:
+          type: integer
+          minimum: 1
+          maximum: 240
+          description: Length of the rolling buffer viewers can pause and rewind in.
+        retention:
+          $ref: "#/components/schemas/LiveTvRetention"
+        postProcess:
+          $ref: "#/components/schemas/LiveTvPostProcess"
+        recordingsPath:
+          type: string
+          readOnly: true
+          description: Folder recordings are written to (STREAMERO_RECORDINGS_DIR).
+        recordingsLibraryId:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Library the recordings appear in (created with the first recording).

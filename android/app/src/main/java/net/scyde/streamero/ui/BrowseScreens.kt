@@ -57,7 +57,8 @@ fun HomeScreen(state: AppState, nav: NavHostController) {
         val prefs = runCatching { api.preferences() }.getOrNull()
         HomeData(api.latest(), runCatching { api.continueWatching() }.getOrDefault(emptyList()), runCatching { api.nextUp() }.getOrDefault(emptyList()),
             runCatching { api.favorites() }.getOrDefault(emptyList()), runCatching { api.collections() }.getOrDefault(emptyList()),
-            runCatching { api.libraries() }.getOrDefault(emptyList()), prefs?.homeSections)
+            runCatching { api.libraries() }.getOrDefault(emptyList()), prefs?.homeSections,
+            if (net.scyde.streamero.livetv.canWatchLiveTv(state.me)) runCatching { api.liveOnNow() }.getOrDefault(emptyList()) else emptyList())
     }
     val img: (String, String) -> String = api::imageUrl
     val tv = LocalTv.current
@@ -73,6 +74,7 @@ fun HomeScreen(state: AppState, nav: NavHostController) {
                 Text(stringResource(if (state.isAdmin) R.string.home_empty_admin else R.string.home_empty_user), color = Kino.muted, fontSize = 15.sp)
             }
         }
+        if (d.onNow.isNotEmpty()) item { OnNowShelf(state, nav, d.onNow) }
         val order = d.sections ?: listOf("continue", "nextUp", "latest", "favorites", "collections", "libraries")
         order.forEach { s ->
             when (s) {
@@ -90,7 +92,8 @@ fun HomeScreen(state: AppState, nav: NavHostController) {
 }
 
 private data class HomeData(val latest: List<ItemSummary>, val cont: List<ItemSummary>, val nextUp: List<ItemSummary>, val favorites: List<ItemSummary>,
-    val collections: List<MediaCollection>, val libraries: List<Library>, val sections: List<String>?)
+    val collections: List<MediaCollection>, val libraries: List<Library>, val sections: List<String>?,
+    val onNow: List<LiveTvChannel> = emptyList())
 
 /** The stage: one film edge to edge with its title set large, chosen from the newest titles. */
 @Composable

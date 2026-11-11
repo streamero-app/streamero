@@ -151,6 +151,9 @@ func (s *ActivityPage) SetTotal(val int) {
 	s.Total = val
 }
 
+// AddLiveTvFavoriteNoContent is response for AddLiveTvFavorite operation.
+type AddLiveTvFavoriteNoContent struct{}
+
 type AddToPlaylistReq struct {
 	ItemIds []uuid.UUID `json:"itemIds"`
 }
@@ -1450,6 +1453,18 @@ type DeleteInviteNoContent struct{}
 
 // DeleteLibraryNoContent is response for DeleteLibrary operation.
 type DeleteLibraryNoContent struct{}
+
+// DeleteLiveTvGuideNoContent is response for DeleteLiveTvGuide operation.
+type DeleteLiveTvGuideNoContent struct{}
+
+// DeleteLiveTvRecordingNoContent is response for DeleteLiveTvRecording operation.
+type DeleteLiveTvRecordingNoContent struct{}
+
+// DeleteLiveTvSeriesRuleNoContent is response for DeleteLiveTvSeriesRule operation.
+type DeleteLiveTvSeriesRuleNoContent struct{}
+
+// DeleteLiveTvTunerNoContent is response for DeleteLiveTvTuner operation.
+type DeleteLiveTvTunerNoContent struct{}
 
 // DeleteMyAvatarNoContent is response for DeleteMyAvatar operation.
 type DeleteMyAvatarNoContent struct{}
@@ -6277,6 +6292,2433 @@ func (s *ListLibraryItemsSort) UnmarshalText(data []byte) error {
 	}
 }
 
+// Normalised category of a channel or programme (from M3U group-title or XMLTV category).
+// Ref: #/components/schemas/LiveTvCategory
+type LiveTvCategory string
+
+const (
+	LiveTvCategoryMovies LiveTvCategory = "movies"
+	LiveTvCategorySports LiveTvCategory = "sports"
+	LiveTvCategoryNews   LiveTvCategory = "news"
+	LiveTvCategoryKids   LiveTvCategory = "kids"
+)
+
+// AllValues returns all LiveTvCategory values.
+func (LiveTvCategory) AllValues() []LiveTvCategory {
+	return []LiveTvCategory{
+		LiveTvCategoryMovies,
+		LiveTvCategorySports,
+		LiveTvCategoryNews,
+		LiveTvCategoryKids,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s LiveTvCategory) MarshalText() ([]byte, error) {
+	switch s {
+	case LiveTvCategoryMovies:
+		return []byte(s), nil
+	case LiveTvCategorySports:
+		return []byte(s), nil
+	case LiveTvCategoryNews:
+		return []byte(s), nil
+	case LiveTvCategoryKids:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *LiveTvCategory) UnmarshalText(data []byte) error {
+	switch LiveTvCategory(data) {
+	case LiveTvCategoryMovies:
+		*s = LiveTvCategoryMovies
+		return nil
+	case LiveTvCategorySports:
+		*s = LiveTvCategorySports
+		return nil
+	case LiveTvCategoryNews:
+		*s = LiveTvCategoryNews
+		return nil
+	case LiveTvCategoryKids:
+		*s = LiveTvCategoryKids
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/LiveTvChannel
+type LiveTvChannel struct {
+	ID     uuid.UUID `json:"id"`
+	Number string    `json:"number"`
+	Name   string    `json:"name"`
+	// Group as the source names it (M3U group-title).
+	Group    OptString         `json:"group"`
+	Category OptLiveTvCategory `json:"category"`
+	// Signed logo URL (relative to the server).
+	LogoUrl  OptString        `json:"logoUrl"`
+	TunerId  uuid.UUID        `json:"tunerId"`
+	Favorite bool             `json:"favorite"`
+	Hd       OptBool          `json:"hd"`
+	Now      OptLiveTvProgram `json:"now"`
+	Next     OptLiveTvProgram `json:"next"`
+}
+
+// GetID returns the value of ID.
+func (s *LiveTvChannel) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetNumber returns the value of Number.
+func (s *LiveTvChannel) GetNumber() string {
+	return s.Number
+}
+
+// GetName returns the value of Name.
+func (s *LiveTvChannel) GetName() string {
+	return s.Name
+}
+
+// GetGroup returns the value of Group.
+func (s *LiveTvChannel) GetGroup() OptString {
+	return s.Group
+}
+
+// GetCategory returns the value of Category.
+func (s *LiveTvChannel) GetCategory() OptLiveTvCategory {
+	return s.Category
+}
+
+// GetLogoUrl returns the value of LogoUrl.
+func (s *LiveTvChannel) GetLogoUrl() OptString {
+	return s.LogoUrl
+}
+
+// GetTunerId returns the value of TunerId.
+func (s *LiveTvChannel) GetTunerId() uuid.UUID {
+	return s.TunerId
+}
+
+// GetFavorite returns the value of Favorite.
+func (s *LiveTvChannel) GetFavorite() bool {
+	return s.Favorite
+}
+
+// GetHd returns the value of Hd.
+func (s *LiveTvChannel) GetHd() OptBool {
+	return s.Hd
+}
+
+// GetNow returns the value of Now.
+func (s *LiveTvChannel) GetNow() OptLiveTvProgram {
+	return s.Now
+}
+
+// GetNext returns the value of Next.
+func (s *LiveTvChannel) GetNext() OptLiveTvProgram {
+	return s.Next
+}
+
+// SetID sets the value of ID.
+func (s *LiveTvChannel) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetNumber sets the value of Number.
+func (s *LiveTvChannel) SetNumber(val string) {
+	s.Number = val
+}
+
+// SetName sets the value of Name.
+func (s *LiveTvChannel) SetName(val string) {
+	s.Name = val
+}
+
+// SetGroup sets the value of Group.
+func (s *LiveTvChannel) SetGroup(val OptString) {
+	s.Group = val
+}
+
+// SetCategory sets the value of Category.
+func (s *LiveTvChannel) SetCategory(val OptLiveTvCategory) {
+	s.Category = val
+}
+
+// SetLogoUrl sets the value of LogoUrl.
+func (s *LiveTvChannel) SetLogoUrl(val OptString) {
+	s.LogoUrl = val
+}
+
+// SetTunerId sets the value of TunerId.
+func (s *LiveTvChannel) SetTunerId(val uuid.UUID) {
+	s.TunerId = val
+}
+
+// SetFavorite sets the value of Favorite.
+func (s *LiveTvChannel) SetFavorite(val bool) {
+	s.Favorite = val
+}
+
+// SetHd sets the value of Hd.
+func (s *LiveTvChannel) SetHd(val OptBool) {
+	s.Hd = val
+}
+
+// SetNow sets the value of Now.
+func (s *LiveTvChannel) SetNow(val OptLiveTvProgram) {
+	s.Now = val
+}
+
+// SetNext sets the value of Next.
+func (s *LiveTvChannel) SetNext(val OptLiveTvProgram) {
+	s.Next = val
+}
+
+// Ref: #/components/schemas/LiveTvChannelAdmin
+type LiveTvChannelAdmin struct {
+	Channel       LiveTvChannel     `json:"channel"`
+	TunerName     string            `json:"tunerName"`
+	Mapping       LiveTvMappingMode `json:"mapping"`
+	GuideSourceId OptUUID           `json:"guideSourceId"`
+	// XMLTV channel id the channel is mapped to (automatically or by hand).
+	GuideChannelId   OptString         `json:"guideChannelId"`
+	Hidden           bool              `json:"hidden"`
+	CategoryOverride OptLiveTvCategory `json:"categoryOverride"`
+	VideoCodec       OptString         `json:"videoCodec"`
+	AudioCodec       OptString         `json:"audioCodec"`
+}
+
+// GetChannel returns the value of Channel.
+func (s *LiveTvChannelAdmin) GetChannel() LiveTvChannel {
+	return s.Channel
+}
+
+// GetTunerName returns the value of TunerName.
+func (s *LiveTvChannelAdmin) GetTunerName() string {
+	return s.TunerName
+}
+
+// GetMapping returns the value of Mapping.
+func (s *LiveTvChannelAdmin) GetMapping() LiveTvMappingMode {
+	return s.Mapping
+}
+
+// GetGuideSourceId returns the value of GuideSourceId.
+func (s *LiveTvChannelAdmin) GetGuideSourceId() OptUUID {
+	return s.GuideSourceId
+}
+
+// GetGuideChannelId returns the value of GuideChannelId.
+func (s *LiveTvChannelAdmin) GetGuideChannelId() OptString {
+	return s.GuideChannelId
+}
+
+// GetHidden returns the value of Hidden.
+func (s *LiveTvChannelAdmin) GetHidden() bool {
+	return s.Hidden
+}
+
+// GetCategoryOverride returns the value of CategoryOverride.
+func (s *LiveTvChannelAdmin) GetCategoryOverride() OptLiveTvCategory {
+	return s.CategoryOverride
+}
+
+// GetVideoCodec returns the value of VideoCodec.
+func (s *LiveTvChannelAdmin) GetVideoCodec() OptString {
+	return s.VideoCodec
+}
+
+// GetAudioCodec returns the value of AudioCodec.
+func (s *LiveTvChannelAdmin) GetAudioCodec() OptString {
+	return s.AudioCodec
+}
+
+// SetChannel sets the value of Channel.
+func (s *LiveTvChannelAdmin) SetChannel(val LiveTvChannel) {
+	s.Channel = val
+}
+
+// SetTunerName sets the value of TunerName.
+func (s *LiveTvChannelAdmin) SetTunerName(val string) {
+	s.TunerName = val
+}
+
+// SetMapping sets the value of Mapping.
+func (s *LiveTvChannelAdmin) SetMapping(val LiveTvMappingMode) {
+	s.Mapping = val
+}
+
+// SetGuideSourceId sets the value of GuideSourceId.
+func (s *LiveTvChannelAdmin) SetGuideSourceId(val OptUUID) {
+	s.GuideSourceId = val
+}
+
+// SetGuideChannelId sets the value of GuideChannelId.
+func (s *LiveTvChannelAdmin) SetGuideChannelId(val OptString) {
+	s.GuideChannelId = val
+}
+
+// SetHidden sets the value of Hidden.
+func (s *LiveTvChannelAdmin) SetHidden(val bool) {
+	s.Hidden = val
+}
+
+// SetCategoryOverride sets the value of CategoryOverride.
+func (s *LiveTvChannelAdmin) SetCategoryOverride(val OptLiveTvCategory) {
+	s.CategoryOverride = val
+}
+
+// SetVideoCodec sets the value of VideoCodec.
+func (s *LiveTvChannelAdmin) SetVideoCodec(val OptString) {
+	s.VideoCodec = val
+}
+
+// SetAudioCodec sets the value of AudioCodec.
+func (s *LiveTvChannelAdmin) SetAudioCodec(val OptString) {
+	s.AudioCodec = val
+}
+
+// Ref: #/components/schemas/LiveTvChannelUpdate
+type LiveTvChannelUpdate struct {
+	Mapping OptLiveTvMappingMode `json:"mapping"`
+	// With mapping manual.
+	GuideSourceId OptUUID `json:"guideSourceId"`
+	// With mapping manual.
+	GuideChannelId OptString `json:"guideChannelId"`
+	Hidden         OptBool   `json:"hidden"`
+	// Override the category ("auto" = from the source).
+	Category OptLiveTvChannelUpdateCategory `json:"category"`
+}
+
+// GetMapping returns the value of Mapping.
+func (s *LiveTvChannelUpdate) GetMapping() OptLiveTvMappingMode {
+	return s.Mapping
+}
+
+// GetGuideSourceId returns the value of GuideSourceId.
+func (s *LiveTvChannelUpdate) GetGuideSourceId() OptUUID {
+	return s.GuideSourceId
+}
+
+// GetGuideChannelId returns the value of GuideChannelId.
+func (s *LiveTvChannelUpdate) GetGuideChannelId() OptString {
+	return s.GuideChannelId
+}
+
+// GetHidden returns the value of Hidden.
+func (s *LiveTvChannelUpdate) GetHidden() OptBool {
+	return s.Hidden
+}
+
+// GetCategory returns the value of Category.
+func (s *LiveTvChannelUpdate) GetCategory() OptLiveTvChannelUpdateCategory {
+	return s.Category
+}
+
+// SetMapping sets the value of Mapping.
+func (s *LiveTvChannelUpdate) SetMapping(val OptLiveTvMappingMode) {
+	s.Mapping = val
+}
+
+// SetGuideSourceId sets the value of GuideSourceId.
+func (s *LiveTvChannelUpdate) SetGuideSourceId(val OptUUID) {
+	s.GuideSourceId = val
+}
+
+// SetGuideChannelId sets the value of GuideChannelId.
+func (s *LiveTvChannelUpdate) SetGuideChannelId(val OptString) {
+	s.GuideChannelId = val
+}
+
+// SetHidden sets the value of Hidden.
+func (s *LiveTvChannelUpdate) SetHidden(val OptBool) {
+	s.Hidden = val
+}
+
+// SetCategory sets the value of Category.
+func (s *LiveTvChannelUpdate) SetCategory(val OptLiveTvChannelUpdateCategory) {
+	s.Category = val
+}
+
+// Override the category ("auto" = from the source).
+type LiveTvChannelUpdateCategory string
+
+const (
+	LiveTvChannelUpdateCategoryAuto   LiveTvChannelUpdateCategory = "auto"
+	LiveTvChannelUpdateCategoryMovies LiveTvChannelUpdateCategory = "movies"
+	LiveTvChannelUpdateCategorySports LiveTvChannelUpdateCategory = "sports"
+	LiveTvChannelUpdateCategoryNews   LiveTvChannelUpdateCategory = "news"
+	LiveTvChannelUpdateCategoryKids   LiveTvChannelUpdateCategory = "kids"
+)
+
+// AllValues returns all LiveTvChannelUpdateCategory values.
+func (LiveTvChannelUpdateCategory) AllValues() []LiveTvChannelUpdateCategory {
+	return []LiveTvChannelUpdateCategory{
+		LiveTvChannelUpdateCategoryAuto,
+		LiveTvChannelUpdateCategoryMovies,
+		LiveTvChannelUpdateCategorySports,
+		LiveTvChannelUpdateCategoryNews,
+		LiveTvChannelUpdateCategoryKids,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s LiveTvChannelUpdateCategory) MarshalText() ([]byte, error) {
+	switch s {
+	case LiveTvChannelUpdateCategoryAuto:
+		return []byte(s), nil
+	case LiveTvChannelUpdateCategoryMovies:
+		return []byte(s), nil
+	case LiveTvChannelUpdateCategorySports:
+		return []byte(s), nil
+	case LiveTvChannelUpdateCategoryNews:
+		return []byte(s), nil
+	case LiveTvChannelUpdateCategoryKids:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *LiveTvChannelUpdateCategory) UnmarshalText(data []byte) error {
+	switch LiveTvChannelUpdateCategory(data) {
+	case LiveTvChannelUpdateCategoryAuto:
+		*s = LiveTvChannelUpdateCategoryAuto
+		return nil
+	case LiveTvChannelUpdateCategoryMovies:
+		*s = LiveTvChannelUpdateCategoryMovies
+		return nil
+	case LiveTvChannelUpdateCategorySports:
+		*s = LiveTvChannelUpdateCategorySports
+		return nil
+	case LiveTvChannelUpdateCategoryNews:
+		*s = LiveTvChannelUpdateCategoryNews
+		return nil
+	case LiveTvChannelUpdateCategoryKids:
+		*s = LiveTvChannelUpdateCategoryKids
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/LiveTvDiscoveredTuner
+type LiveTvDiscoveredTuner struct {
+	DeviceId   string    `json:"deviceId"`
+	Name       string    `json:"name"`
+	Model      OptString `json:"model"`
+	URL        string    `json:"url"`
+	TunerCount int       `json:"tunerCount"`
+	// A tuner source with this device already exists.
+	Added bool `json:"added"`
+}
+
+// GetDeviceId returns the value of DeviceId.
+func (s *LiveTvDiscoveredTuner) GetDeviceId() string {
+	return s.DeviceId
+}
+
+// GetName returns the value of Name.
+func (s *LiveTvDiscoveredTuner) GetName() string {
+	return s.Name
+}
+
+// GetModel returns the value of Model.
+func (s *LiveTvDiscoveredTuner) GetModel() OptString {
+	return s.Model
+}
+
+// GetURL returns the value of URL.
+func (s *LiveTvDiscoveredTuner) GetURL() string {
+	return s.URL
+}
+
+// GetTunerCount returns the value of TunerCount.
+func (s *LiveTvDiscoveredTuner) GetTunerCount() int {
+	return s.TunerCount
+}
+
+// GetAdded returns the value of Added.
+func (s *LiveTvDiscoveredTuner) GetAdded() bool {
+	return s.Added
+}
+
+// SetDeviceId sets the value of DeviceId.
+func (s *LiveTvDiscoveredTuner) SetDeviceId(val string) {
+	s.DeviceId = val
+}
+
+// SetName sets the value of Name.
+func (s *LiveTvDiscoveredTuner) SetName(val string) {
+	s.Name = val
+}
+
+// SetModel sets the value of Model.
+func (s *LiveTvDiscoveredTuner) SetModel(val OptString) {
+	s.Model = val
+}
+
+// SetURL sets the value of URL.
+func (s *LiveTvDiscoveredTuner) SetURL(val string) {
+	s.URL = val
+}
+
+// SetTunerCount sets the value of TunerCount.
+func (s *LiveTvDiscoveredTuner) SetTunerCount(val int) {
+	s.TunerCount = val
+}
+
+// SetAdded sets the value of Added.
+func (s *LiveTvDiscoveredTuner) SetAdded(val bool) {
+	s.Added = val
+}
+
+// Ref: #/components/schemas/LiveTvGuide
+type LiveTvGuide struct {
+	Start time.Time        `json:"start"`
+	End   time.Time        `json:"end"`
+	Rows  []LiveTvGuideRow `json:"rows"`
+}
+
+// GetStart returns the value of Start.
+func (s *LiveTvGuide) GetStart() time.Time {
+	return s.Start
+}
+
+// GetEnd returns the value of End.
+func (s *LiveTvGuide) GetEnd() time.Time {
+	return s.End
+}
+
+// GetRows returns the value of Rows.
+func (s *LiveTvGuide) GetRows() []LiveTvGuideRow {
+	return s.Rows
+}
+
+// SetStart sets the value of Start.
+func (s *LiveTvGuide) SetStart(val time.Time) {
+	s.Start = val
+}
+
+// SetEnd sets the value of End.
+func (s *LiveTvGuide) SetEnd(val time.Time) {
+	s.End = val
+}
+
+// SetRows sets the value of Rows.
+func (s *LiveTvGuide) SetRows(val []LiveTvGuideRow) {
+	s.Rows = val
+}
+
+// Ref: #/components/schemas/LiveTvGuideChannel
+type LiveTvGuideChannel struct {
+	SourceId uuid.UUID `json:"sourceId"`
+	ID       string    `json:"id"`
+	Name     string    `json:"name"`
+}
+
+// GetSourceId returns the value of SourceId.
+func (s *LiveTvGuideChannel) GetSourceId() uuid.UUID {
+	return s.SourceId
+}
+
+// GetID returns the value of ID.
+func (s *LiveTvGuideChannel) GetID() string {
+	return s.ID
+}
+
+// GetName returns the value of Name.
+func (s *LiveTvGuideChannel) GetName() string {
+	return s.Name
+}
+
+// SetSourceId sets the value of SourceId.
+func (s *LiveTvGuideChannel) SetSourceId(val uuid.UUID) {
+	s.SourceId = val
+}
+
+// SetID sets the value of ID.
+func (s *LiveTvGuideChannel) SetID(val string) {
+	s.ID = val
+}
+
+// SetName sets the value of Name.
+func (s *LiveTvGuideChannel) SetName(val string) {
+	s.Name = val
+}
+
+// Ref: #/components/schemas/LiveTvGuideRow
+type LiveTvGuideRow struct {
+	Channel  LiveTvChannel   `json:"channel"`
+	Programs []LiveTvProgram `json:"programs"`
+}
+
+// GetChannel returns the value of Channel.
+func (s *LiveTvGuideRow) GetChannel() LiveTvChannel {
+	return s.Channel
+}
+
+// GetPrograms returns the value of Programs.
+func (s *LiveTvGuideRow) GetPrograms() []LiveTvProgram {
+	return s.Programs
+}
+
+// SetChannel sets the value of Channel.
+func (s *LiveTvGuideRow) SetChannel(val LiveTvChannel) {
+	s.Channel = val
+}
+
+// SetPrograms sets the value of Programs.
+func (s *LiveTvGuideRow) SetPrograms(val []LiveTvProgram) {
+	s.Programs = val
+}
+
+// Ref: #/components/schemas/LiveTvGuideSource
+type LiveTvGuideSource struct {
+	ID       uuid.UUID `json:"id"`
+	Name     string    `json:"name"`
+	URL      OptString `json:"url"`
+	FilePath OptString `json:"filePath"`
+	// IANA zone for guide times without an offset (default UTC).
+	Timezone      OptString   `json:"timezone"`
+	RefreshHours  int         `json:"refreshHours"`
+	Enabled       bool        `json:"enabled"`
+	ChannelCount  int         `json:"channelCount"`
+	ProgramCount  int         `json:"programCount"`
+	LastRefreshAt OptDateTime `json:"lastRefreshAt"`
+	// Last refresh that found changed programmes.
+	LastChangedAt OptDateTime `json:"lastChangedAt"`
+	// Summary of the last refresh, e.g. "12 new, 3 changed, 840 unchanged".
+	LastResult OptString `json:"lastResult"`
+	Error      OptString `json:"error"`
+}
+
+// GetID returns the value of ID.
+func (s *LiveTvGuideSource) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetName returns the value of Name.
+func (s *LiveTvGuideSource) GetName() string {
+	return s.Name
+}
+
+// GetURL returns the value of URL.
+func (s *LiveTvGuideSource) GetURL() OptString {
+	return s.URL
+}
+
+// GetFilePath returns the value of FilePath.
+func (s *LiveTvGuideSource) GetFilePath() OptString {
+	return s.FilePath
+}
+
+// GetTimezone returns the value of Timezone.
+func (s *LiveTvGuideSource) GetTimezone() OptString {
+	return s.Timezone
+}
+
+// GetRefreshHours returns the value of RefreshHours.
+func (s *LiveTvGuideSource) GetRefreshHours() int {
+	return s.RefreshHours
+}
+
+// GetEnabled returns the value of Enabled.
+func (s *LiveTvGuideSource) GetEnabled() bool {
+	return s.Enabled
+}
+
+// GetChannelCount returns the value of ChannelCount.
+func (s *LiveTvGuideSource) GetChannelCount() int {
+	return s.ChannelCount
+}
+
+// GetProgramCount returns the value of ProgramCount.
+func (s *LiveTvGuideSource) GetProgramCount() int {
+	return s.ProgramCount
+}
+
+// GetLastRefreshAt returns the value of LastRefreshAt.
+func (s *LiveTvGuideSource) GetLastRefreshAt() OptDateTime {
+	return s.LastRefreshAt
+}
+
+// GetLastChangedAt returns the value of LastChangedAt.
+func (s *LiveTvGuideSource) GetLastChangedAt() OptDateTime {
+	return s.LastChangedAt
+}
+
+// GetLastResult returns the value of LastResult.
+func (s *LiveTvGuideSource) GetLastResult() OptString {
+	return s.LastResult
+}
+
+// GetError returns the value of Error.
+func (s *LiveTvGuideSource) GetError() OptString {
+	return s.Error
+}
+
+// SetID sets the value of ID.
+func (s *LiveTvGuideSource) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetName sets the value of Name.
+func (s *LiveTvGuideSource) SetName(val string) {
+	s.Name = val
+}
+
+// SetURL sets the value of URL.
+func (s *LiveTvGuideSource) SetURL(val OptString) {
+	s.URL = val
+}
+
+// SetFilePath sets the value of FilePath.
+func (s *LiveTvGuideSource) SetFilePath(val OptString) {
+	s.FilePath = val
+}
+
+// SetTimezone sets the value of Timezone.
+func (s *LiveTvGuideSource) SetTimezone(val OptString) {
+	s.Timezone = val
+}
+
+// SetRefreshHours sets the value of RefreshHours.
+func (s *LiveTvGuideSource) SetRefreshHours(val int) {
+	s.RefreshHours = val
+}
+
+// SetEnabled sets the value of Enabled.
+func (s *LiveTvGuideSource) SetEnabled(val bool) {
+	s.Enabled = val
+}
+
+// SetChannelCount sets the value of ChannelCount.
+func (s *LiveTvGuideSource) SetChannelCount(val int) {
+	s.ChannelCount = val
+}
+
+// SetProgramCount sets the value of ProgramCount.
+func (s *LiveTvGuideSource) SetProgramCount(val int) {
+	s.ProgramCount = val
+}
+
+// SetLastRefreshAt sets the value of LastRefreshAt.
+func (s *LiveTvGuideSource) SetLastRefreshAt(val OptDateTime) {
+	s.LastRefreshAt = val
+}
+
+// SetLastChangedAt sets the value of LastChangedAt.
+func (s *LiveTvGuideSource) SetLastChangedAt(val OptDateTime) {
+	s.LastChangedAt = val
+}
+
+// SetLastResult sets the value of LastResult.
+func (s *LiveTvGuideSource) SetLastResult(val OptString) {
+	s.LastResult = val
+}
+
+// SetError sets the value of Error.
+func (s *LiveTvGuideSource) SetError(val OptString) {
+	s.Error = val
+}
+
+// Ref: #/components/schemas/LiveTvGuideSourceInput
+type LiveTvGuideSourceInput struct {
+	Name         string    `json:"name"`
+	URL          OptString `json:"url"`
+	FilePath     OptString `json:"filePath"`
+	Timezone     OptString `json:"timezone"`
+	RefreshHours OptInt    `json:"refreshHours"`
+	Enabled      OptBool   `json:"enabled"`
+}
+
+// GetName returns the value of Name.
+func (s *LiveTvGuideSourceInput) GetName() string {
+	return s.Name
+}
+
+// GetURL returns the value of URL.
+func (s *LiveTvGuideSourceInput) GetURL() OptString {
+	return s.URL
+}
+
+// GetFilePath returns the value of FilePath.
+func (s *LiveTvGuideSourceInput) GetFilePath() OptString {
+	return s.FilePath
+}
+
+// GetTimezone returns the value of Timezone.
+func (s *LiveTvGuideSourceInput) GetTimezone() OptString {
+	return s.Timezone
+}
+
+// GetRefreshHours returns the value of RefreshHours.
+func (s *LiveTvGuideSourceInput) GetRefreshHours() OptInt {
+	return s.RefreshHours
+}
+
+// GetEnabled returns the value of Enabled.
+func (s *LiveTvGuideSourceInput) GetEnabled() OptBool {
+	return s.Enabled
+}
+
+// SetName sets the value of Name.
+func (s *LiveTvGuideSourceInput) SetName(val string) {
+	s.Name = val
+}
+
+// SetURL sets the value of URL.
+func (s *LiveTvGuideSourceInput) SetURL(val OptString) {
+	s.URL = val
+}
+
+// SetFilePath sets the value of FilePath.
+func (s *LiveTvGuideSourceInput) SetFilePath(val OptString) {
+	s.FilePath = val
+}
+
+// SetTimezone sets the value of Timezone.
+func (s *LiveTvGuideSourceInput) SetTimezone(val OptString) {
+	s.Timezone = val
+}
+
+// SetRefreshHours sets the value of RefreshHours.
+func (s *LiveTvGuideSourceInput) SetRefreshHours(val OptInt) {
+	s.RefreshHours = val
+}
+
+// SetEnabled sets the value of Enabled.
+func (s *LiveTvGuideSourceInput) SetEnabled(val OptBool) {
+	s.Enabled = val
+}
+
+// Ref: #/components/schemas/LiveTvMapping
+type LiveTvMapping struct {
+	Channels      []LiveTvChannelAdmin `json:"channels"`
+	GuideChannels []LiveTvGuideChannel `json:"guideChannels"`
+}
+
+// GetChannels returns the value of Channels.
+func (s *LiveTvMapping) GetChannels() []LiveTvChannelAdmin {
+	return s.Channels
+}
+
+// GetGuideChannels returns the value of GuideChannels.
+func (s *LiveTvMapping) GetGuideChannels() []LiveTvGuideChannel {
+	return s.GuideChannels
+}
+
+// SetChannels sets the value of Channels.
+func (s *LiveTvMapping) SetChannels(val []LiveTvChannelAdmin) {
+	s.Channels = val
+}
+
+// SetGuideChannels sets the value of GuideChannels.
+func (s *LiveTvMapping) SetGuideChannels(val []LiveTvGuideChannel) {
+	s.GuideChannels = val
+}
+
+// Ref: #/components/schemas/LiveTvMappingMode
+type LiveTvMappingMode string
+
+const (
+	LiveTvMappingModeAuto   LiveTvMappingMode = "auto"
+	LiveTvMappingModeManual LiveTvMappingMode = "manual"
+	LiveTvMappingModeNone   LiveTvMappingMode = "none"
+)
+
+// AllValues returns all LiveTvMappingMode values.
+func (LiveTvMappingMode) AllValues() []LiveTvMappingMode {
+	return []LiveTvMappingMode{
+		LiveTvMappingModeAuto,
+		LiveTvMappingModeManual,
+		LiveTvMappingModeNone,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s LiveTvMappingMode) MarshalText() ([]byte, error) {
+	switch s {
+	case LiveTvMappingModeAuto:
+		return []byte(s), nil
+	case LiveTvMappingModeManual:
+		return []byte(s), nil
+	case LiveTvMappingModeNone:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *LiveTvMappingMode) UnmarshalText(data []byte) error {
+	switch LiveTvMappingMode(data) {
+	case LiveTvMappingModeAuto:
+		*s = LiveTvMappingModeAuto
+		return nil
+	case LiveTvMappingModeManual:
+		*s = LiveTvMappingModeManual
+		return nil
+	case LiveTvMappingModeNone:
+		*s = LiveTvMappingModeNone
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/LiveTvPlayRequest
+type LiveTvPlayRequest struct {
+	Device DeviceProfile `json:"device"`
+}
+
+// GetDevice returns the value of Device.
+func (s *LiveTvPlayRequest) GetDevice() DeviceProfile {
+	return s.Device
+}
+
+// SetDevice sets the value of Device.
+func (s *LiveTvPlayRequest) SetDevice(val DeviceProfile) {
+	s.Device = val
+}
+
+// Ref: #/components/schemas/LiveTvPlayback
+type LiveTvPlayback struct {
+	ChannelId uuid.UUID `json:"channelId"`
+	// Signed HLS playlist URL (relative to the server); a sliding live window.
+	URL    string               `json:"url"`
+	Method LiveTvPlaybackMethod `json:"method"`
+	Reason OptString            `json:"reason"`
+	// How far back the viewer can pause or rewind.
+	TimeshiftSeconds int              `json:"timeshiftSeconds"`
+	Now              OptLiveTvProgram `json:"now"`
+}
+
+// GetChannelId returns the value of ChannelId.
+func (s *LiveTvPlayback) GetChannelId() uuid.UUID {
+	return s.ChannelId
+}
+
+// GetURL returns the value of URL.
+func (s *LiveTvPlayback) GetURL() string {
+	return s.URL
+}
+
+// GetMethod returns the value of Method.
+func (s *LiveTvPlayback) GetMethod() LiveTvPlaybackMethod {
+	return s.Method
+}
+
+// GetReason returns the value of Reason.
+func (s *LiveTvPlayback) GetReason() OptString {
+	return s.Reason
+}
+
+// GetTimeshiftSeconds returns the value of TimeshiftSeconds.
+func (s *LiveTvPlayback) GetTimeshiftSeconds() int {
+	return s.TimeshiftSeconds
+}
+
+// GetNow returns the value of Now.
+func (s *LiveTvPlayback) GetNow() OptLiveTvProgram {
+	return s.Now
+}
+
+// SetChannelId sets the value of ChannelId.
+func (s *LiveTvPlayback) SetChannelId(val uuid.UUID) {
+	s.ChannelId = val
+}
+
+// SetURL sets the value of URL.
+func (s *LiveTvPlayback) SetURL(val string) {
+	s.URL = val
+}
+
+// SetMethod sets the value of Method.
+func (s *LiveTvPlayback) SetMethod(val LiveTvPlaybackMethod) {
+	s.Method = val
+}
+
+// SetReason sets the value of Reason.
+func (s *LiveTvPlayback) SetReason(val OptString) {
+	s.Reason = val
+}
+
+// SetTimeshiftSeconds sets the value of TimeshiftSeconds.
+func (s *LiveTvPlayback) SetTimeshiftSeconds(val int) {
+	s.TimeshiftSeconds = val
+}
+
+// SetNow sets the value of Now.
+func (s *LiveTvPlayback) SetNow(val OptLiveTvProgram) {
+	s.Now = val
+}
+
+type LiveTvPlaybackMethod string
+
+const (
+	LiveTvPlaybackMethodRemux     LiveTvPlaybackMethod = "remux"
+	LiveTvPlaybackMethodTranscode LiveTvPlaybackMethod = "transcode"
+)
+
+// AllValues returns all LiveTvPlaybackMethod values.
+func (LiveTvPlaybackMethod) AllValues() []LiveTvPlaybackMethod {
+	return []LiveTvPlaybackMethod{
+		LiveTvPlaybackMethodRemux,
+		LiveTvPlaybackMethodTranscode,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s LiveTvPlaybackMethod) MarshalText() ([]byte, error) {
+	switch s {
+	case LiveTvPlaybackMethodRemux:
+		return []byte(s), nil
+	case LiveTvPlaybackMethodTranscode:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *LiveTvPlaybackMethod) UnmarshalText(data []byte) error {
+	switch LiveTvPlaybackMethod(data) {
+	case LiveTvPlaybackMethodRemux:
+		*s = LiveTvPlaybackMethodRemux
+		return nil
+	case LiveTvPlaybackMethodTranscode:
+		*s = LiveTvPlaybackMethodTranscode
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Program run after every finished recording, without a shell. command is an absolute path to an
+// executable; each element of args is passed as one argument after replacing the placeholders {path}
+// {dir} {filename} {title} {subtitle} {channel} {channelNumber} {start} {end} {season} {episode}
+// {recordingId}. Only administrators may change it. Empty command = off.
+// Ref: #/components/schemas/LiveTvPostProcess
+type LiveTvPostProcess struct {
+	Command        string   `json:"command"`
+	Args           []string `json:"args"`
+	TimeoutMinutes int      `json:"timeoutMinutes"`
+}
+
+// GetCommand returns the value of Command.
+func (s *LiveTvPostProcess) GetCommand() string {
+	return s.Command
+}
+
+// GetArgs returns the value of Args.
+func (s *LiveTvPostProcess) GetArgs() []string {
+	return s.Args
+}
+
+// GetTimeoutMinutes returns the value of TimeoutMinutes.
+func (s *LiveTvPostProcess) GetTimeoutMinutes() int {
+	return s.TimeoutMinutes
+}
+
+// SetCommand sets the value of Command.
+func (s *LiveTvPostProcess) SetCommand(val string) {
+	s.Command = val
+}
+
+// SetArgs sets the value of Args.
+func (s *LiveTvPostProcess) SetArgs(val []string) {
+	s.Args = val
+}
+
+// SetTimeoutMinutes sets the value of TimeoutMinutes.
+func (s *LiveTvPostProcess) SetTimeoutMinutes(val int) {
+	s.TimeoutMinutes = val
+}
+
+// Ref: #/components/schemas/LiveTvProgram
+type LiveTvProgram struct {
+	ID            uuid.UUID `json:"id"`
+	ChannelId     uuid.UUID `json:"channelId"`
+	ChannelName   OptString `json:"channelName"`
+	ChannelNumber OptString `json:"channelNumber"`
+	Title         string    `json:"title"`
+	// Episode title.
+	Subtitle    OptString `json:"subtitle"`
+	Description OptString `json:"description"`
+	Start       time.Time `json:"start"`
+	End         time.Time `json:"end"`
+	// Categories as the guide names them.
+	Categories []string          `json:"categories"`
+	Category   OptLiveTvCategory `json:"category"`
+	Season     OptInt            `json:"season"`
+	Episode    OptInt            `json:"episode"`
+	Year       OptInt            `json:"year"`
+	IsNew      bool              `json:"isNew"`
+	IsPremiere OptBool           `json:"isPremiere"`
+	// The guide marks it as previously shown.
+	IsRepeat OptBool `json:"isRepeat"`
+	IsLive   OptBool `json:"isLive"`
+	// Signed image URL (relative to the server).
+	ImageUrl OptString `json:"imageUrl"`
+	// Recording scheduled for this programme on this channel.
+	RecordingId     OptUUID                  `json:"recordingId"`
+	RecordingStatus OptLiveTvRecordingStatus `json:"recordingStatus"`
+	SeriesRuleId    OptUUID                  `json:"seriesRuleId"`
+}
+
+// GetID returns the value of ID.
+func (s *LiveTvProgram) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetChannelId returns the value of ChannelId.
+func (s *LiveTvProgram) GetChannelId() uuid.UUID {
+	return s.ChannelId
+}
+
+// GetChannelName returns the value of ChannelName.
+func (s *LiveTvProgram) GetChannelName() OptString {
+	return s.ChannelName
+}
+
+// GetChannelNumber returns the value of ChannelNumber.
+func (s *LiveTvProgram) GetChannelNumber() OptString {
+	return s.ChannelNumber
+}
+
+// GetTitle returns the value of Title.
+func (s *LiveTvProgram) GetTitle() string {
+	return s.Title
+}
+
+// GetSubtitle returns the value of Subtitle.
+func (s *LiveTvProgram) GetSubtitle() OptString {
+	return s.Subtitle
+}
+
+// GetDescription returns the value of Description.
+func (s *LiveTvProgram) GetDescription() OptString {
+	return s.Description
+}
+
+// GetStart returns the value of Start.
+func (s *LiveTvProgram) GetStart() time.Time {
+	return s.Start
+}
+
+// GetEnd returns the value of End.
+func (s *LiveTvProgram) GetEnd() time.Time {
+	return s.End
+}
+
+// GetCategories returns the value of Categories.
+func (s *LiveTvProgram) GetCategories() []string {
+	return s.Categories
+}
+
+// GetCategory returns the value of Category.
+func (s *LiveTvProgram) GetCategory() OptLiveTvCategory {
+	return s.Category
+}
+
+// GetSeason returns the value of Season.
+func (s *LiveTvProgram) GetSeason() OptInt {
+	return s.Season
+}
+
+// GetEpisode returns the value of Episode.
+func (s *LiveTvProgram) GetEpisode() OptInt {
+	return s.Episode
+}
+
+// GetYear returns the value of Year.
+func (s *LiveTvProgram) GetYear() OptInt {
+	return s.Year
+}
+
+// GetIsNew returns the value of IsNew.
+func (s *LiveTvProgram) GetIsNew() bool {
+	return s.IsNew
+}
+
+// GetIsPremiere returns the value of IsPremiere.
+func (s *LiveTvProgram) GetIsPremiere() OptBool {
+	return s.IsPremiere
+}
+
+// GetIsRepeat returns the value of IsRepeat.
+func (s *LiveTvProgram) GetIsRepeat() OptBool {
+	return s.IsRepeat
+}
+
+// GetIsLive returns the value of IsLive.
+func (s *LiveTvProgram) GetIsLive() OptBool {
+	return s.IsLive
+}
+
+// GetImageUrl returns the value of ImageUrl.
+func (s *LiveTvProgram) GetImageUrl() OptString {
+	return s.ImageUrl
+}
+
+// GetRecordingId returns the value of RecordingId.
+func (s *LiveTvProgram) GetRecordingId() OptUUID {
+	return s.RecordingId
+}
+
+// GetRecordingStatus returns the value of RecordingStatus.
+func (s *LiveTvProgram) GetRecordingStatus() OptLiveTvRecordingStatus {
+	return s.RecordingStatus
+}
+
+// GetSeriesRuleId returns the value of SeriesRuleId.
+func (s *LiveTvProgram) GetSeriesRuleId() OptUUID {
+	return s.SeriesRuleId
+}
+
+// SetID sets the value of ID.
+func (s *LiveTvProgram) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetChannelId sets the value of ChannelId.
+func (s *LiveTvProgram) SetChannelId(val uuid.UUID) {
+	s.ChannelId = val
+}
+
+// SetChannelName sets the value of ChannelName.
+func (s *LiveTvProgram) SetChannelName(val OptString) {
+	s.ChannelName = val
+}
+
+// SetChannelNumber sets the value of ChannelNumber.
+func (s *LiveTvProgram) SetChannelNumber(val OptString) {
+	s.ChannelNumber = val
+}
+
+// SetTitle sets the value of Title.
+func (s *LiveTvProgram) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetSubtitle sets the value of Subtitle.
+func (s *LiveTvProgram) SetSubtitle(val OptString) {
+	s.Subtitle = val
+}
+
+// SetDescription sets the value of Description.
+func (s *LiveTvProgram) SetDescription(val OptString) {
+	s.Description = val
+}
+
+// SetStart sets the value of Start.
+func (s *LiveTvProgram) SetStart(val time.Time) {
+	s.Start = val
+}
+
+// SetEnd sets the value of End.
+func (s *LiveTvProgram) SetEnd(val time.Time) {
+	s.End = val
+}
+
+// SetCategories sets the value of Categories.
+func (s *LiveTvProgram) SetCategories(val []string) {
+	s.Categories = val
+}
+
+// SetCategory sets the value of Category.
+func (s *LiveTvProgram) SetCategory(val OptLiveTvCategory) {
+	s.Category = val
+}
+
+// SetSeason sets the value of Season.
+func (s *LiveTvProgram) SetSeason(val OptInt) {
+	s.Season = val
+}
+
+// SetEpisode sets the value of Episode.
+func (s *LiveTvProgram) SetEpisode(val OptInt) {
+	s.Episode = val
+}
+
+// SetYear sets the value of Year.
+func (s *LiveTvProgram) SetYear(val OptInt) {
+	s.Year = val
+}
+
+// SetIsNew sets the value of IsNew.
+func (s *LiveTvProgram) SetIsNew(val bool) {
+	s.IsNew = val
+}
+
+// SetIsPremiere sets the value of IsPremiere.
+func (s *LiveTvProgram) SetIsPremiere(val OptBool) {
+	s.IsPremiere = val
+}
+
+// SetIsRepeat sets the value of IsRepeat.
+func (s *LiveTvProgram) SetIsRepeat(val OptBool) {
+	s.IsRepeat = val
+}
+
+// SetIsLive sets the value of IsLive.
+func (s *LiveTvProgram) SetIsLive(val OptBool) {
+	s.IsLive = val
+}
+
+// SetImageUrl sets the value of ImageUrl.
+func (s *LiveTvProgram) SetImageUrl(val OptString) {
+	s.ImageUrl = val
+}
+
+// SetRecordingId sets the value of RecordingId.
+func (s *LiveTvProgram) SetRecordingId(val OptUUID) {
+	s.RecordingId = val
+}
+
+// SetRecordingStatus sets the value of RecordingStatus.
+func (s *LiveTvProgram) SetRecordingStatus(val OptLiveTvRecordingStatus) {
+	s.RecordingStatus = val
+}
+
+// SetSeriesRuleId sets the value of SeriesRuleId.
+func (s *LiveTvProgram) SetSeriesRuleId(val OptUUID) {
+	s.SeriesRuleId = val
+}
+
+// Ref: #/components/schemas/LiveTvRecording
+type LiveTvRecording struct {
+	ID                 uuid.UUID `json:"id"`
+	ChannelId          OptUUID   `json:"channelId"`
+	ChannelName        OptString `json:"channelName"`
+	ChannelNumber      OptString `json:"channelNumber"`
+	ProgramId          OptUUID   `json:"programId"`
+	SeriesRuleId       OptUUID   `json:"seriesRuleId"`
+	Title              string    `json:"title"`
+	Subtitle           OptString `json:"subtitle"`
+	Description        OptString `json:"description"`
+	Season             OptInt    `json:"season"`
+	Episode            OptInt    `json:"episode"`
+	Start              time.Time `json:"start"`
+	End                time.Time `json:"end"`
+	PrePaddingSeconds  int       `json:"prePaddingSeconds"`
+	PostPaddingSeconds int       `json:"postPaddingSeconds"`
+	// Higher wins when tuners run out.
+	Priority int                   `json:"priority"`
+	Status   LiveTvRecordingStatus `json:"status"`
+	// Why it failed, or which recordings it conflicts with.
+	Error     OptString `json:"error"`
+	SizeBytes OptInt64  `json:"sizeBytes"`
+	// Library item of the finished recording (once scanned).
+	ItemId           OptUUID   `json:"itemId"`
+	ImageUrl         OptString `json:"imageUrl"`
+	PostProcessError OptString `json:"postProcessError"`
+	CreatedAt        time.Time `json:"createdAt"`
+}
+
+// GetID returns the value of ID.
+func (s *LiveTvRecording) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetChannelId returns the value of ChannelId.
+func (s *LiveTvRecording) GetChannelId() OptUUID {
+	return s.ChannelId
+}
+
+// GetChannelName returns the value of ChannelName.
+func (s *LiveTvRecording) GetChannelName() OptString {
+	return s.ChannelName
+}
+
+// GetChannelNumber returns the value of ChannelNumber.
+func (s *LiveTvRecording) GetChannelNumber() OptString {
+	return s.ChannelNumber
+}
+
+// GetProgramId returns the value of ProgramId.
+func (s *LiveTvRecording) GetProgramId() OptUUID {
+	return s.ProgramId
+}
+
+// GetSeriesRuleId returns the value of SeriesRuleId.
+func (s *LiveTvRecording) GetSeriesRuleId() OptUUID {
+	return s.SeriesRuleId
+}
+
+// GetTitle returns the value of Title.
+func (s *LiveTvRecording) GetTitle() string {
+	return s.Title
+}
+
+// GetSubtitle returns the value of Subtitle.
+func (s *LiveTvRecording) GetSubtitle() OptString {
+	return s.Subtitle
+}
+
+// GetDescription returns the value of Description.
+func (s *LiveTvRecording) GetDescription() OptString {
+	return s.Description
+}
+
+// GetSeason returns the value of Season.
+func (s *LiveTvRecording) GetSeason() OptInt {
+	return s.Season
+}
+
+// GetEpisode returns the value of Episode.
+func (s *LiveTvRecording) GetEpisode() OptInt {
+	return s.Episode
+}
+
+// GetStart returns the value of Start.
+func (s *LiveTvRecording) GetStart() time.Time {
+	return s.Start
+}
+
+// GetEnd returns the value of End.
+func (s *LiveTvRecording) GetEnd() time.Time {
+	return s.End
+}
+
+// GetPrePaddingSeconds returns the value of PrePaddingSeconds.
+func (s *LiveTvRecording) GetPrePaddingSeconds() int {
+	return s.PrePaddingSeconds
+}
+
+// GetPostPaddingSeconds returns the value of PostPaddingSeconds.
+func (s *LiveTvRecording) GetPostPaddingSeconds() int {
+	return s.PostPaddingSeconds
+}
+
+// GetPriority returns the value of Priority.
+func (s *LiveTvRecording) GetPriority() int {
+	return s.Priority
+}
+
+// GetStatus returns the value of Status.
+func (s *LiveTvRecording) GetStatus() LiveTvRecordingStatus {
+	return s.Status
+}
+
+// GetError returns the value of Error.
+func (s *LiveTvRecording) GetError() OptString {
+	return s.Error
+}
+
+// GetSizeBytes returns the value of SizeBytes.
+func (s *LiveTvRecording) GetSizeBytes() OptInt64 {
+	return s.SizeBytes
+}
+
+// GetItemId returns the value of ItemId.
+func (s *LiveTvRecording) GetItemId() OptUUID {
+	return s.ItemId
+}
+
+// GetImageUrl returns the value of ImageUrl.
+func (s *LiveTvRecording) GetImageUrl() OptString {
+	return s.ImageUrl
+}
+
+// GetPostProcessError returns the value of PostProcessError.
+func (s *LiveTvRecording) GetPostProcessError() OptString {
+	return s.PostProcessError
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *LiveTvRecording) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// SetID sets the value of ID.
+func (s *LiveTvRecording) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetChannelId sets the value of ChannelId.
+func (s *LiveTvRecording) SetChannelId(val OptUUID) {
+	s.ChannelId = val
+}
+
+// SetChannelName sets the value of ChannelName.
+func (s *LiveTvRecording) SetChannelName(val OptString) {
+	s.ChannelName = val
+}
+
+// SetChannelNumber sets the value of ChannelNumber.
+func (s *LiveTvRecording) SetChannelNumber(val OptString) {
+	s.ChannelNumber = val
+}
+
+// SetProgramId sets the value of ProgramId.
+func (s *LiveTvRecording) SetProgramId(val OptUUID) {
+	s.ProgramId = val
+}
+
+// SetSeriesRuleId sets the value of SeriesRuleId.
+func (s *LiveTvRecording) SetSeriesRuleId(val OptUUID) {
+	s.SeriesRuleId = val
+}
+
+// SetTitle sets the value of Title.
+func (s *LiveTvRecording) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetSubtitle sets the value of Subtitle.
+func (s *LiveTvRecording) SetSubtitle(val OptString) {
+	s.Subtitle = val
+}
+
+// SetDescription sets the value of Description.
+func (s *LiveTvRecording) SetDescription(val OptString) {
+	s.Description = val
+}
+
+// SetSeason sets the value of Season.
+func (s *LiveTvRecording) SetSeason(val OptInt) {
+	s.Season = val
+}
+
+// SetEpisode sets the value of Episode.
+func (s *LiveTvRecording) SetEpisode(val OptInt) {
+	s.Episode = val
+}
+
+// SetStart sets the value of Start.
+func (s *LiveTvRecording) SetStart(val time.Time) {
+	s.Start = val
+}
+
+// SetEnd sets the value of End.
+func (s *LiveTvRecording) SetEnd(val time.Time) {
+	s.End = val
+}
+
+// SetPrePaddingSeconds sets the value of PrePaddingSeconds.
+func (s *LiveTvRecording) SetPrePaddingSeconds(val int) {
+	s.PrePaddingSeconds = val
+}
+
+// SetPostPaddingSeconds sets the value of PostPaddingSeconds.
+func (s *LiveTvRecording) SetPostPaddingSeconds(val int) {
+	s.PostPaddingSeconds = val
+}
+
+// SetPriority sets the value of Priority.
+func (s *LiveTvRecording) SetPriority(val int) {
+	s.Priority = val
+}
+
+// SetStatus sets the value of Status.
+func (s *LiveTvRecording) SetStatus(val LiveTvRecordingStatus) {
+	s.Status = val
+}
+
+// SetError sets the value of Error.
+func (s *LiveTvRecording) SetError(val OptString) {
+	s.Error = val
+}
+
+// SetSizeBytes sets the value of SizeBytes.
+func (s *LiveTvRecording) SetSizeBytes(val OptInt64) {
+	s.SizeBytes = val
+}
+
+// SetItemId sets the value of ItemId.
+func (s *LiveTvRecording) SetItemId(val OptUUID) {
+	s.ItemId = val
+}
+
+// SetImageUrl sets the value of ImageUrl.
+func (s *LiveTvRecording) SetImageUrl(val OptString) {
+	s.ImageUrl = val
+}
+
+// SetPostProcessError sets the value of PostProcessError.
+func (s *LiveTvRecording) SetPostProcessError(val OptString) {
+	s.PostProcessError = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *LiveTvRecording) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// Ref: #/components/schemas/LiveTvRecordingCreate
+type LiveTvRecordingCreate struct {
+	ProgramId uuid.UUID `json:"programId"`
+	// Channel to record from (default the first channel showing the programme).
+	ChannelId          OptUUID `json:"channelId"`
+	PrePaddingSeconds  OptInt  `json:"prePaddingSeconds"`
+	PostPaddingSeconds OptInt  `json:"postPaddingSeconds"`
+	Priority           OptInt  `json:"priority"`
+}
+
+// GetProgramId returns the value of ProgramId.
+func (s *LiveTvRecordingCreate) GetProgramId() uuid.UUID {
+	return s.ProgramId
+}
+
+// GetChannelId returns the value of ChannelId.
+func (s *LiveTvRecordingCreate) GetChannelId() OptUUID {
+	return s.ChannelId
+}
+
+// GetPrePaddingSeconds returns the value of PrePaddingSeconds.
+func (s *LiveTvRecordingCreate) GetPrePaddingSeconds() OptInt {
+	return s.PrePaddingSeconds
+}
+
+// GetPostPaddingSeconds returns the value of PostPaddingSeconds.
+func (s *LiveTvRecordingCreate) GetPostPaddingSeconds() OptInt {
+	return s.PostPaddingSeconds
+}
+
+// GetPriority returns the value of Priority.
+func (s *LiveTvRecordingCreate) GetPriority() OptInt {
+	return s.Priority
+}
+
+// SetProgramId sets the value of ProgramId.
+func (s *LiveTvRecordingCreate) SetProgramId(val uuid.UUID) {
+	s.ProgramId = val
+}
+
+// SetChannelId sets the value of ChannelId.
+func (s *LiveTvRecordingCreate) SetChannelId(val OptUUID) {
+	s.ChannelId = val
+}
+
+// SetPrePaddingSeconds sets the value of PrePaddingSeconds.
+func (s *LiveTvRecordingCreate) SetPrePaddingSeconds(val OptInt) {
+	s.PrePaddingSeconds = val
+}
+
+// SetPostPaddingSeconds sets the value of PostPaddingSeconds.
+func (s *LiveTvRecordingCreate) SetPostPaddingSeconds(val OptInt) {
+	s.PostPaddingSeconds = val
+}
+
+// SetPriority sets the value of Priority.
+func (s *LiveTvRecordingCreate) SetPriority(val OptInt) {
+	s.Priority = val
+}
+
+// Ref: #/components/schemas/LiveTvRecordingStatus
+type LiveTvRecordingStatus string
+
+const (
+	LiveTvRecordingStatusScheduled LiveTvRecordingStatus = "scheduled"
+	LiveTvRecordingStatusConflict  LiveTvRecordingStatus = "conflict"
+	LiveTvRecordingStatusRecording LiveTvRecordingStatus = "recording"
+	LiveTvRecordingStatusCompleted LiveTvRecordingStatus = "completed"
+	LiveTvRecordingStatusFailed    LiveTvRecordingStatus = "failed"
+	LiveTvRecordingStatusCancelled LiveTvRecordingStatus = "cancelled"
+	LiveTvRecordingStatusDeleted   LiveTvRecordingStatus = "deleted"
+)
+
+// AllValues returns all LiveTvRecordingStatus values.
+func (LiveTvRecordingStatus) AllValues() []LiveTvRecordingStatus {
+	return []LiveTvRecordingStatus{
+		LiveTvRecordingStatusScheduled,
+		LiveTvRecordingStatusConflict,
+		LiveTvRecordingStatusRecording,
+		LiveTvRecordingStatusCompleted,
+		LiveTvRecordingStatusFailed,
+		LiveTvRecordingStatusCancelled,
+		LiveTvRecordingStatusDeleted,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s LiveTvRecordingStatus) MarshalText() ([]byte, error) {
+	switch s {
+	case LiveTvRecordingStatusScheduled:
+		return []byte(s), nil
+	case LiveTvRecordingStatusConflict:
+		return []byte(s), nil
+	case LiveTvRecordingStatusRecording:
+		return []byte(s), nil
+	case LiveTvRecordingStatusCompleted:
+		return []byte(s), nil
+	case LiveTvRecordingStatusFailed:
+		return []byte(s), nil
+	case LiveTvRecordingStatusCancelled:
+		return []byte(s), nil
+	case LiveTvRecordingStatusDeleted:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *LiveTvRecordingStatus) UnmarshalText(data []byte) error {
+	switch LiveTvRecordingStatus(data) {
+	case LiveTvRecordingStatusScheduled:
+		*s = LiveTvRecordingStatusScheduled
+		return nil
+	case LiveTvRecordingStatusConflict:
+		*s = LiveTvRecordingStatusConflict
+		return nil
+	case LiveTvRecordingStatusRecording:
+		*s = LiveTvRecordingStatusRecording
+		return nil
+	case LiveTvRecordingStatusCompleted:
+		*s = LiveTvRecordingStatusCompleted
+		return nil
+	case LiveTvRecordingStatusFailed:
+		*s = LiveTvRecordingStatusFailed
+		return nil
+	case LiveTvRecordingStatusCancelled:
+		*s = LiveTvRecordingStatusCancelled
+		return nil
+	case LiveTvRecordingStatusDeleted:
+		*s = LiveTvRecordingStatusDeleted
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/LiveTvRecordingUpdate
+type LiveTvRecordingUpdate struct {
+	PrePaddingSeconds  OptInt `json:"prePaddingSeconds"`
+	PostPaddingSeconds OptInt `json:"postPaddingSeconds"`
+	Priority           OptInt `json:"priority"`
+}
+
+// GetPrePaddingSeconds returns the value of PrePaddingSeconds.
+func (s *LiveTvRecordingUpdate) GetPrePaddingSeconds() OptInt {
+	return s.PrePaddingSeconds
+}
+
+// GetPostPaddingSeconds returns the value of PostPaddingSeconds.
+func (s *LiveTvRecordingUpdate) GetPostPaddingSeconds() OptInt {
+	return s.PostPaddingSeconds
+}
+
+// GetPriority returns the value of Priority.
+func (s *LiveTvRecordingUpdate) GetPriority() OptInt {
+	return s.Priority
+}
+
+// SetPrePaddingSeconds sets the value of PrePaddingSeconds.
+func (s *LiveTvRecordingUpdate) SetPrePaddingSeconds(val OptInt) {
+	s.PrePaddingSeconds = val
+}
+
+// SetPostPaddingSeconds sets the value of PostPaddingSeconds.
+func (s *LiveTvRecordingUpdate) SetPostPaddingSeconds(val OptInt) {
+	s.PostPaddingSeconds = val
+}
+
+// SetPriority sets the value of Priority.
+func (s *LiveTvRecordingUpdate) SetPriority(val OptInt) {
+	s.Priority = val
+}
+
+// Opt-in clean-up of finished recordings. Only files the DVR recorded are ever deleted.
+// Ref: #/components/schemas/LiveTvRetention
+type LiveTvRetention struct {
+	Enabled bool `json:"enabled"`
+	// Delete recordings older than this (0 = never).
+	DeleteAfterDays int `json:"deleteAfterDays"`
+	// Per series rule, keep this many newest recordings (0 = all); rules can override.
+	KeepLast int `json:"keepLast"`
+}
+
+// GetEnabled returns the value of Enabled.
+func (s *LiveTvRetention) GetEnabled() bool {
+	return s.Enabled
+}
+
+// GetDeleteAfterDays returns the value of DeleteAfterDays.
+func (s *LiveTvRetention) GetDeleteAfterDays() int {
+	return s.DeleteAfterDays
+}
+
+// GetKeepLast returns the value of KeepLast.
+func (s *LiveTvRetention) GetKeepLast() int {
+	return s.KeepLast
+}
+
+// SetEnabled sets the value of Enabled.
+func (s *LiveTvRetention) SetEnabled(val bool) {
+	s.Enabled = val
+}
+
+// SetDeleteAfterDays sets the value of DeleteAfterDays.
+func (s *LiveTvRetention) SetDeleteAfterDays(val int) {
+	s.DeleteAfterDays = val
+}
+
+// SetKeepLast sets the value of KeepLast.
+func (s *LiveTvRetention) SetKeepLast(val int) {
+	s.KeepLast = val
+}
+
+// Ref: #/components/schemas/LiveTvSeriesRule
+type LiveTvSeriesRule struct {
+	ID uuid.UUID `json:"id"`
+	// Programme title to match (case-insensitive).
+	Title string `json:"title"`
+	// Only this channel; absent = any channel.
+	ChannelId   OptUUID   `json:"channelId"`
+	ChannelName OptString `json:"channelName"`
+	// Skip airings the guide marks as repeats and episodes already recorded or scheduled.
+	NewOnly            bool   `json:"newOnly"`
+	Priority           int    `json:"priority"`
+	PrePaddingSeconds  OptInt `json:"prePaddingSeconds"`
+	PostPaddingSeconds OptInt `json:"postPaddingSeconds"`
+	// Retention keeps this many newest recordings (0 = the server default); only when retention is turned
+	// on.
+	KeepLast int `json:"keepLast"`
+	// Number of scheduled airings.
+	Upcoming  int       `json:"upcoming"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+// GetID returns the value of ID.
+func (s *LiveTvSeriesRule) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetTitle returns the value of Title.
+func (s *LiveTvSeriesRule) GetTitle() string {
+	return s.Title
+}
+
+// GetChannelId returns the value of ChannelId.
+func (s *LiveTvSeriesRule) GetChannelId() OptUUID {
+	return s.ChannelId
+}
+
+// GetChannelName returns the value of ChannelName.
+func (s *LiveTvSeriesRule) GetChannelName() OptString {
+	return s.ChannelName
+}
+
+// GetNewOnly returns the value of NewOnly.
+func (s *LiveTvSeriesRule) GetNewOnly() bool {
+	return s.NewOnly
+}
+
+// GetPriority returns the value of Priority.
+func (s *LiveTvSeriesRule) GetPriority() int {
+	return s.Priority
+}
+
+// GetPrePaddingSeconds returns the value of PrePaddingSeconds.
+func (s *LiveTvSeriesRule) GetPrePaddingSeconds() OptInt {
+	return s.PrePaddingSeconds
+}
+
+// GetPostPaddingSeconds returns the value of PostPaddingSeconds.
+func (s *LiveTvSeriesRule) GetPostPaddingSeconds() OptInt {
+	return s.PostPaddingSeconds
+}
+
+// GetKeepLast returns the value of KeepLast.
+func (s *LiveTvSeriesRule) GetKeepLast() int {
+	return s.KeepLast
+}
+
+// GetUpcoming returns the value of Upcoming.
+func (s *LiveTvSeriesRule) GetUpcoming() int {
+	return s.Upcoming
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *LiveTvSeriesRule) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// SetID sets the value of ID.
+func (s *LiveTvSeriesRule) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetTitle sets the value of Title.
+func (s *LiveTvSeriesRule) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetChannelId sets the value of ChannelId.
+func (s *LiveTvSeriesRule) SetChannelId(val OptUUID) {
+	s.ChannelId = val
+}
+
+// SetChannelName sets the value of ChannelName.
+func (s *LiveTvSeriesRule) SetChannelName(val OptString) {
+	s.ChannelName = val
+}
+
+// SetNewOnly sets the value of NewOnly.
+func (s *LiveTvSeriesRule) SetNewOnly(val bool) {
+	s.NewOnly = val
+}
+
+// SetPriority sets the value of Priority.
+func (s *LiveTvSeriesRule) SetPriority(val int) {
+	s.Priority = val
+}
+
+// SetPrePaddingSeconds sets the value of PrePaddingSeconds.
+func (s *LiveTvSeriesRule) SetPrePaddingSeconds(val OptInt) {
+	s.PrePaddingSeconds = val
+}
+
+// SetPostPaddingSeconds sets the value of PostPaddingSeconds.
+func (s *LiveTvSeriesRule) SetPostPaddingSeconds(val OptInt) {
+	s.PostPaddingSeconds = val
+}
+
+// SetKeepLast sets the value of KeepLast.
+func (s *LiveTvSeriesRule) SetKeepLast(val int) {
+	s.KeepLast = val
+}
+
+// SetUpcoming sets the value of Upcoming.
+func (s *LiveTvSeriesRule) SetUpcoming(val int) {
+	s.Upcoming = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *LiveTvSeriesRule) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// Ref: #/components/schemas/LiveTvSeriesRuleInput
+type LiveTvSeriesRuleInput struct {
+	Title OptString `json:"title"`
+	// Take the title from this programme (when title is absent).
+	ProgramId          OptUUID `json:"programId"`
+	ChannelId          OptUUID `json:"channelId"`
+	NewOnly            OptBool `json:"newOnly"`
+	Priority           OptInt  `json:"priority"`
+	PrePaddingSeconds  OptInt  `json:"prePaddingSeconds"`
+	PostPaddingSeconds OptInt  `json:"postPaddingSeconds"`
+	KeepLast           OptInt  `json:"keepLast"`
+}
+
+// GetTitle returns the value of Title.
+func (s *LiveTvSeriesRuleInput) GetTitle() OptString {
+	return s.Title
+}
+
+// GetProgramId returns the value of ProgramId.
+func (s *LiveTvSeriesRuleInput) GetProgramId() OptUUID {
+	return s.ProgramId
+}
+
+// GetChannelId returns the value of ChannelId.
+func (s *LiveTvSeriesRuleInput) GetChannelId() OptUUID {
+	return s.ChannelId
+}
+
+// GetNewOnly returns the value of NewOnly.
+func (s *LiveTvSeriesRuleInput) GetNewOnly() OptBool {
+	return s.NewOnly
+}
+
+// GetPriority returns the value of Priority.
+func (s *LiveTvSeriesRuleInput) GetPriority() OptInt {
+	return s.Priority
+}
+
+// GetPrePaddingSeconds returns the value of PrePaddingSeconds.
+func (s *LiveTvSeriesRuleInput) GetPrePaddingSeconds() OptInt {
+	return s.PrePaddingSeconds
+}
+
+// GetPostPaddingSeconds returns the value of PostPaddingSeconds.
+func (s *LiveTvSeriesRuleInput) GetPostPaddingSeconds() OptInt {
+	return s.PostPaddingSeconds
+}
+
+// GetKeepLast returns the value of KeepLast.
+func (s *LiveTvSeriesRuleInput) GetKeepLast() OptInt {
+	return s.KeepLast
+}
+
+// SetTitle sets the value of Title.
+func (s *LiveTvSeriesRuleInput) SetTitle(val OptString) {
+	s.Title = val
+}
+
+// SetProgramId sets the value of ProgramId.
+func (s *LiveTvSeriesRuleInput) SetProgramId(val OptUUID) {
+	s.ProgramId = val
+}
+
+// SetChannelId sets the value of ChannelId.
+func (s *LiveTvSeriesRuleInput) SetChannelId(val OptUUID) {
+	s.ChannelId = val
+}
+
+// SetNewOnly sets the value of NewOnly.
+func (s *LiveTvSeriesRuleInput) SetNewOnly(val OptBool) {
+	s.NewOnly = val
+}
+
+// SetPriority sets the value of Priority.
+func (s *LiveTvSeriesRuleInput) SetPriority(val OptInt) {
+	s.Priority = val
+}
+
+// SetPrePaddingSeconds sets the value of PrePaddingSeconds.
+func (s *LiveTvSeriesRuleInput) SetPrePaddingSeconds(val OptInt) {
+	s.PrePaddingSeconds = val
+}
+
+// SetPostPaddingSeconds sets the value of PostPaddingSeconds.
+func (s *LiveTvSeriesRuleInput) SetPostPaddingSeconds(val OptInt) {
+	s.PostPaddingSeconds = val
+}
+
+// SetKeepLast sets the value of KeepLast.
+func (s *LiveTvSeriesRuleInput) SetKeepLast(val OptInt) {
+	s.KeepLast = val
+}
+
+// Ref: #/components/schemas/LiveTvSettings
+type LiveTvSettings struct {
+	// Default start padding of new recordings.
+	PrePaddingSeconds  int `json:"prePaddingSeconds"`
+	PostPaddingSeconds int `json:"postPaddingSeconds"`
+	// Length of the rolling buffer viewers can pause and rewind in.
+	TimeshiftMinutes int               `json:"timeshiftMinutes"`
+	Retention        LiveTvRetention   `json:"retention"`
+	PostProcess      LiveTvPostProcess `json:"postProcess"`
+	// Folder recordings are written to (STREAMERO_RECORDINGS_DIR).
+	RecordingsPath OptString `json:"recordingsPath"`
+	// Library the recordings appear in (created with the first recording).
+	RecordingsLibraryId OptUUID `json:"recordingsLibraryId"`
+}
+
+// GetPrePaddingSeconds returns the value of PrePaddingSeconds.
+func (s *LiveTvSettings) GetPrePaddingSeconds() int {
+	return s.PrePaddingSeconds
+}
+
+// GetPostPaddingSeconds returns the value of PostPaddingSeconds.
+func (s *LiveTvSettings) GetPostPaddingSeconds() int {
+	return s.PostPaddingSeconds
+}
+
+// GetTimeshiftMinutes returns the value of TimeshiftMinutes.
+func (s *LiveTvSettings) GetTimeshiftMinutes() int {
+	return s.TimeshiftMinutes
+}
+
+// GetRetention returns the value of Retention.
+func (s *LiveTvSettings) GetRetention() LiveTvRetention {
+	return s.Retention
+}
+
+// GetPostProcess returns the value of PostProcess.
+func (s *LiveTvSettings) GetPostProcess() LiveTvPostProcess {
+	return s.PostProcess
+}
+
+// GetRecordingsPath returns the value of RecordingsPath.
+func (s *LiveTvSettings) GetRecordingsPath() OptString {
+	return s.RecordingsPath
+}
+
+// GetRecordingsLibraryId returns the value of RecordingsLibraryId.
+func (s *LiveTvSettings) GetRecordingsLibraryId() OptUUID {
+	return s.RecordingsLibraryId
+}
+
+// SetPrePaddingSeconds sets the value of PrePaddingSeconds.
+func (s *LiveTvSettings) SetPrePaddingSeconds(val int) {
+	s.PrePaddingSeconds = val
+}
+
+// SetPostPaddingSeconds sets the value of PostPaddingSeconds.
+func (s *LiveTvSettings) SetPostPaddingSeconds(val int) {
+	s.PostPaddingSeconds = val
+}
+
+// SetTimeshiftMinutes sets the value of TimeshiftMinutes.
+func (s *LiveTvSettings) SetTimeshiftMinutes(val int) {
+	s.TimeshiftMinutes = val
+}
+
+// SetRetention sets the value of Retention.
+func (s *LiveTvSettings) SetRetention(val LiveTvRetention) {
+	s.Retention = val
+}
+
+// SetPostProcess sets the value of PostProcess.
+func (s *LiveTvSettings) SetPostProcess(val LiveTvPostProcess) {
+	s.PostProcess = val
+}
+
+// SetRecordingsPath sets the value of RecordingsPath.
+func (s *LiveTvSettings) SetRecordingsPath(val OptString) {
+	s.RecordingsPath = val
+}
+
+// SetRecordingsLibraryId sets the value of RecordingsLibraryId.
+func (s *LiveTvSettings) SetRecordingsLibraryId(val OptUUID) {
+	s.RecordingsLibraryId = val
+}
+
+// Ref: #/components/schemas/LiveTvTestResult
+type LiveTvTestResult struct {
+	Ok           bool      `json:"ok"`
+	Message      string    `json:"message"`
+	ChannelCount OptInt    `json:"channelCount"`
+	ProgramCount OptInt    `json:"programCount"`
+	TunerCount   OptInt    `json:"tunerCount"`
+	Model        OptString `json:"model"`
+}
+
+// GetOk returns the value of Ok.
+func (s *LiveTvTestResult) GetOk() bool {
+	return s.Ok
+}
+
+// GetMessage returns the value of Message.
+func (s *LiveTvTestResult) GetMessage() string {
+	return s.Message
+}
+
+// GetChannelCount returns the value of ChannelCount.
+func (s *LiveTvTestResult) GetChannelCount() OptInt {
+	return s.ChannelCount
+}
+
+// GetProgramCount returns the value of ProgramCount.
+func (s *LiveTvTestResult) GetProgramCount() OptInt {
+	return s.ProgramCount
+}
+
+// GetTunerCount returns the value of TunerCount.
+func (s *LiveTvTestResult) GetTunerCount() OptInt {
+	return s.TunerCount
+}
+
+// GetModel returns the value of Model.
+func (s *LiveTvTestResult) GetModel() OptString {
+	return s.Model
+}
+
+// SetOk sets the value of Ok.
+func (s *LiveTvTestResult) SetOk(val bool) {
+	s.Ok = val
+}
+
+// SetMessage sets the value of Message.
+func (s *LiveTvTestResult) SetMessage(val string) {
+	s.Message = val
+}
+
+// SetChannelCount sets the value of ChannelCount.
+func (s *LiveTvTestResult) SetChannelCount(val OptInt) {
+	s.ChannelCount = val
+}
+
+// SetProgramCount sets the value of ProgramCount.
+func (s *LiveTvTestResult) SetProgramCount(val OptInt) {
+	s.ProgramCount = val
+}
+
+// SetTunerCount sets the value of TunerCount.
+func (s *LiveTvTestResult) SetTunerCount(val OptInt) {
+	s.TunerCount = val
+}
+
+// SetModel sets the value of Model.
+func (s *LiveTvTestResult) SetModel(val OptString) {
+	s.Model = val
+}
+
+// Ref: #/components/schemas/LiveTvTuner
+type LiveTvTuner struct {
+	ID   uuid.UUID       `json:"id"`
+	Kind LiveTvTunerKind `json:"kind"`
+	Name string          `json:"name"`
+	// Playlist URL (m3u) or device address (hdhomerun).
+	URL OptString `json:"url"`
+	// Playlist file on the server (m3u, instead of url).
+	FilePath OptString `json:"filePath"`
+	// Simultaneous streams allowed (0 = unlimited, m3u only).
+	TunerCount    int         `json:"tunerCount"`
+	UserAgent     OptString   `json:"userAgent"`
+	Enabled       bool        `json:"enabled"`
+	ChannelCount  int         `json:"channelCount"`
+	DeviceId      OptString   `json:"deviceId"`
+	Model         OptString   `json:"model"`
+	LastRefreshAt OptDateTime `json:"lastRefreshAt"`
+	Error         OptString   `json:"error"`
+}
+
+// GetID returns the value of ID.
+func (s *LiveTvTuner) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetKind returns the value of Kind.
+func (s *LiveTvTuner) GetKind() LiveTvTunerKind {
+	return s.Kind
+}
+
+// GetName returns the value of Name.
+func (s *LiveTvTuner) GetName() string {
+	return s.Name
+}
+
+// GetURL returns the value of URL.
+func (s *LiveTvTuner) GetURL() OptString {
+	return s.URL
+}
+
+// GetFilePath returns the value of FilePath.
+func (s *LiveTvTuner) GetFilePath() OptString {
+	return s.FilePath
+}
+
+// GetTunerCount returns the value of TunerCount.
+func (s *LiveTvTuner) GetTunerCount() int {
+	return s.TunerCount
+}
+
+// GetUserAgent returns the value of UserAgent.
+func (s *LiveTvTuner) GetUserAgent() OptString {
+	return s.UserAgent
+}
+
+// GetEnabled returns the value of Enabled.
+func (s *LiveTvTuner) GetEnabled() bool {
+	return s.Enabled
+}
+
+// GetChannelCount returns the value of ChannelCount.
+func (s *LiveTvTuner) GetChannelCount() int {
+	return s.ChannelCount
+}
+
+// GetDeviceId returns the value of DeviceId.
+func (s *LiveTvTuner) GetDeviceId() OptString {
+	return s.DeviceId
+}
+
+// GetModel returns the value of Model.
+func (s *LiveTvTuner) GetModel() OptString {
+	return s.Model
+}
+
+// GetLastRefreshAt returns the value of LastRefreshAt.
+func (s *LiveTvTuner) GetLastRefreshAt() OptDateTime {
+	return s.LastRefreshAt
+}
+
+// GetError returns the value of Error.
+func (s *LiveTvTuner) GetError() OptString {
+	return s.Error
+}
+
+// SetID sets the value of ID.
+func (s *LiveTvTuner) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetKind sets the value of Kind.
+func (s *LiveTvTuner) SetKind(val LiveTvTunerKind) {
+	s.Kind = val
+}
+
+// SetName sets the value of Name.
+func (s *LiveTvTuner) SetName(val string) {
+	s.Name = val
+}
+
+// SetURL sets the value of URL.
+func (s *LiveTvTuner) SetURL(val OptString) {
+	s.URL = val
+}
+
+// SetFilePath sets the value of FilePath.
+func (s *LiveTvTuner) SetFilePath(val OptString) {
+	s.FilePath = val
+}
+
+// SetTunerCount sets the value of TunerCount.
+func (s *LiveTvTuner) SetTunerCount(val int) {
+	s.TunerCount = val
+}
+
+// SetUserAgent sets the value of UserAgent.
+func (s *LiveTvTuner) SetUserAgent(val OptString) {
+	s.UserAgent = val
+}
+
+// SetEnabled sets the value of Enabled.
+func (s *LiveTvTuner) SetEnabled(val bool) {
+	s.Enabled = val
+}
+
+// SetChannelCount sets the value of ChannelCount.
+func (s *LiveTvTuner) SetChannelCount(val int) {
+	s.ChannelCount = val
+}
+
+// SetDeviceId sets the value of DeviceId.
+func (s *LiveTvTuner) SetDeviceId(val OptString) {
+	s.DeviceId = val
+}
+
+// SetModel sets the value of Model.
+func (s *LiveTvTuner) SetModel(val OptString) {
+	s.Model = val
+}
+
+// SetLastRefreshAt sets the value of LastRefreshAt.
+func (s *LiveTvTuner) SetLastRefreshAt(val OptDateTime) {
+	s.LastRefreshAt = val
+}
+
+// SetError sets the value of Error.
+func (s *LiveTvTuner) SetError(val OptString) {
+	s.Error = val
+}
+
+// Ref: #/components/schemas/LiveTvTunerInput
+type LiveTvTunerInput struct {
+	Kind     LiveTvTunerKind `json:"kind"`
+	Name     string          `json:"name"`
+	URL      OptString       `json:"url"`
+	FilePath OptString       `json:"filePath"`
+	// M3u: streams the provider allows at once (0 = unlimited). hdhomerun: absent = the tuner count the
+	// device reports.
+	TunerCount OptInt    `json:"tunerCount"`
+	UserAgent  OptString `json:"userAgent"`
+	Enabled    OptBool   `json:"enabled"`
+}
+
+// GetKind returns the value of Kind.
+func (s *LiveTvTunerInput) GetKind() LiveTvTunerKind {
+	return s.Kind
+}
+
+// GetName returns the value of Name.
+func (s *LiveTvTunerInput) GetName() string {
+	return s.Name
+}
+
+// GetURL returns the value of URL.
+func (s *LiveTvTunerInput) GetURL() OptString {
+	return s.URL
+}
+
+// GetFilePath returns the value of FilePath.
+func (s *LiveTvTunerInput) GetFilePath() OptString {
+	return s.FilePath
+}
+
+// GetTunerCount returns the value of TunerCount.
+func (s *LiveTvTunerInput) GetTunerCount() OptInt {
+	return s.TunerCount
+}
+
+// GetUserAgent returns the value of UserAgent.
+func (s *LiveTvTunerInput) GetUserAgent() OptString {
+	return s.UserAgent
+}
+
+// GetEnabled returns the value of Enabled.
+func (s *LiveTvTunerInput) GetEnabled() OptBool {
+	return s.Enabled
+}
+
+// SetKind sets the value of Kind.
+func (s *LiveTvTunerInput) SetKind(val LiveTvTunerKind) {
+	s.Kind = val
+}
+
+// SetName sets the value of Name.
+func (s *LiveTvTunerInput) SetName(val string) {
+	s.Name = val
+}
+
+// SetURL sets the value of URL.
+func (s *LiveTvTunerInput) SetURL(val OptString) {
+	s.URL = val
+}
+
+// SetFilePath sets the value of FilePath.
+func (s *LiveTvTunerInput) SetFilePath(val OptString) {
+	s.FilePath = val
+}
+
+// SetTunerCount sets the value of TunerCount.
+func (s *LiveTvTunerInput) SetTunerCount(val OptInt) {
+	s.TunerCount = val
+}
+
+// SetUserAgent sets the value of UserAgent.
+func (s *LiveTvTunerInput) SetUserAgent(val OptString) {
+	s.UserAgent = val
+}
+
+// SetEnabled sets the value of Enabled.
+func (s *LiveTvTunerInput) SetEnabled(val OptBool) {
+	s.Enabled = val
+}
+
+// Ref: #/components/schemas/LiveTvTunerKind
+type LiveTvTunerKind string
+
+const (
+	LiveTvTunerKindM3u       LiveTvTunerKind = "m3u"
+	LiveTvTunerKindHdhomerun LiveTvTunerKind = "hdhomerun"
+)
+
+// AllValues returns all LiveTvTunerKind values.
+func (LiveTvTunerKind) AllValues() []LiveTvTunerKind {
+	return []LiveTvTunerKind{
+		LiveTvTunerKindM3u,
+		LiveTvTunerKindHdhomerun,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s LiveTvTunerKind) MarshalText() ([]byte, error) {
+	switch s {
+	case LiveTvTunerKindM3u:
+		return []byte(s), nil
+	case LiveTvTunerKindHdhomerun:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *LiveTvTunerKind) UnmarshalText(data []byte) error {
+	switch LiveTvTunerKind(data) {
+	case LiveTvTunerKindM3u:
+		*s = LiveTvTunerKindM3u
+		return nil
+	case LiveTvTunerKindHdhomerun:
+		*s = LiveTvTunerKindHdhomerun
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // Ref: #/components/schemas/LogEntry
 type LogEntry struct {
 	Time    time.Time     `json:"time"`
@@ -8751,6 +11193,236 @@ func (o OptListLibraryItemsSort) Or(d ListLibraryItemsSort) ListLibraryItemsSort
 	return d
 }
 
+// NewOptLiveTvCategory returns new OptLiveTvCategory with value set to v.
+func NewOptLiveTvCategory(v LiveTvCategory) OptLiveTvCategory {
+	return OptLiveTvCategory{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptLiveTvCategory is optional LiveTvCategory.
+type OptLiveTvCategory struct {
+	Value LiveTvCategory
+	Set   bool
+}
+
+// IsSet returns true if OptLiveTvCategory was set.
+func (o OptLiveTvCategory) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptLiveTvCategory) Reset() {
+	var v LiveTvCategory
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptLiveTvCategory) SetTo(v LiveTvCategory) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptLiveTvCategory) Get() (v LiveTvCategory, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptLiveTvCategory) Or(d LiveTvCategory) LiveTvCategory {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptLiveTvChannelUpdateCategory returns new OptLiveTvChannelUpdateCategory with value set to v.
+func NewOptLiveTvChannelUpdateCategory(v LiveTvChannelUpdateCategory) OptLiveTvChannelUpdateCategory {
+	return OptLiveTvChannelUpdateCategory{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptLiveTvChannelUpdateCategory is optional LiveTvChannelUpdateCategory.
+type OptLiveTvChannelUpdateCategory struct {
+	Value LiveTvChannelUpdateCategory
+	Set   bool
+}
+
+// IsSet returns true if OptLiveTvChannelUpdateCategory was set.
+func (o OptLiveTvChannelUpdateCategory) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptLiveTvChannelUpdateCategory) Reset() {
+	var v LiveTvChannelUpdateCategory
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptLiveTvChannelUpdateCategory) SetTo(v LiveTvChannelUpdateCategory) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptLiveTvChannelUpdateCategory) Get() (v LiveTvChannelUpdateCategory, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptLiveTvChannelUpdateCategory) Or(d LiveTvChannelUpdateCategory) LiveTvChannelUpdateCategory {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptLiveTvMappingMode returns new OptLiveTvMappingMode with value set to v.
+func NewOptLiveTvMappingMode(v LiveTvMappingMode) OptLiveTvMappingMode {
+	return OptLiveTvMappingMode{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptLiveTvMappingMode is optional LiveTvMappingMode.
+type OptLiveTvMappingMode struct {
+	Value LiveTvMappingMode
+	Set   bool
+}
+
+// IsSet returns true if OptLiveTvMappingMode was set.
+func (o OptLiveTvMappingMode) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptLiveTvMappingMode) Reset() {
+	var v LiveTvMappingMode
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptLiveTvMappingMode) SetTo(v LiveTvMappingMode) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptLiveTvMappingMode) Get() (v LiveTvMappingMode, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptLiveTvMappingMode) Or(d LiveTvMappingMode) LiveTvMappingMode {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptLiveTvProgram returns new OptLiveTvProgram with value set to v.
+func NewOptLiveTvProgram(v LiveTvProgram) OptLiveTvProgram {
+	return OptLiveTvProgram{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptLiveTvProgram is optional LiveTvProgram.
+type OptLiveTvProgram struct {
+	Value LiveTvProgram
+	Set   bool
+}
+
+// IsSet returns true if OptLiveTvProgram was set.
+func (o OptLiveTvProgram) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptLiveTvProgram) Reset() {
+	var v LiveTvProgram
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptLiveTvProgram) SetTo(v LiveTvProgram) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptLiveTvProgram) Get() (v LiveTvProgram, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptLiveTvProgram) Or(d LiveTvProgram) LiveTvProgram {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptLiveTvRecordingStatus returns new OptLiveTvRecordingStatus with value set to v.
+func NewOptLiveTvRecordingStatus(v LiveTvRecordingStatus) OptLiveTvRecordingStatus {
+	return OptLiveTvRecordingStatus{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptLiveTvRecordingStatus is optional LiveTvRecordingStatus.
+type OptLiveTvRecordingStatus struct {
+	Value LiveTvRecordingStatus
+	Set   bool
+}
+
+// IsSet returns true if OptLiveTvRecordingStatus was set.
+func (o OptLiveTvRecordingStatus) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptLiveTvRecordingStatus) Reset() {
+	var v LiveTvRecordingStatus
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptLiveTvRecordingStatus) SetTo(v LiveTvRecordingStatus) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptLiveTvRecordingStatus) Get() (v LiveTvRecordingStatus, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptLiveTvRecordingStatus) Or(d LiveTvRecordingStatus) LiveTvRecordingStatus {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptOidcAuthorizeClient returns new OptOidcAuthorizeClient with value set to v.
 func NewOptOidcAuthorizeClient(v OidcAuthorizeClient) OptOidcAuthorizeClient {
 	return OptOidcAuthorizeClient{
@@ -11114,6 +13786,12 @@ type RefreshItemNoContent struct{}
 // RefreshLibraryMetadataAccepted is response for RefreshLibraryMetadata operation.
 type RefreshLibraryMetadataAccepted struct{}
 
+// RefreshLiveTvGuideAccepted is response for RefreshLiveTvGuide operation.
+type RefreshLiveTvGuideAccepted struct{}
+
+// RemoveLiveTvFavoriteNoContent is response for RemoveLiveTvFavorite operation.
+type RemoveLiveTvFavoriteNoContent struct{}
+
 // RenameSessionNoContent is response for RenameSession operation.
 type RenameSessionNoContent struct{}
 
@@ -12970,6 +15648,7 @@ const (
 	TaskKeyAnalyzeMedia    TaskKey = "analyze_media"
 	TaskKeyDetectSegments  TaskKey = "detect_segments"
 	TaskKeyBackup          TaskKey = "backup"
+	TaskKeyRefreshGuide    TaskKey = "refresh_guide"
 )
 
 // AllValues returns all TaskKey values.
@@ -12981,6 +15660,7 @@ func (TaskKey) AllValues() []TaskKey {
 		TaskKeyAnalyzeMedia,
 		TaskKeyDetectSegments,
 		TaskKeyBackup,
+		TaskKeyRefreshGuide,
 	}
 }
 
@@ -12998,6 +15678,8 @@ func (s TaskKey) MarshalText() ([]byte, error) {
 	case TaskKeyDetectSegments:
 		return []byte(s), nil
 	case TaskKeyBackup:
+		return []byte(s), nil
+	case TaskKeyRefreshGuide:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -13024,6 +15706,9 @@ func (s *TaskKey) UnmarshalText(data []byte) error {
 		return nil
 	case TaskKeyBackup:
 		*s = TaskKeyBackup
+		return nil
+	case TaskKeyRefreshGuide:
+		*s = TaskKeyRefreshGuide
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)

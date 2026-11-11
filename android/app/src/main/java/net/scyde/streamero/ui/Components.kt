@@ -181,6 +181,7 @@ fun errorText(e: Throwable?): String? {
         "account_disabled" -> androidx.compose.ui.res.stringResource(R.string.err_sso_disabled)
         "not_configured", "unknown_provider" -> androidx.compose.ui.res.stringResource(R.string.err_sso_not_configured)
         "password_login_disabled" -> androidx.compose.ui.res.stringResource(R.string.err_password_disabled)
+        "tuners_busy" -> androidx.compose.ui.res.stringResource(R.string.livetv_tuners_busy)
         null -> androidx.compose.ui.res.stringResource(R.string.err_network)
         else -> e.message ?: androidx.compose.ui.res.stringResource(R.string.err_generic)
     }

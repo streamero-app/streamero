@@ -40,6 +40,13 @@ func (s Signer) Query(scope string, ttl time.Duration) string {
 	return url.Values{"exp": {strconv.FormatInt(exp, 10)}, "sig": {s.mac(scope, exp)}}.Encode()
 }
 
+// QueryUntil is Query with a fixed expiry, so the URL (and the browser cache
+// entry behind it) stays the same for every request until then.
+func (s Signer) QueryUntil(scope string, exp time.Time) string {
+	e := exp.Unix()
+	return url.Values{"exp": {strconv.FormatInt(e, 10)}, "sig": {s.mac(scope, e)}}.Encode()
+}
+
 // Valid reports whether the query signs scope and has not expired.
 func (s Signer) Valid(scope string, q url.Values) bool {
 	exp, err := strconv.ParseInt(q.Get("exp"), 10, 64)

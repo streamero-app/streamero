@@ -179,6 +179,10 @@ private fun Routes(state: AppState, nav: NavHostController, onSignedOut: () -> U
         composable("offline/{id}") { OfflinePlayerScreen(state, it.arguments?.getString("id")!!) { nav.popBackStack() } }
         composable("together") { TogetherScreen(state, nav, null) }
         composable("together/{id}") { TogetherScreen(state, nav, it.arguments?.getString("id")) }
+        composable("livetv") { LiveTvScreen(state, nav) }
+        composable("livetv/channel/{id}") { LiveChannelScreen(state, nav, it.arguments?.getString("id")!!) }
+        // "watch…" routes hide the bottom bar and the mini player.
+        composable("watchlive/{id}") { LivePlayerScreen(state, nav, it.arguments?.getString("id")!!) }
     }
 }
 

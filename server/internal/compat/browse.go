@@ -34,6 +34,9 @@ func (s *Server) item(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, s.viewDTO(lib))
 		return
 	}
+	if s.writeLiveItem(w, r, id) {
+		return
+	}
 	p := principal(r)
 	if !canSee(p) {
 		http.NotFound(w, r)
@@ -522,6 +525,9 @@ var imageKinds = map[string]string{"primary": "poster", "backdrop": "backdrop", 
 
 func (s *Server) image(w http.ResponseWriter, r *http.Request) {
 	raw := chi.URLParam(r, "itemId")
+	if s.liveImage(w, r, raw, strings.ToLower(chi.URLParam(r, "type"))) {
+		return
+	}
 	if s.Libraries.ImageDir == "" {
 		http.NotFound(w, r)
 		return

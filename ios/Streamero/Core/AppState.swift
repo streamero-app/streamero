@@ -26,6 +26,8 @@ enum Route: Hashable {
     case playlist(String)
     case settings(SettingsPage)
     case downloads
+    case liveTv
+    case liveChannel(LiveTvChannel)
 }
 
 /// Personal and administration settings; the admin pages also guard themselves.

@@ -10,6 +10,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/auth"
 	"github.com/streamero-app/streamero/server/internal/compat"
 	"github.com/streamero-app/streamero/server/internal/library"
+	"github.com/streamero-app/streamero/server/internal/livetv"
 	"github.com/streamero-app/streamero/server/internal/settings"
 	"github.com/streamero-app/streamero/server/internal/stream"
 )
@@ -23,6 +24,7 @@ type State struct {
 	library atomic.Pointer[library.Service]
 	stream  atomic.Pointer[stream.Server]
 	compat  atomic.Pointer[compat.Server]
+	livetv  atomic.Pointer[livetv.Service]
 	ready   atomic.Bool
 	// restoring is set while a backup is being restored: the API answers 503 meanwhile.
 	restoring atomic.Bool
@@ -80,6 +82,12 @@ func (s *State) Compat() *compat.Server { return s.compat.Load() }
 
 // SetCompat installs the compat API server.
 func (s *State) SetCompat(v *compat.Server) { s.compat.Store(v) }
+
+// LiveTV returns Live TV and the DVR (nil until ready).
+func (s *State) LiveTV() *livetv.Service { return s.livetv.Load() }
+
+// SetLiveTV installs Live TV.
+func (s *State) SetLiveTV(v *livetv.Service) { s.livetv.Store(v) }
 
 // SetLibrary installs the library service.
 func (s *State) SetLibrary(l *library.Service) { s.library.Store(l) }

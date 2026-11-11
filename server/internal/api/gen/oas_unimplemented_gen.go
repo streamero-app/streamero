@@ -22,6 +22,15 @@ func (UnimplementedHandler) AcceptInvite(ctx context.Context, req *AcceptInviteR
 	return r, ht.ErrNotImplemented
 }
 
+// AddLiveTvFavorite implements addLiveTvFavorite operation.
+//
+// Mark a channel as a favourite of the viewer (profile or account).
+//
+// PUT /livetv/channels/{channelId}/favorite
+func (UnimplementedHandler) AddLiveTvFavorite(ctx context.Context, params AddLiveTvFavoriteParams) error {
+	return ht.ErrNotImplemented
+}
+
 // AddToPlaylist implements addToPlaylist operation.
 //
 // Append titles to a playlist (owner only).
@@ -153,6 +162,42 @@ func (UnimplementedHandler) CreateLibrary(ctx context.Context, req *LibraryInput
 	return r, ht.ErrNotImplemented
 }
 
+// CreateLiveTvGuide implements createLiveTvGuide operation.
+//
+// Add an XMLTV guide source; it is loaded in the background (manageLiveTv).
+//
+// POST /livetv/guides
+func (UnimplementedHandler) CreateLiveTvGuide(ctx context.Context, req *LiveTvGuideSourceInput) (r *LiveTvGuideSource, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// CreateLiveTvRecording implements createLiveTvRecording operation.
+//
+// Record one programme (manageLiveTv).
+//
+// POST /livetv/recordings
+func (UnimplementedHandler) CreateLiveTvRecording(ctx context.Context, req *LiveTvRecordingCreate) (r *LiveTvRecording, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// CreateLiveTvSeriesRule implements createLiveTvSeriesRule operation.
+//
+// Record a series (manageLiveTv).
+//
+// POST /livetv/series-rules
+func (UnimplementedHandler) CreateLiveTvSeriesRule(ctx context.Context, req *LiveTvSeriesRuleInput) (r *LiveTvSeriesRule, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// CreateLiveTvTuner implements createLiveTvTuner operation.
+//
+// Add an M3U playlist or an HDHomeRun device and load its channels (manageLiveTv).
+//
+// POST /livetv/tuners
+func (UnimplementedHandler) CreateLiveTvTuner(ctx context.Context, req *LiveTvTunerInput) (r *LiveTvTuner, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // CreateOidcProvider implements createOidcProvider operation.
 //
 // Add an OpenID Connect provider (admin).
@@ -270,6 +315,43 @@ func (UnimplementedHandler) DeleteLibrary(ctx context.Context, params DeleteLibr
 	return ht.ErrNotImplemented
 }
 
+// DeleteLiveTvGuide implements deleteLiveTvGuide operation.
+//
+// Remove an XMLTV guide source and its programmes (manageLiveTv).
+//
+// DELETE /livetv/guides/{guideId}
+func (UnimplementedHandler) DeleteLiveTvGuide(ctx context.Context, params DeleteLiveTvGuideParams) error {
+	return ht.ErrNotImplemented
+}
+
+// DeleteLiveTvRecording implements deleteLiveTvRecording operation.
+//
+// A finished recording's file is never deleted here: it stays in the recordings library. Files are
+// only removed by the retention rules an administrator turned on.
+//
+// DELETE /livetv/recordings/{recordingId}
+func (UnimplementedHandler) DeleteLiveTvRecording(ctx context.Context, params DeleteLiveTvRecordingParams) error {
+	return ht.ErrNotImplemented
+}
+
+// DeleteLiveTvSeriesRule implements deleteLiveTvSeriesRule operation.
+//
+// Finished recordings of the rule are kept.
+//
+// DELETE /livetv/series-rules/{ruleId}
+func (UnimplementedHandler) DeleteLiveTvSeriesRule(ctx context.Context, params DeleteLiveTvSeriesRuleParams) error {
+	return ht.ErrNotImplemented
+}
+
+// DeleteLiveTvTuner implements deleteLiveTvTuner operation.
+//
+// Remove a tuner source and its channels (manageLiveTv).
+//
+// DELETE /livetv/tuners/{tunerId}
+func (UnimplementedHandler) DeleteLiveTvTuner(ctx context.Context, params DeleteLiveTvTunerParams) error {
+	return ht.ErrNotImplemented
+}
+
 // DeleteMyAvatar implements deleteMyAvatar operation.
 //
 // Remove own picture.
@@ -339,6 +421,17 @@ func (UnimplementedHandler) DisableTOTP(ctx context.Context, req *PasswordConfir
 //
 // GET /discover
 func (UnimplementedHandler) Discover(ctx context.Context, params DiscoverParams) (r *DiscoverPage, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// DiscoverLiveTvTuners implements discoverLiveTvTuners operation.
+//
+// SSDP search on the server's networks; every answer is confirmed through the device's HTTP API
+// (`/discover.json`). With Docker bridge networking the search usually finds nothing: add the device
+// by its address instead.
+//
+// GET /livetv/tuners/discover
+func (UnimplementedHandler) DiscoverLiveTvTuners(ctx context.Context) (r []LiveTvDiscoveredTuner, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -548,6 +641,60 @@ func (UnimplementedHandler) GetItemImage(ctx context.Context, params GetItemImag
 //
 // GET /settings/auth/ldap
 func (UnimplementedHandler) GetLdapSettings(ctx context.Context) (r *LdapSettings, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetLiveTvChannel implements getLiveTvChannel operation.
+//
+// One channel with now/next (liveTv permission).
+//
+// GET /livetv/channels/{channelId}
+func (UnimplementedHandler) GetLiveTvChannel(ctx context.Context, params GetLiveTvChannelParams) (r *LiveTvChannel, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetLiveTvGuide implements getLiveTvGuide operation.
+//
+// Guide grid for a time window (liveTv permission).
+//
+// GET /livetv/guide
+func (UnimplementedHandler) GetLiveTvGuide(ctx context.Context, params GetLiveTvGuideParams) (r *LiveTvGuide, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetLiveTvMapping implements getLiveTvMapping operation.
+//
+// Every channel with its guide mapping, and the guide channels to map to (manageLiveTv).
+//
+// GET /livetv/mapping
+func (UnimplementedHandler) GetLiveTvMapping(ctx context.Context) (r *LiveTvMapping, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetLiveTvOnNow implements getLiveTvOnNow operation.
+//
+// Empty when Live TV is not set up or the viewer lacks the liveTv permission.
+//
+// GET /livetv/on-now
+func (UnimplementedHandler) GetLiveTvOnNow(ctx context.Context, params GetLiveTvOnNowParams) (r []LiveTvChannel, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetLiveTvProgram implements getLiveTvProgram operation.
+//
+// One programme (liveTv permission).
+//
+// GET /livetv/programs/{programId}
+func (UnimplementedHandler) GetLiveTvProgram(ctx context.Context, params GetLiveTvProgramParams) (r *LiveTvProgram, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetLiveTvSettings implements getLiveTvSettings operation.
+//
+// DVR and time-shift settings (manageLiveTv).
+//
+// GET /livetv/settings
+func (UnimplementedHandler) GetLiveTvSettings(ctx context.Context) (r *LiveTvSettings, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -825,6 +972,51 @@ func (UnimplementedHandler) ListLibraryItems(ctx context.Context, params ListLib
 	return r, ht.ErrNotImplemented
 }
 
+// ListLiveTvChannels implements listLiveTvChannels operation.
+//
+// Live TV channels with what is on now and next (liveTv permission).
+//
+// GET /livetv/channels
+func (UnimplementedHandler) ListLiveTvChannels(ctx context.Context, params ListLiveTvChannelsParams) (r []LiveTvChannel, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListLiveTvGuides implements listLiveTvGuides operation.
+//
+// XMLTV guide sources (manageLiveTv).
+//
+// GET /livetv/guides
+func (UnimplementedHandler) ListLiveTvGuides(ctx context.Context) (r []LiveTvGuideSource, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListLiveTvRecordings implements listLiveTvRecordings operation.
+//
+// Scheduled, running and finished recordings (liveTv permission).
+//
+// GET /livetv/recordings
+func (UnimplementedHandler) ListLiveTvRecordings(ctx context.Context, params ListLiveTvRecordingsParams) (r []LiveTvRecording, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListLiveTvSeriesRules implements listLiveTvSeriesRules operation.
+//
+// Series recording rules (liveTv permission).
+//
+// GET /livetv/series-rules
+func (UnimplementedHandler) ListLiveTvSeriesRules(ctx context.Context) (r []LiveTvSeriesRule, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListLiveTvTuners implements listLiveTvTuners operation.
+//
+// Tuner sources (manageLiveTv).
+//
+// GET /livetv/tuners
+func (UnimplementedHandler) ListLiveTvTuners(ctx context.Context) (r []LiveTvTuner, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ListOidcProviders implements listOidcProviders operation.
 //
 // OpenID Connect providers (admin; client secrets are never returned).
@@ -987,6 +1179,19 @@ func (UnimplementedHandler) Ping(ctx context.Context) (r *Pong, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
+// PlayLiveTvChannel implements playLiveTvChannel operation.
+//
+// The channel is always delivered as HLS: remuxed (stream copy) when the device plays the channel's
+// codecs, otherwise transcoded with the server's encoding settings, using the same decision and
+// permissions as on-demand playback. The playlist is a sliding window of `timeshiftSeconds`, so
+// players can pause and rewind within it (time-shift). Viewers of the same channel with the same
+// delivery share one tuner. 503 `tuners_busy` when every tuner of the channel's source is in use.
+//
+// POST /livetv/channels/{channelId}/play
+func (UnimplementedHandler) PlayLiveTvChannel(ctx context.Context, req *LiveTvPlayRequest, params PlayLiveTvChannelParams) (r *LiveTvPlayback, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // PollQuickConnect implements pollQuickConnect operation.
 //
 // Check whether the code was approved; signs the device in when it was.
@@ -1020,6 +1225,33 @@ func (UnimplementedHandler) RefreshItem(ctx context.Context, params RefreshItemP
 //
 // POST /libraries/{libraryId}/refresh-metadata
 func (UnimplementedHandler) RefreshLibraryMetadata(ctx context.Context, params RefreshLibraryMetadataParams) error {
+	return ht.ErrNotImplemented
+}
+
+// RefreshLiveTvGuide implements refreshLiveTvGuide operation.
+//
+// Reload a guide source now (queued; manageLiveTv).
+//
+// POST /livetv/guides/{guideId}/refresh
+func (UnimplementedHandler) RefreshLiveTvGuide(ctx context.Context, params RefreshLiveTvGuideParams) error {
+	return ht.ErrNotImplemented
+}
+
+// RefreshLiveTvTuner implements refreshLiveTvTuner operation.
+//
+// Reload the channel list of a tuner source (manageLiveTv).
+//
+// POST /livetv/tuners/{tunerId}/refresh
+func (UnimplementedHandler) RefreshLiveTvTuner(ctx context.Context, params RefreshLiveTvTunerParams) (r *LiveTvTuner, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// RemoveLiveTvFavorite implements removeLiveTvFavorite operation.
+//
+// Remove a channel from the viewer's favourites.
+//
+// DELETE /livetv/channels/{channelId}/favorite
+func (UnimplementedHandler) RemoveLiveTvFavorite(ctx context.Context, params RemoveLiveTvFavoriteParams) error {
 	return ht.ErrNotImplemented
 }
 
@@ -1221,6 +1453,24 @@ func (UnimplementedHandler) TestLdapSettings(ctx context.Context, req *LdapTestR
 	return r, ht.ErrNotImplemented
 }
 
+// TestLiveTvGuide implements testLiveTvGuide operation.
+//
+// Check an XMLTV source without saving it (manageLiveTv).
+//
+// POST /livetv/guides/test
+func (UnimplementedHandler) TestLiveTvGuide(ctx context.Context, req *LiveTvGuideSourceInput) (r *LiveTvTestResult, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// TestLiveTvTuner implements testLiveTvTuner operation.
+//
+// Check a tuner configuration without saving it (manageLiveTv).
+//
+// POST /livetv/tuners/test
+func (UnimplementedHandler) TestLiveTvTuner(ctx context.Context, req *LiveTvTunerInput) (r *LiveTvTestResult, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // TestNotification implements testNotification operation.
 //
 // Send a test message to one target.
@@ -1345,6 +1595,61 @@ func (UnimplementedHandler) UpdateLdapSettings(ctx context.Context, req *LdapSet
 //
 // PUT /libraries/{libraryId}
 func (UnimplementedHandler) UpdateLibrary(ctx context.Context, req *LibraryInput, params UpdateLibraryParams) (r *Library, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateLiveTvChannel implements updateLiveTvChannel operation.
+//
+// Guide mapping, category and visibility of a channel (manageLiveTv).
+//
+// PATCH /livetv/channels/{channelId}
+func (UnimplementedHandler) UpdateLiveTvChannel(ctx context.Context, req *LiveTvChannelUpdate, params UpdateLiveTvChannelParams) (r *LiveTvChannelAdmin, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateLiveTvGuide implements updateLiveTvGuide operation.
+//
+// Change an XMLTV guide source (manageLiveTv).
+//
+// PUT /livetv/guides/{guideId}
+func (UnimplementedHandler) UpdateLiveTvGuide(ctx context.Context, req *LiveTvGuideSourceInput, params UpdateLiveTvGuideParams) (r *LiveTvGuideSource, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateLiveTvRecording implements updateLiveTvRecording operation.
+//
+// Change padding or priority of a scheduled recording (manageLiveTv).
+//
+// PATCH /livetv/recordings/{recordingId}
+func (UnimplementedHandler) UpdateLiveTvRecording(ctx context.Context, req *LiveTvRecordingUpdate, params UpdateLiveTvRecordingParams) (r *LiveTvRecording, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateLiveTvSeriesRule implements updateLiveTvSeriesRule operation.
+//
+// Change a series rule (manageLiveTv).
+//
+// PUT /livetv/series-rules/{ruleId}
+func (UnimplementedHandler) UpdateLiveTvSeriesRule(ctx context.Context, req *LiveTvSeriesRuleInput, params UpdateLiveTvSeriesRuleParams) (r *LiveTvSeriesRule, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateLiveTvSettings implements updateLiveTvSettings operation.
+//
+// Change DVR and time-shift settings (manageLiveTv; the post-processing command only by
+// administrators).
+//
+// PUT /livetv/settings
+func (UnimplementedHandler) UpdateLiveTvSettings(ctx context.Context, req *LiveTvSettings) (r *LiveTvSettings, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateLiveTvTuner implements updateLiveTvTuner operation.
+//
+// Change a tuner source and reload its channels (manageLiveTv).
+//
+// PUT /livetv/tuners/{tunerId}
+func (UnimplementedHandler) UpdateLiveTvTuner(ctx context.Context, req *LiveTvTunerInput, params UpdateLiveTvTunerParams) (r *LiveTvTuner, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

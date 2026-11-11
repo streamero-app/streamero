@@ -17,6 +17,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/dlna"
 	"github.com/streamero-app/streamero/server/internal/downloads"
 	"github.com/streamero-app/streamero/server/internal/library"
+	"github.com/streamero-app/streamero/server/internal/livetv"
 	"github.com/streamero-app/streamero/server/internal/logbuf"
 	"github.com/streamero-app/streamero/server/internal/metadata"
 	"github.com/streamero-app/streamero/server/internal/notify"
@@ -46,6 +47,8 @@ type Handler struct {
 	Library  func() *library.Service
 	// Stream serves playback (nil until ready).
 	Stream func() *stream.Server
+	// LiveTV is Live TV and the DVR (nil until ready).
+	LiveTV func() *livetv.Service
 	// Logs holds recent log records of the server and worker (admin log viewer).
 	Logs *logbuf.Buffer
 	// Requests talks to Seerr, Radarr and Sonarr (nil = default HTTP client).

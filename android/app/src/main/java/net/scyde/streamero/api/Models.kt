@@ -219,3 +219,36 @@ import kotlinx.serialization.json.JsonElement
 @Serializable data class OfflineSyncRequest(val itemIds: List<String>, val progress: List<OfflineProgress>)
 @Serializable data class OfflineItemState(val itemId: String, val positionMs: Long = 0, val played: Boolean = false, val updatedAt: String)
 @Serializable data class OfflineSyncResponse(val revoked: List<String> = emptyList(), val items: List<OfflineItemState> = emptyList(), val applied: Int = 0)
+// Live TV and DVR (D-041). Times are ISO 8601 date-times; logo and image URLs are signed and server-relative.
+@Serializable data class LiveTvProgram(
+    val id: String, val channelId: String, val title: String, val start: String, val end: String,
+    val channelName: String? = null, val channelNumber: String? = null, val subtitle: String? = null, val description: String? = null,
+    val categories: List<String> = emptyList(), val category: String? = null, val season: Int? = null, val episode: Int? = null,
+    val year: Int? = null, val isNew: Boolean = false, val isPremiere: Boolean = false, val isRepeat: Boolean = false,
+    val isLive: Boolean = false, val imageUrl: String? = null, val recordingId: String? = null, val recordingStatus: String? = null,
+    val seriesRuleId: String? = null,
+)
+@Serializable data class LiveTvChannel(
+    val id: String, val number: String, val name: String, val tunerId: String, val favorite: Boolean = false,
+    val group: String? = null, val category: String? = null, val logoUrl: String? = null, val hd: Boolean = false,
+    val now: LiveTvProgram? = null, val next: LiveTvProgram? = null,
+)
+@Serializable data class LiveTvGuideRow(val channel: LiveTvChannel, val programs: List<LiveTvProgram> = emptyList())
+@Serializable data class LiveTvGuide(val start: String, val end: String, val rows: List<LiveTvGuideRow> = emptyList())
+@Serializable data class LiveTvPlayRequest(val device: DeviceProfile)
+@Serializable data class LiveTvPlayback(
+    val channelId: String, val url: String, val method: String, val timeshiftSeconds: Int = 0,
+    val reason: String? = null, val now: LiveTvProgram? = null,
+)
+@Serializable data class LiveTvRecording(
+    val id: String, val title: String, val start: String, val end: String, val status: String,
+    val prePaddingSeconds: Int = 0, val postPaddingSeconds: Int = 0, val priority: Int = 0, val createdAt: String = "",
+    val channelId: String? = null, val channelName: String? = null, val programId: String? = null, val seriesRuleId: String? = null,
+    val subtitle: String? = null, val error: String? = null, val itemId: String? = null,
+)
+@Serializable data class LiveTvRecordingCreate(val programId: String, val channelId: String? = null)
+@Serializable data class LiveTvSeriesRuleInput(val programId: String? = null, val channelId: String? = null, val newOnly: Boolean? = null, val title: String? = null)
+@Serializable data class LiveTvSeriesRule(
+    val id: String, val title: String, val newOnly: Boolean = true, val priority: Int = 0, val keepLast: Int = 0,
+    val upcoming: Int = 0, val createdAt: String = "", val channelId: String? = null,
+)
