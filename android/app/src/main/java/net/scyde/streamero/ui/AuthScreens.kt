@@ -24,7 +24,15 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import net.scyde.streamero.AppState
 import net.scyde.streamero.R
+import android.net.Uri
+import androidx.browser.customtabs.CustomTabsIntent
+import androidx.compose.ui.platform.LocalContext
 import net.scyde.streamero.api.ApiException
+import net.scyde.streamero.api.AuthProviders
+import net.scyde.streamero.api.Pkce
+import net.scyde.streamero.api.SsoBroker
+import net.scyde.streamero.api.SsoResult
+import net.scyde.streamero.api.ssoAuthorizeUrl
 import net.scyde.streamero.api.DeviceInfo
 import net.scyde.streamero.api.Profile
 
@@ -87,11 +95,47 @@ fun LoginScreen(state: AppState, onChangeServer: () -> Unit, onSignedIn: () -> U
     val tv = LocalTv.current
     // Typing a password with a remote is painful: a TV signs in with Quick Connect first.
     var usePassword by rememberSaveable { mutableStateOf(!tv) }
+    var providers by remember { mutableStateOf<AuthProviders?>(null) }
+    val context = LocalContext.current
     LaunchedEffect(state.api) {
         runCatching { state.api!!.info() }.onSuccess { serverName = it.name; disclaimer = it.loginDisclaimer }
+        providers = runCatching { state.api!!.authProviders() }.getOrNull() // older servers: password only
+    }
+    val device = DeviceInfo(Build.MODEL ?: "Android", if (tv) TV_CLIENT else "Streamero Android")
+    // The browser came back through streamero://oidc (MainActivity → SsoBroker).
+    val ssoResult by SsoBroker.pending.collectAsState()
+    LaunchedEffect(ssoResult, state.api) {
+        val api = state.api ?: return@LaunchedEffect
+        val (result, verifier) = SsoBroker.take(context) ?: return@LaunchedEffect
+        error = null
+        when (result) {
+            is SsoResult.Failed -> error = ApiException(400, result.error, result.error)
+            is SsoResult.Code -> {
+                if (verifier == null) { error = ApiException(400, "invalid_state", "invalid_state"); return@LaunchedEffect }
+                busy = true
+                runCatching {
+                    val res = api.oidcExchange(result.code, verifier, device)
+                    state.session.setToken(res.token)
+                    state.refreshMe()
+                }.onSuccess { onSignedIn() }.onFailure { error = it }
+                busy = false
+            }
+        }
     }
     if (!usePassword) { TvQuickConnect(state, serverName, onUsePassword = { usePassword = true }, onChangeServer = onChangeServer, onSignedIn = onSignedIn); return }
     AuthFrame(stringResource(R.string.sign_in), serverName.ifBlank { null }) {
+        providers?.oidc?.forEachIndexed { i, p ->
+            GlassButton(stringResource(R.string.sso_continue, p.label), {
+                error = null
+                runCatching {
+                    val verifier = SsoBroker.begin(context)
+                    CustomTabsIntent.Builder().build().launchUrl(context, Uri.parse(ssoAuthorizeUrl(p.authorizeUrl, Pkce.challenge(verifier))))
+                }.onFailure { error = ApiException(0, "no_browser", context.getString(R.string.sso_no_browser)) }
+            }, if (i == 0 && providers?.passwordLogin == false) Modifier.fillMaxWidth().initialFocus() else Modifier.fillMaxWidth())
+        }
+        if (providers?.passwordLogin == false) {
+            ErrorLine(error)
+        } else {
         OutlinedTextField(user, { user = it }, label = { Text(stringResource(R.string.username)) }, singleLine = true, modifier = Modifier.fillMaxWidth().initialFocus().dpadExit(), shape = CardShape)
         OutlinedTextField(pass, { pass = it }, label = { Text(stringResource(R.string.password)) }, singleLine = true, visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), modifier = Modifier.fillMaxWidth().dpadExit(), shape = CardShape)
@@ -102,7 +146,7 @@ fun LoginScreen(state: AppState, onChangeServer: () -> Unit, onSignedIn: () -> U
             busy = true; error = null
             scope.launch {
                 runCatching {
-                    val res = state.api!!.login(user.trim(), pass, totp, DeviceInfo(Build.MODEL ?: "Android", if (tv) TV_CLIENT else "Streamero Android"))
+                    val res = state.api!!.login(user.trim(), pass, totp, device)
                     state.session.setToken(res.token)
                     state.refreshMe()
                 }.onSuccess { onSignedIn() }.onFailure {
@@ -111,6 +155,7 @@ fun LoginScreen(state: AppState, onChangeServer: () -> Unit, onSignedIn: () -> U
                 busy = false
             }
         })
+        }
         if (tv) GlassButton(stringResource(R.string.qc_use), { usePassword = false }, Modifier.fillMaxWidth())
         val changeServer: () -> Unit = { scope.launch { state.session.forgetServer(); state.attach(null); onChangeServer() } }
         if (tv) GlassButton(stringResource(R.string.change_server), changeServer, Modifier.fillMaxWidth())

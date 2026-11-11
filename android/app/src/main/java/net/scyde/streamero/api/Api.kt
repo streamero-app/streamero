@@ -82,6 +82,11 @@ class Api(baseUrl: String, @Volatile var token: String? = null) {
     suspend fun login(username: String, password: String, totp: String?, device: DeviceInfo): AuthResult =
         post("auth/login", LoginRequest(username, password, totp?.ifBlank { null }, device))
     suspend fun logout() = send("POST", "auth/logout")
+    /** Sign-in methods the server offers (SSO buttons, whether passwords work). */
+    suspend fun authProviders(): AuthProviders = get("auth/providers")
+    /** Redeems the one-time code from the `streamero://oidc` redirect with the PKCE verifier. */
+    suspend fun oidcExchange(code: String, verifier: String, device: DeviceInfo): AuthResult =
+        post("auth/oidc/exchange", OidcExchangeRequest(code, verifier, device))
 
     // Quick Connect: a new device shows a code that a signed-in device approves.
     suspend fun quickConnectStart(device: DeviceInfo): QuickConnectStart = post("quickconnect/initiate", device)

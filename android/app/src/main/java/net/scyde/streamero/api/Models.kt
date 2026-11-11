@@ -18,6 +18,9 @@ import kotlinx.serialization.json.JsonElement
 @Serializable data class QuickConnectCode(val code: String)
 @Serializable data class QuickConnectApproved(val deviceName: String)
 @Serializable data class AuthResult(val token: String? = null, val sessionId: String, val user: User)
+@Serializable data class OidcProviderButton(val id: String, val label: String, val authorizeUrl: String)
+@Serializable data class AuthProviders(val passwordLogin: Boolean = true, val ldap: Boolean = false, val oidc: List<OidcProviderButton> = emptyList())
+@Serializable data class OidcExchangeRequest(val code: String, val codeVerifier: String, val device: DeviceInfo)
 
 @Serializable data class UserPermissions(
     val allLibraries: Boolean = true, val download: Boolean = false, val videoTranscoding: Boolean = true,

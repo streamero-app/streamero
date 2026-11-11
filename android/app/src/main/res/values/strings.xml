@@ -280,4 +280,13 @@
     <string name="rewind">Rewind</string>
     <string name="pause">Pause</string>
     <string name="fast_forward">Fast forward</string>
+    <string name="sso_continue">Continue with %1$s</string>
+    <string name="sso_no_browser">No browser is installed to sign in with.</string>
+    <string name="err_sso_invalid_state">The sign-in expired or was already used. Try again.</string>
+    <string name="err_sso_provider">The sign-in provider refused the sign-in.</string>
+    <string name="err_sso_no_account">No account on this server is linked to that sign-in. Ask the administrator.</string>
+    <string name="err_sso_not_allowed">This account is not allowed to sign in to this server.</string>
+    <string name="err_sso_disabled">This account is disabled.</string>
+    <string name="err_sso_not_configured">Single sign-on is not set up completely on the server.</string>
+    <string name="err_password_disabled">Password sign-in is turned off on this server.</string>
 </resources>
