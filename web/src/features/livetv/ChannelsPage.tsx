@@ -35,7 +35,7 @@ export function ChannelsPage() {
         <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-card border border-border bg-surface">
           {list.map((ch) => (
             <li key={ch.id} className="flex items-center gap-4 px-4 py-3 sm:px-5" data-testid="channel-row">
-              <Link to="/livetv/watch/$channelId" params={{ channelId: ch.id }} aria-label={t("livetv.watchChannel", { name: ch.name })}
+              <Link to="/live/watch/$channelId" params={{ channelId: ch.id }} aria-label={t("livetv.watchChannel", { name: ch.name })}
                 className="tv-focus group relative shrink-0 rounded-[6px]">
                 <ChannelBadge channel={ch} size={52} />
                 <span className="absolute inset-0 grid place-items-center rounded-[6px] bg-black/60 opacity-0 transition-opacity group-hover:opacity-100">

@@ -73,7 +73,7 @@ describe("Live TV guide", () => {
   it("lays programmes out on the time grid and moves the window", async () => {
     const starts: string[] = [];
     mock([], starts);
-    renderApp("/livetv", { me: testUser() });
+    renderApp("/live", { me: testUser() });
     const blocks = await screen.findAllByTestId("guide-program");
     expect(blocks).toHaveLength(2);
     // 6 px per minute: the first started 30 min before the window (clipped), the second 30 min in.
@@ -100,7 +100,7 @@ describe("Live TV guide", () => {
   it("schedules a recording and a series from the programme dialog", async () => {
     const posts: { path: string; body: unknown }[] = [];
     mock(posts, []);
-    renderApp("/livetv", { me: testUser({ permissions: { ...testUser().permissions, manageLiveTv: true } }) });
+    renderApp("/live", { me: testUser({ permissions: { ...testUser().permissions, manageLiveTv: true } }) });
     fireEvent.click((await screen.findAllByTestId("guide-program"))[1]!);
     const dialog = await screen.findByTestId("program-dialog");
     expect(dialog).toHaveTextContent("S2 E5 · Final");
@@ -121,7 +121,7 @@ describe("Live TV guide", () => {
 
   it("offers no recording to viewers without manageLiveTv", async () => {
     mock([], []);
-    renderApp("/livetv", { me: testUser() });
+    renderApp("/live", { me: testUser() });
     fireEvent.click((await screen.findAllByTestId("guide-program"))[1]!);
     const dialog = await screen.findByTestId("program-dialog");
     expect(within(dialog).queryByRole("button", { name: "Record" })).not.toBeInTheDocument();
@@ -129,14 +129,14 @@ describe("Live TV guide", () => {
 
   it("is closed to accounts without the liveTv permission", async () => {
     mock([], []);
-    renderApp("/livetv", { me: testUser({ permissions: { ...testUser().permissions, liveTv: false } }) });
+    renderApp("/live", { me: testUser({ permissions: { ...testUser().permissions, liveTv: false } }) });
     expect(await screen.findByTestId("livetv-denied")).toBeInTheDocument();
   });
 
   it("is translated to Croatian", async () => {
     setLanguage("hr");
     mock([], []);
-    renderApp("/livetv", { me: testUser() });
+    renderApp("/live", { me: testUser() });
     await screen.findAllByTestId("guide-program");
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("TV uživo");
     expect(screen.getByRole("button", { name: "Kasnije" })).toBeInTheDocument();
@@ -154,7 +154,7 @@ describe("Series rules page", () => {
       if (path === "/livetv/channels") return { status: 200, body: [channel] };
       return { status: 200, body: [] };
     });
-    renderApp("/livetv/series", { me: testUser({ isAdmin: true }) });
+    renderApp("/live/series", { me: testUser({ isAdmin: true }) });
     fireEvent.click(await screen.findByRole("button", { name: "New series rule" }));
     const form = await screen.findByTestId("series-form");
     fireEvent.change(within(form).getByLabelText("Title"), { target: { value: " Dnevnik " } });
@@ -186,7 +186,7 @@ describe("Channels and Home", () => {
       if (path === "/livetv/channels") return { status: 200, body: [withNow] };
       return { status: 200, body: [] };
     });
-    renderApp("/livetv/channels", { me: testUser() });
+    renderApp("/live/channels", { me: testUser() });
     expect(await screen.findByText("Evening News")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Add Kino Plus to favourites" }));
     await waitFor(() => expect(calls).toEqual(["PUT"]));
@@ -200,7 +200,7 @@ describe("Channels and Home", () => {
     });
     renderApp("/", { me: testUser() });
     const row = await screen.findByTestId("on-now");
-    expect(within(row).getByTestId("on-now-card")).toHaveAttribute("href", `/livetv/watch/${chId}`);
+    expect(within(row).getByTestId("on-now-card")).toHaveAttribute("href", `/live/watch/${chId}`);
     expect(row).toHaveTextContent("Evening News");
   });
 });

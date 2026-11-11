@@ -82,7 +82,7 @@ function AccountMenu() {
             </Link>
           )}
           {canWatchLiveTv(me) && (
-            <Link to="/livetv" role="menuitem" className={item} onClick={() => setOpen(false)} data-testid="livetv-menu">
+            <Link to="/live" role="menuitem" className={item} onClick={() => setOpen(false)} data-testid="livetv-menu">
               <Radio className="size-4 text-text/55" aria-hidden />{t("livetv.title")}
             </Link>
           )}
@@ -140,7 +140,7 @@ export function AppShell() {
   // Like a streaming service: choose who is watching once per browser session.
   if ((profiles.data?.length ?? 0) > 0 && !me.currentProfile && !profilePicked()) return <Navigate to="/who" />;
 
-  const watching = path.startsWith("/watch/") || path.startsWith("/livetv/watch/");
+  const watching = path.startsWith("/watch/") || path.startsWith("/live/watch/");
   const libs = Array.isArray(libraries.data) ? libraries.data : [];
 
   return (
@@ -161,7 +161,7 @@ export function AppShell() {
             <Link to="/collections" className={topLink}>{t("collections.title")}</Link>
             <Link to="/my-list" className={topLink}>{t("nav.myList")}</Link>
             <Link to="/playlists" className={topLink}>{t("playlists.title")}</Link>
-            {canWatchLiveTv(me) && <Link to="/livetv" className={topLink} data-testid="livetv-link">{t("livetv.title")}</Link>}
+            {canWatchLiveTv(me) && <Link to="/live" className={topLink} data-testid="livetv-link">{t("livetv.title")}</Link>}
           </nav>
           <div className="ml-auto flex items-center gap-3">
             <div className="hidden sm:block"><SearchBox /></div>

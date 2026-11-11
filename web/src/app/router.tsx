@@ -96,13 +96,13 @@ const discoverRoute = createRoute({
 const togetherRoute = createRoute({ getParentRoute: () => appRoute, path: "/together", component: TogetherListPage });
 const togetherInviteRoute = createRoute({ getParentRoute: () => appRoute, path: "/together/$groupId", component: TogetherInvitePage });
 // Live TV (D-041): the player sits beside the section so it gets the whole screen.
-const liveTvRoute = createRoute({ getParentRoute: () => appRoute, path: "/livetv", component: LiveTvLayout });
+const liveTvRoute = createRoute({ getParentRoute: () => appRoute, path: "/live", component: LiveTvLayout });
 const liveGuideRoute = createRoute({ getParentRoute: () => liveTvRoute, path: "/", component: GuidePage });
 const liveChannelsRoute = createRoute({ getParentRoute: () => liveTvRoute, path: "channels", component: ChannelsPage });
 const liveRecordingsRoute = createRoute({ getParentRoute: () => liveTvRoute, path: "recordings", component: RecordingsPage });
 const liveScheduleRoute = createRoute({ getParentRoute: () => liveTvRoute, path: "schedule", component: SchedulePage });
 const liveSeriesRoute = createRoute({ getParentRoute: () => liveTvRoute, path: "series", component: SeriesPage });
-const liveWatchRoute = createRoute({ getParentRoute: () => appRoute, path: "/livetv/watch/$channelId", component: LivePlayer });
+const liveWatchRoute = createRoute({ getParentRoute: () => appRoute, path: "/live/watch/$channelId", component: LivePlayer });
 const watchRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/watch/$itemId",

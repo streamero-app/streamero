@@ -109,7 +109,7 @@ export function ProgramDialog({ program, onClose }: { program: Program; onClose:
 
           <div className="flex flex-wrap items-center gap-3 pt-1">
             {airing && (
-              <Button onClick={() => void navigate({ to: "/livetv/watch/$channelId", params: { channelId: program.channelId } })}>
+              <Button onClick={() => void navigate({ to: "/live/watch/$channelId", params: { channelId: program.channelId } })}>
                 <Play className="size-4 fill-current" aria-hidden />{t("livetv.watch")}
               </Button>
             )}

@@ -34,11 +34,11 @@ export function LiveTvLayout() {
       <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
         <h1 className="font-display text-4xl sm:text-5xl">{t("livetv.title")}</h1>
         <nav aria-label={t("livetv.sections")} className="shelf-track -mx-1 flex gap-1 overflow-x-auto px-1">
-          <Tab to="/livetv" icon={LayoutGrid} label={t("livetv.guide")} exact />
-          <Tab to="/livetv/channels" icon={ListVideo} label={t("livetv.channels")} />
-          <Tab to="/livetv/recordings" icon={CircleDot} label={t("livetv.recordings")} />
-          <Tab to="/livetv/schedule" icon={CalendarClock} label={t("livetv.schedule")} />
-          <Tab to="/livetv/series" icon={Repeat} label={t("livetv.series")} />
+          <Tab to="/live" icon={LayoutGrid} label={t("livetv.guide")} exact />
+          <Tab to="/live/channels" icon={ListVideo} label={t("livetv.channels")} />
+          <Tab to="/live/recordings" icon={CircleDot} label={t("livetv.recordings")} />
+          <Tab to="/live/schedule" icon={CalendarClock} label={t("livetv.schedule")} />
+          <Tab to="/live/series" icon={Repeat} label={t("livetv.series")} />
         </nav>
       </div>
       <Outlet />

@@ -123,7 +123,7 @@ export function GuidePage() {
             </div>
             {rows.map(({ channel, programs }) => (
               <div key={channel.id} role="row" className="flex border-b border-border/70 last:border-b-0" style={{ height: ROW_H }} data-testid="guide-row">
-                <Link to="/livetv/watch/$channelId" params={{ channelId: channel.id }} role="rowheader"
+                <Link to="/live/watch/$channelId" params={{ channelId: channel.id }} role="rowheader"
                   style={{ width: CHANNEL_W }} title={t("livetv.watchChannel", { name: channel.name })}
                   className="tv-focus sticky left-0 z-10 flex shrink-0 items-center gap-2.5 border-r border-border bg-surface px-3 transition-colors hover:bg-surface-2">
                   <ChannelBadge channel={channel} size={36} />

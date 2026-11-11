@@ -27,7 +27,7 @@ export function behindLabel(sec: number): string {
 export function LivePlayer() {
   const { t, i18n } = useTranslation();
   const lang = i18n.resolvedLanguage;
-  const { channelId } = useParams({ from: "/app/livetv/watch/$channelId" });
+  const { channelId } = useParams({ from: "/app/live/watch/$channelId" });
   const navigate = useNavigate();
   const router = useRouter();
   const music = useMusic();
@@ -146,7 +146,7 @@ export function LivePlayer() {
 
   const back = () => {
     if (router.history.length > 1) router.history.back();
-    else void navigate({ to: "/livetv" });
+    else void navigate({ to: "/live" });
   };
   const ch = channel.data;
   const now = info?.now ?? ch?.now;

@@ -34,6 +34,8 @@ func spaRoutes(t *testing.T) []string {
 		case "rootRoute", "appRoute":
 		case "settingsRoute":
 			p = "/settings/" + strings.TrimPrefix(p, "/")
+		case "liveTvRoute":
+			p = "/live/" + strings.TrimPrefix(p, "/")
 		default:
 			t.Fatalf("route %q has parent %s: teach spaRoutes its prefix", p, parent)
 		}
@@ -66,6 +68,7 @@ var compatRootPaths = []struct{ method, path string }{
 	{"GET", "/DisplayPreferences/usersettings"}, {"GET", "/socket"}, {"GET", "/Search/Hints"},
 	{"GET", "/web/index.html"}, {"GET", "/MediaSegments/0123456789abcdef0123456789abcdef"},
 	{"POST", "/UserPlayedItems/0123456789abcdef0123456789abcdef"},
+	{"GET", "/LiveTv/Channels"}, {"GET", "/LiveTv/Programs"}, {"POST", "/LiveTv/Programs"}, {"GET", "/LiveTv/Info"},
 }
 
 func readyState(c *compat.Server) *State {
@@ -149,7 +152,7 @@ func TestCompatAtRootServesClientPaths(t *testing.T) {
 		t.Errorf("/web/index.html: %d %s", rec.Code, rec.Body)
 	}
 	// Unknown endpoints in client casing are the compat API's 404, not the web page.
-	for _, p := range []string{"/Plugins", "/LiveTv/Channels", "/Items/Counts/Extra"} {
+	for _, p := range []string{"/Plugins", "/LiveTv/Tuners/Discvover", "/Items/Counts/Extra"} {
 		if rec := do(h, p); rec.Code != http.StatusNotFound {
 			t.Errorf("GET %s: %d, want 404 from the compat API", p, rec.Code)
 		}

@@ -12,7 +12,7 @@ function OnNowCard({ channel, now }: { channel: Channel; now: number }) {
   const { t, i18n } = useTranslation();
   const p = channel.now!;
   return (
-    <Link to="/livetv/watch/$channelId" params={{ channelId: channel.id }} data-testid="on-now-card"
+    <Link to="/live/watch/$channelId" params={{ channelId: channel.id }} data-testid="on-now-card"
       className={`tv-focus group relative flex shrink-0 flex-col overflow-hidden rounded-[6px] bg-surface-2 ${rowCard}`}>
       <div className="relative aspect-video w-full overflow-hidden bg-gradient-to-br from-surface-3 to-surface">
         {p.imageUrl
@@ -55,7 +55,7 @@ export function OnNowRow() {
   if (!enabled) return null;
   return (
     <Row title={t("livetv.onNow")} testId="on-now" count={list.length}
-      action={<Link to="/livetv" className="pb-0.5 text-sm font-semibold text-text/55 hover:text-text">{t("livetv.openGuide")}</Link>}>
+      action={<Link to="/live" className="pb-0.5 text-sm font-semibold text-text/55 hover:text-text">{t("livetv.openGuide")}</Link>}>
       {list.map((c) => <OnNowCard key={c.id} channel={c} now={now} />)}
     </Row>
   );
