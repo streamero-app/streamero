@@ -13,6 +13,9 @@ x-common: &common
     # Reverse proxies whose X-Forwarded-For is trusted (see docs/DEPLOY.md).
     STREAMERO_TRUSTED_PROXIES: ${STREAMERO_TRUSTED_PROXIES:-}
     STREAMERO_AUTH_RATE_LIMIT: ${STREAMERO_AUTH_RATE_LIMIT:-20,10}
+    # Lets administrators sign in with a password while password sign-in is turned off
+    # for single sign-on; only for recovery (docs/SSO.md, D-037).
+    STREAMERO_PASSWORD_LOGIN_RECOVERY: ${STREAMERO_PASSWORD_LOGIN_RECOVERY:-false}
     # Folders libraries may use (inside the container); MEDIA_PATH is mounted at /media.
     STREAMERO_MEDIA_ROOTS: ${STREAMERO_MEDIA_ROOTS:-/media}
     # Media clients (TV apps, Infuse, Swiftfin…) may use the plain server address;

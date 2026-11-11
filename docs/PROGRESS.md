@@ -26,6 +26,12 @@ Nativna iOS aplikacija dobila je sve ekrane Android aplikacije: Home/Search/Disc
 - Poznato: skok naprijed/natrag iz postavki ne primjenjuje se u AVKit kontrolama (isto kao na Androidu).
 - Sljedeće: ručna provjera na uređaju (reprodukcija, glazba na zaključanom ekranu).
 
+## Jedinstvena prijava (OIDC) i LDAP (branch `feat/sso-ldap`, 2026-11-11)
+OpenID Connect (više providera, PKCE, state/nonce, JWKS rotacija, mapiranje claimova i grupa, povezivanje po potvrđenoj e-pošti ili iz „Moj račun", automatsko stvaranje računa) i LDAP/AD (servisni bind, escape filtera, memberOf ili pretraga grupa, StartTLS/LDAPS s provjerom certifikata). Web: gumbi na prijavi, Postavke → Prijava (Test connection za oba), povezani računi. iOS (ASWebAuthenticationSession) i Android (Custom Tabs) preko `streamero://oidc` + jednokratnog koda vezanog uz PKCE aplikacije. Migracija 00027, D-037, `docs/SSO.md`.
+- Testirano: unit s lažnim OIDC providerom (loš potpis, HS256, kriva publika/izdavatelj, istekao token, nonce, azp, PKCE, rotacija ključeva, UserInfo), integracijski protiv Postgresa (stvaranje i povezivanje računa, ponovljeni state, login CSRF, app exchange, gašenje lozinke i oporavak, brisanje providera), LDAP protiv pravog OpenLDAP-a (CI service container), web (Vitest), Android unit (PKCE, API).
+- Nije provjereno: iOS samo kroz CI build/testove; stvarni Authentik/Authelia/Entra/Google (samo po javnoj dokumentaciji); Active Directory.
+- Sljedeće: ručna provjera s Authentikom na stabilnom serveru i na iOS uređaju (Feather build).
+
 ## TV aplikacije bez `/compat` (branch `feat/tv-clients`, 2026-11-10)
 Compat API se služi i na korijenu adrese (D-032, `STREAMERO_COMPAT_ROOT`), s CORS-om za web TV aplikacije; `/socket` WebSocket (keepalive + poruka/stop s nadzorne ploče); odgovor na LAN otkrivanje na UDP 7359 (D-033, `STREAMERO_DISCOVERY`, `STREAMERO_DISCOVERY_URL`).
 - Testirano: unit (otkrivanje, nesudaranje sa svim rutama web klijenta iz `router.tsx`, CORS, cookie se ne koristi na compat putanjama, rate limit na korijenu), integracijski protiv Postgresa (`TestCompatRootAndSocketIntegration`: prijava i pregled na korijenu, auth utičnice, keepalive, push naredbi).
