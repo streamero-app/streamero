@@ -20,6 +20,9 @@ P4 — Web pregledavanje (u tijeku); izdanja v0.2.0 i **v0.3.0** objavljena. P0 
 - Branch pushan, PR #1 (`phase/P0-foundations` → `main`) otvoren; `main` je prazan početni commit spojen u P0 (repo je bio prazan). CI zelen: `server`, `web`, `e2e`, iOS `build` (prvi uspješan iOS build, artefakt `streamero-ipa`).
 - `scripts/gen-fixtures.sh`: filmovi (H.264, 4K HEVC 10-bit, HDR10, AV1, multi-audio + poglavlja + embedded/external SRT/ASS, verzije, trailer), serija sa zajedničkim introm (2×4 ep.), multi-episode, specials, daily, anime absolute, glazba (FLAC/MP3), fotke.
 
+## v0.10.1 (2026-11-11)
+Reprodukcija preskače verzije koje više nisu na disku (npr. epizodu koju je Sonarr premjestio iz `downloads`); kad nijedne nema, javlja `file_missing` i ponovno skenira biblioteku (#62).
+
 ## v0.10.0 (2026-11-11)
 Titlovi upisani u video i prepoznavanje uvoda po zvuku (#54), SyncPlay (#53), OIDC i LDAP prijava (#55), DLNA za televizore (#56), offline preuzimanje (#57), Live TV i snimanje (#59), web player kreće tek kad se stream učita i prebacuje se na H.264/AAC kad preglednik ne može dekodirati datoteku (#60). Knjige, stripovi, audioknjige i fotografije još nisu uključeni.
 
