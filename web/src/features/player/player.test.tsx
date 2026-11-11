@@ -45,6 +45,30 @@ describe("player", () => {
     await waitFor(() => expect(bodies.progress).toMatchObject({ positionMs: 42_000, durationMs: 100_000 }));
   });
 
+  it("falls back to an H.264/AAC stream when the browser can't decode the file", async () => {
+    const devices: { videoCodecs: string[] }[] = [];
+    mockApi(({ method, path, body }) => {
+      if (method === "POST" && path.endsWith("/playback")) {
+        devices.push((body as { device: { videoCodecs: string[] } }).device);
+        return { status: 200, body: { fileId: "f", method: "direct", url: `/stream/file/f/video${devices.length}.mp4?exp=1&sig=x`, startMs: 0,
+          durationMs: 100_000, audio: [{ codec: "aac" }], subtitles: [] } };
+      }
+      if (method === "PUT") return { status: 204 };
+      return { status: 200, body: { item, libraryId: "l", providerIds: {}, files: [], children: [], genres: [], cast: [], crew: [], hasBackdrop: false } };
+    });
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+    renderApp(`/watch/${item.id}`, { me: testUser() });
+    const video = (await screen.findByTestId("video")) as HTMLVideoElement;
+    await waitFor(() => expect(video.getAttribute("src") ?? video.src).toContain("video1.mp4"));
+    fireEvent.error(video);
+    await waitFor(() => expect(devices).toHaveLength(2));
+    expect(devices[1]?.videoCodecs).toEqual(["h264"]);
+    await waitFor(() => expect(video.getAttribute("src") ?? video.src).toContain("video2.mp4"));
+    fireEvent.error(video);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(devices).toHaveLength(2);
+  });
+
   it("adds the stream offset for HLS that starts mid-way", async () => {
     let progress: unknown;
     mockApi(({ method, path, body }) => {

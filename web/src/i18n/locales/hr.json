@@ -533,7 +533,8 @@
     "keyFullscreen": "Cijeli zaslon",
     "keySubtitles": "Titlovi uključi/isključi",
     "keyHelp": "Ova pomoć",
-    "keyClose": "Zatvori panel"
+    "keyClose": "Zatvori panel",
+    "fallback": "Preglednik nije mogao izravno pustiti datoteku, pa se pretvara."
   },
   "search": {
     "title": "Pretraga",

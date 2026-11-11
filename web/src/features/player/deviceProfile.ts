@@ -27,6 +27,9 @@ export function detectDeviceProfile(probe?: Probe, nativeHls?: boolean): DeviceP
   return { containers, videoCodecs, audioCodecs, hls: hls || !!ms };
 }
 
+/** H.264 + AAC in MP4/HLS: what every browser decodes, used when the detected profile failed. */
+export const SAFE_PROFILE: DeviceProfile = { containers: ["mp4"], videoCodecs: ["h264"], audioCodecs: ["aac"], hls: true };
+
 /** What an <audio> element here can play as-is (music never needs a picture). */
 export function detectAudioProfile(probe?: Probe): DeviceProfile {
   const audio = typeof document !== "undefined" ? document.createElement("audio") : undefined;
