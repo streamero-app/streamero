@@ -40,25 +40,34 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import net.scyde.streamero.AppState
+import net.scyde.streamero.Connection
 import net.scyde.streamero.R
 import net.scyde.streamero.applyLanguage
 import kotlinx.coroutines.launch
 
-private enum class Gate { Loading, Server, Login, Profiles, Ready }
+private enum class Gate { Loading, Server, Login, Profiles, Ready, Offline }
 
 @Composable
 fun StreameroRoot(state: AppState) {
     var gate by remember { mutableStateOf(Gate.Loading) }
+    var attempt by remember { mutableIntStateOf(0) }
+    var retrying by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    LaunchedEffect(Unit) {
+    LaunchedEffect(attempt) {
+        retrying = true
         val api = state.session.restore()
         state.attach(api)
         gate = when {
             api == null -> Gate.Server
             api.token == null -> Gate.Login
-            state.refreshMe() == null -> Gate.Login
-            else -> afterSignIn(state)
+            else -> when (state.connect()) {
+                Connection.Ok -> afterSignIn(state).also { state.offline.syncSoon() }
+                Connection.SignedOut -> Gate.Login
+                // No server: the downloads still play.
+                Connection.Unreachable -> Gate.Offline
+            }
         }
+        retrying = false
     }
     val ctx = LocalContext.current
     val tv = remember { isTelevision(ctx) }
@@ -74,6 +83,7 @@ fun StreameroRoot(state: AppState) {
                     Gate.Login -> LoginScreen(state, onChangeServer = { gate = Gate.Server }) { scope.launch { gate = afterSignIn(state) } }
                     Gate.Profiles -> ProfileGate(state) { gate = Gate.Ready }
                     Gate.Ready -> Main(state, onSignedOut = { gate = Gate.Login }, onSwitchProfile = { gate = Gate.Profiles })
+                    Gate.Offline -> OfflineMain(state, retrying) { if (!retrying) attempt++ }
                 }
             }
         }
@@ -84,6 +94,22 @@ private suspend fun afterSignIn(state: AppState): Gate {
     state.me?.language?.let { applyLanguage(it) }
     val profiles = runCatching { state.api!!.profiles() }.getOrDefault(emptyList())
     return if (profiles.isNotEmpty() && state.me?.currentProfile == null) Gate.Profiles else Gate.Ready
+}
+
+/** Without the server: the offline library and its player; connects again when the network returns. */
+@Composable
+private fun OfflineMain(state: AppState, retrying: Boolean, onRetry: () -> Unit) {
+    val nav = rememberNavController()
+    val online by state.offline.online.collectAsState()
+    var wasOnline by remember { mutableStateOf(online) }
+    LaunchedEffect(online) {
+        if (online && !wasOnline) onRetry()
+        wasOnline = online
+    }
+    NavHost(nav, startDestination = "downloads") {
+        composable("downloads") { DownloadsScreen(state, onPlay = { nav.navigate("offline/$it") }, banner = { OfflineBanner(retrying, onRetry) }) }
+        composable("offline/{id}") { OfflinePlayerScreen(state, it.arguments?.getString("id")!!) { nav.popBackStack() } }
+    }
 }
 
 private data class Tab(val route: String, val label: Int, val icon: ImageVector)
@@ -100,7 +126,7 @@ private fun Main(state: AppState, onSignedOut: () -> Unit, onSwitchProfile: () -
     )
     val entry by nav.currentBackStackEntryAsState()
     val route = entry?.destination?.route.orEmpty()
-    val watching = route.startsWith("watch")
+    val watching = route.startsWith("watch") || route.startsWith("offline/")
     if (LocalTv.current) { TvMain(state, nav, tabs, route, watching, onSignedOut, onSwitchProfile); return }
     Scaffold(
         containerColor = Kino.bg,
@@ -149,6 +175,8 @@ private fun Routes(state: AppState, nav: NavHostController, onSignedOut: () -> U
                 a.getInt("audio").takeIf { x -> x >= 0 }, a.getInt("sub").takeIf { x -> x >= -1 })
         }
         composable("settings/{page}") { SettingsPage(state, nav, it.arguments?.getString("page")!!) }
+        composable("downloads") { DownloadsScreen(state, onPlay = { id -> nav.navigate("offline/$id") }) }
+        composable("offline/{id}") { OfflinePlayerScreen(state, it.arguments?.getString("id")!!) { nav.popBackStack() } }
         composable("together") { TogetherScreen(state, nav, null) }
         composable("together/{id}") { TogetherScreen(state, nav, it.arguments?.getString("id")) }
     }

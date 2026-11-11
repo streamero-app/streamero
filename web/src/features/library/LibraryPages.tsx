@@ -7,6 +7,7 @@ import { Check, Info, LayoutGrid, List, Play, Plus, RotateCcw, Shuffle, Volume2,
 import { useEnhancements, useSurprise } from "@/features/enhancements/useEnhancements";
 import { AlbumView, ArtistView, MusicLibrary } from "@/features/music/MusicPages";
 import { SubtitleFinder } from "./SubtitleFinder";
+import { DownloadOriginalButton } from "@/features/downloads/DownloadOriginal";
 import { api, unwrap } from "@/api/client";
 import type { components } from "@/api/schema.gen";
 import { Art, Badge, Button, ErrorText, IconButton, Select, Spinner, buttonVariants, pressable } from "@/components/ui";
@@ -1138,6 +1139,9 @@ export function ItemPage() {
                   </p>
                 )}
                 <code className="truncate font-mono text-[11px] text-faint" title={f.path}>{f.path}</code>
+                {(it.kind === "movie" || it.kind === "episode") && (
+                  <div><DownloadOriginalButton itemId={it.id} fileId={f.id} /></div>
+                )}
               </li>
             ))}
           </ul>

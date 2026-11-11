@@ -1439,6 +1439,12 @@ type DeleteBackupNoContent struct{}
 // DeleteCollectionNoContent is response for DeleteCollection operation.
 type DeleteCollectionNoContent struct{}
 
+// DeleteDownloadNoContent is response for DeleteDownload operation.
+type DeleteDownloadNoContent struct{}
+
+// DeleteDownloadTranscodeNoContent is response for DeleteDownloadTranscode operation.
+type DeleteDownloadTranscodeNoContent struct{}
+
 // DeleteInviteNoContent is response for DeleteInvite operation.
 type DeleteInviteNoContent struct{}
 
@@ -2193,6 +2199,283 @@ func (s *DlnaUserChoiceProfilesItem) SetIsKid(val bool) {
 	s.IsKid = val
 }
 
+// Ref: #/components/schemas/Download
+type Download struct {
+	ID      uuid.UUID       `json:"id"`
+	ItemId  uuid.UUID       `json:"itemId"`
+	FileId  uuid.UUID       `json:"fileId"`
+	Quality DownloadQuality `json:"quality"`
+	State   DownloadState   `json:"state"`
+	// Transcoding progress 0–1 (1 when ready).
+	Progress float64 `json:"progress"`
+	// Size of the file to fetch (known when ready).
+	SizeBytes OptInt64  `json:"sizeBytes"`
+	Error     OptString `json:"error"`
+	// Signed URL of the file (byte ranges supported), only when ready.
+	URL          OptString   `json:"url"`
+	UrlExpiresAt OptDateTime `json:"urlExpiresAt"`
+	FileName     OptString   `json:"fileName"`
+	// File extension of the downloaded file (mp4 for transcodes).
+	Container  OptString `json:"container"`
+	DurationMs OptInt64  `json:"durationMs"`
+	AudioIndex OptInt    `json:"audioIndex"`
+	// Text subtitle tracks as sidecars (picture subtitles are not offered).
+	Subtitles []DownloadSubtitle `json:"subtitles"`
+	Item      ItemSummary        `json:"item"`
+	Overview  OptString          `json:"overview"`
+	Series    OptItemSummary     `json:"series"`
+	CreatedAt time.Time          `json:"createdAt"`
+}
+
+// GetID returns the value of ID.
+func (s *Download) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetItemId returns the value of ItemId.
+func (s *Download) GetItemId() uuid.UUID {
+	return s.ItemId
+}
+
+// GetFileId returns the value of FileId.
+func (s *Download) GetFileId() uuid.UUID {
+	return s.FileId
+}
+
+// GetQuality returns the value of Quality.
+func (s *Download) GetQuality() DownloadQuality {
+	return s.Quality
+}
+
+// GetState returns the value of State.
+func (s *Download) GetState() DownloadState {
+	return s.State
+}
+
+// GetProgress returns the value of Progress.
+func (s *Download) GetProgress() float64 {
+	return s.Progress
+}
+
+// GetSizeBytes returns the value of SizeBytes.
+func (s *Download) GetSizeBytes() OptInt64 {
+	return s.SizeBytes
+}
+
+// GetError returns the value of Error.
+func (s *Download) GetError() OptString {
+	return s.Error
+}
+
+// GetURL returns the value of URL.
+func (s *Download) GetURL() OptString {
+	return s.URL
+}
+
+// GetUrlExpiresAt returns the value of UrlExpiresAt.
+func (s *Download) GetUrlExpiresAt() OptDateTime {
+	return s.UrlExpiresAt
+}
+
+// GetFileName returns the value of FileName.
+func (s *Download) GetFileName() OptString {
+	return s.FileName
+}
+
+// GetContainer returns the value of Container.
+func (s *Download) GetContainer() OptString {
+	return s.Container
+}
+
+// GetDurationMs returns the value of DurationMs.
+func (s *Download) GetDurationMs() OptInt64 {
+	return s.DurationMs
+}
+
+// GetAudioIndex returns the value of AudioIndex.
+func (s *Download) GetAudioIndex() OptInt {
+	return s.AudioIndex
+}
+
+// GetSubtitles returns the value of Subtitles.
+func (s *Download) GetSubtitles() []DownloadSubtitle {
+	return s.Subtitles
+}
+
+// GetItem returns the value of Item.
+func (s *Download) GetItem() ItemSummary {
+	return s.Item
+}
+
+// GetOverview returns the value of Overview.
+func (s *Download) GetOverview() OptString {
+	return s.Overview
+}
+
+// GetSeries returns the value of Series.
+func (s *Download) GetSeries() OptItemSummary {
+	return s.Series
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *Download) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// SetID sets the value of ID.
+func (s *Download) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetItemId sets the value of ItemId.
+func (s *Download) SetItemId(val uuid.UUID) {
+	s.ItemId = val
+}
+
+// SetFileId sets the value of FileId.
+func (s *Download) SetFileId(val uuid.UUID) {
+	s.FileId = val
+}
+
+// SetQuality sets the value of Quality.
+func (s *Download) SetQuality(val DownloadQuality) {
+	s.Quality = val
+}
+
+// SetState sets the value of State.
+func (s *Download) SetState(val DownloadState) {
+	s.State = val
+}
+
+// SetProgress sets the value of Progress.
+func (s *Download) SetProgress(val float64) {
+	s.Progress = val
+}
+
+// SetSizeBytes sets the value of SizeBytes.
+func (s *Download) SetSizeBytes(val OptInt64) {
+	s.SizeBytes = val
+}
+
+// SetError sets the value of Error.
+func (s *Download) SetError(val OptString) {
+	s.Error = val
+}
+
+// SetURL sets the value of URL.
+func (s *Download) SetURL(val OptString) {
+	s.URL = val
+}
+
+// SetUrlExpiresAt sets the value of UrlExpiresAt.
+func (s *Download) SetUrlExpiresAt(val OptDateTime) {
+	s.UrlExpiresAt = val
+}
+
+// SetFileName sets the value of FileName.
+func (s *Download) SetFileName(val OptString) {
+	s.FileName = val
+}
+
+// SetContainer sets the value of Container.
+func (s *Download) SetContainer(val OptString) {
+	s.Container = val
+}
+
+// SetDurationMs sets the value of DurationMs.
+func (s *Download) SetDurationMs(val OptInt64) {
+	s.DurationMs = val
+}
+
+// SetAudioIndex sets the value of AudioIndex.
+func (s *Download) SetAudioIndex(val OptInt) {
+	s.AudioIndex = val
+}
+
+// SetSubtitles sets the value of Subtitles.
+func (s *Download) SetSubtitles(val []DownloadSubtitle) {
+	s.Subtitles = val
+}
+
+// SetItem sets the value of Item.
+func (s *Download) SetItem(val ItemSummary) {
+	s.Item = val
+}
+
+// SetOverview sets the value of Overview.
+func (s *Download) SetOverview(val OptString) {
+	s.Overview = val
+}
+
+// SetSeries sets the value of Series.
+func (s *Download) SetSeries(val OptItemSummary) {
+	s.Series = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *Download) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// Ref: #/components/schemas/DownloadAdmin
+type DownloadAdmin struct {
+	Settings   DownloadSettings    `json:"settings"`
+	Running    int                 `json:"running"`
+	Queued     int                 `json:"queued"`
+	CacheBytes int64               `json:"cacheBytes"`
+	Transcodes []DownloadTranscode `json:"transcodes"`
+}
+
+// GetSettings returns the value of Settings.
+func (s *DownloadAdmin) GetSettings() DownloadSettings {
+	return s.Settings
+}
+
+// GetRunning returns the value of Running.
+func (s *DownloadAdmin) GetRunning() int {
+	return s.Running
+}
+
+// GetQueued returns the value of Queued.
+func (s *DownloadAdmin) GetQueued() int {
+	return s.Queued
+}
+
+// GetCacheBytes returns the value of CacheBytes.
+func (s *DownloadAdmin) GetCacheBytes() int64 {
+	return s.CacheBytes
+}
+
+// GetTranscodes returns the value of Transcodes.
+func (s *DownloadAdmin) GetTranscodes() []DownloadTranscode {
+	return s.Transcodes
+}
+
+// SetSettings sets the value of Settings.
+func (s *DownloadAdmin) SetSettings(val DownloadSettings) {
+	s.Settings = val
+}
+
+// SetRunning sets the value of Running.
+func (s *DownloadAdmin) SetRunning(val int) {
+	s.Running = val
+}
+
+// SetQueued sets the value of Queued.
+func (s *DownloadAdmin) SetQueued(val int) {
+	s.Queued = val
+}
+
+// SetCacheBytes sets the value of CacheBytes.
+func (s *DownloadAdmin) SetCacheBytes(val int64) {
+	s.CacheBytes = val
+}
+
+// SetTranscodes sets the value of Transcodes.
+func (s *DownloadAdmin) SetTranscodes(val []DownloadTranscode) {
+	s.Transcodes = val
+}
+
 type DownloadBackupOK struct {
 	Data io.Reader
 }
@@ -2233,8 +2516,491 @@ func (s *DownloadBackupOKHeaders) SetResponse(val DownloadBackupOK) {
 	s.Response = val
 }
 
+// `original` is the file as it is; the others are an MP4 with H.264 video and AAC stereo audio:
+// `source` keeps the resolution, `1080p` is at most 1080 lines and ~5 Mbit/s, `720p` at most 720 lines
+// and ~2 Mbit/s.
+// Ref: #/components/schemas/DownloadQuality
+type DownloadQuality string
+
+const (
+	DownloadQualityOriginal DownloadQuality = "original"
+	DownloadQualitySource   DownloadQuality = "source"
+	DownloadQuality1080p    DownloadQuality = "1080p"
+	DownloadQuality720p     DownloadQuality = "720p"
+)
+
+// AllValues returns all DownloadQuality values.
+func (DownloadQuality) AllValues() []DownloadQuality {
+	return []DownloadQuality{
+		DownloadQualityOriginal,
+		DownloadQualitySource,
+		DownloadQuality1080p,
+		DownloadQuality720p,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DownloadQuality) MarshalText() ([]byte, error) {
+	switch s {
+	case DownloadQualityOriginal:
+		return []byte(s), nil
+	case DownloadQualitySource:
+		return []byte(s), nil
+	case DownloadQuality1080p:
+		return []byte(s), nil
+	case DownloadQuality720p:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DownloadQuality) UnmarshalText(data []byte) error {
+	switch DownloadQuality(data) {
+	case DownloadQualityOriginal:
+		*s = DownloadQualityOriginal
+		return nil
+	case DownloadQualitySource:
+		*s = DownloadQualitySource
+		return nil
+	case DownloadQuality1080p:
+		*s = DownloadQuality1080p
+		return nil
+	case DownloadQuality720p:
+		*s = DownloadQuality720p
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/DownloadRequest
+type DownloadRequest struct {
+	// A movie, episode, season or series.
+	ItemId  uuid.UUID       `json:"itemId"`
+	Quality DownloadQuality `json:"quality"`
+	// Version of a movie or episode (default the best one).
+	FileId OptUUID `json:"fileId"`
+	// Audio track for transcoded qualities (default from the profile's preference).
+	AudioIndex OptInt `json:"audioIndex"`
+	// For a series or season, only the next N unwatched episodes.
+	NextEpisodes OptInt `json:"nextEpisodes"`
+	// Episodes the device already has; they are left out of a season or series.
+	SkipItemIds []uuid.UUID `json:"skipItemIds"`
+}
+
+// GetItemId returns the value of ItemId.
+func (s *DownloadRequest) GetItemId() uuid.UUID {
+	return s.ItemId
+}
+
+// GetQuality returns the value of Quality.
+func (s *DownloadRequest) GetQuality() DownloadQuality {
+	return s.Quality
+}
+
+// GetFileId returns the value of FileId.
+func (s *DownloadRequest) GetFileId() OptUUID {
+	return s.FileId
+}
+
+// GetAudioIndex returns the value of AudioIndex.
+func (s *DownloadRequest) GetAudioIndex() OptInt {
+	return s.AudioIndex
+}
+
+// GetNextEpisodes returns the value of NextEpisodes.
+func (s *DownloadRequest) GetNextEpisodes() OptInt {
+	return s.NextEpisodes
+}
+
+// GetSkipItemIds returns the value of SkipItemIds.
+func (s *DownloadRequest) GetSkipItemIds() []uuid.UUID {
+	return s.SkipItemIds
+}
+
+// SetItemId sets the value of ItemId.
+func (s *DownloadRequest) SetItemId(val uuid.UUID) {
+	s.ItemId = val
+}
+
+// SetQuality sets the value of Quality.
+func (s *DownloadRequest) SetQuality(val DownloadQuality) {
+	s.Quality = val
+}
+
+// SetFileId sets the value of FileId.
+func (s *DownloadRequest) SetFileId(val OptUUID) {
+	s.FileId = val
+}
+
+// SetAudioIndex sets the value of AudioIndex.
+func (s *DownloadRequest) SetAudioIndex(val OptInt) {
+	s.AudioIndex = val
+}
+
+// SetNextEpisodes sets the value of NextEpisodes.
+func (s *DownloadRequest) SetNextEpisodes(val OptInt) {
+	s.NextEpisodes = val
+}
+
+// SetSkipItemIds sets the value of SkipItemIds.
+func (s *DownloadRequest) SetSkipItemIds(val []uuid.UUID) {
+	s.SkipItemIds = val
+}
+
+// Ref: #/components/schemas/DownloadSettings
+type DownloadSettings struct {
+	// Download transcodes running at once; more wait in the queue.
+	MaxTranscodes int `json:"maxTranscodes"`
+	// Size of the download cache; the least recently fetched files go first.
+	CacheLimitGb int `json:"cacheLimitGb"`
+	// A transcoded file nobody fetched for this long is deleted.
+	KeepDays int `json:"keepDays"`
+}
+
+// GetMaxTranscodes returns the value of MaxTranscodes.
+func (s *DownloadSettings) GetMaxTranscodes() int {
+	return s.MaxTranscodes
+}
+
+// GetCacheLimitGb returns the value of CacheLimitGb.
+func (s *DownloadSettings) GetCacheLimitGb() int {
+	return s.CacheLimitGb
+}
+
+// GetKeepDays returns the value of KeepDays.
+func (s *DownloadSettings) GetKeepDays() int {
+	return s.KeepDays
+}
+
+// SetMaxTranscodes sets the value of MaxTranscodes.
+func (s *DownloadSettings) SetMaxTranscodes(val int) {
+	s.MaxTranscodes = val
+}
+
+// SetCacheLimitGb sets the value of CacheLimitGb.
+func (s *DownloadSettings) SetCacheLimitGb(val int) {
+	s.CacheLimitGb = val
+}
+
+// SetKeepDays sets the value of KeepDays.
+func (s *DownloadSettings) SetKeepDays(val int) {
+	s.KeepDays = val
+}
+
+type DownloadState string
+
+const (
+	DownloadStateQueued      DownloadState = "queued"
+	DownloadStateTranscoding DownloadState = "transcoding"
+	DownloadStateReady       DownloadState = "ready"
+	DownloadStateFailed      DownloadState = "failed"
+)
+
+// AllValues returns all DownloadState values.
+func (DownloadState) AllValues() []DownloadState {
+	return []DownloadState{
+		DownloadStateQueued,
+		DownloadStateTranscoding,
+		DownloadStateReady,
+		DownloadStateFailed,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DownloadState) MarshalText() ([]byte, error) {
+	switch s {
+	case DownloadStateQueued:
+		return []byte(s), nil
+	case DownloadStateTranscoding:
+		return []byte(s), nil
+	case DownloadStateReady:
+		return []byte(s), nil
+	case DownloadStateFailed:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DownloadState) UnmarshalText(data []byte) error {
+	switch DownloadState(data) {
+	case DownloadStateQueued:
+		*s = DownloadStateQueued
+		return nil
+	case DownloadStateTranscoding:
+		*s = DownloadStateTranscoding
+		return nil
+	case DownloadStateReady:
+		*s = DownloadStateReady
+		return nil
+	case DownloadStateFailed:
+		*s = DownloadStateFailed
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/DownloadSubtitle
+type DownloadSubtitle struct {
+	// Position in the file's subtitle list.
+	Index    int    `json:"index"`
+	Language string `json:"language"`
+	Forced   bool   `json:"forced"`
+	// Signed SubRip (.srt) sidecar.
+	URL string `json:"url"`
+	// Signed WebVTT sidecar.
+	VttUrl string `json:"vttUrl"`
+}
+
+// GetIndex returns the value of Index.
+func (s *DownloadSubtitle) GetIndex() int {
+	return s.Index
+}
+
+// GetLanguage returns the value of Language.
+func (s *DownloadSubtitle) GetLanguage() string {
+	return s.Language
+}
+
+// GetForced returns the value of Forced.
+func (s *DownloadSubtitle) GetForced() bool {
+	return s.Forced
+}
+
+// GetURL returns the value of URL.
+func (s *DownloadSubtitle) GetURL() string {
+	return s.URL
+}
+
+// GetVttUrl returns the value of VttUrl.
+func (s *DownloadSubtitle) GetVttUrl() string {
+	return s.VttUrl
+}
+
+// SetIndex sets the value of Index.
+func (s *DownloadSubtitle) SetIndex(val int) {
+	s.Index = val
+}
+
+// SetLanguage sets the value of Language.
+func (s *DownloadSubtitle) SetLanguage(val string) {
+	s.Language = val
+}
+
+// SetForced sets the value of Forced.
+func (s *DownloadSubtitle) SetForced(val bool) {
+	s.Forced = val
+}
+
+// SetURL sets the value of URL.
+func (s *DownloadSubtitle) SetURL(val string) {
+	s.URL = val
+}
+
+// SetVttUrl sets the value of VttUrl.
+func (s *DownloadSubtitle) SetVttUrl(val string) {
+	s.VttUrl = val
+}
+
 // DownloadSubtitleNoContent is response for DownloadSubtitle operation.
 type DownloadSubtitleNoContent struct{}
+
+// Ref: #/components/schemas/DownloadTranscode
+type DownloadTranscode struct {
+	ID        uuid.UUID              `json:"id"`
+	ItemId    uuid.UUID              `json:"itemId"`
+	Title     string                 `json:"title"`
+	Quality   DownloadQuality        `json:"quality"`
+	State     DownloadTranscodeState `json:"state"`
+	Progress  float64                `json:"progress"`
+	SizeBytes int64                  `json:"sizeBytes"`
+	Error     OptString              `json:"error"`
+	// Download jobs that use this file.
+	Jobs         int       `json:"jobs"`
+	Users        []string  `json:"users"`
+	CreatedAt    time.Time `json:"createdAt"`
+	LastAccessAt time.Time `json:"lastAccessAt"`
+}
+
+// GetID returns the value of ID.
+func (s *DownloadTranscode) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetItemId returns the value of ItemId.
+func (s *DownloadTranscode) GetItemId() uuid.UUID {
+	return s.ItemId
+}
+
+// GetTitle returns the value of Title.
+func (s *DownloadTranscode) GetTitle() string {
+	return s.Title
+}
+
+// GetQuality returns the value of Quality.
+func (s *DownloadTranscode) GetQuality() DownloadQuality {
+	return s.Quality
+}
+
+// GetState returns the value of State.
+func (s *DownloadTranscode) GetState() DownloadTranscodeState {
+	return s.State
+}
+
+// GetProgress returns the value of Progress.
+func (s *DownloadTranscode) GetProgress() float64 {
+	return s.Progress
+}
+
+// GetSizeBytes returns the value of SizeBytes.
+func (s *DownloadTranscode) GetSizeBytes() int64 {
+	return s.SizeBytes
+}
+
+// GetError returns the value of Error.
+func (s *DownloadTranscode) GetError() OptString {
+	return s.Error
+}
+
+// GetJobs returns the value of Jobs.
+func (s *DownloadTranscode) GetJobs() int {
+	return s.Jobs
+}
+
+// GetUsers returns the value of Users.
+func (s *DownloadTranscode) GetUsers() []string {
+	return s.Users
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *DownloadTranscode) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetLastAccessAt returns the value of LastAccessAt.
+func (s *DownloadTranscode) GetLastAccessAt() time.Time {
+	return s.LastAccessAt
+}
+
+// SetID sets the value of ID.
+func (s *DownloadTranscode) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetItemId sets the value of ItemId.
+func (s *DownloadTranscode) SetItemId(val uuid.UUID) {
+	s.ItemId = val
+}
+
+// SetTitle sets the value of Title.
+func (s *DownloadTranscode) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetQuality sets the value of Quality.
+func (s *DownloadTranscode) SetQuality(val DownloadQuality) {
+	s.Quality = val
+}
+
+// SetState sets the value of State.
+func (s *DownloadTranscode) SetState(val DownloadTranscodeState) {
+	s.State = val
+}
+
+// SetProgress sets the value of Progress.
+func (s *DownloadTranscode) SetProgress(val float64) {
+	s.Progress = val
+}
+
+// SetSizeBytes sets the value of SizeBytes.
+func (s *DownloadTranscode) SetSizeBytes(val int64) {
+	s.SizeBytes = val
+}
+
+// SetError sets the value of Error.
+func (s *DownloadTranscode) SetError(val OptString) {
+	s.Error = val
+}
+
+// SetJobs sets the value of Jobs.
+func (s *DownloadTranscode) SetJobs(val int) {
+	s.Jobs = val
+}
+
+// SetUsers sets the value of Users.
+func (s *DownloadTranscode) SetUsers(val []string) {
+	s.Users = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *DownloadTranscode) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetLastAccessAt sets the value of LastAccessAt.
+func (s *DownloadTranscode) SetLastAccessAt(val time.Time) {
+	s.LastAccessAt = val
+}
+
+type DownloadTranscodeState string
+
+const (
+	DownloadTranscodeStateQueued      DownloadTranscodeState = "queued"
+	DownloadTranscodeStateTranscoding DownloadTranscodeState = "transcoding"
+	DownloadTranscodeStateReady       DownloadTranscodeState = "ready"
+	DownloadTranscodeStateFailed      DownloadTranscodeState = "failed"
+)
+
+// AllValues returns all DownloadTranscodeState values.
+func (DownloadTranscodeState) AllValues() []DownloadTranscodeState {
+	return []DownloadTranscodeState{
+		DownloadTranscodeStateQueued,
+		DownloadTranscodeStateTranscoding,
+		DownloadTranscodeStateReady,
+		DownloadTranscodeStateFailed,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DownloadTranscodeState) MarshalText() ([]byte, error) {
+	switch s {
+	case DownloadTranscodeStateQueued:
+		return []byte(s), nil
+	case DownloadTranscodeStateTranscoding:
+		return []byte(s), nil
+	case DownloadTranscodeStateReady:
+		return []byte(s), nil
+	case DownloadTranscodeStateFailed:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DownloadTranscodeState) UnmarshalText(data []byte) error {
+	switch DownloadTranscodeState(data) {
+	case DownloadTranscodeStateQueued:
+		*s = DownloadTranscodeStateQueued
+		return nil
+	case DownloadTranscodeStateTranscoding:
+		*s = DownloadTranscodeStateTranscoding
+		return nil
+	case DownloadTranscodeStateReady:
+		*s = DownloadTranscodeStateReady
+		return nil
+	case DownloadTranscodeStateFailed:
+		*s = DownloadTranscodeStateFailed
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
 
 // EditMetadataNoContent is response for EditMetadata operation.
 type EditMetadataNoContent struct{}
@@ -6546,6 +7312,181 @@ func (s *NowPlayingMethod) UnmarshalText(data []byte) error {
 	}
 }
 
+// Ref: #/components/schemas/OfflineItemState
+type OfflineItemState struct {
+	ItemId     uuid.UUID `json:"itemId"`
+	PositionMs int64     `json:"positionMs"`
+	Played     bool      `json:"played"`
+	UpdatedAt  time.Time `json:"updatedAt"`
+}
+
+// GetItemId returns the value of ItemId.
+func (s *OfflineItemState) GetItemId() uuid.UUID {
+	return s.ItemId
+}
+
+// GetPositionMs returns the value of PositionMs.
+func (s *OfflineItemState) GetPositionMs() int64 {
+	return s.PositionMs
+}
+
+// GetPlayed returns the value of Played.
+func (s *OfflineItemState) GetPlayed() bool {
+	return s.Played
+}
+
+// GetUpdatedAt returns the value of UpdatedAt.
+func (s *OfflineItemState) GetUpdatedAt() time.Time {
+	return s.UpdatedAt
+}
+
+// SetItemId sets the value of ItemId.
+func (s *OfflineItemState) SetItemId(val uuid.UUID) {
+	s.ItemId = val
+}
+
+// SetPositionMs sets the value of PositionMs.
+func (s *OfflineItemState) SetPositionMs(val int64) {
+	s.PositionMs = val
+}
+
+// SetPlayed sets the value of Played.
+func (s *OfflineItemState) SetPlayed(val bool) {
+	s.Played = val
+}
+
+// SetUpdatedAt sets the value of UpdatedAt.
+func (s *OfflineItemState) SetUpdatedAt(val time.Time) {
+	s.UpdatedAt = val
+}
+
+// Ref: #/components/schemas/OfflineProgress
+type OfflineProgress struct {
+	ItemId     uuid.UUID `json:"itemId"`
+	PositionMs int64     `json:"positionMs"`
+	DurationMs OptInt64  `json:"durationMs"`
+	Played     bool      `json:"played"`
+	// When this state was recorded on the device.
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+// GetItemId returns the value of ItemId.
+func (s *OfflineProgress) GetItemId() uuid.UUID {
+	return s.ItemId
+}
+
+// GetPositionMs returns the value of PositionMs.
+func (s *OfflineProgress) GetPositionMs() int64 {
+	return s.PositionMs
+}
+
+// GetDurationMs returns the value of DurationMs.
+func (s *OfflineProgress) GetDurationMs() OptInt64 {
+	return s.DurationMs
+}
+
+// GetPlayed returns the value of Played.
+func (s *OfflineProgress) GetPlayed() bool {
+	return s.Played
+}
+
+// GetUpdatedAt returns the value of UpdatedAt.
+func (s *OfflineProgress) GetUpdatedAt() time.Time {
+	return s.UpdatedAt
+}
+
+// SetItemId sets the value of ItemId.
+func (s *OfflineProgress) SetItemId(val uuid.UUID) {
+	s.ItemId = val
+}
+
+// SetPositionMs sets the value of PositionMs.
+func (s *OfflineProgress) SetPositionMs(val int64) {
+	s.PositionMs = val
+}
+
+// SetDurationMs sets the value of DurationMs.
+func (s *OfflineProgress) SetDurationMs(val OptInt64) {
+	s.DurationMs = val
+}
+
+// SetPlayed sets the value of Played.
+func (s *OfflineProgress) SetPlayed(val bool) {
+	s.Played = val
+}
+
+// SetUpdatedAt sets the value of UpdatedAt.
+func (s *OfflineProgress) SetUpdatedAt(val time.Time) {
+	s.UpdatedAt = val
+}
+
+// Ref: #/components/schemas/OfflineSyncRequest
+type OfflineSyncRequest struct {
+	// Items the device keeps offline.
+	ItemIds  []uuid.UUID       `json:"itemIds"`
+	Progress []OfflineProgress `json:"progress"`
+}
+
+// GetItemIds returns the value of ItemIds.
+func (s *OfflineSyncRequest) GetItemIds() []uuid.UUID {
+	return s.ItemIds
+}
+
+// GetProgress returns the value of Progress.
+func (s *OfflineSyncRequest) GetProgress() []OfflineProgress {
+	return s.Progress
+}
+
+// SetItemIds sets the value of ItemIds.
+func (s *OfflineSyncRequest) SetItemIds(val []uuid.UUID) {
+	s.ItemIds = val
+}
+
+// SetProgress sets the value of Progress.
+func (s *OfflineSyncRequest) SetProgress(val []OfflineProgress) {
+	s.Progress = val
+}
+
+// Ref: #/components/schemas/OfflineSyncResponse
+type OfflineSyncResponse struct {
+	// Items the profile may no longer keep offline.
+	Revoked []uuid.UUID `json:"revoked"`
+	// Server state of the listed items (never-played items are left out).
+	Items []OfflineItemState `json:"items"`
+	// How many offline reports were newer than the server's state and were saved.
+	Applied int `json:"applied"`
+}
+
+// GetRevoked returns the value of Revoked.
+func (s *OfflineSyncResponse) GetRevoked() []uuid.UUID {
+	return s.Revoked
+}
+
+// GetItems returns the value of Items.
+func (s *OfflineSyncResponse) GetItems() []OfflineItemState {
+	return s.Items
+}
+
+// GetApplied returns the value of Applied.
+func (s *OfflineSyncResponse) GetApplied() int {
+	return s.Applied
+}
+
+// SetRevoked sets the value of Revoked.
+func (s *OfflineSyncResponse) SetRevoked(val []uuid.UUID) {
+	s.Revoked = val
+}
+
+// SetItems sets the value of Items.
+func (s *OfflineSyncResponse) SetItems(val []OfflineItemState) {
+	s.Items = val
+}
+
+// SetApplied sets the value of Applied.
+func (s *OfflineSyncResponse) SetApplied(val int) {
+	s.Applied = val
+}
+
 type OidcAuthorizeClient string
 
 const (
@@ -7672,6 +8613,52 @@ func (o OptInt64) Or(d int64) int64 {
 	return d
 }
 
+// NewOptItemSummary returns new OptItemSummary with value set to v.
+func NewOptItemSummary(v ItemSummary) OptItemSummary {
+	return OptItemSummary{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptItemSummary is optional ItemSummary.
+type OptItemSummary struct {
+	Value ItemSummary
+	Set   bool
+}
+
+// IsSet returns true if OptItemSummary was set.
+func (o OptItemSummary) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptItemSummary) Reset() {
+	var v ItemSummary
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptItemSummary) SetTo(v ItemSummary) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptItemSummary) Get() (v ItemSummary, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptItemSummary) Or(d ItemSummary) ItemSummary {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptListLibraryItemsKind returns new OptListLibraryItemsKind with value set to v.
 func NewOptListLibraryItemsKind(v ListLibraryItemsKind) OptListLibraryItemsKind {
 	return OptListLibraryItemsKind{
@@ -8544,6 +9531,60 @@ func (o OptUserPermissions) Or(d UserPermissions) UserPermissions {
 		return v
 	}
 	return d
+}
+
+// Ref: #/components/schemas/OriginalLink
+type OriginalLink struct {
+	// Signed URL that downloads the file (Content-Disposition attachment).
+	URL       string `json:"url"`
+	FileName  string `json:"fileName"`
+	SizeBytes int64  `json:"sizeBytes"`
+}
+
+// GetURL returns the value of URL.
+func (s *OriginalLink) GetURL() string {
+	return s.URL
+}
+
+// GetFileName returns the value of FileName.
+func (s *OriginalLink) GetFileName() string {
+	return s.FileName
+}
+
+// GetSizeBytes returns the value of SizeBytes.
+func (s *OriginalLink) GetSizeBytes() int64 {
+	return s.SizeBytes
+}
+
+// SetURL sets the value of URL.
+func (s *OriginalLink) SetURL(val string) {
+	s.URL = val
+}
+
+// SetFileName sets the value of FileName.
+func (s *OriginalLink) SetFileName(val string) {
+	s.FileName = val
+}
+
+// SetSizeBytes sets the value of SizeBytes.
+func (s *OriginalLink) SetSizeBytes(val int64) {
+	s.SizeBytes = val
+}
+
+// Ref: #/components/schemas/OriginalLinkRequest
+type OriginalLinkRequest struct {
+	// Version to download (default the best one).
+	FileId OptUUID `json:"fileId"`
+}
+
+// GetFileId returns the value of FileId.
+func (s *OriginalLinkRequest) GetFileId() OptUUID {
+	return s.FileId
+}
+
+// SetFileId sets the value of FileId.
+func (s *OriginalLinkRequest) SetFileId(val OptUUID) {
+	s.FileId = val
 }
 
 type Password string

@@ -20,6 +20,12 @@ type Handler interface {
 	//
 	// POST /playlists/{playlistId}/items
 	AddToPlaylist(ctx context.Context, req *AddToPlaylistReq, params AddToPlaylistParams) (*Playlist, error)
+	// AdminDownloads implements adminDownloads operation.
+	//
+	// Download transcodes and cache use (admin).
+	//
+	// GET /admin/downloads
+	AdminDownloads(ctx context.Context) (*DownloadAdmin, error)
 	// AuthorizeQuickConnect implements authorizeQuickConnect operation.
 	//
 	// The other device is signed in as the calling user.
@@ -77,6 +83,14 @@ type Handler interface {
 	//
 	// POST /collections
 	CreateCollection(ctx context.Context, req *CollectionInput) (*Collection, error)
+	// CreateDownloads implements createDownloads operation.
+	//
+	// Needs the `download` permission; transcoded qualities also need `videoTranscoding`. Parental limits
+	// of the current profile apply. Asking again for the same file and quality returns the existing job
+	// (idempotent).
+	//
+	// POST /downloads
+	CreateDownloads(ctx context.Context, req *DownloadRequest) ([]Download, error)
 	// CreateInvite implements createInvite operation.
 	//
 	// Create an invite link (admin).
@@ -95,6 +109,12 @@ type Handler interface {
 	//
 	// POST /settings/auth/oidc
 	CreateOidcProvider(ctx context.Context, req *OidcProviderInput) (*OidcProvider, error)
+	// CreateOriginalLink implements createOriginalLink operation.
+	//
+	// A signed link that downloads the original file (needs the download permission).
+	//
+	// POST /items/{itemId}/original
+	CreateOriginalLink(ctx context.Context, req *OriginalLinkRequest, params CreateOriginalLinkParams) (*OriginalLink, error)
 	// CreatePlaylist implements createPlaylist operation.
 	//
 	// Create a playlist.
@@ -137,6 +157,18 @@ type Handler interface {
 	//
 	// DELETE /collections/{collectionId}
 	DeleteCollection(ctx context.Context, params DeleteCollectionParams) error
+	// DeleteDownload implements deleteDownload operation.
+	//
+	// Forget a download job (the transcoded file is cleaned up later).
+	//
+	// DELETE /downloads/{downloadId}
+	DeleteDownload(ctx context.Context, params DeleteDownloadParams) error
+	// DeleteDownloadTranscode implements deleteDownloadTranscode operation.
+	//
+	// Stop and remove a download transcode and its jobs (admin).
+	//
+	// DELETE /admin/downloads/{transcodeId}
+	DeleteDownloadTranscode(ctx context.Context, params DeleteDownloadTranscodeParams) error
 	// DeleteInvite implements deleteInvite operation.
 	//
 	// Revoke an invite (admin).
@@ -283,6 +315,18 @@ type Handler interface {
 	//
 	// GET /settings/dlna
 	GetDlnaSettings(ctx context.Context) (*DlnaOverview, error)
+	// GetDownload implements getDownload operation.
+	//
+	// One download job (with fresh signed URLs when ready).
+	//
+	// GET /downloads/{downloadId}
+	GetDownload(ctx context.Context, params GetDownloadParams) (*Download, error)
+	// GetDownloadSettings implements getDownloadSettings operation.
+	//
+	// Download transcoding limits (admin).
+	//
+	// GET /settings/downloads
+	GetDownloadSettings(ctx context.Context) (*DownloadSettings, error)
 	// GetEncodingSettings implements getEncodingSettings operation.
 	//
 	// Transcoding settings (admin).
@@ -458,6 +502,15 @@ type Handler interface {
 	//
 	// GET /collections
 	ListCollections(ctx context.Context) ([]Collection, error)
+	// ListDownloads implements listDownloads operation.
+	//
+	// Server-side download jobs (D-040). A job is a request to get one file in one quality: the original
+	// file, or a mobile-friendly MP4 (H.264/AAC) the server transcodes into its download cache in the
+	// background. Clients delete a job once the file is on the device; the device's offline library is the
+	// client's own.
+	//
+	// GET /downloads
+	ListDownloads(ctx context.Context) ([]Download, error)
 	// ListFavorites implements listFavorites operation.
 	//
 	// Favorites of the current profile.
@@ -749,6 +802,15 @@ type Handler interface {
 	//
 	// POST /auth/totp/setup
 	StartTOTPSetup(ctx context.Context) (*TOTPSetup, error)
+	// SyncDownloads implements syncDownloads operation.
+	//
+	// Progress recorded offline is applied when it is newer than the server's (newest wins, by
+	// `updatedAt`; times in the future count as now). The answer has the server's state of every listed
+	// item and the items the profile may no longer keep (access, permission or parental limit lost, or the
+	// item is gone): clients delete those files.
+	//
+	// POST /downloads/sync
+	SyncDownloads(ctx context.Context, req *OfflineSyncRequest) (*OfflineSyncResponse, error)
 	// TakeMyCommands implements takeMyCommands operation.
 	//
 	// Commands an administrator sent to this session (taken once).
@@ -816,6 +878,12 @@ type Handler interface {
 	//
 	// PUT /settings/dlna
 	UpdateDlnaSettings(ctx context.Context, req *DlnaSettings) (*DlnaOverview, error)
+	// UpdateDownloadSettings implements updateDownloadSettings operation.
+	//
+	// Update download transcoding limits (admin).
+	//
+	// PUT /settings/downloads
+	UpdateDownloadSettings(ctx context.Context, req *DownloadSettings) (*DownloadSettings, error)
 	// UpdateEncodingSettings implements updateEncodingSettings operation.
 	//
 	// Update transcoding settings (admin).

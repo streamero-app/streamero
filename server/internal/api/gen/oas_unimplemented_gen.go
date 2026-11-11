@@ -31,6 +31,15 @@ func (UnimplementedHandler) AddToPlaylist(ctx context.Context, req *AddToPlaylis
 	return r, ht.ErrNotImplemented
 }
 
+// AdminDownloads implements adminDownloads operation.
+//
+// Download transcodes and cache use (admin).
+//
+// GET /admin/downloads
+func (UnimplementedHandler) AdminDownloads(ctx context.Context) (r *DownloadAdmin, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // AuthorizeQuickConnect implements authorizeQuickConnect operation.
 //
 // The other device is signed in as the calling user.
@@ -115,6 +124,17 @@ func (UnimplementedHandler) CreateCollection(ctx context.Context, req *Collectio
 	return r, ht.ErrNotImplemented
 }
 
+// CreateDownloads implements createDownloads operation.
+//
+// Needs the `download` permission; transcoded qualities also need `videoTranscoding`. Parental limits
+// of the current profile apply. Asking again for the same file and quality returns the existing job
+// (idempotent).
+//
+// POST /downloads
+func (UnimplementedHandler) CreateDownloads(ctx context.Context, req *DownloadRequest) (r []Download, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // CreateInvite implements createInvite operation.
 //
 // Create an invite link (admin).
@@ -139,6 +159,15 @@ func (UnimplementedHandler) CreateLibrary(ctx context.Context, req *LibraryInput
 //
 // POST /settings/auth/oidc
 func (UnimplementedHandler) CreateOidcProvider(ctx context.Context, req *OidcProviderInput) (r *OidcProvider, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// CreateOriginalLink implements createOriginalLink operation.
+//
+// A signed link that downloads the original file (needs the download permission).
+//
+// POST /items/{itemId}/original
+func (UnimplementedHandler) CreateOriginalLink(ctx context.Context, req *OriginalLinkRequest, params CreateOriginalLinkParams) (r *OriginalLink, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -202,6 +231,24 @@ func (UnimplementedHandler) DeleteBackup(ctx context.Context, params DeleteBacku
 //
 // DELETE /collections/{collectionId}
 func (UnimplementedHandler) DeleteCollection(ctx context.Context, params DeleteCollectionParams) error {
+	return ht.ErrNotImplemented
+}
+
+// DeleteDownload implements deleteDownload operation.
+//
+// Forget a download job (the transcoded file is cleaned up later).
+//
+// DELETE /downloads/{downloadId}
+func (UnimplementedHandler) DeleteDownload(ctx context.Context, params DeleteDownloadParams) error {
+	return ht.ErrNotImplemented
+}
+
+// DeleteDownloadTranscode implements deleteDownloadTranscode operation.
+//
+// Stop and remove a download transcode and its jobs (admin).
+//
+// DELETE /admin/downloads/{transcodeId}
+func (UnimplementedHandler) DeleteDownloadTranscode(ctx context.Context, params DeleteDownloadTranscodeParams) error {
 	return ht.ErrNotImplemented
 }
 
@@ -420,6 +467,24 @@ func (UnimplementedHandler) GetDashboard(ctx context.Context) (r *Dashboard, _ e
 //
 // GET /settings/dlna
 func (UnimplementedHandler) GetDlnaSettings(ctx context.Context) (r *DlnaOverview, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetDownload implements getDownload operation.
+//
+// One download job (with fresh signed URLs when ready).
+//
+// GET /downloads/{downloadId}
+func (UnimplementedHandler) GetDownload(ctx context.Context, params GetDownloadParams) (r *Download, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetDownloadSettings implements getDownloadSettings operation.
+//
+// Download transcoding limits (admin).
+//
+// GET /settings/downloads
+func (UnimplementedHandler) GetDownloadSettings(ctx context.Context) (r *DownloadSettings, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -682,6 +747,18 @@ func (UnimplementedHandler) ListBackups(ctx context.Context) (r *BackupOverview,
 //
 // GET /collections
 func (UnimplementedHandler) ListCollections(ctx context.Context) (r []Collection, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListDownloads implements listDownloads operation.
+//
+// Server-side download jobs (D-040). A job is a request to get one file in one quality: the original
+// file, or a mobile-friendly MP4 (H.264/AAC) the server transcodes into its download cache in the
+// background. Clients delete a job once the file is on the device; the device's offline library is the
+// client's own.
+//
+// GET /downloads
+func (UnimplementedHandler) ListDownloads(ctx context.Context) (r []Download, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -1114,6 +1191,18 @@ func (UnimplementedHandler) StartTOTPSetup(ctx context.Context) (r *TOTPSetup, _
 	return r, ht.ErrNotImplemented
 }
 
+// SyncDownloads implements syncDownloads operation.
+//
+// Progress recorded offline is applied when it is newer than the server's (newest wins, by
+// `updatedAt`; times in the future count as now). The answer has the server's state of every listed
+// item and the items the profile may no longer keep (access, permission or parental limit lost, or the
+// item is gone): clients delete those files.
+//
+// POST /downloads/sync
+func (UnimplementedHandler) SyncDownloads(ctx context.Context, req *OfflineSyncRequest) (r *OfflineSyncResponse, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // TakeMyCommands implements takeMyCommands operation.
 //
 // Commands an administrator sent to this session (taken once).
@@ -1211,6 +1300,15 @@ func (UnimplementedHandler) UpdateCollection(ctx context.Context, req *Collectio
 //
 // PUT /settings/dlna
 func (UnimplementedHandler) UpdateDlnaSettings(ctx context.Context, req *DlnaSettings) (r *DlnaOverview, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateDownloadSettings implements updateDownloadSettings operation.
+//
+// Update download transcoding limits (admin).
+//
+// PUT /settings/downloads
+func (UnimplementedHandler) UpdateDownloadSettings(ctx context.Context, req *DownloadSettings) (r *DownloadSettings, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

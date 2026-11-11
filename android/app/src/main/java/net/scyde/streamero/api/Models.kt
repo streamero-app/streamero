@@ -201,3 +201,21 @@ import kotlinx.serialization.json.JsonElement
     val type: String, val serverTime: Long = 0, val clientTime: Long? = null, val group: SyncGroup? = null,
     val reason: String? = null, val correction: SyncCorrection? = null, val code: String? = null, val message: String? = null,
 )
+
+// Offline downloads (D-040). The server prepares one file per job; the device keeps its own library.
+@Serializable data class DownloadRequest(
+    val itemId: String, val quality: String, val fileId: String? = null, val audioIndex: Int? = null,
+    val nextEpisodes: Int? = null, val skipItemIds: List<String>? = null,
+)
+@Serializable data class DownloadSubtitle(val index: Int, val language: String = "", val forced: Boolean = false, val url: String, val vttUrl: String = "")
+@Serializable data class Download(
+    val id: String, val itemId: String, val fileId: String = "", val quality: String, val state: String, val progress: Double = 0.0,
+    val sizeBytes: Long? = null, val error: String? = null, val url: String? = null, val fileName: String? = null,
+    val container: String? = null, val durationMs: Long? = null, val audioIndex: Int? = null,
+    val subtitles: List<DownloadSubtitle> = emptyList(), val item: ItemSummary, val overview: String? = null,
+    val series: ItemSummary? = null, val createdAt: String = "",
+)
+@Serializable data class OfflineProgress(val itemId: String, val positionMs: Long, val durationMs: Long? = null, val played: Boolean, val updatedAt: String)
+@Serializable data class OfflineSyncRequest(val itemIds: List<String>, val progress: List<OfflineProgress>)
+@Serializable data class OfflineItemState(val itemId: String, val positionMs: Long = 0, val played: Boolean = false, val updatedAt: String)
+@Serializable data class OfflineSyncResponse(val revoked: List<String> = emptyList(), val items: List<OfflineItemState> = emptyList(), val applied: Int = 0)

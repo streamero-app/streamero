@@ -22,6 +22,12 @@ class MainActivity : ComponentActivity() {
         setContent { StreameroRoot(state) }
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Offline progress and revoked downloads are synced whenever the app comes back.
+        (application as StreameroApp).state.offline.syncSoon()
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         SsoBroker.deliver(intent.data)

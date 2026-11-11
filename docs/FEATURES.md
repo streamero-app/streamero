@@ -253,7 +253,7 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 
 ## 12. Offline i preuzimanje
 
-- [ ] `[JF]` Download originalne datoteke (dozvola) (P8)
+- [x] `[JF]` Download originalne datoteke (dozvola) (P8) — web „Preuzmi original", potpisana poveznica (D-040)
 - [ ] `[JF-P]` Offline sync na mobilnom u odabranoj kvaliteti (server transkodira za download) (P8)
 - [ ] `[+]` Download cijele sezone / „sljedećih N epizoda" automatski (P8)
 - [ ] `[+]` Offline napredak se sinkronizira kad se uređaj vrati online (P8)
