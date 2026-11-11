@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -185,7 +185,8 @@ func (s *Service) Play(ctx context.Context, p auth.Principal, channelID uuid.UUI
 	if ch.AudioCodec == "" {
 		audio = -1
 	}
-	job := stream.Job{Input: ch.StreamURL, AudioIndex: audio, Plan: plan, InputArgs: inputArgs(ch.StreamURL, ch.TunerUserAgent)}
+	job := stream.Job{Input: ch.StreamURL, AudioIndex: audio, Plan: plan, InputArgs: inputArgs(ch.StreamURL, ch.TunerUserAgent),
+		ADTSAudio: ch.AudioCodec == "aac"}
 	var started *liveSession
 	id, err := s.HLS.StartLive(ctx, job, window, func() {
 		s.release(l)
@@ -197,8 +198,8 @@ func (s *Service) Play(ctx context.Context, p auth.Principal, channelID uuid.UUI
 	})
 	if err != nil {
 		s.log().Warn("live channel failed to start", "channel", ch.Name, "err", err)
-		if strings.Contains(err.Error(), "503") {
-			return Playback{}, ErrTunersBusy // the device itself has no free tuner
+		if s.sourceBusy(ctx, ch) {
+			return Playback{}, ErrTunersBusy // the device or provider itself has no free tuner
 		}
 		return Playback{}, fmt.Errorf("%w: %w", ErrChannelUnavailable, err)
 	}
@@ -208,6 +209,29 @@ func (s *Service) Play(ctx context.Context, p auth.Principal, channelID uuid.UUI
 	s.live[key] = started
 	s.mu.Unlock()
 	return s.playback(id, plan, window*segs, ch), nil
+}
+
+// sourceBusy asks an HTTP channel source once more, after ffmpeg failed, whether
+// it refuses with 503 (an HDHomeRun with every tuner in use, or a provider's
+// connection limit); ffmpeg itself only reports "5XX".
+func (s *Service) sourceBusy(ctx context.Context, ch Channel) bool {
+	u, err := url.Parse(ch.StreamURL)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
+		return false
+	}
+	cctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(cctx, http.MethodGet, ch.StreamURL, nil)
+	if err != nil {
+		return false
+	}
+	req.Header.Set("User-Agent", userAgentOr(ch.TunerUserAgent))
+	resp, err := s.http().Do(req) // #nosec G704 -- the channel's own source; blocked addresses refused by the dialer
+	if err != nil {
+		return false
+	}
+	_ = resp.Body.Close()
+	return resp.StatusCode == http.StatusServiceUnavailable
 }
 
 func (s *Service) playback(hlsID string, plan stream.Plan, buffer int, ch Channel) Playback {

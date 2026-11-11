@@ -354,6 +354,10 @@ func (s *Service) refreshGuide(ctx context.Context, id uuid.UUID, u, file, tz, e
 		return res, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
+	// One refresh per guide at a time (the worker's schedule and an admin's "Refresh").
+	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`, "livetv.guide:"+id.String()); err != nil {
+		return res, err
+	}
 	// Guide channels: replaced as a whole (small).
 	if _, err := tx.Exec(ctx, `DELETE FROM livetv_guide_channels WHERE guide_id = $1`, id); err != nil {
 		return res, err

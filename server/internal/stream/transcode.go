@@ -27,6 +27,9 @@ type Job struct {
 	Plan       Plan
 	// InputArgs go right before -i (live sources: protocol whitelist, reconnect, user agent).
 	InputArgs []string
+	// ADTSAudio marks AAC in ADTS framing (MPEG-TS sources): copied into fMP4 it
+	// needs the aac_adtstoasc bitstream filter.
+	ADTSAudio bool
 }
 
 type session struct {
@@ -186,6 +189,9 @@ func codecArgs(j Job, dir string, enc Encoding) []string {
 			a = append(a, "-c:a", "aac", "-b:a", fmt.Sprintf("%dk", enc.AudioKbps), "-ac", "2")
 		} else {
 			a = append(a, "-c:a", "copy")
+			if j.ADTSAudio {
+				a = append(a, "-bsf:a", "aac_adtstoasc")
+			}
 		}
 	}
 	return a
