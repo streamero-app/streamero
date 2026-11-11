@@ -7,6 +7,7 @@ import type { components } from "@/api/schema.gen";
 import { Button, Card, ErrorText, Select, Spinner, SuccessText } from "@/components/ui";
 import { SettingRow, Toggle } from "./SettingRow";
 import { useDateTime } from "./SettingsLayout";
+import { DownloadsAdmin } from "@/features/downloads/DownloadsAdmin";
 
 type Encoding = components["schemas"]["EncodingSettings"];
 type Resume = components["schemas"]["ResumeSettings"];
@@ -120,6 +121,8 @@ export function TranscodingSettings() {
           <Saved save={res.save} error={res.q.error} />
         </Card>
       </form>
+
+      <DownloadsAdmin />
     </div>
   );
 }
