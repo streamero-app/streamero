@@ -33,6 +33,8 @@ val AUDIO_PROFILE = DeviceProfile(
 /** The app's side of music playback: a queue of tracks and the MediaController of MusicService. */
 class MusicController(private val app: Application) {
     var api: Api? = null
+    /** Called before music starts, so an audiobook lets go of the player. */
+    var onStart: () -> Unit = {}
     var queue by mutableStateOf<List<ItemSummary>>(emptyList())
         private set
     var index by mutableIntStateOf(-1)
@@ -79,6 +81,7 @@ class MusicController(private val app: Application) {
     fun play(tracks: List<ItemSummary>, start: Int = 0) {
         val a = api ?: return
         if (tracks.isEmpty()) return
+        onStart()
         val list = if (shuffle) listOf(tracks[start]) + tracks.filterIndexed { i, _ -> i != start }.shuffled() else tracks
         val first = if (shuffle) 0 else start
         queue = list

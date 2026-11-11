@@ -86,6 +86,8 @@ private suspend fun afterSignIn(state: AppState): Gate {
     return if (profiles.isNotEmpty() && state.me?.currentProfile == null) Gate.Profiles else Gate.Ready
 }
 
+private val FULL_SCREEN = listOf("watch", "read/", "photo/", "listen/")
+
 private data class Tab(val route: String, val label: Int, val icon: ImageVector)
 
 @Composable
@@ -100,7 +102,8 @@ private fun Main(state: AppState, onSignedOut: () -> Unit, onSwitchProfile: () -
     )
     val entry by nav.currentBackStackEntryAsState()
     val route = entry?.destination?.route.orEmpty()
-    val watching = route.startsWith("watch")
+    // The player, the readers and the photo viewer use the whole screen.
+    val watching = FULL_SCREEN.any { route.startsWith(it) }
     if (LocalTv.current) { TvMain(state, nav, tabs, route, watching, onSignedOut, onSwitchProfile); return }
     Scaffold(
         containerColor = Kino.bg,
@@ -148,6 +151,16 @@ private fun Routes(state: AppState, nav: NavHostController, onSignedOut: () -> U
             PlayerScreen(state, nav, a.getString("id")!!, a.getLong("start").takeIf { s -> s >= 0 }, a.getString("file"),
                 a.getInt("audio").takeIf { x -> x >= 0 }, a.getInt("sub").takeIf { x -> x >= -1 })
         }
+        composable("shelf/{lib}?author={author}&series={series}", arguments = listOf(
+            navArgument("author") { type = NavType.StringType; nullable = true },
+            navArgument("series") { type = NavType.StringType; nullable = true },
+        )) {
+            val a = it.arguments!!
+            ShelfScreen(state, nav, a.getString("lib")!!, a.getString("author"), a.getString("series"))
+        }
+        composable("read/{id}") { ReaderScreen(state, nav, it.arguments?.getString("id")!!) }
+        composable("listen/{id}") { AudiobookPlayerScreen(state, nav, it.arguments?.getString("id")!!) }
+        composable("photo/{id}") { PhotoViewerScreen(state, nav, it.arguments?.getString("id")!!) }
         composable("settings/{page}") { SettingsPage(state, nav, it.arguments?.getString("page")!!) }
         composable("together") { TogetherScreen(state, nav, null) }
         composable("together/{id}") { TogetherScreen(state, nav, it.arguments?.getString("id")) }

@@ -344,7 +344,8 @@ private fun LibrariesAdminPage(state: AppState) {
     }
     Card(stringResource(R.string.add_library)) {
         Field(stringResource(R.string.name), name, { name = it })
-        FieldRow(stringResource(R.string.kind)) { Picker(kind, listOf("movies" to stringResource(R.string.movies), "shows" to stringResource(R.string.shows), "music" to stringResource(R.string.music), "mixed" to stringResource(R.string.mixed)), { kind = it }) }
+        FieldRow(stringResource(R.string.kind)) { Picker(kind, listOf("movies" to stringResource(R.string.movies), "shows" to stringResource(R.string.shows), "music" to stringResource(R.string.music), "mixed" to stringResource(R.string.mixed),
+            "books" to stringResource(R.string.kind_books), "audiobooks" to stringResource(R.string.kind_audiobooks), "photos" to stringResource(R.string.kind_photos)), { kind = it }) }
         Field(stringResource(R.string.folder), path, { path = it })
         PrimaryButton(stringResource(R.string.add_library), { scope.launch { runCatching { api.createLibrary(LibraryInput(name, kind, listOf(path))) }.onSuccess { name = ""; tick++ }.onFailure { err = it } } },
             Modifier.fillMaxWidth(), enabled = name.isNotBlank() && path.length > 1)

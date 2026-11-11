@@ -115,6 +115,7 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
     DisposableEffect(Unit) {
         val act = ctx as Activity
         state.music.pause()
+        state.book.pause()
         act.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         val ctl = WindowCompat.getInsetsController(act.window, act.window.decorView)
         ctl.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
