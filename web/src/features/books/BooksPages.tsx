@@ -221,7 +221,7 @@ export function useAudiobook(item: ItemSummary) {
 }
 
 function clock(ms: number): string {
-  return formatDuration(Math.max(1000, ms), true);
+  return ms < 1000 ? "0:00" : formatDuration(ms, true);
 }
 
 /** Listening controls on the audiobook page: chapters, ±30 s, speed and sleep timer. */
