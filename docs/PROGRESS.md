@@ -20,6 +20,14 @@ P4 — Web pregledavanje (u tijeku); izdanja v0.2.0 i **v0.3.0** objavljena. P0 
 - Branch pushan, PR #1 (`phase/P0-foundations` → `main`) otvoren; `main` je prazan početni commit spojen u P0 (repo je bio prazan). CI zelen: `server`, `web`, `e2e`, iOS `build` (prvi uspješan iOS build, artefakt `streamero-ipa`).
 - `scripts/gen-fixtures.sh`: filmovi (H.264, 4K HEVC 10-bit, HDR10, AV1, multi-audio + poglavlja + embedded/external SRT/ASS, verzije, trailer), serija sa zajedničkim introm (2×4 ep.), multi-episode, specials, daily, anime absolute, glazba (FLAC/MP3), fotke.
 
+## Zajedničko gledanje / SyncPlay (branch `feat/syncplay`, PR #53, 2026-11-11)
+- Server: paket `syncplay` (grupe u memoriji, član = sesija pa preživi reconnect, queue, sinkroni start u budućnosti, pauza/seek/brzina, čekanje na bufferiranje s timeoutom 20 s, korekcija drifta sa servera brzinom ±5/10 % ili seekom), REST `/syncplay/*` + WebSocket `/api/v1/syncplay/socket` (D-036), dozvola `syncPlay`, pristup bibliotekama za svakog člana, rate limit po sesiji. Bez migracije.
+- Compat: `/SyncPlay/*`, `/GetUtcTime`, `SyncPlayGroupUpdate`/`SyncPlayCommand` na `/socket` — TV aplikacije i Streamero klijenti u istoj grupi (samo simulirani klijent u testu).
+- Web: „Gledajmo zajedno" na stranici naslova i u playeru (poveznica, članovi, „Čekamo: X", izlazak), `/together` i `/together/<id>`; HR/EN.
+- iOS i Android: pridruživanje s popisa ili zalijepljenom poveznicom, praćenje play/pauza/seek/brzine s korekcijama; samo unit testovi + CI build, nisu isprobani na uređaju.
+- Testovi: Go unit (stanja grupe, drift, rate limit), integracijski s dva klijenta preko pravog socketa + Postgres, compat integracijski, Vitest (engine + player + pozivnica), Android/iOS unit testovi sync enginea.
+- Otvoreno: chat/reakcije, provjera sa stvarnim TV appom, e2e Playwright s dva preglednika.
+
 ## Utiskivanje titlova i prepoznavanje uvoda/odjavne špice (branch `feat/subs-burnin-intros`, 2026-11-11)
 Slikovni titlovi (PGS, VobSub, DVB; ugrađeni i vanjski) utiskuju se u sliku kad ih klijent ne može nacrtati, s razlogom „subtitle burn-in" na nadzornoj ploči; ASS na zahtjev sa stilom; forced slikovni po zadanom; compat `SubtitleStreamIndex`/`Encode`. Novi zadatak „Prepoznaj uvode i odjavne špice" (fpcalc otisci po sezoni, crni kadrovi kao rezerva, inkrementalno, migracija 00025, D-035). Web player nudi slikovne titlove.
 - Testirano s pravim medijima (ffmpeg/fpcalc u testu): utiskivanje PGS i ASS (ugrađeni i vanjski) s mjerenjem svjetline kadra prije/poslije, i nakon premotavanja; sintetička sezona sa zajedničkim uvodom, zajedničkom pjesmom odjavne špice i epizodom s crnom odjavnom špicom; integracijski protiv Postgresa (prednost ručnog/poglavlja, inkrementalnost, nova i zamijenjena epizoda; playback API, nadzorna ploča, compat `PlaybackInfo` i `/MediaSegments`).
