@@ -149,6 +149,8 @@ private fun Routes(state: AppState, nav: NavHostController, onSignedOut: () -> U
                 a.getInt("audio").takeIf { x -> x >= 0 }, a.getInt("sub").takeIf { x -> x >= -1 })
         }
         composable("settings/{page}") { SettingsPage(state, nav, it.arguments?.getString("page")!!) }
+        composable("together") { TogetherScreen(state, nav, null) }
+        composable("together/{id}") { TogetherScreen(state, nav, it.arguments?.getString("id")) }
     }
 }
 

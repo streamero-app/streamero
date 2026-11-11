@@ -1194,5 +1194,49 @@
       "not_configured": "Single sign-on is not set up completely. Ask an administrator.",
       "internal": "Single sign-on failed. Try again."
     }
+  },
+  "together": {
+    "title": "Watch together",
+    "intro": "Start a watch party for this title and send the link: everyone plays, pauses and seeks together.",
+    "startHere": "Start a watch party",
+    "invite": "Invite link",
+    "copy": "Copy",
+    "copied": "Copied",
+    "you": "you",
+    "leave": "Leave the watch party",
+    "reconnecting": "Reconnecting…",
+    "waitingFor": "Waiting for {{names}}",
+    "ready": "Ready",
+    "buffering": "Buffering",
+    "loading": "Loading",
+    "offline": "Offline",
+    "lagging": "Catching up",
+    "join": "Join",
+    "groupOf": "{{name}}'s watch party",
+    "nothingYet": "Nothing is playing yet",
+    "groups": "Watch parties",
+    "noGroups": "No watch parties right now.",
+    "pasteLink": "Invite link or code",
+    "gone": "This watch party has ended, or you can't open what it is playing.",
+    "notAllowed": "Watching together is turned off for this account.",
+    "open": "Watch together",
+    "action": {
+      "play": "{{name}} pressed play",
+      "pause": "{{name}} paused",
+      "seek": "{{name}} jumped to {{time}}",
+      "speed": "{{name}} set the speed to {{speed}}×",
+      "join": "{{name}} joined",
+      "leave": "{{name}} left",
+      "next": "{{name}} moved on to the next title"
+    },
+    "errors": {
+      "forbidden": "Someone in the watch party can't open this title.",
+      "not_found": "This watch party has ended.",
+      "rate_limited": "Too many actions at once — wait a moment.",
+      "too_many_groups": "The server has too many watch parties right now.",
+      "not_in_group": "You are no longer in the watch party.",
+      "invalid_request": "That can't be done right now.",
+      "invalid": "That can't be done right now."
+    }
   }
 }

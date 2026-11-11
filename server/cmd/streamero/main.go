@@ -42,6 +42,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/settings"
 	"github.com/streamero-app/streamero/server/internal/storage"
 	"github.com/streamero-app/streamero/server/internal/stream"
+	"github.com/streamero-app/streamero/server/internal/syncplay"
 	"github.com/streamero-app/streamero/server/internal/version"
 )
 
@@ -132,6 +133,8 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		NowPlaying: &activity.Registry{}, Logs: logs,
 		Paths: api.Paths{Media: roots, Cache: cfg.CacheDir, Transcode: cfg.TranscodeDir}}
 	h.Notify = &notify.Dispatcher{Settings: state.Settings, Log: log, Server: h.ServerNameFor}
+	h.SyncPlay = &syncplay.Service{Hub: syncplay.NewHub(), Lookup: h.SyncLookup}
+	go h.SyncPlay.Run(ctx)
 	proxies, err := netx.ParsePrefixes(cfg.TrustedProxies)
 	if err != nil {
 		return err
@@ -225,7 +228,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			}})
 		state.SetCompat(&compat.Server{Pool: deps.Pool, Auth: state.Auth(), Libraries: libs, Stream: state.Stream(),
 			ServerID: state.ServerID(), Log: log, ServerName: h.ServerNameFor, OnPlayback: h.TrackPlayback, OnProgress: h.TrackProgress,
-			Commands: h.NowPlaying})
+			Commands: h.NowPlaying, SyncPlay: h.SyncPlay, SyncIdentity: h.SyncIdentity})
 		if cfg.Discovery {
 			startDiscovery(ctx, cfg, state.ServerID(), h.ServerNameFor, log)
 		}

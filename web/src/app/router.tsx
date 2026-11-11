@@ -37,6 +37,7 @@ import { EnhancementsSettings } from "@/features/settings/EnhancementsSettings";
 import { BackupSettings } from "@/features/settings/BackupSettings";
 import { SsoSettings } from "@/features/settings/SsoSettings";
 import { NotFoundPage } from "@/routes/NotFoundPage";
+import { TogetherInvitePage, TogetherListPage } from "@/features/syncplay/WatchTogether";
 
 /** The administrator's extra CSS (Settings → Branding), on every page. */
 function CustomCss() {
@@ -84,18 +85,21 @@ const discoverRoute = createRoute({
   component: DiscoverPage,
   validateSearch: (s: Record<string, unknown>): { q?: string } => (typeof s.q === "string" && s.q ? { q: s.q } : {}),
 });
+const togetherRoute = createRoute({ getParentRoute: () => appRoute, path: "/together", component: TogetherListPage });
+const togetherInviteRoute = createRoute({ getParentRoute: () => appRoute, path: "/together/$groupId", component: TogetherInvitePage });
 const watchRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/watch/$itemId",
   component: PlayerPage,
-  validateSearch: (s: Record<string, unknown>): { start?: number; playlist?: string; file?: string; audio?: number; sub?: number } => {
+  validateSearch: (s: Record<string, unknown>): { start?: number; playlist?: string; file?: string; audio?: number; sub?: number; together?: number } => {
     const num = (v: unknown) => (v === undefined || v === "" || Number.isNaN(Number(v)) ? undefined : Number(v));
-    const out: { start?: number; playlist?: string; file?: string; audio?: number; sub?: number } = {};
+    const out: { start?: number; playlist?: string; file?: string; audio?: number; sub?: number; together?: number } = {};
     if (num(s.start) !== undefined) out.start = num(s.start);
     if (typeof s.playlist === "string" && s.playlist) out.playlist = s.playlist;
     if (typeof s.file === "string" && /^[0-9a-f-]{36}$/i.test(s.file)) out.file = s.file;
     if (num(s.audio) !== undefined) out.audio = num(s.audio);
     if (num(s.sub) !== undefined) out.sub = num(s.sub);
+    if (num(s.together) === 1) out.together = 1;
     return out;
   },
 });
@@ -162,6 +166,8 @@ export const routeTree = rootRoute.addChildren([
     playlistRoute,
     librariesRoute2,
     watchRoute,
+    togetherRoute,
+    togetherInviteRoute,
     searchRoute,
     discoverRoute,
     settingsRoute.addChildren([settingsIndex, playbackRoute, dashboardRoute, tasksRoute, backupsRoute, notificationsRoute, accountRoute, profilesRoute, devicesRoute, quickConnectRoute, serverRoute, librariesRoute, metadataRoute, integrationsRoute, usersRoute, invitesRoute, apiKeysRoute,

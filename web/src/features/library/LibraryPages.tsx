@@ -15,6 +15,7 @@ import { channelsLabel, formatDuration, formatSize, imageUrl, placeholderHue, re
 import { AddToMenu, CollectionCard, useCollections } from "./CollectionsPages";
 import { MetadataMenu } from "./MetadataEditor";
 import { ArtFallback, ItemCard, PortraitArt, ProgressBar, RankCard, Row, RowSkeleton, TitleArt, TitleCard, isPlayable, posterCard, progressOf, rowCard } from "./cards";
+import { WatchTogetherButton } from "@/features/syncplay/WatchTogether";
 import { useAmbient, useAmbientLight } from "@/features/ambient/Ambient";
 
 export { ItemCard } from "./cards";
@@ -1017,6 +1018,7 @@ export function ItemPage() {
                 <RotateCcw className="size-5" aria-hidden />{t("player.fromStart")}
               </Link>
             ) : null}
+            {d.files.length > 0 && (it.kind === "movie" || it.kind === "episode") && <WatchTogetherButton itemId={it.id} />}
             <UserDataButtons item={it} />
             {it.kind !== "season" && <AddToMenu item={it} />}
             {isAdmin && <MetadataMenu d={d} />}

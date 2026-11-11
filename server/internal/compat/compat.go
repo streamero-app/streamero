@@ -28,6 +28,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/auth"
 	"github.com/streamero-app/streamero/server/internal/library"
 	"github.com/streamero-app/streamero/server/internal/stream"
+	"github.com/streamero-app/streamero/server/internal/syncplay"
 )
 
 // APIVersion is the API level this layer implements (what clients compare against).
@@ -51,6 +52,10 @@ type Server struct {
 	OnProgress func(p auth.Principal, itemID uuid.UUID, positionMS int64)
 	// Commands delivers dashboard session commands over /socket (optional).
 	Commands Commands
+	// SyncPlay runs watch-together groups (optional, D-036); SyncIdentity
+	// names a member (account or profile name, device).
+	SyncPlay     *syncplay.Service
+	SyncIdentity SyncIdentityFunc
 
 	routesOnce sync.Once
 	routes     http.Handler
@@ -131,6 +136,7 @@ func (s *Server) mux() *chi.Mux {
 	r.Get("/web", webRedirect)
 	r.Get("/web/*", webRedirect)
 	r.Post("/users/authenticatebyname", s.authenticateByName)
+	r.Get("/getutctime", utcTime)
 	// Artwork is public like in the reference API (players load it without
 	// headers); IDs are random UUIDs, person photos are public TMDb pictures.
 	for _, p := range []string{"/items/{itemId}/images/{type}", "/items/{itemId}/images/{type}/{index}"} {
@@ -219,6 +225,8 @@ func (s *Server) mux() *chi.Mux {
 		r.Post("/useritems/{itemId}/userdata", s.postUserData)
 		r.Get("/users/{userId}/items/{itemId}/userdata", s.getUserData)
 		r.Post("/users/{userId}/items/{itemId}/userdata", s.postUserData)
+
+		s.syncRoutes(r)
 
 		r.Post("/library/refresh", s.refreshAll)
 		r.Post("/library/media/updated", s.mediaUpdated)
@@ -519,7 +527,7 @@ func (s *Server) userDTO(u auth.User) map[string]any {
 			"InvalidLoginAttemptCount": 0, "LoginAttemptsBeforeLockout": auth.MaxFailedLogins,
 			"MaxActiveSessions": perms.MaxSessions, "RemoteClientBitrateLimit": 0,
 			"AuthenticationProviderId": "Streamero", "PasswordResetProviderId": "Streamero",
-			"SyncPlayAccess": "None", "BlockedTags": []string{}, "AllowedTags": []string{},
+			"SyncPlayAccess": syncPlayAccess(all || perms.SyncPlay), "BlockedTags": []string{}, "AllowedTags": []string{},
 			"BlockUnratedItems": []string{}, "EnabledDevices": []string{}, "EnabledChannels": []string{},
 			"BlockedMediaFolders": []string{}, "BlockedChannels": []string{}, "AccessSchedules": []any{},
 		},
@@ -886,4 +894,11 @@ func (s *Server) listKeys(w http.ResponseWriter, r *http.Request) {
 	}
 	s.keysMu.Unlock()
 	writeJSON(w, map[string]any{"Items": out, "TotalRecordCount": len(out), "StartIndex": 0})
+}
+
+func syncPlayAccess(allowed bool) string {
+	if allowed {
+		return "CreateAndJoinGroups"
+	}
+	return "None"
 }

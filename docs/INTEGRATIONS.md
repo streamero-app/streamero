@@ -107,8 +107,17 @@ only distributed through the TV's store.
 | Swiftfin (iOS / tvOS) | Built from the public API description only — not tried. |
 | Kodi add-on | Built from the public API description only — not tried. "Native" (path) mode cannot work: Streamero does not expose file paths. |
 
-Known gaps: `/socket` carries only keepalive and the dashboard's message/stop —
-no remote control from other apps, no live library/user-data events, no SyncPlay;
+**SyncPlay (watch together):** apps that offer SyncPlay can list, create, join
+and leave Streamero's watch-together groups (`/SyncPlay/*`, `/GetUtcTime`), and
+`/socket` sends them group updates and timed play/pause/seek/stop commands, so a
+TV app and the Streamero web/iOS/Android clients can share one group (D-036).
+Covered by an integration test with a simulated client (`TestSyncPlayCompatIntegration`);
+**no real TV app has been tried yet**, and which official apps offer SyncPlay at
+all is not verified here. Repeat/shuffle, moving or removing queue entries and
+"ignore wait" are accepted but have no effect; "queue next" appends.
+
+Known gaps: `/socket` carries keepalive, the dashboard's message/stop and SyncPlay —
+no remote control from other apps, no live library/user-data events;
 display preferences are not stored; music is direct play only; files scanned
 before 00024 lack the video profile until they change on disk (direct play is
 then attempted and, if it fails, the stream is transcoded); live TV,

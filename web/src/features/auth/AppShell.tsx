@@ -13,6 +13,7 @@ import { useLogout, useMe } from "./useAuth";
 import { setLanguage } from "@/i18n";
 import { MusicProvider } from "@/features/music/MusicPlayer";
 import { NowPlayingBar } from "@/features/music/NowPlayingBar";
+import { SyncPlayProvider } from "@/features/syncplay/SyncPlay";
 
 export const libraryIcon: Record<string, LucideIcon> = { movies: Film, shows: Tv, mixed: Clapperboard, music: Music };
 
@@ -79,6 +80,11 @@ function AccountMenu() {
               <Users className="size-4 text-text/55" aria-hidden />{t("nav.switchProfile")}
             </Link>
           )}
+          {(me.isAdmin || me.permissions.syncPlay) && (
+            <Link to="/together" role="menuitem" className={item} onClick={() => setOpen(false)} data-testid="together-menu">
+              <Users className="size-4 text-text/55" aria-hidden />{t("together.groups")}
+            </Link>
+          )}
           {!kid && (
             <Link to="/settings" role="menuitem" className={item} onClick={() => setOpen(false)}>
               <Settings className="size-4 text-text/55" aria-hidden />{t("nav.settings")}
@@ -133,6 +139,7 @@ export function AppShell() {
 
   return (
     <MusicProvider>
+    <SyncPlayProvider>
     <div className="min-h-full">
       {!watching && (
         <header data-scrolled={scrolled}
@@ -183,6 +190,7 @@ export function AppShell() {
       )}
       {!watching && <NowPlayingBar />}
     </div>
+    </SyncPlayProvider>
     </MusicProvider>
   );
 }

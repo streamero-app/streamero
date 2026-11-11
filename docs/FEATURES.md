@@ -245,10 +245,10 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 
 ## 11. SyncPlay / Watch Party, remote control
 
-- [ ] `[JF]` SyncPlay: grupe, zajednička reprodukcija, pauza/seek/brzina sinkronizirani, korekcija drift-a, zajednički queue (P12)
+- [x] `[JF]` SyncPlay: grupe, zajednička reprodukcija, pauza/seek/brzina sinkronizirani, korekcija drift-a, zajednički queue (P12) — server + web + compat (D-036); iOS i Android klijenti napisani, provjereni samo unit testovima i CI buildom
 - [ ] `[JF]` Remote control: upravljanje sesijom na drugom uređaju (play/pause/seek/odabir traka/poruka), „Play on…" (P12)
 - [ ] `[JF]` Slanje poruke sesiji (admin) (P10)
-- [ ] `[+]` Watch Party chat + emoji reakcije + pozivni link (P12)
+- [ ] `[+]` Watch Party chat + emoji reakcije + pozivni link (P12) — pozivni link gotov (`/together/<id>`), chat i reakcije nisu
 - [ ] `[+]` Watch Party između iOS-a i weba s istim UX-om (P12)
 
 ## 12. Offline i preuzimanje

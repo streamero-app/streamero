@@ -10,6 +10,7 @@ import net.scyde.streamero.api.Enhancements
 import net.scyde.streamero.api.User
 import net.scyde.streamero.data.Session
 import net.scyde.streamero.music.MusicController
+import net.scyde.streamero.sync.SyncSession
 
 class StreameroApp : Application() {
     lateinit var state: AppState
@@ -27,11 +28,13 @@ class AppState(val app: Application) {
     var enhancements by mutableStateOf(Enhancements())
     var images by mutableStateOf<ImageLoader?>(null)
     val music = MusicController(app)
+    val sync = SyncSession()
 
     fun attach(a: Api?) {
         api = a
         images = a?.let { ImageLoader.Builder(app).okHttpClient(it.http).crossfade(true).build() }
         music.api = a
+        sync.api = a
     }
 
     val isAdmin: Boolean get() = me?.isAdmin == true && me?.currentProfile?.isKid != true
@@ -45,6 +48,7 @@ class AppState(val app: Application) {
     }
 
     suspend fun signOut() {
+        if (sync.group != null) sync.leave()
         runCatching { api?.logout() }
         music.stop()
         session.setToken(null)

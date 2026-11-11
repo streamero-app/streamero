@@ -45,16 +45,23 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.MimeTypes
+import androidx.media3.common.PlaybackParameters
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import net.scyde.streamero.AppState
 import net.scyde.streamero.R
 import net.scyde.streamero.api.*
+import net.scyde.streamero.sync.PlayerAction
+import net.scyde.streamero.sync.PlayerSnapshot
+import net.scyde.streamero.sync.SyncSession
 
 /** What this phone decodes in hardware (the server converts the rest). */
 fun androidDeviceProfile(prefs: Preferences?): DeviceProfile {
@@ -93,6 +100,16 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
     var panel by remember { mutableStateOf(false) }
     var skipped by remember { mutableStateOf<Long?>(null) }
     val offset = remember { mutableLongStateOf(0L) } // HLS starts at info.startMs
+    // Watch together: the group decides what plays (it may switch to another item), the
+    // local controls ask the group instead of acting on the player.
+    val sync = state.sync
+    val group = sync.group
+    val grouped = group != null
+    var current by remember { mutableStateOf(itemId) }
+    var syncEntry by remember { mutableStateOf<String?>(null) }
+    var prepared by remember { mutableStateOf(false) }
+    val controls = remember { GroupControlledPlayer(player) { rel -> offset.longValue + rel } }
+    SideEffect { controls.group = if (grouped) sync else null }
 
     // Full screen, landscape-friendly, screen kept on.
     DisposableEffect(Unit) {
@@ -102,39 +119,80 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
         val ctl = WindowCompat.getInsetsController(act.window, act.window.decorView)
         ctl.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         ctl.hide(WindowInsetsCompat.Type.systemBars())
+        val ready = object : Player.Listener {
+            override fun onPlaybackStateChanged(s: Int) { if (s == Player.STATE_READY) prepared = true }
+        }
+        player.addListener(ready)
         onDispose {
             ctl.show(WindowInsetsCompat.Type.systemBars())
             act.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            player.removeListener(ready)
             player.release()
+            // Closing the player leaves the group, so nobody waits for a screen that is gone.
+            if (sync.group != null) sync.leaveInBackground()
         }
     }
 
     fun abs(): Long = offset.longValue + player.currentPosition
 
-    fun load(startMs: Long?, audioIndex: Int?, subIndex: Int?) = scope.launch {
-        runCatching { api.playback(itemId, PlaybackRequest(androidDeviceProfile(prefs), file, audioIndex, startMs?.coerceAtLeast(0))) }
-            .onSuccess { pi ->
-                info = pi
-                val chosenSub = subIndex ?: pi.subtitleDefault ?: -1
-                subtitle = chosenSub
-                val subs = pi.subtitles.getOrNull(chosenSub)?.let { s ->
-                    listOf(MediaItem.SubtitleConfiguration.Builder(Uri.parse(api.resolve(s.url))).setMimeType(MimeTypes.TEXT_VTT)
-                        .setLanguage(s.language).setSelectionFlags(C.SELECTION_FLAG_DEFAULT).build())
-                }.orEmpty()
-                val item = MediaItem.Builder().setUri(api.resolve(pi.url)).setSubtitleConfigurations(subs)
-                    .apply { if (pi.method != "direct") setMimeType(MimeTypes.APPLICATION_M3U8) }.build()
-                offset.longValue = if (pi.method == "direct") 0 else pi.startMs
-                player.setMediaItem(item, if (pi.method == "direct") pi.startMs else 0)
-                player.prepare()
-                player.play()
-            }.onFailure { error = it }
+    fun load(startMs: Long?, audioIndex: Int?, subIndex: Int?, autoplay: Boolean = sync.group == null) {
+        prepared = false
+        val id = current
+        scope.launch {
+            runCatching { api.playback(id, PlaybackRequest(androidDeviceProfile(prefs), if (id == itemId) file else null, audioIndex, startMs?.coerceAtLeast(0))) }
+                .onSuccess { pi ->
+                    info = pi
+                    val chosenSub = subIndex ?: pi.subtitleDefault ?: -1
+                    subtitle = chosenSub
+                    val subs = pi.subtitles.getOrNull(chosenSub)?.let { s ->
+                        listOf(MediaItem.SubtitleConfiguration.Builder(Uri.parse(api.resolve(s.url))).setMimeType(MimeTypes.TEXT_VTT)
+                            .setLanguage(s.language).setSelectionFlags(C.SELECTION_FLAG_DEFAULT).build())
+                    }.orEmpty()
+                    val item = MediaItem.Builder().setUri(api.resolve(pi.url)).setSubtitleConfigurations(subs)
+                        .apply { if (pi.method != "direct") setMimeType(MimeTypes.APPLICATION_M3U8) }.build()
+                    offset.longValue = if (pi.method == "direct") 0 else pi.startMs
+                    player.setMediaItem(item, if (pi.method == "direct") pi.startMs else 0)
+                    player.playWhenReady = autoplay
+                    player.prepare()
+                }.onFailure { error = it }
+        }
     }
 
-    LaunchedEffect(itemId) {
-        prefs = runCatching { api.preferences() }.getOrNull()
-        detail = runCatching { api.item(itemId) }.getOrNull()
-        next = api.nextEpisode(itemId)
-        load(start, audioChoice, subChoice)
+    LaunchedEffect(current) {
+        if (prefs == null) prefs = runCatching { api.preferences() }.getOrNull()
+        detail = runCatching { api.item(current) }.getOrNull()
+        next = api.nextEpisode(current)
+        if (sync.group == null) load(start, audioChoice, subChoice)
+    }
+    // In a group, the engine drives the player a few times a second and reports back.
+    LaunchedEffect(grouped) {
+        if (!grouped) return@LaunchedEffect
+        while (isActive) {
+            val snap = PlayerSnapshot(syncEntry, prepared && info != null, abs(), player.playWhenReady,
+                player.playbackState == Player.STATE_BUFFERING, player.playbackState == Player.STATE_ENDED, player.playbackParameters.speed.toDouble())
+            sync.step(snap).forEach { a ->
+                when (a) {
+                    is PlayerAction.Load -> {
+                        val same = a.entry.itemId == itemId
+                        syncEntry = a.entry.id
+                        if (current != a.entry.itemId) { current = a.entry.itemId; info = null; error = null }
+                        load(a.startMs, if (same) audioChoice else null, if (same) subChoice else null, autoplay = false)
+                    }
+                    is PlayerAction.Seek -> seekTo(player, info, offset, a.positionMs) { s -> load(s, audio, subtitle) }
+                    PlayerAction.Play -> player.play()
+                    PlayerAction.Pause -> player.pause()
+                    is PlayerAction.Speed -> player.setPlaybackSpeed(a.speed.toFloat())
+                }
+            }
+            delay(sync.nextWakeMs().coerceAtLeast(10))
+        }
+    }
+    LaunchedEffect(sync.endedReason) {
+        if (sync.endedReason != null) { notice = ctx.getString(R.string.together_left); sync.endedReason = null }
+    }
+    // Local seeks (skip intro, TV remote) go to the whole group while in one.
+    fun seekAbs(ms: Long) {
+        if (sync.group != null) sync.send(sync.engine.seek(ms)) else seekTo(player, info, offset, ms) { s -> load(s, audio, subtitle) }
     }
     // Progress every 10 s; messages and stop requests from an administrator every 4 s.
     LaunchedEffect(info) {
@@ -142,7 +200,7 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
         while (info != null) {
             delay(1000)
             position = abs()
-            if (++tick % 10 == 0 && player.isPlaying) runCatching { api.progress(itemId, ProgressReport(position, info?.durationMs)) }
+            if (++tick % 10 == 0 && player.isPlaying) runCatching { api.progress(current, ProgressReport(position, info?.durationMs)) }
             if (tick % 4 == 0) runCatching { api.commands() }.getOrNull()?.forEach { c ->
                 if (c.kind == "stop") { player.pause(); notice = c.text ?: ctx.getString(R.string.stopped_by_admin); delay(4000); nav.popBackStack(); return@LaunchedEffect }
                 notice = c.text
@@ -155,26 +213,34 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
     val intro = info?.segments?.firstOrNull { (it.kind == "intro" || it.kind == "recap") && position in it.startMs until it.endMs - 1000 }
     val introMode = prefs?.skipIntro ?: "button"
     LaunchedEffect(intro?.startMs) {
-        if (intro != null && introMode == "auto" && skipped != intro.startMs) { skipped = intro.startMs; seekTo(player, info, offset, intro.endMs) { s -> load(s, audio, subtitle) } }
+        // In a group every member would skip at once: there it is the button only.
+        if (intro != null && introMode == "auto" && !grouped && skipped != intro.startMs) { skipped = intro.startMs; seekAbs(intro.endMs) }
     }
     val inCredits = info?.segments?.any { it.kind == "credits" && position >= it.startMs } == true
-    val showNext = next != null && (inCredits || (dur > 0 && dur - position < 20_000 && position > 0))
+    // The group's queue decides what comes next, not this device.
+    val nextUp = next.takeIf { !grouped }
+    val showNext = nextUp != null && (inCredits || (dur > 0 && dur - position < 20_000 && position > 0))
     val tv = LocalTv.current
-    val leave: () -> Unit = { runCatching { scope.launch { api.progress(itemId, ProgressReport(abs(), info?.durationMs)) } }; nav.popBackStack() }
+    val leave: () -> Unit = { val id = current; runCatching { scope.launch { api.progress(id, ProgressReport(abs(), info?.durationMs)) } }; nav.popBackStack() }
 
     if (tv) {
-        TvPlayerChrome(player, info, detail, prefs, dur, position, intro, introMode, skipped, showNext, next, panel, audio, subtitle, error, notice,
-            abs = ::abs, setPanel = { panel = it }, onSkipIntro = { i -> skipped = i.startMs; seekTo(player, info, offset, i.endMs) { s -> load(s, audio, subtitle) } },
-            onSeek = { ms -> seekTo(player, info, offset, ms) { s -> load(s, audio, subtitle) } },
-            onNext = { nav.popBackStack(); nav.watch(next!!.id) },
-            onAudio = { a -> audio = a; panel = false; load(abs(), a, subtitle) },
-            onSubtitle = { x -> subtitle = x; panel = false; load(abs(), audio, x) },
-            onLeave = leave)
+        Box(Modifier.fillMaxSize()) {
+            TvPlayerChrome(controls, info, detail, prefs, dur, position, intro, introMode, skipped, showNext, nextUp, panel, audio, subtitle, error, notice,
+                abs = ::abs, setPanel = { panel = it }, onSkipIntro = { i -> skipped = i.startMs; seekAbs(i.endMs) },
+                onSeek = ::seekAbs,
+                onNext = { nav.popBackStack(); nav.watch(nextUp!!.id) },
+                onAudio = { a -> audio = a; panel = false; load(abs(), a, subtitle) },
+                onSubtitle = { x -> subtitle = x; panel = false; load(abs(), audio, x) },
+                onLeave = leave)
+            // On a TV the group is shown, not operated: back leaves the player and the group.
+            group?.let { SyncOverlay(it, sync.connected, null, Modifier.align(Alignment.TopEnd).padding(horizontal = 48.dp, vertical = 32.dp)) }
+        }
         return
     }
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {
-        AndroidView({ PlayerView(it).apply { this.player = player; setShowSubtitleButton(false); setShowNextButton(false); setShowPreviousButton(false) } }, Modifier.fillMaxSize())
+        AndroidView({ PlayerView(it).apply { this.player = controls; setShowSubtitleButton(false); setShowNextButton(false); setShowPreviousButton(false) } }, Modifier.fillMaxSize())
+        group?.let { SyncOverlay(it, sync.connected, { sync.leaveInBackground() }, Modifier.align(Alignment.TopEnd).padding(top = 64.dp, end = 12.dp)) }
         Row(Modifier.align(Alignment.TopStart).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = leave) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back), tint = Color.White)
@@ -183,13 +249,13 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
             Spacer(Modifier.weight(1f))
             if (info != null && (info!!.subtitles.isNotEmpty() || info!!.audio.size > 1)) IconButton(onClick = { panel = true }) { Icon(Icons.Default.ClosedCaption, stringResource(R.string.subtitles), tint = Color.White) }
         }
-        if (intro != null && introMode == "button" && skipped != intro.startMs) Button(onClick = { skipped = intro.startMs; seekTo(player, info, offset, intro.endMs) { s -> load(s, audio, subtitle) } },
+        if (intro != null && introMode == "button" && skipped != intro.startMs) Button(onClick = { skipped = intro.startMs; seekAbs(intro.endMs) },
             Modifier.align(Alignment.BottomEnd).padding(24.dp, 96.dp), shape = CardShape, colors = ButtonDefaults.buttonColors(containerColor = Color.Black.copy(alpha = 0.7f), contentColor = Color.White)) {
             Icon(Icons.Default.SkipNext, null); Spacer(Modifier.width(6.dp)); Text(stringResource(if (intro.kind == "recap") R.string.skip_recap else R.string.skip_intro))
         }
-        if (showNext && (prefs?.skipCredits ?: "button") != "off") Button(onClick = { nav.popBackStack(); nav.watch(next!!.id) },
+        if (showNext && (prefs?.skipCredits ?: "button") != "off") Button(onClick = { nav.popBackStack(); nav.watch(nextUp!!.id) },
             Modifier.align(Alignment.BottomEnd).padding(24.dp, 96.dp), shape = CardShape, colors = ButtonDefaults.buttonColors(containerColor = Kino.text, contentColor = Kino.bg)) {
-            Text(stringResource(R.string.next_episode) + ": " + next!!.title, maxLines = 1)
+            Text(stringResource(R.string.next_episode) + ": " + nextUp!!.title, maxLines = 1)
         }
         notice?.let { Text(it, color = Color.White, fontSize = 16.sp, modifier = Modifier.align(Alignment.TopCenter).padding(top = 64.dp).background(Color.Black.copy(alpha = 0.85f), CardShape).padding(14.dp)) }
         error?.let { Box(Modifier.align(Alignment.Center).background(Kino.surface, CardShape).padding(16.dp)) { ErrorLine(it) } }
@@ -221,6 +287,34 @@ private fun seekTo(player: ExoPlayer, info: PlaybackInfo?, offset: MutableLongSt
 }
 
 /**
+ * The player the on-screen controls (and the TV remote) talk to. Outside a group it passes
+ * everything through; in a group, play, pause, seek and speed become group commands and the
+ * engine moves the real player once the server answers with the new state.
+ */
+@OptIn(UnstableApi::class)
+private class GroupControlledPlayer(private val inner: Player, private val absolute: (Long) -> Long) : ForwardingPlayer(inner) {
+    var group: SyncSession? = null
+
+    private inline fun command(local: () -> Unit, message: (SyncSession) -> SyncClientMessage) {
+        val g = group
+        if (g == null) local() else g.send(message(g))
+    }
+
+    override fun play() = command({ super.play() }) { it.engine.play() }
+    override fun pause() = command({ super.pause() }) { it.engine.pause() }
+    override fun setPlayWhenReady(playWhenReady: Boolean) =
+        command({ super.setPlayWhenReady(playWhenReady) }) { if (playWhenReady) it.engine.play() else it.engine.pause() }
+    override fun seekTo(positionMs: Long) = command({ super.seekTo(positionMs) }) { it.engine.seek(absolute(positionMs)) }
+    override fun seekTo(mediaItemIndex: Int, positionMs: Long) =
+        command({ super.seekTo(mediaItemIndex, positionMs) }) { it.engine.seek(absolute(positionMs)) }
+    override fun seekForward() = command({ super.seekForward() }) { it.engine.seek(absolute(inner.currentPosition + inner.seekForwardIncrement)) }
+    override fun seekBack() = command({ super.seekBack() }) { it.engine.seek(absolute(inner.currentPosition - inner.seekBackIncrement)) }
+    override fun setPlaybackSpeed(speed: Float) = command({ super.setPlaybackSpeed(speed) }) { it.engine.speed(speed.toDouble()) }
+    override fun setPlaybackParameters(playbackParameters: PlaybackParameters) =
+        command({ super.setPlaybackParameters(playbackParameters) }) { it.engine.speed(playbackParameters.speed.toDouble()) }
+}
+
+/**
  * The player on a TV, driven by the remote: left/right seek (with a running "+30 s" note and
  * the seek applied once the presses stop), centre or up/down shows the controls, media keys
  * work at any time, back closes what is open before leaving.
@@ -228,7 +322,7 @@ private fun seekTo(player: ExoPlayer, info: PlaybackInfo?, offset: MutableLongSt
 @OptIn(UnstableApi::class)
 @Composable
 private fun TvPlayerChrome(
-    player: ExoPlayer, info: PlaybackInfo?, detail: ItemDetail?, prefs: Preferences?, dur: Long, position: Long,
+    player: Player, info: PlaybackInfo?, detail: ItemDetail?, prefs: Preferences?, dur: Long, position: Long,
     intro: MediaSegment?, introMode: String, skipped: Long?, showNext: Boolean, next: ItemSummary?, panel: Boolean,
     audio: Int?, subtitle: Int, error: Throwable?, notice: String?,
     abs: () -> Long, setPanel: (Boolean) -> Unit, onSkipIntro: (MediaSegment) -> Unit, onSeek: (Long) -> Unit, onNext: () -> Unit,

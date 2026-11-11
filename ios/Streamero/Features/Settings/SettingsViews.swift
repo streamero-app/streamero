@@ -57,6 +57,8 @@ struct MeTab: View {
     let signOut: () -> Void
     @Environment(AppState.self) private var app
     @State private var showQuickConnect = false
+    @State private var showTogether = false
+    @State private var togetherPlay: PlayTarget?
 
     var body: some View {
         List {
@@ -73,6 +75,13 @@ struct MeTab: View {
                     Text("administration")
                 }
             }
+            if app.canWatchTogether {
+                Section {
+                    Button { showTogether = true } label: {
+                        Label { Text("together.title").foregroundStyle(Theme.text) } icon: { Image(systemName: "person.2.fill") }
+                    }
+                }
+            }
             Section {
                 Button { showQuickConnect = true } label: { Text("quickConnect.approveTitle").foregroundStyle(Theme.text) }
                 Button { app.showProfileGate = true } label: { Text("switch_profile").foregroundStyle(Theme.text) }
@@ -83,6 +92,16 @@ struct MeTab: View {
         .background(Theme.background)
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showQuickConnect) { QuickConnectApproveView(client: client) }
+        .sheet(isPresented: $showTogether, onDismiss: {
+            if let target = togetherPlay {
+                togetherPlay = nil
+                app.play(target)
+            }
+        }) {
+            TogetherView { itemId, start in togetherPlay = PlayTarget(id: itemId, start: start) }
+                .environment(app)
+                .environment(\.locale, app.locale ?? Locale.current)
+        }
     }
 
     private func link(_ page: SettingsPage) -> some View {

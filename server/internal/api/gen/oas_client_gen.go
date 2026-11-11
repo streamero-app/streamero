@@ -128,6 +128,12 @@ type Invoker interface {
 	//
 	// POST /profiles
 	CreateProfile(ctx context.Context, request *ProfileInput) (*Profile, error)
+	// CreateSyncGroup invokes createSyncGroup operation.
+	//
+	// Start a watch-together group and join it (leaves any other group first).
+	//
+	// POST /syncplay/groups
+	CreateSyncGroup(ctx context.Context, request *CreateSyncGroupRequest) (*SyncGroup, error)
 	// CreateUser invokes createUser operation.
 	//
 	// Create a user (admin).
@@ -352,6 +358,12 @@ type Invoker interface {
 	//
 	// GET /settings/metadata
 	GetMetadataSettings(ctx context.Context) (*MetadataSettings, error)
+	// GetMySyncGroup invokes getMySyncGroup operation.
+	//
+	// The group this session is in (after a reconnect).
+	//
+	// GET /syncplay/me
+	GetMySyncGroup(ctx context.Context) (GetMySyncGroupRes, error)
 	// GetNotificationSettings invokes getNotificationSettings operation.
 	//
 	// Webhook / push notification targets.
@@ -400,6 +412,12 @@ type Invoker interface {
 	//
 	// GET /settings/server
 	GetServerSettings(ctx context.Context) (*ServerSettings, error)
+	// GetSyncGroup invokes getSyncGroup operation.
+	//
+	// One group (invite page preview).
+	//
+	// GET /syncplay/groups/{groupId}
+	GetSyncGroup(ctx context.Context, params GetSyncGroupParams) (*SyncGroup, error)
 	// GetSystemInfo invokes getSystemInfo operation.
 	//
 	// Unauthenticated. Used by clients to verify a server URL before login.
@@ -431,6 +449,18 @@ type Invoker interface {
 	//
 	// POST /quickconnect/initiate
 	InitiateQuickConnect(ctx context.Context, request OptDeviceInfo) (*QuickConnectStart, error)
+	// JoinSyncGroup invokes joinSyncGroup operation.
+	//
+	// Refused with 403 when the caller cannot open an item in the group's queue.
+	//
+	// POST /syncplay/groups/{groupId}/join
+	JoinSyncGroup(ctx context.Context, params JoinSyncGroupParams) (*SyncGroup, error)
+	// LeaveSyncGroup invokes leaveSyncGroup operation.
+	//
+	// Leave the current group; playback of the others continues.
+	//
+	// POST /syncplay/leave
+	LeaveSyncGroup(ctx context.Context) error
 	// ListAPIKeys invokes listAPIKeys operation.
 	//
 	// API keys for integrations (admin).
@@ -515,6 +545,12 @@ type Invoker interface {
 	//
 	// GET /sessions
 	ListSessions(ctx context.Context) ([]Session, error)
+	// ListSyncGroups invokes listSyncGroups operation.
+	//
+	// Watch-together groups the caller may join (needs the syncPlay permission).
+	//
+	// GET /syncplay/groups
+	ListSyncGroups(ctx context.Context) ([]SyncGroup, error)
 	// ListTasks invokes listTasks operation.
 	//
 	// Scheduled maintenance tasks and their last run.
@@ -2781,6 +2817,122 @@ func (c *Client) sendCreateProfile(ctx context.Context, request *ProfileInput) (
 
 	stage = "DecodeResponse"
 	result, err := decodeCreateProfileResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// CreateSyncGroup invokes createSyncGroup operation.
+//
+// Start a watch-together group and join it (leaves any other group first).
+//
+// POST /syncplay/groups
+func (c *Client) CreateSyncGroup(ctx context.Context, request *CreateSyncGroupRequest) (*SyncGroup, error) {
+	res, err := c.sendCreateSyncGroup(ctx, request)
+	return res, err
+}
+
+func (c *Client) sendCreateSyncGroup(ctx context.Context, request *CreateSyncGroupRequest) (res *SyncGroup, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("createSyncGroup"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/syncplay/groups"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, CreateSyncGroupOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/syncplay/groups"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodeCreateSyncGroupRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:SessionToken"
+			switch err := c.securitySessionToken(ctx, CreateSyncGroupOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"SessionToken\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeCreateSyncGroupResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -7417,6 +7569,119 @@ func (c *Client) sendGetMetadataSettings(ctx context.Context) (res *MetadataSett
 	return result, nil
 }
 
+// GetMySyncGroup invokes getMySyncGroup operation.
+//
+// The group this session is in (after a reconnect).
+//
+// GET /syncplay/me
+func (c *Client) GetMySyncGroup(ctx context.Context) (GetMySyncGroupRes, error) {
+	res, err := c.sendGetMySyncGroup(ctx)
+	return res, err
+}
+
+func (c *Client) sendGetMySyncGroup(ctx context.Context) (res GetMySyncGroupRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("getMySyncGroup"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/syncplay/me"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, GetMySyncGroupOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/syncplay/me"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:SessionToken"
+			switch err := c.securitySessionToken(ctx, GetMySyncGroupOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"SessionToken\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeGetMySyncGroupResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
 // GetNotificationSettings invokes getNotificationSettings operation.
 //
 // Webhook / push notification targets.
@@ -8413,6 +8678,137 @@ func (c *Client) sendGetServerSettings(ctx context.Context) (res *ServerSettings
 	return result, nil
 }
 
+// GetSyncGroup invokes getSyncGroup operation.
+//
+// One group (invite page preview).
+//
+// GET /syncplay/groups/{groupId}
+func (c *Client) GetSyncGroup(ctx context.Context, params GetSyncGroupParams) (*SyncGroup, error) {
+	res, err := c.sendGetSyncGroup(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendGetSyncGroup(ctx context.Context, params GetSyncGroupParams) (res *SyncGroup, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("getSyncGroup"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/syncplay/groups/{groupId}"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, GetSyncGroupOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [2]string
+	pathParts[0] = "/syncplay/groups/"
+	{
+		// Encode "groupId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "groupId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.GroupId))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:SessionToken"
+			switch err := c.securitySessionToken(ctx, GetSyncGroupOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"SessionToken\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeGetSyncGroupResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
 // GetSystemInfo invokes getSystemInfo operation.
 //
 // Unauthenticated. Used by clients to verify a server URL before login.
@@ -9025,6 +9421,251 @@ func (c *Client) sendInitiateQuickConnect(ctx context.Context, request OptDevice
 
 	stage = "DecodeResponse"
 	result, err := decodeInitiateQuickConnectResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// JoinSyncGroup invokes joinSyncGroup operation.
+//
+// Refused with 403 when the caller cannot open an item in the group's queue.
+//
+// POST /syncplay/groups/{groupId}/join
+func (c *Client) JoinSyncGroup(ctx context.Context, params JoinSyncGroupParams) (*SyncGroup, error) {
+	res, err := c.sendJoinSyncGroup(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendJoinSyncGroup(ctx context.Context, params JoinSyncGroupParams) (res *SyncGroup, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("joinSyncGroup"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/syncplay/groups/{groupId}/join"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, JoinSyncGroupOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [3]string
+	pathParts[0] = "/syncplay/groups/"
+	{
+		// Encode "groupId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "groupId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.GroupId))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = "/join"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:SessionToken"
+			switch err := c.securitySessionToken(ctx, JoinSyncGroupOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"SessionToken\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeJoinSyncGroupResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// LeaveSyncGroup invokes leaveSyncGroup operation.
+//
+// Leave the current group; playback of the others continues.
+//
+// POST /syncplay/leave
+func (c *Client) LeaveSyncGroup(ctx context.Context) error {
+	_, err := c.sendLeaveSyncGroup(ctx)
+	return err
+}
+
+func (c *Client) sendLeaveSyncGroup(ctx context.Context) (res *LeaveSyncGroupNoContent, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("leaveSyncGroup"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/syncplay/leave"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, LeaveSyncGroupOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/syncplay/leave"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:SessionToken"
+			switch err := c.securitySessionToken(ctx, LeaveSyncGroupOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"SessionToken\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeLeaveSyncGroupResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -10836,6 +11477,119 @@ func (c *Client) sendListSessions(ctx context.Context) (res []Session, err error
 
 	stage = "DecodeResponse"
 	result, err := decodeListSessionsResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// ListSyncGroups invokes listSyncGroups operation.
+//
+// Watch-together groups the caller may join (needs the syncPlay permission).
+//
+// GET /syncplay/groups
+func (c *Client) ListSyncGroups(ctx context.Context) ([]SyncGroup, error) {
+	res, err := c.sendListSyncGroups(ctx)
+	return res, err
+}
+
+func (c *Client) sendListSyncGroups(ctx context.Context) (res []SyncGroup, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("listSyncGroups"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/syncplay/groups"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ListSyncGroupsOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/syncplay/groups"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:SessionToken"
+			switch err := c.securitySessionToken(ctx, ListSyncGroupsOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"SessionToken\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeListSyncGroupsResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

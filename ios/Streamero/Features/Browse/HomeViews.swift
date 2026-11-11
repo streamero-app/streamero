@@ -117,7 +117,7 @@ struct MainView: View {
             .environment(\.locale, app.locale ?? systemLocale)
         }
         .fullScreenCover(item: $app.playing, onDismiss: { app.reloadTick += 1 }) { target in
-            PlayerView(target: target, client: client, music: app.music)
+            PlayerView(target: target, client: client, music: app.music, together: app.together)
                 .environment(app)
                 .environment(\.locale, app.locale ?? systemLocale)
         }

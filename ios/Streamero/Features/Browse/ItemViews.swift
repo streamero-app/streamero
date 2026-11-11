@@ -12,6 +12,10 @@ struct ItemView: View {
     @State private var audio: Int?
     @State private var sub: Int?
     @State private var season: String?
+    @State private var inviteGroup: SyncGroup?
+    @State private var togetherPlay: PlayTarget?
+    @State private var togetherError: Error?
+    @State private var togetherBusy = false
 
     var body: some View {
         Group {
@@ -30,6 +34,31 @@ struct ItemView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .task(id: "\(itemID)-\(app.reloadTick)") { await reload() }
+        .sheet(item: $inviteGroup, onDismiss: {
+            if let target = togetherPlay {
+                togetherPlay = nil
+                app.play(target)
+            } else if app.playing == nil {
+                // Closed without starting: nobody should wait for this device.
+                Task { await app.together.leave() }
+            }
+        }) { group in
+            TogetherInviteSheet(link: SyncInvite.link(server: app.together.serverURL, groupId: group.id)) {
+                togetherPlay = PlayTarget(id: group.currentEntry?.itemId ?? itemID, start: app.together.sharedPosition)
+            }
+        }
+    }
+
+    /// Starts a watch-together group with this item and offers the invite link.
+    private func watchTogether(_ it: ItemSummary) async {
+        togetherBusy = true
+        defer { togetherBusy = false }
+        do {
+            inviteGroup = try await app.together.create(itemIds: [it.id], startMs: it.positionMs ?? 0)
+            togetherError = nil
+        } catch {
+            togetherError = error
+        }
     }
 
     @ViewBuilder private func trackRedirect(_ d: ItemDetail) -> some View {
@@ -175,6 +204,14 @@ struct ItemView: View {
             }
             if let p = progress(it) { ProgressStrip(value: p).frame(maxWidth: 240) }
             playOptions(d)
+            if !d.files.isEmpty && app.canWatchTogether {
+                Button { Task { await watchTogether(it) } } label: {
+                    Label("together.title", systemImage: "person.2.fill").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(MutedButtonStyle())
+                .disabled(togetherBusy)
+                ErrorLine(error: togetherError)
+            }
             if !d.files.isEmpty { SubtitleFinderButton(itemID: it.id, client: client) }
         }
     }
