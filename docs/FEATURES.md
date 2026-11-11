@@ -164,7 +164,7 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [ ] `[JF]` Progressive stream (za stare klijente / download) (P5)
 - [x] `[JF]` Ograničenje bitratea (LAN vs internet), max rezolucija, max audio kanala (P5) — *max bitrate i rezolucija po profilu*
 - [ ] `[JF]` Audio *(odabir trake i preferirani jezik gotovi)*: odabir traka, preferirani jezik, preferiraj originalni jezik naslova, downmix, normalizacija (bez utjecaja na pitch/brzinu na iOS-u) (P5)
-- [ ] `[JF]` Podnaslovi: SRT, ASS/SSA (stil sačuvan), WebVTT, PGS, VobSub, DVB; ugrađeni i vanjski (`film.hr.forced.srt` konvencije); burn-in kad klijent ne može renderirati; ekstrakcija u pozadini s podesivim timeoutom; slikovni podnaslovi renderirani na klijentu kod remuxa; forced podnaslovi ispravno nadjačavaju zapamćene; ugradnja vanjskih u MKS kod transkodiranja (P5)
+- [ ] `[JF]` Podnaslovi: SRT, ASS/SSA (stil sačuvan), WebVTT, PGS, VobSub, DVB; ugrađeni i vanjski (`film.hr.forced.srt` konvencije); burn-in kad klijent ne može renderirati; ekstrakcija u pozadini s podesivim timeoutom; slikovni podnaslovi renderirani na klijentu kod remuxa; forced podnaslovi ispravno nadjačavaju zapamćene; ugradnja vanjskih u MKS kod transkodiranja (P5) — *burn-in gotov (D-035): PGS/VobSub/DVB ugrađeni i vanjski utisnuti u sliku kad klijent ne može (web, compat `Encode`), forced slikovni po zadanom, ASS sa stilom na zahtjev, i nakon premotavanja; iOS/Android izbor slikovnih titlova slijedi*
 - [x] `[JF]` Načini podnaslova: default, smart, only forced, always, none (P5)
 - [ ] `[JF]` Stil podnaslova po korisniku/uređaju (veličina, font, boja, pozadina, sjena, pozicija); opcija gašenja native stila (P5)
 - [ ] `[JF]` Upload i uređivanje/brisanje vanjskih podnaslova (P5)
@@ -203,8 +203,8 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [ ] `[JF]` Trickplay sprite sheetovi (podesiva širina, interval, kvaliteta, HW dekodiranje), čišćenje nakon neuspjeha, ispravan video stream (P6)
 - [ ] `[JF]` Slike poglavlja (task) (P6)
 - [ ] `[JF]` Media segments API + provider iz imena poglavlja („Intro", „Opening", „Credits"…) (P6)
-- [ ] `[JF-P]` Automatska detekcija intra/outra audio fingerprintom (chromaprint) kroz sezonu — ugrađeno (P6)
-- [ ] `[JF-P]` Detekcija credits-a crnim frameovima/tekstom kao fallback (P6)
+- [x] `[JF-P]` Automatska detekcija intra/outra audio fingerprintom (chromaprint) kroz sezonu — ugrađeno (P6) — *zaseban zadatak s „Pokreni sada", inkrementalno (spremljeni otisci), prednost ručnih i segmenata iz poglavlja (D-035)*
+- [ ] `[JF-P]` Detekcija credits-a crnim frameovima/tekstom kao fallback (P6) — *crni kadrovi gotovi; tekst slijedi*
 - [ ] `[JF-P]` Editor segmenata u web UI-ju (ručna korekcija, prioritet nad automatikom) (P6)
 - [ ] `[JF-P]` Export .edl datoteka (Kodi) (P6)
 - [ ] `[+]` Community DB segmenata (opcionalni import iz javnih baza, npr. TheIntroDB API) (P13)
