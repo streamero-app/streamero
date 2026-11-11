@@ -82,6 +82,9 @@ fun MeScreen(state: AppState, nav: NavHostController, onSignedOut: () -> Unit, o
         if (!state.isKid) items(USER_PAGES.filter { !tv || it.page in TV_PAGES }) { e ->
             SettingsLink(e, Modifier.rememberFocus(mem, e.page, default = e.page == "account")) { nav.navigate("settings/${e.page}") }
         }
+        if (!tv && (canDownload(state) || state.offline.store.data.value.entries.isNotEmpty())) item {
+            SettingsLink(Entry("downloads", R.string.downloads, Icons.Outlined.Download)) { nav.navigate("downloads") }
+        }
         if (canWatchTogether(state)) item {
             SettingsLink(Entry("together", R.string.watch_together, Icons.Outlined.Groups), Modifier.rememberFocus(mem, "together")) { nav.navigate("together") }
         }

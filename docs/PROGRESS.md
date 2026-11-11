@@ -20,6 +20,13 @@ P4 — Web pregledavanje (u tijeku); izdanja v0.2.0 i **v0.3.0** objavljena. P0 
 - Branch pushan, PR #1 (`phase/P0-foundations` → `main`) otvoren; `main` je prazan početni commit spojen u P0 (repo je bio prazan). CI zelen: `server`, `web`, `e2e`, iOS `build` (prvi uspješan iOS build, artefakt `streamero-ipa`).
 - `scripts/gen-fixtures.sh`: filmovi (H.264, 4K HEVC 10-bit, HDR10, AV1, multi-audio + poglavlja + embedded/external SRT/ASS, verzije, trailer), serija sa zajedničkim introm (2×4 ep.), multi-episode, specials, daily, anime absolute, glazba (FLAC/MP3), fotke.
 
+## Preuzimanje za offline gledanje (branch `feat/offline`, PR #57, 2026-11-11)
+- Server: poslovi preuzimanja (original ili MP4 u izvornoj, 1080p ili 720p kvaliteti), pretvaranje u pozadini s ograničenjem i čišćenjem cachea, potpisani linkovi s Range, sinkronizacija napretka „najnovije pobjeđuje" i povlačenje pristupa (D-040).
+- Web: „Preuzmi original" i admin kartica u postavkama transkodiranja.
+- iOS: pozadinski URLSession, offline biblioteka i player, automatski „sljedećih N", sinkronizacija. Samo CI (build i unit testovi), nije pokrenuto na uređaju.
+- Android: WorkManager u prvom planu, nastavak preuzimanja, offline početni ekran i player, automatski „sljedećih N", sinkronizacija. Unit testovi (74) i release build prolaze; na emulatoru nije pokrenuto.
+- Poznato: preuzimanja nisu vezana uz profil na uređaju; povlačenje pristupa vrijedi tek pri sljedećoj sinkronizaciji; jedna audio staza, bez slikovnih titlova.
+
 ## Zajedničko gledanje / SyncPlay (branch `feat/syncplay`, PR #53, 2026-11-11)
 - Server: paket `syncplay` (grupe u memoriji, član = sesija pa preživi reconnect, queue, sinkroni start u budućnosti, pauza/seek/brzina, čekanje na bufferiranje s timeoutom 20 s, korekcija drifta sa servera brzinom ±5/10 % ili seekom), REST `/syncplay/*` + WebSocket `/api/v1/syncplay/socket` (D-036), dozvola `syncPlay`, pristup bibliotekama za svakog člana, rate limit po sesiji. Bez migracije.
 - Compat: `/SyncPlay/*`, `/GetUtcTime`, `SyncPlayGroupUpdate`/`SyncPlayCommand` na `/socket` — TV aplikacije i Streamero klijenti u istoj grupi (samo simulirani klijent u testu).

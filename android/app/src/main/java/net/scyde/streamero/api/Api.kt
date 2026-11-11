@@ -146,6 +146,12 @@ class Api(baseUrl: String, @Volatile var token: String? = null) {
     suspend fun savePreferences(p: Preferences): Preferences = put("me/preferences", p)
     suspend fun commands(): List<SessionCommand> = get("me/commands")
 
+    // Offline downloads: jobs on the server, files on the device.
+    suspend fun createDownloads(r: DownloadRequest): List<Download> = post("downloads", r)
+    suspend fun download(id: String): Download = get("downloads/$id")
+    suspend fun deleteDownload(id: String) = send("DELETE", "downloads/$id")
+    suspend fun syncOffline(r: OfflineSyncRequest): OfflineSyncResponse = post("downloads/sync", r)
+
     // Watch together (SyncPlay). Playback inside a group runs over syncSocket().
     suspend fun syncGroups(): List<SyncGroup> = get("syncplay/groups")
     suspend fun createSyncGroup(r: CreateSyncGroup): SyncGroup = post("syncplay/groups", r)
