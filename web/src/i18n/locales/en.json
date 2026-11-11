@@ -533,7 +533,8 @@
     "keyFullscreen": "Full screen",
     "keySubtitles": "Subtitles on/off",
     "keyHelp": "This help",
-    "keyClose": "Close a panel"
+    "keyClose": "Close a panel",
+    "fallback": "This browser couldn't play the file directly, so it is being converted."
   },
   "search": {
     "title": "Search",

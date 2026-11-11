@@ -13,7 +13,7 @@ import { useMusic } from "@/features/music/MusicPlayer";
 import type { components } from "@/api/schema.gen";
 import { ErrorText, Spinner } from "@/components/ui";
 import { imageUrl } from "@/features/library/format";
-import { detectDeviceProfile } from "./deviceProfile";
+import { detectDeviceProfile, SAFE_PROFILE } from "./deviceProfile";
 import { useGroupPlayback } from "@/features/syncplay/useGroupPlayback";
 import { TogetherError, TogetherPanel, WaitingBanner } from "@/features/syncplay/WatchTogether";
 
@@ -159,13 +159,15 @@ export function PlayerPage() {
   });
   const prefs = useQuery({ queryKey: ["preferences"], queryFn: async () => unwrap(await api.GET("/me/preferences")) });
 
+  // After the stream fails in this browser, ask for one that every browser decodes.
+  const safeMode = useRef(false);
   const start = useMutation({
     mutationFn: async (v: { audioIndex?: number; startMs?: number; subtitleIndex?: number }) =>
       unwrap(await api.POST("/items/{itemId}/playback", {
         params: { path: { itemId } },
         // The version chosen on the title page stays for audio switches and seeks.
         body: {
-          device: detectDeviceProfile(), audioIndex: v.audioIndex, startMs: v.startMs === undefined ? undefined : Math.round(v.startMs),
+          device: safeMode.current ? SAFE_PROFILE : detectDeviceProfile(), audioIndex: v.audioIndex, startMs: v.startMs === undefined ? undefined : Math.round(v.startMs),
           fileId: search.file, subtitleIndex: v.subtitleIndex,
         },
       })),
@@ -268,6 +270,15 @@ export function PlayerPage() {
     let cancelled = false;
     hlsRef.current?.destroy();
     hlsRef.current = null;
+    // The browser could not decode what it said it could (e.g. 10-bit HEVC or surround audio):
+    // restart once at the same position as a stream every browser plays.
+    const fallback = () => {
+      if (cancelled || safeMode.current) return;
+      safeMode.current = true;
+      setNotice(t("player.fallback"));
+      start.mutate({ audioIndex, startMs: absolute(), subtitleIndex: info.burnedSubtitle ?? -1 });
+    };
+    video.addEventListener("error", fallback);
     if (info.method === "direct") {
       offsetRef.current = 0;
       video.src = info.url;
@@ -283,6 +294,22 @@ export function PlayerPage() {
         void import("hls.js").then(({ default: HlsCtor }) => {
           if (cancelled) return;
           const hls = new HlsCtor({ maxBufferLength: 30 });
+          let recovered = false;
+          let retried = false;
+          // play() before the stream is attached is rejected, which left the player paused.
+          hls.on(HlsCtor.Events.MANIFEST_PARSED, () => void video.play().catch(() => undefined));
+          hls.on(HlsCtor.Events.ERROR, (_event, data) => {
+            if (!data.fatal) return;
+            if (data.type === HlsCtor.ErrorTypes.NETWORK_ERROR && !retried) {
+              retried = true;
+              hls.startLoad();
+            } else if (data.type === HlsCtor.ErrorTypes.MEDIA_ERROR && !recovered) {
+              recovered = true;
+              hls.recoverMediaError();
+            } else {
+              fallback();
+            }
+          });
           hls.loadSource(info.url);
           hls.attachMedia(video);
           hlsRef.current = hls;
@@ -293,6 +320,7 @@ export function PlayerPage() {
     void video.play().catch(() => undefined); // autoplay may need a click
     return () => {
       cancelled = true;
+      video.removeEventListener("error", fallback);
     };
   }, [info]); // eslint-disable-line react-hooks/exhaustive-deps
 
