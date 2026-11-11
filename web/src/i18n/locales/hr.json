@@ -234,7 +234,8 @@
     "invalid_settings": "Provjeri postavke.",
     "provider_unreachable": "Pružatelj nije dostupan ili je odgovorio neispravno.",
     "tuners_busy": "Svi tuneri su trenutno zauzeti. Pokušaj kad završi snimanje ili drugi gledatelj.",
-    "channel_unavailable": "Kanal se trenutno ne može uključiti."
+    "channel_unavailable": "Kanal se trenutno ne može uključiti.",
+    "file_missing": "Datoteka više nije tamo gdje ju je server očekivao. Biblioteka se ponovno skenira; pokušaj ponovno za minutu."
   },
   "notFound": {
     "title": "Stranica nije pronađena",

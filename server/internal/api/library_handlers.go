@@ -535,6 +535,11 @@ func (h *Handler) StartPlayback(ctx context.Context, req *gen.PlaybackRequest, p
 			return nil, &StatusError{Status: http.StatusForbidden, Code: "transcode_not_allowed", Message: err.Error()}
 		case errors.Is(err, stream.ErrTranscoderFailure):
 			return nil, &StatusError{Status: http.StatusBadGateway, Code: "transcode_failed", Message: err.Error()}
+		case errors.Is(err, os.ErrNotExist):
+			// The file moved or was deleted since the last scan (e.g. an *arr app moved it out
+			// of a downloads folder): rescan its library so the item points at the new file.
+			h.rescanItemLibrary(ctx, params.ItemId)
+			return nil, &StatusError{Status: http.StatusNotFound, Code: "file_missing", Message: "the file is no longer on disk; the library is being rescanned"}
 		}
 		return nil, err
 	}
@@ -851,4 +856,18 @@ func (h *Handler) GetTrickplaySheet(ctx context.Context, params gen.GetTrickplay
 	}
 	return &gen.GetTrickplaySheetOKHeaders{CacheControl: gen.NewOptString("private, max-age=604800"),
 		Response: gen.GetTrickplaySheetOK{Data: f}}, nil
+}
+
+// rescanItemLibrary queues a scan of the library that holds an item.
+func (h *Handler) rescanItemLibrary(ctx context.Context, itemID uuid.UUID) {
+	var libID uuid.UUID
+	if err := h.lib().Pool.QueryRow(ctx, `SELECT library_id FROM items WHERE id = $1`, itemID).Scan(&libID); err != nil {
+		slog.WarnContext(ctx, "missing file: library not found", "item", itemID, "err", err)
+		return
+	}
+	if err := h.lib().Scan(ctx, libID); err != nil {
+		slog.WarnContext(ctx, "missing file: rescan not queued", "library", libID, "err", err)
+		return
+	}
+	slog.InfoContext(ctx, "missing file: library rescan queued", "item", itemID, "library", libID)
 }

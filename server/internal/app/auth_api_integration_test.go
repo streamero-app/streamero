@@ -1085,6 +1085,18 @@ func TestPlaybackIntegration(t *testing.T) {
 	if adminC.do("GET", "/items/"+item, nil, &detail); detail.Item.Played {
 		t.Fatal("watched state leaked into another profile")
 	}
+	// A file that disappeared since the scan answers file_missing and queues a rescan.
+	if err := os.Remove(movies + "/Film (2020)/Film (2020).mp4"); err != nil {
+		t.Fatal(err)
+	}
+	var missing struct{ Code string }
+	if s := adminC.do("POST", "/items/"+item+"/playback", map[string]any{"device": web}, &missing); s != 404 || missing.Code != "file_missing" {
+		t.Fatalf("missing file: HTTP %d %+v", s, missing)
+	}
+	var state string
+	if err := testPool.QueryRow(context.Background(), `SELECT scan_state FROM libraries WHERE id = $1`, libID).Scan(&state); err != nil || (state != "queued" && state != "scanning") {
+		t.Fatalf("rescan not queued: %q %v", state, err)
+	}
 	_ = adminC.do("DELETE", "/libraries/"+lib.ID, nil, nil)
 }
 
