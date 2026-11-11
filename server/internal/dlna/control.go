@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/streamero-app/streamero/server/internal/library"
 )
 
 // newRequest builds the browse context of an HTTP request.
@@ -139,6 +141,9 @@ func (s *Server) Search(ctx context.Context, q request, criteria string, start, 
 	}
 	kept := found[:0]
 	for _, it := range found {
+		if !library.IsStreamingKind(it.Kind) {
+			continue
+		}
 		video := it.Kind == "movie" || it.Kind == "episode"
 		audio := it.Kind == "track"
 		switch {

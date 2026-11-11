@@ -27,6 +27,8 @@ type Server struct {
 	HLS     *Manager
 	FFmpeg  string
 	SubsTTL time.Duration
+	// PhotoCache holds pictures converted for clients that cannot show the original (HEIC).
+	PhotoCache string
 }
 
 // Routes returns the handler for /stream.
@@ -36,6 +38,8 @@ func (s *Server) Routes() http.Handler {
 	r.Get("/file/{fileId}/{name}", s.file)
 	r.Get("/hls/{session}/{name}", s.hls)
 	r.Get("/sub/{fileId}/{index}.vtt", s.subtitle)
+	r.Get("/page/{fileId}/{n}", s.page)
+	r.Get("/photo/{fileId}/{name}", s.photo)
 	return r
 }
 
@@ -77,6 +81,12 @@ func (s *Server) file(w http.ResponseWriter, r *http.Request) {
 	s.ServeFile(w, r, id)
 }
 
+// extraTypes are media types the system MIME table often lacks.
+var extraTypes = map[string]string{".m4b": "audio/mp4", ".m4a": "audio/mp4", ".epub": "application/epub+zip",
+	".pdf": "application/pdf", ".mobi": "application/x-mobipocket-ebook", ".azw3": "application/vnd.amazon.ebook",
+	".cbz": "application/vnd.comicbook+zip", ".cbr": "application/vnd.comicbook-rar", ".cb7": "application/x-cb7",
+	".cbt": "application/x-cbt", ".heic": "image/heic", ".heif": "image/heif", ".avif": "image/avif", ".webp": "image/webp"}
+
 // ServeFile sends a media file with Range support. The caller has authorised
 // the request; the stored path is re-validated against the media roots.
 func (s *Server) ServeFile(w http.ResponseWriter, r *http.Request, id uuid.UUID) {
@@ -97,6 +107,10 @@ func (s *Server) ServeFile(w http.ResponseWriter, r *http.Request, id uuid.UUID)
 		return
 	}
 	w.Header().Set("Cache-Control", "private, max-age=3600")
+	if t, ok := extraTypes[strings.ToLower(filepath.Ext(p))]; ok {
+		w.Header().Set("Content-Type", t)
+	}
+	w.Header().Set("X-Content-Type-Options", "nosniff")
 	http.ServeContent(w, r, filepath.Base(p), st.ModTime(), f) // Range requests for seeking
 }
 

@@ -53,8 +53,8 @@ jobs:
       - uses: golangci/golangci-lint-action@v8
         with:
           working-directory: server
-      - name: ffmpeg and fpcalc for the media tests (frame artwork, burn-in, intro detection)
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg libchromaprint-tools
+      - name: ffmpeg, fpcalc and pdftoppm for the media tests (frame artwork, burn-in, intro detection, book covers)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg libchromaprint-tools poppler-utils
       - run: go test ./... -race
 
   web:

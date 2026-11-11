@@ -138,7 +138,8 @@ func (h *Handler) ListLibraryItems(ctx context.Context, params gen.ListLibraryIt
 	items, total, err := h.lib().ListItems(ctx, params.LibraryId, stream.Owner(p), string(params.Sort.Or(gen.ListLibraryItemsSortTitle)),
 		params.Limit.Or(100), params.Offset.Or(0), library.ItemFilter{Genre: params.Genre.Value, Unplayed: params.Unplayed.Value,
 			Favorite: params.Favorite.Value, Resumable: params.Resumable.Value, YearFrom: params.YearFrom.Value, YearTo: params.YearTo.Value,
-			Letter: params.Letter.Value, Kind: string(params.Kind.Value)})
+			Letter: params.Letter.Value, Kind: string(params.Kind.Value), Author: params.Author.Value, Series: params.Series.Value,
+			ParentID: optUUIDPtr(params.ParentId)})
 	if err != nil {
 		return nil, err
 	}
@@ -215,6 +216,9 @@ func (h *Handler) GetItem(ctx context.Context, params gen.GetItemParams) (*gen.I
 	}
 	for _, c := range children {
 		out.Children = append(out.Children, toItemSummary(c))
+	}
+	if err := h.addMediaDetail(ctx, out, it); err != nil {
+		return nil, err
 	}
 	return out, nil
 }
@@ -323,6 +327,7 @@ func toItemSummary(it library.Item) gen.ItemSummary {
 		out.SeriesId = gen.NewOptUUID(*it.SeriesID)
 		out.SeriesTitle = gen.NewOptString(it.SeriesTitle)
 	}
+	addMediaSummary(&out, it)
 	return out
 }
 
@@ -443,7 +448,7 @@ func (h *Handler) GetMetadataSettings(ctx context.Context) (*gen.MetadataSetting
 	if err != nil {
 		return nil, err
 	}
-	return &gen.MetadataSettings{TmdbConfigured: s.TMDbKey != "", Language: s.Language, Country: s.Country}, nil
+	return toMetadataSettings(s), nil
 }
 
 // UpdateMetadataSettings implements PUT /settings/metadata.
@@ -456,6 +461,12 @@ func (h *Handler) UpdateMetadataSettings(ctx context.Context, req *gen.MetadataS
 		return nil, err
 	}
 	s.Language, s.Country = req.Language, req.Country
+	if v, ok := req.OnlineBookMetadata.Get(); ok {
+		s.OnlineBookMetadata = v
+	}
+	if v, ok := req.PhotoLocation.Get(); ok {
+		s.PhotoLocation = v
+	}
 	newKey := false
 	if req.RemoveTmdbKey.Value {
 		s.TMDbKey = ""
@@ -486,7 +497,7 @@ func (h *Handler) UpdateMetadataSettings(ctx context.Context, req *gen.MetadataS
 			}
 		}
 	}
-	return &gen.MetadataSettings{TmdbConfigured: s.TMDbKey != "", Language: s.Language, Country: s.Country}, nil
+	return toMetadataSettings(s), nil
 }
 
 // StartPlayback implements POST /items/{itemId}/playback.

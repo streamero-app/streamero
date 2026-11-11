@@ -42,8 +42,10 @@ type planItem struct {
 	season, ep, epEnd    *int
 	ids                  map[string]string
 	files                []planFile
-	order                int    // parents (series, seasons) before children
-	artist               string // tracks by someone other than the album artist
+	order                int        // parents (series, seasons) before children
+	artist               string     // tracks by someone other than the album artist
+	meta                 *MediaMeta // books, audiobooks, photos: what the file says about itself
+	takenAt              *time.Time // photos and videos
 }
 
 // ScanResult summarises a scan.
@@ -80,6 +82,26 @@ func (s *Scanner) scan(ctx context.Context, libID uuid.UUID, kind string, paths 
 			return ScanResult{}, fmt.Errorf("folder %s is not available: %w", p, err)
 		}
 		roots = append(roots, root)
+	}
+	switch kind {
+	case "books", "audiobooks", "photos":
+		var (
+			plan   map[string]*planItem
+			probed map[string]probeOutcome
+			err    error
+		)
+		switch kind {
+		case "books":
+			plan, probed, err = s.planBooks(ctx, libID, roots)
+		case "audiobooks":
+			plan, probed, err = s.planAudiobooks(ctx, libID, roots)
+		default:
+			plan, probed, err = s.planPhotos(ctx, libID, roots)
+		}
+		if err != nil {
+			return ScanResult{}, err
+		}
+		return s.apply(ctx, libID, plan, probed)
 	}
 	if kind == "music" {
 		plan, probed, genres, err := s.planMusic(ctx, libID.String(), roots)
@@ -344,6 +366,8 @@ type existingItem struct {
 	year, season, ep, epEnd *int
 	ids                     map[string]string
 	artist                  string
+	meta                    []byte
+	takenAt                 *time.Time
 }
 
 type existingFile struct {
@@ -357,7 +381,7 @@ type existingFile struct {
 func (s *Scanner) apply(ctx context.Context, libID uuid.UUID, plan map[string]*planItem, preProbed map[string]probeOutcome) (ScanResult, error) {
 	items := map[string]existingItem{}
 	rows, err := s.Pool.Query(ctx, `SELECT id, path, kind, title, parent_id, year, season_number, episode_number,
-		episode_number_end, provider_ids, COALESCE(artist, '') FROM items WHERE library_id = $1`, libID)
+		episode_number_end, provider_ids, COALESCE(artist, ''), media_meta, taken_at FROM items WHERE library_id = $1`, libID)
 	if err != nil {
 		return ScanResult{}, err
 	}
@@ -365,7 +389,7 @@ func (s *Scanner) apply(ctx context.Context, libID uuid.UUID, plan map[string]*p
 		var e existingItem
 		var path string
 		var ids []byte
-		if err := rows.Scan(&e.id, &path, &e.kind, &e.title, &e.parent, &e.year, &e.season, &e.ep, &e.epEnd, &ids, &e.artist); err != nil {
+		if err := rows.Scan(&e.id, &path, &e.kind, &e.title, &e.parent, &e.year, &e.season, &e.ep, &e.epEnd, &ids, &e.artist, &e.meta, &e.takenAt); err != nil {
 			rows.Close()
 			return ScanResult{}, err
 		}
@@ -527,7 +551,7 @@ func (s *Scanner) upsertItem(ctx context.Context, libID uuid.UUID, it *planItem,
 	if e, ok := existing[it.key]; ok && e.kind == it.kind && e.title == it.title && intPtrEq(e.year, year) &&
 		intPtrEq(e.season, it.season) && intPtrEq(e.ep, it.ep) && intPtrEq(e.epEnd, it.epEnd) &&
 		((e.parent == nil && parent == nil) || (e.parent != nil && parent != nil && *e.parent == *parent)) && mapsEqual(e.ids, it.ids) &&
-		e.artist == it.artist {
+		e.artist == it.artist && metaEqual(e.meta, it.meta) && timePtrEq(e.takenAt, it.takenAt) {
 		return e.id, nil // unchanged: no write (keeps re-scans fast)
 	}
 	newID, err := uuid.NewV7()
@@ -535,10 +559,27 @@ func (s *Scanner) upsertItem(ctx context.Context, libID uuid.UUID, it *planItem,
 		return uuid.Nil, err
 	}
 	ids, _ := json.Marshal(it.ids)
+	var (
+		meta, genres []byte
+		authors      = []string{}
+		seriesName   *string
+		seriesIndex  *float64
+	)
+	if it.meta != nil {
+		meta, _ = json.Marshal(it.meta)
+		authors = nonNil(it.meta.Authors)
+		if it.meta.Series != "" {
+			seriesName = &it.meta.Series
+		}
+		seriesIndex = it.meta.SeriesIndex
+		genres, _ = json.Marshal(nonNil(it.meta.Genres))
+	}
 	var id uuid.UUID
 	err = s.Pool.QueryRow(ctx, `INSERT INTO items (id, library_id, parent_id, kind, path, title, sort_title, year,
-			season_number, episode_number, episode_number_end, provider_ids, artist)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NULLIF($13, ''))
+			season_number, episode_number, episode_number_end, provider_ids, artist, media_meta, authors, series_name,
+			series_index, taken_at, genres)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NULLIF($13, ''), $14, $15, $16, $17, $18,
+			COALESCE(ARRAY(SELECT jsonb_array_elements_text($19::jsonb)), '{}'))
 		ON CONFLICT (library_id, path) DO UPDATE SET parent_id = EXCLUDED.parent_id, kind = EXCLUDED.kind,
 			title = EXCLUDED.title,
 			-- once metadata named the item, its title decides the sort order
@@ -546,9 +587,13 @@ func (s *Scanner) upsertItem(ctx context.Context, libID uuid.UUID, it *planItem,
 			year = COALESCE(EXCLUDED.year, items.year),
 			season_number = EXCLUDED.season_number, episode_number = EXCLUDED.episode_number,
 			episode_number_end = EXCLUDED.episode_number_end, provider_ids = EXCLUDED.provider_ids, artist = EXCLUDED.artist,
+			media_meta = EXCLUDED.media_meta, authors = EXCLUDED.authors, series_name = EXCLUDED.series_name,
+			series_index = EXCLUDED.series_index, taken_at = EXCLUDED.taken_at,
+			-- genres from the file (books) unless edited by hand; other kinds keep theirs
+			genres = CASE WHEN $19::jsonb IS NULL OR items.metadata_locked THEN items.genres ELSE EXCLUDED.genres END,
 			updated_at = now()
 		RETURNING id`, newID, libID, parent, it.kind, it.key, it.title, SortTitle(it.title), year,
-		it.season, it.ep, it.epEnd, ids, it.artist).Scan(&id)
+		it.season, it.ep, it.epEnd, ids, it.artist, meta, authors, seriesName, seriesIndex, it.takenAt, genres).Scan(&id)
 	return id, err
 }
 
@@ -607,18 +652,19 @@ func (s *Scanner) upsertFile(ctx context.Context, libID, itemID uuid.UUID, f pla
 		dur = &r.DurationMS
 	}
 	tags, _ := json.Marshal(nonNilMap(r.Tags))
+	chapters, _ := json.Marshal(nonNil(r.Chapters))
 	_, err = s.Pool.Exec(ctx, `INSERT INTO media_files (id, item_id, library_id, path, label, size, mtime, container,
-			duration_ms, width, height, video_codec, hdr, audio, subtitles, probe_error, tags, video_profile, video_level, video_bit_depth)
+			duration_ms, width, height, video_codec, hdr, audio, subtitles, probe_error, tags, video_profile, video_level, video_bit_depth, chapters)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NULLIF($10, 0), NULLIF($11, 0), $12, $13, $14, $15, $16, $17, $18,
-			NULLIF($19, 0), NULLIF($20, 0))
+			NULLIF($19, 0), NULLIF($20, 0), $21)
 		ON CONFLICT (library_id, path) DO UPDATE SET item_id = EXCLUDED.item_id, label = EXCLUDED.label,
 			size = EXCLUDED.size, mtime = EXCLUDED.mtime, container = EXCLUDED.container, duration_ms = EXCLUDED.duration_ms,
 			width = EXCLUDED.width, height = EXCLUDED.height, video_codec = EXCLUDED.video_codec, hdr = EXCLUDED.hdr,
 			audio = EXCLUDED.audio, subtitles = EXCLUDED.subtitles, probe_error = EXCLUDED.probe_error, tags = EXCLUDED.tags,
 			video_profile = EXCLUDED.video_profile, video_level = EXCLUDED.video_level, video_bit_depth = EXCLUDED.video_bit_depth,
-			analyzed_at = NULL, trickplay = NULL, chapters = '[]'::jsonb`,
+			analyzed_at = NULL, trickplay = NULL, chapters = EXCLUDED.chapters`,
 		id, itemID, libID, f.path, f.label, f.size, f.mtime, r.Container, dur, r.Width, r.Height, r.VideoCodec, r.HDR,
-		audio, subs, probeErr, tags, r.VideoProfile, r.VideoLevel, r.VideoBitDepth)
+		audio, subs, probeErr, tags, r.VideoProfile, r.VideoLevel, r.VideoBitDepth, chapters)
 	return err
 }
 

@@ -174,7 +174,8 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		}
 		hls := &stream.Manager{Dir: cfg.TranscodeDir, FFmpeg: cfg.FFmpegPath, Log: log, Encoding: h.LoadEncoding}
 		go hls.Reap(ctx)
-		state.SetStream(&stream.Server{Pool: deps.Pool, Roots: roots, Signer: stream.Signer{Key: key}, HLS: hls, FFmpeg: cfg.FFmpegPath})
+		state.SetStream(&stream.Server{Pool: deps.Pool, Roots: roots, Signer: stream.Signer{Key: key}, HLS: hls, FFmpeg: cfg.FFmpegPath,
+			PhotoCache: filepath.Join(cfg.CacheDir, "photos")})
 		libs := &library.Service{Pool: deps.Pool, Roots: roots, ImageDir: filepath.Join(cfg.CacheDir, "images"), Resume: h.LoadResume,
 			Enqueue: func(ctx context.Context, id uuid.UUID) error {
 				_, err := inserter.Insert(ctx, jobs.LibraryScanArgs{LibraryID: id}, nil)

@@ -25,6 +25,10 @@ type Settings struct {
 	TMDbKey  string `json:"tmdbKey,omitempty"`
 	Language string `json:"language"`
 	Country  string `json:"country"`
+	// OnlineBookMetadata fills missing book descriptions and covers from Open Library (D-039).
+	OnlineBookMetadata bool `json:"onlineBookMetadata,omitempty"`
+	// PhotoLocation lets clients see where photos were taken (EXIF GPS).
+	PhotoLocation bool `json:"photoLocation,omitempty"`
 }
 
 // KeySettings is the settings-table key.
@@ -53,6 +57,10 @@ type Refresher struct {
 	// FFmpeg and ResolvePath enable frame-grab artwork (GrabFrames); empty disables it.
 	FFmpeg      string
 	ResolvePath func(path string) (string, error)
+	// Pdftoppm renders PDF covers ("" = look it up on PATH; none = no PDF covers).
+	Pdftoppm string
+	// OpenLibrary is the online book metadata source (nil = the public Open Library).
+	OpenLibrary *OpenLibrary
 }
 
 // ImagePath is where an item's cached image lives.
@@ -586,7 +594,8 @@ func (r *Refresher) FillPalettes(ctx context.Context, libraryID uuid.UUID) (int,
 		return 0, nil
 	}
 	rows, err := r.Pool.Query(ctx, `SELECT id, kind, has_backdrop FROM items
-		WHERE library_id = $1 AND colors IS NULL AND (has_backdrop OR has_poster) LIMIT 5000`, libraryID)
+		WHERE library_id = $1 AND colors IS NULL AND (has_backdrop OR has_poster)
+			AND kind NOT IN ('photo', 'video') LIMIT 5000`, libraryID)
 	if err != nil {
 		return 0, err
 	}

@@ -31,7 +31,7 @@ ARG TARGETARCH
 ARG FFMPEG_SOURCE=extended
 RUN set -eux; \
     apt-get update; \
-    apt-get install -y --no-install-recommends ca-certificates curl gnupg tzdata libvips42t64 libchromaprint-tools mesa-va-drivers; \
+    apt-get install -y --no-install-recommends ca-certificates curl gnupg tzdata libvips42t64 libchromaprint-tools poppler-utils mesa-va-drivers; \
     if [ "$TARGETARCH" = "amd64" ]; then \
       sed -i 's/^Components: main$/Components: main non-free non-free-firmware/' /etc/apt/sources.list.d/debian.sources; \
       apt-get update; apt-get install -y --no-install-recommends intel-media-va-driver-non-free; \

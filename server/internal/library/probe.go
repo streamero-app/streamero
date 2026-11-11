@@ -46,6 +46,14 @@ type ProbeResult struct {
 	Tags map[string]string
 	// HasCover: the file carries embedded cover art.
 	HasCover bool
+	// Chapters are the container's chapters (M4B audiobooks, MKV/MP4 movies).
+	Chapters []ProbeChapter
+}
+
+// ProbeChapter is a chapter marker (same JSON shape as the analyzer's chapters).
+type ProbeChapter struct {
+	StartMS int64  `json:"startMs"`
+	Title   string `json:"title"`
 }
 
 // Prober inspects a file (ffprobe in production, a fake in tests).
@@ -57,6 +65,10 @@ type ffprobeOutput struct {
 		Duration   string            `json:"duration"`
 		Tags       map[string]string `json:"tags"`
 	} `json:"format"`
+	Chapters []struct {
+		StartTime string            `json:"start_time"`
+		Tags      map[string]string `json:"tags"`
+	} `json:"chapters"`
 	Streams []struct {
 		CodecType     string            `json:"codec_type"`
 		CodecName     string            `json:"codec_name"`
@@ -83,7 +95,7 @@ func FFprobe(bin string) Prober {
 		defer cancel()
 		// #nosec G204 -- fixed binary; the path was validated by ResolveSafePath and is passed as one argument.
 		out, err := exec.CommandContext(ctx, bin, "-v", "error", "-print_format", "json",
-			"-show_format", "-show_streams", "--", path).Output()
+			"-show_format", "-show_streams", "-show_chapters", "--", path).Output()
 		if err != nil {
 			return ProbeResult{}, fmt.Errorf("ffprobe: %w", err)
 		}
@@ -104,6 +116,13 @@ func parseFFprobe(out []byte, path string) (ProbeResult, error) {
 	}
 	if d, err := strconv.ParseFloat(o.Format.Duration, 64); err == nil {
 		r.DurationMS = int64(d * 1000)
+	}
+	for _, c := range o.Chapters {
+		st, err := strconv.ParseFloat(c.StartTime, 64)
+		if err != nil {
+			continue
+		}
+		r.Chapters = append(r.Chapters, ProbeChapter{StartMS: int64(st * 1000), Title: strings.TrimSpace(c.Tags["title"])})
 	}
 	for _, s := range o.Streams {
 		lang := s.Tags["language"]
