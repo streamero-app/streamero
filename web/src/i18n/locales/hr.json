@@ -1194,5 +1194,49 @@
       "not_configured": "Jedinstvena prijava nije do kraja postavljena. Javi se administratoru.",
       "internal": "Jedinstvena prijava nije uspjela. Pokušaj ponovno."
     }
+  },
+  "together": {
+    "title": "Gledajmo zajedno",
+    "intro": "Pokreni zajedničko gledanje ovog naslova i pošalji poveznicu: svi zajedno puštaju, pauziraju i premotavaju.",
+    "startHere": "Pokreni zajedničko gledanje",
+    "invite": "Poveznica za poziv",
+    "copy": "Kopiraj",
+    "copied": "Kopirano",
+    "you": "ti",
+    "leave": "Napusti zajedničko gledanje",
+    "reconnecting": "Ponovno spajanje…",
+    "waitingFor": "Čekamo: {{names}}",
+    "ready": "Spreman",
+    "buffering": "Učitava",
+    "loading": "Priprema",
+    "offline": "Nije spojen",
+    "lagging": "Sustiže",
+    "join": "Pridruži se",
+    "groupOf": "Zajedničko gledanje: {{name}}",
+    "nothingYet": "Još se ništa ne gleda",
+    "groups": "Zajednička gledanja",
+    "noGroups": "Trenutno nema zajedničkih gledanja.",
+    "pasteLink": "Poveznica ili kod poziva",
+    "gone": "Ovo zajedničko gledanje je završilo ili ne možeš otvoriti ono što se gleda.",
+    "notAllowed": "Zajedničko gledanje je isključeno za ovaj račun.",
+    "open": "Gledajmo zajedno",
+    "action": {
+      "play": "{{name}} je pokrenuo reprodukciju",
+      "pause": "{{name}} je pauzirao",
+      "seek": "{{name}} je premotao na {{time}}",
+      "speed": "{{name}} je postavio brzinu {{speed}}×",
+      "join": "{{name}} se pridružio",
+      "leave": "{{name}} je otišao",
+      "next": "{{name}} je prešao na sljedeći naslov"
+    },
+    "errors": {
+      "forbidden": "Netko u grupi ne može otvoriti ovaj naslov.",
+      "not_found": "Ovo zajedničko gledanje je završilo.",
+      "rate_limited": "Previše radnji odjednom — pričekaj trenutak.",
+      "too_many_groups": "Na serveru je trenutno previše zajedničkih gledanja.",
+      "not_in_group": "Više nisi u zajedničkom gledanju.",
+      "invalid_request": "To se sada ne može napraviti.",
+      "invalid": "To se sada ne može napraviti."
+    }
   }
 }

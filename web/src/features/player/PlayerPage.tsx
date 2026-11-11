@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router"
 import { useTranslation } from "react-i18next";
 import type Hls from "hls.js";
 import {
-  ArrowLeft, Captions, Gauge, Maximize, MessageSquare, Minimize, Pause, PictureInPicture2, Play, RotateCcw, RotateCw, SkipForward, Volume1, Volume2, VolumeX, X,
+  ArrowLeft, Captions, Gauge, Maximize, MessageSquare, Minimize, Pause, PictureInPicture2, Play, RotateCcw, RotateCw, SkipForward, Users, Volume1, Volume2, VolumeX, X,
 } from "lucide-react";
 import { api, unwrap } from "@/api/client";
 import { useEnhancements } from "@/features/enhancements/useEnhancements";
@@ -14,6 +14,8 @@ import type { components } from "@/api/schema.gen";
 import { ErrorText, Spinner } from "@/components/ui";
 import { imageUrl } from "@/features/library/format";
 import { detectDeviceProfile } from "./deviceProfile";
+import { useGroupPlayback } from "@/features/syncplay/useGroupPlayback";
+import { TogetherError, TogetherPanel, WaitingBanner } from "@/features/syncplay/WatchTogether";
 
 type PlaybackInfo = components["schemas"]["PlaybackInfo"];
 type Segment = components["schemas"]["MediaSegment"];
@@ -145,7 +147,7 @@ export function PlayerPage() {
   const [speed, setSpeed] = useState(1);
   const [fullscreen, setFullscreen] = useState(false);
   const [chrome, setChrome] = useState(true);
-  const [panel, setPanel] = useState<"tracks" | "speed" | null>(null);
+  const [panel, setPanel] = useState<"tracks" | "speed" | "together" | null>(search.together ? "together" : null);
   const [ended, setEnded] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [skipped, setSkipped] = useState<string | null>(null);
@@ -337,7 +339,7 @@ export function PlayerPage() {
   const hasSubtitles = !!info && (info.subtitles.length > 0 || (info.bitmapSubtitles?.length ?? 0) > 0);
 
   /** Seeks to an absolute position; a transcode restarts there when the target is not encoded yet. */
-  const seekTo = useCallback((ms: number) => {
+  const seekLocal = useCallback((ms: number) => {
     const v = videoRef.current;
     if (!v || !info) return;
     // The seek bar gives fractions of a millisecond; the server takes whole ones.
@@ -353,6 +355,14 @@ export function PlayerPage() {
     setPosition(target);
   }, [info, durationMs, audioIndex, start]);
 
+  // Watch together: in a group, the controls act for everyone (D-036).
+  const group = useGroupPlayback({ video: videoRef, itemId, loaded: !!info && !start.isPending, absolute, seekLocal });
+  const seekTo = useCallback((ms: number) => {
+    if (group.active) group.seek(Math.min(ms, durationMs || ms));
+    else seekLocal(ms);
+  }, [group, seekLocal, durationMs]);
+  useEffect(() => { if (group.group) setSpeed(group.group.speed); }, [group.group?.speed]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Controls hide while playing and come back on any movement or key.
   const poke = useCallback(() => {
     setChrome(true);
@@ -366,9 +376,14 @@ export function PlayerPage() {
   const togglePlay = useCallback(() => {
     const v = videoRef.current;
     if (!v) return;
+    if (group.active) {
+      if (group.group?.state === "playing" || group.group?.state === "waiting") group.pause();
+      else group.play();
+      return;
+    }
     if (v.paused) void v.play()?.catch(() => undefined);
     else v.pause();
-  }, []);
+  }, [group]);
   const toggleFullscreen = useCallback(() => {
     if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
     else void rootRef.current?.requestFullscreen?.().catch(() => undefined);
@@ -401,7 +416,7 @@ export function PlayerPage() {
     if (creditsMode === "auto" && inCredits && next.data && autoplay) playNext();
   }, [creditsMode, inCredits]); // eslint-disable-line react-hooks/exhaustive-deps
   const remaining = durationMs ? durationMs - position : null;
-  const showNext = !!next.data && !dismissed && (ended || inCredits || (remaining !== null && remaining <= 20_000 && position > 0));
+  const showNext = !group.active && !!next.data && !dismissed && (ended || inCredits || (remaining !== null && remaining <= 20_000 && position > 0));
   const [countdown, setCountdown] = useState(upNext);
   useEffect(() => {
     if (!showNext) {
@@ -440,7 +455,7 @@ export function PlayerPage() {
         case "c": case "C": if (info?.subtitles.length) setSubtitle((s) => (s >= 0 ? -1 : (info.subtitleDefault ?? 0))); break;
         case "?": if (helpAllowed.current) setHelp((h) => !h); break;
         case "s": case "S": if (skippable) seekTo(skippable.endMs); else handled = false; break;
-        case "n": case "N": if (next.data) playNext(); else handled = false; break;
+        case "n": case "N": if (group.active) group.next(); else if (next.data) playNext(); else handled = false; break;
         case ",": if (v.paused) v.currentTime = Math.max(0, v.currentTime - 1 / 24); break;
         case ".": if (v.paused) v.currentTime += 1 / 24; break;
         case "Escape": if (helpOpen.current) setHelp(false); else if (panel) setPanel(null); else handled = false; break;
@@ -454,7 +469,7 @@ export function PlayerPage() {
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [togglePlay, seekTo, absolute, toggleFullscreen, info, skippable, next.data, playNext, panel, poke]);
+  }, [togglePlay, seekTo, absolute, toggleFullscreen, info, skippable, next.data, playNext, panel, poke, group]);
 
   const VolumeIcon = muted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
   // Enhancements: pause screen, keyboard help, picture-in-picture when leaving the tab.
@@ -518,6 +533,13 @@ export function PlayerPage() {
         </Link>
         <span className="min-w-0 truncate text-lg font-semibold">{title}</span>
         {info && <span className="ml-auto hidden rounded bg-white/10 px-2 py-1 text-xs text-white/70 sm:inline" data-testid="play-method">{t(`player.method_${info.method}`)}</span>}
+        {(group.active || !!info) && (
+          <button type="button" className={`${iconBtn} relative ${info ? "" : "ml-auto"}`} aria-expanded={panel === "together"} aria-label={t("together.title")}
+            data-testid="together-toggle" onClick={() => setPanel(panel === "together" ? null : "together")}>
+            <Users className="size-5" aria-hidden />
+            {group.group && <span className="absolute top-1.5 right-1.5 grid min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-bold text-black">{group.group.members.length}</span>}
+          </button>
+        )}
       </div>
 
       {pauseScreen && it && (
@@ -545,6 +567,13 @@ export function PlayerPage() {
               ))}
             </dl>
           </div>
+        </div>
+      )}
+      {group.group && <WaitingBanner group={group.group} />}
+      {(group.notice || group.error) && (
+        <div role="status" data-testid="together-notice"
+          className="absolute top-32 left-1/2 z-30 -translate-x-1/2 rounded-full bg-black/80 px-4 py-2 text-sm text-white ring-1 ring-white/15 backdrop-blur">
+          {group.error ? <TogetherError error={group.error} /> : group.notice}
         </div>
       )}
       {notice && (
@@ -672,10 +701,20 @@ export function PlayerPage() {
           )}
         </div>
       </div>
+      {panel === "together" && (
+        <div className="absolute top-16 right-4 z-20 w-[min(92vw,400px)] rounded-lg bg-black/90 p-5 shadow-2xl ring-1 ring-white/15 backdrop-blur sm:right-8">
+          <TogetherPanel itemId={itemId} positionMs={absolute()} onClose={() => setPanel(null)} />
+        </div>
+      )}
       <div hidden={panel !== "speed"} className="absolute right-4 bottom-24 z-20 rounded-lg bg-black/90 p-2 shadow-2xl ring-1 ring-white/15 backdrop-blur sm:right-8" role="menu" aria-label={t("player.speed")}>
         {SPEEDS.map((s) => (
           <button key={s} type="button" role="menuitemradio" aria-checked={speed === s}
-            onClick={() => { setSpeed(s); if (videoRef.current) videoRef.current.playbackRate = s; setPanel(null); }}
+            onClick={() => {
+              setSpeed(s);
+              if (group.active) group.setSpeed(s);
+              else if (videoRef.current) videoRef.current.playbackRate = s;
+              setPanel(null);
+            }}
             className={`block w-full rounded px-4 py-2 text-left text-sm tabular hover:bg-white/10 ${speed === s ? "font-bold text-accent" : ""}`}>
             {s === 1 ? t("player.normalSpeed") : `${s}×`}
           </button>
