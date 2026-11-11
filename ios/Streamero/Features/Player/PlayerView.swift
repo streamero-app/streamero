@@ -4,6 +4,7 @@ import SwiftUI
 
 /// Everything the video player does besides drawing: stream setup, progress every 10 s,
 /// session commands every 4 s, skip intro, next episode, audio and subtitle tracks.
+/// Inside a watch-together group (D-036) the player follows the group instead of its own controls.
 @MainActor
 @Observable
 final class PlayerModel {
@@ -34,11 +35,23 @@ final class PlayerModel {
     private var noticeUntil: Date?
     private var counting = false
     private var creditsHandled = false
+    private var loading = false
 
-    init(client: MediaClient, target: PlayTarget) {
+    // Watch together
+    let together: SyncSession
+    /// Following a watch-together group.
+    private(set) var inGroup = false
+    private var syncBusy = false
+    private var syncDirty = false
+    private var pendingSync: [SyncAction] = []
+    private var syncLoop: Task<Void, Never>?
+    private var startTask: Task<Void, Never>?
+
+    init(client: MediaClient, target: PlayTarget, together: SyncSession) {
         self.client = client
         self.target = target
         self.current = target.id
+        self.together = together
     }
 
     private var introMode: String { prefs?.skipIntro ?? "button" }
@@ -63,7 +76,7 @@ final class PlayerModel {
     }
 
     var showNext: Bool {
-        guard next != nil, !dismissedNext, creditsMode != "off" else { return false }
+        guard !inGroup, next != nil, !dismissedNext, creditsMode != "off" else { return false }
         return ended || inCredits || (duration > 0 && position > 0 && duration - position <= 20_000)
     }
 
@@ -85,13 +98,18 @@ final class PlayerModel {
         detail = try? await client.item(current)
         next = try? await client.nextEpisode(current)
         await load(startMs: target.start, audio: target.audio, sub: target.sub)
+        if together.group != nil { attachGroup() }
     }
 
     private func load(startMs: Int64?, audio: Int?, sub: Int?) async {
+        loading = true
+        defer { loading = false }
         do {
             let profile = MediaClient.device(preferences: prefs)
+            // The version picked on the item page only applies to that item.
+            let file = current == target.id ? target.file : nil
             let pi = try await client.startPlayback(item: current, startMs: startMs.map { max(0, $0) },
-                                                    audioIndex: audio, fileId: target.file, profile: profile)
+                                                    audioIndex: audio, fileId: file, profile: profile)
             guard let url = client.absolute(pi.url) else { throw APIError(status: 0, code: "bad_url") }
             player?.pause()
             info = pi
@@ -101,11 +119,19 @@ final class PlayerModel {
             subtitleIndex = chosen
             await loadCues(index: chosen)
             let p = AVPlayer(url: url)
+            // Rate changes (group speed, drift correction) keep the pitch.
+            p.currentItem?.audioTimePitchAlgorithm = .spectral
             if pi.method == "direct" && pi.startMs > 0 {
                 await p.seek(to: CMTime(value: pi.startMs, timescale: 1000))
             }
             player = p
-            p.play()
+            if inGroup || together.group != nil {
+                // The group decides when to play.
+                together.realign()
+                syncDirty = true
+            } else {
+                p.play()
+            }
         } catch {
             self.error = true
         }
@@ -151,13 +177,14 @@ final class PlayerModel {
     }
 
     private func handleSegments() async {
-        if let intro, introMode == "auto", skippedSegment != intro.startMs {
+        if !inGroup, let intro, introMode == "auto", skippedSegment != intro.startMs {
             skippedSegment = intro.startMs
             await seek(to: intro.endMs)
         }
     }
 
     private func handleNext() async {
+        if inGroup { return }
         if inCredits && creditsMode == "auto" && !creditsHandled && next != nil {
             creditsHandled = true
             await playNext()
@@ -193,6 +220,10 @@ final class PlayerModel {
     func skipIntro() async {
         guard let intro else { return }
         skippedSegment = intro.startMs
+        if inGroup {
+            together.seek(intro.endMs)
+            return
+        }
         await seek(to: intro.endMs)
     }
 
@@ -246,9 +277,166 @@ final class PlayerModel {
     }
 
     func close() async {
+        if inGroup {
+            detachGroup()
+            await together.leave()
+        }
         await report()
         player?.pause()
         player = nil
+    }
+
+    // MARK: Watch together
+
+    /// Leaves the group; playback goes on here on its own.
+    func leaveGroup() async {
+        guard inGroup else { return }
+        detachGroup()
+        await together.leave()
+        showNotice(Loc.string("together.left"))
+    }
+
+    private func attachGroup() {
+        guard together.group != nil, !inGroup else { return }
+        inGroup = true
+        dismissedNext = true
+        player?.currentItem?.audioTimePitchAlgorithm = .spectral
+        together.realign()
+        together.listener = { [weak self] event in self?.onSync(event) }
+        syncLoop?.cancel()
+        syncLoop = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self else { return }
+                self.syncNow()
+                try? await Task.sleep(for: .milliseconds(250))
+            }
+        }
+    }
+
+    private func detachGroup() {
+        inGroup = false
+        together.listener = nil
+        syncLoop?.cancel()
+        syncLoop = nil
+        startTask?.cancel()
+        startTask = nil
+        pendingSync = []
+        if let p = player, p.rate != 0 { p.rate = 1 }
+    }
+
+    private func onSync(_ event: SyncEvent) {
+        switch event {
+        case .state:
+            syncNow()
+        case .correction(let c, let serverTime):
+            pendingSync += together.correction(c, serverTime: serverTime)
+            syncNow()
+        case .ended(let reason):
+            detachGroup()
+            showNotice(Loc.string(reason == "left" ? "together.left" : "together.closed"))
+        }
+    }
+
+    /// Runs the engine and executes its actions, one batch at a time.
+    private func syncNow() {
+        guard inGroup else { return }
+        if syncBusy {
+            syncDirty = true
+            return
+        }
+        syncBusy = true
+        Task {
+            repeat {
+                syncDirty = false
+                let queued = pendingSync
+                pendingSync = []
+                await run(queued)
+                if inGroup { await run(together.reconcile(localPlayback())) }
+            } while syncDirty && inGroup
+            syncBusy = false
+        }
+    }
+
+    /// The local player as the sync engine sees it.
+    private func localPlayback() -> LocalPlayback {
+        let p = player
+        let ready = p?.currentItem?.status == .readyToPlay
+        let rate = p?.rate ?? 0
+        return LocalPlayback(itemId: current,
+                             loaded: info != nil && !loading && ready,
+                             positionMs: absolutePosition(),
+                             playing: rate != 0,
+                             rate: Double(rate),
+                             stalled: p?.timeControlStatus == .waitingToPlayAtSpecifiedRate,
+                             seeking: loading,
+                             ended: ended)
+    }
+
+    private func run(_ actions: [SyncAction]) async {
+        for action in actions {
+            guard inGroup else { return }
+            switch action {
+            case .open(let itemId, let startMs):
+                await openForGroup(itemId, startMs: startMs)
+            case .seek(let ms):
+                await syncSeek(ms)
+            case .play(let rate):
+                startTask?.cancel()
+                startTask = nil
+                player?.rate = Float(rate)
+            case .pause:
+                startTask?.cancel()
+                startTask = nil
+                player?.pause()
+            case .setRate(let rate):
+                if let p = player, p.rate != 0 { p.rate = Float(rate) }
+            case .startAt(let localMs, let positionMs, let rate):
+                startTask?.cancel()
+                player?.pause()
+                await syncSeek(positionMs)
+                startTask = Task { [weak self] in
+                    let wait = localMs - SyncSession.nowMs()
+                    if wait > 0 { try? await Task.sleep(for: .milliseconds(wait)) }
+                    guard !Task.isCancelled, let self, self.inGroup else { return }
+                    self.player?.rate = Float(rate)
+                }
+            case .send(let message):
+                together.send(message)
+            }
+        }
+    }
+
+    /// Exact seek for the group; a transcoded stream past what is ready restarts there.
+    private func syncSeek(_ ms: Int64) async {
+        guard let info, let player else { return }
+        let target = max(0, ms)
+        let relative = info.method == "direct" ? target : target - offset
+        if info.method == "direct" || (relative >= 0 && relative <= bufferedEnd(player) + 30_000) {
+            _ = await player.seek(to: CMTime(value: relative, timescale: 1000), toleranceBefore: .zero, toleranceAfter: .zero)
+            position = target
+            ended = false
+        } else {
+            await load(startMs: target, audio: audioIndex, sub: subtitleIndex)
+        }
+    }
+
+    /// Switches to the item the group plays now.
+    private func openForGroup(_ itemId: String, startMs: Int64) async {
+        await report()
+        player?.pause()
+        player = nil
+        current = itemId
+        info = nil
+        position = 0
+        ended = false
+        skippedSegment = nil
+        creditsHandled = false
+        counting = false
+        cues = []
+        cue = nil
+        next = nil
+        detail = try? await client.item(itemId)
+        await load(startMs: startMs, audio: nil, sub: nil)
     }
 }
 
@@ -260,11 +448,11 @@ struct PlayerView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var model: PlayerModel
 
-    init(target: PlayTarget, client: MediaClient, music: MusicPlayer) {
+    init(target: PlayTarget, client: MediaClient, music: MusicPlayer, together: SyncSession) {
         self.target = target
         self.client = client
         self.music = music
-        _model = State(initialValue: PlayerModel(client: client, target: target))
+        _model = State(initialValue: PlayerModel(client: client, target: target, together: together))
     }
 
     private var subtitleStyle: SubtitleStyle { SubtitleStyle(prefs: model.prefs) }
@@ -273,7 +461,12 @@ struct PlayerView: View {
         ZStack {
             Color.black.ignoresSafeArea()
             if let player = model.player {
-                VideoPlayer(player: player).ignoresSafeArea()
+                if model.inGroup {
+                    // The group's own controls replace AVKit's, so every action goes to the group.
+                    PlayerLayerView(player: player).ignoresSafeArea()
+                } else {
+                    VideoPlayer(player: player).ignoresSafeArea()
+                }
             } else if model.error {
                 Text("player.error").foregroundStyle(.white).padding()
             } else {
@@ -303,7 +496,10 @@ struct PlayerView: View {
                         .buttonStyle(MutedButtonStyle())
                     }
                 }
-                .padding(.horizontal, 24).padding(.bottom, 90)
+                .padding(.horizontal, 24).padding(.bottom, model.inGroup ? 150 : 90)
+            }
+            if model.inGroup, let group = model.together.group {
+                TogetherOverlay(model: model, group: group)
             }
         }
         .task {
@@ -330,6 +526,12 @@ struct PlayerView: View {
             .accessibilityLabel(Text("player.back"))
             Text(verbatim: model.titleLine).font(.subheadline.weight(.semibold)).foregroundStyle(.white).lineLimit(1)
             Spacer()
+            if model.inGroup {
+                Button { Task { await model.leaveGroup() } } label: {
+                    Image(systemName: "person.2.slash").font(.title2).foregroundStyle(.white.opacity(0.8)).padding()
+                }
+                .accessibilityLabel(Text("together.leave"))
+            }
             if let info = model.info, info.audio.count > 1 {
                 Menu {
                     ForEach(Array(info.audio.enumerated()), id: \.offset) { idx, a in

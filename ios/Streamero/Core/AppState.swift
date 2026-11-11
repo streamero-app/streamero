@@ -53,12 +53,18 @@ final class AppState {
     var reloadTick = 0
     var showProfileGate = false
     let music: MusicPlayer
+    /// Watch-together membership (D-036).
+    let together: SyncSession
 
     init(server: SavedServer, client: MediaClient) {
         self.server = server
         self.client = client
         self.music = MusicPlayer(client: client)
+        self.together = SyncSession(client: client)
     }
+
+    /// Whether this account may watch together.
+    var canWatchTogether: Bool { isAdmin || me?.permissions.syncPlay == true }
 
     var isAdmin: Bool { Access.isAdmin(me) }
     var isKid: Bool { Access.isKid(me) }

@@ -171,6 +171,24 @@ struct MediaClient: Sendable {
         return String(decoding: data, as: UTF8.self)
     }
 
+    // MARK: Watch together
+
+    func syncGroups() async throws -> [SyncGroup] { try await get("syncplay/groups") }
+    func syncGroup(_ id: String) async throws -> SyncGroup { try await get("syncplay/groups/\(id)") }
+    func createSyncGroup(_ req: CreateSyncGroupRequest) async throws -> SyncGroup { try await post("syncplay/groups", req) }
+
+    func joinSyncGroup(_ id: String) async throws -> SyncGroup {
+        try JSONDecoder().decode(SyncGroup.self, from: try await perform("POST", "syncplay/groups/\(id)/join"))
+    }
+
+    /// The group this session is in; nil when the server answers 204 (not in a group).
+    func mySyncGroup() async throws -> SyncGroup? {
+        let data = try await perform("GET", "syncplay/me")
+        return data.isEmpty ? nil : try JSONDecoder().decode(SyncGroup.self, from: data)
+    }
+
+    func leaveSyncGroup() async throws { try await send("POST", "syncplay/leave") }
+
     // MARK: Discover
 
     func discover(_ q: String? = nil, page: Int = 1) async throws -> DiscoverPage {
