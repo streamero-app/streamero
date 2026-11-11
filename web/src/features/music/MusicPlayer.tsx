@@ -3,9 +3,21 @@ import type Hls from "hls.js";
 import { api, unwrap } from "@/api/client";
 import { imageUrl, type ItemSummary } from "@/features/library/format";
 import { detectAudioProfile } from "@/features/player/deviceProfile";
+import { sleepDue, type SleepTimer } from "@/features/books/logic";
 
-/** One song in the queue (a track item and where its cover comes from). */
-export type QueueTrack = ItemSummary & { coverId?: string };
+/**
+ * One song in the queue (a track item and where its cover comes from). Audiobook
+ * parts are queue entries too: itemId is the book, fileId the part, offsetMs where
+ * the part starts in the book, and startMs where playback of the part begins.
+ */
+export type QueueTrack = ItemSummary & {
+  coverId?: string;
+  itemId?: string;
+  fileId?: string;
+  offsetMs?: number;
+  startMs?: number;
+  bookDurationMs?: number;
+};
 
 type Ctx = {
   queue: QueueTrack[];
@@ -29,6 +41,11 @@ type Ctx = {
   setRepeat: (v: "off" | "all" | "one") => void;
   remove: (i: number) => void;
   stop: () => void;
+  /** Playback speed (audiobooks; kept for songs too). */
+  rate: number;
+  setRate: (r: number) => void;
+  sleep: SleepTimer;
+  setSleep: (s: SleepTimer) => void;
 };
 
 const MusicContext = createContext<Ctx | null>(null);
@@ -71,6 +88,10 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   });
   const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState<"off" | "all" | "one">("off");
+  const [rate, setRateState] = useState(() => {
+    try { return Number(localStorage.getItem("audio-rate") ?? "1") || 1; } catch { return 1; }
+  });
+  const [sleep, setSleep] = useState<SleepTimer>({ kind: "off" });
   const current = index >= 0 ? queue[index] : undefined;
 
   if (typeof document !== "undefined" && !audio.current) {
@@ -87,7 +108,10 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     hls.current = null;
     void (async () => {
       try {
-        const info = unwrap(await api.POST("/items/{itemId}/playback", { params: { path: { itemId: current.id } }, body: { device: detectAudioProfile() } }));
+        const info = unwrap(await api.POST("/items/{itemId}/playback", {
+          params: { path: { itemId: current.itemId ?? current.id } },
+          body: { device: detectAudioProfile(), fileId: current.fileId, startMs: current.fileId ? 0 : undefined },
+        }));
         if (cancelled) return;
         setDuration(info.durationMs ?? current.durationMs ?? 0);
         if (info.method === "direct" || el.canPlayType("application/vnd.apple.mpegurl")) {
@@ -101,6 +125,12 @@ export function MusicProvider({ children }: { children: ReactNode }) {
           hls.current = h;
         }
         el.volume = volume;
+        el.defaultPlaybackRate = rate;
+        el.playbackRate = rate;
+        if (current.startMs) {
+          const at = current.startMs / 1000;
+          el.addEventListener("loadedmetadata", () => { el.currentTime = at; el.playbackRate = rate; }, { once: true });
+        }
         await el.play().catch(() => setPlaying(false));
       } catch {
         if (!cancelled) setPlaying(false);
@@ -177,8 +207,46 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     ms.setActionHandler("seekto", (d) => { if (d.seekTime !== undefined) seek(d.seekTime * 1000); });
   }, [current, prev, next, seek]);
 
+  // Audiobooks: save the position in the whole book every 15 s and on pause.
+  const bookPos = useRef<{ itemId: string; ms: number; total?: number } | null>(null);
+  useEffect(() => {
+    if (current?.itemId && current.fileId) {
+      bookPos.current = { itemId: current.itemId, ms: (current.offsetMs ?? 0) + position, total: current.bookDurationMs };
+    }
+  }, [current, position]);
+  useEffect(() => {
+    const save = () => {
+      const b = bookPos.current;
+      if (!b || b.ms <= 0) return;
+      void api.PUT("/items/{itemId}/progress", { params: { path: { itemId: b.itemId } },
+        body: { positionMs: Math.round(b.ms), durationMs: b.total } });
+    };
+    if (!playing) { save(); return; }
+    const id = window.setInterval(save, 15000);
+    return () => window.clearInterval(id);
+  }, [playing, current?.itemId]);
+
+  // Sleep timer: pause at a time or at the end of the chapter.
+  useEffect(() => {
+    if (sleep.kind === "off" || !playing) return;
+    const id = window.setInterval(() => {
+      const ms = (current?.offsetMs ?? 0) + (audio.current?.currentTime ?? 0) * 1000;
+      if (sleepDue(sleep, Date.now(), ms)) {
+        audio.current?.pause();
+        setSleep({ kind: "off" });
+      }
+    }, 500);
+    return () => window.clearInterval(id);
+  }, [sleep, playing, current?.offsetMs]);
+
+  const setRate = useCallback((r: number) => {
+    setRateState(r);
+    if (audio.current) { audio.current.playbackRate = r; audio.current.defaultPlaybackRate = r; }
+    try { localStorage.setItem("audio-rate", String(r)); } catch { /* private mode */ }
+  }, []);
+
   const value = useMemo<Ctx>(() => ({
-    queue, index, current, playing, position, duration, volume, shuffle, repeat,
+    queue, index, current, playing, position, duration, volume, shuffle, repeat, rate, setRate, sleep, setSleep,
     play: (tracks, start = 0) => {
       if (!tracks.length) return;
       if (tracks[start]?.id === current?.id && audio.current) {
@@ -219,7 +287,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       setIndex(-1);
       setPlaying(false);
     },
-  }), [queue, index, current, playing, position, duration, volume, shuffle, repeat, toggle, next, prev, seek]);
+  }), [queue, index, current, playing, position, duration, volume, shuffle, repeat, rate, setRate, sleep, toggle, next, prev, seek]);
 
   return <MusicContext.Provider value={value}>{children}</MusicContext.Provider>;
 }

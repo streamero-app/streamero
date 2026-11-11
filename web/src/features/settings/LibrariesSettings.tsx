@@ -8,7 +8,7 @@ import { useDateTime } from "./SettingsLayout";
 
 type Kind = Library["kind"];
 type Form = { id: string | null; name: string; kind: Kind; paths: string[] };
-const KINDS: Kind[] = ["movies", "shows", "music", "mixed"];
+const KINDS: Kind[] = ["movies", "shows", "music", "mixed", "books", "audiobooks", "photos"];
 const busyStates = new Set(["queued", "scanning"]);
 
 /** Navigates folders under the server's media roots and picks one. */

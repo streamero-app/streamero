@@ -38,6 +38,7 @@ import { BackupSettings } from "@/features/settings/BackupSettings";
 import { SsoSettings } from "@/features/settings/SsoSettings";
 import { NotFoundPage } from "@/routes/NotFoundPage";
 import { TogetherInvitePage, TogetherListPage } from "@/features/syncplay/WatchTogether";
+import { ReaderPage } from "@/features/books/ReaderPage";
 
 /** The administrator's extra CSS (Settings → Branding), on every page. */
 function CustomCss() {
@@ -85,6 +86,7 @@ const discoverRoute = createRoute({
   component: DiscoverPage,
   validateSearch: (s: Record<string, unknown>): { q?: string } => (typeof s.q === "string" && s.q ? { q: s.q } : {}),
 });
+const readRoute = createRoute({ getParentRoute: () => appRoute, path: "/read/$itemId", component: ReaderPage });
 const togetherRoute = createRoute({ getParentRoute: () => appRoute, path: "/together", component: TogetherListPage });
 const togetherInviteRoute = createRoute({ getParentRoute: () => appRoute, path: "/together/$groupId", component: TogetherInvitePage });
 const watchRoute = createRoute({
@@ -166,6 +168,7 @@ export const routeTree = rootRoute.addChildren([
     playlistRoute,
     librariesRoute2,
     watchRoute,
+    readRoute,
     togetherRoute,
     togetherInviteRoute,
     searchRoute,

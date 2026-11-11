@@ -134,7 +134,7 @@ export function AppShell() {
   // Like a streaming service: choose who is watching once per browser session.
   if ((profiles.data?.length ?? 0) > 0 && !me.currentProfile && !profilePicked()) return <Navigate to="/who" />;
 
-  const watching = path.startsWith("/watch/");
+  const watching = path.startsWith("/watch/") || path.startsWith("/read/");
   const libs = Array.isArray(libraries.data) ? libraries.data : [];
 
   return (

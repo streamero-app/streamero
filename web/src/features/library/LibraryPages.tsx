@@ -6,6 +6,11 @@ import { useTranslation } from "react-i18next";
 import { Check, Info, LayoutGrid, List, Play, Plus, RotateCcw, Shuffle, Volume2, VolumeX, X } from "lucide-react";
 import { useEnhancements, useSurprise } from "@/features/enhancements/useEnhancements";
 import { AlbumView, ArtistView, MusicLibrary } from "@/features/music/MusicPages";
+import { BookCard, BookView, BooksLibrary } from "@/features/books/BooksPages";
+import { PhotoAlbumView, PhotoItemView, PhotosLibrary } from "@/features/photos/PhotosPages";
+
+/** Libraries with their own pages (not the movie/show grid, not on the home rows). */
+const ownPages = ["music", "books", "audiobooks", "photos"];
 import { SubtitleFinder } from "./SubtitleFinder";
 import { api, unwrap } from "@/api/client";
 import type { components } from "@/api/schema.gen";
@@ -226,7 +231,7 @@ export function Billboard({ pool, label }: { pool?: ItemSummary[]; label?: strin
             <Info className="size-5" aria-hidden />{t("home.moreInfo")}
           </Link>
           {enh.randomButton && (
-            <button type="button" onClick={() => void surprise((Array.isArray(libs.data) ? libs.data : []).filter((l) => l.kind !== "music").map((l) => l.id))}
+            <button type="button" onClick={() => void surprise((Array.isArray(libs.data) ? libs.data : []).filter((l) => !ownPages.includes(l.kind)).map((l) => l.id))}
               aria-label={t("home.surprise")} title={t("home.surprise")} data-testid="surprise"
               className={`${pressable} ${buttonVariants.glass} tv-focus size-13 rounded-[6px]`}>
               <Shuffle className="size-5" aria-hidden />
@@ -325,6 +330,7 @@ export function HomeContent() {
   const latest = useQuery({ queryKey: ["latest"], queryFn: async () => unwrap(await api.GET("/home/latest")) });
   const cont = useQuery({ queryKey: ["continue"], queryFn: async () => unwrap(await api.GET("/home/continue")) });
   const nextUp = useQuery({ queryKey: ["next-up"], queryFn: async () => unwrap(await api.GET("/home/next-up")) });
+  const reading = useQuery({ queryKey: ["continue-reading"], queryFn: async () => unwrap(await api.GET("/home/continue-reading")) });
   const favs = useQuery({ queryKey: ["favorites"], queryFn: async () => unwrap(await api.GET("/home/favorites")) });
   const name = me?.currentProfile?.name ?? me?.username;
   const up = Array.isArray(nextUp.data) ? nextUp.data : [];
@@ -333,9 +339,14 @@ export function HomeContent() {
   const libs = Array.isArray(libraries.data) ? libraries.data : [];
   const blocks: Record<HomeSection, ReactNode> = {
     continue: (
-      <Row title={t("home.continue")} testId="continue" count={cont.data?.length ?? 0}>
-        {cont.data?.map((it) => <TitleCard key={it.id} item={it} className={rowCard} play />)}
-      </Row>
+      <>
+        <Row title={t("home.continue")} testId="continue" count={cont.data?.length ?? 0}>
+          {cont.data?.map((it) => <TitleCard key={it.id} item={it} className={rowCard} play />)}
+        </Row>
+        <Row title={t("books.continueRow")} testId="continue-reading" count={reading.data?.length ?? 0}>
+          {reading.data?.map((it) => <div key={it.id} className="w-[34vw] shrink-0 sm:w-[150px] xl:w-[170px]"><BookCard item={it} /></div>)}
+        </Row>
+      </>
     ),
     nextUp: (
       <Row title={t("home.nextUp")} testId="next-up" count={up.length}>
@@ -353,8 +364,8 @@ export function HomeContent() {
       </Row>
     ),
     collections: <CollectionsRow />,
-    top: libs.filter((l) => l.kind !== "music").map((l) => <LibraryTop key={l.id} library={l} />),
-    genres: libs.filter((l) => l.kind !== "music").map((l) => <LibraryRows key={l.id} library={l} />),
+    top: libs.filter((l) => !ownPages.includes(l.kind)).map((l) => <LibraryTop key={l.id} library={l} />),
+    genres: libs.filter((l) => !ownPages.includes(l.kind)).map((l) => <LibraryRows key={l.id} library={l} />),
     libraries: <LibraryShelf />,
   };
   return (
@@ -593,6 +604,8 @@ export function LibraryPage() {
   const decades = [2020, 2010, 2000, 1990, 1980, 1970, 1960, 1950];
 
   if (isMusic && lib) return <MusicLibrary library={lib} />;
+  if (lib && (lib.kind === "books" || lib.kind === "audiobooks")) return <BooksLibrary key={lib.id} library={lib} />;
+  if (lib?.kind === "photos") return <PhotosLibrary key={lib.id} library={lib} />;
   return (
     <div className="flex flex-col gap-6">
       <Billboard pool={pool} />
@@ -976,6 +989,9 @@ export function ItemPage() {
   if (!d) return <div role="status" className="flex min-h-[70vh] items-center justify-center"><Spinner /></div>;
   if (d.item.kind === "album") return <AlbumView d={d} />;
   if (d.item.kind === "artist") return <ArtistView d={d} />;
+  if (d.item.kind === "book" || d.item.kind === "audiobook") return <BookView key={d.item.id} d={d} />;
+  if (d.item.kind === "photoalbum") return <PhotoAlbumView key={d.item.id} d={d} />;
+  if (d.item.kind === "photo" || d.item.kind === "video") return <PhotoItemView key={d.item.id} d={d} />;
   const it = { ...d.item, hasBackdrop: d.hasBackdrop };
   const isEpisode = it.kind === "episode";
   const directors = d.crew.filter((p) => p.role === "Director").map((p) => p.name);
