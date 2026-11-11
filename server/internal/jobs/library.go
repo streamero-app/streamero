@@ -289,6 +289,8 @@ type MediaAnalyzeWorker struct {
 	river.WorkerDefaults[MediaAnalyzeArgs]
 	Analyzer *analyze.Analyzer
 	Log      *slog.Logger
+	// Then queues intro/credits detection of the library (new episodes are ready).
+	Then func(ctx context.Context, libraryID uuid.UUID) error
 }
 
 // Timeout allows trickplay of large libraries.
@@ -305,6 +307,10 @@ func (w *MediaAnalyzeWorker) Work(ctx context.Context, job *river.Job[MediaAnaly
 	}
 	if n > 0 {
 		w.Log.Info("media analyzed", "library", job.Args.LibraryID, "files", n, "took", time.Since(start).String())
+	}
+	if w.Then != nil {
+		// Detection itself is incremental: without new episodes it ends at once.
+		return w.Then(ctx, job.Args.LibraryID)
 	}
 	return nil
 }
@@ -330,6 +336,72 @@ func (w *MediaAnalyzeAllWorker) Work(ctx context.Context, _ *river.Job[MediaAnal
 	}
 	for _, l := range libs {
 		if err := w.Analyze(ctx, l.ID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// SegmentDetectArgs finds intros and credits in the seasons of a library that
+// have new or changed episodes (audio fingerprints, black frames).
+type SegmentDetectArgs struct {
+	LibraryID uuid.UUID `json:"library_id"`
+}
+
+// Kind implements river.JobArgs.
+func (SegmentDetectArgs) Kind() string { return "media.segments" }
+
+// InsertOpts keeps at most one waiting detection per library.
+func (SegmentDetectArgs) InsertOpts() river.InsertOpts {
+	return river.InsertOpts{MaxAttempts: 2, UniqueOpts: whileQueued}
+}
+
+// SegmentDetectWorker runs the detector.
+type SegmentDetectWorker struct {
+	river.WorkerDefaults[SegmentDetectArgs]
+	Detector *analyze.Detector
+	Log      *slog.Logger
+}
+
+// Timeout allows the first pass over a large library.
+func (w *SegmentDetectWorker) Timeout(*river.Job[SegmentDetectArgs]) time.Duration {
+	return 24 * time.Hour
+}
+
+// Work implements river.Worker.
+func (w *SegmentDetectWorker) Work(ctx context.Context, job *river.Job[SegmentDetectArgs]) error {
+	start := time.Now()
+	n, err := w.Detector.Run(ctx, job.Args.LibraryID)
+	if err != nil {
+		return err
+	}
+	if n > 0 {
+		w.Log.Info("intros and credits detected", "library", job.Args.LibraryID, "episodes", n, "took", time.Since(start).String())
+	}
+	return nil
+}
+
+// SegmentDetectAllArgs queues intro/credits detection of every library.
+type SegmentDetectAllArgs struct{}
+
+// Kind implements river.JobArgs.
+func (SegmentDetectAllArgs) Kind() string { return "media.segments_all" }
+
+// SegmentDetectAllWorker fans out per-library detection.
+type SegmentDetectAllWorker struct {
+	river.WorkerDefaults[SegmentDetectAllArgs]
+	Libraries *library.Service
+	Detect    func(ctx context.Context, libraryID uuid.UUID) error
+}
+
+// Work implements river.Worker.
+func (w *SegmentDetectAllWorker) Work(ctx context.Context, _ *river.Job[SegmentDetectAllArgs]) error {
+	libs, err := w.Libraries.List(ctx)
+	if err != nil {
+		return err
+	}
+	for _, l := range libs {
+		if err := w.Detect(ctx, l.ID); err != nil {
 			return err
 		}
 	}

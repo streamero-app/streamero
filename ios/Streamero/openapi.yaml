@@ -3696,6 +3696,14 @@ components:
         maxBitrate:
           type: integer
           description: Bits per second; lower values force transcoding.
+        subtitleCodecs:
+          type: array
+          items:
+            type: string
+          description: >-
+            Bitmap subtitle formats the client draws itself when it plays the file directly
+            (ffprobe names, e.g. ["hdmv_pgs_subtitle", "dvd_subtitle"]). Other bitmap tracks
+            are burned into the picture when chosen. Text tracks are always offered as WebVTT.
     PlaybackRequest:
       type: object
       required: [device]
@@ -3711,6 +3719,16 @@ components:
           type: integer
           format: int64
           description: Start position (default the saved resume position).
+        subtitleIndex:
+          type: integer
+          description: >-
+            Subtitle track chosen by the viewer (index into the file's subtitle tracks; -1 = none).
+            A bitmap track (PGS, VobSub, DVB) the client cannot draw is burned into the picture,
+            which makes the stream a transcode. Absent = automatic: a forced bitmap track picked
+            by the viewer's subtitle preference is burned in.
+        burnSubtitle:
+          type: boolean
+          description: Burn the chosen subtitleIndex in even when it is a text track (keeps ASS/SSA styling).
         device:
           $ref: "#/components/schemas/DeviceProfile"
     PlaybackInfo:
@@ -3758,7 +3776,28 @@ components:
             $ref: "#/components/schemas/PlaybackSubtitle"
         reason:
           type: string
-          description: Why the stream is not direct play (e.g. "audio codec dts").
+          description: Why the stream is not direct play (e.g. "audio codec dts", "subtitle burn-in").
+        bitmapSubtitles:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlaybackBitmapSubtitle"
+          description: Bitmap subtitle tracks; choosing one restarts playback with subtitleIndex (burned in).
+        burnedSubtitle:
+          type: integer
+          description: Index of the subtitle track burned into this stream (absent = none).
+    PlaybackBitmapSubtitle:
+      type: object
+      required: [index, codec]
+      properties:
+        index:
+          type: integer
+          description: Index into the file's subtitle tracks (the value for subtitleIndex).
+        codec:
+          type: string
+        language:
+          type: string
+        forced:
+          type: boolean
     PlaybackSubtitle:
       type: object
       required: [index, url, external]
@@ -3895,7 +3934,7 @@ components:
           additionalProperties: true
     TaskKey:
       type: string
-      enum: [scan_all, refresh_metadata, cleanup_images, analyze_media, backup]
+      enum: [scan_all, refresh_metadata, cleanup_images, analyze_media, detect_segments, backup]
     Task:
       type: object
       required: [key, running]

@@ -4377,15 +4377,26 @@ func (s *DeviceProfile) encodeFields(e *jx.Encoder) {
 			s.MaxBitrate.Encode(e)
 		}
 	}
+	{
+		if s.SubtitleCodecs != nil {
+			e.FieldStart("subtitleCodecs")
+			e.ArrStart()
+			for _, elem := range s.SubtitleCodecs {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
 }
 
-var jsonFieldsNameOfDeviceProfile = [6]string{
+var jsonFieldsNameOfDeviceProfile = [7]string{
 	0: "containers",
 	1: "videoCodecs",
 	2: "audioCodecs",
 	3: "hls",
 	4: "maxHeight",
 	5: "maxBitrate",
+	6: "subtitleCodecs",
 }
 
 // Decode decodes DeviceProfile from json.
@@ -4486,6 +4497,25 @@ func (s *DeviceProfile) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"maxBitrate\"")
+			}
+		case "subtitleCodecs":
+			if err := func() error {
+				s.SubtitleCodecs = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.SubtitleCodecs = append(s.SubtitleCodecs, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"subtitleCodecs\"")
 			}
 		default:
 			return d.Skip()
@@ -16182,6 +16212,153 @@ func (s *PinRequest) UnmarshalJSON(data []byte) error {
 }
 
 // Encode implements json.Marshaler.
+func (s *PlaybackBitmapSubtitle) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *PlaybackBitmapSubtitle) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("index")
+		e.Int(s.Index)
+	}
+	{
+		e.FieldStart("codec")
+		e.Str(s.Codec)
+	}
+	{
+		if s.Language.Set {
+			e.FieldStart("language")
+			s.Language.Encode(e)
+		}
+	}
+	{
+		if s.Forced.Set {
+			e.FieldStart("forced")
+			s.Forced.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfPlaybackBitmapSubtitle = [4]string{
+	0: "index",
+	1: "codec",
+	2: "language",
+	3: "forced",
+}
+
+// Decode decodes PlaybackBitmapSubtitle from json.
+func (s *PlaybackBitmapSubtitle) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode PlaybackBitmapSubtitle to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "index":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.Index = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"index\"")
+			}
+		case "codec":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Codec = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"codec\"")
+			}
+		case "language":
+			if err := func() error {
+				s.Language.Reset()
+				if err := s.Language.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"language\"")
+			}
+		case "forced":
+			if err := func() error {
+				s.Forced.Reset()
+				if err := s.Forced.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"forced\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode PlaybackBitmapSubtitle")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfPlaybackBitmapSubtitle) {
+					name = jsonFieldsNameOfPlaybackBitmapSubtitle[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *PlaybackBitmapSubtitle) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *PlaybackBitmapSubtitle) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
 func (s *PlaybackInfo) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
@@ -16272,9 +16449,25 @@ func (s *PlaybackInfo) encodeFields(e *jx.Encoder) {
 			s.Reason.Encode(e)
 		}
 	}
+	{
+		if s.BitmapSubtitles != nil {
+			e.FieldStart("bitmapSubtitles")
+			e.ArrStart()
+			for _, elem := range s.BitmapSubtitles {
+				elem.Encode(e)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.BurnedSubtitle.Set {
+			e.FieldStart("burnedSubtitle")
+			s.BurnedSubtitle.Encode(e)
+		}
+	}
 }
 
-var jsonFieldsNameOfPlaybackInfo = [13]string{
+var jsonFieldsNameOfPlaybackInfo = [15]string{
 	0:  "chapters",
 	1:  "segments",
 	2:  "trickplay",
@@ -16288,6 +16481,8 @@ var jsonFieldsNameOfPlaybackInfo = [13]string{
 	10: "audioIndex",
 	11: "subtitles",
 	12: "reason",
+	13: "bitmapSubtitles",
+	14: "burnedSubtitle",
 }
 
 // Decode decodes PlaybackInfo from json.
@@ -16464,6 +16659,33 @@ func (s *PlaybackInfo) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"reason\"")
+			}
+		case "bitmapSubtitles":
+			if err := func() error {
+				s.BitmapSubtitles = make([]PlaybackBitmapSubtitle, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem PlaybackBitmapSubtitle
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.BitmapSubtitles = append(s.BitmapSubtitles, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"bitmapSubtitles\"")
+			}
+		case "burnedSubtitle":
+			if err := func() error {
+				s.BurnedSubtitle.Reset()
+				if err := s.BurnedSubtitle.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"burnedSubtitle\"")
 			}
 		default:
 			return d.Skip()
@@ -17263,16 +17485,30 @@ func (s *PlaybackRequest) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.SubtitleIndex.Set {
+			e.FieldStart("subtitleIndex")
+			s.SubtitleIndex.Encode(e)
+		}
+	}
+	{
+		if s.BurnSubtitle.Set {
+			e.FieldStart("burnSubtitle")
+			s.BurnSubtitle.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("device")
 		s.Device.Encode(e)
 	}
 }
 
-var jsonFieldsNameOfPlaybackRequest = [4]string{
+var jsonFieldsNameOfPlaybackRequest = [6]string{
 	0: "fileId",
 	1: "audioIndex",
 	2: "startMs",
-	3: "device",
+	3: "subtitleIndex",
+	4: "burnSubtitle",
+	5: "device",
 }
 
 // Decode decodes PlaybackRequest from json.
@@ -17314,8 +17550,28 @@ func (s *PlaybackRequest) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"startMs\"")
 			}
+		case "subtitleIndex":
+			if err := func() error {
+				s.SubtitleIndex.Reset()
+				if err := s.SubtitleIndex.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"subtitleIndex\"")
+			}
+		case "burnSubtitle":
+			if err := func() error {
+				s.BurnSubtitle.Reset()
+				if err := s.BurnSubtitle.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"burnSubtitle\"")
+			}
 		case "device":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				if err := s.Device.Decode(d); err != nil {
 					return err
@@ -17334,7 +17590,7 @@ func (s *PlaybackRequest) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00001000,
+		0b00100000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -22375,6 +22631,8 @@ func (s *TaskKey) Decode(d *jx.Decoder) error {
 		*s = TaskKeyCleanupImages
 	case TaskKeyAnalyzeMedia:
 		*s = TaskKeyAnalyzeMedia
+	case TaskKeyDetectSegments:
+		*s = TaskKeyDetectSegments
 	case TaskKeyBackup:
 		*s = TaskKeyBackup
 	default:

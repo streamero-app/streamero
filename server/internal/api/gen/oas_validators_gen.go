@@ -5968,6 +5968,8 @@ func (s TaskKey) Validate() error {
 		return nil
 	case "analyze_media":
 		return nil
+	case "detect_segments":
+		return nil
 	case "backup":
 		return nil
 	default:

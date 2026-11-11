@@ -490,6 +490,7 @@
     "nudgeAction": "Dodaj TMDb ključ"
   },
   "player": {
+    "burnedIn": "utisnuto u sliku",
     "play": "Pokreni",
     "resume": "Nastavi od {{time}}",
     "fromStart": "Od početka",
@@ -630,7 +631,9 @@
     "failed": "Neuspjelo",
     "runNow": "Pokreni sada",
     "analyze_media": "Analiziraj medije",
-    "analyze_media_hint": "Poglavlja, uvod i odjavna špica za preskakanje, sličice za premotavanje",
+    "analyze_media_hint": "Poglavlja i dijelovi za preskakanje nazvani po njima, sličice za premotavanje",
+    "detect_segments": "Prepoznaj uvode i odjavne špice",
+    "detect_segments_hint": "Uspoređuje zvuk epizoda svake sezone i pronalazi zajednički uvod i odjavnu špicu (po crnim kadrovima kad zvuk ne pomogne); samo nove ili promijenjene epizode",
     "backup": "Sigurnosna kopija",
     "backup_hint": "Baza i postavke u mapu za kopije; stare kopije uklanjaju se prema postavci čuvanja"
   },

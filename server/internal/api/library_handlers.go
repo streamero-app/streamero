@@ -500,7 +500,7 @@ func (h *Handler) StartPlayback(ctx context.Context, req *gen.PlaybackRequest, p
 	}
 	r := stream.Request{Device: stream.Device{Containers: req.Device.Containers, VideoCodecs: req.Device.VideoCodecs,
 		AudioCodecs: req.Device.AudioCodecs, HLS: req.Device.Hls.Value, MaxHeight: req.Device.MaxHeight.Value,
-		MaxBitrate: req.Device.MaxBitrate.Value}}
+		MaxBitrate: req.Device.MaxBitrate.Value, SubtitleCodecs: req.Device.SubtitleCodecs}}
 	if prefs, err := h.lib().GetPrefs(ctx, stream.Owner(p)); err == nil {
 		// The profile's limits win over what the device asks for.
 		if prefs.MaxBitrateKbps > 0 && (r.Device.MaxBitrate == 0 || r.Device.MaxBitrate > prefs.MaxBitrateKbps*1000) {
@@ -519,6 +519,10 @@ func (h *Handler) StartPlayback(ctx context.Context, req *gen.PlaybackRequest, p
 	if v, ok := req.StartMs.Get(); ok {
 		r.StartMS = &v
 	}
+	if v, ok := req.SubtitleIndex.Get(); ok {
+		r.SubtitleIndex = &v
+	}
+	r.BurnSubtitle = req.BurnSubtitle.Value
 	info, err := h.Stream().Start(ctx, h.lib(), p, params.ItemId, r)
 	if err == nil {
 		h.trackPlayback(ctx, p, params.ItemId, info.Method, info.Reason, info.DurationMS, info.StartMS)
@@ -555,6 +559,16 @@ func (h *Handler) StartPlayback(ctx context.Context, req *gen.PlaybackRequest, p
 	}
 	if info.SubtitleDefault >= 0 {
 		out.SubtitleDefault = gen.NewOptInt(info.SubtitleDefault)
+	}
+	for _, b := range info.BitmapSubtitles {
+		bs := gen.PlaybackBitmapSubtitle{Index: b.Index, Codec: b.Codec, Forced: gen.NewOptBool(b.Forced)}
+		if b.Language != "" {
+			bs.Language = gen.NewOptString(b.Language)
+		}
+		out.BitmapSubtitles = append(out.BitmapSubtitles, bs)
+	}
+	if info.BurnedSubtitle >= 0 {
+		out.BurnedSubtitle = gen.NewOptInt(info.BurnedSubtitle)
 	}
 	for _, c := range info.Chapters {
 		out.Chapters = append(out.Chapters, gen.Chapter{StartMs: c.StartMS, Title: c.Title})

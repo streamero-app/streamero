@@ -190,7 +190,53 @@ type deviceProfile struct {
 	TranscodingProfiles []struct {
 		Container, AudioCodec, VideoCodec, Type, Protocol string
 	} `json:"TranscodingProfiles"`
-	CodecProfiles []codecProfile `json:"CodecProfiles"`
+	CodecProfiles    []codecProfile `json:"CodecProfiles"`
+	SubtitleProfiles []struct {
+		Format, Method string
+	} `json:"SubtitleProfiles"`
+}
+
+// subtitleFormats maps client subtitle format names to ffprobe codec names.
+var subtitleFormats = map[string]string{"pgssub": "hdmv_pgs_subtitle", "pgs": "hdmv_pgs_subtitle", "dvdsub": "dvd_subtitle",
+	"vobsub": "dvd_subtitle", "dvbsub": "dvb_subtitle", "srt": "subrip", "vtt": "webvtt"}
+
+// subtitleMethods lists how a client takes a subtitle codec (Embed, External, Hls, Encode).
+func subtitleMethods(prof *deviceProfile, codec string) []string {
+	var out []string
+	if prof == nil {
+		return nil
+	}
+	for _, sp := range prof.SubtitleProfiles {
+		for _, f := range splitList(strings.ToLower(sp.Format), ",") {
+			if strings.EqualFold(f, codec) || strings.EqualFold(subtitleFormats[f], codec) {
+				out = append(out, strings.ToLower(sp.Method))
+			}
+		}
+	}
+	return out
+}
+
+// bitmapCodecs are the bitmap subtitle codecs the client draws itself from a
+// directly played file: those its profile embeds, or all when it sends none.
+func bitmapCodecs(prof *deviceProfile) []string {
+	all := []string{"hdmv_pgs_subtitle", "dvd_subtitle", "dvb_subtitle", "xsub"}
+	if prof == nil || len(prof.SubtitleProfiles) == 0 {
+		return all
+	}
+	var out []string
+	for _, c := range all {
+		if slices.Contains(subtitleMethods(prof, c), "embed") {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
+// encodeOnly reports whether a client asks for a text codec to be burned in
+// (its profile names the codec with the Encode method only).
+func encodeOnly(prof *deviceProfile, codec string) bool {
+	m := subtitleMethods(prof, codec)
+	return len(m) > 0 && !slices.ContainsFunc(m, func(x string) bool { return x != "encode" })
 }
 
 type codecProfile struct {
@@ -211,7 +257,7 @@ type profileCondition struct {
 // after direct play failed): the video is then only copied when its profile is
 // known to fit the client, otherwise transcoded.
 func deviceFor(prof *deviceProfile, f library.MediaFile, allowDirect bool) stream.Device {
-	d := stream.Device{HLS: true}
+	d := stream.Device{HLS: true, SubtitleCodecs: bitmapCodecs(prof)}
 	if prof != nil {
 		d.MaxBitrate = prof.MaxStreamingBitrate
 	}
@@ -516,6 +562,17 @@ func (s *Server) playbackInfo(w http.ResponseWriter, r *http.Request) {
 			req.AudioIndex = &pos
 		}
 	}
+	if v := body.SubtitleStreamIndex; v != nil {
+		pos := *v - subtitleBase(f)
+		switch {
+		case *v < 0:
+			pos = -1
+			req.SubtitleIndex = &pos
+		case pos >= 0 && pos < len(f.Subtitles):
+			req.SubtitleIndex = &pos
+			req.BurnSubtitle = encodeOnly(body.DeviceProfile, f.Subtitles[pos].Codec)
+		}
+	}
 	info, err := s.Stream.Start(r.Context(), s.Libraries, p, id, req)
 	if err != nil {
 		code := "NoCompatibleStream"
@@ -553,6 +610,8 @@ func (s *Server) playbackInfo(w http.ResponseWriter, r *http.Request) {
 		pos := m["Index"].(int) - subtitleBase(f)
 		url, ok := urls[pos]
 		switch {
+		case pos == info.BurnedSubtitle:
+			m["DeliveryMethod"] = "Encode"
 		case ok && (f.Subtitles[pos].External || info.Method != "direct"):
 			m["DeliveryMethod"], m["DeliveryUrl"], m["IsExternalUrl"] = "External", url, false
 		case !ok && info.Method != "direct":

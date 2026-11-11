@@ -2323,6 +2323,8 @@ export interface components {
             maxHeight?: number;
             /** @description Bits per second; lower values force transcoding. */
             maxBitrate?: number;
+            /** @description Bitmap subtitle formats the client draws itself when it plays the file directly (ffprobe names, e.g. ["hdmv_pgs_subtitle", "dvd_subtitle"]). Other bitmap tracks are burned into the picture when chosen. Text tracks are always offered as WebVTT. */
+            subtitleCodecs?: string[];
         };
         PlaybackRequest: {
             /**
@@ -2337,6 +2339,10 @@ export interface components {
              * @description Start position (default the saved resume position).
              */
             startMs?: number;
+            /** @description Subtitle track chosen by the viewer (index into the file's subtitle tracks; -1 = none). A bitmap track (PGS, VobSub, DVB) the client cannot draw is burned into the picture, which makes the stream a transcode. Absent = automatic: a forced bitmap track picked by the viewer's subtitle preference is burned in. */
+            subtitleIndex?: number;
+            /** @description Burn the chosen subtitleIndex in even when it is a text track (keeps ASS/SSA styling). */
+            burnSubtitle?: boolean;
             device: components["schemas"]["DeviceProfile"];
         };
         PlaybackInfo: {
@@ -2361,8 +2367,19 @@ export interface components {
             audio: components["schemas"]["AudioStream"][];
             audioIndex?: number;
             subtitles: components["schemas"]["PlaybackSubtitle"][];
-            /** @description Why the stream is not direct play (e.g. "audio codec dts"). */
+            /** @description Why the stream is not direct play (e.g. "audio codec dts", "subtitle burn-in"). */
             reason?: string;
+            /** @description Bitmap subtitle tracks; choosing one restarts playback with subtitleIndex (burned in). */
+            bitmapSubtitles?: components["schemas"]["PlaybackBitmapSubtitle"][];
+            /** @description Index of the subtitle track burned into this stream (absent = none). */
+            burnedSubtitle?: number;
+        };
+        PlaybackBitmapSubtitle: {
+            /** @description Index into the file's subtitle tracks (the value for subtitleIndex). */
+            index: number;
+            codec: string;
+            language?: string;
+            forced?: boolean;
         };
         PlaybackSubtitle: {
             index: number;
@@ -2439,7 +2456,7 @@ export interface components {
             };
         };
         /** @enum {string} */
-        TaskKey: "scan_all" | "refresh_metadata" | "cleanup_images" | "analyze_media" | "backup";
+        TaskKey: "scan_all" | "refresh_metadata" | "cleanup_images" | "analyze_media" | "detect_segments" | "backup";
         Task: {
             key: components["schemas"]["TaskKey"];
             running: boolean;

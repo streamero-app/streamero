@@ -20,6 +20,12 @@ P4 — Web pregledavanje (u tijeku); izdanja v0.2.0 i **v0.3.0** objavljena. P0 
 - Branch pushan, PR #1 (`phase/P0-foundations` → `main`) otvoren; `main` je prazan početni commit spojen u P0 (repo je bio prazan). CI zelen: `server`, `web`, `e2e`, iOS `build` (prvi uspješan iOS build, artefakt `streamero-ipa`).
 - `scripts/gen-fixtures.sh`: filmovi (H.264, 4K HEVC 10-bit, HDR10, AV1, multi-audio + poglavlja + embedded/external SRT/ASS, verzije, trailer), serija sa zajedničkim introm (2×4 ep.), multi-episode, specials, daily, anime absolute, glazba (FLAC/MP3), fotke.
 
+## Utiskivanje titlova i prepoznavanje uvoda/odjavne špice (branch `feat/subs-burnin-intros`, 2026-11-11)
+Slikovni titlovi (PGS, VobSub, DVB; ugrađeni i vanjski) utiskuju se u sliku kad ih klijent ne može nacrtati, s razlogom „subtitle burn-in" na nadzornoj ploči; ASS na zahtjev sa stilom; forced slikovni po zadanom; compat `SubtitleStreamIndex`/`Encode`. Novi zadatak „Prepoznaj uvode i odjavne špice" (fpcalc otisci po sezoni, crni kadrovi kao rezerva, inkrementalno, migracija 00025, D-035). Web player nudi slikovne titlove.
+- Testirano s pravim medijima (ffmpeg/fpcalc u testu): utiskivanje PGS i ASS (ugrađeni i vanjski) s mjerenjem svjetline kadra prije/poslije, i nakon premotavanja; sintetička sezona sa zajedničkim uvodom, zajedničkom pjesmom odjavne špice i epizodom s crnom odjavnom špicom; integracijski protiv Postgresa (prednost ručnog/poglavlja, inkrementalnost, nova i zamijenjena epizoda; playback API, nadzorna ploča, compat `PlaybackInfo` i `/MediaSegments`).
+- Nije provjereno: pravi Blu-ray/DVD remuxi, HW enkoderi s utiskivanjem (samo argumenti), prava serija (samo sintetička), iOS/Android/TV klijenti.
+- Sljedeće: izbor slikovnih titlova u iOS/Android aplikacijama; editor segmenata; recap/preview iz zvuka.
+
 ## iOS paritet s Androidom (branch `feat/ios-parity`, PR #38, 2026-11-09)
 Nativna iOS aplikacija dobila je sve ekrane Android aplikacije: Home/Search/Discover/Libraries/Me, filtre biblioteke, Discover sa zahtjevima, stranicu naslova, player (napredak, naredbe s nadzorne ploče, preskakanje uvoda, sljedeća epizoda, titlovi preko videa), glazbu s pozadinskim zvukom, Bazarr, račun i sve administratorske stranice.
 - Provjera samo kroz CI (xcodebuild test + iphoneos build); na uređaju i protiv pravog servera još nije isprobano.

@@ -25,7 +25,8 @@ type Config struct {
 	MediaRoots     string // folders libraries may use, comma-separated
 	FFprobePath    string
 	FFmpegPath     string
-	AuthRatePerMin int // sign-in style requests per client IP per minute (0 = no limit)
+	FpcalcPath     string // Chromaprint's fpcalc for intro/credits detection (ffmpeg's muxer is the fallback)
+	AuthRatePerMin int    // sign-in style requests per client IP per minute (0 = no limit)
 	AuthRateBurst  int
 	AutoMigrate    bool
 	// PasswordLoginRecovery lets administrators sign in with a password while
@@ -58,6 +59,7 @@ func Load() (Config, error) {
 		MediaRoots:      env("STREAMERO_MEDIA_ROOTS", "/media"),
 		FFprobePath:     env("STREAMERO_FFPROBE", "ffprobe"),
 		FFmpegPath:      env("STREAMERO_FFMPEG", "ffmpeg"),
+		FpcalcPath:      env("STREAMERO_FPCALC", "fpcalc"),
 		LogLevel:        env("STREAMERO_LOG_LEVEL", "info"),
 		ShutdownTimeout: 15 * time.Second,
 	}

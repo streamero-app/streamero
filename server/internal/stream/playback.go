@@ -7,7 +7,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -34,6 +36,20 @@ type Request struct {
 	AudioIndex *int
 	StartMS    *int64
 	Device     Device
+	// SubtitleIndex is the viewer's subtitle choice (position in the file's
+	// subtitle list, -1 = none, nil = automatic: a forced bitmap track the
+	// subtitle preference picks is burned in).
+	SubtitleIndex *int
+	// BurnSubtitle burns SubtitleIndex in even when it is a text track.
+	BurnSubtitle bool
+}
+
+// BitmapSubtitle is a picture-based subtitle track, offered for burn-in.
+type BitmapSubtitle struct {
+	Index    int
+	Codec    string
+	Language string
+	Forced   bool
 }
 
 // Subtitle is a playable subtitle track.
@@ -61,6 +77,10 @@ type Info struct {
 	Chapters        []Chapter
 	Segments        []Segment
 	Trickplay       *Trickplay
+	// BitmapSubtitles can be chosen with Request.SubtitleIndex (burned in).
+	BitmapSubtitles []BitmapSubtitle
+	// BurnedSubtitle is the subtitle track drawn into this stream (-1 = none).
+	BurnedSubtitle int
 }
 
 // Chapter is a named position (from media analysis).
@@ -195,14 +215,25 @@ func (s *Server) Start(ctx context.Context, lib *library.Service, p auth.Princip
 			Owner(p), itemID).Scan(&start)
 	}
 
-	plan := Decide(f, audio, req.Device)
+	sub := s.subtitleChoice(f, audio, prefs, req.SubtitleIndex)
+	plan := DecideWithSubtitle(f, audio, sub, req.BurnSubtitle && req.SubtitleIndex != nil, req.Device)
+	if b := plan.Burn; b != nil && b.External {
+		if p, err := sidecarPath(s.Roots, f.Subtitles[b.Index]); err == nil {
+			b.Path = p
+		} else {
+			plan = Decide(f, audio, req.Device) // the sidecar is gone or outside the media folders
+		}
+	}
 	perms := p.User.Permissions
 	if !p.User.IsAdmin && ((plan.TranscodeVideo && !perms.VideoTranscoding) ||
 		(plan.TranscodeAudio && !perms.AudioTranscoding) || (plan.Method == "remux" && !perms.Remux)) {
 		return Info{}, ErrTranscodeDenied
 	}
 	info := Info{FileID: f.ID, Method: plan.Method, StartMS: start, DurationMS: f.DurationMS, Audio: f.Audio,
-		AudioIndex: audio, Reason: plan.Reason}
+		AudioIndex: audio, Reason: plan.Reason, BurnedSubtitle: -1}
+	if plan.Burn != nil {
+		info.BurnedSubtitle = plan.Burn.Index
+	}
 	if plan.Method == "direct" {
 		scope := fmt.Sprintf("/stream/file/%s/", f.ID)
 		info.URL = scope + "video" + filepath.Ext(f.Path) + "?" + s.Signer.Query(scope, URLTTL)
@@ -221,8 +252,13 @@ func (s *Server) Start(ctx context.Context, lib *library.Service, p auth.Princip
 	subScope := fmt.Sprintf("/stream/sub/%s/", f.ID)
 	q := s.Signer.Query(subScope, URLTTL)
 	for i, sub := range f.Subtitles {
-		if !sub.External && !textSubtitle(sub.Codec) {
-			continue // bitmap subtitles (PGS/VobSub) need burn-in, coming with the transcoder options
+		if IsBitmapSubtitle(sub.Codec) {
+			// Pictures cannot become WebVTT: offered for burn-in instead.
+			info.BitmapSubtitles = append(info.BitmapSubtitles, BitmapSubtitle{Index: i, Codec: sub.Codec, Language: sub.Language, Forced: sub.Forced})
+			continue
+		}
+		if !IsTextSubtitle(sub.Codec) {
+			continue
 		}
 		info.Subtitles = append(info.Subtitles, Subtitle{Index: i, Language: sub.Language, Forced: sub.Forced,
 			External: sub.External, URL: fmt.Sprintf("%s%d.vtt?%s", subScope, i, q)})
@@ -236,14 +272,52 @@ func (s *Server) Start(ctx context.Context, lib *library.Service, p auth.Princip
 		audioLang = f.Audio[audio].Language
 	}
 	info.SubtitleDefault = library.PickSubtitle(choices, audioLang, prefs)
+	switch {
+	case info.BurnedSubtitle >= 0:
+		info.SubtitleDefault = -1 // already in the picture
+	case req.SubtitleIndex != nil:
+		// The viewer's own choice of a text track (or none) wins over the preference.
+		info.SubtitleDefault = -1
+		for i, sub := range info.Subtitles {
+			if sub.Index == *req.SubtitleIndex {
+				info.SubtitleDefault = i
+			}
+		}
+	}
 	info.Chapters, info.Segments, info.Trickplay = s.analysis(ctx, f.ID)
 	return info, nil
 }
 
-func textSubtitle(codec string) bool {
-	switch codec {
-	case "subrip", "srt", "ass", "ssa", "webvtt", "vtt", "mov_text", "text":
-		return true
+// subtitleChoice returns the subtitle track to consider for burn-in: the
+// viewer's choice, or, when none was made, a forced bitmap track that the
+// subtitle preference picks (forced subtitles translate signs and foreign
+// dialogue and belong in the picture whatever the device).
+func (s *Server) subtitleChoice(f library.MediaFile, audio int, prefs library.Prefs, chosen *int) int {
+	if chosen != nil {
+		return *chosen
 	}
-	return false
+	choices := make([]library.SubtitleChoice, len(f.Subtitles))
+	for i, sub := range f.Subtitles {
+		choices[i] = library.SubtitleChoice{Language: sub.Language, Forced: sub.Forced}
+	}
+	audioLang := ""
+	if audio >= 0 && audio < len(f.Audio) {
+		audioLang = f.Audio[audio].Language
+	}
+	if i := library.PickSubtitle(choices, audioLang, prefs); i >= 0 && f.Subtitles[i].Forced && IsBitmapSubtitle(f.Subtitles[i].Codec) {
+		return i
+	}
+	return -1
+}
+
+// sidecarPath validates a sidecar subtitle file; VobSub is read through its .idx.
+func sidecarPath(roots library.Roots, sub library.SubtitleStream) (string, error) {
+	if strings.EqualFold(filepath.Ext(sub.Path), ".sub") {
+		if p, err := library.ResolveSafePath(roots, strings.TrimSuffix(sub.Path, filepath.Ext(sub.Path))+".idx"); err == nil {
+			if _, err := os.Stat(p); err == nil {
+				return p, nil
+			}
+		}
+	}
+	return library.ResolveSafePath(roots, sub.Path)
 }
