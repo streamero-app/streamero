@@ -171,6 +171,32 @@ struct MediaClient: Sendable {
         return String(decoding: data, as: UTF8.self)
     }
 
+    // MARK: Offline downloads
+
+    func createDownloads(_ request: DownloadRequestBody) async throws -> [DownloadJob] { try await post("downloads", request) }
+    func download(_ id: String) async throws -> DownloadJob { try await get("downloads/\(id)") }
+    func deleteDownload(_ id: String) async throws { try await send("DELETE", "downloads/\(id)") }
+    func syncDownloads(_ request: OfflineSyncRequest) async throws -> OfflineSyncResponse { try await post("downloads/sync", request) }
+
+    /// Raw bytes of an API URL that needs the session token (artwork for the offline library).
+    func authorizedData(_ url: URL) async throws -> Data {
+        var req = URLRequest(url: url)
+        req.timeoutInterval = 30
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await URLSession.shared.data(for: req)
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        guard status == 200 else { throw APIError(status: status, code: "http_\(status)") }
+        return data
+    }
+
+    /// Raw bytes of an already signed URL (subtitle sidecars).
+    func signedData(_ url: URL) async throws -> Data {
+        let (data, response) = try await URLSession.shared.data(from: url)
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        guard status == 200 else { throw APIError(status: status, code: "http_\(status)") }
+        return data
+    }
+
     // MARK: Watch together
 
     func syncGroups() async throws -> [SyncGroup] { try await get("syncplay/groups") }

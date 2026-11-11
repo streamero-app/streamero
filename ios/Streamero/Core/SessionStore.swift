@@ -9,6 +9,8 @@ final class SessionStore {
         case unknown
         case signedOut
         case signedIn(Components.Schemas.User)
+        /// A saved sign-in exists but the server cannot be reached: the downloads still play.
+        case offline
     }
 
     private(set) var state: State = .unknown
@@ -45,8 +47,8 @@ final class SessionStore {
             tokens.setToken(nil, for: server.id)
             state = .signedOut
         } catch {
-            // Offline or server starting: keep the token, show sign-in with the error later.
-            state = .signedOut
+            // Offline or server starting: keep the token and open the offline library.
+            state = .offline
         }
     }
 

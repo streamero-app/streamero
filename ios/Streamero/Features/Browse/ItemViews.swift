@@ -213,7 +213,22 @@ struct ItemView: View {
                 ErrorLine(error: togetherError)
             }
             if !d.files.isEmpty { SubtitleFinderButton(itemID: it.id, client: client) }
+            if !d.files.isEmpty && (it.kind == "movie" || it.kind == "episode") && Access.canDownload(app.me) {
+                DownloadItemControl(detail: d, fileId: fileID, audioIndex: chosenAudio,
+                                    container: d.files.indices.contains(fileIndex) ? d.files[fileIndex].container : nil)
+            }
+            if (it.kind == "series" || it.kind == "season") && Access.canDownload(app.me) {
+                DownloadSeriesControl(detail: d, seasonId: it.kind == "season" ? it.id : season, seasonLabel: seasonLabel(d))
+            }
         }
+    }
+
+    /// "Season 2" for the season the download would fetch.
+    private func seasonLabel(_ d: ItemDetail) -> String? {
+        if d.item.kind == "season" { return d.item.title }
+        guard let s = d.children.first(where: { $0.id == season }) else { return nil }
+        guard let n = s.seasonNumber, n > 0 else { return Loc.string("specials") }
+        return String(format: Loc.string("season_n %lld"), n)
     }
 
     private func toggle(favorite it: ItemSummary) async {
