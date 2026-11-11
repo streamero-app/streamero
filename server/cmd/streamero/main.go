@@ -31,6 +31,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/config"
 	"github.com/streamero-app/streamero/server/internal/db"
 	"github.com/streamero-app/streamero/server/internal/discovery"
+	"github.com/streamero-app/streamero/server/internal/dlna"
 	"github.com/streamero-app/streamero/server/internal/importer"
 	"github.com/streamero-app/streamero/server/internal/jobs"
 	"github.com/streamero-app/streamero/server/internal/library"
@@ -227,6 +228,13 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			Commands: h.NowPlaying})
 		if cfg.Discovery {
 			startDiscovery(ctx, cfg, state.ServerID(), h.ServerNameFor, log)
+		}
+		if cfg.DLNA {
+			d := &dlna.Server{Pool: deps.Pool, Auth: state.Auth(), Library: libs, Stream: state.Stream(), Settings: state.Settings,
+				ServerID: state.ServerID(), ServerName: h.ServerNameFor, Encoding: h.LoadEncoding, FFmpeg: cfg.FFmpegPath,
+				Version: version.Version, Log: log, NowPlaying: h.NowPlaying, BaseURL: cfg.DLNAURL, HTTPPort: discovery.PortOf(cfg.DLNAHTTPAddr)}
+			h.DLNA.Store(d)
+			d.Run(ctx, cfg.DLNAHTTPAddr, cfg.DLNASSDPAddr)
 		}
 		log.Info("ready", "server_id", state.ServerID(), "startup", time.Since(h.StartedAt).String())
 		if !state.SetupCompleted(ctx) {

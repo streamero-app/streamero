@@ -38,6 +38,13 @@ OpenID Connect (više providera, PKCE, state/nonce, JWKS rotacija, mapiranje cla
 - Nije provjereno: iOS samo kroz CI build/testove; stvarni Authentik/Authelia/Entra/Google (samo po javnoj dokumentaciji); Active Directory.
 - Sljedeće: ručna provjera s Authentikom na stabilnom serveru i na iOS uređaju (Feather build).
 
+## DLNA server za televizore (branch `feat/dlna`, 2026-11-11)
+DLNA / UPnP AV MediaServer (D-038): SSDP, opis uređaja, ContentDirectory (Browse s pagingom/sortiranjem, Search po naslovu, Samsung X_GetFeatureList/X_SetBookmark), ConnectionManager, DIDL-Lite s protocolInfo i DLNA zastavicama, plakati (JPEG_TN), titlovi (SRT, Samsung CaptionInfo.sec), byte-range i TimeSeekRange; profili LG/Samsung/Sony/generički; pretvaranje u MPEG-TS/MP3 kroz postojeće enkodere. Postavke → Server → „DLNA za televizore" (zadano isključeno; korisnik/profil u čije ime radi, naziv, jezik mapa). Roditeljska ograničenja profila primijenjena u DLNA stablu.
+- Testirano: unit (SSDP parsiranje/odgovori/limiter/loopback, DIDL, profili, plan, seek zaglavlja, SOAP, ocjene → dob, `ProgressiveArgs`), integracijski protiv Postgresa (`TestDLNAIntegration`: opis, Browse/Search kroz SOAP, Range, HEAD s TimeSeekRange, bookmark → nastavi gledati, kids profil, isključeno → 404), web test postavki; živo u Dockeru s neovisnim UPnP klijentom (async-upnp-client + python-didl-lite): multicast otkrivanje, alive/byebye, cijelo stablo, paging/sort/search, Range, pretvoreni streamovi (AV1, HEVC 10-bit, HDR, multi-audio) provjereni ffprobeom, titlovi za LG i Samsung, SUBSCRIBE, bookmark.
+- Nije provjereno: pravi televizori (LG, Samsung, Sony); procjena pozicije iz dohvaćenih bajtova samo unit testom.
+- Poznato: UDP 1900 u composeu samo komentiran (multicast traži host mrežu ili macvlan); demo `.env` bi trebao dobiti `DLNA_HTTP_PORT=127.0.0.1:8788` kao i ostali portovi.
+- Sljedeće: isprobati na vlasnikovom LG TV-u (host mreža na stabilnom serveru), po potrebi doraditi profile.
+
 ## TV aplikacije bez `/compat` (branch `feat/tv-clients`, 2026-11-10)
 Compat API se služi i na korijenu adrese (D-032, `STREAMERO_COMPAT_ROOT`), s CORS-om za web TV aplikacije; `/socket` WebSocket (keepalive + poruka/stop s nadzorne ploče); odgovor na LAN otkrivanje na UDP 7359 (D-033, `STREAMERO_DISCOVERY`, `STREAMERO_DISCOVERY_URL`).
 - Testirano: unit (otkrivanje, nesudaranje sa svim rutama web klijenta iz `router.tsx`, CORS, cookie se ne koristi na compat putanjama, rate limit na korijenu), integracijski protiv Postgresa (`TestCompatRootAndSocketIntegration`: prijava i pregled na korijenu, auth utičnice, keepalive, push naredbi).

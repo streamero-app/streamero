@@ -249,3 +249,31 @@ func (s *Service) loadProfile(ctx context.Context, sessionID uuid.UUID) (*Profil
 	}
 	return &pr, nil
 }
+
+// ProfilesOf returns the profiles of any user (for administrators choosing who
+// a sign-in-less client such as DLNA acts as).
+func (s *Service) ProfilesOf(ctx context.Context, userID uuid.UUID) ([]Profile, error) {
+	return s.ListProfiles(ctx, Principal{User: User{ID: userID}})
+}
+
+// ActAs builds the principal of a user and, optionally, one of its profiles,
+// for clients without sign-in (DLNA). A disabled or deleted user, or a
+// profile of another user, is ErrNotFound.
+func (s *Service) ActAs(ctx context.Context, userID uuid.UUID, profileID *uuid.UUID) (Principal, error) {
+	u, err := scanUser(s.pool.QueryRow(ctx, `SELECT `+userCols+` FROM users WHERE id = $1 AND NOT disabled`, userID))
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return Principal{}, ErrNotFound
+		}
+		return Principal{}, err
+	}
+	p := Principal{User: u}
+	if profileID != nil {
+		pr, err := scanProfile(s.pool.QueryRow(ctx, `SELECT `+profileCols+` FROM profiles WHERE id = $1 AND user_id = $2`, *profileID, userID))
+		if err != nil {
+			return Principal{}, err
+		}
+		p.Profile = &pr
+	}
+	return p, nil
+}

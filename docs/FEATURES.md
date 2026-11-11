@@ -291,7 +291,7 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [ ] `[JF-P]` Trakt: scrobble + dvosmjerni sync watch statusa i ocjena (P13)
 - [ ] `[JF-P]` AniList / MyAnimeList sync (P13)
 - [ ] `[JF-P]` OpenSubtitles (+ Podnapisi, Addic7ed gdje je dozvoljeno) pretraga i auto-download po jezicima biblioteke (P13)
-- [ ] `[JF]` DLNA/UPnP server (P14, opcionalno)
+- [x] `[JF]` DLNA/UPnP server (D-038; provjereno neovisnim UPnP klijentom u Dockeru, na pravom TV-u još ne)
 - [ ] `[+]` Auto-sync podnaslova s audiom (ffsubsync/alass) (P13)
 - [ ] `[+]` AI podnaslovi: Whisper (faster-whisper kontejner, GPU) generira podnaslove kad ih nema (P13)
 - [ ] `[+]` AI prijevod podnaslova (npr. EN → HR) preko lokalnog LLM-a (Ollama) (P13)

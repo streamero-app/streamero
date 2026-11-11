@@ -271,6 +271,12 @@ type Handler interface {
 	//
 	// GET /dashboard
 	GetDashboard(ctx context.Context) (*Dashboard, error)
+	// GetDlnaSettings implements getDlnaSettings operation.
+	//
+	// Settings, listener status and the users/profiles DLNA browsing can act as.
+	//
+	// GET /settings/dlna
+	GetDlnaSettings(ctx context.Context) (*DlnaOverview, error)
 	// GetEncodingSettings implements getEncodingSettings operation.
 	//
 	// Transcoding settings (admin).
@@ -768,6 +774,12 @@ type Handler interface {
 	//
 	// PUT /collections/{collectionId}
 	UpdateCollection(ctx context.Context, req *CollectionInput, params UpdateCollectionParams) (*Collection, error)
+	// UpdateDlnaSettings implements updateDlnaSettings operation.
+	//
+	// Turning DLNA on requires a user (and optionally one of its profiles) to act as.
+	//
+	// PUT /settings/dlna
+	UpdateDlnaSettings(ctx context.Context, req *DlnaSettings) (*DlnaOverview, error)
 	// UpdateEncodingSettings implements updateEncodingSettings operation.
 	//
 	// Update transcoding settings (admin).

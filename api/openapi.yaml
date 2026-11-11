@@ -2515,6 +2515,45 @@ paths:
                 $ref: "#/components/schemas/BrandingSettings"
         default:
           $ref: "#/components/responses/Error"
+  /settings/dlna:
+    get:
+      operationId: getDlnaSettings
+      summary: DLNA media server for smart TVs (admin)
+      description: Settings, listener status and the users/profiles DLNA browsing can act as.
+      tags: [settings]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Settings and status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DlnaOverview"
+        default:
+          $ref: "#/components/responses/Error"
+    put:
+      operationId: updateDlnaSettings
+      summary: Update the DLNA media server (admin)
+      description: Turning DLNA on requires a user (and optionally one of its profiles) to act as.
+      tags: [settings]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DlnaSettings"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DlnaOverview"
+        default:
+          $ref: "#/components/responses/Error"
   /admin/logs:
     get:
       operationId: getServerLogs
@@ -5009,6 +5048,87 @@ components:
           type: string
           maxLength: 20000
           description: Extra CSS added to every page of the web client.
+    DlnaSettings:
+      type: object
+      required: [enabled, friendlyName, language]
+      properties:
+        enabled:
+          type: boolean
+          description: Announce the server to TVs on the local network and let them browse and play (off by default).
+        friendlyName:
+          type: string
+          maxLength: 64
+          description: Name TVs show for this server; empty = the server name.
+        userId:
+          type: string
+          format: uuid
+          description: Streamero user whose libraries, limits and progress DLNA uses. Required when enabled.
+        profileId:
+          type: string
+          format: uuid
+          description: Profile of that user to act as; omitted = the main profile.
+        language:
+          type: string
+          enum: [en, hr]
+          description: Language of the folder names TVs show ("Recently added", "Genres" ...).
+    DlnaStatus:
+      type: object
+      required: [available, running, httpAddr, ssdp]
+      properties:
+        available:
+          type: boolean
+          description: False when DLNA is turned off for the whole process (STREAMERO_DLNA=false).
+        running:
+          type: boolean
+          description: Enabled, a user is chosen and the HTTP listener is up.
+        httpAddr:
+          type: string
+          description: Listen address of the DLNA HTTP side, e.g. ":8788".
+        ssdp:
+          type: boolean
+          description: The SSDP (UDP 1900) listener is up.
+        interfaces:
+          type: array
+          items:
+            type: string
+          description: Network interfaces the server announces itself on.
+        error:
+          type: string
+          description: Why a listener could not start (port taken ...).
+    DlnaUserChoice:
+      type: object
+      required: [id, username, profiles]
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        profiles:
+          type: array
+          items:
+            type: object
+            required: [id, name, isKid]
+            properties:
+              id:
+                type: string
+                format: uuid
+              name:
+                type: string
+              isKid:
+                type: boolean
+    DlnaOverview:
+      type: object
+      required: [settings, status, users]
+      properties:
+        settings:
+          $ref: "#/components/schemas/DlnaSettings"
+        status:
+          $ref: "#/components/schemas/DlnaStatus"
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/DlnaUserChoice"
     LogEntry:
       type: object
       required: [time, level, message, source]

@@ -1851,6 +1851,298 @@ func (s *DiscoverTitleStatus) UnmarshalText(data []byte) error {
 	}
 }
 
+// Ref: #/components/schemas/DlnaOverview
+type DlnaOverview struct {
+	Settings DlnaSettings     `json:"settings"`
+	Status   DlnaStatus       `json:"status"`
+	Users    []DlnaUserChoice `json:"users"`
+}
+
+// GetSettings returns the value of Settings.
+func (s *DlnaOverview) GetSettings() DlnaSettings {
+	return s.Settings
+}
+
+// GetStatus returns the value of Status.
+func (s *DlnaOverview) GetStatus() DlnaStatus {
+	return s.Status
+}
+
+// GetUsers returns the value of Users.
+func (s *DlnaOverview) GetUsers() []DlnaUserChoice {
+	return s.Users
+}
+
+// SetSettings sets the value of Settings.
+func (s *DlnaOverview) SetSettings(val DlnaSettings) {
+	s.Settings = val
+}
+
+// SetStatus sets the value of Status.
+func (s *DlnaOverview) SetStatus(val DlnaStatus) {
+	s.Status = val
+}
+
+// SetUsers sets the value of Users.
+func (s *DlnaOverview) SetUsers(val []DlnaUserChoice) {
+	s.Users = val
+}
+
+// Ref: #/components/schemas/DlnaSettings
+type DlnaSettings struct {
+	// Announce the server to TVs on the local network and let them browse and play (off by default).
+	Enabled bool `json:"enabled"`
+	// Name TVs show for this server; empty = the server name.
+	FriendlyName string `json:"friendlyName"`
+	// Streamero user whose libraries, limits and progress DLNA uses. Required when enabled.
+	UserId OptUUID `json:"userId"`
+	// Profile of that user to act as; omitted = the main profile.
+	ProfileId OptUUID `json:"profileId"`
+	// Language of the folder names TVs show ("Recently added", "Genres" ...).
+	Language DlnaSettingsLanguage `json:"language"`
+}
+
+// GetEnabled returns the value of Enabled.
+func (s *DlnaSettings) GetEnabled() bool {
+	return s.Enabled
+}
+
+// GetFriendlyName returns the value of FriendlyName.
+func (s *DlnaSettings) GetFriendlyName() string {
+	return s.FriendlyName
+}
+
+// GetUserId returns the value of UserId.
+func (s *DlnaSettings) GetUserId() OptUUID {
+	return s.UserId
+}
+
+// GetProfileId returns the value of ProfileId.
+func (s *DlnaSettings) GetProfileId() OptUUID {
+	return s.ProfileId
+}
+
+// GetLanguage returns the value of Language.
+func (s *DlnaSettings) GetLanguage() DlnaSettingsLanguage {
+	return s.Language
+}
+
+// SetEnabled sets the value of Enabled.
+func (s *DlnaSettings) SetEnabled(val bool) {
+	s.Enabled = val
+}
+
+// SetFriendlyName sets the value of FriendlyName.
+func (s *DlnaSettings) SetFriendlyName(val string) {
+	s.FriendlyName = val
+}
+
+// SetUserId sets the value of UserId.
+func (s *DlnaSettings) SetUserId(val OptUUID) {
+	s.UserId = val
+}
+
+// SetProfileId sets the value of ProfileId.
+func (s *DlnaSettings) SetProfileId(val OptUUID) {
+	s.ProfileId = val
+}
+
+// SetLanguage sets the value of Language.
+func (s *DlnaSettings) SetLanguage(val DlnaSettingsLanguage) {
+	s.Language = val
+}
+
+// Language of the folder names TVs show ("Recently added", "Genres" ...).
+type DlnaSettingsLanguage string
+
+const (
+	DlnaSettingsLanguageEn DlnaSettingsLanguage = "en"
+	DlnaSettingsLanguageHr DlnaSettingsLanguage = "hr"
+)
+
+// AllValues returns all DlnaSettingsLanguage values.
+func (DlnaSettingsLanguage) AllValues() []DlnaSettingsLanguage {
+	return []DlnaSettingsLanguage{
+		DlnaSettingsLanguageEn,
+		DlnaSettingsLanguageHr,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DlnaSettingsLanguage) MarshalText() ([]byte, error) {
+	switch s {
+	case DlnaSettingsLanguageEn:
+		return []byte(s), nil
+	case DlnaSettingsLanguageHr:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DlnaSettingsLanguage) UnmarshalText(data []byte) error {
+	switch DlnaSettingsLanguage(data) {
+	case DlnaSettingsLanguageEn:
+		*s = DlnaSettingsLanguageEn
+		return nil
+	case DlnaSettingsLanguageHr:
+		*s = DlnaSettingsLanguageHr
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/DlnaStatus
+type DlnaStatus struct {
+	// False when DLNA is turned off for the whole process (STREAMERO_DLNA=false).
+	Available bool `json:"available"`
+	// Enabled, a user is chosen and the HTTP listener is up.
+	Running bool `json:"running"`
+	// Listen address of the DLNA HTTP side, e.g. ":8788".
+	HttpAddr string `json:"httpAddr"`
+	// The SSDP (UDP 1900) listener is up.
+	Ssdp bool `json:"ssdp"`
+	// Network interfaces the server announces itself on.
+	Interfaces []string `json:"interfaces"`
+	// Why a listener could not start (port taken ...).
+	Error OptString `json:"error"`
+}
+
+// GetAvailable returns the value of Available.
+func (s *DlnaStatus) GetAvailable() bool {
+	return s.Available
+}
+
+// GetRunning returns the value of Running.
+func (s *DlnaStatus) GetRunning() bool {
+	return s.Running
+}
+
+// GetHttpAddr returns the value of HttpAddr.
+func (s *DlnaStatus) GetHttpAddr() string {
+	return s.HttpAddr
+}
+
+// GetSsdp returns the value of Ssdp.
+func (s *DlnaStatus) GetSsdp() bool {
+	return s.Ssdp
+}
+
+// GetInterfaces returns the value of Interfaces.
+func (s *DlnaStatus) GetInterfaces() []string {
+	return s.Interfaces
+}
+
+// GetError returns the value of Error.
+func (s *DlnaStatus) GetError() OptString {
+	return s.Error
+}
+
+// SetAvailable sets the value of Available.
+func (s *DlnaStatus) SetAvailable(val bool) {
+	s.Available = val
+}
+
+// SetRunning sets the value of Running.
+func (s *DlnaStatus) SetRunning(val bool) {
+	s.Running = val
+}
+
+// SetHttpAddr sets the value of HttpAddr.
+func (s *DlnaStatus) SetHttpAddr(val string) {
+	s.HttpAddr = val
+}
+
+// SetSsdp sets the value of Ssdp.
+func (s *DlnaStatus) SetSsdp(val bool) {
+	s.Ssdp = val
+}
+
+// SetInterfaces sets the value of Interfaces.
+func (s *DlnaStatus) SetInterfaces(val []string) {
+	s.Interfaces = val
+}
+
+// SetError sets the value of Error.
+func (s *DlnaStatus) SetError(val OptString) {
+	s.Error = val
+}
+
+// Ref: #/components/schemas/DlnaUserChoice
+type DlnaUserChoice struct {
+	ID       uuid.UUID                    `json:"id"`
+	Username string                       `json:"username"`
+	Profiles []DlnaUserChoiceProfilesItem `json:"profiles"`
+}
+
+// GetID returns the value of ID.
+func (s *DlnaUserChoice) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetUsername returns the value of Username.
+func (s *DlnaUserChoice) GetUsername() string {
+	return s.Username
+}
+
+// GetProfiles returns the value of Profiles.
+func (s *DlnaUserChoice) GetProfiles() []DlnaUserChoiceProfilesItem {
+	return s.Profiles
+}
+
+// SetID sets the value of ID.
+func (s *DlnaUserChoice) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetUsername sets the value of Username.
+func (s *DlnaUserChoice) SetUsername(val string) {
+	s.Username = val
+}
+
+// SetProfiles sets the value of Profiles.
+func (s *DlnaUserChoice) SetProfiles(val []DlnaUserChoiceProfilesItem) {
+	s.Profiles = val
+}
+
+type DlnaUserChoiceProfilesItem struct {
+	ID    uuid.UUID `json:"id"`
+	Name  string    `json:"name"`
+	IsKid bool      `json:"isKid"`
+}
+
+// GetID returns the value of ID.
+func (s *DlnaUserChoiceProfilesItem) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetName returns the value of Name.
+func (s *DlnaUserChoiceProfilesItem) GetName() string {
+	return s.Name
+}
+
+// GetIsKid returns the value of IsKid.
+func (s *DlnaUserChoiceProfilesItem) GetIsKid() bool {
+	return s.IsKid
+}
+
+// SetID sets the value of ID.
+func (s *DlnaUserChoiceProfilesItem) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetName sets the value of Name.
+func (s *DlnaUserChoiceProfilesItem) SetName(val string) {
+	s.Name = val
+}
+
+// SetIsKid sets the value of IsKid.
+func (s *DlnaUserChoiceProfilesItem) SetIsKid(val bool) {
+	s.IsKid = val
+}
+
 type DownloadBackupOK struct {
 	Data io.Reader
 }

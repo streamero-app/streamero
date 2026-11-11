@@ -1707,6 +1707,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/settings/dlna": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * DLNA media server for smart TVs (admin)
+         * @description Settings, listener status and the users/profiles DLNA browsing can act as.
+         */
+        get: operations["getDlnaSettings"];
+        /**
+         * Update the DLNA media server (admin)
+         * @description Turning DLNA on requires a user (and optionally one of its profiles) to act as.
+         */
+        put: operations["updateDlnaSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/logs": {
         parameters: {
             query?: never;
@@ -3008,6 +3032,57 @@ export interface components {
             loginDisclaimer: string;
             /** @description Extra CSS added to every page of the web client. */
             customCss: string;
+        };
+        DlnaSettings: {
+            /** @description Announce the server to TVs on the local network and let them browse and play (off by default). */
+            enabled: boolean;
+            /** @description Name TVs show for this server; empty = the server name. */
+            friendlyName: string;
+            /**
+             * Format: uuid
+             * @description Streamero user whose libraries, limits and progress DLNA uses. Required when enabled.
+             */
+            userId?: string;
+            /**
+             * Format: uuid
+             * @description Profile of that user to act as; omitted = the main profile.
+             */
+            profileId?: string;
+            /**
+             * @description Language of the folder names TVs show ("Recently added", "Genres" ...).
+             * @enum {string}
+             */
+            language: "en" | "hr";
+        };
+        DlnaStatus: {
+            /** @description False when DLNA is turned off for the whole process (STREAMERO_DLNA=false). */
+            available: boolean;
+            /** @description Enabled, a user is chosen and the HTTP listener is up. */
+            running: boolean;
+            /** @description Listen address of the DLNA HTTP side, e.g. ":8788". */
+            httpAddr: string;
+            /** @description The SSDP (UDP 1900) listener is up. */
+            ssdp: boolean;
+            /** @description Network interfaces the server announces itself on. */
+            interfaces?: string[];
+            /** @description Why a listener could not start (port taken ...). */
+            error?: string;
+        };
+        DlnaUserChoice: {
+            /** Format: uuid */
+            id: string;
+            username: string;
+            profiles: {
+                /** Format: uuid */
+                id: string;
+                name: string;
+                isKid: boolean;
+            }[];
+        };
+        DlnaOverview: {
+            settings: components["schemas"]["DlnaSettings"];
+            status: components["schemas"]["DlnaStatus"];
+            users: components["schemas"]["DlnaUserChoice"][];
         };
         LogEntry: {
             /** Format: date-time */
@@ -6094,6 +6169,52 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BrandingSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getDlnaSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Settings and status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DlnaOverview"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateDlnaSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DlnaSettings"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DlnaOverview"];
                 };
             };
             default: components["responses"]["Error"];
