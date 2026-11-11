@@ -92,6 +92,7 @@ type Plan struct {
 	MaxBitrate     int     // video bits per second when the stream must stay under a limit (0 = quality only)
 	AudioOnly      bool    // music: no picture (embedded cover art is left out)
 	Burn           *BurnIn // subtitle drawn into the picture (forces a video transcode)
+	Deinterlace    bool    // live TV: deinterlace flagged frames when transcoding
 }
 
 // fileBitrate estimates a file's overall bits per second from its size and length.

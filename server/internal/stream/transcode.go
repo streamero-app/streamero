@@ -25,6 +25,8 @@ type Job struct {
 	StartMS    int64
 	AudioIndex int // -1 = no audio
 	Plan       Plan
+	// InputArgs go right before -i (live sources: protocol whitelist, reconnect, user agent).
+	InputArgs []string
 }
 
 type session struct {
@@ -33,6 +35,7 @@ type session struct {
 	cancel  context.CancelFunc
 	lastHit time.Time
 	done    chan struct{}
+	onStop  func() // live sessions release their tuner here
 }
 
 // Manager runs ffmpeg HLS sessions under Dir (a tmpfs in production).
@@ -105,6 +108,10 @@ func codecArgs(j Job, dir string, enc Encoding) []string {
 	}
 	if j.Plan.TranscodeVideo {
 		var pre, post []string
+		if j.Plan.Deinterlace {
+			// Broadcast TV is often interlaced; only frames flagged as interlaced are touched.
+			pre = append(pre, "bwdif=mode=send_frame:deint=interlaced")
+		}
 		if j.Plan.ToneMap && enc.ToneMaps() {
 			// HDR (PQ/HLG) to SDR BT.709 with the Hable curve.
 			pre = append(pre, "zscale=t=linear:npl=100", "format=gbrpf32le", "zscale=p=bt709",
@@ -152,6 +159,7 @@ func codecArgs(j Job, dir string, enc Encoding) []string {
 	if j.StartMS > 0 {
 		a = append(a, "-ss", strconv.FormatFloat(float64(j.StartMS)/1000, 'f', 3, 64))
 	}
+	a = append(a, j.InputArgs...)
 	a = append(a, "-i", j.Input)
 	if burn != nil && burn.External {
 		// A sidecar is read from its start, moved to the stream's clock: seeking a
@@ -183,8 +191,32 @@ func codecArgs(j Job, dir string, enc Encoding) []string {
 	return a
 }
 
+// LiveArgs builds the ffmpeg command line for a live channel: an HLS playlist
+// that keeps only the last window segments (deleting older ones), so its size
+// is bounded and players can pause and rewind inside it (time-shift).
+func LiveArgs(j Job, dir string, enc Encoding, window int) []string {
+	enc = enc.Normalize()
+	j.StartMS = 0
+	a := codecArgs(j, dir, enc)
+	return append(a, "-f", "hls", "-hls_time", strconv.Itoa(enc.SegmentSeconds), "-hls_list_size", strconv.Itoa(max(window, 3)),
+		"-hls_delete_threshold", "2", "-hls_flags", "delete_segments+independent_segments+program_date_time",
+		"-hls_segment_type", "fmp4", "-hls_fmp4_init_filename", "init.mp4",
+		"-hls_segment_filename", filepath.Join(dir, "seg_%05d.m4s"), "-start_number", "0", filepath.Join(dir, "index.m3u8"))
+}
+
 // Start launches ffmpeg and waits until the first segment is listed.
 func (m *Manager) Start(ctx context.Context, j Job) (string, error) {
+	return m.start(ctx, j, func(dir string, enc Encoding) []string { return Args(j, dir, enc) }, nil)
+}
+
+// StartLive starts a live channel session (see LiveArgs). onStop runs once when
+// the session ends for any reason (idle, Stop, ffmpeg exit after a failed start).
+// The live input has no end: the session lives until nobody requests it.
+func (m *Manager) StartLive(ctx context.Context, j Job, window int, onStop func()) (string, error) {
+	return m.start(ctx, j, func(dir string, enc Encoding) []string { return LiveArgs(j, dir, enc, window) }, onStop)
+}
+
+func (m *Manager) start(ctx context.Context, j Job, build func(dir string, enc Encoding) []string, onStop func()) (string, error) {
 	enc := DefaultEncoding()
 	if m.Encoding != nil {
 		enc = m.Encoding(ctx).Normalize()
@@ -195,6 +227,9 @@ func (m *Manager) Start(ctx context.Context, j Job) (string, error) {
 	id := newID()
 	dir := filepath.Join(m.Dir, id)
 	if err := os.MkdirAll(dir, 0o750); err != nil {
+		if onStop != nil {
+			onStop()
+		}
 		return "", err
 	}
 	if b := j.Plan.Burn; b != nil && j.Plan.TranscodeVideo && !b.Bitmap {
@@ -209,15 +244,18 @@ func (m *Manager) Start(ctx context.Context, j Job) (string, error) {
 	}
 	runCtx, cancel := context.WithCancel(context.Background())
 	// #nosec G204 -- fixed binary; the input path was validated with ResolveSafePath.
-	cmd := exec.CommandContext(runCtx, m.FFmpeg, Args(j, dir, enc)...)
+	cmd := exec.CommandContext(runCtx, m.FFmpeg, build(dir, enc)...)
 	var stderr strings.Builder
 	cmd.Stderr = &limitedWriter{w: &stderr, n: 4096}
 	if err := cmd.Start(); err != nil {
 		cancel()
 		_ = os.RemoveAll(dir)
+		if onStop != nil {
+			onStop()
+		}
 		return "", fmt.Errorf("start ffmpeg: %w", err)
 	}
-	s := &session{dir: dir, cmd: cmd, cancel: cancel, lastHit: time.Now(), done: make(chan struct{})}
+	s := &session{dir: dir, cmd: cmd, cancel: cancel, lastHit: time.Now(), done: make(chan struct{}), onStop: onStop}
 	go func() {
 		err := cmd.Wait()
 		if err != nil && runCtx.Err() == nil {
@@ -365,6 +403,28 @@ func (m *Manager) stop(id string) {
 	s.cancel()
 	<-s.done
 	_ = os.RemoveAll(s.dir)
+	if s.onStop != nil {
+		s.onStop()
+	}
+}
+
+// Stop ends a session (e.g. a live channel whose tuner a recording needs).
+func (m *Manager) Stop(id string) { m.stop(id) }
+
+// Alive reports whether a session is running and its ffmpeg has not exited.
+func (m *Manager) Alive(id string) bool {
+	m.mu.Lock()
+	s, ok := m.streams[id]
+	m.mu.Unlock()
+	if !ok {
+		return false
+	}
+	select {
+	case <-s.done:
+		return false
+	default:
+		return true
+	}
 }
 
 // Reap stops idle sessions until ctx ends; call once in a goroutine.

@@ -33,10 +33,15 @@ x-common: &common
     # Address announced to TVs, e.g. http://192.168.1.10:8788. Needed with bridge
     # networking (the container only knows its internal address).
     STREAMERO_DLNA_URL: ${STREAMERO_DLNA_URL:-}
+    # Live TV and DVR (D-041): recordings are written here (RECORDINGS_PATH on the host)
+    # and appear as the "Recordings" library. M3U/XMLTV files can be put in /config/livetv.
+    STREAMERO_RECORDINGS_DIR: ${STREAMERO_RECORDINGS_DIR:-/recordings}
   volumes:
     - ${CONFIG_PATH:-./data/config}:/config
     - ${CACHE_PATH:-./data/cache}:/cache
     - ${MEDIA_PATH:-/mnt/media}:/media:ro
+    # DVR recordings (D-041); the worker scans them into the recordings library.
+    - ${RECORDINGS_PATH:-./data/recordings}:/recordings
   depends_on:
     db: { condition: service_healthy }
     valkey: { condition: service_healthy }

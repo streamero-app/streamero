@@ -30,6 +30,8 @@ type Server struct {
 	SubsTTL time.Duration
 	// Downloads serves /stream/dl/{id}/{name}: offline download files (D-040).
 	Downloads http.Handler
+	// Images serves /stream/img/{key}/{name} (live TV logos and programme images; optional).
+	Images http.Handler
 }
 
 // Routes returns the handler for /stream.
@@ -47,6 +49,9 @@ func (s *Server) Routes() http.Handler {
 		}
 		s.Downloads.ServeHTTP(w, r)
 	})
+	if s.Images != nil {
+		r.Handle("/img/{key}/{name}", s.Images)
+	}
 	return r
 }
 
