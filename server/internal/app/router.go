@@ -106,6 +106,8 @@ func NewRouter(state *State, h *api.Handler, opts ...RouterOptions) (http.Handle
 		writeJSON(w, http.StatusOK, map[string]any{"status": "ready"})
 	})
 
+	// Watch-together socket: a WebSocket, so outside the generated router (D-036).
+	r.Get("/api/v1/syncplay/socket", h.SyncPlaySocket)
 	r.Mount("/api/v1", startingGuard(state, apiServer))
 	// Compatibility API for request managers and *arr notifications (D-016).
 	serveCompat := func(w http.ResponseWriter, req *http.Request) {

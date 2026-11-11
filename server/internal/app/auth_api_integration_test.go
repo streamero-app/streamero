@@ -40,6 +40,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/notify"
 	"github.com/streamero-app/streamero/server/internal/settings"
 	"github.com/streamero-app/streamero/server/internal/stream"
+	"github.com/streamero-app/streamero/server/internal/syncplay"
 )
 
 const testSetupCode = "TEST-CODE"
@@ -97,6 +98,8 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 			return (&importer.Runner{Pool: deps.Pool, Log: log}).Run(ctx, id)
 		}}
 	h.Notify.Server = h.ServerNameFor
+	h.SyncPlay = &syncplay.Service{Hub: syncplay.NewHub(), Lookup: h.SyncLookup}
+	testSyncPlay = h.SyncPlay
 	testBackups = &backup.Service{Pool: deps.Pool, Dir: t.TempDir(), Version: "test"}
 	h.Backup.Store(&api.Backups{Service: testBackups, Enqueue: func(context.Context) error { ranTasks = append(ranTasks, "backup"); return nil }})
 	state.Library().Resume = h.LoadResume
@@ -111,6 +114,9 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 	t.Cleanup(srv.Close)
 	return srv
 }
+
+// testSyncPlay is the watch-together service of the most recent test server.
+var testSyncPlay *syncplay.Service
 
 // testBackups is the backup service of the most recent test server.
 var testBackups *backup.Service

@@ -22,6 +22,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/requests"
 	"github.com/streamero-app/streamero/server/internal/settings"
 	"github.com/streamero-app/streamero/server/internal/stream"
+	"github.com/streamero-app/streamero/server/internal/syncplay"
 	"github.com/streamero-app/streamero/server/internal/version"
 )
 
@@ -52,6 +53,8 @@ type Handler struct {
 	NewTMDb func(key string) *metadata.TMDb
 	// NowPlaying tracks active playback for the dashboard (nil disables it).
 	NowPlaying *activity.Registry
+	// SyncPlay runs watch-together groups (nil until ready).
+	SyncPlay *syncplay.Service
 	// Notify delivers events to webhook targets (nil disables it).
 	Notify *notify.Dispatcher
 	// Paths are shown with their free space on the dashboard.
