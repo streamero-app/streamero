@@ -263,6 +263,8 @@ type ItemFilter struct {
 	YearFrom, YearTo int    // 0 = open
 	Letter           string // "A".."Z", "#" for anything else, "" = all
 	Kind             string // music: artist, album or track instead of top-level items
+	// ExcludeRatings hides items with one of these official ratings (parental limits, see RatingAge).
+	ExcludeRatings []string
 }
 
 // ListItems returns a filtered page of top-level items (movies, series) with the viewer's state.
@@ -285,15 +287,20 @@ func (s *Service) ListItems(ctx context.Context, libID, owner uuid.UUID, sortBy 
 		AND ($2 = '' OR i.genres @> ARRAY[$2]::text[]) AND (NOT $3 OR NOT COALESCE(u.played, false))
 		AND (NOT $5 OR COALESCE(u.favorite, false)) AND (NOT $6 OR (COALESCE(u.position_ms, 0) > 0 AND NOT COALESCE(u.played, false)))
 		AND ($7 = 0 OR i.year >= $7) AND ($8 = 0 OR i.year <= $8)
-		AND ($9 = '' OR ($9 = '#' AND upper(left(i.sort_title, 1)) !~ '^[A-ZČĆĐŠŽ]') OR upper(left(i.sort_title, 1)) = $9)`
-	args := []any{libID, f.Genre, f.Unplayed, owner, f.Favorite, f.Resumable, f.YearFrom, f.YearTo, strings.ToUpper(f.Letter), f.Kind}
+		AND ($9 = '' OR ($9 = '#' AND upper(left(i.sort_title, 1)) !~ '^[A-ZČĆĐŠŽ]') OR upper(left(i.sort_title, 1)) = $9)
+		AND (cardinality($11::text[]) = 0 OR i.official_rating IS NULL OR NOT i.official_rating = ANY($11::text[]))`
+	excl := f.ExcludeRatings
+	if excl == nil {
+		excl = []string{}
+	}
+	args := []any{libID, f.Genre, f.Unplayed, owner, f.Favorite, f.Resumable, f.YearFrom, f.YearTo, strings.ToUpper(f.Letter), f.Kind, excl}
 	var total int
 	if err := s.Pool.QueryRow(ctx, `SELECT count(*) FROM items i`+userJoin("$4")+where, args...).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 	// #nosec G202 -- order is one of the constants above
 	rows, err := s.Pool.Query(ctx, `SELECT `+itemCols+` FROM items i`+userJoin("$4")+where+`
-		ORDER BY `+order+` LIMIT $11 OFFSET $12`, append(args, limit, offset)...)
+		ORDER BY `+order+` LIMIT $12 OFFSET $13`, append(args, limit, offset)...)
 	if err != nil {
 		return nil, 0, err
 	}
