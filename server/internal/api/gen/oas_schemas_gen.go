@@ -1348,6 +1348,10 @@ type DeviceProfile struct {
 	MaxHeight OptInt  `json:"maxHeight"`
 	// Bits per second; lower values force transcoding.
 	MaxBitrate OptInt `json:"maxBitrate"`
+	// Bitmap subtitle formats the client draws itself when it plays the file directly (ffprobe names, e.g.
+	// ["hdmv_pgs_subtitle", "dvd_subtitle"]). Other bitmap tracks are burned into the picture when chosen.
+	// Text tracks are always offered as WebVTT.
+	SubtitleCodecs []string `json:"subtitleCodecs"`
 }
 
 // GetContainers returns the value of Containers.
@@ -1380,6 +1384,11 @@ func (s *DeviceProfile) GetMaxBitrate() OptInt {
 	return s.MaxBitrate
 }
 
+// GetSubtitleCodecs returns the value of SubtitleCodecs.
+func (s *DeviceProfile) GetSubtitleCodecs() []string {
+	return s.SubtitleCodecs
+}
+
 // SetContainers sets the value of Containers.
 func (s *DeviceProfile) SetContainers(val []string) {
 	s.Containers = val
@@ -1408,6 +1417,11 @@ func (s *DeviceProfile) SetMaxHeight(val OptInt) {
 // SetMaxBitrate sets the value of MaxBitrate.
 func (s *DeviceProfile) SetMaxBitrate(val OptInt) {
 	s.MaxBitrate = val
+}
+
+// SetSubtitleCodecs sets the value of SubtitleCodecs.
+func (s *DeviceProfile) SetSubtitleCodecs(val []string) {
+	s.SubtitleCodecs = val
 }
 
 // Ref: #/components/schemas/DirectoryListing
@@ -6773,6 +6787,55 @@ func (s *PinRequest) SetPin(val OptString) {
 	s.Pin = val
 }
 
+// Ref: #/components/schemas/PlaybackBitmapSubtitle
+type PlaybackBitmapSubtitle struct {
+	// Index into the file's subtitle tracks (the value for subtitleIndex).
+	Index    int       `json:"index"`
+	Codec    string    `json:"codec"`
+	Language OptString `json:"language"`
+	Forced   OptBool   `json:"forced"`
+}
+
+// GetIndex returns the value of Index.
+func (s *PlaybackBitmapSubtitle) GetIndex() int {
+	return s.Index
+}
+
+// GetCodec returns the value of Codec.
+func (s *PlaybackBitmapSubtitle) GetCodec() string {
+	return s.Codec
+}
+
+// GetLanguage returns the value of Language.
+func (s *PlaybackBitmapSubtitle) GetLanguage() OptString {
+	return s.Language
+}
+
+// GetForced returns the value of Forced.
+func (s *PlaybackBitmapSubtitle) GetForced() OptBool {
+	return s.Forced
+}
+
+// SetIndex sets the value of Index.
+func (s *PlaybackBitmapSubtitle) SetIndex(val int) {
+	s.Index = val
+}
+
+// SetCodec sets the value of Codec.
+func (s *PlaybackBitmapSubtitle) SetCodec(val string) {
+	s.Codec = val
+}
+
+// SetLanguage sets the value of Language.
+func (s *PlaybackBitmapSubtitle) SetLanguage(val OptString) {
+	s.Language = val
+}
+
+// SetForced sets the value of Forced.
+func (s *PlaybackBitmapSubtitle) SetForced(val OptBool) {
+	s.Forced = val
+}
+
 // Ref: #/components/schemas/PlaybackInfo
 type PlaybackInfo struct {
 	Chapters  []Chapter        `json:"chapters"`
@@ -6790,8 +6853,12 @@ type PlaybackInfo struct {
 	Audio      []AudioStream      `json:"audio"`
 	AudioIndex OptInt             `json:"audioIndex"`
 	Subtitles  []PlaybackSubtitle `json:"subtitles"`
-	// Why the stream is not direct play (e.g. "audio codec dts").
+	// Why the stream is not direct play (e.g. "audio codec dts", "subtitle burn-in").
 	Reason OptString `json:"reason"`
+	// Bitmap subtitle tracks; choosing one restarts playback with subtitleIndex (burned in).
+	BitmapSubtitles []PlaybackBitmapSubtitle `json:"bitmapSubtitles"`
+	// Index of the subtitle track burned into this stream (absent = none).
+	BurnedSubtitle OptInt `json:"burnedSubtitle"`
 }
 
 // GetChapters returns the value of Chapters.
@@ -6859,6 +6926,16 @@ func (s *PlaybackInfo) GetReason() OptString {
 	return s.Reason
 }
 
+// GetBitmapSubtitles returns the value of BitmapSubtitles.
+func (s *PlaybackInfo) GetBitmapSubtitles() []PlaybackBitmapSubtitle {
+	return s.BitmapSubtitles
+}
+
+// GetBurnedSubtitle returns the value of BurnedSubtitle.
+func (s *PlaybackInfo) GetBurnedSubtitle() OptInt {
+	return s.BurnedSubtitle
+}
+
 // SetChapters sets the value of Chapters.
 func (s *PlaybackInfo) SetChapters(val []Chapter) {
 	s.Chapters = val
@@ -6922,6 +6999,16 @@ func (s *PlaybackInfo) SetSubtitles(val []PlaybackSubtitle) {
 // SetReason sets the value of Reason.
 func (s *PlaybackInfo) SetReason(val OptString) {
 	s.Reason = val
+}
+
+// SetBitmapSubtitles sets the value of BitmapSubtitles.
+func (s *PlaybackInfo) SetBitmapSubtitles(val []PlaybackBitmapSubtitle) {
+	s.BitmapSubtitles = val
+}
+
+// SetBurnedSubtitle sets the value of BurnedSubtitle.
+func (s *PlaybackInfo) SetBurnedSubtitle(val OptInt) {
+	s.BurnedSubtitle = val
 }
 
 type PlaybackInfoMethod string
@@ -7565,8 +7652,15 @@ type PlaybackRequest struct {
 	// Index into the file's audio tracks (default the first).
 	AudioIndex OptInt `json:"audioIndex"`
 	// Start position (default the saved resume position).
-	StartMs OptInt64      `json:"startMs"`
-	Device  DeviceProfile `json:"device"`
+	StartMs OptInt64 `json:"startMs"`
+	// Subtitle track chosen by the viewer (index into the file's subtitle tracks; -1 = none). A bitmap
+	// track (PGS, VobSub, DVB) the client cannot draw is burned into the picture, which makes the stream a
+	// transcode. Absent = automatic: a forced bitmap track picked by the viewer's subtitle preference is
+	// burned in.
+	SubtitleIndex OptInt `json:"subtitleIndex"`
+	// Burn the chosen subtitleIndex in even when it is a text track (keeps ASS/SSA styling).
+	BurnSubtitle OptBool       `json:"burnSubtitle"`
+	Device       DeviceProfile `json:"device"`
 }
 
 // GetFileId returns the value of FileId.
@@ -7582,6 +7676,16 @@ func (s *PlaybackRequest) GetAudioIndex() OptInt {
 // GetStartMs returns the value of StartMs.
 func (s *PlaybackRequest) GetStartMs() OptInt64 {
 	return s.StartMs
+}
+
+// GetSubtitleIndex returns the value of SubtitleIndex.
+func (s *PlaybackRequest) GetSubtitleIndex() OptInt {
+	return s.SubtitleIndex
+}
+
+// GetBurnSubtitle returns the value of BurnSubtitle.
+func (s *PlaybackRequest) GetBurnSubtitle() OptBool {
+	return s.BurnSubtitle
 }
 
 // GetDevice returns the value of Device.
@@ -7602,6 +7706,16 @@ func (s *PlaybackRequest) SetAudioIndex(val OptInt) {
 // SetStartMs sets the value of StartMs.
 func (s *PlaybackRequest) SetStartMs(val OptInt64) {
 	s.StartMs = val
+}
+
+// SetSubtitleIndex sets the value of SubtitleIndex.
+func (s *PlaybackRequest) SetSubtitleIndex(val OptInt) {
+	s.SubtitleIndex = val
+}
+
+// SetBurnSubtitle sets the value of BurnSubtitle.
+func (s *PlaybackRequest) SetBurnSubtitle(val OptBool) {
+	s.BurnSubtitle = val
 }
 
 // SetDevice sets the value of Device.
@@ -9614,6 +9728,7 @@ const (
 	TaskKeyRefreshMetadata TaskKey = "refresh_metadata"
 	TaskKeyCleanupImages   TaskKey = "cleanup_images"
 	TaskKeyAnalyzeMedia    TaskKey = "analyze_media"
+	TaskKeyDetectSegments  TaskKey = "detect_segments"
 	TaskKeyBackup          TaskKey = "backup"
 )
 
@@ -9624,6 +9739,7 @@ func (TaskKey) AllValues() []TaskKey {
 		TaskKeyRefreshMetadata,
 		TaskKeyCleanupImages,
 		TaskKeyAnalyzeMedia,
+		TaskKeyDetectSegments,
 		TaskKeyBackup,
 	}
 }
@@ -9638,6 +9754,8 @@ func (s TaskKey) MarshalText() ([]byte, error) {
 	case TaskKeyCleanupImages:
 		return []byte(s), nil
 	case TaskKeyAnalyzeMedia:
+		return []byte(s), nil
+	case TaskKeyDetectSegments:
 		return []byte(s), nil
 	case TaskKeyBackup:
 		return []byte(s), nil
@@ -9660,6 +9778,9 @@ func (s *TaskKey) UnmarshalText(data []byte) error {
 		return nil
 	case TaskKeyAnalyzeMedia:
 		*s = TaskKeyAnalyzeMedia
+		return nil
+	case TaskKeyDetectSegments:
+		*s = TaskKeyDetectSegments
 		return nil
 	case TaskKeyBackup:
 		*s = TaskKeyBackup
