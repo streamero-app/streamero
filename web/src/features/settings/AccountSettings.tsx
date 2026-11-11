@@ -10,12 +10,16 @@ import { AvatarPicker } from "./AvatarPicker";
 import { SettingRow } from "./SettingRow";
 import { useDateTime } from "./SettingsLayout";
 import { TwoFactorCard } from "./TwoFactorCard";
+import { LinkedAccountsCard, useIdentities } from "./LinkedAccountsCard";
 
 export function AccountSettings() {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const { data: me } = useMe();
   const fmt = useDateTime();
+  const { data: identities } = useIdentities();
+  // Accounts made by single sign-on or LDAP have no Streamero password to change.
+  const hasPassword = identities?.hasPassword ?? true;
   const [profile, setProfile] = useState({ displayName: "", email: "", language: "en" as Language });
   useEffect(() => {
     if (me) setProfile({ displayName: me.displayName ?? "", email: me.email ?? "", language: (me.language as Language | undefined) ?? "en" });
@@ -84,7 +88,9 @@ export function AccountSettings() {
         </Card>
       </form>
 
-      <Card title={t("account.changePassword")}>
+      <LinkedAccountsCard />
+
+      {hasPassword && <Card title={t("account.changePassword")}>
         <form className="flex max-w-sm flex-col gap-4" onSubmit={onPassword}>
           <TextField label={t("account.currentPassword")} type="password" autoComplete="current-password" required
             value={form.current} onChange={(e) => setForm({ ...form, current: e.target.value })} />
@@ -97,7 +103,7 @@ export function AccountSettings() {
           {change.isSuccess && <SuccessText>{t("account.passwordChanged")}</SuccessText>}
           <Button type="submit" disabled={change.isPending} className="self-start">{t("account.changePassword")}</Button>
         </form>
-      </Card>
+      </Card>}
       <TwoFactorCard />
     </div>
   );
