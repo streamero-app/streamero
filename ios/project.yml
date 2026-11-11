@@ -52,6 +52,11 @@ targets:
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true   # self-hosted servers on LAN often use plain HTTP
         UIUserInterfaceStyle: Dark
+        # Single sign-on returns through streamero://oidc (D-037). A URL scheme needs no
+        # entitlement, so it survives Feather re-signing (associated domains would not).
+        CFBundleURLTypes:
+          - CFBundleURLName: net.scyde.streamero.sso
+            CFBundleURLSchemes: [streamero]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: net.scyde.streamero

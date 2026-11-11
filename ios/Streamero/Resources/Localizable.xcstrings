@@ -5217,6 +5217,134 @@
           }
         }
       }
+    },
+    "login.sso %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue with %@"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nastavite s: %@"
+          }
+        }
+      }
+    },
+    "login.sso.error.state": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The sign-in expired or was already used. Try again."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prijava je istekla ili je već iskorištena. Pokušajte ponovno."
+          }
+        }
+      }
+    },
+    "login.sso.error.provider": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The sign-in provider refused the sign-in."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pružatelj prijave odbio je prijavu."
+          }
+        }
+      }
+    },
+    "login.sso.error.noAccount": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No account on this server is linked to that sign-in. Ask the administrator."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nijedan račun na ovom serveru nije povezan s tom prijavom. Obratite se administratoru."
+          }
+        }
+      }
+    },
+    "login.sso.error.notAllowed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This account is not allowed to sign in to this server."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ovaj se račun ne smije prijaviti na ovaj server."
+          }
+        }
+      }
+    },
+    "login.sso.error.disabled": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This account is disabled."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ovaj je račun onemogućen."
+          }
+        }
+      }
+    },
+    "login.sso.error.notConfigured": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Single sign-on is not set up completely on the server."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jedinstvena prijava na serveru nije do kraja postavljena."
+          }
+        }
+      }
+    },
+    "login.error.passwordDisabled": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Password sign-in is turned off on this server."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prijava lozinkom na ovom je serveru isključena."
+          }
+        }
+      }
     }
   }
 }

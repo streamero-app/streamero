@@ -1,3 +1,4 @@
+import AuthenticationServices
 import SwiftUI
 
 /// Maps API error codes to localized messages (same codes as the web client).
@@ -9,6 +10,13 @@ enum LoginMessage {
         case "invalid_totp": "login.error.totp"
         case "rate_limited": "login.error.rateLimited"
         case "not_found": "quickConnect.expired"
+        case "invalid_state": "login.sso.error.state"
+        case "provider_error", "internal": "login.sso.error.provider"
+        case "no_account", "identity_taken": "login.sso.error.noAccount"
+        case "not_allowed": "login.sso.error.notAllowed"
+        case "account_disabled": "login.sso.error.disabled"
+        case "not_configured", "unknown_provider": "login.sso.error.notConfigured"
+        case "password_login_disabled": "login.error.passwordDisabled"
         default: "login.error.generic"
         }
     }
@@ -25,6 +33,8 @@ struct LoginView: View {
     @State private var busy = false
     @State private var error: LocalizedStringKey?
     @State private var quickConnect = false
+    @State private var providers: Components.Schemas.AuthProviders?
+    @Environment(\.webAuthenticationSession) private var webAuthenticationSession
 
     var body: some View {
         ScrollView {
@@ -53,6 +63,10 @@ struct LoginView: View {
             .frame(maxWidth: 480)
             .frame(maxWidth: .infinity)
         }
+        .task(id: server.id) {
+            // Older servers have no /auth/providers: they offer passwords only.
+            providers = try? await AuthClient(baseURL: server.url).providers()
+        }
         .background {
             ZStack {
                 Theme.background
@@ -65,28 +79,42 @@ struct LoginView: View {
     private var form: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("login.title").font(Theme.display(24))
-            field("login.username", text: $username, content: .username)
-            SecureField("login.password", text: $password)
-                .textContentType(.password)
-                .modifier(FieldStyle())
-                .onSubmit { Task { await signIn() } }
-            if needsCode {
-                Text("login.totpHint").font(.footnote).foregroundStyle(Theme.textMuted)
-                field("login.totp", text: $totpCode, content: .oneTimeCode)
+            ForEach(providers?.oidc ?? [], id: \.id) { provider in
+                Button {
+                    Task { await signInWithSSO(provider) }
+                } label: {
+                    Text("login.sso \(provider.label)").bold().frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+                .disabled(busy)
+            }
+            if providers?.passwordLogin != false {
+                field("login.username", text: $username, content: .username)
+                SecureField("login.password", text: $password)
+                    .textContentType(.password)
+                    .modifier(FieldStyle())
+                    .onSubmit { Task { await signIn() } }
+                if needsCode {
+                    Text("login.totpHint").font(.footnote).foregroundStyle(Theme.textMuted)
+                    field("login.totp", text: $totpCode, content: .oneTimeCode)
+                }
             }
             if let error {
                 Text(error).font(.footnote).foregroundStyle(.red)
             }
-            Button {
-                Task { await signIn() }
-            } label: {
-                Group {
-                    if busy { ProgressView() } else { Text("login.submit").bold() }
+            if providers?.passwordLogin != false {
+                Button {
+                    Task { await signIn() }
+                } label: {
+                    Group {
+                        if busy { ProgressView() } else { Text("login.submit").bold() }
+                    }
+                    .frame(maxWidth: .infinity)
                 }
-                .frame(maxWidth: .infinity)
+                .buttonStyle(PrimaryButtonStyle())
+                .disabled(busy || username.isEmpty || password.isEmpty)
             }
-            .buttonStyle(PrimaryButtonStyle())
-            .disabled(busy || username.isEmpty || password.isEmpty)
             Button("quickConnect.use") { quickConnect = true }
                 .frame(maxWidth: .infinity)
                 .padding(.top, 4)
@@ -99,6 +127,42 @@ struct LoginView: View {
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
             .modifier(FieldStyle())
+    }
+
+    /// Opens the provider in the system web authentication session and redeems the one-time
+    /// code it returns. The (default) shared browser session is used on purpose: the provider's own
+    /// sign-in (and password managers) carry over, at the cost of the system's
+    /// "wants to use … to sign in" prompt. The flow cookie the server sets lives in that
+    /// same session, so either choice keeps the sign-in bound to this browser.
+    @MainActor
+    private func signInWithSSO(_ provider: Components.Schemas.OidcProviderButton) async {
+        error = nil
+        let verifier = SingleSignOn.makeVerifier()
+        guard let url = SingleSignOn.authorizeURL(provider.authorizeUrl, challenge: SingleSignOn.challenge(for: verifier)) else {
+            error = "login.sso.error.notConfigured"
+            return
+        }
+        busy = true
+        defer { busy = false }
+        do {
+            let callback = try await webAuthenticationSession.authenticate(
+                using: url, callbackURLScheme: SingleSignOn.callbackScheme) // default: shared browser session
+            switch SingleSignOn.parseCallback(callback) {
+            case .code(let code):
+                let (token, user) = try await AuthClient(baseURL: server.url).exchangeOIDC(code: code, verifier: verifier)
+                session.signedIn(server: server, token: token, user: user)
+            case .failed(let code):
+                error = LoginMessage.key(for: code)
+            case nil:
+                error = "login.sso.error.provider"
+            }
+        } catch let authError as ASWebAuthenticationSessionError where authError.code == .canceledLogin {
+            return // the user closed the sheet
+        } catch let apiError as APIError {
+            error = LoginMessage.key(for: apiError.code)
+        } catch {
+            self.error = "addServer.error.unreachable"
+        }
     }
 
     private func signIn() async {
