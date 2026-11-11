@@ -1047,5 +1047,28 @@
     "skipped": "Skipped: {{users}}",
     "unmatchedTitle": "Not found in Streamero ({{count}})",
     "unmatchedHint": "Usually titles that are not in a Streamero library, or a folder mapping is missing. Showing up to 50."
+  },
+  "dlna": {
+    "title": "DLNA for TVs",
+    "intro": "Smart TVs on your home network (LG, Samsung, Sony …) can browse and play the library from their built-in media player, without an app. TVs cannot sign in, so DLNA acts as the user chosen here.",
+    "enabled": "Share with TVs on this network",
+    "enabledHint": "Anyone on the local network can browse what this user may see. Off until you turn it on.",
+    "friendlyName": "Name on the TV",
+    "friendlyNameHint": "Leave empty to use the server name.",
+    "user": "Act as user",
+    "userHint": "Libraries, parental limits and resume positions of this user apply.",
+    "chooseUser": "Choose a user…",
+    "profile": "Profile",
+    "mainProfile": "Main profile",
+    "kidProfile": "{{name}} (kids)",
+    "language": "Folder names on the TV",
+    "lang_en": "English",
+    "lang_hr": "Hrvatski",
+    "status_running": "Serving on {{addr}}",
+    "status_stopped": "Not serving",
+    "status_unavailable": "DLNA is turned off for this server (STREAMERO_DLNA=false).",
+    "interfaces": "Announced on: {{list}}",
+    "noDiscovery": "TVs find the server on their own only with host networking or a macvlan network; see the DLNA section of the integrations guide.",
+    "needUser": "Choose a user before turning DLNA on."
   }
 }

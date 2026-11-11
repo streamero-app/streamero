@@ -1047,5 +1047,28 @@
     "skipped": "Preskočeno: {{users}}",
     "unmatchedTitle": "Nije pronađeno u Streameru ({{count}})",
     "unmatchedHint": "Obično naslovi kojih nema u Streamero biblioteci ili nedostaje preslikavanje mape. Prikazano najviše 50."
+  },
+  "dlna": {
+    "title": "DLNA za televizore",
+    "intro": "Pametni televizori u kućnoj mreži (LG, Samsung, Sony …) mogu pregledavati i reproducirati biblioteku iz svog ugrađenog playera, bez aplikacije. Televizori se ne mogu prijaviti, pa DLNA radi kao korisnik kojeg ovdje odabereš.",
+    "enabled": "Dijeli s televizorima u ovoj mreži",
+    "enabledHint": "Svatko u lokalnoj mreži može pregledavati ono što ovaj korisnik smije vidjeti. Isključeno dok ga ne uključiš.",
+    "friendlyName": "Naziv na televizoru",
+    "friendlyNameHint": "Ostavi prazno za naziv servera.",
+    "user": "Radi kao korisnik",
+    "userHint": "Vrijede biblioteke, roditeljska ograničenja i pozicije nastavka tog korisnika.",
+    "chooseUser": "Odaberi korisnika…",
+    "profile": "Profil",
+    "mainProfile": "Glavni profil",
+    "kidProfile": "{{name}} (djeca)",
+    "language": "Nazivi mapa na televizoru",
+    "lang_en": "English",
+    "lang_hr": "Hrvatski",
+    "status_running": "Poslužuje na {{addr}}",
+    "status_stopped": "Ne poslužuje",
+    "status_unavailable": "DLNA je isključen za ovaj server (STREAMERO_DLNA=false).",
+    "interfaces": "Najavljuje se na: {{list}}",
+    "noDiscovery": "Televizori sami pronalaze server samo uz host mrežu ili macvlan; vidi DLNA odjeljak vodiča za integracije.",
+    "needUser": "Odaberi korisnika prije uključivanja DLNA-a."
   }
 }
