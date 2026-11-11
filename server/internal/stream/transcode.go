@@ -15,6 +15,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/streamero-app/streamero/server/internal/library"
 )
 
 // Job describes one HLS stream to produce.
@@ -408,6 +410,47 @@ func (m *Manager) Active() int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return len(m.streams)
+}
+
+// DownloadPlan decides how a file becomes a mobile-friendly MP4 (H.264/AAC) for
+// offline viewing (D-040): at most maxHeight lines (0 = keep) and maxBitrate
+// video bits per second (0 = constant quality only). Video that already fits is
+// copied; AAC stereo audio is copied; anything else is converted.
+func DownloadPlan(f library.MediaFile, audioIndex, maxHeight, maxBitrate int) Plan {
+	height := 0
+	if f.Height != nil {
+		height = *f.Height
+	}
+	p := Plan{Method: "remux"}
+	tooBig := maxHeight > 0 && height > maxHeight
+	// Leave room for the audio track when comparing the whole file's rate.
+	tooFast := maxBitrate > 0 && fileBitrate(f) > maxBitrate+384_000
+	eightBit := f.VideoBitDepth == 0 || f.VideoBitDepth == 8
+	if !strings.EqualFold(f.VideoCodec, "h264") || !eightBit || f.HDR != "" || tooBig || tooFast {
+		p.Method, p.TranscodeVideo = "transcode", true
+		p.ToneMap = f.HDR != ""
+		p.MaxBitrate = maxBitrate
+		if tooBig {
+			p.Height = maxHeight
+		}
+	}
+	if audioIndex >= 0 && audioIndex < len(f.Audio) {
+		a := f.Audio[audioIndex]
+		p.TranscodeAudio = !strings.EqualFold(a.Codec, "aac") || a.Channels > 2
+	}
+	return p
+}
+
+// DownloadArgs builds the ffmpeg command line that writes a download (an MP4
+// with the index first, so it can play while it is still being fetched) to out
+// and reports progress as key=value lines on stdout. Subtitles are left out:
+// text tracks travel as sidecar files.
+func DownloadArgs(j Job, enc Encoding, out string) []string {
+	enc = enc.Normalize()
+	j.Plan.Burn, j.StartMS, j.Plan.AudioOnly = nil, 0, false
+	a := codecArgs(j, "", enc)
+	return append(a, "-sn", "-dn", "-map_chapters", "0", "-movflags", "+faststart",
+		"-progress", "pipe:1", "-nostats", "-f", "mp4", "-y", out)
 }
 
 type limitedWriter struct {

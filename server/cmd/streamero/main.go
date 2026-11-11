@@ -32,6 +32,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/db"
 	"github.com/streamero-app/streamero/server/internal/discovery"
 	"github.com/streamero-app/streamero/server/internal/dlna"
+	"github.com/streamero-app/streamero/server/internal/downloads"
 	"github.com/streamero-app/streamero/server/internal/importer"
 	"github.com/streamero-app/streamero/server/internal/jobs"
 	"github.com/streamero-app/streamero/server/internal/library"
@@ -174,7 +175,8 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		}
 		hls := &stream.Manager{Dir: cfg.TranscodeDir, FFmpeg: cfg.FFmpegPath, Log: log, Encoding: h.LoadEncoding}
 		go hls.Reap(ctx)
-		state.SetStream(&stream.Server{Pool: deps.Pool, Roots: roots, Signer: stream.Signer{Key: key}, HLS: hls, FFmpeg: cfg.FFmpegPath})
+		streamServer := &stream.Server{Pool: deps.Pool, Roots: roots, Signer: stream.Signer{Key: key}, HLS: hls, FFmpeg: cfg.FFmpegPath}
+		state.SetStream(streamServer)
 		libs := &library.Service{Pool: deps.Pool, Roots: roots, ImageDir: filepath.Join(cfg.CacheDir, "images"), Resume: h.LoadResume,
 			Enqueue: func(ctx context.Context, id uuid.UUID) error {
 				_, err := inserter.Insert(ctx, jobs.LibraryScanArgs{LibraryID: id}, nil)
@@ -210,6 +212,15 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			return err
 		}
 		state.SetLibrary(libs)
+		// Offline downloads (D-040): the worker transcodes into the shared cache, serve hands out the files.
+		dl := &downloads.Service{Pool: deps.Pool, Library: libs, Roots: roots, Signer: stream.Signer{Key: key},
+			Dir: filepath.Join(cfg.CacheDir, "downloads"), Settings: state.Settings(),
+			Enqueue: func(ctx context.Context, id uuid.UUID) error {
+				_, err := inserter.Insert(ctx, jobs.DownloadTranscodeArgs{TranscodeID: id}, nil)
+				return err
+			}}
+		streamServer.Downloads = dl
+		h.Downloads.Store(dl)
 		valkey := deps.Valkey
 		backups := newBackupService(cfg, deps.Pool, log)
 		backups.RecoverStatus(ctx)
@@ -321,6 +332,12 @@ func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			return err
 		})
 	jobs.RegisterImport(workers, &importer.Runner{Pool: deps.Pool, Log: log})
+	transcoder := &downloads.Transcoder{Pool: deps.Pool, Roots: roots, FFmpeg: cfg.FFmpegPath, Dir: filepath.Join(cfg.CacheDir, "downloads"),
+		Settings: state.Settings(), Log: log, Enqueue: func(ctx context.Context, id uuid.UUID) error {
+			_, err := client.Insert(ctx, jobs.DownloadTranscodeArgs{TranscodeID: id}, nil)
+			return err
+		}}
+	jobs.RegisterDownloads(workers, transcoder)
 	backups := newBackupService(cfg, deps.Pool, log)
 	jobs.RegisterBackup(workers, log, backups, state.Settings(), func(ctx context.Context) error {
 		_, err := client.Insert(ctx, jobs.BackupArgs{BackupKind: backup.KindScheduled}, nil)
@@ -345,6 +362,8 @@ func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			river.NewPeriodicJob(river.PeriodicInterval(time.Hour),
 				func() (river.JobArgs, *river.InsertOpts) { return jobs.BackupScheduleArgs{}, nil },
 				&river.PeriodicJobOpts{RunOnStart: true}),
+			river.NewPeriodicJob(river.PeriodicInterval(15*time.Minute),
+				func() (river.JobArgs, *river.InsertOpts) { return jobs.DownloadMaintainArgs{}, nil }, nil),
 		},
 	})
 	if err != nil {
@@ -354,6 +373,10 @@ func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		return err
 	}
 	log.Info("worker started")
+	// This is the only worker: transcodes that were running when it stopped start again.
+	if err := transcoder.Recover(ctx, 0, true); err != nil {
+		log.Warn("could not resume download transcodes", "err", err)
+	}
 	restored := watchRestores(ctx, deps.Valkey, log)
 	go func() {
 		w := &library.Watcher{Pool: deps.Pool, Roots: roots, Log: log, Trigger: libraries.Scan}

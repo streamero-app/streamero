@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -27,6 +28,8 @@ type Server struct {
 	HLS     *Manager
 	FFmpeg  string
 	SubsTTL time.Duration
+	// Downloads serves /stream/dl/{id}/{name}: offline download files (D-040).
+	Downloads http.Handler
 }
 
 // Routes returns the handler for /stream.
@@ -35,7 +38,15 @@ func (s *Server) Routes() http.Handler {
 	r.Use(s.verify)
 	r.Get("/file/{fileId}/{name}", s.file)
 	r.Get("/hls/{session}/{name}", s.hls)
-	r.Get("/sub/{fileId}/{index}.vtt", s.subtitle)
+	r.Get("/sub/{fileId}/{track}", s.subtitle)
+	r.Get("/orig/{fileId}/{name}", s.original)
+	r.Get("/dl/{id}/{name}", func(w http.ResponseWriter, r *http.Request) {
+		if s.Downloads == nil {
+			http.NotFound(w, r)
+			return
+		}
+		s.Downloads.ServeHTTP(w, r)
+	})
 	return r
 }
 
@@ -126,19 +137,49 @@ func (s *Server) hls(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, p)
 }
 
-// subtitle converts an embedded or external subtitle track to WebVTT.
+// subtitle converts an embedded or external subtitle track to WebVTT ("<index>.vtt")
+// or SubRip ("<index>.srt", the sidecar of offline downloads).
 func (s *Server) subtitle(w http.ResponseWriter, r *http.Request) {
 	id, err := uuid.Parse(chi.URLParam(r, "fileId"))
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
-	index, err := strconv.Atoi(chi.URLParam(r, "index"))
+	name, format, ok := strings.Cut(chi.URLParam(r, "track"), ".")
+	if !ok || (format != "vtt" && format != "srt") {
+		http.NotFound(w, r)
+		return
+	}
+	index, err := strconv.Atoi(name)
 	if err != nil || index < 0 {
 		http.NotFound(w, r)
 		return
 	}
-	s.ServeSubtitle(w, r, id, index, "vtt")
+	s.ServeSubtitle(w, r, id, index, format)
+}
+
+// original sends a media file as an attachment ("Download original" on the web, D-040);
+// the link is only handed out to accounts with the download permission.
+func (s *Server) original(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(chi.URLParam(r, "fileId"))
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("Content-Disposition", Attachment(chi.URLParam(r, "name")))
+	s.ServeFile(w, r, id)
+}
+
+// Attachment returns a Content-Disposition value that saves a file under name
+// (ASCII fallback plus the RFC 5987 UTF-8 form).
+func Attachment(name string) string {
+	ascii := strings.Map(func(c rune) rune {
+		if c < 0x20 || c > 0x7e || c == '"' || c == '\\' || c == '/' {
+			return '_'
+		}
+		return c
+	}, name)
+	return `attachment; filename="` + ascii + `"; filename*=UTF-8''` + strings.ReplaceAll(url.QueryEscape(name), "+", "%20")
 }
 
 // subtitleFormats maps requested extensions to an ffmpeg muxer and a content type.
