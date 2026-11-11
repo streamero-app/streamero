@@ -24,6 +24,9 @@ struct ItemView: View {
                 case "album": AlbumView(detail: d, client: client)
                 case "artist": ArtistView(detail: d, client: client)
                 case "track": trackRedirect(d)
+                case "book", "audiobook": BookDetailView(detail: d, client: client)
+                case "photoalbum": PhotoAlbumView(route: PhotoAlbumRoute(libraryId: d.libraryId, id: d.item.id, title: d.item.title), client: client)
+                case "photo": SinglePhotoView(item: d.item, client: client)
                 default: page(d)
                 }
             } else if let error {

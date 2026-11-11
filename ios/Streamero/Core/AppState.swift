@@ -16,10 +16,29 @@ struct LibraryRoute: Hashable {
     let kind: String
 }
 
+/// Books or audiobooks of one author or series.
+struct BookListRoute: Hashable {
+    let libraryId: String
+    /// "book" or "audiobook".
+    let kind: String
+    let title: String
+    var author: String? = nil
+    var series: String? = nil
+}
+
+/// The photos, videos and sub-albums of one photo album.
+struct PhotoAlbumRoute: Hashable {
+    let libraryId: String
+    let id: String
+    let title: String
+}
+
 /// Every screen reachable from a tab's navigation stack.
 enum Route: Hashable {
     case item(String)
     case library(LibraryRoute)
+    case books(BookListRoute)
+    case photoAlbum(PhotoAlbumRoute)
     case favorites
     case collections
     case collection(String)
@@ -53,13 +72,20 @@ final class AppState {
     var reloadTick = 0
     var showProfileGate = false
     let music: MusicPlayer
+    /// Audiobooks; starting one stops the music and the other way round.
+    let audiobook: AudiobookPlayer
     /// Watch-together membership (D-036).
     let together: SyncSession
 
     init(server: SavedServer, client: MediaClient) {
         self.server = server
         self.client = client
-        self.music = MusicPlayer(client: client)
+        let music = MusicPlayer(client: client)
+        let audiobook = AudiobookPlayer(client: client)
+        music.onStart = { [weak audiobook] in audiobook?.stop() }
+        audiobook.onStart = { [weak music] in music?.stop() }
+        self.music = music
+        self.audiobook = audiobook
         self.together = SyncSession(client: client)
     }
 
@@ -83,7 +109,10 @@ final class AppState {
         return me
     }
 
-    func play(_ target: PlayTarget) { playing = target }
+    func play(_ target: PlayTarget) {
+        audiobook.pause()
+        playing = target
+    }
 }
 
 /// Localization for strings built in code; SwiftUI views use the `locale` environment instead.

@@ -100,6 +100,16 @@ struct ItemSummary: Codable, Sendable, Equatable, Identifiable, Hashable {
     var positionMs: Int64?
     var played: Bool?
     var favorite: Bool?
+    // Books, audiobooks and photos.
+    var authors: [String]?
+    var seriesName: String?
+    var seriesIndex: Double?
+    var bookFormat: String?
+    var progression: Double?
+    var takenAt: String?
+    var width: Int?
+    var height: Int?
+    var childCount: Int?
 
     var progress: Double {
         guard let d = durationMs, d > 0, let p = positionMs, p > 0 else { return 0 }
@@ -194,6 +204,8 @@ struct ItemDetail: Codable, Sendable, Equatable {
     var trickplay: TrickplayInfo?
     var providerIds: [String: String]
     var metadataError: String?
+    var book: BookDetails?
+    var photo: PhotoDetails?
 }
 
 struct DeviceProfile: Codable, Sendable, Equatable {

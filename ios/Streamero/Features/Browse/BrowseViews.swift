@@ -220,6 +220,9 @@ struct LibraryTile: View {
         case "movies": "film"
         case "shows": "tv"
         case "music": "music.note"
+        case "books": "books.vertical"
+        case "audiobooks": "headphones"
+        case "photos": "photo.on.rectangle"
         default: "film.stack"
         }
     }

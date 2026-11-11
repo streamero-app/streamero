@@ -22,6 +22,9 @@ final class MusicPlayer {
 
     var current: ItemSummary? { queue.indices.contains(index) ? queue[index] : nil }
 
+    /// Called before a track starts so an audiobook can stop.
+    @ObservationIgnored var onStart: (@MainActor () -> Void)?
+
     private let client: MediaClient
     private let player = AVPlayer()
     private var loadTask: Task<Void, Never>?
@@ -161,6 +164,7 @@ final class MusicPlayer {
 
     private func loadCurrent() {
         guard let track = current else { return }
+        onStart?()
         setupRemoteIfNeeded()
         activateAudio()
         loadTask?.cancel()
@@ -236,7 +240,8 @@ final class MusicPlayer {
             return .success
         }
         _ = center.pauseCommand.addTarget { _ in
-            Task { @MainActor in active?.pause() }
+            // The audiobook player handles the same commands; only act on a loaded queue.
+            Task { @MainActor in if active?.current != nil { active?.pause() } }
             return .success
         }
         _ = center.togglePlayPauseCommand.addTarget { _ in
@@ -254,7 +259,7 @@ final class MusicPlayer {
         _ = center.changePlaybackPositionCommand.addTarget { event in
             guard let event = event as? MPChangePlaybackPositionCommandEvent else { return .commandFailed }
             let ms = Int64(event.positionTime * 1000)
-            Task { @MainActor in active?.seek(ms) }
+            Task { @MainActor in if active?.current != nil { active?.seek(ms) } }
             return .success
         }
     }
