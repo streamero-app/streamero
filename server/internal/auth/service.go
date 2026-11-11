@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"regexp"
 	"strings"
 	"sync"
@@ -101,6 +102,15 @@ type Service struct {
 	setupCode string
 	now       func() time.Time
 
+	// HTTPClient talks to OpenID Connect providers (nil = a client with a 15 s timeout).
+	HTTPClient *http.Client
+	// PasswordRecovery lets administrators sign in with a password while password
+	// sign-in is turned off (STREAMERO_PASSWORD_LOGIN_RECOVERY, D-037).
+	PasswordRecovery bool
+
+	oidcMu    sync.Mutex
+	oidcCache map[string]cachedProvider
+
 	mu            sync.Mutex
 	setupFailures int
 	setupBlocked  time.Time
@@ -195,7 +205,9 @@ func (s *Service) Setup(ctx context.Context, code, serverName, username, passwor
 	return p, token, err
 }
 
-// Login verifies credentials and creates a session.
+// Login verifies credentials and creates a session. Directory (LDAP) accounts are
+// checked against the directory; a username that is not a local account is looked
+// up in the directory when LDAP sign-in is on (D-037).
 func (s *Service) Login(ctx context.Context, username, password, totpCode string, dev Device) (Principal, string, error) {
 	username = strings.TrimSpace(username)
 	var (
@@ -203,12 +215,21 @@ func (s *Service) Login(ctx context.Context, username, password, totpCode string
 		hash        string
 		lockedUntil *time.Time
 		perms       []byte
+		ldapLinked  bool
 	)
 	err := s.pool.QueryRow(ctx, `SELECT id, username, password_hash, is_admin, disabled, `+totpEnabledSQL("users")+`,
-			created_at, last_login_at, locked_until, permissions
+			created_at, last_login_at, locked_until, permissions,
+			EXISTS (SELECT 1 FROM user_identities i WHERE i.user_id = users.id AND i.kind = 'ldap')
 		FROM users WHERE lower(username) = lower($1)`, username).
-		Scan(&u.ID, &u.Username, &hash, &u.IsAdmin, &u.Disabled, &u.TOTPEnabled, &u.CreatedAt, &u.LastLoginAt, &lockedUntil, &perms)
+		Scan(&u.ID, &u.Username, &hash, &u.IsAdmin, &u.Disabled, &u.TOTPEnabled, &u.CreatedAt, &u.LastLoginAt, &lockedUntil, &perms, &ldapLinked)
 	if errors.Is(err, pgx.ErrNoRows) {
+		cfg, err := s.LDAPSettings(ctx)
+		if err != nil {
+			return Principal{}, "", err
+		}
+		if cfg.Enabled {
+			return s.loginLDAP(ctx, cfg, username, password, totpCode, dev)
+		}
 		_, _ = VerifyPassword(password, dummyHash) // equalize timing
 		_ = audit(ctx, s.pool, nil, "login.failed", map[string]any{"username": username, "reason": "unknown_user"})
 		return Principal{}, "", ErrInvalidCredentials
@@ -221,9 +242,37 @@ func (s *Service) Login(ctx context.Context, username, password, totpCode string
 	if lockedUntil != nil && now.Before(*lockedUntil) {
 		return Principal{}, "", &LockedError{Until: *lockedUntil}
 	}
-	ok, err := VerifyPassword(password, hash)
-	if err != nil {
-		return Principal{}, "", err
+	var (
+		ok    bool
+		entry *LDAPEntry
+		ldap  LDAPSettings
+	)
+	if ldapLinked && hash == "" {
+		if ldap, err = s.LDAPSettings(ctx); err != nil {
+			return Principal{}, "", err
+		}
+		if ldap.Enabled {
+			entry, err = s.ldapAuthenticate(ctx, ldap, u.Username, password)
+			if err != nil && !errors.Is(err, ErrInvalidCredentials) {
+				return Principal{}, "", err
+			}
+			ok = err == nil && entry.Allowed
+		} else {
+			_, _ = VerifyPassword(password, dummyHash)
+		}
+	} else {
+		allowed, err := s.passwordLoginAllowed(ctx, u.IsAdmin)
+		if err != nil {
+			return Principal{}, "", err
+		}
+		if !allowed {
+			_, _ = VerifyPassword(password, dummyHash)
+			_ = audit(ctx, s.pool, &u.ID, "login.failed", map[string]any{"reason": "password_login_disabled"})
+			return Principal{}, "", ErrPasswordLoginDisabled
+		}
+		if ok, err = verifyStored(password, hash); err != nil {
+			return Principal{}, "", err
+		}
 	}
 	if !ok {
 		return Principal{}, "", s.recordFailedLogin(ctx, u.ID, now, "bad_password", ErrInvalidCredentials)
@@ -232,17 +281,19 @@ func (s *Service) Login(ctx context.Context, username, password, totpCode string
 		_ = audit(ctx, s.pool, &u.ID, "login.failed", map[string]any{"reason": "disabled"})
 		return Principal{}, "", ErrInvalidCredentials
 	}
-	if u.TOTPEnabled {
-		if strings.TrimSpace(totpCode) == "" {
-			return Principal{}, "", ErrTOTPRequired
-		}
-		ok, err := s.checkSecondFactor(ctx, u.ID, totpCode, now)
-		if err != nil {
-			return Principal{}, "", err
-		}
-		if !ok {
+	if err := s.requireSecondFactor(ctx, u, totpCode); err != nil {
+		if errors.Is(err, ErrInvalidTOTP) {
 			return Principal{}, "", s.recordFailedLogin(ctx, u.ID, now, "bad_totp", ErrInvalidTOTP)
 		}
+		return Principal{}, "", err
+	}
+	if entry != nil {
+		// Directory account: also refreshes the identity and the admin flag.
+		p, token, err := s.externalSignIn(ctx, ldapAccount(ldap, entry, u.Username), dev, nil)
+		if errors.Is(err, ErrAccountDisabled) {
+			return Principal{}, "", ErrInvalidCredentials
+		}
+		return p, token, err
 	}
 	var p Principal
 	var token string
@@ -259,6 +310,24 @@ func (s *Service) Login(ctx context.Context, username, password, totpCode string
 		return audit(ctx, tx, &u.ID, "login.succeeded", map[string]any{"session_id": p.SessionID, "device": dev.Name})
 	})
 	return p, token, err
+}
+
+// requireSecondFactor checks the 2FA code of a user who has 2FA on.
+func (s *Service) requireSecondFactor(ctx context.Context, u User, code string) error {
+	if !u.TOTPEnabled {
+		return nil
+	}
+	if strings.TrimSpace(code) == "" {
+		return ErrTOTPRequired
+	}
+	ok, err := s.checkSecondFactor(ctx, u.ID, code, s.now())
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return ErrInvalidTOTP
+	}
+	return nil
 }
 
 // recordFailedLogin counts a failure (atomically, so parallel guesses cannot
@@ -332,6 +401,9 @@ func (s *Service) ChangePassword(ctx context.Context, p Principal, current, next
 	var hash string
 	if err := s.pool.QueryRow(ctx, `SELECT password_hash FROM users WHERE id = $1`, p.User.ID).Scan(&hash); err != nil {
 		return err
+	}
+	if hash == "" {
+		return ErrNoLocalPassword
 	}
 	ok, err := VerifyPassword(current, hash)
 	if err != nil {

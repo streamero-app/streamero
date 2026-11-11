@@ -486,6 +486,9 @@ func mapError(err error) *StatusError {
 	if be := mapBackupError(err); be != nil {
 		return be
 	}
+	if se := mapSSOError(err); se != nil {
+		return se
+	}
 	var locked *auth.LockedError
 	var secErr *ogenerrors.SecurityError
 	var decReq *ogenerrors.DecodeRequestError

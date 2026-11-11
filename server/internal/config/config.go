@@ -28,6 +28,9 @@ type Config struct {
 	AuthRatePerMin int // sign-in style requests per client IP per minute (0 = no limit)
 	AuthRateBurst  int
 	AutoMigrate    bool
+	// PasswordLoginRecovery lets administrators sign in with a password while
+	// password sign-in is turned off for single sign-on (D-037, docs/SSO.md).
+	PasswordLoginRecovery bool
 	// CompatAtRoot also serves the compat API at Jellyfin-style root paths (D-032).
 	CompatAtRoot bool
 	// Discovery answers the media clients' LAN discovery broadcast (D-033).
@@ -61,6 +64,9 @@ func Load() (Config, error) {
 	c.BackupDir = env("STREAMERO_BACKUP_DIR", strings.TrimRight(c.ConfigDir, "/")+"/backups")
 	var err error
 	if c.AutoMigrate, err = envBool("STREAMERO_AUTO_MIGRATE", true); err != nil {
+		return c, err
+	}
+	if c.PasswordLoginRecovery, err = envBool("STREAMERO_PASSWORD_LOGIN_RECOVERY", false); err != nil {
 		return c, err
 	}
 	if c.CompatAtRoot, err = envBool("STREAMERO_COMPAT_ROOT", true); err != nil {

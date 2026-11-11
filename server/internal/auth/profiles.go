@@ -225,11 +225,7 @@ func (s *Service) SelectMainProfile(ctx context.Context, p Principal, password s
 		return ErrSessionRequired
 	}
 	if p.IsKid() {
-		var hash string
-		if err := s.pool.QueryRow(ctx, `SELECT password_hash FROM users WHERE id = $1`, p.User.ID).Scan(&hash); err != nil {
-			return err
-		}
-		ok, err := VerifyPassword(password, hash)
+		ok, err := s.confirmPassword(ctx, p.User.ID, password)
 		if err != nil {
 			return err
 		}

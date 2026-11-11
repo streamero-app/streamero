@@ -571,6 +571,9 @@ func (s *Server) authenticateByName(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case errors.As(err, &locked):
 			http.Error(w, "account locked", http.StatusTooManyRequests)
+		case errors.Is(err, auth.ErrPasswordLoginDisabled):
+			http.Error(w, "password sign-in is turned off on this server: use Quick Connect and approve the code in "+
+				"Streamero (Settings → Quick Connect)", http.StatusUnauthorized)
 		case errors.Is(err, auth.ErrTOTPRequired):
 			http.Error(w, "this account uses two-factor sign-in: use Quick Connect and approve the code in "+
 				"Streamero (Settings → Quick Connect), or use an API key", http.StatusUnauthorized)
