@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -187,17 +188,15 @@ func (s *Server) Start(ctx context.Context, lib *library.Service, p auth.Princip
 	if len(files) == 0 {
 		return Info{}, ErrNotPlayable
 	}
-	f := files[0] // best version first (highest resolution)
-	if req.FileID != nil {
-		found := false
-		for _, x := range files {
-			if x.ID == *req.FileID {
-				f, found = x, true
-			}
-		}
-		if !found {
-			return Info{}, library.ErrNotFound
-		}
+	if req.FileID != nil && !slices.ContainsFunc(files, func(x library.MediaFile) bool { return x.ID == *req.FileID }) {
+		return Info{}, library.ErrNotFound
+	}
+	f, err := pickFile(files, req.FileID, func(path string) bool {
+		_, err := library.ResolveSafePath(s.Roots, path)
+		return err == nil
+	})
+	if err != nil {
+		return Info{}, err
 	}
 	prefs, _ := lib.GetPrefs(ctx, Owner(p))
 	audio := library.PickAudio(f.Audio, prefs.AudioLanguage)
@@ -320,4 +319,24 @@ func sidecarPath(roots library.Roots, sub library.SubtitleStream) (string, error
 		}
 	}
 	return library.ResolveSafePath(roots, sub.Path)
+}
+
+// pickFile returns the requested version, or the best one, that is still on disk. A
+// version that disappeared since the last scan (moved by an *arr app, deleted) is
+// skipped, so another copy of the same item still plays. With none left the error
+// wraps os.ErrNotExist.
+func pickFile(files []library.MediaFile, want *uuid.UUID, exists func(path string) bool) (library.MediaFile, error) {
+	if want != nil {
+		for _, x := range files {
+			if x.ID == *want && exists(x.Path) {
+				return x, nil
+			}
+		}
+	}
+	for _, x := range files { // best version first (highest resolution)
+		if exists(x.Path) {
+			return x, nil
+		}
+	}
+	return library.MediaFile{}, fmt.Errorf("no version of this item is on disk: %w", os.ErrNotExist)
 }
