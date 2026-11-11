@@ -164,6 +164,62 @@ func encodeCreateLibraryRequest(
 	return nil
 }
 
+func encodeCreateLiveTvGuideRequest(
+	req *LiveTvGuideSourceInput,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeCreateLiveTvRecordingRequest(
+	req *LiveTvRecordingCreate,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeCreateLiveTvSeriesRuleRequest(
+	req *LiveTvSeriesRuleInput,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeCreateLiveTvTunerRequest(
+	req *LiveTvTunerInput,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeCreateOidcProviderRequest(
 	req *OidcProviderInput,
 	r *http.Request,
@@ -354,6 +410,20 @@ func encodeLoginRequest(
 
 func encodeOidcExchangeRequest(
 	req *OidcExchangeRequest,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodePlayLiveTvChannelRequest(
+	req *LiveTvPlayRequest,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"
@@ -566,6 +636,34 @@ func encodeTestLdapSettingsRequest(
 	return nil
 }
 
+func encodeTestLiveTvGuideRequest(
+	req *LiveTvGuideSourceInput,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeTestLiveTvTunerRequest(
+	req *LiveTvTunerInput,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeTestNotificationRequest(
 	req *NotificationTarget,
 	r *http.Request,
@@ -722,6 +820,90 @@ func encodeUpdateLdapSettingsRequest(
 
 func encodeUpdateLibraryRequest(
 	req *LibraryInput,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeUpdateLiveTvChannelRequest(
+	req *LiveTvChannelUpdate,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeUpdateLiveTvGuideRequest(
+	req *LiveTvGuideSourceInput,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeUpdateLiveTvRecordingRequest(
+	req *LiveTvRecordingUpdate,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeUpdateLiveTvSeriesRuleRequest(
+	req *LiveTvSeriesRuleInput,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeUpdateLiveTvSettingsRequest(
+	req *LiveTvSettings,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeUpdateLiveTvTunerRequest(
+	req *LiveTvTunerInput,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"

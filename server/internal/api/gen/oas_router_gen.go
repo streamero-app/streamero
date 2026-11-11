@@ -11,381 +11,458 @@ import (
 )
 
 var (
-	rn67AllowedHeaders = map[string]string{
+	rn85AllowedHeaders = map[string]string{
 		"GET": "Authorization",
 	}
-	rn7AllowedHeaders = map[string]string{
+	rn10AllowedHeaders = map[string]string{
 		"GET": "Authorization",
 	}
-	rn43AllowedHeaders = map[string]string{
+	rn52AllowedHeaders = map[string]string{
 		"DELETE": "Authorization",
 	}
-	rn103AllowedHeaders = map[string]string{
+	rn128AllowedHeaders = map[string]string{
 		"GET": "Authorization",
-	}
-	rn16AllowedHeaders = map[string]string{
-		"GET":  "Authorization",
-		"POST": "Authorization,Content-Type",
-	}
-	rn35AllowedHeaders = map[string]string{
-		"DELETE": "Authorization",
-	}
-	rn121AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-	}
-	rn179AllowedHeaders = map[string]string{
-		"DELETE": "Authorization",
-	}
-	rn132AllowedHeaders = map[string]string{
-		"POST": "Content-Type",
-	}
-	rn134AllowedHeaders = map[string]string{
-		"POST": "Authorization",
-	}
-	rn91AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-		"PUT": "Authorization,Content-Type",
-	}
-	rn49AllowedHeaders = map[string]string{
-		"DELETE": "Authorization",
-		"PUT":    "Authorization,Content-Type",
-	}
-	rn142AllowedHeaders = map[string]string{
-		"POST": "Content-Type",
-	}
-	rn143AllowedHeaders = map[string]string{
-		"POST": "Authorization",
-	}
-	rn11AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
-	}
-	rn57AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
-	}
-	rn65AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
-	}
-	rn170AllowedHeaders = map[string]string{
-		"POST": "Authorization",
-	}
-	rn73AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-	}
-	rn17AllowedHeaders = map[string]string{
-		"GET":  "Authorization",
-		"POST": "Authorization",
-	}
-	rn180AllowedHeaders = map[string]string{
-		"PUT": "Authorization,Content-Type",
-	}
-	rn182AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
-	}
-	rn37AllowedHeaders = map[string]string{
-		"DELETE": "Authorization",
-	}
-	rn60AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-	}
-	rn155AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
-	}
-	rn18AllowedHeaders = map[string]string{
-		"GET":  "Authorization",
-		"POST": "Authorization,Content-Type",
-	}
-	rn39AllowedHeaders = map[string]string{
-		"DELETE": "Authorization",
-		"GET":    "Authorization",
-		"PUT":    "Authorization,Content-Type",
-	}
-	rn77AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-	}
-	rn78AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-	}
-	rn59AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-	}
-	rn153AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
 	}
 	rn19AllowedHeaders = map[string]string{
 		"GET":  "Authorization",
 		"POST": "Authorization,Content-Type",
 	}
-	rn171AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
-	}
-	rn41AllowedHeaders = map[string]string{
+	rn44AllowedHeaders = map[string]string{
 		"DELETE": "Authorization",
-		"GET":    "Authorization",
 	}
-	rn83AllowedHeaders = map[string]string{
+	rn146AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn211AllowedHeaders = map[string]string{
+		"DELETE": "Authorization",
+	}
+	rn158AllowedHeaders = map[string]string{
+		"POST": "Content-Type",
+	}
+	rn160AllowedHeaders = map[string]string{
+		"POST": "Authorization",
+	}
+	rn116AllowedHeaders = map[string]string{
 		"GET": "Authorization",
 		"PUT": "Authorization,Content-Type",
 	}
-	rn9AllowedHeaders = map[string]string{
-		"GET": "Authorization",
+	rn66AllowedHeaders = map[string]string{
+		"DELETE": "Authorization",
+		"PUT":    "Authorization,Content-Type",
 	}
-	rn15AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-	}
-	rn120AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-	}
-	rn147AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-	}
-	rn136AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-	}
-	rn122AllowedHeaders = map[string]string{
-		"GET":  "Authorization",
-		"POST": "Authorization,Content-Type",
-	}
-	rn86AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-	}
-	rn13AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
-	}
-	rn2AllowedHeaders = map[string]string{
+	rn168AllowedHeaders = map[string]string{
 		"POST": "Content-Type",
+	}
+	rn169AllowedHeaders = map[string]string{
+		"POST": "Authorization",
+	}
+	rn14AllowedHeaders = map[string]string{
+		"POST": "Authorization,Content-Type",
+	}
+	rn74AllowedHeaders = map[string]string{
+		"POST": "Authorization,Content-Type",
+	}
+	rn83AllowedHeaders = map[string]string{
+		"POST": "Authorization,Content-Type",
+	}
+	rn200AllowedHeaders = map[string]string{
+		"POST": "Authorization",
+	}
+	rn91AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn20AllowedHeaders = map[string]string{
+		"GET":  "Authorization",
+		"POST": "Authorization",
+	}
+	rn212AllowedHeaders = map[string]string{
+		"PUT": "Authorization,Content-Type",
+	}
+	rn214AllowedHeaders = map[string]string{
+		"POST": "Authorization,Content-Type",
+	}
+	rn46AllowedHeaders = map[string]string{
+		"DELETE": "Authorization",
+	}
+	rn78AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn185AllowedHeaders = map[string]string{
+		"POST": "Authorization,Content-Type",
 	}
 	rn21AllowedHeaders = map[string]string{
 		"GET":  "Authorization",
 		"POST": "Authorization,Content-Type",
 	}
-	rn45AllowedHeaders = map[string]string{
+	rn48AllowedHeaders = map[string]string{
 		"DELETE": "Authorization",
+		"GET":    "Authorization",
+		"PUT":    "Authorization,Content-Type",
 	}
-	rn26AllowedHeaders = map[string]string{
+	rn95AllowedHeaders = map[string]string{
 		"GET": "Authorization",
 	}
-	rn68AllowedHeaders = map[string]string{
+	rn96AllowedHeaders = map[string]string{
 		"GET": "Authorization",
 	}
-	rn114AllowedHeaders = map[string]string{
-		"GET":  "Authorization",
+	rn76AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn183AllowedHeaders = map[string]string{
 		"POST": "Authorization,Content-Type",
-	}
-	rn88AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-	}
-	rn63AllowedHeaders = map[string]string{
-		"PUT": "Authorization,Content-Type",
-	}
-	rn135AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-	}
-	rn27AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
-	}
-	rn169AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
-	}
-	rn152AllowedHeaders = map[string]string{
-		"PUT": "Authorization,Content-Type",
-	}
-	rn148AllowedHeaders = map[string]string{
-		"POST": "Authorization",
-	}
-	rn62AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
-	}
-	rn163AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-	}
-	rn162AllowedHeaders = map[string]string{
-		"POST": "Authorization",
-	}
-	rn181AllowedHeaders = map[string]string{
-		"PUT": "Authorization,Content-Type",
 	}
 	rn22AllowedHeaders = map[string]string{
 		"GET":  "Authorization",
 		"POST": "Authorization,Content-Type",
 	}
-	rn47AllowedHeaders = map[string]string{
-		"DELETE": "Authorization",
-		"PUT":    "Authorization,Content-Type",
-	}
-	rn123AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-	}
-	rn125AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-	}
-	rn149AllowedHeaders = map[string]string{
-		"POST": "Authorization",
-	}
-	rn159AllowedHeaders = map[string]string{
-		"POST": "Authorization",
-	}
-	rn173AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-	}
-	rn99AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-		"PUT": "Authorization,Content-Type",
-	}
-	rn98AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-	}
-	rn28AllowedHeaders = map[string]string{
-		"GET":  "Authorization",
+	rn201AllowedHeaders = map[string]string{
 		"POST": "Authorization,Content-Type",
 	}
-	rn5AllowedHeaders = map[string]string{
+	rn50AllowedHeaders = map[string]string{
 		"DELETE": "Authorization",
 		"GET":    "Authorization",
-		"PUT":    "Authorization,Content-Type",
 	}
-	rn6AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
+	rn101AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+		"PUT": "Authorization,Content-Type",
 	}
-	rn30AllowedHeaders = map[string]string{
+	rn12AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn18AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn145AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn175AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn162AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn147AllowedHeaders = map[string]string{
 		"GET":  "Authorization",
 		"POST": "Authorization,Content-Type",
 	}
-	rn164AllowedHeaders = map[string]string{
+	rn104AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn16AllowedHeaders = map[string]string{
 		"POST": "Authorization,Content-Type",
 	}
-	rn53AllowedHeaders = map[string]string{
-		"DELETE": "Authorization",
-		"PUT":    "Authorization,Content-Type",
-	}
-	rn54AllowedHeaders = map[string]string{
-		"DELETE": "Authorization",
-		"PUT":    "Authorization,Content-Type",
-	}
-	rn166AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
-	}
-	rn8AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
-	}
-	rn116AllowedHeaders = map[string]string{
+	rn2AllowedHeaders = map[string]string{
 		"POST": "Content-Type",
-	}
-	rn146AllowedHeaders = map[string]string{
-		"POST": "Content-Type",
-	}
-	rn160AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-	}
-	rn127AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-	}
-	rn151AllowedHeaders = map[string]string{
-		"DELETE": "Authorization",
-		"PATCH":  "Authorization,Content-Type",
-	}
-	rn167AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
-	}
-	rn71AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-		"PUT": "Authorization,Content-Type",
-	}
-	rn90AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-		"PUT": "Authorization,Content-Type",
-	}
-	rn174AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
 	}
 	rn24AllowedHeaders = map[string]string{
 		"GET":  "Authorization",
 		"POST": "Authorization,Content-Type",
 	}
-	rn176AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
-	}
-	rn51AllowedHeaders = map[string]string{
+	rn54AllowedHeaders = map[string]string{
 		"DELETE": "Authorization",
-		"PUT":    "Authorization,Content-Type",
 	}
-	rn75AllowedHeaders = map[string]string{
+	rn35AllowedHeaders = map[string]string{
 		"GET": "Authorization",
-		"PUT": "Authorization,Content-Type",
 	}
-	rn79AllowedHeaders = map[string]string{
+	rn86AllowedHeaders = map[string]string{
 		"GET": "Authorization",
-		"PUT": "Authorization,Content-Type",
 	}
-	rn81AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-		"PUT": "Authorization,Content-Type",
-	}
-	rn82AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-		"PUT": "Authorization,Content-Type",
-	}
-	rn92AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-		"PUT": "Authorization,Content-Type",
-	}
-	rn95AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-		"PUT": "Authorization,Content-Type",
-	}
-	rn175AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type",
-	}
-	rn100AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-		"PUT": "Authorization,Content-Type",
-	}
-	rn177AllowedHeaders = map[string]string{
-		"POST": "Authorization",
-	}
-	rn102AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-		"PUT": "Authorization,Content-Type",
-	}
-	rn104AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-		"PUT": "Authorization,Content-Type",
-	}
-	rn14AllowedHeaders = map[string]string{
-		"POST": "Content-Type",
-	}
-	rn32AllowedHeaders = map[string]string{
+	rn139AllowedHeaders = map[string]string{
 		"GET":  "Authorization",
 		"POST": "Authorization,Content-Type",
 	}
 	rn106AllowedHeaders = map[string]string{
 		"GET": "Authorization",
 	}
-	rn117AllowedHeaders = map[string]string{
+	rn81AllowedHeaders = map[string]string{
+		"PUT": "Authorization,Content-Type",
+	}
+	rn161AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn36AllowedHeaders = map[string]string{
+		"POST": "Authorization,Content-Type",
+	}
+	rn199AllowedHeaders = map[string]string{
+		"POST": "Authorization,Content-Type",
+	}
+	rn182AllowedHeaders = map[string]string{
+		"PUT": "Authorization,Content-Type",
+	}
+	rn176AllowedHeaders = map[string]string{
 		"POST": "Authorization",
 	}
-	rn118AllowedHeaders = map[string]string{
+	rn80AllowedHeaders = map[string]string{
+		"POST": "Authorization,Content-Type",
+	}
+	rn193AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn192AllowedHeaders = map[string]string{
 		"POST": "Authorization",
 	}
-	rn94AllowedHeaders = map[string]string{
+	rn213AllowedHeaders = map[string]string{
+		"PUT": "Authorization,Content-Type",
+	}
+	rn26AllowedHeaders = map[string]string{
+		"GET":  "Authorization",
+		"POST": "Authorization,Content-Type",
+	}
+	rn56AllowedHeaders = map[string]string{
+		"DELETE": "Authorization",
+		"PUT":    "Authorization,Content-Type",
+	}
+	rn148AllowedHeaders = map[string]string{
 		"GET": "Authorization",
 	}
-	rn129AllowedHeaders = map[string]string{
+	rn150AllowedHeaders = map[string]string{
 		"GET": "Authorization",
 	}
-	rn158AllowedHeaders = map[string]string{
+	rn177AllowedHeaders = map[string]string{
 		"POST": "Authorization",
 	}
-	rn112AllowedHeaders = map[string]string{
+	rn189AllowedHeaders = map[string]string{
+		"POST": "Authorization",
+	}
+	rn151AllowedHeaders = map[string]string{
 		"GET": "Authorization",
 	}
-	rn131AllowedHeaders = map[string]string{
+	rn5AllowedHeaders = map[string]string{
+		"GET":   "Authorization",
+		"PATCH": "Authorization,Content-Type",
+	}
+	rn6AllowedHeaders = map[string]string{
+		"DELETE": "Authorization",
+		"PUT":    "Authorization",
+	}
+	rn173AllowedHeaders = map[string]string{
+		"POST": "Authorization,Content-Type",
+	}
+	rn109AllowedHeaders = map[string]string{
 		"GET": "Authorization",
+	}
+	rn28AllowedHeaders = map[string]string{
+		"GET":  "Authorization",
+		"POST": "Authorization,Content-Type",
+	}
+	rn205AllowedHeaders = map[string]string{
+		"POST": "Authorization,Content-Type",
+	}
+	rn58AllowedHeaders = map[string]string{
+		"DELETE": "Authorization",
+		"PUT":    "Authorization,Content-Type",
+	}
+	rn178AllowedHeaders = map[string]string{
+		"POST": "Authorization",
+	}
+	rn110AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn111AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn113AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn29AllowedHeaders = map[string]string{
+		"GET":  "Authorization",
+		"POST": "Authorization,Content-Type",
+	}
+	rn60AllowedHeaders = map[string]string{
+		"DELETE": "Authorization",
+		"PATCH":  "Authorization,Content-Type",
+	}
+	rn30AllowedHeaders = map[string]string{
+		"GET":  "Authorization",
+		"POST": "Authorization,Content-Type",
+	}
+	rn62AllowedHeaders = map[string]string{
+		"DELETE": "Authorization",
+		"PUT":    "Authorization,Content-Type",
+	}
+	rn115AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+		"PUT": "Authorization,Content-Type",
+	}
+	rn31AllowedHeaders = map[string]string{
+		"GET":  "Authorization",
+		"POST": "Authorization,Content-Type",
+	}
+	rn77AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn206AllowedHeaders = map[string]string{
+		"POST": "Authorization,Content-Type",
+	}
+	rn64AllowedHeaders = map[string]string{
+		"DELETE": "Authorization",
+		"PUT":    "Authorization,Content-Type",
+	}
+	rn179AllowedHeaders = map[string]string{
+		"POST": "Authorization",
+	}
+	rn203AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn124AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+		"PUT": "Authorization,Content-Type",
+	}
+	rn123AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn37AllowedHeaders = map[string]string{
+		"GET":  "Authorization",
+		"POST": "Authorization,Content-Type",
+	}
+	rn8AllowedHeaders = map[string]string{
+		"DELETE": "Authorization",
+		"GET":    "Authorization",
+		"PUT":    "Authorization,Content-Type",
+	}
+	rn9AllowedHeaders = map[string]string{
+		"POST": "Authorization,Content-Type",
+	}
+	rn39AllowedHeaders = map[string]string{
+		"GET":  "Authorization",
+		"POST": "Authorization,Content-Type",
+	}
+	rn194AllowedHeaders = map[string]string{
+		"POST": "Authorization,Content-Type",
+	}
+	rn70AllowedHeaders = map[string]string{
+		"DELETE": "Authorization",
+		"PUT":    "Authorization,Content-Type",
+	}
+	rn71AllowedHeaders = map[string]string{
+		"DELETE": "Authorization",
+		"PUT":    "Authorization,Content-Type",
+	}
+	rn196AllowedHeaders = map[string]string{
+		"POST": "Authorization,Content-Type",
+	}
+	rn11AllowedHeaders = map[string]string{
+		"POST": "Authorization,Content-Type",
+	}
+	rn141AllowedHeaders = map[string]string{
+		"POST": "Content-Type",
+	}
+	rn174AllowedHeaders = map[string]string{
+		"POST": "Content-Type",
+	}
+	rn190AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn153AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn181AllowedHeaders = map[string]string{
+		"DELETE": "Authorization",
+		"PATCH":  "Authorization,Content-Type",
+	}
+	rn197AllowedHeaders = map[string]string{
+		"POST": "Authorization,Content-Type",
+	}
+	rn89AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+		"PUT": "Authorization,Content-Type",
+	}
+	rn108AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+		"PUT": "Authorization,Content-Type",
+	}
+	rn204AllowedHeaders = map[string]string{
+		"POST": "Authorization,Content-Type",
 	}
 	rn33AllowedHeaders = map[string]string{
 		"GET":  "Authorization",
 		"POST": "Authorization,Content-Type",
 	}
-	rn56AllowedHeaders = map[string]string{
+	rn208AllowedHeaders = map[string]string{
+		"POST": "Authorization,Content-Type",
+	}
+	rn68AllowedHeaders = map[string]string{
+		"DELETE": "Authorization",
+		"PUT":    "Authorization,Content-Type",
+	}
+	rn93AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+		"PUT": "Authorization,Content-Type",
+	}
+	rn97AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+		"PUT": "Authorization,Content-Type",
+	}
+	rn99AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+		"PUT": "Authorization,Content-Type",
+	}
+	rn100AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+		"PUT": "Authorization,Content-Type",
+	}
+	rn117AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+		"PUT": "Authorization,Content-Type",
+	}
+	rn120AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+		"PUT": "Authorization,Content-Type",
+	}
+	rn207AllowedHeaders = map[string]string{
+		"POST": "Authorization,Content-Type",
+	}
+	rn125AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+		"PUT": "Authorization,Content-Type",
+	}
+	rn209AllowedHeaders = map[string]string{
+		"POST": "Authorization",
+	}
+	rn127AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+		"PUT": "Authorization,Content-Type",
+	}
+	rn129AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+		"PUT": "Authorization,Content-Type",
+	}
+	rn17AllowedHeaders = map[string]string{
+		"POST": "Content-Type",
+	}
+	rn41AllowedHeaders = map[string]string{
+		"GET":  "Authorization",
+		"POST": "Authorization,Content-Type",
+	}
+	rn131AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn142AllowedHeaders = map[string]string{
+		"POST": "Authorization",
+	}
+	rn143AllowedHeaders = map[string]string{
+		"POST": "Authorization",
+	}
+	rn119AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn155AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn188AllowedHeaders = map[string]string{
+		"POST": "Authorization",
+	}
+	rn137AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn157AllowedHeaders = map[string]string{
+		"GET": "Authorization",
+	}
+	rn42AllowedHeaders = map[string]string{
+		"GET":  "Authorization",
+		"POST": "Authorization,Content-Type",
+	}
+	rn73AllowedHeaders = map[string]string{
 		"DELETE": "Authorization",
 		"PATCH":  "Authorization,Content-Type",
 	}
@@ -482,7 +559,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "GET",
-									allowedHeaders: rn67AllowedHeaders,
+									allowedHeaders: rn85AllowedHeaders,
 									acceptPost:     "",
 									acceptPatch:    "",
 								})
@@ -506,7 +583,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "GET",
-									allowedHeaders: rn7AllowedHeaders,
+									allowedHeaders: rn10AllowedHeaders,
 									acceptPost:     "",
 									acceptPatch:    "",
 								})
@@ -542,7 +619,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "DELETE",
-										allowedHeaders: rn43AllowedHeaders,
+										allowedHeaders: rn52AllowedHeaders,
 										acceptPost:     "",
 										acceptPatch:    "",
 									})
@@ -569,7 +646,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "GET",
-									allowedHeaders: rn103AllowedHeaders,
+									allowedHeaders: rn128AllowedHeaders,
 									acceptPost:     "",
 									acceptPatch:    "",
 								})
@@ -597,7 +674,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "GET,POST",
-								allowedHeaders: rn16AllowedHeaders,
+								allowedHeaders: rn19AllowedHeaders,
 								acceptPost:     "application/json",
 								acceptPatch:    "",
 							})
@@ -633,7 +710,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "DELETE",
-									allowedHeaders: rn35AllowedHeaders,
+									allowedHeaders: rn44AllowedHeaders,
 									acceptPost:     "",
 									acceptPatch:    "",
 								})
@@ -671,7 +748,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "GET",
-									allowedHeaders: rn121AllowedHeaders,
+									allowedHeaders: rn146AllowedHeaders,
 									acceptPost:     "",
 									acceptPatch:    "",
 								})
@@ -707,7 +784,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "DELETE",
-										allowedHeaders: rn179AllowedHeaders,
+										allowedHeaders: rn211AllowedHeaders,
 										acceptPost:     "",
 										acceptPatch:    "",
 									})
@@ -746,7 +823,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "POST",
-										allowedHeaders: rn132AllowedHeaders,
+										allowedHeaders: rn158AllowedHeaders,
 										acceptPost:     "application/json",
 										acceptPatch:    "",
 									})
@@ -771,7 +848,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "POST",
-										allowedHeaders: rn134AllowedHeaders,
+										allowedHeaders: rn160AllowedHeaders,
 										acceptPost:     "",
 										acceptPatch:    "",
 									})
@@ -799,7 +876,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "GET,PUT",
-									allowedHeaders: rn91AllowedHeaders,
+									allowedHeaders: rn116AllowedHeaders,
 									acceptPost:     "",
 									acceptPatch:    "",
 								})
@@ -826,7 +903,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "DELETE,PUT",
-										allowedHeaders: rn49AllowedHeaders,
+										allowedHeaders: rn66AllowedHeaders,
 										acceptPost:     "",
 										acceptPatch:    "",
 									})
@@ -865,7 +942,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "POST",
-										allowedHeaders: rn142AllowedHeaders,
+										allowedHeaders: rn168AllowedHeaders,
 										acceptPost:     "application/json",
 										acceptPatch:    "",
 									})
@@ -973,7 +1050,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 									default:
 										s.notAllowed(w, r, notAllowedParams{
 											allowedMethods: "POST",
-											allowedHeaders: rn143AllowedHeaders,
+											allowedHeaders: rn169AllowedHeaders,
 											acceptPost:     "",
 											acceptPatch:    "",
 										})
@@ -1014,7 +1091,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "POST",
-										allowedHeaders: rn11AllowedHeaders,
+										allowedHeaders: rn14AllowedHeaders,
 										acceptPost:     "application/json",
 										acceptPatch:    "",
 									})
@@ -1078,7 +1155,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "POST",
-										allowedHeaders: rn57AllowedHeaders,
+										allowedHeaders: rn74AllowedHeaders,
 										acceptPost:     "application/json",
 										acceptPatch:    "",
 									})
@@ -1103,7 +1180,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "POST",
-										allowedHeaders: rn65AllowedHeaders,
+										allowedHeaders: rn83AllowedHeaders,
 										acceptPost:     "application/json",
 										acceptPatch:    "",
 									})
@@ -1128,7 +1205,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "POST",
-										allowedHeaders: rn170AllowedHeaders,
+										allowedHeaders: rn200AllowedHeaders,
 										acceptPost:     "",
 										acceptPatch:    "",
 									})
@@ -1168,7 +1245,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "GET",
-								allowedHeaders: rn73AllowedHeaders,
+								allowedHeaders: rn91AllowedHeaders,
 								acceptPost:     "",
 								acceptPatch:    "",
 							})
@@ -1196,7 +1273,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					default:
 						s.notAllowed(w, r, notAllowedParams{
 							allowedMethods: "GET,POST",
-							allowedHeaders: rn17AllowedHeaders,
+							allowedHeaders: rn20AllowedHeaders,
 							acceptPost:     "",
 							acceptPatch:    "",
 						})
@@ -1233,7 +1310,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "PUT",
-									allowedHeaders: rn180AllowedHeaders,
+									allowedHeaders: rn212AllowedHeaders,
 									acceptPost:     "",
 									acceptPatch:    "",
 								})
@@ -1259,7 +1336,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "POST",
-									allowedHeaders: rn182AllowedHeaders,
+									allowedHeaders: rn214AllowedHeaders,
 									acceptPost:     "application/octet-stream",
 									acceptPatch:    "",
 								})
@@ -1288,7 +1365,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "DELETE",
-								allowedHeaders: rn37AllowedHeaders,
+								allowedHeaders: rn46AllowedHeaders,
 								acceptPost:     "",
 								acceptPatch:    "",
 							})
@@ -1327,7 +1404,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "GET",
-										allowedHeaders: rn60AllowedHeaders,
+										allowedHeaders: rn78AllowedHeaders,
 										acceptPost:     "",
 										acceptPatch:    "",
 									})
@@ -1354,7 +1431,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "POST",
-										allowedHeaders: rn155AllowedHeaders,
+										allowedHeaders: rn185AllowedHeaders,
 										acceptPost:     "application/json",
 										acceptPatch:    "",
 									})
@@ -1386,7 +1463,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					default:
 						s.notAllowed(w, r, notAllowedParams{
 							allowedMethods: "GET,POST",
-							allowedHeaders: rn18AllowedHeaders,
+							allowedHeaders: rn21AllowedHeaders,
 							acceptPost:     "application/json",
 							acceptPatch:    "",
 						})
@@ -1429,7 +1506,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "DELETE,GET,PUT",
-								allowedHeaders: rn39AllowedHeaders,
+								allowedHeaders: rn48AllowedHeaders,
 								acceptPost:     "",
 								acceptPatch:    "",
 							})
@@ -1466,7 +1543,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "GET",
-									allowedHeaders: rn77AllowedHeaders,
+									allowedHeaders: rn95AllowedHeaders,
 									acceptPost:     "",
 									acceptPatch:    "",
 								})
@@ -1507,7 +1584,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "GET",
-								allowedHeaders: rn78AllowedHeaders,
+								allowedHeaders: rn96AllowedHeaders,
 								acceptPost:     "",
 								acceptPatch:    "",
 							})
@@ -1531,7 +1608,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "GET",
-								allowedHeaders: rn59AllowedHeaders,
+								allowedHeaders: rn76AllowedHeaders,
 								acceptPost:     "",
 								acceptPatch:    "",
 							})
@@ -1556,7 +1633,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "POST",
-									allowedHeaders: rn153AllowedHeaders,
+									allowedHeaders: rn183AllowedHeaders,
 									acceptPost:     "application/json",
 									acceptPatch:    "",
 								})
@@ -1584,7 +1661,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "GET,POST",
-								allowedHeaders: rn19AllowedHeaders,
+								allowedHeaders: rn22AllowedHeaders,
 								acceptPost:     "application/json",
 								acceptPatch:    "",
 							})
@@ -1621,7 +1698,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "POST",
-										allowedHeaders: rn171AllowedHeaders,
+										allowedHeaders: rn201AllowedHeaders,
 										acceptPost:     "application/json",
 										acceptPatch:    "",
 									})
@@ -1655,7 +1732,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "DELETE,GET",
-									allowedHeaders: rn41AllowedHeaders,
+									allowedHeaders: rn50AllowedHeaders,
 									acceptPost:     "",
 									acceptPatch:    "",
 								})
@@ -1686,7 +1763,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					default:
 						s.notAllowed(w, r, notAllowedParams{
 							allowedMethods: "GET,PUT",
-							allowedHeaders: rn83AllowedHeaders,
+							allowedHeaders: rn101AllowedHeaders,
 							acceptPost:     "",
 							acceptPatch:    "",
 						})
@@ -1711,7 +1788,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					default:
 						s.notAllowed(w, r, notAllowedParams{
 							allowedMethods: "GET",
-							allowedHeaders: rn9AllowedHeaders,
+							allowedHeaders: rn12AllowedHeaders,
 							acceptPost:     "",
 							acceptPatch:    "",
 						})
@@ -1748,7 +1825,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "GET",
-								allowedHeaders: rn15AllowedHeaders,
+								allowedHeaders: rn18AllowedHeaders,
 								acceptPost:     "",
 								acceptPatch:    "",
 							})
@@ -1773,7 +1850,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "GET",
-								allowedHeaders: rn120AllowedHeaders,
+								allowedHeaders: rn145AllowedHeaders,
 								acceptPost:     "",
 								acceptPatch:    "",
 							})
@@ -1798,7 +1875,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "GET",
-								allowedHeaders: rn147AllowedHeaders,
+								allowedHeaders: rn175AllowedHeaders,
 								acceptPost:     "",
 								acceptPatch:    "",
 							})
@@ -1823,7 +1900,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "GET",
-								allowedHeaders: rn136AllowedHeaders,
+								allowedHeaders: rn162AllowedHeaders,
 								acceptPost:     "",
 								acceptPatch:    "",
 							})
@@ -1875,7 +1952,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "GET,POST",
-									allowedHeaders: rn122AllowedHeaders,
+									allowedHeaders: rn147AllowedHeaders,
 									acceptPost:     "application/json",
 									acceptPatch:    "",
 								})
@@ -1911,7 +1988,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "GET",
-										allowedHeaders: rn86AllowedHeaders,
+										allowedHeaders: rn104AllowedHeaders,
 										acceptPost:     "",
 										acceptPatch:    "",
 									})
@@ -1938,7 +2015,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "POST",
-									allowedHeaders: rn13AllowedHeaders,
+									allowedHeaders: rn16AllowedHeaders,
 									acceptPost:     "application/json",
 									acceptPatch:    "",
 								})
@@ -2018,7 +2095,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "GET,POST",
-									allowedHeaders: rn21AllowedHeaders,
+									allowedHeaders: rn24AllowedHeaders,
 									acceptPost:     "application/json",
 									acceptPatch:    "",
 								})
@@ -2054,7 +2131,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "DELETE",
-										allowedHeaders: rn45AllowedHeaders,
+										allowedHeaders: rn54AllowedHeaders,
 										acceptPost:     "",
 										acceptPatch:    "",
 									})
@@ -2093,7 +2170,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "GET",
-								allowedHeaders: rn26AllowedHeaders,
+								allowedHeaders: rn35AllowedHeaders,
 								acceptPost:     "",
 								acceptPatch:    "",
 							})
@@ -2132,7 +2209,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "GET",
-										allowedHeaders: rn68AllowedHeaders,
+										allowedHeaders: rn86AllowedHeaders,
 										acceptPost:     "",
 										acceptPatch:    "",
 									})
@@ -2175,7 +2252,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 									default:
 										s.notAllowed(w, r, notAllowedParams{
 											allowedMethods: "GET,POST",
-											allowedHeaders: rn114AllowedHeaders,
+											allowedHeaders: rn139AllowedHeaders,
 											acceptPost:     "application/json",
 											acceptPatch:    "",
 										})
@@ -2212,7 +2289,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 									default:
 										s.notAllowed(w, r, notAllowedParams{
 											allowedMethods: "GET",
-											allowedHeaders: rn88AllowedHeaders,
+											allowedHeaders: rn106AllowedHeaders,
 											acceptPost:     "",
 											acceptPatch:    "",
 										})
@@ -2241,7 +2318,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "PUT",
-										allowedHeaders: rn63AllowedHeaders,
+										allowedHeaders: rn81AllowedHeaders,
 										acceptPost:     "",
 										acceptPatch:    "",
 									})
@@ -2268,7 +2345,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "GET",
-										allowedHeaders: rn135AllowedHeaders,
+										allowedHeaders: rn161AllowedHeaders,
 										acceptPost:     "",
 										acceptPatch:    "",
 									})
@@ -2295,7 +2372,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "POST",
-										allowedHeaders: rn27AllowedHeaders,
+										allowedHeaders: rn36AllowedHeaders,
 										acceptPost:     "application/json",
 										acceptPatch:    "",
 									})
@@ -2334,7 +2411,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 									default:
 										s.notAllowed(w, r, notAllowedParams{
 											allowedMethods: "POST",
-											allowedHeaders: rn169AllowedHeaders,
+											allowedHeaders: rn199AllowedHeaders,
 											acceptPost:     "application/json",
 											acceptPatch:    "",
 										})
@@ -2361,7 +2438,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 									default:
 										s.notAllowed(w, r, notAllowedParams{
 											allowedMethods: "PUT",
-											allowedHeaders: rn152AllowedHeaders,
+											allowedHeaders: rn182AllowedHeaders,
 											acceptPost:     "",
 											acceptPatch:    "",
 										})
@@ -2390,7 +2467,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "POST",
-										allowedHeaders: rn148AllowedHeaders,
+										allowedHeaders: rn176AllowedHeaders,
 										acceptPost:     "",
 										acceptPatch:    "",
 									})
@@ -2429,7 +2506,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 									default:
 										s.notAllowed(w, r, notAllowedParams{
 											allowedMethods: "POST",
-											allowedHeaders: rn62AllowedHeaders,
+											allowedHeaders: rn80AllowedHeaders,
 											acceptPost:     "application/json",
 											acceptPatch:    "",
 										})
@@ -2455,7 +2532,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 									default:
 										s.notAllowed(w, r, notAllowedParams{
 											allowedMethods: "GET",
-											allowedHeaders: rn163AllowedHeaders,
+											allowedHeaders: rn193AllowedHeaders,
 											acceptPost:     "",
 											acceptPatch:    "",
 										})
@@ -2482,7 +2559,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 										default:
 											s.notAllowed(w, r, notAllowedParams{
 												allowedMethods: "POST",
-												allowedHeaders: rn162AllowedHeaders,
+												allowedHeaders: rn192AllowedHeaders,
 												acceptPost:     "",
 												acceptPatch:    "",
 											})
@@ -2513,7 +2590,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "PUT",
-										allowedHeaders: rn181AllowedHeaders,
+										allowedHeaders: rn213AllowedHeaders,
 										acceptPost:     "",
 										acceptPatch:    "",
 									})
@@ -2528,64 +2605,37 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 				}
 
-			case 'l': // Prefix: "libraries"
+			case 'l': // Prefix: "li"
 
-				if l := len("libraries"); len(elem) >= l && elem[0:l] == "libraries" {
+				if l := len("li"); len(elem) >= l && elem[0:l] == "li" {
 					elem = elem[l:]
 				} else {
 					break
 				}
 
 				if len(elem) == 0 {
-					switch r.Method {
-					case "GET":
-						s.handleListLibrariesRequest([0]string{}, elemIsEscaped, w, r)
-					case "POST":
-						s.handleCreateLibraryRequest([0]string{}, elemIsEscaped, w, r)
-					default:
-						s.notAllowed(w, r, notAllowedParams{
-							allowedMethods: "GET,POST",
-							allowedHeaders: rn22AllowedHeaders,
-							acceptPost:     "application/json",
-							acceptPatch:    "",
-						})
-					}
-
-					return
+					break
 				}
 				switch elem[0] {
-				case '/': // Prefix: "/"
+				case 'b': // Prefix: "braries"
 
-					if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+					if l := len("braries"); len(elem) >= l && elem[0:l] == "braries" {
 						elem = elem[l:]
 					} else {
 						break
 					}
 
-					// Param: "libraryId"
-					// Match until "/"
-					idx := strings.IndexByte(elem, '/')
-					if idx < 0 {
-						idx = len(elem)
-					}
-					args[0] = elem[:idx]
-					elem = elem[idx:]
-
 					if len(elem) == 0 {
 						switch r.Method {
-						case "DELETE":
-							s.handleDeleteLibraryRequest([1]string{
-								args[0],
-							}, elemIsEscaped, w, r)
-						case "PUT":
-							s.handleUpdateLibraryRequest([1]string{
-								args[0],
-							}, elemIsEscaped, w, r)
+						case "GET":
+							s.handleListLibrariesRequest([0]string{}, elemIsEscaped, w, r)
+						case "POST":
+							s.handleCreateLibraryRequest([0]string{}, elemIsEscaped, w, r)
 						default:
 							s.notAllowed(w, r, notAllowedParams{
-								allowedMethods: "DELETE,PUT",
-								allowedHeaders: rn47AllowedHeaders,
-								acceptPost:     "",
+								allowedMethods: "GET,POST",
+								allowedHeaders: rn26AllowedHeaders,
+								acceptPost:     "application/json",
 								acceptPatch:    "",
 							})
 						}
@@ -2601,13 +2651,704 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							break
 						}
 
+						// Param: "libraryId"
+						// Match until "/"
+						idx := strings.IndexByte(elem, '/')
+						if idx < 0 {
+							idx = len(elem)
+						}
+						args[0] = elem[:idx]
+						elem = elem[idx:]
+
+						if len(elem) == 0 {
+							switch r.Method {
+							case "DELETE":
+								s.handleDeleteLibraryRequest([1]string{
+									args[0],
+								}, elemIsEscaped, w, r)
+							case "PUT":
+								s.handleUpdateLibraryRequest([1]string{
+									args[0],
+								}, elemIsEscaped, w, r)
+							default:
+								s.notAllowed(w, r, notAllowedParams{
+									allowedMethods: "DELETE,PUT",
+									allowedHeaders: rn56AllowedHeaders,
+									acceptPost:     "",
+									acceptPatch:    "",
+								})
+							}
+
+							return
+						}
+						switch elem[0] {
+						case '/': // Prefix: "/"
+
+							if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								break
+							}
+							switch elem[0] {
+							case 'g': // Prefix: "genres"
+
+								if l := len("genres"); len(elem) >= l && elem[0:l] == "genres" {
+									elem = elem[l:]
+								} else {
+									break
+								}
+
+								if len(elem) == 0 {
+									// Leaf node.
+									switch r.Method {
+									case "GET":
+										s.handleListLibraryGenresRequest([1]string{
+											args[0],
+										}, elemIsEscaped, w, r)
+									default:
+										s.notAllowed(w, r, notAllowedParams{
+											allowedMethods: "GET",
+											allowedHeaders: rn148AllowedHeaders,
+											acceptPost:     "",
+											acceptPatch:    "",
+										})
+									}
+
+									return
+								}
+
+							case 'i': // Prefix: "items"
+
+								if l := len("items"); len(elem) >= l && elem[0:l] == "items" {
+									elem = elem[l:]
+								} else {
+									break
+								}
+
+								if len(elem) == 0 {
+									// Leaf node.
+									switch r.Method {
+									case "GET":
+										s.handleListLibraryItemsRequest([1]string{
+											args[0],
+										}, elemIsEscaped, w, r)
+									default:
+										s.notAllowed(w, r, notAllowedParams{
+											allowedMethods: "GET",
+											allowedHeaders: rn150AllowedHeaders,
+											acceptPost:     "",
+											acceptPatch:    "",
+										})
+									}
+
+									return
+								}
+
+							case 'r': // Prefix: "refresh-metadata"
+
+								if l := len("refresh-metadata"); len(elem) >= l && elem[0:l] == "refresh-metadata" {
+									elem = elem[l:]
+								} else {
+									break
+								}
+
+								if len(elem) == 0 {
+									// Leaf node.
+									switch r.Method {
+									case "POST":
+										s.handleRefreshLibraryMetadataRequest([1]string{
+											args[0],
+										}, elemIsEscaped, w, r)
+									default:
+										s.notAllowed(w, r, notAllowedParams{
+											allowedMethods: "POST",
+											allowedHeaders: rn177AllowedHeaders,
+											acceptPost:     "",
+											acceptPatch:    "",
+										})
+									}
+
+									return
+								}
+
+							case 's': // Prefix: "scan"
+
+								if l := len("scan"); len(elem) >= l && elem[0:l] == "scan" {
+									elem = elem[l:]
+								} else {
+									break
+								}
+
+								if len(elem) == 0 {
+									// Leaf node.
+									switch r.Method {
+									case "POST":
+										s.handleScanLibraryRequest([1]string{
+											args[0],
+										}, elemIsEscaped, w, r)
+									default:
+										s.notAllowed(w, r, notAllowedParams{
+											allowedMethods: "POST",
+											allowedHeaders: rn189AllowedHeaders,
+											acceptPost:     "",
+											acceptPatch:    "",
+										})
+									}
+
+									return
+								}
+
+							}
+
+						}
+
+					}
+
+				case 'v': // Prefix: "vetv/"
+
+					if l := len("vetv/"); len(elem) >= l && elem[0:l] == "vetv/" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					if len(elem) == 0 {
+						break
+					}
+					switch elem[0] {
+					case 'c': // Prefix: "channels"
+
+						if l := len("channels"); len(elem) >= l && elem[0:l] == "channels" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							switch r.Method {
+							case "GET":
+								s.handleListLiveTvChannelsRequest([0]string{}, elemIsEscaped, w, r)
+							default:
+								s.notAllowed(w, r, notAllowedParams{
+									allowedMethods: "GET",
+									allowedHeaders: rn151AllowedHeaders,
+									acceptPost:     "",
+									acceptPatch:    "",
+								})
+							}
+
+							return
+						}
+						switch elem[0] {
+						case '/': // Prefix: "/"
+
+							if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							// Param: "channelId"
+							// Match until "/"
+							idx := strings.IndexByte(elem, '/')
+							if idx < 0 {
+								idx = len(elem)
+							}
+							args[0] = elem[:idx]
+							elem = elem[idx:]
+
+							if len(elem) == 0 {
+								switch r.Method {
+								case "GET":
+									s.handleGetLiveTvChannelRequest([1]string{
+										args[0],
+									}, elemIsEscaped, w, r)
+								case "PATCH":
+									s.handleUpdateLiveTvChannelRequest([1]string{
+										args[0],
+									}, elemIsEscaped, w, r)
+								default:
+									s.notAllowed(w, r, notAllowedParams{
+										allowedMethods: "GET,PATCH",
+										allowedHeaders: rn5AllowedHeaders,
+										acceptPost:     "",
+										acceptPatch:    "application/json",
+									})
+								}
+
+								return
+							}
+							switch elem[0] {
+							case '/': // Prefix: "/"
+
+								if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+									elem = elem[l:]
+								} else {
+									break
+								}
+
+								if len(elem) == 0 {
+									break
+								}
+								switch elem[0] {
+								case 'f': // Prefix: "favorite"
+
+									if l := len("favorite"); len(elem) >= l && elem[0:l] == "favorite" {
+										elem = elem[l:]
+									} else {
+										break
+									}
+
+									if len(elem) == 0 {
+										// Leaf node.
+										switch r.Method {
+										case "DELETE":
+											s.handleRemoveLiveTvFavoriteRequest([1]string{
+												args[0],
+											}, elemIsEscaped, w, r)
+										case "PUT":
+											s.handleAddLiveTvFavoriteRequest([1]string{
+												args[0],
+											}, elemIsEscaped, w, r)
+										default:
+											s.notAllowed(w, r, notAllowedParams{
+												allowedMethods: "DELETE,PUT",
+												allowedHeaders: rn6AllowedHeaders,
+												acceptPost:     "",
+												acceptPatch:    "",
+											})
+										}
+
+										return
+									}
+
+								case 'p': // Prefix: "play"
+
+									if l := len("play"); len(elem) >= l && elem[0:l] == "play" {
+										elem = elem[l:]
+									} else {
+										break
+									}
+
+									if len(elem) == 0 {
+										// Leaf node.
+										switch r.Method {
+										case "POST":
+											s.handlePlayLiveTvChannelRequest([1]string{
+												args[0],
+											}, elemIsEscaped, w, r)
+										default:
+											s.notAllowed(w, r, notAllowedParams{
+												allowedMethods: "POST",
+												allowedHeaders: rn173AllowedHeaders,
+												acceptPost:     "application/json",
+												acceptPatch:    "",
+											})
+										}
+
+										return
+									}
+
+								}
+
+							}
+
+						}
+
+					case 'g': // Prefix: "guide"
+
+						if l := len("guide"); len(elem) >= l && elem[0:l] == "guide" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							switch r.Method {
+							case "GET":
+								s.handleGetLiveTvGuideRequest([0]string{}, elemIsEscaped, w, r)
+							default:
+								s.notAllowed(w, r, notAllowedParams{
+									allowedMethods: "GET",
+									allowedHeaders: rn109AllowedHeaders,
+									acceptPost:     "",
+									acceptPatch:    "",
+								})
+							}
+
+							return
+						}
+						switch elem[0] {
+						case 's': // Prefix: "s"
+
+							if l := len("s"); len(elem) >= l && elem[0:l] == "s" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								switch r.Method {
+								case "GET":
+									s.handleListLiveTvGuidesRequest([0]string{}, elemIsEscaped, w, r)
+								case "POST":
+									s.handleCreateLiveTvGuideRequest([0]string{}, elemIsEscaped, w, r)
+								default:
+									s.notAllowed(w, r, notAllowedParams{
+										allowedMethods: "GET,POST",
+										allowedHeaders: rn28AllowedHeaders,
+										acceptPost:     "application/json",
+										acceptPatch:    "",
+									})
+								}
+
+								return
+							}
+							switch elem[0] {
+							case '/': // Prefix: "/"
+
+								if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+									elem = elem[l:]
+								} else {
+									break
+								}
+
+								if len(elem) == 0 {
+									break
+								}
+								switch elem[0] {
+								case 't': // Prefix: "test"
+									origElem := elem
+									if l := len("test"); len(elem) >= l && elem[0:l] == "test" {
+										elem = elem[l:]
+									} else {
+										break
+									}
+
+									if len(elem) == 0 {
+										// Leaf node.
+										switch r.Method {
+										case "POST":
+											s.handleTestLiveTvGuideRequest([0]string{}, elemIsEscaped, w, r)
+										default:
+											s.notAllowed(w, r, notAllowedParams{
+												allowedMethods: "POST",
+												allowedHeaders: rn205AllowedHeaders,
+												acceptPost:     "application/json",
+												acceptPatch:    "",
+											})
+										}
+
+										return
+									}
+
+									elem = origElem
+								}
+								// Param: "guideId"
+								// Match until "/"
+								idx := strings.IndexByte(elem, '/')
+								if idx < 0 {
+									idx = len(elem)
+								}
+								args[0] = elem[:idx]
+								elem = elem[idx:]
+
+								if len(elem) == 0 {
+									switch r.Method {
+									case "DELETE":
+										s.handleDeleteLiveTvGuideRequest([1]string{
+											args[0],
+										}, elemIsEscaped, w, r)
+									case "PUT":
+										s.handleUpdateLiveTvGuideRequest([1]string{
+											args[0],
+										}, elemIsEscaped, w, r)
+									default:
+										s.notAllowed(w, r, notAllowedParams{
+											allowedMethods: "DELETE,PUT",
+											allowedHeaders: rn58AllowedHeaders,
+											acceptPost:     "",
+											acceptPatch:    "",
+										})
+									}
+
+									return
+								}
+								switch elem[0] {
+								case '/': // Prefix: "/refresh"
+
+									if l := len("/refresh"); len(elem) >= l && elem[0:l] == "/refresh" {
+										elem = elem[l:]
+									} else {
+										break
+									}
+
+									if len(elem) == 0 {
+										// Leaf node.
+										switch r.Method {
+										case "POST":
+											s.handleRefreshLiveTvGuideRequest([1]string{
+												args[0],
+											}, elemIsEscaped, w, r)
+										default:
+											s.notAllowed(w, r, notAllowedParams{
+												allowedMethods: "POST",
+												allowedHeaders: rn178AllowedHeaders,
+												acceptPost:     "",
+												acceptPatch:    "",
+											})
+										}
+
+										return
+									}
+
+								}
+
+							}
+
+						}
+
+					case 'm': // Prefix: "mapping"
+
+						if l := len("mapping"); len(elem) >= l && elem[0:l] == "mapping" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							// Leaf node.
+							switch r.Method {
+							case "GET":
+								s.handleGetLiveTvMappingRequest([0]string{}, elemIsEscaped, w, r)
+							default:
+								s.notAllowed(w, r, notAllowedParams{
+									allowedMethods: "GET",
+									allowedHeaders: rn110AllowedHeaders,
+									acceptPost:     "",
+									acceptPatch:    "",
+								})
+							}
+
+							return
+						}
+
+					case 'o': // Prefix: "on-now"
+
+						if l := len("on-now"); len(elem) >= l && elem[0:l] == "on-now" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							// Leaf node.
+							switch r.Method {
+							case "GET":
+								s.handleGetLiveTvOnNowRequest([0]string{}, elemIsEscaped, w, r)
+							default:
+								s.notAllowed(w, r, notAllowedParams{
+									allowedMethods: "GET",
+									allowedHeaders: rn111AllowedHeaders,
+									acceptPost:     "",
+									acceptPatch:    "",
+								})
+							}
+
+							return
+						}
+
+					case 'p': // Prefix: "programs/"
+
+						if l := len("programs/"); len(elem) >= l && elem[0:l] == "programs/" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						// Param: "programId"
+						// Leaf parameter, slashes are prohibited
+						idx := strings.IndexByte(elem, '/')
+						if idx >= 0 {
+							break
+						}
+						args[0] = elem
+						elem = ""
+
+						if len(elem) == 0 {
+							// Leaf node.
+							switch r.Method {
+							case "GET":
+								s.handleGetLiveTvProgramRequest([1]string{
+									args[0],
+								}, elemIsEscaped, w, r)
+							default:
+								s.notAllowed(w, r, notAllowedParams{
+									allowedMethods: "GET",
+									allowedHeaders: rn113AllowedHeaders,
+									acceptPost:     "",
+									acceptPatch:    "",
+								})
+							}
+
+							return
+						}
+
+					case 'r': // Prefix: "recordings"
+
+						if l := len("recordings"); len(elem) >= l && elem[0:l] == "recordings" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							switch r.Method {
+							case "GET":
+								s.handleListLiveTvRecordingsRequest([0]string{}, elemIsEscaped, w, r)
+							case "POST":
+								s.handleCreateLiveTvRecordingRequest([0]string{}, elemIsEscaped, w, r)
+							default:
+								s.notAllowed(w, r, notAllowedParams{
+									allowedMethods: "GET,POST",
+									allowedHeaders: rn29AllowedHeaders,
+									acceptPost:     "application/json",
+									acceptPatch:    "",
+								})
+							}
+
+							return
+						}
+						switch elem[0] {
+						case '/': // Prefix: "/"
+
+							if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							// Param: "recordingId"
+							// Leaf parameter, slashes are prohibited
+							idx := strings.IndexByte(elem, '/')
+							if idx >= 0 {
+								break
+							}
+							args[0] = elem
+							elem = ""
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch r.Method {
+								case "DELETE":
+									s.handleDeleteLiveTvRecordingRequest([1]string{
+										args[0],
+									}, elemIsEscaped, w, r)
+								case "PATCH":
+									s.handleUpdateLiveTvRecordingRequest([1]string{
+										args[0],
+									}, elemIsEscaped, w, r)
+								default:
+									s.notAllowed(w, r, notAllowedParams{
+										allowedMethods: "DELETE,PATCH",
+										allowedHeaders: rn60AllowedHeaders,
+										acceptPost:     "",
+										acceptPatch:    "application/json",
+									})
+								}
+
+								return
+							}
+
+						}
+
+					case 's': // Prefix: "se"
+
+						if l := len("se"); len(elem) >= l && elem[0:l] == "se" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
 						if len(elem) == 0 {
 							break
 						}
 						switch elem[0] {
-						case 'g': // Prefix: "genres"
+						case 'r': // Prefix: "ries-rules"
 
-							if l := len("genres"); len(elem) >= l && elem[0:l] == "genres" {
+							if l := len("ries-rules"); len(elem) >= l && elem[0:l] == "ries-rules" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								switch r.Method {
+								case "GET":
+									s.handleListLiveTvSeriesRulesRequest([0]string{}, elemIsEscaped, w, r)
+								case "POST":
+									s.handleCreateLiveTvSeriesRuleRequest([0]string{}, elemIsEscaped, w, r)
+								default:
+									s.notAllowed(w, r, notAllowedParams{
+										allowedMethods: "GET,POST",
+										allowedHeaders: rn30AllowedHeaders,
+										acceptPost:     "application/json",
+										acceptPatch:    "",
+									})
+								}
+
+								return
+							}
+							switch elem[0] {
+							case '/': // Prefix: "/"
+
+								if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+									elem = elem[l:]
+								} else {
+									break
+								}
+
+								// Param: "ruleId"
+								// Leaf parameter, slashes are prohibited
+								idx := strings.IndexByte(elem, '/')
+								if idx >= 0 {
+									break
+								}
+								args[0] = elem
+								elem = ""
+
+								if len(elem) == 0 {
+									// Leaf node.
+									switch r.Method {
+									case "DELETE":
+										s.handleDeleteLiveTvSeriesRuleRequest([1]string{
+											args[0],
+										}, elemIsEscaped, w, r)
+									case "PUT":
+										s.handleUpdateLiveTvSeriesRuleRequest([1]string{
+											args[0],
+										}, elemIsEscaped, w, r)
+									default:
+										s.notAllowed(w, r, notAllowedParams{
+											allowedMethods: "DELETE,PUT",
+											allowedHeaders: rn62AllowedHeaders,
+											acceptPost:     "",
+											acceptPatch:    "",
+										})
+									}
+
+									return
+								}
+
+							}
+
+						case 't': // Prefix: "ttings"
+
+							if l := len("ttings"); len(elem) >= l && elem[0:l] == "ttings" {
 								elem = elem[l:]
 							} else {
 								break
@@ -2617,13 +3358,13 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								// Leaf node.
 								switch r.Method {
 								case "GET":
-									s.handleListLibraryGenresRequest([1]string{
-										args[0],
-									}, elemIsEscaped, w, r)
+									s.handleGetLiveTvSettingsRequest([0]string{}, elemIsEscaped, w, r)
+								case "PUT":
+									s.handleUpdateLiveTvSettingsRequest([0]string{}, elemIsEscaped, w, r)
 								default:
 									s.notAllowed(w, r, notAllowedParams{
-										allowedMethods: "GET",
-										allowedHeaders: rn123AllowedHeaders,
+										allowedMethods: "GET,PUT",
+										allowedHeaders: rn115AllowedHeaders,
 										acceptPost:     "",
 										acceptPatch:    "",
 									})
@@ -2632,52 +3373,122 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								return
 							}
 
-						case 'i': // Prefix: "items"
+						}
 
-							if l := len("items"); len(elem) >= l && elem[0:l] == "items" {
+					case 't': // Prefix: "tuners"
+
+						if l := len("tuners"); len(elem) >= l && elem[0:l] == "tuners" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							switch r.Method {
+							case "GET":
+								s.handleListLiveTvTunersRequest([0]string{}, elemIsEscaped, w, r)
+							case "POST":
+								s.handleCreateLiveTvTunerRequest([0]string{}, elemIsEscaped, w, r)
+							default:
+								s.notAllowed(w, r, notAllowedParams{
+									allowedMethods: "GET,POST",
+									allowedHeaders: rn31AllowedHeaders,
+									acceptPost:     "application/json",
+									acceptPatch:    "",
+								})
+							}
+
+							return
+						}
+						switch elem[0] {
+						case '/': // Prefix: "/"
+
+							if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
 								elem = elem[l:]
 							} else {
 								break
 							}
 
 							if len(elem) == 0 {
-								// Leaf node.
-								switch r.Method {
-								case "GET":
-									s.handleListLibraryItemsRequest([1]string{
-										args[0],
-									}, elemIsEscaped, w, r)
-								default:
-									s.notAllowed(w, r, notAllowedParams{
-										allowedMethods: "GET",
-										allowedHeaders: rn125AllowedHeaders,
-										acceptPost:     "",
-										acceptPatch:    "",
-									})
-								}
-
-								return
-							}
-
-						case 'r': // Prefix: "refresh-metadata"
-
-							if l := len("refresh-metadata"); len(elem) >= l && elem[0:l] == "refresh-metadata" {
-								elem = elem[l:]
-							} else {
 								break
 							}
+							switch elem[0] {
+							case 'd': // Prefix: "discover"
+								origElem := elem
+								if l := len("discover"); len(elem) >= l && elem[0:l] == "discover" {
+									elem = elem[l:]
+								} else {
+									break
+								}
+
+								if len(elem) == 0 {
+									// Leaf node.
+									switch r.Method {
+									case "GET":
+										s.handleDiscoverLiveTvTunersRequest([0]string{}, elemIsEscaped, w, r)
+									default:
+										s.notAllowed(w, r, notAllowedParams{
+											allowedMethods: "GET",
+											allowedHeaders: rn77AllowedHeaders,
+											acceptPost:     "",
+											acceptPatch:    "",
+										})
+									}
+
+									return
+								}
+
+								elem = origElem
+							case 't': // Prefix: "test"
+								origElem := elem
+								if l := len("test"); len(elem) >= l && elem[0:l] == "test" {
+									elem = elem[l:]
+								} else {
+									break
+								}
+
+								if len(elem) == 0 {
+									// Leaf node.
+									switch r.Method {
+									case "POST":
+										s.handleTestLiveTvTunerRequest([0]string{}, elemIsEscaped, w, r)
+									default:
+										s.notAllowed(w, r, notAllowedParams{
+											allowedMethods: "POST",
+											allowedHeaders: rn206AllowedHeaders,
+											acceptPost:     "application/json",
+											acceptPatch:    "",
+										})
+									}
+
+									return
+								}
+
+								elem = origElem
+							}
+							// Param: "tunerId"
+							// Match until "/"
+							idx := strings.IndexByte(elem, '/')
+							if idx < 0 {
+								idx = len(elem)
+							}
+							args[0] = elem[:idx]
+							elem = elem[idx:]
 
 							if len(elem) == 0 {
-								// Leaf node.
 								switch r.Method {
-								case "POST":
-									s.handleRefreshLibraryMetadataRequest([1]string{
+								case "DELETE":
+									s.handleDeleteLiveTvTunerRequest([1]string{
+										args[0],
+									}, elemIsEscaped, w, r)
+								case "PUT":
+									s.handleUpdateLiveTvTunerRequest([1]string{
 										args[0],
 									}, elemIsEscaped, w, r)
 								default:
 									s.notAllowed(w, r, notAllowedParams{
-										allowedMethods: "POST",
-										allowedHeaders: rn149AllowedHeaders,
+										allowedMethods: "DELETE,PUT",
+										allowedHeaders: rn64AllowedHeaders,
 										acceptPost:     "",
 										acceptPatch:    "",
 									})
@@ -2685,32 +3496,34 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 								return
 							}
+							switch elem[0] {
+							case '/': // Prefix: "/refresh"
 
-						case 's': // Prefix: "scan"
-
-							if l := len("scan"); len(elem) >= l && elem[0:l] == "scan" {
-								elem = elem[l:]
-							} else {
-								break
-							}
-
-							if len(elem) == 0 {
-								// Leaf node.
-								switch r.Method {
-								case "POST":
-									s.handleScanLibraryRequest([1]string{
-										args[0],
-									}, elemIsEscaped, w, r)
-								default:
-									s.notAllowed(w, r, notAllowedParams{
-										allowedMethods: "POST",
-										allowedHeaders: rn159AllowedHeaders,
-										acceptPost:     "",
-										acceptPatch:    "",
-									})
+								if l := len("/refresh"); len(elem) >= l && elem[0:l] == "/refresh" {
+									elem = elem[l:]
+								} else {
+									break
 								}
 
-								return
+								if len(elem) == 0 {
+									// Leaf node.
+									switch r.Method {
+									case "POST":
+										s.handleRefreshLiveTvTunerRequest([1]string{
+											args[0],
+										}, elemIsEscaped, w, r)
+									default:
+										s.notAllowed(w, r, notAllowedParams{
+											allowedMethods: "POST",
+											allowedHeaders: rn179AllowedHeaders,
+											acceptPost:     "",
+											acceptPatch:    "",
+										})
+									}
+
+									return
+								}
+
 							}
 
 						}
@@ -2747,7 +3560,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "GET",
-								allowedHeaders: rn173AllowedHeaders,
+								allowedHeaders: rn203AllowedHeaders,
 								acceptPost:     "",
 								acceptPatch:    "",
 							})
@@ -2774,7 +3587,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "GET,PUT",
-								allowedHeaders: rn99AllowedHeaders,
+								allowedHeaders: rn124AllowedHeaders,
 								acceptPost:     "",
 								acceptPatch:    "",
 							})
@@ -2836,7 +3649,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "GET",
-									allowedHeaders: rn98AllowedHeaders,
+									allowedHeaders: rn123AllowedHeaders,
 									acceptPost:     "",
 									acceptPatch:    "",
 								})
@@ -2864,7 +3677,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "GET,POST",
-								allowedHeaders: rn28AllowedHeaders,
+								allowedHeaders: rn37AllowedHeaders,
 								acceptPost:     "application/json",
 								acceptPatch:    "",
 							})
@@ -2907,7 +3720,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "DELETE,GET,PUT",
-									allowedHeaders: rn5AllowedHeaders,
+									allowedHeaders: rn8AllowedHeaders,
 									acceptPost:     "",
 									acceptPatch:    "",
 								})
@@ -2934,7 +3747,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "POST",
-										allowedHeaders: rn6AllowedHeaders,
+										allowedHeaders: rn9AllowedHeaders,
 										acceptPost:     "application/json",
 										acceptPatch:    "",
 									})
@@ -2964,7 +3777,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "GET,POST",
-								allowedHeaders: rn30AllowedHeaders,
+								allowedHeaders: rn39AllowedHeaders,
 								acceptPost:     "application/json",
 								acceptPatch:    "",
 							})
@@ -3001,7 +3814,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "POST",
-										allowedHeaders: rn164AllowedHeaders,
+										allowedHeaders: rn194AllowedHeaders,
 										acceptPost:     "application/json",
 										acceptPatch:    "",
 									})
@@ -3034,7 +3847,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "DELETE,PUT",
-									allowedHeaders: rn53AllowedHeaders,
+									allowedHeaders: rn70AllowedHeaders,
 									acceptPost:     "",
 									acceptPatch:    "",
 								})
@@ -3077,7 +3890,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 									default:
 										s.notAllowed(w, r, notAllowedParams{
 											allowedMethods: "DELETE,PUT",
-											allowedHeaders: rn54AllowedHeaders,
+											allowedHeaders: rn71AllowedHeaders,
 											acceptPost:     "",
 											acceptPatch:    "",
 										})
@@ -3104,7 +3917,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 									default:
 										s.notAllowed(w, r, notAllowedParams{
 											allowedMethods: "POST",
-											allowedHeaders: rn166AllowedHeaders,
+											allowedHeaders: rn196AllowedHeaders,
 											acceptPost:     "application/json",
 											acceptPatch:    "",
 										})
@@ -3149,7 +3962,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "POST",
-								allowedHeaders: rn8AllowedHeaders,
+								allowedHeaders: rn11AllowedHeaders,
 								acceptPost:     "application/json",
 								acceptPatch:    "",
 							})
@@ -3174,7 +3987,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "POST",
-								allowedHeaders: rn116AllowedHeaders,
+								allowedHeaders: rn141AllowedHeaders,
 								acceptPost:     "application/json",
 								acceptPatch:    "",
 							})
@@ -3199,7 +4012,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "POST",
-								allowedHeaders: rn146AllowedHeaders,
+								allowedHeaders: rn174AllowedHeaders,
 								acceptPost:     "application/json",
 								acceptPatch:    "",
 							})
@@ -3250,7 +4063,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "GET",
-									allowedHeaders: rn160AllowedHeaders,
+									allowedHeaders: rn190AllowedHeaders,
 									acceptPost:     "",
 									acceptPatch:    "",
 								})
@@ -3274,7 +4087,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "GET",
-									allowedHeaders: rn127AllowedHeaders,
+									allowedHeaders: rn153AllowedHeaders,
 									acceptPost:     "",
 									acceptPatch:    "",
 								})
@@ -3313,7 +4126,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "DELETE,PATCH",
-										allowedHeaders: rn151AllowedHeaders,
+										allowedHeaders: rn181AllowedHeaders,
 										acceptPost:     "",
 										acceptPatch:    "application/json",
 									})
@@ -3340,7 +4153,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 									default:
 										s.notAllowed(w, r, notAllowedParams{
 											allowedMethods: "POST",
-											allowedHeaders: rn167AllowedHeaders,
+											allowedHeaders: rn197AllowedHeaders,
 											acceptPost:     "application/json",
 											acceptPatch:    "",
 										})
@@ -3394,7 +4207,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 									default:
 										s.notAllowed(w, r, notAllowedParams{
 											allowedMethods: "GET,PUT",
-											allowedHeaders: rn71AllowedHeaders,
+											allowedHeaders: rn89AllowedHeaders,
 											acceptPost:     "",
 											acceptPatch:    "",
 										})
@@ -3432,7 +4245,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 											default:
 												s.notAllowed(w, r, notAllowedParams{
 													allowedMethods: "GET,PUT",
-													allowedHeaders: rn90AllowedHeaders,
+													allowedHeaders: rn108AllowedHeaders,
 													acceptPost:     "",
 													acceptPatch:    "",
 												})
@@ -3457,7 +4270,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 												default:
 													s.notAllowed(w, r, notAllowedParams{
 														allowedMethods: "POST",
-														allowedHeaders: rn174AllowedHeaders,
+														allowedHeaders: rn204AllowedHeaders,
 														acceptPost:     "application/json",
 														acceptPatch:    "",
 													})
@@ -3485,7 +4298,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 											default:
 												s.notAllowed(w, r, notAllowedParams{
 													allowedMethods: "GET,POST",
-													allowedHeaders: rn24AllowedHeaders,
+													allowedHeaders: rn33AllowedHeaders,
 													acceptPost:     "application/json",
 													acceptPatch:    "",
 												})
@@ -3510,7 +4323,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 												default:
 													s.notAllowed(w, r, notAllowedParams{
 														allowedMethods: "POST",
-														allowedHeaders: rn176AllowedHeaders,
+														allowedHeaders: rn208AllowedHeaders,
 														acceptPost:     "application/json",
 														acceptPatch:    "",
 													})
@@ -3550,7 +4363,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 												default:
 													s.notAllowed(w, r, notAllowedParams{
 														allowedMethods: "DELETE,PUT",
-														allowedHeaders: rn51AllowedHeaders,
+														allowedHeaders: rn68AllowedHeaders,
 														acceptPost:     "",
 														acceptPatch:    "",
 													})
@@ -3583,7 +4396,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 									default:
 										s.notAllowed(w, r, notAllowedParams{
 											allowedMethods: "GET,PUT",
-											allowedHeaders: rn75AllowedHeaders,
+											allowedHeaders: rn93AllowedHeaders,
 											acceptPost:     "",
 											acceptPatch:    "",
 										})
@@ -3622,7 +4435,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 										default:
 											s.notAllowed(w, r, notAllowedParams{
 												allowedMethods: "GET,PUT",
-												allowedHeaders: rn79AllowedHeaders,
+												allowedHeaders: rn97AllowedHeaders,
 												acceptPost:     "",
 												acceptPatch:    "",
 											})
@@ -3649,7 +4462,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 										default:
 											s.notAllowed(w, r, notAllowedParams{
 												allowedMethods: "GET,PUT",
-												allowedHeaders: rn81AllowedHeaders,
+												allowedHeaders: rn99AllowedHeaders,
 												acceptPost:     "",
 												acceptPatch:    "",
 											})
@@ -3678,7 +4491,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 									default:
 										s.notAllowed(w, r, notAllowedParams{
 											allowedMethods: "GET,PUT",
-											allowedHeaders: rn82AllowedHeaders,
+											allowedHeaders: rn100AllowedHeaders,
 											acceptPost:     "",
 											acceptPatch:    "",
 										})
@@ -3705,7 +4518,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 									default:
 										s.notAllowed(w, r, notAllowedParams{
 											allowedMethods: "GET,PUT",
-											allowedHeaders: rn92AllowedHeaders,
+											allowedHeaders: rn117AllowedHeaders,
 											acceptPost:     "",
 											acceptPatch:    "",
 										})
@@ -3731,7 +4544,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 									default:
 										s.notAllowed(w, r, notAllowedParams{
 											allowedMethods: "GET,PUT",
-											allowedHeaders: rn95AllowedHeaders,
+											allowedHeaders: rn120AllowedHeaders,
 											acceptPost:     "",
 											acceptPatch:    "",
 										})
@@ -3756,7 +4569,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 										default:
 											s.notAllowed(w, r, notAllowedParams{
 												allowedMethods: "POST",
-												allowedHeaders: rn175AllowedHeaders,
+												allowedHeaders: rn207AllowedHeaders,
 												acceptPost:     "application/json",
 												acceptPatch:    "",
 											})
@@ -3796,7 +4609,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 										default:
 											s.notAllowed(w, r, notAllowedParams{
 												allowedMethods: "GET,PUT",
-												allowedHeaders: rn100AllowedHeaders,
+												allowedHeaders: rn125AllowedHeaders,
 												acceptPost:     "",
 												acceptPatch:    "",
 											})
@@ -3821,7 +4634,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 											default:
 												s.notAllowed(w, r, notAllowedParams{
 													allowedMethods: "POST",
-													allowedHeaders: rn177AllowedHeaders,
+													allowedHeaders: rn209AllowedHeaders,
 													acceptPost:     "",
 													acceptPatch:    "",
 												})
@@ -3850,7 +4663,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 										default:
 											s.notAllowed(w, r, notAllowedParams{
 												allowedMethods: "GET,PUT",
-												allowedHeaders: rn102AllowedHeaders,
+												allowedHeaders: rn127AllowedHeaders,
 												acceptPost:     "",
 												acceptPatch:    "",
 											})
@@ -3879,7 +4692,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 									default:
 										s.notAllowed(w, r, notAllowedParams{
 											allowedMethods: "GET,PUT",
-											allowedHeaders: rn104AllowedHeaders,
+											allowedHeaders: rn129AllowedHeaders,
 											acceptPost:     "",
 											acceptPatch:    "",
 										})
@@ -3906,7 +4719,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "POST",
-										allowedHeaders: rn14AllowedHeaders,
+										allowedHeaders: rn17AllowedHeaders,
 										acceptPost:     "application/json",
 										acceptPatch:    "",
 									})
@@ -3960,7 +4773,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "GET,POST",
-										allowedHeaders: rn32AllowedHeaders,
+										allowedHeaders: rn41AllowedHeaders,
 										acceptPost:     "application/json",
 										acceptPatch:    "",
 									})
@@ -3995,7 +4808,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 									default:
 										s.notAllowed(w, r, notAllowedParams{
 											allowedMethods: "GET",
-											allowedHeaders: rn106AllowedHeaders,
+											allowedHeaders: rn131AllowedHeaders,
 											acceptPost:     "",
 											acceptPatch:    "",
 										})
@@ -4022,7 +4835,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 										default:
 											s.notAllowed(w, r, notAllowedParams{
 												allowedMethods: "POST",
-												allowedHeaders: rn117AllowedHeaders,
+												allowedHeaders: rn142AllowedHeaders,
 												acceptPost:     "",
 												acceptPatch:    "",
 											})
@@ -4051,7 +4864,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "POST",
-										allowedHeaders: rn118AllowedHeaders,
+										allowedHeaders: rn143AllowedHeaders,
 										acceptPost:     "",
 										acceptPatch:    "",
 									})
@@ -4076,7 +4889,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "GET",
-										allowedHeaders: rn94AllowedHeaders,
+										allowedHeaders: rn119AllowedHeaders,
 										acceptPost:     "",
 										acceptPatch:    "",
 									})
@@ -4182,7 +4995,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "GET",
-								allowedHeaders: rn129AllowedHeaders,
+								allowedHeaders: rn155AllowedHeaders,
 								acceptPost:     "",
 								acceptPatch:    "",
 							})
@@ -4230,7 +5043,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "POST",
-										allowedHeaders: rn158AllowedHeaders,
+										allowedHeaders: rn188AllowedHeaders,
 										acceptPost:     "",
 										acceptPatch:    "",
 									})
@@ -4292,7 +5105,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "GET",
-									allowedHeaders: rn112AllowedHeaders,
+									allowedHeaders: rn137AllowedHeaders,
 									acceptPost:     "",
 									acceptPatch:    "",
 								})
@@ -4333,7 +5146,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "GET",
-								allowedHeaders: rn131AllowedHeaders,
+								allowedHeaders: rn157AllowedHeaders,
 								acceptPost:     "",
 								acceptPatch:    "",
 							})
@@ -4359,7 +5172,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "GET,POST",
-								allowedHeaders: rn33AllowedHeaders,
+								allowedHeaders: rn42AllowedHeaders,
 								acceptPost:     "application/json",
 								acceptPatch:    "",
 							})
@@ -4399,7 +5212,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "DELETE,PATCH",
-									allowedHeaders: rn56AllowedHeaders,
+									allowedHeaders: rn73AllowedHeaders,
 									acceptPost:     "",
 									acceptPatch:    "application/json",
 								})
@@ -6624,75 +7437,45 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 
 				}
 
-			case 'l': // Prefix: "libraries"
+			case 'l': // Prefix: "li"
 
-				if l := len("libraries"); len(elem) >= l && elem[0:l] == "libraries" {
+				if l := len("li"); len(elem) >= l && elem[0:l] == "li" {
 					elem = elem[l:]
 				} else {
 					break
 				}
 
 				if len(elem) == 0 {
-					switch method {
-					case "GET":
-						r.name = ListLibrariesOperation
-						r.summary = "Libraries the caller may see"
-						r.operationID = "listLibraries"
-						r.operationGroup = ""
-						r.pathPattern = "/libraries"
-						r.args = args
-						r.count = 0
-						return r, true
-					case "POST":
-						r.name = CreateLibraryOperation
-						r.summary = "Add a library and start scanning it (admin)"
-						r.operationID = "createLibrary"
-						r.operationGroup = ""
-						r.pathPattern = "/libraries"
-						r.args = args
-						r.count = 0
-						return r, true
-					default:
-						return
-					}
+					break
 				}
 				switch elem[0] {
-				case '/': // Prefix: "/"
+				case 'b': // Prefix: "braries"
 
-					if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+					if l := len("braries"); len(elem) >= l && elem[0:l] == "braries" {
 						elem = elem[l:]
 					} else {
 						break
 					}
 
-					// Param: "libraryId"
-					// Match until "/"
-					idx := strings.IndexByte(elem, '/')
-					if idx < 0 {
-						idx = len(elem)
-					}
-					args[0] = elem[:idx]
-					elem = elem[idx:]
-
 					if len(elem) == 0 {
 						switch method {
-						case "DELETE":
-							r.name = DeleteLibraryOperation
-							r.summary = "Remove a library from Streamero (admin). Media files are never touched."
-							r.operationID = "deleteLibrary"
+						case "GET":
+							r.name = ListLibrariesOperation
+							r.summary = "Libraries the caller may see"
+							r.operationID = "listLibraries"
 							r.operationGroup = ""
-							r.pathPattern = "/libraries/{libraryId}"
+							r.pathPattern = "/libraries"
 							r.args = args
-							r.count = 1
+							r.count = 0
 							return r, true
-						case "PUT":
-							r.name = UpdateLibraryOperation
-							r.summary = "Change a library (admin); changed folders are rescanned"
-							r.operationID = "updateLibrary"
+						case "POST":
+							r.name = CreateLibraryOperation
+							r.summary = "Add a library and start scanning it (admin)"
+							r.operationID = "createLibrary"
 							r.operationGroup = ""
-							r.pathPattern = "/libraries/{libraryId}"
+							r.pathPattern = "/libraries"
 							r.args = args
-							r.count = 1
+							r.count = 0
 							return r, true
 						default:
 							return
@@ -6707,13 +7490,729 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 							break
 						}
 
+						// Param: "libraryId"
+						// Match until "/"
+						idx := strings.IndexByte(elem, '/')
+						if idx < 0 {
+							idx = len(elem)
+						}
+						args[0] = elem[:idx]
+						elem = elem[idx:]
+
+						if len(elem) == 0 {
+							switch method {
+							case "DELETE":
+								r.name = DeleteLibraryOperation
+								r.summary = "Remove a library from Streamero (admin). Media files are never touched."
+								r.operationID = "deleteLibrary"
+								r.operationGroup = ""
+								r.pathPattern = "/libraries/{libraryId}"
+								r.args = args
+								r.count = 1
+								return r, true
+							case "PUT":
+								r.name = UpdateLibraryOperation
+								r.summary = "Change a library (admin); changed folders are rescanned"
+								r.operationID = "updateLibrary"
+								r.operationGroup = ""
+								r.pathPattern = "/libraries/{libraryId}"
+								r.args = args
+								r.count = 1
+								return r, true
+							default:
+								return
+							}
+						}
+						switch elem[0] {
+						case '/': // Prefix: "/"
+
+							if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								break
+							}
+							switch elem[0] {
+							case 'g': // Prefix: "genres"
+
+								if l := len("genres"); len(elem) >= l && elem[0:l] == "genres" {
+									elem = elem[l:]
+								} else {
+									break
+								}
+
+								if len(elem) == 0 {
+									// Leaf node.
+									switch method {
+									case "GET":
+										r.name = ListLibraryGenresOperation
+										r.summary = "Genres used in a library (for filters)"
+										r.operationID = "listLibraryGenres"
+										r.operationGroup = ""
+										r.pathPattern = "/libraries/{libraryId}/genres"
+										r.args = args
+										r.count = 1
+										return r, true
+									default:
+										return
+									}
+								}
+
+							case 'i': // Prefix: "items"
+
+								if l := len("items"); len(elem) >= l && elem[0:l] == "items" {
+									elem = elem[l:]
+								} else {
+									break
+								}
+
+								if len(elem) == 0 {
+									// Leaf node.
+									switch method {
+									case "GET":
+										r.name = ListLibraryItemsOperation
+										r.summary = "Top-level items of a library (movies, series), paged"
+										r.operationID = "listLibraryItems"
+										r.operationGroup = ""
+										r.pathPattern = "/libraries/{libraryId}/items"
+										r.args = args
+										r.count = 1
+										return r, true
+									default:
+										return
+									}
+								}
+
+							case 'r': // Prefix: "refresh-metadata"
+
+								if l := len("refresh-metadata"); len(elem) >= l && elem[0:l] == "refresh-metadata" {
+									elem = elem[l:]
+								} else {
+									break
+								}
+
+								if len(elem) == 0 {
+									// Leaf node.
+									switch method {
+									case "POST":
+										r.name = RefreshLibraryMetadataOperation
+										r.summary = "Fetch metadata again for every item of a library (admin)"
+										r.operationID = "refreshLibraryMetadata"
+										r.operationGroup = ""
+										r.pathPattern = "/libraries/{libraryId}/refresh-metadata"
+										r.args = args
+										r.count = 1
+										return r, true
+									default:
+										return
+									}
+								}
+
+							case 's': // Prefix: "scan"
+
+								if l := len("scan"); len(elem) >= l && elem[0:l] == "scan" {
+									elem = elem[l:]
+								} else {
+									break
+								}
+
+								if len(elem) == 0 {
+									// Leaf node.
+									switch method {
+									case "POST":
+										r.name = ScanLibraryOperation
+										r.summary = "Scan a library for new, changed and removed files (admin)"
+										r.operationID = "scanLibrary"
+										r.operationGroup = ""
+										r.pathPattern = "/libraries/{libraryId}/scan"
+										r.args = args
+										r.count = 1
+										return r, true
+									default:
+										return
+									}
+								}
+
+							}
+
+						}
+
+					}
+
+				case 'v': // Prefix: "vetv/"
+
+					if l := len("vetv/"); len(elem) >= l && elem[0:l] == "vetv/" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					if len(elem) == 0 {
+						break
+					}
+					switch elem[0] {
+					case 'c': // Prefix: "channels"
+
+						if l := len("channels"); len(elem) >= l && elem[0:l] == "channels" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							switch method {
+							case "GET":
+								r.name = ListLiveTvChannelsOperation
+								r.summary = "Live TV channels with what is on now and next (liveTv permission)"
+								r.operationID = "listLiveTvChannels"
+								r.operationGroup = ""
+								r.pathPattern = "/livetv/channels"
+								r.args = args
+								r.count = 0
+								return r, true
+							default:
+								return
+							}
+						}
+						switch elem[0] {
+						case '/': // Prefix: "/"
+
+							if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							// Param: "channelId"
+							// Match until "/"
+							idx := strings.IndexByte(elem, '/')
+							if idx < 0 {
+								idx = len(elem)
+							}
+							args[0] = elem[:idx]
+							elem = elem[idx:]
+
+							if len(elem) == 0 {
+								switch method {
+								case "GET":
+									r.name = GetLiveTvChannelOperation
+									r.summary = "One channel with now/next (liveTv permission)"
+									r.operationID = "getLiveTvChannel"
+									r.operationGroup = ""
+									r.pathPattern = "/livetv/channels/{channelId}"
+									r.args = args
+									r.count = 1
+									return r, true
+								case "PATCH":
+									r.name = UpdateLiveTvChannelOperation
+									r.summary = "Guide mapping, category and visibility of a channel (manageLiveTv)"
+									r.operationID = "updateLiveTvChannel"
+									r.operationGroup = ""
+									r.pathPattern = "/livetv/channels/{channelId}"
+									r.args = args
+									r.count = 1
+									return r, true
+								default:
+									return
+								}
+							}
+							switch elem[0] {
+							case '/': // Prefix: "/"
+
+								if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+									elem = elem[l:]
+								} else {
+									break
+								}
+
+								if len(elem) == 0 {
+									break
+								}
+								switch elem[0] {
+								case 'f': // Prefix: "favorite"
+
+									if l := len("favorite"); len(elem) >= l && elem[0:l] == "favorite" {
+										elem = elem[l:]
+									} else {
+										break
+									}
+
+									if len(elem) == 0 {
+										// Leaf node.
+										switch method {
+										case "DELETE":
+											r.name = RemoveLiveTvFavoriteOperation
+											r.summary = "Remove a channel from the viewer's favourites"
+											r.operationID = "removeLiveTvFavorite"
+											r.operationGroup = ""
+											r.pathPattern = "/livetv/channels/{channelId}/favorite"
+											r.args = args
+											r.count = 1
+											return r, true
+										case "PUT":
+											r.name = AddLiveTvFavoriteOperation
+											r.summary = "Mark a channel as a favourite of the viewer (profile or account)"
+											r.operationID = "addLiveTvFavorite"
+											r.operationGroup = ""
+											r.pathPattern = "/livetv/channels/{channelId}/favorite"
+											r.args = args
+											r.count = 1
+											return r, true
+										default:
+											return
+										}
+									}
+
+								case 'p': // Prefix: "play"
+
+									if l := len("play"); len(elem) >= l && elem[0:l] == "play" {
+										elem = elem[l:]
+									} else {
+										break
+									}
+
+									if len(elem) == 0 {
+										// Leaf node.
+										switch method {
+										case "POST":
+											r.name = PlayLiveTvChannelOperation
+											r.summary = "Tune a channel and get a signed HLS URL (liveTv permission)"
+											r.operationID = "playLiveTvChannel"
+											r.operationGroup = ""
+											r.pathPattern = "/livetv/channels/{channelId}/play"
+											r.args = args
+											r.count = 1
+											return r, true
+										default:
+											return
+										}
+									}
+
+								}
+
+							}
+
+						}
+
+					case 'g': // Prefix: "guide"
+
+						if l := len("guide"); len(elem) >= l && elem[0:l] == "guide" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							switch method {
+							case "GET":
+								r.name = GetLiveTvGuideOperation
+								r.summary = "Guide grid for a time window (liveTv permission)"
+								r.operationID = "getLiveTvGuide"
+								r.operationGroup = ""
+								r.pathPattern = "/livetv/guide"
+								r.args = args
+								r.count = 0
+								return r, true
+							default:
+								return
+							}
+						}
+						switch elem[0] {
+						case 's': // Prefix: "s"
+
+							if l := len("s"); len(elem) >= l && elem[0:l] == "s" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								switch method {
+								case "GET":
+									r.name = ListLiveTvGuidesOperation
+									r.summary = "XMLTV guide sources (manageLiveTv)"
+									r.operationID = "listLiveTvGuides"
+									r.operationGroup = ""
+									r.pathPattern = "/livetv/guides"
+									r.args = args
+									r.count = 0
+									return r, true
+								case "POST":
+									r.name = CreateLiveTvGuideOperation
+									r.summary = "Add an XMLTV guide source; it is loaded in the background (manageLiveTv)"
+									r.operationID = "createLiveTvGuide"
+									r.operationGroup = ""
+									r.pathPattern = "/livetv/guides"
+									r.args = args
+									r.count = 0
+									return r, true
+								default:
+									return
+								}
+							}
+							switch elem[0] {
+							case '/': // Prefix: "/"
+
+								if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+									elem = elem[l:]
+								} else {
+									break
+								}
+
+								if len(elem) == 0 {
+									break
+								}
+								switch elem[0] {
+								case 't': // Prefix: "test"
+									origElem := elem
+									if l := len("test"); len(elem) >= l && elem[0:l] == "test" {
+										elem = elem[l:]
+									} else {
+										break
+									}
+
+									if len(elem) == 0 {
+										// Leaf node.
+										switch method {
+										case "POST":
+											r.name = TestLiveTvGuideOperation
+											r.summary = "Check an XMLTV source without saving it (manageLiveTv)"
+											r.operationID = "testLiveTvGuide"
+											r.operationGroup = ""
+											r.pathPattern = "/livetv/guides/test"
+											r.args = args
+											r.count = 0
+											return r, true
+										default:
+											return
+										}
+									}
+
+									elem = origElem
+								}
+								// Param: "guideId"
+								// Match until "/"
+								idx := strings.IndexByte(elem, '/')
+								if idx < 0 {
+									idx = len(elem)
+								}
+								args[0] = elem[:idx]
+								elem = elem[idx:]
+
+								if len(elem) == 0 {
+									switch method {
+									case "DELETE":
+										r.name = DeleteLiveTvGuideOperation
+										r.summary = "Remove an XMLTV guide source and its programmes (manageLiveTv)"
+										r.operationID = "deleteLiveTvGuide"
+										r.operationGroup = ""
+										r.pathPattern = "/livetv/guides/{guideId}"
+										r.args = args
+										r.count = 1
+										return r, true
+									case "PUT":
+										r.name = UpdateLiveTvGuideOperation
+										r.summary = "Change an XMLTV guide source (manageLiveTv)"
+										r.operationID = "updateLiveTvGuide"
+										r.operationGroup = ""
+										r.pathPattern = "/livetv/guides/{guideId}"
+										r.args = args
+										r.count = 1
+										return r, true
+									default:
+										return
+									}
+								}
+								switch elem[0] {
+								case '/': // Prefix: "/refresh"
+
+									if l := len("/refresh"); len(elem) >= l && elem[0:l] == "/refresh" {
+										elem = elem[l:]
+									} else {
+										break
+									}
+
+									if len(elem) == 0 {
+										// Leaf node.
+										switch method {
+										case "POST":
+											r.name = RefreshLiveTvGuideOperation
+											r.summary = "Reload a guide source now (queued; manageLiveTv)"
+											r.operationID = "refreshLiveTvGuide"
+											r.operationGroup = ""
+											r.pathPattern = "/livetv/guides/{guideId}/refresh"
+											r.args = args
+											r.count = 1
+											return r, true
+										default:
+											return
+										}
+									}
+
+								}
+
+							}
+
+						}
+
+					case 'm': // Prefix: "mapping"
+
+						if l := len("mapping"); len(elem) >= l && elem[0:l] == "mapping" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							// Leaf node.
+							switch method {
+							case "GET":
+								r.name = GetLiveTvMappingOperation
+								r.summary = "Every channel with its guide mapping, and the guide channels to map to (manageLiveTv)"
+								r.operationID = "getLiveTvMapping"
+								r.operationGroup = ""
+								r.pathPattern = "/livetv/mapping"
+								r.args = args
+								r.count = 0
+								return r, true
+							default:
+								return
+							}
+						}
+
+					case 'o': // Prefix: "on-now"
+
+						if l := len("on-now"); len(elem) >= l && elem[0:l] == "on-now" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							// Leaf node.
+							switch method {
+							case "GET":
+								r.name = GetLiveTvOnNowOperation
+								r.summary = "Programmes airing now, favourite channels first (Home row)"
+								r.operationID = "getLiveTvOnNow"
+								r.operationGroup = ""
+								r.pathPattern = "/livetv/on-now"
+								r.args = args
+								r.count = 0
+								return r, true
+							default:
+								return
+							}
+						}
+
+					case 'p': // Prefix: "programs/"
+
+						if l := len("programs/"); len(elem) >= l && elem[0:l] == "programs/" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						// Param: "programId"
+						// Leaf parameter, slashes are prohibited
+						idx := strings.IndexByte(elem, '/')
+						if idx >= 0 {
+							break
+						}
+						args[0] = elem
+						elem = ""
+
+						if len(elem) == 0 {
+							// Leaf node.
+							switch method {
+							case "GET":
+								r.name = GetLiveTvProgramOperation
+								r.summary = "One programme (liveTv permission)"
+								r.operationID = "getLiveTvProgram"
+								r.operationGroup = ""
+								r.pathPattern = "/livetv/programs/{programId}"
+								r.args = args
+								r.count = 1
+								return r, true
+							default:
+								return
+							}
+						}
+
+					case 'r': // Prefix: "recordings"
+
+						if l := len("recordings"); len(elem) >= l && elem[0:l] == "recordings" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							switch method {
+							case "GET":
+								r.name = ListLiveTvRecordingsOperation
+								r.summary = "Scheduled, running and finished recordings (liveTv permission)"
+								r.operationID = "listLiveTvRecordings"
+								r.operationGroup = ""
+								r.pathPattern = "/livetv/recordings"
+								r.args = args
+								r.count = 0
+								return r, true
+							case "POST":
+								r.name = CreateLiveTvRecordingOperation
+								r.summary = "Record one programme (manageLiveTv)"
+								r.operationID = "createLiveTvRecording"
+								r.operationGroup = ""
+								r.pathPattern = "/livetv/recordings"
+								r.args = args
+								r.count = 0
+								return r, true
+							default:
+								return
+							}
+						}
+						switch elem[0] {
+						case '/': // Prefix: "/"
+
+							if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							// Param: "recordingId"
+							// Leaf parameter, slashes are prohibited
+							idx := strings.IndexByte(elem, '/')
+							if idx >= 0 {
+								break
+							}
+							args[0] = elem
+							elem = ""
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch method {
+								case "DELETE":
+									r.name = DeleteLiveTvRecordingOperation
+									r.summary = "Cancel a scheduled recording, stop a running one or hide a finished one (manageLiveTv)"
+									r.operationID = "deleteLiveTvRecording"
+									r.operationGroup = ""
+									r.pathPattern = "/livetv/recordings/{recordingId}"
+									r.args = args
+									r.count = 1
+									return r, true
+								case "PATCH":
+									r.name = UpdateLiveTvRecordingOperation
+									r.summary = "Change padding or priority of a scheduled recording (manageLiveTv)"
+									r.operationID = "updateLiveTvRecording"
+									r.operationGroup = ""
+									r.pathPattern = "/livetv/recordings/{recordingId}"
+									r.args = args
+									r.count = 1
+									return r, true
+								default:
+									return
+								}
+							}
+
+						}
+
+					case 's': // Prefix: "se"
+
+						if l := len("se"); len(elem) >= l && elem[0:l] == "se" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
 						if len(elem) == 0 {
 							break
 						}
 						switch elem[0] {
-						case 'g': // Prefix: "genres"
+						case 'r': // Prefix: "ries-rules"
 
-							if l := len("genres"); len(elem) >= l && elem[0:l] == "genres" {
+							if l := len("ries-rules"); len(elem) >= l && elem[0:l] == "ries-rules" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								switch method {
+								case "GET":
+									r.name = ListLiveTvSeriesRulesOperation
+									r.summary = "Series recording rules (liveTv permission)"
+									r.operationID = "listLiveTvSeriesRules"
+									r.operationGroup = ""
+									r.pathPattern = "/livetv/series-rules"
+									r.args = args
+									r.count = 0
+									return r, true
+								case "POST":
+									r.name = CreateLiveTvSeriesRuleOperation
+									r.summary = "Record a series (manageLiveTv)"
+									r.operationID = "createLiveTvSeriesRule"
+									r.operationGroup = ""
+									r.pathPattern = "/livetv/series-rules"
+									r.args = args
+									r.count = 0
+									return r, true
+								default:
+									return
+								}
+							}
+							switch elem[0] {
+							case '/': // Prefix: "/"
+
+								if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+									elem = elem[l:]
+								} else {
+									break
+								}
+
+								// Param: "ruleId"
+								// Leaf parameter, slashes are prohibited
+								idx := strings.IndexByte(elem, '/')
+								if idx >= 0 {
+									break
+								}
+								args[0] = elem
+								elem = ""
+
+								if len(elem) == 0 {
+									// Leaf node.
+									switch method {
+									case "DELETE":
+										r.name = DeleteLiveTvSeriesRuleOperation
+										r.summary = "Delete a series rule and its upcoming recordings (manageLiveTv)"
+										r.operationID = "deleteLiveTvSeriesRule"
+										r.operationGroup = ""
+										r.pathPattern = "/livetv/series-rules/{ruleId}"
+										r.args = args
+										r.count = 1
+										return r, true
+									case "PUT":
+										r.name = UpdateLiveTvSeriesRuleOperation
+										r.summary = "Change a series rule (manageLiveTv)"
+										r.operationID = "updateLiveTvSeriesRule"
+										r.operationGroup = ""
+										r.pathPattern = "/livetv/series-rules/{ruleId}"
+										r.args = args
+										r.count = 1
+										return r, true
+									default:
+										return
+									}
+								}
+
+							}
+
+						case 't': // Prefix: "ttings"
+
+							if l := len("ttings"); len(elem) >= l && elem[0:l] == "ttings" {
 								elem = elem[l:]
 							} else {
 								break
@@ -6723,61 +8222,154 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 								// Leaf node.
 								switch method {
 								case "GET":
-									r.name = ListLibraryGenresOperation
-									r.summary = "Genres used in a library (for filters)"
-									r.operationID = "listLibraryGenres"
+									r.name = GetLiveTvSettingsOperation
+									r.summary = "DVR and time-shift settings (manageLiveTv)"
+									r.operationID = "getLiveTvSettings"
 									r.operationGroup = ""
-									r.pathPattern = "/libraries/{libraryId}/genres"
+									r.pathPattern = "/livetv/settings"
 									r.args = args
-									r.count = 1
+									r.count = 0
+									return r, true
+								case "PUT":
+									r.name = UpdateLiveTvSettingsOperation
+									r.summary = "Change DVR and time-shift settings (manageLiveTv; the post-processing command only by administrators)"
+									r.operationID = "updateLiveTvSettings"
+									r.operationGroup = ""
+									r.pathPattern = "/livetv/settings"
+									r.args = args
+									r.count = 0
 									return r, true
 								default:
 									return
 								}
 							}
 
-						case 'i': // Prefix: "items"
+						}
 
-							if l := len("items"); len(elem) >= l && elem[0:l] == "items" {
+					case 't': // Prefix: "tuners"
+
+						if l := len("tuners"); len(elem) >= l && elem[0:l] == "tuners" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							switch method {
+							case "GET":
+								r.name = ListLiveTvTunersOperation
+								r.summary = "Tuner sources (manageLiveTv)"
+								r.operationID = "listLiveTvTuners"
+								r.operationGroup = ""
+								r.pathPattern = "/livetv/tuners"
+								r.args = args
+								r.count = 0
+								return r, true
+							case "POST":
+								r.name = CreateLiveTvTunerOperation
+								r.summary = "Add an M3U playlist or an HDHomeRun device and load its channels (manageLiveTv)"
+								r.operationID = "createLiveTvTuner"
+								r.operationGroup = ""
+								r.pathPattern = "/livetv/tuners"
+								r.args = args
+								r.count = 0
+								return r, true
+							default:
+								return
+							}
+						}
+						switch elem[0] {
+						case '/': // Prefix: "/"
+
+							if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
 								elem = elem[l:]
 							} else {
 								break
 							}
 
 							if len(elem) == 0 {
-								// Leaf node.
-								switch method {
-								case "GET":
-									r.name = ListLibraryItemsOperation
-									r.summary = "Top-level items of a library (movies, series), paged"
-									r.operationID = "listLibraryItems"
-									r.operationGroup = ""
-									r.pathPattern = "/libraries/{libraryId}/items"
-									r.args = args
-									r.count = 1
-									return r, true
-								default:
-									return
-								}
-							}
-
-						case 'r': // Prefix: "refresh-metadata"
-
-							if l := len("refresh-metadata"); len(elem) >= l && elem[0:l] == "refresh-metadata" {
-								elem = elem[l:]
-							} else {
 								break
 							}
+							switch elem[0] {
+							case 'd': // Prefix: "discover"
+								origElem := elem
+								if l := len("discover"); len(elem) >= l && elem[0:l] == "discover" {
+									elem = elem[l:]
+								} else {
+									break
+								}
+
+								if len(elem) == 0 {
+									// Leaf node.
+									switch method {
+									case "GET":
+										r.name = DiscoverLiveTvTunersOperation
+										r.summary = "Find HDHomeRun devices on the local network (manageLiveTv)"
+										r.operationID = "discoverLiveTvTuners"
+										r.operationGroup = ""
+										r.pathPattern = "/livetv/tuners/discover"
+										r.args = args
+										r.count = 0
+										return r, true
+									default:
+										return
+									}
+								}
+
+								elem = origElem
+							case 't': // Prefix: "test"
+								origElem := elem
+								if l := len("test"); len(elem) >= l && elem[0:l] == "test" {
+									elem = elem[l:]
+								} else {
+									break
+								}
+
+								if len(elem) == 0 {
+									// Leaf node.
+									switch method {
+									case "POST":
+										r.name = TestLiveTvTunerOperation
+										r.summary = "Check a tuner configuration without saving it (manageLiveTv)"
+										r.operationID = "testLiveTvTuner"
+										r.operationGroup = ""
+										r.pathPattern = "/livetv/tuners/test"
+										r.args = args
+										r.count = 0
+										return r, true
+									default:
+										return
+									}
+								}
+
+								elem = origElem
+							}
+							// Param: "tunerId"
+							// Match until "/"
+							idx := strings.IndexByte(elem, '/')
+							if idx < 0 {
+								idx = len(elem)
+							}
+							args[0] = elem[:idx]
+							elem = elem[idx:]
 
 							if len(elem) == 0 {
-								// Leaf node.
 								switch method {
-								case "POST":
-									r.name = RefreshLibraryMetadataOperation
-									r.summary = "Fetch metadata again for every item of a library (admin)"
-									r.operationID = "refreshLibraryMetadata"
+								case "DELETE":
+									r.name = DeleteLiveTvTunerOperation
+									r.summary = "Remove a tuner source and its channels (manageLiveTv)"
+									r.operationID = "deleteLiveTvTuner"
 									r.operationGroup = ""
-									r.pathPattern = "/libraries/{libraryId}/refresh-metadata"
+									r.pathPattern = "/livetv/tuners/{tunerId}"
+									r.args = args
+									r.count = 1
+									return r, true
+								case "PUT":
+									r.name = UpdateLiveTvTunerOperation
+									r.summary = "Change a tuner source and reload its channels (manageLiveTv)"
+									r.operationID = "updateLiveTvTuner"
+									r.operationGroup = ""
+									r.pathPattern = "/livetv/tuners/{tunerId}"
 									r.args = args
 									r.count = 1
 									return r, true
@@ -6785,30 +8377,32 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 									return
 								}
 							}
+							switch elem[0] {
+							case '/': // Prefix: "/refresh"
 
-						case 's': // Prefix: "scan"
-
-							if l := len("scan"); len(elem) >= l && elem[0:l] == "scan" {
-								elem = elem[l:]
-							} else {
-								break
-							}
-
-							if len(elem) == 0 {
-								// Leaf node.
-								switch method {
-								case "POST":
-									r.name = ScanLibraryOperation
-									r.summary = "Scan a library for new, changed and removed files (admin)"
-									r.operationID = "scanLibrary"
-									r.operationGroup = ""
-									r.pathPattern = "/libraries/{libraryId}/scan"
-									r.args = args
-									r.count = 1
-									return r, true
-								default:
-									return
+								if l := len("/refresh"); len(elem) >= l && elem[0:l] == "/refresh" {
+									elem = elem[l:]
+								} else {
+									break
 								}
+
+								if len(elem) == 0 {
+									// Leaf node.
+									switch method {
+									case "POST":
+										r.name = RefreshLiveTvTunerOperation
+										r.summary = "Reload the channel list of a tuner source (manageLiveTv)"
+										r.operationID = "refreshLiveTvTuner"
+										r.operationGroup = ""
+										r.pathPattern = "/livetv/tuners/{tunerId}/refresh"
+										r.args = args
+										r.count = 1
+										return r, true
+									default:
+										return
+									}
+								}
+
 							}
 
 						}
