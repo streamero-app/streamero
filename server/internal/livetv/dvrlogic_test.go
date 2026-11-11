@@ -16,7 +16,7 @@ import (
 
 var t0 = time.Date(2026, 11, 11, 20, 0, 0, 0, time.UTC)
 
-func at(min int) time.Time { return t0.Add(time.Duration(min) * time.Minute) }
+func at(minutes int) time.Time { return t0.Add(time.Duration(minutes) * time.Minute) }
 
 func TestWindowPadding(t *testing.T) {
 	s, e := Window(at(0), at(60), 120, 300)

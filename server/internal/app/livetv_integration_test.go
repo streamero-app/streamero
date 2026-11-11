@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"image"
 	"image/png"
@@ -360,6 +361,69 @@ func TestLiveTVIntegration(t *testing.T) {
 		t.Fatalf("movies category: %+v", grid.Rows)
 	}
 
+	// --- compat API (TV apps): channels, guide, items and playback info ---
+	testState.Compat().LiveTV = svc
+	tv := &compatCaller{t: t, base: srv.URL}
+	var tvLogin struct {
+		AccessToken string
+		User        struct {
+			Policy map[string]any
+		}
+	}
+	if s := tv.call("POST", "/Users/AuthenticateByName", map[string]any{"Username": "Admin", "Pw": "admin-pass-1"}, &tvLogin); s != 200 ||
+		tvLogin.User.Policy["EnableLiveTvAccess"] != true {
+		t.Fatalf("compat login: %d %+v", s, tvLogin.User.Policy)
+	}
+	tv.token = tvLogin.AccessToken
+	var info struct{ IsEnabled bool }
+	if tv.call("GET", "/LiveTv/Info", nil, &info); !info.IsEnabled {
+		t.Fatal("compat live tv info")
+	}
+	var cl struct {
+		Items []struct {
+			ID             string `json:"Id"`
+			Name, Type     string
+			ChannelNumber  string
+			ImageTags      map[string]string
+			CurrentProgram *struct{ Name string }
+			UserData       struct{ IsFavorite bool }
+		}
+		TotalRecordCount int
+	}
+	if s := tv.call("GET", "/LiveTv/Channels?AddCurrentProgram=true", nil, &cl); s != 200 || cl.TotalRecordCount != 2 ||
+		cl.Items[0].Type != "TvChannel" || cl.Items[0].CurrentProgram == nil || cl.Items[0].CurrentProgram.Name != "Live Show" ||
+		cl.Items[0].ImageTags["Primary"] == "" || !cl.Items[1].UserData.IsFavorite {
+		t.Fatalf("compat channels: %d %+v", s, cl)
+	}
+	if code, _, hdr := tv.raw("GET", "/Items/"+cl.Items[0].ID+"/Images/Primary", nil, nil); code != 200 || hdr.Get("Content-Type") != "image/png" {
+		t.Fatalf("compat channel logo: %d", code)
+	}
+	var item struct{ Name, Type string }
+	if s := tv.call("GET", "/Items/"+cl.Items[0].ID, nil, &item); s != 200 || item.Type != "TvChannel" || item.Name != "Channel One" {
+		t.Fatalf("compat channel item: %d %+v", s, item)
+	}
+	var progs struct {
+		Items []struct {
+			Name, Type, ChannelID string
+			StartDate             string
+			IsNews                bool
+			IndexNumber           int
+		}
+		TotalRecordCount int
+	}
+	if s := tv.call("POST", "/LiveTv/Programs", map[string]any{"ChannelIds": []string{cl.Items[0].ID}, "MinStartDate": tomorrow,
+		"HasAired": false}, &progs); s != 200 || progs.TotalRecordCount != 2 || progs.Items[0].Name != "Evening News" || !progs.Items[0].IsNews ||
+		progs.Items[0].IndexNumber != 1 || progs.Items[0].Type != "Program" {
+		t.Fatalf("compat programmes: %d %+v", s, progs)
+	}
+	if s := tv.call("GET", "/LiveTv/Programs/Recommended?IsAiring=true&Limit=10", nil, &progs); s != 200 || progs.TotalRecordCount != 2 {
+		t.Fatalf("compat on now: %d %+v", s, progs)
+	}
+	var empty struct{ TotalRecordCount int }
+	if s := tv.call("GET", "/LiveTv/Timers", nil, &empty); s != 200 || empty.TotalRecordCount != 0 {
+		t.Fatalf("compat timers: %d", s)
+	}
+
 	// --- permissions ---
 	var u struct {
 		ID          string         `json:"id"`
@@ -394,7 +458,7 @@ func TestLiveTVIntegration(t *testing.T) {
 	}
 	// A manager who is not an administrator cannot set the post-processing command.
 	if _, err := svc.SaveSettings(ctx, livetv.Settings{PrePadding: 0, PostPadding: 0, TimeshiftMinutes: 1,
-		PostProcess: livetv.PostProcess{Command: "/bin/true", TimeoutMinutes: 1}}, false); err != livetv.ErrForbidden {
+		PostProcess: livetv.PostProcess{Command: "/bin/true", TimeoutMinutes: 1}}, false); !errors.Is(err, livetv.ErrForbidden) {
 		t.Fatalf("post-processing by a non-admin: %v", err)
 	}
 
@@ -444,6 +508,22 @@ func TestLiveTVIntegration(t *testing.T) {
 	adminC.do("POST", "/livetv/channels/"+one.ID+"/play", device, &pb2)
 	if stream.ScopeOf(strings.SplitN(pb2.URL, "?", 2)[0]) != stream.ScopeOf(strings.SplitN(pb.URL, "?", 2)[0]) || svc.InUse(uuid.MustParse(tuner.ID)) != 1 {
 		t.Fatalf("not shared: %s vs %s", pb2.URL, pb.URL)
+	}
+	// A TV app gets the same channel as an HLS transcoding URL (sharing the tuner).
+	var pi struct {
+		MediaSources []compatSource
+		ErrorCode    string
+	}
+	if s := tv.call("POST", "/Items/"+strings.ReplaceAll(one.ID, "-", "")+"/PlaybackInfo", map[string]any{"DeviceProfile": map[string]any{
+		"TranscodingProfiles": []map[string]any{{"Container": "ts", "Type": "Video", "VideoCodec": "h264", "AudioCodec": "aac", "Protocol": "hls"}}}}, &pi); s != 200 ||
+		len(pi.MediaSources) != 1 || pi.MediaSources[0].TranscodingSubProtocol != "hls" || pi.MediaSources[0].SupportsDirectPlay {
+		t.Fatalf("compat playback info: %d %+v", s, pi)
+	}
+	if code, body := getURL(t, srv.URL+pi.MediaSources[0].TranscodingURL); code != 200 || !strings.Contains(string(body), "#EXTINF") {
+		t.Fatalf("compat live playlist: %d", code)
+	}
+	if svc.InUse(uuid.MustParse(tuner.ID)) != 1 {
+		t.Fatal("the TV app took a second tuner")
 	}
 	// The only tuner is busy: another channel cannot be tuned.
 	if s := adminC.do("POST", "/livetv/channels/"+two.ID+"/play", device, &e); s != 503 || e.Code != "tuners_busy" {

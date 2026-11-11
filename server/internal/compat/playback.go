@@ -514,6 +514,9 @@ func newPlaySessionID() string {
 func (s *Server) playbackInfo(w http.ResponseWriter, r *http.Request) {
 	p := principal(r)
 	id, err := ParseID(chi.URLParam(r, "itemId"))
+	if err == nil && s.livePlaybackInfo(w, r, id) {
+		return
+	}
 	if err != nil || !canSee(p) {
 		http.NotFound(w, r)
 		return

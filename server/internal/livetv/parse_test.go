@@ -3,6 +3,7 @@ package livetv
 import (
 	"bytes"
 	"compress/gzip"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -79,7 +80,7 @@ func TestParseM3UEncodings(t *testing.T) {
 			t.Errorf("%s: %v %+v", name, err, chans)
 		}
 	}
-	if _, _, err := ParseM3U(strings.NewReader("#EXTM3U\n# nothing\n")); err != ErrEmptyPlaylist {
+	if _, _, err := ParseM3U(strings.NewReader("#EXTM3U\n# nothing\n")); !errors.Is(err, ErrEmptyPlaylist) {
 		t.Fatalf("empty: %v", err)
 	}
 }
@@ -207,7 +208,7 @@ func TestParseXMLTVGzipAndErrors(t *testing.T) {
 	if err := ParseXMLTV(&buf, time.UTC, nil, func(XMLTVProgramme) { n++ }); err != nil || n != 1 {
 		t.Fatalf("gzip: %v %d", err, n)
 	}
-	if err := ParseXMLTV(strings.NewReader(`<html><body>login</body></html>`), nil, nil, nil); err != ErrNotXMLTV {
+	if err := ParseXMLTV(strings.NewReader(`<html><body>login</body></html>`), nil, nil, nil); !errors.Is(err, ErrNotXMLTV) {
 		t.Fatalf("not xmltv: %v", err)
 	}
 	if err := ParseXMLTV(strings.NewReader(`<?xml version="1.0" encoding="x-unknown-enc"?><tv/>`), nil, nil, nil); err == nil {
