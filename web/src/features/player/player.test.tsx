@@ -68,6 +68,37 @@ describe("player", () => {
     await waitFor(() => expect(progress).toMatchObject({ positionMs: 605_000 }));
   });
 
+  it("restarts the stream with a bitmap subtitle burned in and keeps it on seek", async () => {
+    const requests: { subtitleIndex?: number; startMs?: number }[] = [];
+    mockApi(({ method, path, body }) => {
+      if (method === "POST" && path.endsWith("/playback")) {
+        const b = body as { subtitleIndex?: number; startMs?: number };
+        requests.push(b);
+        const burned = b.subtitleIndex !== undefined && b.subtitleIndex >= 0 ? { burnedSubtitle: b.subtitleIndex, method: "transcode",
+          url: "/stream/hls/s/index.m3u8?exp=1&sig=x", reason: "subtitle burn-in" } : { method: "direct", url: "/stream/file/f/video.mkv?exp=1&sig=x" };
+        return { status: 200, body: { fileId: "f", startMs: b.startMs ?? 0, durationMs: 100_000, audio: [{ codec: "aac" }],
+          subtitles: [{ index: 0, url: "/a.vtt", external: true, language: "en" }],
+          bitmapSubtitles: [{ index: 1, codec: "hdmv_pgs_subtitle", language: "hr" }], ...burned } };
+      }
+      if (method === "PUT") return { status: 204 };
+      return { status: 200, body: { item, libraryId: "l", providerIds: {}, files: [], children: [], genres: [], cast: [], crew: [], hasBackdrop: false } };
+    });
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+    vi.spyOn(HTMLMediaElement.prototype, "canPlayType").mockImplementation((t: string) => (t.includes("mpegurl") ? "maybe" : ""));
+    renderApp(`/watch/${item.id}`, { me: testUser() });
+    await screen.findByTestId("video");
+    const select = (await screen.findByLabelText("Subtitles")) as HTMLSelectElement;
+    expect(screen.getByRole("option", { name: "HR · PGS · burned in", hidden: true })).toBeInTheDocument();
+    fireEvent.change(select, { target: { value: "b:1" } });
+    await waitFor(() => expect(screen.getByTestId("play-method")).toHaveTextContent("Transcoding"));
+    expect(requests.at(-1)).toMatchObject({ subtitleIndex: 1 });
+    expect((screen.getByLabelText("Subtitles") as HTMLSelectElement).value).toBe("b:1");
+    // Back to a text track: the picture is clean again.
+    fireEvent.change(screen.getByLabelText("Subtitles"), { target: { value: "t:0" } });
+    await waitFor(() => expect(requests.at(-1)).toMatchObject({ subtitleIndex: -1 }));
+    await waitFor(() => expect((screen.getByLabelText("Subtitles") as HTMLSelectElement).value).toBe("t:0"));
+  });
+
   it("selects the preferred subtitle and offers the next episode at the end", async () => {
     const ep = { ...item, id: "0190a8b0-0000-7000-8000-00000000eeee", kind: "episode", title: "Pilot", seasonNumber: 1, episodeNumber: 1 };
     const nextEp = { ...ep, id: "0190a8b0-0000-7000-8000-00000000ffff", title: "Second", episodeNumber: 2 };
@@ -85,7 +116,7 @@ describe("player", () => {
     vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
     const { router } = renderApp(`/watch/${ep.id}`, { me: testUser() });
     const video = (await screen.findByTestId("video")) as HTMLVideoElement;
-    await waitFor(() => expect((screen.getByLabelText("Subtitles") as HTMLSelectElement).value).toBe("1"));
+    await waitFor(() => expect((screen.getByLabelText("Subtitles") as HTMLSelectElement).value).toBe("t:1"));
     fireEvent.ended(video);
     const card = await screen.findByTestId("up-next");
     expect(card).toHaveTextContent("Second");
