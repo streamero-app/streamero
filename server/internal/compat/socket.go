@@ -12,6 +12,7 @@ import (
 
 	"github.com/streamero-app/streamero/server/internal/activity"
 	"github.com/streamero-app/streamero/server/internal/auth"
+	"github.com/streamero-app/streamero/server/internal/syncplay"
 )
 
 // SocketKeepAlive is the timeout announced to clients in ForceKeepAlive: they
@@ -51,9 +52,9 @@ func sessionKey(p auth.Principal) string {
 	return p.SessionID.String()
 }
 
-// socket serves GET /socket: keepalive and the session commands Streamero has
-// (a message or stop from the admin dashboard). Remote control beyond that,
-// SyncPlay and live library events are not offered.
+// socket serves GET /socket: keepalive, the session commands Streamero has
+// (a message or stop from the admin dashboard) and watch-together updates.
+// Remote control beyond that and live library events are not offered.
 func (s *Server) socket(w http.ResponseWriter, r *http.Request) {
 	p, err := s.Auth.Authenticate(r.Context(), socketToken(r))
 	if err != nil {
@@ -97,6 +98,14 @@ func (s *Server) socket(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
+	// Watch-together updates for this session (D-036).
+	var groupEvents <-chan syncplay.Event
+	translator := &syncTranslator{now: time.Now}
+	if s.SyncPlay != nil {
+		var unsubscribe func()
+		groupEvents, unsubscribe = s.SyncPlay.Hub.Subscribe(sessionKey(p))
+		defer unsubscribe()
+	}
 	var wake <-chan struct{}
 	if s.Commands != nil {
 		var stop func()
@@ -123,6 +132,12 @@ func (s *Server) socket(w http.ResponseWriter, r *http.Request) {
 		case <-in:
 			if !send(socketMessage{MessageType: "KeepAlive"}) {
 				return
+			}
+		case e := <-groupEvents:
+			for _, m := range translator.messages(e) {
+				if !send(m) {
+					return
+				}
 			}
 		case <-wake:
 			for _, c := range s.Commands.Take(sessionKey(p)) {

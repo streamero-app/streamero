@@ -100,6 +100,7 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 	h.Notify.Server = h.ServerNameFor
 	h.SyncPlay = &syncplay.Service{Hub: syncplay.NewHub(), Lookup: h.SyncLookup}
 	testSyncPlay = h.SyncPlay
+	state.Compat().SyncPlay, state.Compat().SyncIdentity = h.SyncPlay, h.SyncIdentity
 	testBackups = &backup.Service{Pool: deps.Pool, Dir: t.TempDir(), Version: "test"}
 	h.Backup.Store(&api.Backups{Service: testBackups, Enqueue: func(context.Context) error { ranTasks = append(ranTasks, "backup"); return nil }})
 	state.Library().Resume = h.LoadResume

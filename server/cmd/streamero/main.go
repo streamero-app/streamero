@@ -228,7 +228,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			}})
 		state.SetCompat(&compat.Server{Pool: deps.Pool, Auth: state.Auth(), Libraries: libs, Stream: state.Stream(),
 			ServerID: state.ServerID(), Log: log, ServerName: h.ServerNameFor, OnPlayback: h.TrackPlayback, OnProgress: h.TrackProgress,
-			Commands: h.NowPlaying})
+			Commands: h.NowPlaying, SyncPlay: h.SyncPlay, SyncIdentity: h.SyncIdentity})
 		if cfg.Discovery {
 			startDiscovery(ctx, cfg, state.ServerID(), h.ServerNameFor, log)
 		}

@@ -97,7 +97,7 @@ type syncPeer struct {
 	last *syncMsg // last group state
 }
 
-func dialSync(t *testing.T, srv string, token string, hdr http.Header) (*websocket.Conn, *http.Response, error) {
+func dialSync(_ *testing.T, srv string, token string, hdr http.Header) (*websocket.Conn, *http.Response, error) {
 	if hdr == nil {
 		hdr = http.Header{}
 	}
@@ -117,7 +117,7 @@ func newSyncPeer(t *testing.T, srv, name, token string) *syncPeer {
 	}
 	t.Cleanup(func() { _ = conn.CloseNow() })
 	p := &syncPeer{t: t, name: name, conn: conn}
-	if m := p.next(func(m syncMsg) bool { return true }); m.Type != "hello" || m.ServerTime == 0 {
+	if m := p.next(func(syncMsg) bool { return true }); m.Type != "hello" || m.ServerTime == 0 {
 		t.Fatalf("%s first message: %+v", name, m)
 	}
 	return p
@@ -307,7 +307,7 @@ func TestSyncPlayIntegration(t *testing.T) {
 	admin.send(map[string]any{"type": "ready", "entryId": admin.entry()})
 	admin.state(func(m syncMsg) bool { return m.Group.State == "playing" })
 	ben = newSyncPeer(t, srv.URL, "ben", benC.token)
-	if m := ben.state(func(m syncMsg) bool { return true }); m.Group.ID != g.ID || m.Group.SelfID != g.SelfID || m.Group.State != "playing" {
+	if m := ben.state(func(syncMsg) bool { return true }); m.Group.ID != g.ID || m.Group.SelfID != g.SelfID || m.Group.State != "playing" {
 		t.Fatalf("after reconnect: %+v", m.Group)
 	}
 
