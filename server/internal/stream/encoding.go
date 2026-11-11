@@ -61,27 +61,30 @@ var ErrBusy = errors.New("too many transcodes at once")
 // nvencPreset maps the x264 preset names onto NVENC's p1 (fastest) .. p7 (best).
 var nvencPreset = map[string]string{"ultrafast": "p1", "superfast": "p2", "veryfast": "p3", "faster": "p4", "fast": "p5", "medium": "p6", "slow": "p7"}
 
-// videoArgs returns input options (before -i) and the encoder options for the
-// configured hardware, given the software filter chain.
-func (e Encoding) videoArgs(filters []string) (input, output []string) {
+// videoArgs returns input options (before -i), the complete filter chain (the
+// given software filters, then the upload to the configured hardware) and the
+// encoder options. Decoding and filters such as subtitle overlays run in
+// software; frames go to the GPU only for the encoder (D-035).
+func (e Encoding) videoArgs(filters []string) (input, chain, codec []string) {
 	q := strconv.Itoa(e.Quality)
+	chain = append([]string(nil), filters...)
 	switch e.HWAccel {
 	case "vaapi":
 		input = []string{"-vaapi_device", e.VAAPIDevice}
-		filters = append(filters, "format=nv12", "hwupload")
-		output = []string{"-vf", join(filters), "-c:v", "h264_vaapi", "-qp", q}
+		chain = append(chain, "format=nv12", "hwupload")
+		codec = []string{"-c:v", "h264_vaapi", "-qp", q}
 	case "qsv":
 		input = []string{"-init_hw_device", "qsv=hw", "-filter_hw_device", "hw"}
-		filters = append(filters, "format=nv12", "hwupload=extra_hw_frames=64")
-		output = []string{"-vf", join(filters), "-c:v", "h264_qsv", "-preset", e.Preset, "-global_quality", q}
+		chain = append(chain, "format=nv12", "hwupload=extra_hw_frames=64")
+		codec = []string{"-c:v", "h264_qsv", "-preset", e.Preset, "-global_quality", q}
 	case "nvenc":
-		filters = append(filters, "format=yuv420p")
-		output = []string{"-vf", join(filters), "-c:v", "h264_nvenc", "-preset", nvencPreset[e.Preset], "-rc", "vbr", "-cq", q, "-b:v", "0"}
+		chain = append(chain, "format=yuv420p")
+		codec = []string{"-c:v", "h264_nvenc", "-preset", nvencPreset[e.Preset], "-rc", "vbr", "-cq", q, "-b:v", "0"}
 	default:
-		filters = append(filters, "format=yuv420p")
-		output = []string{"-vf", join(filters), "-c:v", "libx264", "-preset", e.Preset, "-crf", q, "-profile:v", "high"}
+		chain = append(chain, "format=yuv420p")
+		codec = []string{"-c:v", "libx264", "-preset", e.Preset, "-crf", q, "-profile:v", "high"}
 	}
-	return input, output
+	return input, chain, codec
 }
 
 func join(filters []string) string {

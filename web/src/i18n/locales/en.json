@@ -470,6 +470,7 @@
     "nudgeAction": "Add TMDb key"
   },
   "player": {
+    "burnedIn": "burned in",
     "play": "Play",
     "resume": "Resume from {{time}}",
     "fromStart": "From the beginning",
@@ -610,7 +611,9 @@
     "failed": "Failed",
     "runNow": "Run now",
     "analyze_media": "Analyze media",
-    "analyze_media_hint": "Chapters, intro and credits for skipping, seek-bar thumbnails",
+    "analyze_media_hint": "Chapters and skippable parts named by them, seek-bar thumbnails",
+    "detect_segments": "Detect intros and credits",
+    "detect_segments_hint": "Compares the audio of each season's episodes to find the shared intro and end credits (black frames when the audio has none); only new or changed episodes",
     "backup": "Back up",
     "backup_hint": "Database and settings into the backup folder; old backups are removed by the retention setting"
   },

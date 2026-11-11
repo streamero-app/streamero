@@ -191,6 +191,8 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 				args = jobs.ImagesCleanupArgs{}
 			case "analyze_media":
 				args = jobs.MediaAnalyzeAllArgs{}
+			case "detect_segments":
+				args = jobs.SegmentDetectAllArgs{}
 			case "backup":
 				args = jobs.BackupArgs{BackupKind: backup.KindManual}
 			default:
@@ -300,6 +302,12 @@ func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		func(ctx context.Context, id uuid.UUID) error {
 			_, err := client.Insert(ctx, jobs.MediaAnalyzeArgs{LibraryID: id}, nil)
 			return err
+		},
+		&analyze.Detector{Pool: deps.Pool, FFmpeg: cfg.FFmpegPath, Fpcalc: cfg.FpcalcPath, Log: log,
+			ResolvePath: func(p string) (string, error) { return library.ResolveSafePath(roots, p) }},
+		func(ctx context.Context, id uuid.UUID) error {
+			_, err := client.Insert(ctx, jobs.SegmentDetectArgs{LibraryID: id}, nil)
+			return err
 		})
 	jobs.RegisterImport(workers, &importer.Runner{Pool: deps.Pool, Log: log})
 	backups := newBackupService(cfg, deps.Pool, log)
@@ -321,6 +329,8 @@ func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 				func() (river.JobArgs, *river.InsertOpts) { return jobs.ImagesCleanupArgs{}, nil }, nil),
 			river.NewPeriodicJob(river.PeriodicInterval(24*time.Hour),
 				func() (river.JobArgs, *river.InsertOpts) { return jobs.MediaAnalyzeAllArgs{}, nil }, nil),
+			river.NewPeriodicJob(river.PeriodicInterval(24*time.Hour),
+				func() (river.JobArgs, *river.InsertOpts) { return jobs.SegmentDetectAllArgs{}, nil }, nil),
 			river.NewPeriodicJob(river.PeriodicInterval(time.Hour),
 				func() (river.JobArgs, *river.InsertOpts) { return jobs.BackupScheduleArgs{}, nil },
 				&river.PeriodicJobOpts{RunOnStart: true}),

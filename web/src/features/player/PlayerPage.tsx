@@ -22,6 +22,15 @@ const SAVE_EVERY_MS = 10_000;
 const SUB_SIZE = { small: "2.6vh", normal: "3.4vh", large: "4.4vh", xlarge: "5.6vh" } as const;
 const SUB_COLOR = { white: "#ffffff", yellow: "#ffe14d", cyan: "#7ff3ff" } as const;
 
+/** Short names of bitmap subtitle formats (ffprobe codec names or sidecar extensions). */
+export function bitmapName(codec: string): string {
+  const c = codec.toLowerCase();
+  if (c.includes("pgs") || c === "sup") return "PGS";
+  if (c.includes("dvb")) return "DVB";
+  if (c.includes("dvd") || c === "sub" || c === "idx" || c === "vobsub") return "VobSub";
+  return c.toUpperCase();
+}
+
 /** The viewer's subtitle look, as ::cue rules for the player's text tracks. */
 export function subtitleCss(p?: { subtitleSize?: keyof typeof SUB_SIZE; subtitleColor?: keyof typeof SUB_COLOR; subtitleBackground?: "none" | "shadow" | "box"; subtitlePosition?: number }): string {
   const bg = p?.subtitleBackground ?? "shadow";
@@ -149,11 +158,14 @@ export function PlayerPage() {
   const prefs = useQuery({ queryKey: ["preferences"], queryFn: async () => unwrap(await api.GET("/me/preferences")) });
 
   const start = useMutation({
-    mutationFn: async (v: { audioIndex?: number; startMs?: number }) =>
+    mutationFn: async (v: { audioIndex?: number; startMs?: number; subtitleIndex?: number }) =>
       unwrap(await api.POST("/items/{itemId}/playback", {
         params: { path: { itemId } },
         // The version chosen on the title page stays for audio switches and seeks.
-        body: { device: detectDeviceProfile(), audioIndex: v.audioIndex, startMs: v.startMs === undefined ? undefined : Math.round(v.startMs), fileId: search.file },
+        body: {
+          device: detectDeviceProfile(), audioIndex: v.audioIndex, startMs: v.startMs === undefined ? undefined : Math.round(v.startMs),
+          fileId: search.file, subtitleIndex: v.subtitleIndex,
+        },
       })),
     onSuccess: (data) => {
       setInfo(data);
@@ -243,7 +255,8 @@ export function PlayerPage() {
     setSkipped(null);
     setPosition(0);
     if (search.audio !== undefined) setAudioIndex(search.audio);
-    start.mutate({ startMs: search.start, audioIndex: search.audio });
+    // A bitmap track chosen on the title page is burned in by the server.
+    start.mutate({ startMs: search.start, audioIndex: search.audio, subtitleIndex: search.sub });
   }, [itemId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Attach the stream to the <video> element.
@@ -294,11 +307,34 @@ export function PlayerPage() {
     hlsRef.current?.destroy();
   }, [save]);
 
+  /** A burned-in subtitle stays in the picture when the stream restarts (seek, audio switch). */
+  const burned = info?.burnedSubtitle ?? -1;
+
   const changeAudio = (idx: number) => {
     setAudioIndex(idx);
     save(true);
-    start.mutate({ audioIndex: idx, startMs: absolute() });
+    start.mutate({ audioIndex: idx, startMs: absolute(), subtitleIndex: burned });
   };
+
+  /** Text tracks switch in the player; bitmap tracks restart the stream with the track burned in. */
+  const changeSubtitle = (value: string) => {
+    const [kind, n] = [value.slice(0, 1), Number(value.slice(2))];
+    if (kind === "b") {
+      if (n === burned) return;
+      setSubtitle(-1);
+      save(true);
+      start.mutate({ audioIndex, startMs: absolute(), subtitleIndex: n });
+      return;
+    }
+    const text = kind === "t" ? n : -1;
+    setSubtitle(text);
+    if (burned >= 0) {
+      save(true);
+      start.mutate({ audioIndex, startMs: absolute(), subtitleIndex: -1 });
+    }
+  };
+  const subtitleValue = burned >= 0 ? `b:${burned}` : subtitle >= 0 ? `t:${subtitle}` : "off";
+  const hasSubtitles = !!info && (info.subtitles.length > 0 || (info.bitmapSubtitles?.length ?? 0) > 0);
 
   /** Seeks to an absolute position; a transcode restarts there when the target is not encoded yet. */
   const seekTo = useCallback((ms: number) => {
@@ -312,7 +348,7 @@ export function PlayerPage() {
       const rel = (target - offsetRef.current) / 1000;
       const end = v.seekable.length ? v.seekable.end(v.seekable.length - 1) : 0;
       if (rel >= 0 && rel <= end) v.currentTime = rel;
-      else start.mutate({ audioIndex, startMs: target });
+      else start.mutate({ audioIndex, startMs: target, subtitleIndex: info.burnedSubtitle ?? -1 });
     }
     setPosition(target);
   }, [info, durationMs, audioIndex, start]);
@@ -579,7 +615,7 @@ export function PlayerPage() {
             {next.data && (
               <button type="button" className={iconBtn} onClick={playNext} aria-label={t("player.upNext")}><SkipForward className="size-5" aria-hidden /></button>
             )}
-            {info && (info.subtitles.length > 0 || info.audio.length > 1) && (
+            {info && (hasSubtitles || info.audio.length > 1) && (
               <button type="button" className={iconBtn} aria-expanded={panel === "tracks"} aria-label={t("player.tracks")}
                 onClick={() => setPanel(panel === "tracks" ? null : "tracks")}><Captions className="size-5" aria-hidden /></button>
             )}
@@ -614,15 +650,21 @@ export function PlayerPage() {
               </select>
             </label>
           )}
-          {info && info.subtitles.length > 0 && (
+          {info && hasSubtitles && (
             <label className="flex flex-col gap-2 text-sm">
               <span className="font-semibold">{t("library.subtitles")}</span>
-              <select className="h-10 rounded-md bg-white/10 px-3 ring-1 ring-white/15" value={subtitle} onChange={(e) => setSubtitle(Number(e.target.value))}
-                aria-label={t("library.subtitles")}>
-                <option value={-1} className="text-black">{t("player.off")}</option>
+              <select className="h-10 rounded-md bg-white/10 px-3 ring-1 ring-white/15" value={subtitleValue} onChange={(e) => changeSubtitle(e.target.value)}
+                aria-label={t("library.subtitles")} disabled={start.isPending}>
+                <option value="off" className="text-black">{t("player.off")}</option>
                 {info.subtitles.map((s, i) => (
-                  <option key={s.index} value={i} className="text-black">
+                  <option key={s.index} value={`t:${i}`} className="text-black">
                     {(s.language?.toUpperCase() ?? `#${i + 1}`) + (s.forced ? ` (${t("library.forced")})` : "")}
+                  </option>
+                ))}
+                {info.bitmapSubtitles?.map((s) => (
+                  <option key={s.index} value={`b:${s.index}`} className="text-black">
+                    {`${s.language?.toUpperCase() ?? `#${s.index + 1}`} · ${bitmapName(s.codec)}` + (s.forced ? ` (${t("library.forced")})` : "") +
+                      ` · ${t("player.burnedIn")}`}
                   </option>
                 ))}
               </select>
