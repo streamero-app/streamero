@@ -367,6 +367,15 @@ func (UnimplementedHandler) GetDashboard(ctx context.Context) (r *Dashboard, _ e
 	return r, ht.ErrNotImplemented
 }
 
+// GetDlnaSettings implements getDlnaSettings operation.
+//
+// Settings, listener status and the users/profiles DLNA browsing can act as.
+//
+// GET /settings/dlna
+func (UnimplementedHandler) GetDlnaSettings(ctx context.Context) (r *DlnaOverview, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetEncodingSettings implements getEncodingSettings operation.
 //
 // Transcoding settings (admin).
@@ -992,6 +1001,15 @@ func (UnimplementedHandler) UpdateBrandingSettings(ctx context.Context, req *Bra
 //
 // PUT /collections/{collectionId}
 func (UnimplementedHandler) UpdateCollection(ctx context.Context, req *CollectionInput, params UpdateCollectionParams) (r *Collection, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateDlnaSettings implements updateDlnaSettings operation.
+//
+// Turning DLNA on requires a user (and optionally one of its profiles) to act as.
+//
+// PUT /settings/dlna
+func (UnimplementedHandler) UpdateDlnaSettings(ctx context.Context, req *DlnaSettings) (r *DlnaOverview, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

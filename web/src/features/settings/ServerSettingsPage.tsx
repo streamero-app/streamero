@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { api, unwrap } from "@/api/client";
 import { Button, Card, ErrorText, SuccessText, TextField } from "@/components/ui";
 import { useSystemInfo } from "@/features/server/useSystemInfo";
+import { DlnaSettings } from "./DlnaSettings";
 
 export function ServerSettingsPage() {
   const { t } = useTranslation();
@@ -34,6 +35,7 @@ export function ServerSettingsPage() {
           <Button type="submit" disabled={save.isPending || !settings.data} className="self-start">{t("common.save")}</Button>
         </form>
       </Card>
+      <DlnaSettings />
       <Card title={t("server.about")}>
         <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
           <dt className="text-muted">{t("server.versionLabel")}</dt>

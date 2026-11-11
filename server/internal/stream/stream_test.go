@@ -175,3 +175,21 @@ func TestAudioOnlyTranscodeHasNoVideo(t *testing.T) {
 		t.Fatalf("flac in a browser that plays it: %+v", d)
 	}
 }
+
+func TestProgressiveArgs(t *testing.T) {
+	remux := strings.Join(ProgressiveArgs(Job{Input: "/m/a.mkv", StartMS: 61_500, AudioIndex: 1,
+		Plan: Plan{Method: "remux", TranscodeAudio: true}}, Encoding{}, "mpegts"), " ")
+	for _, want := range []string{"-ss 61.500 -i /m/a.mkv", "-map 0:v:0 -map 0:a:1?", "-c:v copy", "-c:a aac", "-f mpegts", "pipe:1"} {
+		if !strings.Contains(remux, want) {
+			t.Errorf("remux lacks %q: %s", want, remux)
+		}
+	}
+	if strings.Contains(remux, "hls") {
+		t.Errorf("progressive stream uses HLS options: %s", remux)
+	}
+	music := strings.Join(ProgressiveArgs(Job{Input: "/m/a.ogg", AudioIndex: 0, Plan: Plan{AudioOnly: true, TranscodeAudio: true}},
+		Encoding{}, "mp3"), " ")
+	if !strings.Contains(music, "-vn -map 0:a:0? -c:a libmp3lame -b:a 320k -f mp3 pipe:1") {
+		t.Errorf("music: %s", music)
+	}
+}

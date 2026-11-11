@@ -85,7 +85,7 @@ which the admin dashboard's **message** and **stop** commands reach the app.
 |---|---|---|
 | **Android TV / Google TV** — official app 0.19.10 | Install "Jellyfin" from Google Play, *Add server*, pick the discovered server or type `http://<server>:8787`, sign in (or Quick Connect). | **Verified** in an Android TV 12 emulator (with `/compat`, previous release): add server, Quick Connect for a two-factor account, home rows, library grid, series page with Next up, favourite, direct play (H.264/AAC MKV), automatic fallback to HLS transcode, progress and resume saved. Root address, discovery and `/socket` are covered by integration tests only, not yet re-checked in the app. |
 | **Samsung (Tizen)** — official app (Samsung store, 2021+ TVs) | Same as above: type `http://<server>:8787` or pick the discovered server. | **Not tried.** The app is a web app with the web client packaged inside it, calling the server API from its own origin; Streamero therefore answers cross-origin requests on the compat API (CORS, any origin, no cookies). Expected to behave like the Android TV app, but it uses more of the API than that app and some calls may be missing — check the debug log (below). |
-| **LG (webOS)** — official app (LG Content Store) | — | **Does not work.** The app is a thin wrapper that loads the web client *from the server* (`/web/index.html`, `/web/manifest.json` and its scripts) and checks that it is there. Streamero does not ship that web client (clean-room, D-031) and its own web app is not built for a TV remote. Use an Android TV / Google TV stick or Infuse on Apple TV meanwhile. See D-034. |
+| **LG (webOS)** — official app (LG Content Store) | — | **Does not work.** The app is a thin wrapper that loads the web client *from the server* (`/web/index.html`, `/web/manifest.json` and its scripts) and checks that it is there. Streamero does not ship that web client (clean-room, D-031) and its own web app is not built for a TV remote. Use the TV's own media player through DLNA (see *Smart TVs without an app* below), an Android TV / Google TV stick or Infuse on Apple TV meanwhile. See D-034. |
 
 How the Android TV check was done: the official release APK was installed in an
 emulator, driven with remote-control key events, and the server's request log
@@ -117,6 +117,68 @@ collections/playlists and parental ratings are not exposed.
 Diagnosing a client: start the server with `STREAMERO_LOG_LEVEL=debug` and look
 for `compat request` lines with status 404 (an endpoint the client needs that
 Streamero does not offer) or 401.
+
+## Smart TVs without an app (DLNA)
+Streamero is also a DLNA / UPnP AV media server (MediaServer:1, D-038), so the
+built-in media player of LG (webOS), Samsung (Tizen), Sony (Bravia) and most other
+smart TVs can browse and play the library with no app — the way to use an LG TV,
+whose Jellyfin-compatible app cannot work (D-034).
+
+**Turning it on.** *Settings → Server → DLNA for TVs*: switch it on, pick the
+Streamero user (and optionally one of its profiles) the TV acts as, optionally a
+name and the language of the folder names. It is **off until an admin turns it
+on**: DLNA has no sign-in, so anyone on the local network can browse what that user
+may see. That user's library access, parental limit (profile maximum rating),
+audio/subtitle language and resume positions apply; giving the TV a kids profile is
+the way to limit it.
+
+**On the TV.** The server appears as a media source (LG: *Media Player* / *Photo &
+Video*, Samsung: *Source → <name>*, Sony: *Media Player / Album / Video*). Folders:
+one per library with *A–Z*, *Recently added* and *Genres* (movies, shows: series →
+seasons → episodes) or *Artists*, *Albums*, *Recently added* (music), plus
+*Continue watching*, whose entries start where the viewer stopped.
+
+**Playback.** Each TV family has a profile chosen from the request headers
+(`User-Agent`, `X-AV-Client-Info`): files the TV can decode are sent as they are,
+with byte-range seeking; anything else is converted on the fly to MPEG-TS
+(H.264 + AAC, or MP3 for music) with time seeking (`TimeSeekRange.dlna.org`), using
+the transcoding settings and their limit on simultaneous transcodes. Text subtitles
+are offered as a sidecar SRT (Samsung: `CaptionInfo.sec` / `sec:CaptionInfoEx`; LG
+and Sony: an extra `text/srt` resource); bitmap subtitles are not. Stream links are
+HMAC-signed and expire after 8 hours (browse again after that).
+
+| TV | Profile | Confidence |
+|---|---|---|
+| LG webOS | MKV/MP4/TS/AVI/WebM, H.264, HEVC, MPEG-2/4, VP9, HDR; AAC, AC-3, E-AC-3, MP3, FLAC; up to 2160p | From LG's published format lists. Not tried on a TV. |
+| Samsung Tizen | as LG, MKV announced as `video/x-mkv`; subtitles via `CaptionInfo.sec`; resume bookmark (`X_SetBookmark`) saved as progress | From Samsung's published format lists. Not tried on a TV. |
+| Sony Bravia | MKV/MP4/TS, H.264, HEVC, MPEG-2; AAC, AC-3, E-AC-3, MP3, FLAC; HDR is tone-mapped | Conservative; not tried on a TV. |
+| Anything else | MP4/TS, H.264, AAC/MP3/FLAC, up to 1080p | Safe default. |
+
+DTS, TrueHD, AV1 and Opus are always converted.
+
+**Progress.** TVs do not report playback. Samsung's resume bookmark is stored as the
+position; otherwise the position is estimated from what the TV fetched (a little
+ahead of the real position) and saved a minute after it stops; the usual resume
+thresholds apply. The dashboard shows DLNA playback as *now playing*.
+
+**Docker and networking.** TVs find servers by SSDP multicast on UDP 1900, which a
+Docker bridge network does not pass into the container (same as the LAN discovery
+broadcast above). For TVs to find Streamero by themselves, run the `streamero`
+service with `network_mode: host` (then remove its `ports:`) or on a macvlan
+network with its own LAN address. With bridge networking the compose file still
+publishes the DLNA HTTP port 8788, and `STREAMERO_DLNA_URL=http://<LAN address of
+the host>:8788` sets the address announced to TVs, but most TVs cannot add a server
+by address. UDP 1900 is shared (`SO_REUSEADDR`) with other UPnP software on the
+host. Only clients with private, loopback or link-local addresses get answers on
+UDP 1900 and port 8788, and search replies are rate limited; do not forward port
+8788 on the router. `STREAMERO_DLNA=false` does not open the ports at all.
+
+**Checked:** an independent UPnP control point (`async-upnp-client`) and DIDL-Lite
+parser (`python-didl-lite`) on a private Docker network: multicast discovery,
+`ssdp:alive`/`ssdp:byebye`, device and service descriptions, Browse with paging
+and sorting, Search, `SUBSCRIBE`, Range requests, converted streams with time
+seeking (checked with ffprobe), subtitles and the Samsung bookmark, using each TV's
+`User-Agent`. No real TV has been tried yet.
 
 ## Others
 Tools that support "Jellyfin" as a media server may work against `/compat` with an
