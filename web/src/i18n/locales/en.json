@@ -234,7 +234,8 @@
     "invalid_settings": "Please check the settings.",
     "provider_unreachable": "The provider could not be reached or answered incorrectly.",
     "tuners_busy": "Every tuner is in use right now. Try again when a recording or another viewer finishes.",
-    "channel_unavailable": "The channel can't be tuned right now."
+    "channel_unavailable": "The channel can't be tuned right now.",
+    "file_missing": "This file is no longer where the server expected it. The library is being rescanned; try again in a minute."
   },
   "notFound": {
     "title": "Page not found",
