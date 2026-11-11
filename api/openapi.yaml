@@ -26,6 +26,8 @@ tags:
   - name: collections
   - name: playlists
   - name: import
+  - name: downloads
+    description: Offline downloads for the apps and original-file downloads (D-040).
   - name: syncplay
     description: |
       Watch together (SyncPlay). Groups are managed here; playback inside a group
@@ -1938,6 +1940,218 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/ItemSummary"
+        default:
+          $ref: "#/components/responses/Error"
+  /downloads:
+    get:
+      operationId: listDownloads
+      summary: Offline download jobs of the current profile
+      description: |
+        Server-side download jobs (D-040). A job is a request to get one file in one quality:
+        the original file, or a mobile-friendly MP4 (H.264/AAC) the server transcodes into its
+        download cache in the background. Clients delete a job once the file is on the device;
+        the device's offline library is the client's own.
+      tags: [downloads]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Jobs, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Download"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createDownloads
+      summary: Download a movie, an episode, a season, a series or its next N episodes
+      description: |
+        Needs the `download` permission; transcoded qualities also need `videoTranscoding`.
+        Parental limits of the current profile apply. Asking again for the same file and
+        quality returns the existing job (idempotent).
+      tags: [downloads]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DownloadRequest"
+      responses:
+        "201":
+          description: One job per episode or file
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Download"
+        default:
+          $ref: "#/components/responses/Error"
+  /downloads/sync:
+    post:
+      operationId: syncDownloads
+      summary: Sync offline progress and check that downloaded items may still be kept
+      description: |
+        Progress recorded offline is applied when it is newer than the server's (newest wins,
+        by `updatedAt`; times in the future count as now). The answer has the server's state of
+        every listed item and the items the profile may no longer keep (access, permission or
+        parental limit lost, or the item is gone): clients delete those files.
+      tags: [downloads]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OfflineSyncRequest"
+      responses:
+        "200":
+          description: Server state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OfflineSyncResponse"
+        default:
+          $ref: "#/components/responses/Error"
+  /downloads/{downloadId}:
+    parameters:
+      - name: downloadId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getDownload
+      summary: One download job (with fresh signed URLs when ready)
+      tags: [downloads]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Download"
+        default:
+          $ref: "#/components/responses/Error"
+    delete:
+      operationId: deleteDownload
+      summary: Forget a download job (the transcoded file is cleaned up later)
+      tags: [downloads]
+      security:
+        - sessionToken: []
+      responses:
+        "204":
+          description: Deleted
+        default:
+          $ref: "#/components/responses/Error"
+  /items/{itemId}/original:
+    parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: createOriginalLink
+      summary: A signed link that downloads the original file (needs the download permission)
+      tags: [downloads]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OriginalLinkRequest"
+      responses:
+        "200":
+          description: Link
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OriginalLink"
+        default:
+          $ref: "#/components/responses/Error"
+  /admin/downloads:
+    get:
+      operationId: adminDownloads
+      summary: Download transcodes and cache use (admin)
+      tags: [downloads]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: State
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DownloadAdmin"
+        default:
+          $ref: "#/components/responses/Error"
+  /admin/downloads/{transcodeId}:
+    parameters:
+      - name: transcodeId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    delete:
+      operationId: deleteDownloadTranscode
+      summary: Stop and remove a download transcode and its jobs (admin)
+      tags: [downloads]
+      security:
+        - sessionToken: []
+      responses:
+        "204":
+          description: Removed
+        default:
+          $ref: "#/components/responses/Error"
+  /settings/downloads:
+    get:
+      operationId: getDownloadSettings
+      summary: Download transcoding limits (admin)
+      tags: [settings]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DownloadSettings"
+        default:
+          $ref: "#/components/responses/Error"
+    put:
+      operationId: updateDownloadSettings
+      summary: Update download transcoding limits (admin)
+      tags: [settings]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DownloadSettings"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DownloadSettings"
         default:
           $ref: "#/components/responses/Error"
   /items/{itemId}/read:
@@ -4187,6 +4401,278 @@ components:
         played:
           type: boolean
           description: Mark as watched (set automatically past 90%).
+    DownloadQuality:
+      type: string
+      enum: [original, source, 1080p, 720p]
+      description: |
+        `original` is the file as it is; the others are an MP4 with H.264 video and AAC stereo
+        audio: `source` keeps the resolution, `1080p` is at most 1080 lines and ~5 Mbit/s,
+        `720p` at most 720 lines and ~2 Mbit/s.
+    DownloadRequest:
+      type: object
+      required: [itemId, quality]
+      properties:
+        itemId:
+          type: string
+          format: uuid
+          description: A movie, episode, season or series.
+        quality:
+          $ref: "#/components/schemas/DownloadQuality"
+        fileId:
+          type: string
+          format: uuid
+          description: Version of a movie or episode (default the best one).
+        audioIndex:
+          type: integer
+          minimum: 0
+          description: Audio track for transcoded qualities (default from the profile's preference).
+        nextEpisodes:
+          type: integer
+          minimum: 1
+          maximum: 50
+          description: For a series or season, only the next N unwatched episodes.
+        skipItemIds:
+          type: array
+          maxItems: 500
+          description: Episodes the device already has; they are left out of a season or series.
+          items:
+            type: string
+            format: uuid
+    DownloadSubtitle:
+      type: object
+      required: [index, language, forced, url, vttUrl]
+      properties:
+        index:
+          type: integer
+          description: Position in the file's subtitle list.
+        language:
+          type: string
+        forced:
+          type: boolean
+        url:
+          type: string
+          description: Signed SubRip (.srt) sidecar.
+        vttUrl:
+          type: string
+          description: Signed WebVTT sidecar.
+    Download:
+      type: object
+      required: [id, itemId, fileId, quality, state, progress, createdAt, item, subtitles]
+      properties:
+        id:
+          type: string
+          format: uuid
+        itemId:
+          type: string
+          format: uuid
+        fileId:
+          type: string
+          format: uuid
+        quality:
+          $ref: "#/components/schemas/DownloadQuality"
+        state:
+          type: string
+          enum: [queued, transcoding, ready, failed]
+        progress:
+          type: number
+          description: Transcoding progress 0–1 (1 when ready).
+        sizeBytes:
+          type: integer
+          format: int64
+          description: Size of the file to fetch (known when ready).
+        error:
+          type: string
+        url:
+          type: string
+          description: Signed URL of the file (byte ranges supported), only when ready.
+        urlExpiresAt:
+          type: string
+          format: date-time
+        fileName:
+          type: string
+        container:
+          type: string
+          description: File extension of the downloaded file (mp4 for transcodes).
+        durationMs:
+          type: integer
+          format: int64
+        audioIndex:
+          type: integer
+        subtitles:
+          type: array
+          description: Text subtitle tracks as sidecars (picture subtitles are not offered).
+          items:
+            $ref: "#/components/schemas/DownloadSubtitle"
+        item:
+          $ref: "#/components/schemas/ItemSummary"
+        overview:
+          type: string
+        series:
+          $ref: "#/components/schemas/ItemSummary"
+        createdAt:
+          type: string
+          format: date-time
+    OfflineProgress:
+      type: object
+      required: [itemId, positionMs, played, updatedAt]
+      properties:
+        itemId:
+          type: string
+          format: uuid
+        positionMs:
+          type: integer
+          format: int64
+          minimum: 0
+        durationMs:
+          type: integer
+          format: int64
+        played:
+          type: boolean
+        updatedAt:
+          type: string
+          format: date-time
+          description: When this state was recorded on the device.
+    OfflineSyncRequest:
+      type: object
+      required: [itemIds, progress]
+      properties:
+        itemIds:
+          type: array
+          maxItems: 2000
+          description: Items the device keeps offline.
+          items:
+            type: string
+            format: uuid
+        progress:
+          type: array
+          maxItems: 2000
+          items:
+            $ref: "#/components/schemas/OfflineProgress"
+    OfflineItemState:
+      type: object
+      required: [itemId, positionMs, played, updatedAt]
+      properties:
+        itemId:
+          type: string
+          format: uuid
+        positionMs:
+          type: integer
+          format: int64
+        played:
+          type: boolean
+        updatedAt:
+          type: string
+          format: date-time
+    OfflineSyncResponse:
+      type: object
+      required: [revoked, items, applied]
+      properties:
+        revoked:
+          type: array
+          description: Items the profile may no longer keep offline.
+          items:
+            type: string
+            format: uuid
+        items:
+          type: array
+          description: Server state of the listed items (never-played items are left out).
+          items:
+            $ref: "#/components/schemas/OfflineItemState"
+        applied:
+          type: integer
+          description: How many offline reports were newer than the server's state and were saved.
+    OriginalLinkRequest:
+      type: object
+      properties:
+        fileId:
+          type: string
+          format: uuid
+          description: Version to download (default the best one).
+    OriginalLink:
+      type: object
+      required: [url, fileName, sizeBytes]
+      properties:
+        url:
+          type: string
+          description: Signed URL that downloads the file (Content-Disposition attachment).
+        fileName:
+          type: string
+        sizeBytes:
+          type: integer
+          format: int64
+    DownloadSettings:
+      type: object
+      required: [maxTranscodes, cacheLimitGb, keepDays]
+      properties:
+        maxTranscodes:
+          type: integer
+          minimum: 1
+          maximum: 16
+          description: Download transcodes running at once; more wait in the queue.
+        cacheLimitGb:
+          type: integer
+          minimum: 1
+          maximum: 100000
+          description: Size of the download cache; the least recently fetched files go first.
+        keepDays:
+          type: integer
+          minimum: 1
+          maximum: 90
+          description: A transcoded file nobody fetched for this long is deleted.
+    DownloadTranscode:
+      type: object
+      required: [id, itemId, title, quality, state, progress, sizeBytes, jobs, users, createdAt, lastAccessAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        itemId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        quality:
+          $ref: "#/components/schemas/DownloadQuality"
+        state:
+          type: string
+          enum: [queued, transcoding, ready, failed]
+        progress:
+          type: number
+        sizeBytes:
+          type: integer
+          format: int64
+        error:
+          type: string
+        jobs:
+          type: integer
+          description: Download jobs that use this file.
+        users:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        lastAccessAt:
+          type: string
+          format: date-time
+    DownloadAdmin:
+      type: object
+      required: [settings, running, queued, cacheBytes, transcodes]
+      properties:
+        settings:
+          $ref: "#/components/schemas/DownloadSettings"
+        running:
+          type: integer
+        queued:
+          type: integer
+        cacheBytes:
+          type: integer
+          format: int64
+        transcodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/DownloadTranscode"
     Dashboard:
       type: object
       required: [server, storage, nowPlaying, activeTranscodes, activity]

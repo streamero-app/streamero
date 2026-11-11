@@ -33,6 +33,7 @@ struct RouteDestination: View {
         case .collection(let id): CollectionView(id: id, client: client)
         case .playlist(let id): PlaylistView(id: id, client: client)
         case .settings(let page): SettingsPageView(page: page, client: client)
+        case .downloads: DownloadsView()
         }
     }
 }
@@ -44,6 +45,7 @@ struct MainView: View {
     @State private var app: AppState
     @State private var generation = 0
     @State private var loadFailed = false
+    @State private var showDownloads = false
     @Environment(SessionStore.self) private var session
     @Environment(\.locale) private var systemLocale
 
@@ -62,10 +64,20 @@ struct MainView: View {
                     Text("err_network").foregroundStyle(Theme.textMuted)
                     Button { Task { await bootstrap() } } label: { Text("connect") }
                         .buttonStyle(PrimaryButtonStyle())
+                    Button { showDownloads = true } label: { Label("downloads.title", systemImage: "arrow.down.circle") }
+                        .buttonStyle(MutedButtonStyle())
                     Button("sign_out") { Task { await signOut() } }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Theme.background)
+                .fullScreenCover(isPresented: $showDownloads) {
+                    NavigationStack {
+                        DownloadsView()
+                            .toolbar {
+                                ToolbarItem(placement: .cancellationAction) { Button("player.back") { showDownloads = false } }
+                            }
+                    }
+                }
             } else {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity).background(Theme.background)
             }

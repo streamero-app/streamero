@@ -122,6 +122,20 @@ func encodeCreateCollectionRequest(
 	return nil
 }
 
+func encodeCreateDownloadsRequest(
+	req *DownloadRequest,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeCreateInviteRequest(
 	req *CreateInviteRequest,
 	r *http.Request,
@@ -152,6 +166,20 @@ func encodeCreateLibraryRequest(
 
 func encodeCreateOidcProviderRequest(
 	req *OidcProviderInput,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeCreateOriginalLinkRequest(
+	req *OriginalLinkRequest,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"
@@ -524,6 +552,20 @@ func encodeStartPlaybackRequest(
 	return nil
 }
 
+func encodeSyncDownloadsRequest(
+	req *OfflineSyncRequest,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeTestLdapSettingsRequest(
 	req *LdapTestRequest,
 	r *http.Request,
@@ -624,6 +666,20 @@ func encodeUpdateCollectionRequest(
 
 func encodeUpdateDlnaSettingsRequest(
 	req *DlnaSettings,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeUpdateDownloadSettingsRequest(
+	req *DownloadSettings,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"

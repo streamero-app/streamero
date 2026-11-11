@@ -314,6 +314,50 @@
     <string name="together_left">You are no longer in the watch-together group.</string>
     <string name="together_current">Your group</string>
     <string name="together_return">Back to the film</string>
+
+    <!-- Offline downloads -->
+    <string name="downloads">Downloads</string>
+    <string name="download">Download</string>
+    <string name="downloaded">Downloaded</string>
+    <string name="download_quality">Download quality</string>
+    <string name="quality_original">Original file</string>
+    <string name="quality_source">Full resolution (MP4)</string>
+    <string name="quality_1080">1080p (MP4)</string>
+    <string name="quality_720">720p (MP4, smaller)</string>
+    <string name="download_queued">Waiting…</string>
+    <string name="download_transcoding">Preparing %1$d%%</string>
+    <string name="download_downloading">Downloading %1$d%%</string>
+    <string name="download_done">Downloaded · %1$s</string>
+    <string name="download_failed">Download failed</string>
+    <string name="download_retry">Try again</string>
+    <string name="download_delete">Remove download</string>
+    <string name="download_missing">This download is no longer on the device.</string>
+    <string name="download_season">Download season %1$d</string>
+    <string name="download_this_season">Download season</string>
+    <string name="download_auto">Download next episodes automatically</string>
+    <string name="download_auto_hint">Keeps the next unwatched episodes on this device. Watched ones are removed when the app syncs.</string>
+    <string name="download_auto_count">How many</string>
+    <string name="download_auto_stop">Stop</string>
+    <plurals name="download_auto_active"><item quantity="one">Keeping the next episode downloaded</item><item quantity="other">Keeping the next %1$d episodes downloaded</item></plurals>
+    <plurals name="download_next_episodes"><item quantity="one">Next episode</item><item quantity="other">Next %1$d episodes</item></plurals>
+    <plurals name="episodes_count"><item quantity="one">%1$d episode</item><item quantity="other">%1$d episodes</item></plurals>
+    <string name="play_offline">Play downloaded</string>
+    <string name="downloads_empty">Nothing downloaded yet. Use Download on a film or an episode to watch it without a connection.</string>
+    <string name="downloads_total">%1$s on this device</string>
+    <string name="downloads_wifi_only">Download over Wi-Fi only</string>
+    <string name="downloads_auto">Automatic downloads</string>
+    <string name="downloads_delete_all">Remove all downloads</string>
+    <string name="downloads_delete_all_confirm">Remove all downloaded films and episodes from this device?</string>
+    <string name="remove">Remove</string>
+    <string name="cancel">Cancel</string>
+    <string name="offline_title">You are offline</string>
+    <string name="offline_text">The server cannot be reached. Your downloads still play.</string>
+    <string name="offline_retry">Try again</string>
+    <string name="download_channel">Downloads</string>
+    <string name="download_notification_preparing">Preparing %1$s</string>
+    <string name="download_notification_downloading">Downloading %1$s</string>
+    <string name="download_notification_done">%1$s is downloaded</string>
+    <string name="err_parental_limit">This title is above the age limit of the profile.</string>
     <!-- Books, audiobooks and photos -->
     <string name="audiobook">Audiobook</string>
     <string name="back_15">Back 15 seconds</string>

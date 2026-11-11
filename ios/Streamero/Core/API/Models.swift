@@ -582,6 +582,86 @@ struct SubtitleSearch: Codable, Sendable, Equatable {
     var offers: [SubtitleOffer]
 }
 
+// MARK: Offline downloads (D-040)
+
+/// Quality of an offline download: the file as it is, or an H.264/AAC MP4 made by the server.
+enum DownloadQuality: String, Codable, Sendable, CaseIterable, Identifiable {
+    case original
+    case source
+    case p1080 = "1080p"
+    case p720 = "720p"
+
+    var id: String { rawValue }
+    /// Every quality except `original` needs the transcoding permission.
+    var isTranscoded: Bool { self != .original }
+}
+
+struct DownloadRequestBody: Codable, Sendable, Equatable {
+    var itemId: String
+    var quality: String
+    var fileId: String?
+    var audioIndex: Int?
+    var nextEpisodes: Int?
+    var skipItemIds: [String]?
+}
+
+struct DownloadSubtitle: Codable, Sendable, Equatable {
+    var index: Int
+    var language: String
+    var forced: Bool
+    var url: String
+    var vttUrl: String
+}
+
+/// A server-side download job (`Download` in the spec).
+struct DownloadJob: Codable, Sendable, Equatable, Identifiable {
+    var id: String
+    var itemId: String
+    var fileId: String
+    var quality: String
+    var state: String
+    var progress: Double
+    var sizeBytes: Int64?
+    var error: String?
+    var url: String?
+    var urlExpiresAt: String?
+    var fileName: String?
+    var container: String?
+    var durationMs: Int64?
+    var audioIndex: Int?
+    var subtitles: [DownloadSubtitle]
+    var item: ItemSummary
+    var overview: String?
+    var series: ItemSummary?
+    var createdAt: String
+}
+
+struct OfflineProgress: Codable, Sendable, Equatable {
+    var itemId: String
+    var positionMs: Int64
+    var durationMs: Int64?
+    var played: Bool
+    var updatedAt: String
+}
+
+struct OfflineSyncRequest: Codable, Sendable, Equatable {
+    var itemIds: [String]
+    var progress: [OfflineProgress]
+}
+
+struct OfflineItemState: Codable, Sendable, Equatable {
+    var itemId: String
+    var positionMs: Int64
+    var played: Bool
+    var updatedAt: String
+}
+
+struct OfflineSyncResponse: Codable, Sendable, Equatable {
+    var revoked: [String]
+    var items: [OfflineItemState]
+    var applied: Int
+}
+
 struct APIErrorBody: Codable, Sendable {
     var code: String
     var message: String

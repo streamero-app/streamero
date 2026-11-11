@@ -1252,6 +1252,31 @@
       "invalid": "To se sada ne može napraviti."
     }
   },
+  "downloads": {
+    "original": "Preuzmi original",
+    "originalHint": "Spremi datoteku točno onakvu kakva je na serveru",
+    "adminTitle": "Preuzimanja za offline",
+    "adminStatus": "{{running}} u tijeku · {{queued}} čeka",
+    "adminIntro": "Aplikacije mogu preuzeti naslove za gledanje bez interneta: originalnu datoteku ili manji MP4 koji server pretvara u pozadini. Pretvorene datoteke čuvaju se u međuspremniku na serveru dok ih aplikacije ne preuzmu.",
+    "maxTranscodes": "Istovremenih pretvaranja",
+    "maxTranscodesHint": "Ostala preuzimanja čekaju u redu. Svako pretvaranje troši procesor ili GPU kao i stream.",
+    "cacheLimit": "Veličina međuspremnika (GB)",
+    "cacheLimitHint": "Zauzeto: {{used}}. Iznad granice prvo se brišu datoteke koje su najdulje nepreuzete.",
+    "keepDays": "Čuvaj pretvorene datoteke (dana)",
+    "keepDaysHint": "Pretvorena datoteka koju nitko nije preuzeo toliko dugo briše se.",
+    "transcodes": "Pretvorena preuzimanja",
+    "noTranscodes": "Ništa se ne pretvara za preuzimanje.",
+    "removeTranscode": "Zaustavi i ukloni",
+    "quality_original": "Original",
+    "quality_source": "Izvorna rezolucija",
+    "quality_1080p": "1080p",
+    "quality_720p": "720p",
+    "state_queued": "Čeka",
+    "state_transcoding": "Pretvara se",
+    "state_transcodingPct": "Pretvara se {{pct}} %",
+    "state_ready": "Spremno",
+    "state_failed": "Neuspjelo"
+  },
   "books": {
     "progress": "Pročitano {{pct}} %",
     "count_book_one": "{{count}} knjiga",

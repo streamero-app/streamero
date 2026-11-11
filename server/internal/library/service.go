@@ -481,6 +481,18 @@ func DefaultResume() Resume { return Resume{MinPercent: 5, MaxPercent: 90, MinDu
 // SaveProgress records a playback position for owner (profile or user). Past the
 // resume maximum (90% by default) the item counts as watched and the position resets.
 func (s *Service) SaveProgress(ctx context.Context, owner, itemID uuid.UUID, positionMS int64, durationMS *int64, played bool) error {
+	_, err := s.saveProgress(ctx, owner, itemID, positionMS, durationMS, played, nil)
+	return err
+}
+
+// SaveProgressAt records a position that was reached at a given time (offline
+// playback, D-040). It only replaces the stored state when that is older:
+// newest wins. applied is false when the stored state was newer.
+func (s *Service) SaveProgressAt(ctx context.Context, owner, itemID uuid.UUID, positionMS int64, durationMS *int64, played bool, at time.Time) (applied bool, err error) {
+	return s.saveProgress(ctx, owner, itemID, positionMS, durationMS, played, &at)
+}
+
+func (s *Service) saveProgress(ctx context.Context, owner, itemID uuid.UUID, positionMS int64, durationMS *int64, played bool, at *time.Time) (bool, error) {
 	var dur, total int64
 	var kind string
 	_ = s.Pool.QueryRow(ctx, `SELECT i.kind, COALESCE((SELECT max(duration_ms) FROM media_files WHERE item_id = i.id), 0),
@@ -523,19 +535,36 @@ func (s *Service) SaveProgress(ctx context.Context, owner, itemID uuid.UUID, pos
 			progression = &one
 		}
 	}
+	if at == nil {
+		tag, err := s.Pool.Exec(ctx, `INSERT INTO user_item_data (owner_id, item_id, position_ms, played, play_count, last_played_at, progression)
+			SELECT $1, $2, $3, $4, CASE WHEN $4 THEN 1 ELSE 0 END, now(), $5 WHERE EXISTS (SELECT 1 FROM items WHERE id = $2)
+			ON CONFLICT (owner_id, item_id) DO UPDATE SET position_ms = EXCLUDED.position_ms, last_played_at = now(),
+				play_count = user_item_data.play_count + CASE WHEN EXCLUDED.played AND NOT user_item_data.played THEN 1 ELSE 0 END,
+				played = EXCLUDED.played, progression = COALESCE(EXCLUDED.progression, user_item_data.progression)`,
+			owner, itemID, positionMS, played, progression)
+		if err != nil {
+			return false, err
+		}
+		if tag.RowsAffected() == 0 {
+			return false, ErrNotFound
+		}
+		return true, nil
+	}
+	// A device clock ahead of the server's must not freeze the state: future times count as now.
+	when := *at
+	if now := time.Now(); when.After(now) {
+		when = now
+	}
 	tag, err := s.Pool.Exec(ctx, `INSERT INTO user_item_data (owner_id, item_id, position_ms, played, play_count, last_played_at, progression)
-		SELECT $1, $2, $3, $4, CASE WHEN $4 THEN 1 ELSE 0 END, now(), $5 WHERE EXISTS (SELECT 1 FROM items WHERE id = $2)
-		ON CONFLICT (owner_id, item_id) DO UPDATE SET position_ms = EXCLUDED.position_ms, last_played_at = now(),
+		SELECT $1, $2, $3, $4, CASE WHEN $4 THEN 1 ELSE 0 END, $5, $6 WHERE EXISTS (SELECT 1 FROM items WHERE id = $2)
+		ON CONFLICT (owner_id, item_id) DO UPDATE SET position_ms = EXCLUDED.position_ms, last_played_at = EXCLUDED.last_played_at,
 			play_count = user_item_data.play_count + CASE WHEN EXCLUDED.played AND NOT user_item_data.played THEN 1 ELSE 0 END,
-			played = EXCLUDED.played, progression = COALESCE(EXCLUDED.progression, user_item_data.progression)`,
-		owner, itemID, positionMS, played, progression)
+			played = EXCLUDED.played, progression = COALESCE(EXCLUDED.progression, user_item_data.progression)
+		WHERE user_item_data.last_played_at < EXCLUDED.last_played_at`, owner, itemID, positionMS, played, when, progression)
 	if err != nil {
-		return err
+		return false, err
 	}
-	if tag.RowsAffected() == 0 {
-		return ErrNotFound
-	}
-	return nil
+	return tag.RowsAffected() > 0, nil
 }
 
 // ContinueWatching returns started, unfinished movies and episodes of owner.
@@ -653,7 +682,7 @@ func (s *Service) SetUserData(ctx context.Context, owner, itemID uuid.UUID, favo
 					UNION ALL SELECT i.id FROM items i JOIN tree t ON i.parent_id = t.id)
 				INSERT INTO user_item_data (owner_id, item_id, played, position_ms, play_count)
 				SELECT $1, id, $3, 0, CASE WHEN $3 THEN 1 ELSE 0 END FROM tree
-				ON CONFLICT (owner_id, item_id) DO UPDATE SET played = EXCLUDED.played, position_ms = 0,
+				ON CONFLICT (owner_id, item_id) DO UPDATE SET played = EXCLUDED.played, position_ms = 0, last_played_at = now(),
 					play_count = user_item_data.play_count + CASE WHEN EXCLUDED.played AND NOT user_item_data.played THEN 1 ELSE 0 END`,
 				owner, itemID, *played); err != nil {
 				return err

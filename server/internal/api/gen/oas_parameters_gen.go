@@ -256,6 +256,71 @@ func decodeBrowseDirectoriesParams(args [0]string, argsEscaped bool, r *http.Req
 	return params, nil
 }
 
+// CreateOriginalLinkParams is parameters of createOriginalLink operation.
+type CreateOriginalLinkParams struct {
+	ItemId uuid.UUID
+}
+
+func unpackCreateOriginalLinkParams(packed middleware.Parameters) (params CreateOriginalLinkParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "itemId",
+			In:   "path",
+		}
+		params.ItemId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeCreateOriginalLinkParams(args [1]string, argsEscaped bool, r *http.Request) (params CreateOriginalLinkParams, _ error) {
+	// Decode path: itemId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "itemId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ItemId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "itemId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // DeleteAPIKeyParams is parameters of deleteAPIKey operation.
 type DeleteAPIKeyParams struct {
 	ApiKeyId uuid.UUID
@@ -465,6 +530,136 @@ func decodeDeleteCollectionParams(args [1]string, argsEscaped bool, r *http.Requ
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "collectionId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// DeleteDownloadParams is parameters of deleteDownload operation.
+type DeleteDownloadParams struct {
+	DownloadId uuid.UUID
+}
+
+func unpackDeleteDownloadParams(packed middleware.Parameters) (params DeleteDownloadParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "downloadId",
+			In:   "path",
+		}
+		params.DownloadId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeDeleteDownloadParams(args [1]string, argsEscaped bool, r *http.Request) (params DeleteDownloadParams, _ error) {
+	// Decode path: downloadId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "downloadId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.DownloadId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "downloadId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// DeleteDownloadTranscodeParams is parameters of deleteDownloadTranscode operation.
+type DeleteDownloadTranscodeParams struct {
+	TranscodeId uuid.UUID
+}
+
+func unpackDeleteDownloadTranscodeParams(packed middleware.Parameters) (params DeleteDownloadTranscodeParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "transcodeId",
+			In:   "path",
+		}
+		params.TranscodeId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeDeleteDownloadTranscodeParams(args [1]string, argsEscaped bool, r *http.Request) (params DeleteDownloadTranscodeParams, _ error) {
+	// Decode path: transcodeId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "transcodeId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.TranscodeId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "transcodeId",
 			In:   "path",
 			Err:  err,
 		}
@@ -1825,6 +2020,71 @@ func decodeGetCollectionImageParams(args [2]string, argsEscaped bool, r *http.Re
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "imageType",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// GetDownloadParams is parameters of getDownload operation.
+type GetDownloadParams struct {
+	DownloadId uuid.UUID
+}
+
+func unpackGetDownloadParams(packed middleware.Parameters) (params GetDownloadParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "downloadId",
+			In:   "path",
+		}
+		params.DownloadId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeGetDownloadParams(args [1]string, argsEscaped bool, r *http.Request) (params GetDownloadParams, _ error) {
+	// Decode path: downloadId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "downloadId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.DownloadId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "downloadId",
 			In:   "path",
 			Err:  err,
 		}

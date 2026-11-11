@@ -1252,6 +1252,31 @@
       "invalid": "That can't be done right now."
     }
   },
+  "downloads": {
+    "original": "Download original",
+    "originalHint": "Save the file exactly as it is on the server",
+    "adminTitle": "Offline downloads",
+    "adminStatus": "{{running}} running · {{queued}} waiting",
+    "adminIntro": "The apps can download titles for offline viewing, either the original file or a smaller MP4 the server converts in the background. Converted files are kept in a cache on the server until the apps have fetched them.",
+    "maxTranscodes": "Conversions at once",
+    "maxTranscodesHint": "More downloads wait in the queue. Each conversion uses the CPU or GPU like a stream would.",
+    "cacheLimit": "Cache size (GB)",
+    "cacheLimitHint": "In use: {{used}}. Over the limit, the files fetched longest ago are deleted first.",
+    "keepDays": "Keep converted files (days)",
+    "keepDaysHint": "A converted file nobody fetched for this long is deleted.",
+    "transcodes": "Converted downloads",
+    "noTranscodes": "Nothing is being converted for download.",
+    "removeTranscode": "Stop and remove",
+    "quality_original": "Original",
+    "quality_source": "Source resolution",
+    "quality_1080p": "1080p",
+    "quality_720p": "720p",
+    "state_queued": "Waiting",
+    "state_transcoding": "Converting",
+    "state_transcodingPct": "Converting {{pct}} %",
+    "state_ready": "Ready",
+    "state_failed": "Failed"
+  },
   "books": {
     "progress": "{{pct}}% read",
     "count_book_one": "{{count}} book",

@@ -63,6 +63,11 @@ struct MeTab: View {
     var body: some View {
         List {
             if let me = app.me { header(me) }
+            Section {
+                NavigationLink(value: Route.downloads) {
+                    Label { Text("downloads.title") } icon: { Image(systemName: "arrow.down.circle") }
+                }
+            }
             if !app.isKid {
                 Section {
                     ForEach(SettingsPage.userPages, id: \.self) { page in link(page) }

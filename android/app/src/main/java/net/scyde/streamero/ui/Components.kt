@@ -172,6 +172,7 @@ fun errorText(e: Throwable?): String? {
         "invalid_credentials" -> androidx.compose.ui.res.stringResource(R.string.err_credentials)
         "totp_required" -> androidx.compose.ui.res.stringResource(R.string.err_totp)
         "forbidden" -> androidx.compose.ui.res.stringResource(R.string.err_forbidden)
+        "parental_limit" -> androidx.compose.ui.res.stringResource(R.string.err_parental_limit)
         "upstream_failed" -> androidx.compose.ui.res.stringResource(R.string.err_upstream)
         "invalid_state" -> androidx.compose.ui.res.stringResource(R.string.err_sso_invalid_state)
         "provider_error", "internal" -> androidx.compose.ui.res.stringResource(R.string.err_sso_provider)

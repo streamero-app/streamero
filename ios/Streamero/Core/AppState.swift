@@ -44,6 +44,7 @@ enum Route: Hashable {
     case collection(String)
     case playlist(String)
     case settings(SettingsPage)
+    case downloads
 }
 
 /// Personal and administration settings; the admin pages also guard themselves.

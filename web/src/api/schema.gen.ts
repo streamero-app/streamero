@@ -1283,6 +1283,151 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/downloads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Offline download jobs of the current profile
+         * @description Server-side download jobs (D-040). A job is a request to get one file in one quality:
+         *     the original file, or a mobile-friendly MP4 (H.264/AAC) the server transcodes into its
+         *     download cache in the background. Clients delete a job once the file is on the device;
+         *     the device's offline library is the client's own.
+         */
+        get: operations["listDownloads"];
+        put?: never;
+        /**
+         * Download a movie, an episode, a season, a series or its next N episodes
+         * @description Needs the `download` permission; transcoded qualities also need `videoTranscoding`.
+         *     Parental limits of the current profile apply. Asking again for the same file and
+         *     quality returns the existing job (idempotent).
+         */
+        post: operations["createDownloads"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/downloads/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sync offline progress and check that downloaded items may still be kept
+         * @description Progress recorded offline is applied when it is newer than the server's (newest wins,
+         *     by `updatedAt`; times in the future count as now). The answer has the server's state of
+         *     every listed item and the items the profile may no longer keep (access, permission or
+         *     parental limit lost, or the item is gone): clients delete those files.
+         */
+        post: operations["syncDownloads"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/downloads/{downloadId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                downloadId: string;
+            };
+            cookie?: never;
+        };
+        /** One download job (with fresh signed URLs when ready) */
+        get: operations["getDownload"];
+        put?: never;
+        post?: never;
+        /** Forget a download job (the transcoded file is cleaned up later) */
+        delete: operations["deleteDownload"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/items/{itemId}/original": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A signed link that downloads the original file (needs the download permission) */
+        post: operations["createOriginalLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/downloads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download transcodes and cache use (admin) */
+        get: operations["adminDownloads"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/downloads/{transcodeId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transcodeId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Stop and remove a download transcode and its jobs (admin) */
+        delete: operations["deleteDownloadTranscode"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/downloads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download transcoding limits (admin) */
+        get: operations["getDownloadSettings"];
+        /** Update download transcoding limits (admin) */
+        put: operations["updateDownloadSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/items/{itemId}/read": {
         parameters: {
             query?: never;
@@ -2656,6 +2801,165 @@ export interface components {
             durationMs?: number;
             /** @description Mark as watched (set automatically past 90%). */
             played?: boolean;
+        };
+        /**
+         * @description `original` is the file as it is; the others are an MP4 with H.264 video and AAC stereo
+         *     audio: `source` keeps the resolution, `1080p` is at most 1080 lines and ~5 Mbit/s,
+         *     `720p` at most 720 lines and ~2 Mbit/s.
+         * @enum {string}
+         */
+        DownloadQuality: "original" | "source" | "1080p" | "720p";
+        DownloadRequest: {
+            /**
+             * Format: uuid
+             * @description A movie, episode, season or series.
+             */
+            itemId: string;
+            quality: components["schemas"]["DownloadQuality"];
+            /**
+             * Format: uuid
+             * @description Version of a movie or episode (default the best one).
+             */
+            fileId?: string;
+            /** @description Audio track for transcoded qualities (default from the profile's preference). */
+            audioIndex?: number;
+            /** @description For a series or season, only the next N unwatched episodes. */
+            nextEpisodes?: number;
+            /** @description Episodes the device already has; they are left out of a season or series. */
+            skipItemIds?: string[];
+        };
+        DownloadSubtitle: {
+            /** @description Position in the file's subtitle list. */
+            index: number;
+            language: string;
+            forced: boolean;
+            /** @description Signed SubRip (.srt) sidecar. */
+            url: string;
+            /** @description Signed WebVTT sidecar. */
+            vttUrl: string;
+        };
+        Download: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            itemId: string;
+            /** Format: uuid */
+            fileId: string;
+            quality: components["schemas"]["DownloadQuality"];
+            /** @enum {string} */
+            state: "queued" | "transcoding" | "ready" | "failed";
+            /** @description Transcoding progress 0–1 (1 when ready). */
+            progress: number;
+            /**
+             * Format: int64
+             * @description Size of the file to fetch (known when ready).
+             */
+            sizeBytes?: number;
+            error?: string;
+            /** @description Signed URL of the file (byte ranges supported), only when ready. */
+            url?: string;
+            /** Format: date-time */
+            urlExpiresAt?: string;
+            fileName?: string;
+            /** @description File extension of the downloaded file (mp4 for transcodes). */
+            container?: string;
+            /** Format: int64 */
+            durationMs?: number;
+            audioIndex?: number;
+            /** @description Text subtitle tracks as sidecars (picture subtitles are not offered). */
+            subtitles: components["schemas"]["DownloadSubtitle"][];
+            item: components["schemas"]["ItemSummary"];
+            overview?: string;
+            series?: components["schemas"]["ItemSummary"];
+            /** Format: date-time */
+            createdAt: string;
+        };
+        OfflineProgress: {
+            /** Format: uuid */
+            itemId: string;
+            /** Format: int64 */
+            positionMs: number;
+            /** Format: int64 */
+            durationMs?: number;
+            played: boolean;
+            /**
+             * Format: date-time
+             * @description When this state was recorded on the device.
+             */
+            updatedAt: string;
+        };
+        OfflineSyncRequest: {
+            /** @description Items the device keeps offline. */
+            itemIds: string[];
+            progress: components["schemas"]["OfflineProgress"][];
+        };
+        OfflineItemState: {
+            /** Format: uuid */
+            itemId: string;
+            /** Format: int64 */
+            positionMs: number;
+            played: boolean;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        OfflineSyncResponse: {
+            /** @description Items the profile may no longer keep offline. */
+            revoked: string[];
+            /** @description Server state of the listed items (never-played items are left out). */
+            items: components["schemas"]["OfflineItemState"][];
+            /** @description How many offline reports were newer than the server's state and were saved. */
+            applied: number;
+        };
+        OriginalLinkRequest: {
+            /**
+             * Format: uuid
+             * @description Version to download (default the best one).
+             */
+            fileId?: string;
+        };
+        OriginalLink: {
+            /** @description Signed URL that downloads the file (Content-Disposition attachment). */
+            url: string;
+            fileName: string;
+            /** Format: int64 */
+            sizeBytes: number;
+        };
+        DownloadSettings: {
+            /** @description Download transcodes running at once; more wait in the queue. */
+            maxTranscodes: number;
+            /** @description Size of the download cache; the least recently fetched files go first. */
+            cacheLimitGb: number;
+            /** @description A transcoded file nobody fetched for this long is deleted. */
+            keepDays: number;
+        };
+        DownloadTranscode: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            itemId: string;
+            title: string;
+            quality: components["schemas"]["DownloadQuality"];
+            /** @enum {string} */
+            state: "queued" | "transcoding" | "ready" | "failed";
+            progress: number;
+            /** Format: int64 */
+            sizeBytes: number;
+            error?: string;
+            /** @description Download jobs that use this file. */
+            jobs: number;
+            users: string[];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            lastAccessAt: string;
+        };
+        DownloadAdmin: {
+            settings: components["schemas"]["DownloadSettings"];
+            running: number;
+            queued: number;
+            /** Format: int64 */
+            cacheBytes: number;
+            transcodes: components["schemas"]["DownloadTranscode"][];
         };
         Dashboard: {
             server: {
@@ -5998,6 +6302,236 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ItemSummary"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listDownloads: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Jobs, newest first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Download"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createDownloads: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DownloadRequest"];
+            };
+        };
+        responses: {
+            /** @description One job per episode or file */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Download"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    syncDownloads: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfflineSyncRequest"];
+            };
+        };
+        responses: {
+            /** @description Server state */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfflineSyncResponse"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getDownload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                downloadId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Job */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Download"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteDownload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                downloadId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createOriginalLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OriginalLinkRequest"];
+            };
+        };
+        responses: {
+            /** @description Link */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OriginalLink"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    adminDownloads: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description State */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DownloadAdmin"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteDownloadTranscode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transcodeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getDownloadSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DownloadSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateDownloadSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DownloadSettings"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DownloadSettings"];
                 };
             };
             default: components["responses"]["Error"];

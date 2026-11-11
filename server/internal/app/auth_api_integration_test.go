@@ -34,6 +34,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/backup"
 	"github.com/streamero-app/streamero/server/internal/compat"
 	"github.com/streamero-app/streamero/server/internal/config"
+	"github.com/streamero-app/streamero/server/internal/downloads"
 	"github.com/streamero-app/streamero/server/internal/importer"
 	"github.com/streamero-app/streamero/server/internal/library"
 	"github.com/streamero-app/streamero/server/internal/metadata"
@@ -71,8 +72,8 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 		t.Fatal(err)
 	}
 	t.Cleanup(deps.Close)
-	if _, err := deps.Pool.Exec(ctx, `TRUNCATE users, sessions, audit_log, api_keys, user_totp, recovery_codes, quick_connect, invites, profiles, import_runs, user_identities, oidc_flows, oidc_handoffs, oidc_providers;
-		DELETE FROM settings WHERE key IN ('setup.completed', 'server.name', 'playback.resume', 'encoding', 'branding', 'integrations.requests', 'enhancements', 'auth.general', 'auth.ldap', 'dlna')`); err != nil {
+	if _, err := deps.Pool.Exec(ctx, `TRUNCATE users, downloads, download_transcodes, sessions, audit_log, api_keys, user_totp, recovery_codes, quick_connect, invites, profiles, import_runs, user_identities, oidc_flows, oidc_handoffs, oidc_providers;
+		DELETE FROM settings WHERE key IN ('setup.completed', 'server.name', 'playback.resume', 'encoding', 'branding', 'integrations.requests', 'enhancements', 'auth.general', 'auth.ldap', 'dlna', 'downloads')`); err != nil {
 		t.Fatal(err)
 	}
 	mediaRoot = t.TempDir()
@@ -107,6 +108,12 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 	h.Stream().HLS.Encoding = h.LoadEncoding
 	state.Compat().OnPlayback, state.Compat().OnProgress = h.TrackPlayback, h.TrackProgress
 	testNowPlaying = h.NowPlaying
+	testEnqueued = nil
+	testDownloads = &downloads.Service{Pool: deps.Pool, Library: state.Library(), Roots: library.Roots{mediaRoot},
+		Signer: state.Stream().Signer, Dir: t.TempDir(), Settings: state.Settings(),
+		Enqueue: func(_ context.Context, id uuid.UUID) error { testEnqueued = append(testEnqueued, id); return nil }}
+	state.Stream().Downloads = testDownloads
+	h.Downloads.Store(testDownloads)
 	router, err := NewRouter(state, h)
 	if err != nil {
 		t.Fatal(err)
@@ -115,6 +122,13 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 	t.Cleanup(srv.Close)
 	return srv
 }
+
+// testDownloads is the offline downloads service of the most recent test server;
+// testEnqueued records the transcodes it queued (no worker runs in tests).
+var (
+	testDownloads *downloads.Service
+	testEnqueued  []uuid.UUID
+)
 
 // testSyncPlay is the watch-together service of the most recent test server.
 var testSyncPlay *syncplay.Service

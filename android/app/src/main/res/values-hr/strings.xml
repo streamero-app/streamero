@@ -313,6 +313,50 @@
     <string name="together_left">Više niste u grupi za zajedničko gledanje.</string>
     <string name="together_current">Vaša grupa</string>
     <string name="together_return">Natrag na film</string>
+
+    <!-- Offline downloads -->
+    <string name="downloads">Preuzimanja</string>
+    <string name="download">Preuzmi</string>
+    <string name="downloaded">Preuzeto</string>
+    <string name="download_quality">Kvaliteta preuzimanja</string>
+    <string name="quality_original">Izvorna datoteka</string>
+    <string name="quality_source">Puna rezolucija (MP4)</string>
+    <string name="quality_1080">1080p (MP4)</string>
+    <string name="quality_720">720p (MP4, manje)</string>
+    <string name="download_queued">Na čekanju…</string>
+    <string name="download_transcoding">Priprema %1$d %%</string>
+    <string name="download_downloading">Preuzimanje %1$d %%</string>
+    <string name="download_done">Preuzeto · %1$s</string>
+    <string name="download_failed">Preuzimanje nije uspjelo</string>
+    <string name="download_retry">Pokušaj ponovno</string>
+    <string name="download_delete">Ukloni preuzimanje</string>
+    <string name="download_missing">Ovo preuzimanje više nije na uređaju.</string>
+    <string name="download_season">Preuzmi %1$d. sezonu</string>
+    <string name="download_this_season">Preuzmi sezonu</string>
+    <string name="download_auto">Automatski preuzimaj sljedeće epizode</string>
+    <string name="download_auto_hint">Na uređaju drži sljedeće neodgledane epizode. Odgledane se uklanjaju pri sinkronizaciji.</string>
+    <string name="download_auto_count">Koliko</string>
+    <string name="download_auto_stop">Zaustavi</string>
+    <plurals name="download_auto_active"><item quantity="one">Sljedeća %1$d epizoda ostaje preuzeta</item><item quantity="few">Sljedeće %1$d epizode ostaju preuzete</item><item quantity="other">Sljedećih %1$d epizoda ostaje preuzeto</item></plurals>
+    <plurals name="download_next_episodes"><item quantity="one">Sljedeća %1$d epizoda</item><item quantity="few">Sljedeće %1$d epizode</item><item quantity="other">Sljedećih %1$d epizoda</item></plurals>
+    <plurals name="episodes_count"><item quantity="one">%1$d epizoda</item><item quantity="few">%1$d epizode</item><item quantity="other">%1$d epizoda</item></plurals>
+    <string name="play_offline">Reproduciraj preuzeto</string>
+    <string name="downloads_empty">Još ništa nije preuzeto. Odaberite Preuzmi na filmu ili epizodi da ih gledate bez veze.</string>
+    <string name="downloads_total">%1$s na ovom uređaju</string>
+    <string name="downloads_wifi_only">Preuzimaj samo preko Wi-Fi mreže</string>
+    <string name="downloads_auto">Automatska preuzimanja</string>
+    <string name="downloads_delete_all">Ukloni sva preuzimanja</string>
+    <string name="downloads_delete_all_confirm">Ukloniti sve preuzete filmove i epizode s ovog uređaja?</string>
+    <string name="remove">Ukloni</string>
+    <string name="cancel">Odustani</string>
+    <string name="offline_title">Niste povezani</string>
+    <string name="offline_text">Poslužitelj nije dostupan. Preuzimanja se i dalje mogu gledati.</string>
+    <string name="offline_retry">Pokušaj ponovno</string>
+    <string name="download_channel">Preuzimanja</string>
+    <string name="download_notification_preparing">Priprema: %1$s</string>
+    <string name="download_notification_downloading">Preuzimanje: %1$s</string>
+    <string name="download_notification_done">%1$s je preuzet</string>
+    <string name="err_parental_limit">Ovaj naslov je iznad dobne granice profila.</string>
     <!-- Books, audiobooks and photos -->
     <string name="audiobook">Audioknjiga</string>
     <string name="back_15">15 sekundi natrag</string>

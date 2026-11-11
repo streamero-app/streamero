@@ -98,6 +98,8 @@ fun ItemScreen(state: AppState, nav: NavHostController, id: String) {
             }, if (tv) Modifier.rememberFocus(mem, "together") else Modifier.fillMaxWidth(), icon = Icons.Default.Groups)
             if (!tv) ErrorLine(togetherError)
         }
+        // Offline downloads are a phone feature (a TV stays connected).
+        if (!tv) ItemDownloads(state, nav, d, season, seasons.firstOrNull { s -> s.id == season }?.seasonNumber, d.files.getOrNull(file)?.id)
     }
     invite?.let { gid ->
         InviteDialog(api.inviteLink(gid), it.title, onDismiss = { invite = null }, onStart = { invite = null; nav.watch(it.id) })
@@ -255,6 +257,7 @@ private fun EpisodeRow(state: AppState, nav: NavHostController, e: ItemSummary, 
             Text("${e.episodeNumber ?: ""}. ${e.title}", color = Kino.text, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Text(listOfNotNull(e.durationMs?.let { "${it / 60000} min" }, if (e.played) stringResource(R.string.watched) else null).joinToString(" · "), color = Kino.faint, fontSize = 13.sp)
         }
+        DownloadedMark(state, e.id)
     }
 }
 
