@@ -38,6 +38,14 @@ import { BackupSettings } from "@/features/settings/BackupSettings";
 import { SsoSettings } from "@/features/settings/SsoSettings";
 import { NotFoundPage } from "@/routes/NotFoundPage";
 import { TogetherInvitePage, TogetherListPage } from "@/features/syncplay/WatchTogether";
+import { LiveTvLayout } from "@/features/livetv/LiveTvLayout";
+import { GuidePage } from "@/features/livetv/GuidePage";
+import { ChannelsPage } from "@/features/livetv/ChannelsPage";
+import { RecordingsPage, SchedulePage } from "@/features/livetv/RecordingsPage";
+import { SeriesPage } from "@/features/livetv/SeriesPage";
+import { LivePlayer } from "@/features/livetv/LivePlayer";
+import { canManageLiveTv } from "@/features/livetv/api";
+import { LiveTvSettings } from "@/features/settings/LiveTvSettings";
 
 /** The administrator's extra CSS (Settings → Branding), on every page. */
 function CustomCss() {
@@ -87,6 +95,14 @@ const discoverRoute = createRoute({
 });
 const togetherRoute = createRoute({ getParentRoute: () => appRoute, path: "/together", component: TogetherListPage });
 const togetherInviteRoute = createRoute({ getParentRoute: () => appRoute, path: "/together/$groupId", component: TogetherInvitePage });
+// Live TV (D-041): the player sits beside the section so it gets the whole screen.
+const liveTvRoute = createRoute({ getParentRoute: () => appRoute, path: "/livetv", component: LiveTvLayout });
+const liveGuideRoute = createRoute({ getParentRoute: () => liveTvRoute, path: "/", component: GuidePage });
+const liveChannelsRoute = createRoute({ getParentRoute: () => liveTvRoute, path: "channels", component: ChannelsPage });
+const liveRecordingsRoute = createRoute({ getParentRoute: () => liveTvRoute, path: "recordings", component: RecordingsPage });
+const liveScheduleRoute = createRoute({ getParentRoute: () => liveTvRoute, path: "schedule", component: SchedulePage });
+const liveSeriesRoute = createRoute({ getParentRoute: () => liveTvRoute, path: "series", component: SeriesPage });
+const liveWatchRoute = createRoute({ getParentRoute: () => appRoute, path: "/livetv/watch/$channelId", component: LivePlayer });
 const watchRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/watch/$itemId",
@@ -109,6 +125,12 @@ function adminOnly(Page: ComponentType) {
     const { data: me } = useMe();
     return me?.isAdmin ? <Page /> : <Navigate to="/settings/account" />;
   };
+}
+
+/** Live TV settings: administrators and users allowed to manage Live TV. */
+function LiveTvSettingsPage() {
+  const { data: me } = useMe();
+  return canManageLiveTv(me) ? <LiveTvSettings /> : <Navigate to="/settings/account" />;
 }
 
 function AdultsOnlySettings() {
@@ -148,6 +170,7 @@ const requestsRoute = createRoute({ getParentRoute: () => settingsRoute, path: "
 const enhancementsRoute = createRoute({ getParentRoute: () => settingsRoute, path: "enhancements", component: adminOnly(EnhancementsSettings) });
 const importRoute = createRoute({ getParentRoute: () => settingsRoute, path: "import", component: adminOnly(ImportSettings) });
 const ssoRoute = createRoute({ getParentRoute: () => settingsRoute, path: "sso", component: adminOnly(SsoSettings) });
+const liveTvSettingsRoute = createRoute({ getParentRoute: () => settingsRoute, path: "livetv", component: LiveTvSettingsPage });
 const brandingRoute = createRoute({ getParentRoute: () => settingsRoute, path: "branding", component: adminOnly(BrandingSettings) });
 
 export const routeTree = rootRoute.addChildren([
@@ -166,12 +189,14 @@ export const routeTree = rootRoute.addChildren([
     playlistRoute,
     librariesRoute2,
     watchRoute,
+    liveTvRoute.addChildren([liveGuideRoute, liveChannelsRoute, liveRecordingsRoute, liveScheduleRoute, liveSeriesRoute]),
+    liveWatchRoute,
     togetherRoute,
     togetherInviteRoute,
     searchRoute,
     discoverRoute,
     settingsRoute.addChildren([settingsIndex, playbackRoute, dashboardRoute, tasksRoute, backupsRoute, notificationsRoute, accountRoute, profilesRoute, devicesRoute, quickConnectRoute, serverRoute, librariesRoute, metadataRoute, integrationsRoute, usersRoute, invitesRoute, apiKeysRoute,
-      subtitleLookRoute, homePrefsRoute, transcodingRoute, logsRoute, activityRoute, brandingRoute, requestsRoute, enhancementsRoute, importRoute, ssoRoute]),
+      subtitleLookRoute, homePrefsRoute, transcodingRoute, logsRoute, activityRoute, brandingRoute, requestsRoute, enhancementsRoute, importRoute, ssoRoute, liveTvSettingsRoute]),
   ]),
 ]);
 export const router = createRouter({ routeTree });

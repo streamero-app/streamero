@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, Navigate, Outlet, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Bookmark, Clapperboard, Compass, Film, House, LogOut, Music, Search, Settings, Tv, Users, type LucideIcon } from "lucide-react";
+import { Bookmark, Clapperboard, Compass, Film, House, LogOut, Music, Radio, Search, Settings, Tv, Users, type LucideIcon } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Spinner } from "@/components/ui";
@@ -14,6 +14,7 @@ import { setLanguage } from "@/i18n";
 import { MusicProvider } from "@/features/music/MusicPlayer";
 import { NowPlayingBar } from "@/features/music/NowPlayingBar";
 import { SyncPlayProvider } from "@/features/syncplay/SyncPlay";
+import { canWatchLiveTv } from "@/features/livetv/api";
 
 export const libraryIcon: Record<string, LucideIcon> = { movies: Film, shows: Tv, mixed: Clapperboard, music: Music };
 
@@ -80,6 +81,11 @@ function AccountMenu() {
               <Users className="size-4 text-text/55" aria-hidden />{t("nav.switchProfile")}
             </Link>
           )}
+          {canWatchLiveTv(me) && (
+            <Link to="/livetv" role="menuitem" className={item} onClick={() => setOpen(false)} data-testid="livetv-menu">
+              <Radio className="size-4 text-text/55" aria-hidden />{t("livetv.title")}
+            </Link>
+          )}
           {(me.isAdmin || me.permissions.syncPlay) && (
             <Link to="/together" role="menuitem" className={item} onClick={() => setOpen(false)} data-testid="together-menu">
               <Users className="size-4 text-text/55" aria-hidden />{t("together.groups")}
@@ -134,7 +140,7 @@ export function AppShell() {
   // Like a streaming service: choose who is watching once per browser session.
   if ((profiles.data?.length ?? 0) > 0 && !me.currentProfile && !profilePicked()) return <Navigate to="/who" />;
 
-  const watching = path.startsWith("/watch/");
+  const watching = path.startsWith("/watch/") || path.startsWith("/livetv/watch/");
   const libs = Array.isArray(libraries.data) ? libraries.data : [];
 
   return (
@@ -155,6 +161,7 @@ export function AppShell() {
             <Link to="/collections" className={topLink}>{t("collections.title")}</Link>
             <Link to="/my-list" className={topLink}>{t("nav.myList")}</Link>
             <Link to="/playlists" className={topLink}>{t("playlists.title")}</Link>
+            {canWatchLiveTv(me) && <Link to="/livetv" className={topLink} data-testid="livetv-link">{t("livetv.title")}</Link>}
           </nav>
           <div className="ml-auto flex items-center gap-3">
             <div className="hidden sm:block"><SearchBox /></div>

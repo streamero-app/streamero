@@ -1,8 +1,9 @@
 import { Link, Outlet } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { ArchiveRestore, Bell, Captions, Compass, Puzzle, Clapperboard, Cable, Cpu, FolderOpen, Gauge, HardDriveDownload, History, House, KeyRound, ListChecks, Mail, MonitorSmartphone, Palette, ScrollText, Server, ShieldCheck, Sparkles, UserRound, Users, UsersRound, Zap, type LucideIcon } from "lucide-react";
+import { ArchiveRestore, Bell, Captions, Compass, Puzzle, Clapperboard, Radio, Cable, Cpu, FolderOpen, Gauge, HardDriveDownload, History, House, KeyRound, ListChecks, Mail, MonitorSmartphone, Palette, ScrollText, Server, ShieldCheck, Sparkles, UserRound, Users, UsersRound, Zap, type LucideIcon } from "lucide-react";
 import { useMe } from "@/features/auth/useAuth";
 import { useSystemInfo } from "@/features/server/useSystemInfo";
+import { canManageLiveTv } from "@/features/livetv/api";
 import { Page } from "@/components/Page";
 
 const tab =
@@ -34,6 +35,7 @@ export function SettingsLayout() {
           <Tab to="/settings/profiles" icon={UsersRound} label={t("settings.profiles")} />
           <Tab to="/settings/devices" icon={MonitorSmartphone} label={t("settings.devices")} />
           <Tab to="/settings/quickconnect" icon={Zap} label={t("settings.quickConnect")} />
+          {!me?.isAdmin && canManageLiveTv(me) && <Tab to="/settings/livetv" icon={Radio} label={t("settings.liveTv")} />}
           {me?.isAdmin && (
             <>
               <p className="hidden px-3 pt-5 pb-1.5 text-[11px] font-medium tracking-[0.08em] text-faint uppercase md:block">{t("settings.adminSection")}</p>
@@ -44,6 +46,7 @@ export function SettingsLayout() {
               <Tab to="/settings/transcoding" icon={Cpu} label={t("settings.transcoding")} />
               <Tab to="/settings/users" icon={Users} label={t("settings.users")} />
               <Tab to="/settings/invites" icon={Mail} label={t("settings.invites")} />
+              <Tab to="/settings/livetv" icon={Radio} label={t("settings.liveTv")} />
               <Tab to="/settings/sso" icon={ShieldCheck} label={t("settings.sso")} />
               <Tab to="/settings/requests" icon={Compass} label={t("settings.requests")} />
               <Tab to="/settings/enhancements" icon={Puzzle} label={t("settings.enhancements")} />
