@@ -239,6 +239,378 @@ paths:
                 format: binary
         default:
           $ref: "#/components/responses/Error"
+  /auth/providers:
+    get:
+      operationId: getAuthProviders
+      summary: Sign-in methods offered on the login screen (public)
+      description: |
+        Unauthenticated. Lists the enabled single sign-on providers with the absolute URL a
+        browser (or an app's web authentication session) opens to start signing in, and
+        whether username/password sign-in is offered.
+      tags: [auth]
+      responses:
+        "200":
+          description: Sign-in methods
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthProviders"
+        default:
+          $ref: "#/components/responses/Error"
+  /auth/oidc/{providerId}/authorize:
+    get:
+      operationId: oidcAuthorize
+      summary: Start OpenID Connect sign-in (browser navigation; redirects to the provider)
+      description: |
+        Opened in a browser, never fetched. Creates a single-use sign-in flow (state, nonce,
+        PKCE S256) bound to this browser by a short-lived cookie and redirects to the
+        provider. Apps pass `client=app`, their registered `redirectUri` and an S256
+        `codeChallenge`; after the callback they receive a one-time code to redeem at
+        /auth/oidc/exchange with the matching verifier. Errors redirect to the login page.
+      tags: [auth]
+      parameters:
+        - $ref: "#/components/parameters/OidcProviderId"
+        - name: client
+          in: query
+          schema:
+            type: string
+            enum: [web, app]
+            default: web
+        - name: redirectUri
+          in: query
+          description: App only; must be exactly `streamero://oidc`.
+          schema:
+            type: string
+            maxLength: 200
+        - name: codeChallenge
+          in: query
+          description: App only; BASE64URL(SHA-256(verifier)), 43 characters.
+          schema:
+            type: string
+            maxLength: 128
+      responses:
+        "302":
+          $ref: "#/components/responses/OidcRedirect"
+        default:
+          $ref: "#/components/responses/Error"
+  /auth/oidc/{providerId}/callback:
+    get:
+      operationId: oidcCallback
+      summary: Redirect target registered at the provider
+      description: |
+        Checks state (single use, bound to the browser cookie), exchanges the code with the
+        PKCE verifier, verifies the ID token (signature via the provider's JWKS, issuer,
+        audience, expiry, nonce) and signs the user in. The web gets the session cookie and
+        is sent to `/`; apps are sent to their redirect URI with a one-time `code` (never a
+        session token). Failures redirect with an `sso_error` (web) or `error` (app) code.
+      tags: [auth]
+      parameters:
+        - $ref: "#/components/parameters/OidcProviderId"
+        - name: code
+          in: query
+          schema:
+            type: string
+            maxLength: 4096
+        - name: state
+          in: query
+          schema:
+            type: string
+            maxLength: 256
+        - name: error
+          in: query
+          schema:
+            type: string
+            maxLength: 256
+        - name: error_description
+          in: query
+          schema:
+            type: string
+            maxLength: 2048
+        - name: streamero_oidc
+          in: cookie
+          schema:
+            type: string
+            maxLength: 256
+      responses:
+        "302":
+          $ref: "#/components/responses/OidcRedirect"
+        default:
+          $ref: "#/components/responses/Error"
+  /auth/oidc/exchange:
+    post:
+      operationId: oidcExchange
+      summary: Redeem an app's one-time sign-in code for a session
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OidcExchangeRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/SignedIn"
+        default:
+          $ref: "#/components/responses/Error"
+  /auth/oidc/{providerId}/link:
+    post:
+      operationId: oidcLink
+      summary: Start linking an OpenID Connect account to the signed-in user
+      description: |
+        Returns the provider URL to open in this browser; sets the flow cookie. After the
+        provider signs the user in, the identity is linked and the browser returns to
+        /settings/account.
+      tags: [auth]
+      security:
+        - sessionToken: []
+      parameters:
+        - $ref: "#/components/parameters/OidcProviderId"
+      responses:
+        "200":
+          description: Provider URL
+          headers:
+            Set-Cookie:
+              description: Short-lived cookie that binds the flow to this browser.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OidcLinkStart"
+        default:
+          $ref: "#/components/responses/Error"
+  /auth/identities:
+    get:
+      operationId: listIdentities
+      summary: Single sign-on and directory accounts linked to the signed-in user
+      tags: [auth]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Linked identities
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkedIdentities"
+        default:
+          $ref: "#/components/responses/Error"
+  /auth/identities/{identityId}:
+    delete:
+      operationId: unlinkIdentity
+      summary: Unlink an identity (refused when it is the account's only way to sign in)
+      tags: [auth]
+      security:
+        - sessionToken: []
+      parameters:
+        - name: identityId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Unlinked
+        default:
+          $ref: "#/components/responses/Error"
+  /settings/auth:
+    get:
+      operationId: getAuthSettings
+      summary: General sign-in settings (admin)
+      tags: [settings]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSettings"
+        default:
+          $ref: "#/components/responses/Error"
+    put:
+      operationId: updateAuthSettings
+      summary: Save general sign-in settings (admin)
+      description: |
+        Turning password sign-in off is refused (409 `no_sso_admin`) unless an enabled
+        administrator has a linked identity of an enabled provider.
+      tags: [settings]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthSettingsInput"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSettings"
+        default:
+          $ref: "#/components/responses/Error"
+  /settings/auth/oidc:
+    get:
+      operationId: listOidcProviders
+      summary: OpenID Connect providers (admin; client secrets are never returned)
+      tags: [settings]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Providers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OidcProvider"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createOidcProvider
+      summary: Add an OpenID Connect provider (admin)
+      tags: [settings]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OidcProviderInput"
+      responses:
+        "200":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OidcProvider"
+        default:
+          $ref: "#/components/responses/Error"
+  /settings/auth/oidc/{providerId}:
+    put:
+      operationId: updateOidcProvider
+      summary: Change an OpenID Connect provider (admin; an empty secret keeps the stored one)
+      tags: [settings]
+      security:
+        - sessionToken: []
+      parameters:
+        - $ref: "#/components/parameters/OidcProviderId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OidcProviderInput"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OidcProvider"
+        default:
+          $ref: "#/components/responses/Error"
+    delete:
+      operationId: deleteOidcProvider
+      summary: Remove an OpenID Connect provider and its linked identities (admin)
+      tags: [settings]
+      security:
+        - sessionToken: []
+      parameters:
+        - $ref: "#/components/parameters/OidcProviderId"
+      responses:
+        "204":
+          description: Removed
+        default:
+          $ref: "#/components/responses/Error"
+  /settings/auth/oidc-test:
+    post:
+      operationId: testOidcProvider
+      summary: Fetch a provider's discovery document and signing keys (admin)
+      tags: [settings]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OidcTestRequest"
+      responses:
+        "200":
+          description: The provider answered correctly
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OidcTestResult"
+        default:
+          $ref: "#/components/responses/Error"
+  /settings/auth/ldap:
+    get:
+      operationId: getLdapSettings
+      summary: LDAP / Active Directory sign-in (admin; the bind password is never returned)
+      tags: [settings]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LdapSettings"
+        default:
+          $ref: "#/components/responses/Error"
+    put:
+      operationId: updateLdapSettings
+      summary: Save LDAP settings (admin; an empty bind password keeps the stored one)
+      tags: [settings]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LdapSettingsInput"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LdapSettings"
+        default:
+          $ref: "#/components/responses/Error"
+  /settings/auth/ldap/test:
+    post:
+      operationId: testLdapSettings
+      summary: Connect and bind with the given settings, optionally looking up a user (admin)
+      tags: [settings]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LdapTestRequest"
+      responses:
+        "200":
+          description: Result (`ok` false with a message when the directory refused)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LdapTestResult"
+        default:
+          $ref: "#/components/responses/Error"
   /auth/password:
     post:
       operationId: changePassword
@@ -2613,6 +2985,13 @@ components:
         Web clients get the session as the HttpOnly `streamero_session` cookie instead
         (useCookie: true), which the server accepts too.
   parameters:
+    OidcProviderId:
+      name: providerId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "^[a-z0-9][a-z0-9-]{0,31}$"
     LibraryId:
       name: libraryId
       in: path
@@ -2657,6 +3036,16 @@ components:
         type: string
         format: uuid
   responses:
+    OidcRedirect:
+      description: Redirect (to the provider, the web client or the app)
+      headers:
+        Location:
+          required: true
+          schema:
+            type: string
+        Set-Cookie:
+          schema:
+            type: string
     SignedIn:
       description: Signed in
       headers:
@@ -2756,6 +3145,365 @@ components:
           format: uuid
         user:
           $ref: "#/components/schemas/User"
+    AuthProviders:
+      type: object
+      required: [passwordLogin, ldap, oidc]
+      properties:
+        passwordLogin:
+          type: boolean
+          description: Username/password sign-in is offered (local accounts or LDAP).
+        ldap:
+          type: boolean
+          description: Directory (LDAP) accounts sign in with the username/password fields.
+        oidc:
+          type: array
+          items:
+            $ref: "#/components/schemas/OidcProviderButton"
+    OidcProviderButton:
+      type: object
+      required: [id, label, authorizeUrl]
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        authorizeUrl:
+          type: string
+          description: Absolute URL of /auth/oidc/{id}/authorize on the server's public address.
+    OidcExchangeRequest:
+      type: object
+      required: [code, codeVerifier]
+      properties:
+        code:
+          type: string
+          maxLength: 128
+        codeVerifier:
+          type: string
+          minLength: 43
+          maxLength: 128
+        device:
+          $ref: "#/components/schemas/DeviceInfo"
+    OidcLinkStart:
+      type: object
+      required: [authorizationUrl]
+      properties:
+        authorizationUrl:
+          type: string
+    LinkedIdentities:
+      type: object
+      required: [hasPassword, identities]
+      properties:
+        hasPassword:
+          type: boolean
+          description: The account has a local password.
+        identities:
+          type: array
+          items:
+            $ref: "#/components/schemas/LinkedIdentity"
+    LinkedIdentity:
+      type: object
+      required: [id, kind, providerId, providerLabel, label, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        kind:
+          type: string
+          enum: [oidc, ldap]
+        providerId:
+          type: string
+          description: The OIDC provider id; empty for LDAP.
+        providerLabel:
+          type: string
+        label:
+          type: string
+          description: E-mail or name at the provider, for display.
+        createdAt:
+          type: string
+          format: date-time
+        lastLoginAt:
+          type: string
+          format: date-time
+    AuthSettings:
+      type: object
+      required: [publicUrl, disablePasswordLogin, recoveryActive]
+      properties:
+        publicUrl:
+          type: string
+          description: Address users reach the server at, e.g. https://media.example.com. Needed for single sign-on.
+        disablePasswordLogin:
+          type: boolean
+        recoveryActive:
+          type: boolean
+          description: STREAMERO_PASSWORD_LOGIN_RECOVERY is set, so administrators can sign in with a password.
+    AuthSettingsInput:
+      type: object
+      required: [publicUrl, disablePasswordLogin]
+      properties:
+        publicUrl:
+          type: string
+          maxLength: 300
+        disablePasswordLogin:
+          type: boolean
+    OidcProvider:
+      type: object
+      required: [id, label, issuer, clientId, clientSecretSet, scopes, usernameClaim, emailClaim, nameClaim, groupsClaim,
+        adminGroup, allowedGroup, autoCreate, linkByEmail, trustEmail, enabled, redirectUri]
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        issuer:
+          type: string
+        clientId:
+          type: string
+        clientSecretSet:
+          type: boolean
+        scopes:
+          type: array
+          items:
+            type: string
+        usernameClaim:
+          type: string
+        emailClaim:
+          type: string
+        nameClaim:
+          type: string
+        groupsClaim:
+          type: string
+        adminGroup:
+          type: string
+        allowedGroup:
+          type: string
+        autoCreate:
+          type: boolean
+        linkByEmail:
+          type: boolean
+        trustEmail:
+          type: boolean
+        enabled:
+          type: boolean
+        redirectUri:
+          type: string
+          description: The exact redirect URI to register at the provider (empty until the public URL is set).
+    OidcProviderInput:
+      type: object
+      required: [id, label, issuer, clientId]
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]{0,31}$"
+          description: Part of the redirect URI; cannot be changed later.
+        label:
+          type: string
+          minLength: 1
+          maxLength: 60
+        issuer:
+          type: string
+          maxLength: 300
+        clientId:
+          type: string
+          minLength: 1
+          maxLength: 300
+        clientSecret:
+          type: string
+          maxLength: 1000
+          description: Empty or omitted keeps the stored secret (or none for a public client).
+        removeClientSecret:
+          type: boolean
+        scopes:
+          type: array
+          maxItems: 20
+          items:
+            type: string
+            maxLength: 100
+        usernameClaim:
+          type: string
+          maxLength: 100
+        emailClaim:
+          type: string
+          maxLength: 100
+        nameClaim:
+          type: string
+          maxLength: 100
+        groupsClaim:
+          type: string
+          maxLength: 100
+        adminGroup:
+          type: string
+          maxLength: 300
+        allowedGroup:
+          type: string
+          maxLength: 300
+        autoCreate:
+          type: boolean
+        linkByEmail:
+          type: boolean
+        trustEmail:
+          type: boolean
+        enabled:
+          type: boolean
+    OidcTestRequest:
+      type: object
+      required: [issuer]
+      properties:
+        issuer:
+          type: string
+          maxLength: 300
+    OidcTestResult:
+      type: object
+      required: [issuer, authorizationEndpoint, tokenEndpoint, signingKeys, pkceS256]
+      properties:
+        issuer:
+          type: string
+        authorizationEndpoint:
+          type: string
+        tokenEndpoint:
+          type: string
+        userinfoEndpoint:
+          type: string
+        signingKeys:
+          type: integer
+          description: Number of keys in the provider's JWKS.
+        pkceS256:
+          type: boolean
+          description: The provider advertises PKCE S256 (when it says nothing, PKCE is still sent).
+        scopesSupported:
+          type: array
+          items:
+            type: string
+    LdapSettings:
+      type: object
+      required: [enabled, url, startTls, skipVerify, caCert, bindDn, bindPasswordSet, baseDn, userFilter, usernameAttribute,
+        emailAttribute, nameAttribute, groupAttribute, groupFilter, adminGroup, allowedGroup]
+      properties:
+        enabled:
+          type: boolean
+        url:
+          type: string
+          description: ldaps://host:636 or ldap://host:389
+        startTls:
+          type: boolean
+        skipVerify:
+          type: boolean
+          description: Do not verify the server certificate (unsafe; for testing only).
+        caCert:
+          type: string
+          description: PEM certificate(s) trusted in addition to the system roots.
+        bindDn:
+          type: string
+        bindPasswordSet:
+          type: boolean
+        baseDn:
+          type: string
+        userFilter:
+          type: string
+          description: Search filter with {username}, e.g. (&(objectClass=inetOrgPerson)(uid={username})).
+        usernameAttribute:
+          type: string
+        emailAttribute:
+          type: string
+        nameAttribute:
+          type: string
+        groupAttribute:
+          type: string
+          description: User attribute that lists group DNs (memberOf). Used when groupFilter is empty.
+        groupFilter:
+          type: string
+          description: Optional group search filter with {dn} and/or {username}, e.g. (member={dn}).
+        adminGroup:
+          type: string
+          description: Group DN whose members are administrators (empty = admin status is managed in Streamero).
+        allowedGroup:
+          type: string
+          description: Group DN required to sign in (empty = any user the filter finds).
+    LdapSettingsInput:
+      type: object
+      required: [enabled, url, startTls, skipVerify, baseDn, userFilter]
+      properties:
+        enabled:
+          type: boolean
+        url:
+          type: string
+          maxLength: 300
+        startTls:
+          type: boolean
+        skipVerify:
+          type: boolean
+        caCert:
+          type: string
+          maxLength: 20000
+        bindDn:
+          type: string
+          maxLength: 500
+        bindPassword:
+          type: string
+          maxLength: 500
+          description: Empty or omitted keeps the stored password.
+        removeBindPassword:
+          type: boolean
+        baseDn:
+          type: string
+          maxLength: 500
+        userFilter:
+          type: string
+          maxLength: 500
+        usernameAttribute:
+          type: string
+          maxLength: 100
+        emailAttribute:
+          type: string
+          maxLength: 100
+        nameAttribute:
+          type: string
+          maxLength: 100
+        groupAttribute:
+          type: string
+          maxLength: 100
+        groupFilter:
+          type: string
+          maxLength: 500
+        adminGroup:
+          type: string
+          maxLength: 500
+        allowedGroup:
+          type: string
+          maxLength: 500
+    LdapTestRequest:
+      type: object
+      required: [settings]
+      properties:
+        settings:
+          $ref: "#/components/schemas/LdapSettingsInput"
+        username:
+          type: string
+          maxLength: 64
+          description: Look this user up (no password is checked).
+    LdapTestResult:
+      type: object
+      required: [ok, message]
+      properties:
+        ok:
+          type: boolean
+        message:
+          type: string
+        userDn:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        displayName:
+          type: string
+        groups:
+          type: array
+          items:
+            type: string
+        isAdmin:
+          type: boolean
+        allowed:
+          type: boolean
     ChangePasswordRequest:
       type: object
       required: [currentPassword, newPassword]

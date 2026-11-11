@@ -352,6 +352,45 @@ func (s *AudioStream) SetTitle(val OptString) {
 	s.Title = val
 }
 
+// Ref: #/components/schemas/AuthProviders
+type AuthProviders struct {
+	// Username/password sign-in is offered (local accounts or LDAP).
+	PasswordLogin bool `json:"passwordLogin"`
+	// Directory (LDAP) accounts sign in with the username/password fields.
+	Ldap bool                 `json:"ldap"`
+	Oidc []OidcProviderButton `json:"oidc"`
+}
+
+// GetPasswordLogin returns the value of PasswordLogin.
+func (s *AuthProviders) GetPasswordLogin() bool {
+	return s.PasswordLogin
+}
+
+// GetLdap returns the value of Ldap.
+func (s *AuthProviders) GetLdap() bool {
+	return s.Ldap
+}
+
+// GetOidc returns the value of Oidc.
+func (s *AuthProviders) GetOidc() []OidcProviderButton {
+	return s.Oidc
+}
+
+// SetPasswordLogin sets the value of PasswordLogin.
+func (s *AuthProviders) SetPasswordLogin(val bool) {
+	s.PasswordLogin = val
+}
+
+// SetLdap sets the value of Ldap.
+func (s *AuthProviders) SetLdap(val bool) {
+	s.Ldap = val
+}
+
+// SetOidc sets the value of Oidc.
+func (s *AuthProviders) SetOidc(val []OidcProviderButton) {
+	s.Oidc = val
+}
+
 // Ref: #/components/schemas/AuthResult
 type AuthResult struct {
 	// Bearer token. Omitted when useCookie was requested.
@@ -388,6 +427,71 @@ func (s *AuthResult) SetSessionId(val uuid.UUID) {
 // SetUser sets the value of User.
 func (s *AuthResult) SetUser(val User) {
 	s.User = val
+}
+
+// Ref: #/components/schemas/AuthSettings
+type AuthSettings struct {
+	// Address users reach the server at, e.g. https://media.example.com. Needed for single sign-on.
+	PublicUrl            string `json:"publicUrl"`
+	DisablePasswordLogin bool   `json:"disablePasswordLogin"`
+	// STREAMERO_PASSWORD_LOGIN_RECOVERY is set, so administrators can sign in with a password.
+	RecoveryActive bool `json:"recoveryActive"`
+}
+
+// GetPublicUrl returns the value of PublicUrl.
+func (s *AuthSettings) GetPublicUrl() string {
+	return s.PublicUrl
+}
+
+// GetDisablePasswordLogin returns the value of DisablePasswordLogin.
+func (s *AuthSettings) GetDisablePasswordLogin() bool {
+	return s.DisablePasswordLogin
+}
+
+// GetRecoveryActive returns the value of RecoveryActive.
+func (s *AuthSettings) GetRecoveryActive() bool {
+	return s.RecoveryActive
+}
+
+// SetPublicUrl sets the value of PublicUrl.
+func (s *AuthSettings) SetPublicUrl(val string) {
+	s.PublicUrl = val
+}
+
+// SetDisablePasswordLogin sets the value of DisablePasswordLogin.
+func (s *AuthSettings) SetDisablePasswordLogin(val bool) {
+	s.DisablePasswordLogin = val
+}
+
+// SetRecoveryActive sets the value of RecoveryActive.
+func (s *AuthSettings) SetRecoveryActive(val bool) {
+	s.RecoveryActive = val
+}
+
+// Ref: #/components/schemas/AuthSettingsInput
+type AuthSettingsInput struct {
+	PublicUrl            string `json:"publicUrl"`
+	DisablePasswordLogin bool   `json:"disablePasswordLogin"`
+}
+
+// GetPublicUrl returns the value of PublicUrl.
+func (s *AuthSettingsInput) GetPublicUrl() string {
+	return s.PublicUrl
+}
+
+// GetDisablePasswordLogin returns the value of DisablePasswordLogin.
+func (s *AuthSettingsInput) GetDisablePasswordLogin() bool {
+	return s.DisablePasswordLogin
+}
+
+// SetPublicUrl sets the value of PublicUrl.
+func (s *AuthSettingsInput) SetPublicUrl(val string) {
+	s.PublicUrl = val
+}
+
+// SetDisablePasswordLogin sets the value of DisablePasswordLogin.
+func (s *AuthSettingsInput) SetDisablePasswordLogin(val bool) {
+	s.DisablePasswordLogin = val
 }
 
 // Ref: #/components/schemas/Backup
@@ -1293,6 +1397,9 @@ type DeleteLibraryNoContent struct{}
 
 // DeleteMyAvatarNoContent is response for DeleteMyAvatar operation.
 type DeleteMyAvatarNoContent struct{}
+
+// DeleteOidcProviderNoContent is response for DeleteOidcProvider operation.
+type DeleteOidcProviderNoContent struct{}
 
 // DeletePlaylistNoContent is response for DeletePlaylist operation.
 type DeletePlaylistNoContent struct{}
@@ -4106,6 +4213,516 @@ func (s *ItemSummary) SetFavorite(val OptBool) {
 	s.Favorite = val
 }
 
+// Ref: #/components/schemas/LdapSettings
+type LdapSettings struct {
+	Enabled bool `json:"enabled"`
+	// Ldaps://host:636 or ldap://host:389.
+	URL      string `json:"url"`
+	StartTls bool   `json:"startTls"`
+	// Do not verify the server certificate (unsafe; for testing only).
+	SkipVerify bool `json:"skipVerify"`
+	// PEM certificate(s) trusted in addition to the system roots.
+	CaCert          string `json:"caCert"`
+	BindDn          string `json:"bindDn"`
+	BindPasswordSet bool   `json:"bindPasswordSet"`
+	BaseDn          string `json:"baseDn"`
+	// Search filter with {username}, e.g. (&(objectClass=inetOrgPerson)(uid={username})).
+	UserFilter        string `json:"userFilter"`
+	UsernameAttribute string `json:"usernameAttribute"`
+	EmailAttribute    string `json:"emailAttribute"`
+	NameAttribute     string `json:"nameAttribute"`
+	// User attribute that lists group DNs (memberOf). Used when groupFilter is empty.
+	GroupAttribute string `json:"groupAttribute"`
+	// Optional group search filter with {dn} and/or {username}, e.g. (member={dn}).
+	GroupFilter string `json:"groupFilter"`
+	// Group DN whose members are administrators (empty = admin status is managed in Streamero).
+	AdminGroup string `json:"adminGroup"`
+	// Group DN required to sign in (empty = any user the filter finds).
+	AllowedGroup string `json:"allowedGroup"`
+}
+
+// GetEnabled returns the value of Enabled.
+func (s *LdapSettings) GetEnabled() bool {
+	return s.Enabled
+}
+
+// GetURL returns the value of URL.
+func (s *LdapSettings) GetURL() string {
+	return s.URL
+}
+
+// GetStartTls returns the value of StartTls.
+func (s *LdapSettings) GetStartTls() bool {
+	return s.StartTls
+}
+
+// GetSkipVerify returns the value of SkipVerify.
+func (s *LdapSettings) GetSkipVerify() bool {
+	return s.SkipVerify
+}
+
+// GetCaCert returns the value of CaCert.
+func (s *LdapSettings) GetCaCert() string {
+	return s.CaCert
+}
+
+// GetBindDn returns the value of BindDn.
+func (s *LdapSettings) GetBindDn() string {
+	return s.BindDn
+}
+
+// GetBindPasswordSet returns the value of BindPasswordSet.
+func (s *LdapSettings) GetBindPasswordSet() bool {
+	return s.BindPasswordSet
+}
+
+// GetBaseDn returns the value of BaseDn.
+func (s *LdapSettings) GetBaseDn() string {
+	return s.BaseDn
+}
+
+// GetUserFilter returns the value of UserFilter.
+func (s *LdapSettings) GetUserFilter() string {
+	return s.UserFilter
+}
+
+// GetUsernameAttribute returns the value of UsernameAttribute.
+func (s *LdapSettings) GetUsernameAttribute() string {
+	return s.UsernameAttribute
+}
+
+// GetEmailAttribute returns the value of EmailAttribute.
+func (s *LdapSettings) GetEmailAttribute() string {
+	return s.EmailAttribute
+}
+
+// GetNameAttribute returns the value of NameAttribute.
+func (s *LdapSettings) GetNameAttribute() string {
+	return s.NameAttribute
+}
+
+// GetGroupAttribute returns the value of GroupAttribute.
+func (s *LdapSettings) GetGroupAttribute() string {
+	return s.GroupAttribute
+}
+
+// GetGroupFilter returns the value of GroupFilter.
+func (s *LdapSettings) GetGroupFilter() string {
+	return s.GroupFilter
+}
+
+// GetAdminGroup returns the value of AdminGroup.
+func (s *LdapSettings) GetAdminGroup() string {
+	return s.AdminGroup
+}
+
+// GetAllowedGroup returns the value of AllowedGroup.
+func (s *LdapSettings) GetAllowedGroup() string {
+	return s.AllowedGroup
+}
+
+// SetEnabled sets the value of Enabled.
+func (s *LdapSettings) SetEnabled(val bool) {
+	s.Enabled = val
+}
+
+// SetURL sets the value of URL.
+func (s *LdapSettings) SetURL(val string) {
+	s.URL = val
+}
+
+// SetStartTls sets the value of StartTls.
+func (s *LdapSettings) SetStartTls(val bool) {
+	s.StartTls = val
+}
+
+// SetSkipVerify sets the value of SkipVerify.
+func (s *LdapSettings) SetSkipVerify(val bool) {
+	s.SkipVerify = val
+}
+
+// SetCaCert sets the value of CaCert.
+func (s *LdapSettings) SetCaCert(val string) {
+	s.CaCert = val
+}
+
+// SetBindDn sets the value of BindDn.
+func (s *LdapSettings) SetBindDn(val string) {
+	s.BindDn = val
+}
+
+// SetBindPasswordSet sets the value of BindPasswordSet.
+func (s *LdapSettings) SetBindPasswordSet(val bool) {
+	s.BindPasswordSet = val
+}
+
+// SetBaseDn sets the value of BaseDn.
+func (s *LdapSettings) SetBaseDn(val string) {
+	s.BaseDn = val
+}
+
+// SetUserFilter sets the value of UserFilter.
+func (s *LdapSettings) SetUserFilter(val string) {
+	s.UserFilter = val
+}
+
+// SetUsernameAttribute sets the value of UsernameAttribute.
+func (s *LdapSettings) SetUsernameAttribute(val string) {
+	s.UsernameAttribute = val
+}
+
+// SetEmailAttribute sets the value of EmailAttribute.
+func (s *LdapSettings) SetEmailAttribute(val string) {
+	s.EmailAttribute = val
+}
+
+// SetNameAttribute sets the value of NameAttribute.
+func (s *LdapSettings) SetNameAttribute(val string) {
+	s.NameAttribute = val
+}
+
+// SetGroupAttribute sets the value of GroupAttribute.
+func (s *LdapSettings) SetGroupAttribute(val string) {
+	s.GroupAttribute = val
+}
+
+// SetGroupFilter sets the value of GroupFilter.
+func (s *LdapSettings) SetGroupFilter(val string) {
+	s.GroupFilter = val
+}
+
+// SetAdminGroup sets the value of AdminGroup.
+func (s *LdapSettings) SetAdminGroup(val string) {
+	s.AdminGroup = val
+}
+
+// SetAllowedGroup sets the value of AllowedGroup.
+func (s *LdapSettings) SetAllowedGroup(val string) {
+	s.AllowedGroup = val
+}
+
+// Ref: #/components/schemas/LdapSettingsInput
+type LdapSettingsInput struct {
+	Enabled    bool      `json:"enabled"`
+	URL        string    `json:"url"`
+	StartTls   bool      `json:"startTls"`
+	SkipVerify bool      `json:"skipVerify"`
+	CaCert     OptString `json:"caCert"`
+	BindDn     OptString `json:"bindDn"`
+	// Empty or omitted keeps the stored password.
+	BindPassword       OptString `json:"bindPassword"`
+	RemoveBindPassword OptBool   `json:"removeBindPassword"`
+	BaseDn             string    `json:"baseDn"`
+	UserFilter         string    `json:"userFilter"`
+	UsernameAttribute  OptString `json:"usernameAttribute"`
+	EmailAttribute     OptString `json:"emailAttribute"`
+	NameAttribute      OptString `json:"nameAttribute"`
+	GroupAttribute     OptString `json:"groupAttribute"`
+	GroupFilter        OptString `json:"groupFilter"`
+	AdminGroup         OptString `json:"adminGroup"`
+	AllowedGroup       OptString `json:"allowedGroup"`
+}
+
+// GetEnabled returns the value of Enabled.
+func (s *LdapSettingsInput) GetEnabled() bool {
+	return s.Enabled
+}
+
+// GetURL returns the value of URL.
+func (s *LdapSettingsInput) GetURL() string {
+	return s.URL
+}
+
+// GetStartTls returns the value of StartTls.
+func (s *LdapSettingsInput) GetStartTls() bool {
+	return s.StartTls
+}
+
+// GetSkipVerify returns the value of SkipVerify.
+func (s *LdapSettingsInput) GetSkipVerify() bool {
+	return s.SkipVerify
+}
+
+// GetCaCert returns the value of CaCert.
+func (s *LdapSettingsInput) GetCaCert() OptString {
+	return s.CaCert
+}
+
+// GetBindDn returns the value of BindDn.
+func (s *LdapSettingsInput) GetBindDn() OptString {
+	return s.BindDn
+}
+
+// GetBindPassword returns the value of BindPassword.
+func (s *LdapSettingsInput) GetBindPassword() OptString {
+	return s.BindPassword
+}
+
+// GetRemoveBindPassword returns the value of RemoveBindPassword.
+func (s *LdapSettingsInput) GetRemoveBindPassword() OptBool {
+	return s.RemoveBindPassword
+}
+
+// GetBaseDn returns the value of BaseDn.
+func (s *LdapSettingsInput) GetBaseDn() string {
+	return s.BaseDn
+}
+
+// GetUserFilter returns the value of UserFilter.
+func (s *LdapSettingsInput) GetUserFilter() string {
+	return s.UserFilter
+}
+
+// GetUsernameAttribute returns the value of UsernameAttribute.
+func (s *LdapSettingsInput) GetUsernameAttribute() OptString {
+	return s.UsernameAttribute
+}
+
+// GetEmailAttribute returns the value of EmailAttribute.
+func (s *LdapSettingsInput) GetEmailAttribute() OptString {
+	return s.EmailAttribute
+}
+
+// GetNameAttribute returns the value of NameAttribute.
+func (s *LdapSettingsInput) GetNameAttribute() OptString {
+	return s.NameAttribute
+}
+
+// GetGroupAttribute returns the value of GroupAttribute.
+func (s *LdapSettingsInput) GetGroupAttribute() OptString {
+	return s.GroupAttribute
+}
+
+// GetGroupFilter returns the value of GroupFilter.
+func (s *LdapSettingsInput) GetGroupFilter() OptString {
+	return s.GroupFilter
+}
+
+// GetAdminGroup returns the value of AdminGroup.
+func (s *LdapSettingsInput) GetAdminGroup() OptString {
+	return s.AdminGroup
+}
+
+// GetAllowedGroup returns the value of AllowedGroup.
+func (s *LdapSettingsInput) GetAllowedGroup() OptString {
+	return s.AllowedGroup
+}
+
+// SetEnabled sets the value of Enabled.
+func (s *LdapSettingsInput) SetEnabled(val bool) {
+	s.Enabled = val
+}
+
+// SetURL sets the value of URL.
+func (s *LdapSettingsInput) SetURL(val string) {
+	s.URL = val
+}
+
+// SetStartTls sets the value of StartTls.
+func (s *LdapSettingsInput) SetStartTls(val bool) {
+	s.StartTls = val
+}
+
+// SetSkipVerify sets the value of SkipVerify.
+func (s *LdapSettingsInput) SetSkipVerify(val bool) {
+	s.SkipVerify = val
+}
+
+// SetCaCert sets the value of CaCert.
+func (s *LdapSettingsInput) SetCaCert(val OptString) {
+	s.CaCert = val
+}
+
+// SetBindDn sets the value of BindDn.
+func (s *LdapSettingsInput) SetBindDn(val OptString) {
+	s.BindDn = val
+}
+
+// SetBindPassword sets the value of BindPassword.
+func (s *LdapSettingsInput) SetBindPassword(val OptString) {
+	s.BindPassword = val
+}
+
+// SetRemoveBindPassword sets the value of RemoveBindPassword.
+func (s *LdapSettingsInput) SetRemoveBindPassword(val OptBool) {
+	s.RemoveBindPassword = val
+}
+
+// SetBaseDn sets the value of BaseDn.
+func (s *LdapSettingsInput) SetBaseDn(val string) {
+	s.BaseDn = val
+}
+
+// SetUserFilter sets the value of UserFilter.
+func (s *LdapSettingsInput) SetUserFilter(val string) {
+	s.UserFilter = val
+}
+
+// SetUsernameAttribute sets the value of UsernameAttribute.
+func (s *LdapSettingsInput) SetUsernameAttribute(val OptString) {
+	s.UsernameAttribute = val
+}
+
+// SetEmailAttribute sets the value of EmailAttribute.
+func (s *LdapSettingsInput) SetEmailAttribute(val OptString) {
+	s.EmailAttribute = val
+}
+
+// SetNameAttribute sets the value of NameAttribute.
+func (s *LdapSettingsInput) SetNameAttribute(val OptString) {
+	s.NameAttribute = val
+}
+
+// SetGroupAttribute sets the value of GroupAttribute.
+func (s *LdapSettingsInput) SetGroupAttribute(val OptString) {
+	s.GroupAttribute = val
+}
+
+// SetGroupFilter sets the value of GroupFilter.
+func (s *LdapSettingsInput) SetGroupFilter(val OptString) {
+	s.GroupFilter = val
+}
+
+// SetAdminGroup sets the value of AdminGroup.
+func (s *LdapSettingsInput) SetAdminGroup(val OptString) {
+	s.AdminGroup = val
+}
+
+// SetAllowedGroup sets the value of AllowedGroup.
+func (s *LdapSettingsInput) SetAllowedGroup(val OptString) {
+	s.AllowedGroup = val
+}
+
+// Ref: #/components/schemas/LdapTestRequest
+type LdapTestRequest struct {
+	Settings LdapSettingsInput `json:"settings"`
+	// Look this user up (no password is checked).
+	Username OptString `json:"username"`
+}
+
+// GetSettings returns the value of Settings.
+func (s *LdapTestRequest) GetSettings() LdapSettingsInput {
+	return s.Settings
+}
+
+// GetUsername returns the value of Username.
+func (s *LdapTestRequest) GetUsername() OptString {
+	return s.Username
+}
+
+// SetSettings sets the value of Settings.
+func (s *LdapTestRequest) SetSettings(val LdapSettingsInput) {
+	s.Settings = val
+}
+
+// SetUsername sets the value of Username.
+func (s *LdapTestRequest) SetUsername(val OptString) {
+	s.Username = val
+}
+
+// Ref: #/components/schemas/LdapTestResult
+type LdapTestResult struct {
+	Ok          bool      `json:"ok"`
+	Message     string    `json:"message"`
+	UserDn      OptString `json:"userDn"`
+	Username    OptString `json:"username"`
+	Email       OptString `json:"email"`
+	DisplayName OptString `json:"displayName"`
+	Groups      []string  `json:"groups"`
+	IsAdmin     OptBool   `json:"isAdmin"`
+	Allowed     OptBool   `json:"allowed"`
+}
+
+// GetOk returns the value of Ok.
+func (s *LdapTestResult) GetOk() bool {
+	return s.Ok
+}
+
+// GetMessage returns the value of Message.
+func (s *LdapTestResult) GetMessage() string {
+	return s.Message
+}
+
+// GetUserDn returns the value of UserDn.
+func (s *LdapTestResult) GetUserDn() OptString {
+	return s.UserDn
+}
+
+// GetUsername returns the value of Username.
+func (s *LdapTestResult) GetUsername() OptString {
+	return s.Username
+}
+
+// GetEmail returns the value of Email.
+func (s *LdapTestResult) GetEmail() OptString {
+	return s.Email
+}
+
+// GetDisplayName returns the value of DisplayName.
+func (s *LdapTestResult) GetDisplayName() OptString {
+	return s.DisplayName
+}
+
+// GetGroups returns the value of Groups.
+func (s *LdapTestResult) GetGroups() []string {
+	return s.Groups
+}
+
+// GetIsAdmin returns the value of IsAdmin.
+func (s *LdapTestResult) GetIsAdmin() OptBool {
+	return s.IsAdmin
+}
+
+// GetAllowed returns the value of Allowed.
+func (s *LdapTestResult) GetAllowed() OptBool {
+	return s.Allowed
+}
+
+// SetOk sets the value of Ok.
+func (s *LdapTestResult) SetOk(val bool) {
+	s.Ok = val
+}
+
+// SetMessage sets the value of Message.
+func (s *LdapTestResult) SetMessage(val string) {
+	s.Message = val
+}
+
+// SetUserDn sets the value of UserDn.
+func (s *LdapTestResult) SetUserDn(val OptString) {
+	s.UserDn = val
+}
+
+// SetUsername sets the value of Username.
+func (s *LdapTestResult) SetUsername(val OptString) {
+	s.Username = val
+}
+
+// SetEmail sets the value of Email.
+func (s *LdapTestResult) SetEmail(val OptString) {
+	s.Email = val
+}
+
+// SetDisplayName sets the value of DisplayName.
+func (s *LdapTestResult) SetDisplayName(val OptString) {
+	s.DisplayName = val
+}
+
+// SetGroups sets the value of Groups.
+func (s *LdapTestResult) SetGroups(val []string) {
+	s.Groups = val
+}
+
+// SetIsAdmin sets the value of IsAdmin.
+func (s *LdapTestResult) SetIsAdmin(val OptBool) {
+	s.IsAdmin = val
+}
+
+// SetAllowed sets the value of Allowed.
+func (s *LdapTestResult) SetAllowed(val OptBool) {
+	s.Allowed = val
+}
+
 // Ref: #/components/schemas/Library
 type Library struct {
 	ID        uuid.UUID   `json:"id"`
@@ -4263,6 +4880,157 @@ func (s *LibraryKind) UnmarshalText(data []byte) error {
 		return nil
 	case LibraryKindMixed:
 		*s = LibraryKindMixed
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/LinkedIdentities
+type LinkedIdentities struct {
+	// The account has a local password.
+	HasPassword bool             `json:"hasPassword"`
+	Identities  []LinkedIdentity `json:"identities"`
+}
+
+// GetHasPassword returns the value of HasPassword.
+func (s *LinkedIdentities) GetHasPassword() bool {
+	return s.HasPassword
+}
+
+// GetIdentities returns the value of Identities.
+func (s *LinkedIdentities) GetIdentities() []LinkedIdentity {
+	return s.Identities
+}
+
+// SetHasPassword sets the value of HasPassword.
+func (s *LinkedIdentities) SetHasPassword(val bool) {
+	s.HasPassword = val
+}
+
+// SetIdentities sets the value of Identities.
+func (s *LinkedIdentities) SetIdentities(val []LinkedIdentity) {
+	s.Identities = val
+}
+
+// Ref: #/components/schemas/LinkedIdentity
+type LinkedIdentity struct {
+	ID   uuid.UUID          `json:"id"`
+	Kind LinkedIdentityKind `json:"kind"`
+	// The OIDC provider id; empty for LDAP.
+	ProviderId    string `json:"providerId"`
+	ProviderLabel string `json:"providerLabel"`
+	// E-mail or name at the provider, for display.
+	Label       string      `json:"label"`
+	CreatedAt   time.Time   `json:"createdAt"`
+	LastLoginAt OptDateTime `json:"lastLoginAt"`
+}
+
+// GetID returns the value of ID.
+func (s *LinkedIdentity) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetKind returns the value of Kind.
+func (s *LinkedIdentity) GetKind() LinkedIdentityKind {
+	return s.Kind
+}
+
+// GetProviderId returns the value of ProviderId.
+func (s *LinkedIdentity) GetProviderId() string {
+	return s.ProviderId
+}
+
+// GetProviderLabel returns the value of ProviderLabel.
+func (s *LinkedIdentity) GetProviderLabel() string {
+	return s.ProviderLabel
+}
+
+// GetLabel returns the value of Label.
+func (s *LinkedIdentity) GetLabel() string {
+	return s.Label
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *LinkedIdentity) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetLastLoginAt returns the value of LastLoginAt.
+func (s *LinkedIdentity) GetLastLoginAt() OptDateTime {
+	return s.LastLoginAt
+}
+
+// SetID sets the value of ID.
+func (s *LinkedIdentity) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetKind sets the value of Kind.
+func (s *LinkedIdentity) SetKind(val LinkedIdentityKind) {
+	s.Kind = val
+}
+
+// SetProviderId sets the value of ProviderId.
+func (s *LinkedIdentity) SetProviderId(val string) {
+	s.ProviderId = val
+}
+
+// SetProviderLabel sets the value of ProviderLabel.
+func (s *LinkedIdentity) SetProviderLabel(val string) {
+	s.ProviderLabel = val
+}
+
+// SetLabel sets the value of Label.
+func (s *LinkedIdentity) SetLabel(val string) {
+	s.Label = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *LinkedIdentity) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetLastLoginAt sets the value of LastLoginAt.
+func (s *LinkedIdentity) SetLastLoginAt(val OptDateTime) {
+	s.LastLoginAt = val
+}
+
+type LinkedIdentityKind string
+
+const (
+	LinkedIdentityKindOidc LinkedIdentityKind = "oidc"
+	LinkedIdentityKindLdap LinkedIdentityKind = "ldap"
+)
+
+// AllValues returns all LinkedIdentityKind values.
+func (LinkedIdentityKind) AllValues() []LinkedIdentityKind {
+	return []LinkedIdentityKind{
+		LinkedIdentityKindOidc,
+		LinkedIdentityKindLdap,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s LinkedIdentityKind) MarshalText() ([]byte, error) {
+	switch s {
+	case LinkedIdentityKindOidc:
+		return []byte(s), nil
+	case LinkedIdentityKindLdap:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *LinkedIdentityKind) UnmarshalText(data []byte) error {
+	switch LinkedIdentityKind(data) {
+	case LinkedIdentityKindOidc:
+		*s = LinkedIdentityKindOidc
+		return nil
+	case LinkedIdentityKindLdap:
+		*s = LinkedIdentityKindLdap
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -5414,6 +6182,672 @@ func (s *NowPlayingMethod) UnmarshalText(data []byte) error {
 	}
 }
 
+type OidcAuthorizeClient string
+
+const (
+	OidcAuthorizeClientWeb OidcAuthorizeClient = "web"
+	OidcAuthorizeClientApp OidcAuthorizeClient = "app"
+)
+
+// AllValues returns all OidcAuthorizeClient values.
+func (OidcAuthorizeClient) AllValues() []OidcAuthorizeClient {
+	return []OidcAuthorizeClient{
+		OidcAuthorizeClientWeb,
+		OidcAuthorizeClientApp,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s OidcAuthorizeClient) MarshalText() ([]byte, error) {
+	switch s {
+	case OidcAuthorizeClientWeb:
+		return []byte(s), nil
+	case OidcAuthorizeClientApp:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *OidcAuthorizeClient) UnmarshalText(data []byte) error {
+	switch OidcAuthorizeClient(data) {
+	case OidcAuthorizeClientWeb:
+		*s = OidcAuthorizeClientWeb
+		return nil
+	case OidcAuthorizeClientApp:
+		*s = OidcAuthorizeClientApp
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/OidcExchangeRequest
+type OidcExchangeRequest struct {
+	Code         string        `json:"code"`
+	CodeVerifier string        `json:"codeVerifier"`
+	Device       OptDeviceInfo `json:"device"`
+}
+
+// GetCode returns the value of Code.
+func (s *OidcExchangeRequest) GetCode() string {
+	return s.Code
+}
+
+// GetCodeVerifier returns the value of CodeVerifier.
+func (s *OidcExchangeRequest) GetCodeVerifier() string {
+	return s.CodeVerifier
+}
+
+// GetDevice returns the value of Device.
+func (s *OidcExchangeRequest) GetDevice() OptDeviceInfo {
+	return s.Device
+}
+
+// SetCode sets the value of Code.
+func (s *OidcExchangeRequest) SetCode(val string) {
+	s.Code = val
+}
+
+// SetCodeVerifier sets the value of CodeVerifier.
+func (s *OidcExchangeRequest) SetCodeVerifier(val string) {
+	s.CodeVerifier = val
+}
+
+// SetDevice sets the value of Device.
+func (s *OidcExchangeRequest) SetDevice(val OptDeviceInfo) {
+	s.Device = val
+}
+
+// Ref: #/components/schemas/OidcLinkStart
+type OidcLinkStart struct {
+	AuthorizationUrl string `json:"authorizationUrl"`
+}
+
+// GetAuthorizationUrl returns the value of AuthorizationUrl.
+func (s *OidcLinkStart) GetAuthorizationUrl() string {
+	return s.AuthorizationUrl
+}
+
+// SetAuthorizationUrl sets the value of AuthorizationUrl.
+func (s *OidcLinkStart) SetAuthorizationUrl(val string) {
+	s.AuthorizationUrl = val
+}
+
+// OidcLinkStartHeaders wraps OidcLinkStart with response headers.
+type OidcLinkStartHeaders struct {
+	SetCookie OptString
+	Response  OidcLinkStart
+}
+
+// GetSetCookie returns the value of SetCookie.
+func (s *OidcLinkStartHeaders) GetSetCookie() OptString {
+	return s.SetCookie
+}
+
+// GetResponse returns the value of Response.
+func (s *OidcLinkStartHeaders) GetResponse() OidcLinkStart {
+	return s.Response
+}
+
+// SetSetCookie sets the value of SetCookie.
+func (s *OidcLinkStartHeaders) SetSetCookie(val OptString) {
+	s.SetCookie = val
+}
+
+// SetResponse sets the value of Response.
+func (s *OidcLinkStartHeaders) SetResponse(val OidcLinkStart) {
+	s.Response = val
+}
+
+// Ref: #/components/schemas/OidcProvider
+type OidcProvider struct {
+	ID              string   `json:"id"`
+	Label           string   `json:"label"`
+	Issuer          string   `json:"issuer"`
+	ClientId        string   `json:"clientId"`
+	ClientSecretSet bool     `json:"clientSecretSet"`
+	Scopes          []string `json:"scopes"`
+	UsernameClaim   string   `json:"usernameClaim"`
+	EmailClaim      string   `json:"emailClaim"`
+	NameClaim       string   `json:"nameClaim"`
+	GroupsClaim     string   `json:"groupsClaim"`
+	AdminGroup      string   `json:"adminGroup"`
+	AllowedGroup    string   `json:"allowedGroup"`
+	AutoCreate      bool     `json:"autoCreate"`
+	LinkByEmail     bool     `json:"linkByEmail"`
+	TrustEmail      bool     `json:"trustEmail"`
+	Enabled         bool     `json:"enabled"`
+	// The exact redirect URI to register at the provider (empty until the public URL is set).
+	RedirectUri string `json:"redirectUri"`
+}
+
+// GetID returns the value of ID.
+func (s *OidcProvider) GetID() string {
+	return s.ID
+}
+
+// GetLabel returns the value of Label.
+func (s *OidcProvider) GetLabel() string {
+	return s.Label
+}
+
+// GetIssuer returns the value of Issuer.
+func (s *OidcProvider) GetIssuer() string {
+	return s.Issuer
+}
+
+// GetClientId returns the value of ClientId.
+func (s *OidcProvider) GetClientId() string {
+	return s.ClientId
+}
+
+// GetClientSecretSet returns the value of ClientSecretSet.
+func (s *OidcProvider) GetClientSecretSet() bool {
+	return s.ClientSecretSet
+}
+
+// GetScopes returns the value of Scopes.
+func (s *OidcProvider) GetScopes() []string {
+	return s.Scopes
+}
+
+// GetUsernameClaim returns the value of UsernameClaim.
+func (s *OidcProvider) GetUsernameClaim() string {
+	return s.UsernameClaim
+}
+
+// GetEmailClaim returns the value of EmailClaim.
+func (s *OidcProvider) GetEmailClaim() string {
+	return s.EmailClaim
+}
+
+// GetNameClaim returns the value of NameClaim.
+func (s *OidcProvider) GetNameClaim() string {
+	return s.NameClaim
+}
+
+// GetGroupsClaim returns the value of GroupsClaim.
+func (s *OidcProvider) GetGroupsClaim() string {
+	return s.GroupsClaim
+}
+
+// GetAdminGroup returns the value of AdminGroup.
+func (s *OidcProvider) GetAdminGroup() string {
+	return s.AdminGroup
+}
+
+// GetAllowedGroup returns the value of AllowedGroup.
+func (s *OidcProvider) GetAllowedGroup() string {
+	return s.AllowedGroup
+}
+
+// GetAutoCreate returns the value of AutoCreate.
+func (s *OidcProvider) GetAutoCreate() bool {
+	return s.AutoCreate
+}
+
+// GetLinkByEmail returns the value of LinkByEmail.
+func (s *OidcProvider) GetLinkByEmail() bool {
+	return s.LinkByEmail
+}
+
+// GetTrustEmail returns the value of TrustEmail.
+func (s *OidcProvider) GetTrustEmail() bool {
+	return s.TrustEmail
+}
+
+// GetEnabled returns the value of Enabled.
+func (s *OidcProvider) GetEnabled() bool {
+	return s.Enabled
+}
+
+// GetRedirectUri returns the value of RedirectUri.
+func (s *OidcProvider) GetRedirectUri() string {
+	return s.RedirectUri
+}
+
+// SetID sets the value of ID.
+func (s *OidcProvider) SetID(val string) {
+	s.ID = val
+}
+
+// SetLabel sets the value of Label.
+func (s *OidcProvider) SetLabel(val string) {
+	s.Label = val
+}
+
+// SetIssuer sets the value of Issuer.
+func (s *OidcProvider) SetIssuer(val string) {
+	s.Issuer = val
+}
+
+// SetClientId sets the value of ClientId.
+func (s *OidcProvider) SetClientId(val string) {
+	s.ClientId = val
+}
+
+// SetClientSecretSet sets the value of ClientSecretSet.
+func (s *OidcProvider) SetClientSecretSet(val bool) {
+	s.ClientSecretSet = val
+}
+
+// SetScopes sets the value of Scopes.
+func (s *OidcProvider) SetScopes(val []string) {
+	s.Scopes = val
+}
+
+// SetUsernameClaim sets the value of UsernameClaim.
+func (s *OidcProvider) SetUsernameClaim(val string) {
+	s.UsernameClaim = val
+}
+
+// SetEmailClaim sets the value of EmailClaim.
+func (s *OidcProvider) SetEmailClaim(val string) {
+	s.EmailClaim = val
+}
+
+// SetNameClaim sets the value of NameClaim.
+func (s *OidcProvider) SetNameClaim(val string) {
+	s.NameClaim = val
+}
+
+// SetGroupsClaim sets the value of GroupsClaim.
+func (s *OidcProvider) SetGroupsClaim(val string) {
+	s.GroupsClaim = val
+}
+
+// SetAdminGroup sets the value of AdminGroup.
+func (s *OidcProvider) SetAdminGroup(val string) {
+	s.AdminGroup = val
+}
+
+// SetAllowedGroup sets the value of AllowedGroup.
+func (s *OidcProvider) SetAllowedGroup(val string) {
+	s.AllowedGroup = val
+}
+
+// SetAutoCreate sets the value of AutoCreate.
+func (s *OidcProvider) SetAutoCreate(val bool) {
+	s.AutoCreate = val
+}
+
+// SetLinkByEmail sets the value of LinkByEmail.
+func (s *OidcProvider) SetLinkByEmail(val bool) {
+	s.LinkByEmail = val
+}
+
+// SetTrustEmail sets the value of TrustEmail.
+func (s *OidcProvider) SetTrustEmail(val bool) {
+	s.TrustEmail = val
+}
+
+// SetEnabled sets the value of Enabled.
+func (s *OidcProvider) SetEnabled(val bool) {
+	s.Enabled = val
+}
+
+// SetRedirectUri sets the value of RedirectUri.
+func (s *OidcProvider) SetRedirectUri(val string) {
+	s.RedirectUri = val
+}
+
+// Ref: #/components/schemas/OidcProviderButton
+type OidcProviderButton struct {
+	ID    string `json:"id"`
+	Label string `json:"label"`
+	// Absolute URL of /auth/oidc/{id}/authorize on the server's public address.
+	AuthorizeUrl string `json:"authorizeUrl"`
+}
+
+// GetID returns the value of ID.
+func (s *OidcProviderButton) GetID() string {
+	return s.ID
+}
+
+// GetLabel returns the value of Label.
+func (s *OidcProviderButton) GetLabel() string {
+	return s.Label
+}
+
+// GetAuthorizeUrl returns the value of AuthorizeUrl.
+func (s *OidcProviderButton) GetAuthorizeUrl() string {
+	return s.AuthorizeUrl
+}
+
+// SetID sets the value of ID.
+func (s *OidcProviderButton) SetID(val string) {
+	s.ID = val
+}
+
+// SetLabel sets the value of Label.
+func (s *OidcProviderButton) SetLabel(val string) {
+	s.Label = val
+}
+
+// SetAuthorizeUrl sets the value of AuthorizeUrl.
+func (s *OidcProviderButton) SetAuthorizeUrl(val string) {
+	s.AuthorizeUrl = val
+}
+
+// Ref: #/components/schemas/OidcProviderInput
+type OidcProviderInput struct {
+	// Part of the redirect URI; cannot be changed later.
+	ID       string `json:"id"`
+	Label    string `json:"label"`
+	Issuer   string `json:"issuer"`
+	ClientId string `json:"clientId"`
+	// Empty or omitted keeps the stored secret (or none for a public client).
+	ClientSecret       OptString `json:"clientSecret"`
+	RemoveClientSecret OptBool   `json:"removeClientSecret"`
+	Scopes             []string  `json:"scopes"`
+	UsernameClaim      OptString `json:"usernameClaim"`
+	EmailClaim         OptString `json:"emailClaim"`
+	NameClaim          OptString `json:"nameClaim"`
+	GroupsClaim        OptString `json:"groupsClaim"`
+	AdminGroup         OptString `json:"adminGroup"`
+	AllowedGroup       OptString `json:"allowedGroup"`
+	AutoCreate         OptBool   `json:"autoCreate"`
+	LinkByEmail        OptBool   `json:"linkByEmail"`
+	TrustEmail         OptBool   `json:"trustEmail"`
+	Enabled            OptBool   `json:"enabled"`
+}
+
+// GetID returns the value of ID.
+func (s *OidcProviderInput) GetID() string {
+	return s.ID
+}
+
+// GetLabel returns the value of Label.
+func (s *OidcProviderInput) GetLabel() string {
+	return s.Label
+}
+
+// GetIssuer returns the value of Issuer.
+func (s *OidcProviderInput) GetIssuer() string {
+	return s.Issuer
+}
+
+// GetClientId returns the value of ClientId.
+func (s *OidcProviderInput) GetClientId() string {
+	return s.ClientId
+}
+
+// GetClientSecret returns the value of ClientSecret.
+func (s *OidcProviderInput) GetClientSecret() OptString {
+	return s.ClientSecret
+}
+
+// GetRemoveClientSecret returns the value of RemoveClientSecret.
+func (s *OidcProviderInput) GetRemoveClientSecret() OptBool {
+	return s.RemoveClientSecret
+}
+
+// GetScopes returns the value of Scopes.
+func (s *OidcProviderInput) GetScopes() []string {
+	return s.Scopes
+}
+
+// GetUsernameClaim returns the value of UsernameClaim.
+func (s *OidcProviderInput) GetUsernameClaim() OptString {
+	return s.UsernameClaim
+}
+
+// GetEmailClaim returns the value of EmailClaim.
+func (s *OidcProviderInput) GetEmailClaim() OptString {
+	return s.EmailClaim
+}
+
+// GetNameClaim returns the value of NameClaim.
+func (s *OidcProviderInput) GetNameClaim() OptString {
+	return s.NameClaim
+}
+
+// GetGroupsClaim returns the value of GroupsClaim.
+func (s *OidcProviderInput) GetGroupsClaim() OptString {
+	return s.GroupsClaim
+}
+
+// GetAdminGroup returns the value of AdminGroup.
+func (s *OidcProviderInput) GetAdminGroup() OptString {
+	return s.AdminGroup
+}
+
+// GetAllowedGroup returns the value of AllowedGroup.
+func (s *OidcProviderInput) GetAllowedGroup() OptString {
+	return s.AllowedGroup
+}
+
+// GetAutoCreate returns the value of AutoCreate.
+func (s *OidcProviderInput) GetAutoCreate() OptBool {
+	return s.AutoCreate
+}
+
+// GetLinkByEmail returns the value of LinkByEmail.
+func (s *OidcProviderInput) GetLinkByEmail() OptBool {
+	return s.LinkByEmail
+}
+
+// GetTrustEmail returns the value of TrustEmail.
+func (s *OidcProviderInput) GetTrustEmail() OptBool {
+	return s.TrustEmail
+}
+
+// GetEnabled returns the value of Enabled.
+func (s *OidcProviderInput) GetEnabled() OptBool {
+	return s.Enabled
+}
+
+// SetID sets the value of ID.
+func (s *OidcProviderInput) SetID(val string) {
+	s.ID = val
+}
+
+// SetLabel sets the value of Label.
+func (s *OidcProviderInput) SetLabel(val string) {
+	s.Label = val
+}
+
+// SetIssuer sets the value of Issuer.
+func (s *OidcProviderInput) SetIssuer(val string) {
+	s.Issuer = val
+}
+
+// SetClientId sets the value of ClientId.
+func (s *OidcProviderInput) SetClientId(val string) {
+	s.ClientId = val
+}
+
+// SetClientSecret sets the value of ClientSecret.
+func (s *OidcProviderInput) SetClientSecret(val OptString) {
+	s.ClientSecret = val
+}
+
+// SetRemoveClientSecret sets the value of RemoveClientSecret.
+func (s *OidcProviderInput) SetRemoveClientSecret(val OptBool) {
+	s.RemoveClientSecret = val
+}
+
+// SetScopes sets the value of Scopes.
+func (s *OidcProviderInput) SetScopes(val []string) {
+	s.Scopes = val
+}
+
+// SetUsernameClaim sets the value of UsernameClaim.
+func (s *OidcProviderInput) SetUsernameClaim(val OptString) {
+	s.UsernameClaim = val
+}
+
+// SetEmailClaim sets the value of EmailClaim.
+func (s *OidcProviderInput) SetEmailClaim(val OptString) {
+	s.EmailClaim = val
+}
+
+// SetNameClaim sets the value of NameClaim.
+func (s *OidcProviderInput) SetNameClaim(val OptString) {
+	s.NameClaim = val
+}
+
+// SetGroupsClaim sets the value of GroupsClaim.
+func (s *OidcProviderInput) SetGroupsClaim(val OptString) {
+	s.GroupsClaim = val
+}
+
+// SetAdminGroup sets the value of AdminGroup.
+func (s *OidcProviderInput) SetAdminGroup(val OptString) {
+	s.AdminGroup = val
+}
+
+// SetAllowedGroup sets the value of AllowedGroup.
+func (s *OidcProviderInput) SetAllowedGroup(val OptString) {
+	s.AllowedGroup = val
+}
+
+// SetAutoCreate sets the value of AutoCreate.
+func (s *OidcProviderInput) SetAutoCreate(val OptBool) {
+	s.AutoCreate = val
+}
+
+// SetLinkByEmail sets the value of LinkByEmail.
+func (s *OidcProviderInput) SetLinkByEmail(val OptBool) {
+	s.LinkByEmail = val
+}
+
+// SetTrustEmail sets the value of TrustEmail.
+func (s *OidcProviderInput) SetTrustEmail(val OptBool) {
+	s.TrustEmail = val
+}
+
+// SetEnabled sets the value of Enabled.
+func (s *OidcProviderInput) SetEnabled(val OptBool) {
+	s.Enabled = val
+}
+
+// Ref: #/components/responses/OidcRedirect
+type OidcRedirect struct {
+	Location  string
+	SetCookie OptString
+}
+
+// GetLocation returns the value of Location.
+func (s *OidcRedirect) GetLocation() string {
+	return s.Location
+}
+
+// GetSetCookie returns the value of SetCookie.
+func (s *OidcRedirect) GetSetCookie() OptString {
+	return s.SetCookie
+}
+
+// SetLocation sets the value of Location.
+func (s *OidcRedirect) SetLocation(val string) {
+	s.Location = val
+}
+
+// SetSetCookie sets the value of SetCookie.
+func (s *OidcRedirect) SetSetCookie(val OptString) {
+	s.SetCookie = val
+}
+
+// Ref: #/components/schemas/OidcTestRequest
+type OidcTestRequest struct {
+	Issuer string `json:"issuer"`
+}
+
+// GetIssuer returns the value of Issuer.
+func (s *OidcTestRequest) GetIssuer() string {
+	return s.Issuer
+}
+
+// SetIssuer sets the value of Issuer.
+func (s *OidcTestRequest) SetIssuer(val string) {
+	s.Issuer = val
+}
+
+// Ref: #/components/schemas/OidcTestResult
+type OidcTestResult struct {
+	Issuer                string    `json:"issuer"`
+	AuthorizationEndpoint string    `json:"authorizationEndpoint"`
+	TokenEndpoint         string    `json:"tokenEndpoint"`
+	UserinfoEndpoint      OptString `json:"userinfoEndpoint"`
+	// Number of keys in the provider's JWKS.
+	SigningKeys int `json:"signingKeys"`
+	// The provider advertises PKCE S256 (when it says nothing, PKCE is still sent).
+	PkceS256        bool     `json:"pkceS256"`
+	ScopesSupported []string `json:"scopesSupported"`
+}
+
+// GetIssuer returns the value of Issuer.
+func (s *OidcTestResult) GetIssuer() string {
+	return s.Issuer
+}
+
+// GetAuthorizationEndpoint returns the value of AuthorizationEndpoint.
+func (s *OidcTestResult) GetAuthorizationEndpoint() string {
+	return s.AuthorizationEndpoint
+}
+
+// GetTokenEndpoint returns the value of TokenEndpoint.
+func (s *OidcTestResult) GetTokenEndpoint() string {
+	return s.TokenEndpoint
+}
+
+// GetUserinfoEndpoint returns the value of UserinfoEndpoint.
+func (s *OidcTestResult) GetUserinfoEndpoint() OptString {
+	return s.UserinfoEndpoint
+}
+
+// GetSigningKeys returns the value of SigningKeys.
+func (s *OidcTestResult) GetSigningKeys() int {
+	return s.SigningKeys
+}
+
+// GetPkceS256 returns the value of PkceS256.
+func (s *OidcTestResult) GetPkceS256() bool {
+	return s.PkceS256
+}
+
+// GetScopesSupported returns the value of ScopesSupported.
+func (s *OidcTestResult) GetScopesSupported() []string {
+	return s.ScopesSupported
+}
+
+// SetIssuer sets the value of Issuer.
+func (s *OidcTestResult) SetIssuer(val string) {
+	s.Issuer = val
+}
+
+// SetAuthorizationEndpoint sets the value of AuthorizationEndpoint.
+func (s *OidcTestResult) SetAuthorizationEndpoint(val string) {
+	s.AuthorizationEndpoint = val
+}
+
+// SetTokenEndpoint sets the value of TokenEndpoint.
+func (s *OidcTestResult) SetTokenEndpoint(val string) {
+	s.TokenEndpoint = val
+}
+
+// SetUserinfoEndpoint sets the value of UserinfoEndpoint.
+func (s *OidcTestResult) SetUserinfoEndpoint(val OptString) {
+	s.UserinfoEndpoint = val
+}
+
+// SetSigningKeys sets the value of SigningKeys.
+func (s *OidcTestResult) SetSigningKeys(val int) {
+	s.SigningKeys = val
+}
+
+// SetPkceS256 sets the value of PkceS256.
+func (s *OidcTestResult) SetPkceS256(val bool) {
+	s.PkceS256 = val
+}
+
+// SetScopesSupported sets the value of ScopesSupported.
+func (s *OidcTestResult) SetScopesSupported(val []string) {
+	s.ScopesSupported = val
+}
+
 // NewOptActivityEntryDetail returns new OptActivityEntryDetail with value set to v.
 func NewOptActivityEntryDetail(v ActivityEntryDetail) OptActivityEntryDetail {
 	return OptActivityEntryDetail{
@@ -5960,6 +7394,52 @@ func (o OptListLibraryItemsSort) Get() (v ListLibraryItemsSort, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptListLibraryItemsSort) Or(d ListLibraryItemsSort) ListLibraryItemsSort {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptOidcAuthorizeClient returns new OptOidcAuthorizeClient with value set to v.
+func NewOptOidcAuthorizeClient(v OidcAuthorizeClient) OptOidcAuthorizeClient {
+	return OptOidcAuthorizeClient{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptOidcAuthorizeClient is optional OidcAuthorizeClient.
+type OptOidcAuthorizeClient struct {
+	Value OidcAuthorizeClient
+	Set   bool
+}
+
+// IsSet returns true if OptOidcAuthorizeClient was set.
+func (o OptOidcAuthorizeClient) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptOidcAuthorizeClient) Reset() {
+	var v OidcAuthorizeClient
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptOidcAuthorizeClient) SetTo(v OidcAuthorizeClient) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptOidcAuthorizeClient) Get() (v OidcAuthorizeClient, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptOidcAuthorizeClient) Or(d OidcAuthorizeClient) OidcAuthorizeClient {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -9896,6 +11376,9 @@ func (s *TrickplayInfo) SetCount(val int) {
 func (s *TrickplayInfo) SetSheetUrls(val []string) {
 	s.SheetUrls = val
 }
+
+// UnlinkIdentityNoContent is response for UnlinkIdentity operation.
+type UnlinkIdentityNoContent struct{}
 
 // Ref: #/components/schemas/UpcomingRelease
 type UpcomingRelease struct {

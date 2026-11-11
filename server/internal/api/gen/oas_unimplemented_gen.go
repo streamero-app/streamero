@@ -133,6 +133,15 @@ func (UnimplementedHandler) CreateLibrary(ctx context.Context, req *LibraryInput
 	return r, ht.ErrNotImplemented
 }
 
+// CreateOidcProvider implements createOidcProvider operation.
+//
+// Add an OpenID Connect provider (admin).
+//
+// POST /settings/auth/oidc
+func (UnimplementedHandler) CreateOidcProvider(ctx context.Context, req *OidcProviderInput) (r *OidcProvider, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // CreatePlaylist implements createPlaylist operation.
 //
 // Create a playlist.
@@ -211,6 +220,15 @@ func (UnimplementedHandler) DeleteLibrary(ctx context.Context, params DeleteLibr
 //
 // DELETE /auth/me/avatar
 func (UnimplementedHandler) DeleteMyAvatar(ctx context.Context) error {
+	return ht.ErrNotImplemented
+}
+
+// DeleteOidcProvider implements deleteOidcProvider operation.
+//
+// Remove an OpenID Connect provider and its linked identities (admin).
+//
+// DELETE /settings/auth/oidc/{providerId}
+func (UnimplementedHandler) DeleteOidcProvider(ctx context.Context, params DeleteOidcProviderParams) error {
 	return ht.ErrNotImplemented
 }
 
@@ -322,6 +340,26 @@ func (UnimplementedHandler) GetArrLink(ctx context.Context, params GetArrLinkPar
 	return r, ht.ErrNotImplemented
 }
 
+// GetAuthProviders implements getAuthProviders operation.
+//
+// Unauthenticated. Lists the enabled single sign-on providers with the absolute URL a browser (or an
+// app's web authentication session) opens to start signing in, and whether username/password sign-in
+// is offered.
+//
+// GET /auth/providers
+func (UnimplementedHandler) GetAuthProviders(ctx context.Context) (r *AuthProviders, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetAuthSettings implements getAuthSettings operation.
+//
+// General sign-in settings (admin).
+//
+// GET /settings/auth
+func (UnimplementedHandler) GetAuthSettings(ctx context.Context) (r *AuthSettings, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetAvatar implements getAvatar operation.
 //
 // A user's or profile's picture (JPEG).
@@ -418,6 +456,15 @@ func (UnimplementedHandler) GetItem(ctx context.Context, params GetItemParams) (
 //
 // GET /items/{itemId}/images/{imageType}
 func (UnimplementedHandler) GetItemImage(ctx context.Context, params GetItemImageParams) (r *GetItemImageOKHeaders, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetLdapSettings implements getLdapSettings operation.
+//
+// LDAP / Active Directory sign-in (admin; the bind password is never returned).
+//
+// GET /settings/auth/ldap
+func (UnimplementedHandler) GetLdapSettings(ctx context.Context) (r *LdapSettings, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -593,6 +640,15 @@ func (UnimplementedHandler) ListFavorites(ctx context.Context) (r []ItemSummary,
 	return r, ht.ErrNotImplemented
 }
 
+// ListIdentities implements listIdentities operation.
+//
+// Single sign-on and directory accounts linked to the signed-in user.
+//
+// GET /auth/identities
+func (UnimplementedHandler) ListIdentities(ctx context.Context) (r *LinkedIdentities, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ListImportRuns implements listImportRuns operation.
 //
 // Recent imports, newest first (admin).
@@ -635,6 +691,15 @@ func (UnimplementedHandler) ListLibraryGenres(ctx context.Context, params ListLi
 //
 // GET /libraries/{libraryId}/items
 func (UnimplementedHandler) ListLibraryItems(ctx context.Context, params ListLibraryItemsParams) (r *ItemPage, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListOidcProviders implements listOidcProviders operation.
+//
+// OpenID Connect providers (admin; client secrets are never returned).
+//
+// GET /settings/auth/oidc
+func (UnimplementedHandler) ListOidcProviders(ctx context.Context) (r []OidcProvider, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -725,6 +790,51 @@ func (UnimplementedHandler) NextEpisode(ctx context.Context, params NextEpisodeP
 //
 // GET /home/next-up
 func (UnimplementedHandler) NextUp(ctx context.Context) (r []ItemSummary, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// OidcAuthorize implements oidcAuthorize operation.
+//
+// Opened in a browser, never fetched. Creates a single-use sign-in flow (state, nonce, PKCE S256)
+// bound to this browser by a short-lived cookie and redirects to the provider. Apps pass `client=app`,
+// their registered `redirectUri` and an S256 `codeChallenge`; after the callback they receive a
+// one-time code to redeem at /auth/oidc/exchange with the matching verifier. Errors redirect to the
+// login page.
+//
+// GET /auth/oidc/{providerId}/authorize
+func (UnimplementedHandler) OidcAuthorize(ctx context.Context, params OidcAuthorizeParams) (r *OidcRedirect, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// OidcCallback implements oidcCallback operation.
+//
+// Checks state (single use, bound to the browser cookie), exchanges the code with the PKCE verifier,
+// verifies the ID token (signature via the provider's JWKS, issuer, audience, expiry, nonce) and signs
+// the user in. The web gets the session cookie and is sent to `/`; apps are sent to their redirect URI
+// with a one-time `code` (never a session token). Failures redirect with an `sso_error` (web) or
+// `error` (app) code.
+//
+// GET /auth/oidc/{providerId}/callback
+func (UnimplementedHandler) OidcCallback(ctx context.Context, params OidcCallbackParams) (r *OidcRedirect, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// OidcExchange implements oidcExchange operation.
+//
+// Redeem an app's one-time sign-in code for a session.
+//
+// POST /auth/oidc/exchange
+func (UnimplementedHandler) OidcExchange(ctx context.Context, req *OidcExchangeRequest) (r *SignedInHeaders, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// OidcLink implements oidcLink operation.
+//
+// Returns the provider URL to open in this browser; sets the flow cookie. After the provider signs the
+// user in, the identity is linked and the browser returns to /settings/account.
+//
+// POST /auth/oidc/{providerId}/link
+func (UnimplementedHandler) OidcLink(ctx context.Context, params OidcLinkParams) (r *OidcLinkStartHeaders, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -950,6 +1060,15 @@ func (UnimplementedHandler) TakeMyCommands(ctx context.Context) (r []SessionComm
 	return r, ht.ErrNotImplemented
 }
 
+// TestLdapSettings implements testLdapSettings operation.
+//
+// Connect and bind with the given settings, optionally looking up a user (admin).
+//
+// POST /settings/auth/ldap/test
+func (UnimplementedHandler) TestLdapSettings(ctx context.Context, req *LdapTestRequest) (r *LdapTestResult, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // TestNotification implements testNotification operation.
 //
 // Send a test message to one target.
@@ -959,12 +1078,40 @@ func (UnimplementedHandler) TestNotification(ctx context.Context, req *Notificat
 	return ht.ErrNotImplemented
 }
 
+// TestOidcProvider implements testOidcProvider operation.
+//
+// Fetch a provider's discovery document and signing keys (admin).
+//
+// POST /settings/auth/oidc-test
+func (UnimplementedHandler) TestOidcProvider(ctx context.Context, req *OidcTestRequest) (r *OidcTestResult, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // TestRequestSettings implements testRequestSettings operation.
 //
 // Check each configured connection (admin).
 //
 // POST /settings/requests/test
 func (UnimplementedHandler) TestRequestSettings(ctx context.Context) (r []ConnectionCheck, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UnlinkIdentity implements unlinkIdentity operation.
+//
+// Unlink an identity (refused when it is the account's only way to sign in).
+//
+// DELETE /auth/identities/{identityId}
+func (UnimplementedHandler) UnlinkIdentity(ctx context.Context, params UnlinkIdentityParams) error {
+	return ht.ErrNotImplemented
+}
+
+// UpdateAuthSettings implements updateAuthSettings operation.
+//
+// Turning password sign-in off is refused (409 `no_sso_admin`) unless an enabled administrator has a
+// linked identity of an enabled provider.
+//
+// PUT /settings/auth
+func (UnimplementedHandler) UpdateAuthSettings(ctx context.Context, req *AuthSettingsInput) (r *AuthSettings, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -1013,6 +1160,15 @@ func (UnimplementedHandler) UpdateEnhancements(ctx context.Context, req *Enhance
 	return r, ht.ErrNotImplemented
 }
 
+// UpdateLdapSettings implements updateLdapSettings operation.
+//
+// Save LDAP settings (admin; an empty bind password keeps the stored one).
+//
+// PUT /settings/auth/ldap
+func (UnimplementedHandler) UpdateLdapSettings(ctx context.Context, req *LdapSettingsInput) (r *LdapSettings, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // UpdateLibrary implements updateLibrary operation.
 //
 // Change a library (admin); changed folders are rescanned.
@@ -1046,6 +1202,15 @@ func (UnimplementedHandler) UpdateMetadataSettings(ctx context.Context, req *Met
 //
 // PUT /settings/notifications
 func (UnimplementedHandler) UpdateNotificationSettings(ctx context.Context, req *NotificationSettings) (r *NotificationSettings, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateOidcProvider implements updateOidcProvider operation.
+//
+// Change an OpenID Connect provider (admin; an empty secret keeps the stored one).
+//
+// PUT /settings/auth/oidc/{providerId}
+func (UnimplementedHandler) UpdateOidcProvider(ctx context.Context, req *OidcProviderInput, params UpdateOidcProviderParams) (r *OidcProvider, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

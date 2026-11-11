@@ -221,6 +221,19 @@ func encodeCreateLibraryResponse(response *Library, w http.ResponseWriter, span 
 	return nil
 }
 
+func encodeCreateOidcProviderResponse(response *OidcProvider, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
 func encodeCreatePlaylistResponse(response *Playlist, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(201)
@@ -291,6 +304,12 @@ func encodeDeleteLibraryResponse(response *DeleteLibraryNoContent, w http.Respon
 }
 
 func encodeDeleteMyAvatarResponse(response *DeleteMyAvatarNoContent, w http.ResponseWriter, span trace.Span) error {
+	w.WriteHeader(204)
+
+	return nil
+}
+
+func encodeDeleteOidcProviderResponse(response *DeleteOidcProviderNoContent, w http.ResponseWriter, span trace.Span) error {
 	w.WriteHeader(204)
 
 	return nil
@@ -413,6 +432,32 @@ func encodeGetActivityResponse(response *ActivityPage, w http.ResponseWriter, sp
 }
 
 func encodeGetArrLinkResponse(response *ArrLink, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
+func encodeGetAuthProvidersResponse(response *AuthProviders, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
+func encodeGetAuthSettingsResponse(response *AuthSettings, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
 
@@ -625,6 +670,19 @@ func encodeGetItemImageResponse(response *GetItemImageOKHeaders, w http.Response
 		defer closer.Close()
 	}
 	if _, err := io.Copy(writer, response.Response); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
+func encodeGetLdapSettingsResponse(response *LdapSettings, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
 		return errors.Wrap(err, "write")
 	}
 
@@ -972,6 +1030,19 @@ func encodeListFavoritesResponse(response []ItemSummary, w http.ResponseWriter, 
 	return nil
 }
 
+func encodeListIdentitiesResponse(response *LinkedIdentities, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
 func encodeListImportRunsResponse(response []ImportRun, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
@@ -1046,6 +1117,23 @@ func encodeListLibraryItemsResponse(response *ItemPage, w http.ResponseWriter, s
 
 	e := new(jx.Encoder)
 	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
+func encodeListOidcProvidersResponse(response []OidcProvider, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	e.ArrStart()
+	for _, elem := range response {
+		elem.Encode(e)
+	}
+	e.ArrEnd()
 	if _, err := e.WriteTo(w); err != nil {
 		return errors.Wrap(err, "write")
 	}
@@ -1237,6 +1325,148 @@ func encodeNextUpResponse(response []ItemSummary, w http.ResponseWriter, span tr
 		elem.Encode(e)
 	}
 	e.ArrEnd()
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
+func encodeOidcAuthorizeResponse(response *OidcRedirect, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Access-Control-Expose-Headers", "Location,Set-Cookie")
+	// Encoding response headers.
+	{
+		h := uri.NewHeaderEncoder(w.Header())
+		// Encode "Location" header.
+		{
+			cfg := uri.HeaderParameterEncodingConfig{
+				Name:    "Location",
+				Explode: false,
+			}
+			if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+				return e.EncodeValue(conv.StringToString(response.Location))
+			}); err != nil {
+				return errors.Wrap(err, "encode Location header")
+			}
+		}
+		// Encode "Set-Cookie" header.
+		{
+			cfg := uri.HeaderParameterEncodingConfig{
+				Name:    "Set-Cookie",
+				Explode: false,
+			}
+			if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+				if val, ok := response.SetCookie.Get(); ok {
+					return e.EncodeValue(conv.StringToString(val))
+				}
+				return nil
+			}); err != nil {
+				return errors.Wrap(err, "encode Set-Cookie header")
+			}
+		}
+	}
+	w.WriteHeader(302)
+
+	return nil
+}
+
+func encodeOidcCallbackResponse(response *OidcRedirect, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Access-Control-Expose-Headers", "Location,Set-Cookie")
+	// Encoding response headers.
+	{
+		h := uri.NewHeaderEncoder(w.Header())
+		// Encode "Location" header.
+		{
+			cfg := uri.HeaderParameterEncodingConfig{
+				Name:    "Location",
+				Explode: false,
+			}
+			if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+				return e.EncodeValue(conv.StringToString(response.Location))
+			}); err != nil {
+				return errors.Wrap(err, "encode Location header")
+			}
+		}
+		// Encode "Set-Cookie" header.
+		{
+			cfg := uri.HeaderParameterEncodingConfig{
+				Name:    "Set-Cookie",
+				Explode: false,
+			}
+			if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+				if val, ok := response.SetCookie.Get(); ok {
+					return e.EncodeValue(conv.StringToString(val))
+				}
+				return nil
+			}); err != nil {
+				return errors.Wrap(err, "encode Set-Cookie header")
+			}
+		}
+	}
+	w.WriteHeader(302)
+
+	return nil
+}
+
+func encodeOidcExchangeResponse(response *SignedInHeaders, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Expose-Headers", "Set-Cookie")
+	// Encoding response headers.
+	{
+		h := uri.NewHeaderEncoder(w.Header())
+		// Encode "Set-Cookie" header.
+		{
+			cfg := uri.HeaderParameterEncodingConfig{
+				Name:    "Set-Cookie",
+				Explode: false,
+			}
+			if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+				if val, ok := response.SetCookie.Get(); ok {
+					return e.EncodeValue(conv.StringToString(val))
+				}
+				return nil
+			}); err != nil {
+				return errors.Wrap(err, "encode Set-Cookie header")
+			}
+		}
+	}
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
+func encodeOidcLinkResponse(response *OidcLinkStartHeaders, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Expose-Headers", "Set-Cookie")
+	// Encoding response headers.
+	{
+		h := uri.NewHeaderEncoder(w.Header())
+		// Encode "Set-Cookie" header.
+		{
+			cfg := uri.HeaderParameterEncodingConfig{
+				Name:    "Set-Cookie",
+				Explode: false,
+			}
+			if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+				if val, ok := response.SetCookie.Get(); ok {
+					return e.EncodeValue(conv.StringToString(val))
+				}
+				return nil
+			}); err != nil {
+				return errors.Wrap(err, "encode Set-Cookie header")
+			}
+		}
+	}
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Response.Encode(e)
 	if _, err := e.WriteTo(w); err != nil {
 		return errors.Wrap(err, "write")
 	}
@@ -1501,8 +1731,34 @@ func encodeTakeMyCommandsResponse(response []SessionCommand, w http.ResponseWrit
 	return nil
 }
 
+func encodeTestLdapSettingsResponse(response *LdapTestResult, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
 func encodeTestNotificationResponse(response *TestNotificationNoContent, w http.ResponseWriter, span trace.Span) error {
 	w.WriteHeader(204)
+
+	return nil
+}
+
+func encodeTestOidcProviderResponse(response *OidcTestResult, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
 
 	return nil
 }
@@ -1517,6 +1773,25 @@ func encodeTestRequestSettingsResponse(response []ConnectionCheck, w http.Respon
 		elem.Encode(e)
 	}
 	e.ArrEnd()
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
+func encodeUnlinkIdentityResponse(response *UnlinkIdentityNoContent, w http.ResponseWriter, span trace.Span) error {
+	w.WriteHeader(204)
+
+	return nil
+}
+
+func encodeUpdateAuthSettingsResponse(response *AuthSettings, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
 	if _, err := e.WriteTo(w); err != nil {
 		return errors.Wrap(err, "write")
 	}
@@ -1589,6 +1864,19 @@ func encodeUpdateEnhancementsResponse(response *Enhancements, w http.ResponseWri
 	return nil
 }
 
+func encodeUpdateLdapSettingsResponse(response *LdapSettings, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
 func encodeUpdateLibraryResponse(response *Library, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
@@ -1629,6 +1917,19 @@ func encodeUpdateMetadataSettingsResponse(response *MetadataSettings, w http.Res
 }
 
 func encodeUpdateNotificationSettingsResponse(response *NotificationSettings, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
+func encodeUpdateOidcProviderResponse(response *OidcProvider, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
 
