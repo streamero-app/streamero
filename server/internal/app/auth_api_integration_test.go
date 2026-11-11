@@ -1445,7 +1445,7 @@ func TestAdminDashboardIntegration(t *testing.T) {
 		Key     string
 		Running bool
 	}
-	if s := adminC.do("GET", "/tasks", nil, &tasks); s != 200 || len(tasks) != 5 {
+	if s := adminC.do("GET", "/tasks", nil, &tasks); s != 200 || len(tasks) != 6 {
 		t.Fatalf("tasks: %d %+v", s, tasks)
 	}
 	if s := adminC.do("POST", "/tasks/refresh_metadata/run", nil, nil); s != 202 || ranTasks[len(ranTasks)-1] != "refresh_metadata" {
