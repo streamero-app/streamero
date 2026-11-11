@@ -14,6 +14,8 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.WebSocket
+import okhttp3.WebSocketListener
 import java.util.concurrent.TimeUnit
 
 /** An error answered by the server, with its machine-readable code (see the web client's errors.*). */
@@ -143,6 +145,25 @@ class Api(baseUrl: String, @Volatile var token: String? = null) {
     suspend fun preferences(): Preferences = get("me/preferences")
     suspend fun savePreferences(p: Preferences): Preferences = put("me/preferences", p)
     suspend fun commands(): List<SessionCommand> = get("me/commands")
+
+    // Watch together (SyncPlay). Playback inside a group runs over syncSocket().
+    suspend fun syncGroups(): List<SyncGroup> = get("syncplay/groups")
+    suspend fun createSyncGroup(r: CreateSyncGroup): SyncGroup = post("syncplay/groups", r)
+    suspend fun syncGroup(id: String): SyncGroup = get("syncplay/groups/$id")
+    suspend fun joinSyncGroup(id: String): SyncGroup = call("POST", "syncplay/groups/$id/join", EMPTY, emptyMap(), SyncGroup.serializer())!!
+    /** The group this session is in, null when none (204). */
+    suspend fun mySyncGroup(): SyncGroup? = call("GET", "syncplay/me", null, emptyMap(), SyncGroup.serializer())
+    suspend fun leaveSyncGroup() = send("POST", "syncplay/leave")
+
+    /** Opens the watch-together socket; native apps authenticate with the bearer token and send no Origin. */
+    fun syncSocket(listener: WebSocketListener): WebSocket {
+        val client = http.newBuilder().readTimeout(0, TimeUnit.SECONDS).pingInterval(20, TimeUnit.SECONDS).build()
+        val req = Request.Builder().url(api("syncplay/socket")).apply { token?.let { header("Authorization", "Bearer $it") } }.build()
+        return client.newWebSocket(req, listener)
+    }
+
+    /** The link another member opens to join a group. */
+    fun inviteLink(groupId: String): String = base.toString().trimEnd('/') + "/together/" + groupId
 
     // Discover
     suspend fun discover(q: String?, page: Int = 1): DiscoverPage = get("discover", mapOf("q" to q?.ifBlank { null }, "page" to page))

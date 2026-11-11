@@ -172,3 +172,32 @@ import kotlinx.serialization.json.JsonElement
 @Serializable data class SubtitleSearch(val configured: Boolean = false, val offers: List<SubtitleOffer> = emptyList())
 @Serializable data class ConnectionCheck(val app: String, val ok: Boolean, val version: String? = null, val error: String? = null)
 @Serializable data class ApiErrorBody(val code: String = "generic", val message: String = "")
+
+// Watch together (SyncPlay, D-036). Times are the server's clock in Unix milliseconds.
+@Serializable data class SyncQueueEntry(val id: String, val itemId: String, val title: String, val durationMs: Long? = null)
+@Serializable data class SyncMember(
+    val id: String, val name: String, val device: String = "", val ready: Boolean = false, val buffering: Boolean = false,
+    val connected: Boolean = false, val lagging: Boolean = false,
+)
+@Serializable data class SyncGroup(
+    val id: String, val name: String, val state: String, val queue: List<SyncQueueEntry> = emptyList(), val index: Int = -1,
+    val positionMs: Long = 0, val anchorAt: Long = 0, val speed: Double = 1.0, val version: Long = 0,
+    val reason: String? = null, val actor: String? = null, val members: List<SyncMember> = emptyList(),
+    val serverTime: Long = 0, val createdAt: String = "", val selfId: String? = null,
+) {
+    val current: SyncQueueEntry? get() = queue.getOrNull(index)
+    val self: SyncMember? get() = selfId?.let { id -> members.firstOrNull { it.id == id } }
+}
+@Serializable data class CreateSyncGroup(val name: String? = null, val itemIds: List<String>? = null, val index: Int? = null, val startMs: Long? = null)
+@Serializable data class SyncCorrection(val mode: String, val rate: Double? = null, val durationMs: Long? = null, val positionMs: Long? = null, val driftMs: Long = 0)
+/** A socket message to the server (SyncClientMessage); absent fields are left out. */
+@Serializable data class SyncClientMessage(
+    val type: String, val clientTime: Long? = null, val positionMs: Long? = null, val speed: Double? = null,
+    val itemIds: List<String>? = null, val index: Int? = null, val startMs: Long? = null, val entryId: String? = null,
+    val at: Long? = null, val playing: Boolean? = null,
+)
+/** A socket message from the server (SyncServerMessage). */
+@Serializable data class SyncServerMessage(
+    val type: String, val serverTime: Long = 0, val clientTime: Long? = null, val group: SyncGroup? = null,
+    val reason: String? = null, val correction: SyncCorrection? = null, val code: String? = null, val message: String? = null,
+)

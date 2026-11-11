@@ -41,6 +41,38 @@ class ApiTest {
         assertFalse(body, "bazarrApiKey" in body)
     }
 
+    @Test fun notInASyncGroupIsNull() = runTest {
+        server.enqueue(MockResponse().setResponseCode(204))
+        assertEquals(null, api.mySyncGroup())
+        assertEquals("/api/v1/syncplay/me", server.takeRequest().path)
+    }
+
+    @Test fun joinsAndCreatesSyncGroups() = runTest {
+        val g = """{"id":"g1","name":"n","state":"waiting","queue":[{"id":"e","itemId":"i","title":"t"}],"index":0,"positionMs":0,"anchorAt":0,"speed":1,"version":1,"members":[],"serverTime":1,"createdAt":"x","selfId":"m"}"""
+        server.enqueue(MockResponse().setBody(g))
+        assertEquals("i", api.joinSyncGroup("g1").current?.itemId)
+        val join = server.takeRequest()
+        assertEquals("POST", join.method)
+        assertEquals("/api/v1/syncplay/groups/g1/join", join.path)
+        server.enqueue(MockResponse().setBody(g))
+        api.createSyncGroup(CreateSyncGroup(itemIds = listOf("i"), index = 0))
+        assertEquals("""{"itemIds":["i"],"index":0}""", server.takeRequest().body.readUtf8())
+    }
+
+    @Test fun syncSocketSendsTheTokenAndNoOrigin() {
+        server.enqueue(MockResponse().withWebSocketUpgrade(object : okhttp3.WebSocketListener() {}))
+        val ws = api.syncSocket(object : okhttp3.WebSocketListener() {})
+        val r = server.takeRequest()
+        assertEquals("/api/v1/syncplay/socket", r.path)
+        assertEquals("Bearer tok", r.getHeader("Authorization"))
+        assertEquals(null, r.getHeader("Origin"))
+        ws.cancel()
+    }
+
+    @Test fun inviteLinkPointsAtTheServer() {
+        assertEquals(server.url("/").toString().trimEnd('/') + "/together/abc", api.inviteLink("abc"))
+    }
+
     @Test fun ignoresFieldsTheAppDoesNotKnow() {
         val s = json.decodeFromString(SubtitleSearch.serializer(), """{"configured":true,"future":1,"offers":[]}""")
         assertTrue(s.configured)

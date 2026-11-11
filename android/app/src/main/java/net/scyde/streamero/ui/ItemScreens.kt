@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Replay
@@ -67,6 +68,8 @@ fun ItemScreen(state: AppState, nav: NavHostController, id: String) {
     val tv = LocalTv.current
     val mem = rememberFocusMemory()
     val f = d.files.getOrNull(file)?.id?.takeIf { d.files.size > 1 }
+    var invite by remember { mutableStateOf<String?>(null) }
+    var togetherError by remember { mutableStateOf<Throwable?>(null) }
     // Play, resume, my list, watched: under the hero on a phone, inside it on a TV.
     val actions: @Composable () -> Unit = {
         if (d.files.isNotEmpty()) {
@@ -80,6 +83,15 @@ fun ItemScreen(state: AppState, nav: NavHostController, id: String) {
             GlassButton(stringResource(if (it.played) R.string.watched else R.string.mark_watched), { scope.launch { api.setUserData(it.id, UserDataUpdate(played = !it.played)); reload++ } },
                 Modifier.rememberFocus(mem, "played"), icon = Icons.Default.Check, active = it.played)
         }
+        if (d.files.isNotEmpty() && canWatchTogether(state)) {
+            GlassButton(stringResource(R.string.watch_together), {
+                scope.launch { runCatching { state.sync.create(it.id, it.positionMs) }.onSuccess { g -> invite = g.id }.onFailure { e -> togetherError = e } }
+            }, if (tv) Modifier.rememberFocus(mem, "together") else Modifier.fillMaxWidth(), icon = Icons.Default.Groups)
+            if (!tv) ErrorLine(togetherError)
+        }
+    }
+    invite?.let { gid ->
+        InviteDialog(api.inviteLink(gid), it.title, onDismiss = { invite = null }, onStart = { invite = null; nav.watch(it.id) })
     }
     CompositionLocalProvider(LocalAccent provides accent) {
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 30.dp), verticalArrangement = Arrangement.spacedBy(22.dp)) {
