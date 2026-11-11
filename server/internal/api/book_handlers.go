@@ -66,13 +66,6 @@ func optFloat(p *float64) gen.OptFloat64 {
 	return gen.NewOptFloat64(*p)
 }
 
-func optStr(s string) gen.OptString {
-	if s == "" {
-		return gen.OptString{}
-	}
-	return gen.NewOptString(s)
-}
-
 // addMediaDetail adds what a book, audiobook or photo file says about itself.
 func (h *Handler) addMediaDetail(ctx context.Context, out *gen.ItemDetail, it library.Item) error {
 	switch it.Kind {

@@ -14,6 +14,12 @@ type Handler interface {
 	//
 	// POST /invite/{token}
 	AcceptInvite(ctx context.Context, req *AcceptInviteRequest, params AcceptInviteParams) (*SignedInHeaders, error)
+	// AddLiveTvFavorite implements addLiveTvFavorite operation.
+	//
+	// Mark a channel as a favourite of the viewer (profile or account).
+	//
+	// PUT /livetv/channels/{channelId}/favorite
+	AddLiveTvFavorite(ctx context.Context, params AddLiveTvFavoriteParams) error
 	// AddToPlaylist implements addToPlaylist operation.
 	//
 	// Append titles to a playlist (owner only).
@@ -109,6 +115,30 @@ type Handler interface {
 	//
 	// POST /libraries
 	CreateLibrary(ctx context.Context, req *LibraryInput) (*Library, error)
+	// CreateLiveTvGuide implements createLiveTvGuide operation.
+	//
+	// Add an XMLTV guide source; it is loaded in the background (manageLiveTv).
+	//
+	// POST /livetv/guides
+	CreateLiveTvGuide(ctx context.Context, req *LiveTvGuideSourceInput) (*LiveTvGuideSource, error)
+	// CreateLiveTvRecording implements createLiveTvRecording operation.
+	//
+	// Record one programme (manageLiveTv).
+	//
+	// POST /livetv/recordings
+	CreateLiveTvRecording(ctx context.Context, req *LiveTvRecordingCreate) (*LiveTvRecording, error)
+	// CreateLiveTvSeriesRule implements createLiveTvSeriesRule operation.
+	//
+	// Record a series (manageLiveTv).
+	//
+	// POST /livetv/series-rules
+	CreateLiveTvSeriesRule(ctx context.Context, req *LiveTvSeriesRuleInput) (*LiveTvSeriesRule, error)
+	// CreateLiveTvTuner implements createLiveTvTuner operation.
+	//
+	// Add an M3U playlist or an HDHomeRun device and load its channels (manageLiveTv).
+	//
+	// POST /livetv/tuners
+	CreateLiveTvTuner(ctx context.Context, req *LiveTvTunerInput) (*LiveTvTuner, error)
 	// CreateOidcProvider implements createOidcProvider operation.
 	//
 	// Add an OpenID Connect provider (admin).
@@ -187,6 +217,31 @@ type Handler interface {
 	//
 	// DELETE /libraries/{libraryId}
 	DeleteLibrary(ctx context.Context, params DeleteLibraryParams) error
+	// DeleteLiveTvGuide implements deleteLiveTvGuide operation.
+	//
+	// Remove an XMLTV guide source and its programmes (manageLiveTv).
+	//
+	// DELETE /livetv/guides/{guideId}
+	DeleteLiveTvGuide(ctx context.Context, params DeleteLiveTvGuideParams) error
+	// DeleteLiveTvRecording implements deleteLiveTvRecording operation.
+	//
+	// A finished recording's file is never deleted here: it stays in the recordings library. Files are
+	// only removed by the retention rules an administrator turned on.
+	//
+	// DELETE /livetv/recordings/{recordingId}
+	DeleteLiveTvRecording(ctx context.Context, params DeleteLiveTvRecordingParams) error
+	// DeleteLiveTvSeriesRule implements deleteLiveTvSeriesRule operation.
+	//
+	// Finished recordings of the rule are kept.
+	//
+	// DELETE /livetv/series-rules/{ruleId}
+	DeleteLiveTvSeriesRule(ctx context.Context, params DeleteLiveTvSeriesRuleParams) error
+	// DeleteLiveTvTuner implements deleteLiveTvTuner operation.
+	//
+	// Remove a tuner source and its channels (manageLiveTv).
+	//
+	// DELETE /livetv/tuners/{tunerId}
+	DeleteLiveTvTuner(ctx context.Context, params DeleteLiveTvTunerParams) error
 	// DeleteMyAvatar implements deleteMyAvatar operation.
 	//
 	// Remove own picture.
@@ -235,6 +290,14 @@ type Handler interface {
 	//
 	// GET /discover
 	Discover(ctx context.Context, params DiscoverParams) (*DiscoverPage, error)
+	// DiscoverLiveTvTuners implements discoverLiveTvTuners operation.
+	//
+	// SSDP search on the server's networks; every answer is confirmed through the device's HTTP API
+	// (`/discover.json`). With Docker bridge networking the search usually finds nothing: add the device
+	// by its address instead.
+	//
+	// GET /livetv/tuners/discover
+	DiscoverLiveTvTuners(ctx context.Context) ([]LiveTvDiscoveredTuner, error)
 	// DownloadBackup implements downloadBackup operation.
 	//
 	// Download a backup archive.
@@ -375,6 +438,42 @@ type Handler interface {
 	//
 	// GET /settings/auth/ldap
 	GetLdapSettings(ctx context.Context) (*LdapSettings, error)
+	// GetLiveTvChannel implements getLiveTvChannel operation.
+	//
+	// One channel with now/next (liveTv permission).
+	//
+	// GET /livetv/channels/{channelId}
+	GetLiveTvChannel(ctx context.Context, params GetLiveTvChannelParams) (*LiveTvChannel, error)
+	// GetLiveTvGuide implements getLiveTvGuide operation.
+	//
+	// Guide grid for a time window (liveTv permission).
+	//
+	// GET /livetv/guide
+	GetLiveTvGuide(ctx context.Context, params GetLiveTvGuideParams) (*LiveTvGuide, error)
+	// GetLiveTvMapping implements getLiveTvMapping operation.
+	//
+	// Every channel with its guide mapping, and the guide channels to map to (manageLiveTv).
+	//
+	// GET /livetv/mapping
+	GetLiveTvMapping(ctx context.Context) (*LiveTvMapping, error)
+	// GetLiveTvOnNow implements getLiveTvOnNow operation.
+	//
+	// Empty when Live TV is not set up or the viewer lacks the liveTv permission.
+	//
+	// GET /livetv/on-now
+	GetLiveTvOnNow(ctx context.Context, params GetLiveTvOnNowParams) ([]LiveTvChannel, error)
+	// GetLiveTvProgram implements getLiveTvProgram operation.
+	//
+	// One programme (liveTv permission).
+	//
+	// GET /livetv/programs/{programId}
+	GetLiveTvProgram(ctx context.Context, params GetLiveTvProgramParams) (*LiveTvProgram, error)
+	// GetLiveTvSettings implements getLiveTvSettings operation.
+	//
+	// DVR and time-shift settings (manageLiveTv).
+	//
+	// GET /livetv/settings
+	GetLiveTvSettings(ctx context.Context) (*LiveTvSettings, error)
 	// GetMe implements getMe operation.
 	//
 	// The signed-in user.
@@ -577,6 +676,36 @@ type Handler interface {
 	//
 	// GET /libraries/{libraryId}/series
 	ListLibrarySeries(ctx context.Context, params ListLibrarySeriesParams) ([]NameCount, error)
+	// ListLiveTvChannels implements listLiveTvChannels operation.
+	//
+	// Live TV channels with what is on now and next (liveTv permission).
+	//
+	// GET /livetv/channels
+	ListLiveTvChannels(ctx context.Context, params ListLiveTvChannelsParams) ([]LiveTvChannel, error)
+	// ListLiveTvGuides implements listLiveTvGuides operation.
+	//
+	// XMLTV guide sources (manageLiveTv).
+	//
+	// GET /livetv/guides
+	ListLiveTvGuides(ctx context.Context) ([]LiveTvGuideSource, error)
+	// ListLiveTvRecordings implements listLiveTvRecordings operation.
+	//
+	// Scheduled, running and finished recordings (liveTv permission).
+	//
+	// GET /livetv/recordings
+	ListLiveTvRecordings(ctx context.Context, params ListLiveTvRecordingsParams) ([]LiveTvRecording, error)
+	// ListLiveTvSeriesRules implements listLiveTvSeriesRules operation.
+	//
+	// Series recording rules (liveTv permission).
+	//
+	// GET /livetv/series-rules
+	ListLiveTvSeriesRules(ctx context.Context) ([]LiveTvSeriesRule, error)
+	// ListLiveTvTuners implements listLiveTvTuners operation.
+	//
+	// Tuner sources (manageLiveTv).
+	//
+	// GET /livetv/tuners
+	ListLiveTvTuners(ctx context.Context) ([]LiveTvTuner, error)
 	// ListOidcProviders implements listOidcProviders operation.
 	//
 	// OpenID Connect providers (admin; client secrets are never returned).
@@ -700,6 +829,16 @@ type Handler interface {
 	//
 	// GET /system/ping
 	Ping(ctx context.Context) (*Pong, error)
+	// PlayLiveTvChannel implements playLiveTvChannel operation.
+	//
+	// The channel is always delivered as HLS: remuxed (stream copy) when the device plays the channel's
+	// codecs, otherwise transcoded with the server's encoding settings, using the same decision and
+	// permissions as on-demand playback. The playlist is a sliding window of `timeshiftSeconds`, so
+	// players can pause and rewind within it (time-shift). Viewers of the same channel with the same
+	// delivery share one tuner. 503 `tuners_busy` when every tuner of the channel's source is in use.
+	//
+	// POST /livetv/channels/{channelId}/play
+	PlayLiveTvChannel(ctx context.Context, req *LiveTvPlayRequest, params PlayLiveTvChannelParams) (*LiveTvPlayback, error)
 	// PollQuickConnect implements pollQuickConnect operation.
 	//
 	// Check whether the code was approved; signs the device in when it was.
@@ -724,6 +863,24 @@ type Handler interface {
 	//
 	// POST /libraries/{libraryId}/refresh-metadata
 	RefreshLibraryMetadata(ctx context.Context, params RefreshLibraryMetadataParams) error
+	// RefreshLiveTvGuide implements refreshLiveTvGuide operation.
+	//
+	// Reload a guide source now (queued; manageLiveTv).
+	//
+	// POST /livetv/guides/{guideId}/refresh
+	RefreshLiveTvGuide(ctx context.Context, params RefreshLiveTvGuideParams) error
+	// RefreshLiveTvTuner implements refreshLiveTvTuner operation.
+	//
+	// Reload the channel list of a tuner source (manageLiveTv).
+	//
+	// POST /livetv/tuners/{tunerId}/refresh
+	RefreshLiveTvTuner(ctx context.Context, params RefreshLiveTvTunerParams) (*LiveTvTuner, error)
+	// RemoveLiveTvFavorite implements removeLiveTvFavorite operation.
+	//
+	// Remove a channel from the viewer's favourites.
+	//
+	// DELETE /livetv/channels/{channelId}/favorite
+	RemoveLiveTvFavorite(ctx context.Context, params RemoveLiveTvFavoriteParams) error
 	// RenameSession implements renameSession operation.
 	//
 	// Own sessions; admins can rename any session.
@@ -865,6 +1022,18 @@ type Handler interface {
 	//
 	// POST /settings/auth/ldap/test
 	TestLdapSettings(ctx context.Context, req *LdapTestRequest) (*LdapTestResult, error)
+	// TestLiveTvGuide implements testLiveTvGuide operation.
+	//
+	// Check an XMLTV source without saving it (manageLiveTv).
+	//
+	// POST /livetv/guides/test
+	TestLiveTvGuide(ctx context.Context, req *LiveTvGuideSourceInput) (*LiveTvTestResult, error)
+	// TestLiveTvTuner implements testLiveTvTuner operation.
+	//
+	// Check a tuner configuration without saving it (manageLiveTv).
+	//
+	// POST /livetv/tuners/test
+	TestLiveTvTuner(ctx context.Context, req *LiveTvTunerInput) (*LiveTvTestResult, error)
 	// TestNotification implements testNotification operation.
 	//
 	// Send a test message to one target.
@@ -950,6 +1119,43 @@ type Handler interface {
 	//
 	// PUT /libraries/{libraryId}
 	UpdateLibrary(ctx context.Context, req *LibraryInput, params UpdateLibraryParams) (*Library, error)
+	// UpdateLiveTvChannel implements updateLiveTvChannel operation.
+	//
+	// Guide mapping, category and visibility of a channel (manageLiveTv).
+	//
+	// PATCH /livetv/channels/{channelId}
+	UpdateLiveTvChannel(ctx context.Context, req *LiveTvChannelUpdate, params UpdateLiveTvChannelParams) (*LiveTvChannelAdmin, error)
+	// UpdateLiveTvGuide implements updateLiveTvGuide operation.
+	//
+	// Change an XMLTV guide source (manageLiveTv).
+	//
+	// PUT /livetv/guides/{guideId}
+	UpdateLiveTvGuide(ctx context.Context, req *LiveTvGuideSourceInput, params UpdateLiveTvGuideParams) (*LiveTvGuideSource, error)
+	// UpdateLiveTvRecording implements updateLiveTvRecording operation.
+	//
+	// Change padding or priority of a scheduled recording (manageLiveTv).
+	//
+	// PATCH /livetv/recordings/{recordingId}
+	UpdateLiveTvRecording(ctx context.Context, req *LiveTvRecordingUpdate, params UpdateLiveTvRecordingParams) (*LiveTvRecording, error)
+	// UpdateLiveTvSeriesRule implements updateLiveTvSeriesRule operation.
+	//
+	// Change a series rule (manageLiveTv).
+	//
+	// PUT /livetv/series-rules/{ruleId}
+	UpdateLiveTvSeriesRule(ctx context.Context, req *LiveTvSeriesRuleInput, params UpdateLiveTvSeriesRuleParams) (*LiveTvSeriesRule, error)
+	// UpdateLiveTvSettings implements updateLiveTvSettings operation.
+	//
+	// Change DVR and time-shift settings (manageLiveTv; the post-processing command only by
+	// administrators).
+	//
+	// PUT /livetv/settings
+	UpdateLiveTvSettings(ctx context.Context, req *LiveTvSettings) (*LiveTvSettings, error)
+	// UpdateLiveTvTuner implements updateLiveTvTuner operation.
+	//
+	// Change a tuner source and reload its channels (manageLiveTv).
+	//
+	// PUT /livetv/tuners/{tunerId}
+	UpdateLiveTvTuner(ctx context.Context, req *LiveTvTunerInput, params UpdateLiveTvTunerParams) (*LiveTvTuner, error)
 	// UpdateMe implements updateMe operation.
 	//
 	// Change own display name, e-mail and language.

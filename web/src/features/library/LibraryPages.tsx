@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
+import { OnNowRow } from "@/features/livetv/OnNowRow";
 import { HOME_SECTIONS, type HomeSection } from "@/features/settings/usePreferences";
 import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
@@ -375,6 +376,7 @@ export function HomeContent() {
       {me?.isAdmin && <MetadataNudge />}
       <Billboard pool={latest.data} label={t("home.latest")} />
       {latest.isPending && <><RowSkeleton /><RowSkeleton /></>}
+      <OnNowRow />
       {sections.map((sec) => <Fragment key={sec}>{blocks[sec]}</Fragment>)}
     </div>
   );

@@ -85,7 +85,7 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 	state.SetCompat(&compat.Server{Pool: deps.Pool, Auth: state.Auth(), Libraries: state.Library(), Stream: state.Stream(), ServerID: state.ServerID(),
 		Log: log, ServerName: func(context.Context) string { return "Kino" }})
 	h := &api.Handler{State: state, ServerName: "Default", StartedAt: time.Now(), Auth: state.Auth, Settings: state.Settings,
-		Library: state.Library, Stream: state.Stream, NowPlaying: &activity.Registry{},
+		Library: state.Library, Stream: state.Stream, LiveTV: state.LiveTV, NowPlaying: &activity.Registry{},
 		NewTMDb: func(key string) *metadata.TMDb {
 			if fakeTMDbURL != "" {
 				return &metadata.TMDb{Key: key, BaseURL: fakeTMDbURL + "/3", ImageBase: fakeTMDbURL + "/img"}
@@ -1466,7 +1466,7 @@ func TestAdminDashboardIntegration(t *testing.T) {
 		Key     string
 		Running bool
 	}
-	if s := adminC.do("GET", "/tasks", nil, &tasks); s != 200 || len(tasks) != 6 {
+	if s := adminC.do("GET", "/tasks", nil, &tasks); s != 200 || len(tasks) != 7 {
 		t.Fatalf("tasks: %d %+v", s, tasks)
 	}
 	if s := adminC.do("POST", "/tasks/refresh_metadata/run", nil, nil); s != 202 || ranTasks[len(ranTasks)-1] != "refresh_metadata" {

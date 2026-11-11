@@ -34,6 +34,8 @@ struct RouteDestination: View {
         case .playlist(let id): PlaylistView(id: id, client: client)
         case .settings(let page): SettingsPageView(page: page, client: client)
         case .downloads: DownloadsView()
+        case .liveTv: LiveTVView(client: client)
+        case .liveChannel(let channel): LiveChannelView(channel: channel, client: client)
         }
     }
 }

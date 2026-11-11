@@ -3,6 +3,7 @@ import SwiftUI
 /// All libraries; music libraries open the music view.
 struct LibrariesTab: View {
     let client: MediaClient
+    @Environment(AppState.self) private var app
     @State private var libraries: [Library] = []
     @State private var error: Error?
     @State private var loaded = false
@@ -11,6 +12,12 @@ struct LibrariesTab: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 PageTitle(title: "libraries").padding(.top, 8)
+                if LiveTV.canWatch(app.me) {
+                    NavigationLink(value: Route.liveTv) {
+                        Label("livetv.title", systemImage: "dot.radiowaves.left.and.right").frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(MutedButtonStyle())
+                }
                 if !loaded && error == nil { LoadingView() }
                 ErrorLine(error: error)
                 ForEach(libraries) { lib in

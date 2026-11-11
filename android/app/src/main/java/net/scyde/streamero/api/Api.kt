@@ -181,6 +181,16 @@ class Api(baseUrl: String, @Volatile var token: String? = null) {
     /** The link another member opens to join a group. */
     fun inviteLink(groupId: String): String = base.toString().trimEnd('/') + "/together/" + groupId
 
+    // Live TV and DVR (D-041)
+    suspend fun liveChannels(favorites: Boolean = false): List<LiveTvChannel> = get("livetv/channels", mapOf("favorites" to favorites.takeIf { it }))
+    suspend fun setLiveFavorite(channelId: String, favorite: Boolean) = send(if (favorite) "PUT" else "DELETE", "livetv/channels/$channelId/favorite")
+    suspend fun playChannel(channelId: String, device: DeviceProfile): LiveTvPlayback = post("livetv/channels/$channelId/play", LiveTvPlayRequest(device))
+    suspend fun liveOnNow(limit: Int = 20): List<LiveTvChannel> = get("livetv/on-now", mapOf("limit" to limit))
+    suspend fun liveGuide(hours: Int = 12): LiveTvGuide = get("livetv/guide", mapOf("hours" to hours))
+    suspend fun recordProgram(programId: String, channelId: String?): LiveTvRecording = post("livetv/recordings", LiveTvRecordingCreate(programId, channelId))
+    suspend fun recordSeries(programId: String, channelId: String?): LiveTvSeriesRule =
+        post("livetv/series-rules", LiveTvSeriesRuleInput(programId = programId, channelId = channelId, newOnly = true))
+
     // Discover
     suspend fun discover(q: String?, page: Int = 1): DiscoverPage = get("discover", mapOf("q" to q?.ifBlank { null }, "page" to page))
     suspend fun request(t: DiscoverTitle): TitleRequestResult = post("discover/request", TitleRequest(t.tmdbId, t.mediaType))

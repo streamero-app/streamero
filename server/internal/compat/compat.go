@@ -27,6 +27,7 @@ import (
 
 	"github.com/streamero-app/streamero/server/internal/auth"
 	"github.com/streamero-app/streamero/server/internal/library"
+	"github.com/streamero-app/streamero/server/internal/livetv"
 	"github.com/streamero-app/streamero/server/internal/stream"
 	"github.com/streamero-app/streamero/server/internal/syncplay"
 )
@@ -56,6 +57,8 @@ type Server struct {
 	// names a member (account or profile name, device).
 	SyncPlay     *syncplay.Service
 	SyncIdentity SyncIdentityFunc
+	// LiveTV exposes channels and the guide (optional, D-041).
+	LiveTV *livetv.Service
 
 	routesOnce sync.Once
 	routes     http.Handler
@@ -227,6 +230,7 @@ func (s *Server) mux() *chi.Mux {
 		r.Post("/users/{userId}/items/{itemId}/userdata", s.postUserData)
 
 		s.syncRoutes(r)
+		s.liveRoutes(r)
 
 		r.Post("/library/refresh", s.refreshAll)
 		r.Post("/library/media/updated", s.mediaUpdated)
@@ -518,7 +522,7 @@ func (s *Server) userDTO(u auth.User) map[string]any {
 			"EnableCollectionManagement": all || perms.ManageCollections, "EnableSubtitleManagement": all || perms.EditSubtitles,
 			"EnableLyricManagement": false, "EnableUserPreferenceAccess": true,
 			"EnableRemoteControlOfOtherUsers": false, "EnableSharedDeviceControl": false, "EnableRemoteAccess": true,
-			"EnableLiveTvManagement": false, "EnableLiveTvAccess": false, "EnableMediaPlayback": true,
+			"EnableLiveTvManagement": all || perms.ManageLiveTV, "EnableLiveTvAccess": all || perms.LiveTV, "EnableMediaPlayback": true,
 			"EnableAudioPlaybackTranscoding": all || perms.AudioTranscoding,
 			"EnableVideoPlaybackTranscoding": all || perms.VideoTranscoding, "EnablePlaybackRemuxing": all || perms.Remux,
 			"ForceRemoteSourceTranscoding": false, "EnableContentDeletion": false,

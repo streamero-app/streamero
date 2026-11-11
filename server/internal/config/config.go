@@ -23,6 +23,9 @@ type Config struct {
 	SetupCode      string // optional fixed first-run setup code (otherwise random per start)
 	TrustedProxies string // CIDRs/IPs whose X-Forwarded-For is trusted, comma-separated
 	MediaRoots     string // folders libraries may use, comma-separated
+	// RecordingsDir is where the DVR writes recordings (D-041); it is added to
+	// the media roots so the recordings library can use it.
+	RecordingsDir string
 	FFprobePath    string
 	FFmpegPath     string
 	FpcalcPath     string // Chromaprint's fpcalc for intro/credits detection (ffmpeg's muxer is the fallback)
@@ -65,6 +68,7 @@ func Load() (Config, error) {
 		SetupCode:       os.Getenv("STREAMERO_SETUP_CODE"),
 		TrustedProxies:  os.Getenv("STREAMERO_TRUSTED_PROXIES"),
 		MediaRoots:      env("STREAMERO_MEDIA_ROOTS", "/media"),
+		RecordingsDir:   env("STREAMERO_RECORDINGS_DIR", "/recordings"),
 		FFprobePath:     env("STREAMERO_FFPROBE", "ffprobe"),
 		FFmpegPath:      env("STREAMERO_FFMPEG", "ffmpeg"),
 		FpcalcPath:      env("STREAMERO_FPCALC", "fpcalc"),

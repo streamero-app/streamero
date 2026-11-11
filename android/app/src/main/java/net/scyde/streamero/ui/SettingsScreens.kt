@@ -88,6 +88,9 @@ fun MeScreen(state: AppState, nav: NavHostController, onSignedOut: () -> Unit, o
         if (canWatchTogether(state)) item {
             SettingsLink(Entry("together", R.string.watch_together, Icons.Outlined.Groups), Modifier.rememberFocus(mem, "together")) { nav.navigate("together") }
         }
+        if (net.scyde.streamero.livetv.canWatchLiveTv(state.me)) item {
+            SettingsLink(Entry("livetv", R.string.livetv, Icons.Outlined.LiveTv), Modifier.rememberFocus(mem, "livetv")) { nav.navigate("livetv") }
+        }
         if (state.isAdmin && tv) item {
             Text(stringResource(R.string.tv_admin_elsewhere), color = Kino.faint, fontSize = 14.sp, modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp))
         }

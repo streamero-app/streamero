@@ -18,6 +18,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 
@@ -36,6 +37,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/importer"
 	"github.com/streamero-app/streamero/server/internal/jobs"
 	"github.com/streamero-app/streamero/server/internal/library"
+	"github.com/streamero-app/streamero/server/internal/livetv"
 	"github.com/streamero-app/streamero/server/internal/logbuf"
 	"github.com/streamero-app/streamero/server/internal/metadata"
 	"github.com/streamero-app/streamero/server/internal/netx"
@@ -124,12 +126,12 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		}
 	}
 	state := &app.State{SetupCode: setupCode}
-	roots, err := library.ParseRoots(cfg.MediaRoots)
+	roots, err := mediaRoots(cfg, log)
 	if err != nil {
 		return err
 	}
 	h := &api.Handler{State: state, ServerName: cfg.ServerName, StartedAt: time.Now().UTC(),
-		Auth: state.Auth, Settings: state.Settings, Library: state.Library, Stream: state.Stream,
+		Auth: state.Auth, Settings: state.Settings, Library: state.Library, Stream: state.Stream, LiveTV: state.LiveTV,
 		NewTMDb:    func(key string) *metadata.TMDb { return &metadata.TMDb{Key: key} },
 		NowPlaying: &activity.Registry{}, Logs: logs,
 		Paths: api.Paths{Media: roots, Cache: cfg.CacheDir, Transcode: cfg.TranscodeDir}}
@@ -202,6 +204,8 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 				args = jobs.SegmentDetectAllArgs{}
 			case "backup":
 				args = jobs.BackupArgs{BackupKind: backup.KindManual}
+			case "refresh_guide":
+				args = jobs.GuideRefreshDueArgs{}
 			default:
 				return fmt.Errorf("unknown task %q", key)
 			}
@@ -222,6 +226,15 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			}}
 		streamServer.Downloads = dl
 		h.Downloads.Store(dl)
+		tv := newLiveTV(cfg, deps.Pool, state.Settings, roots, log)
+		tv.Signer, tv.HLS, tv.Library = streamServer.Signer, hls, libs
+		tv.EnqueueGuideRefresh = func(ctx context.Context, id uuid.UUID) error {
+			_, err := inserter.Insert(ctx, jobs.GuideRefreshArgs{GuideID: id}, nil)
+			return err
+		}
+		streamServer.Images = tv.ImageHandler()
+		state.SetLiveTV(tv)
+		go tv.Run(ctx)
 		valkey := deps.Valkey
 		backups := newBackupService(cfg, deps.Pool, log)
 		backups.RecoverStatus(ctx)
@@ -240,7 +253,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			}})
 		state.SetCompat(&compat.Server{Pool: deps.Pool, Auth: state.Auth(), Libraries: libs, Stream: state.Stream(),
 			ServerID: state.ServerID(), Log: log, ServerName: h.ServerNameFor, OnPlayback: h.TrackPlayback, OnProgress: h.TrackProgress,
-			Commands: h.NowPlaying, SyncPlay: h.SyncPlay, SyncIdentity: h.SyncIdentity})
+			Commands: h.NowPlaying, SyncPlay: h.SyncPlay, SyncIdentity: h.SyncIdentity, LiveTV: tv})
 		if cfg.Discovery {
 			startDiscovery(ctx, cfg, state.ServerID(), h.ServerNameFor, log)
 		}
@@ -288,7 +301,7 @@ func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	defer deps.Close()
 	logs.Attach(ctx, deps.Valkey)
 
-	roots, err := library.ParseRoots(cfg.MediaRoots)
+	roots, err := mediaRoots(cfg, log)
 	if err != nil {
 		return err
 	}
@@ -339,6 +352,7 @@ func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			return err
 		}}
 	jobs.RegisterDownloads(workers, transcoder)
+	jobs.RegisterLiveTV(workers, newLiveTV(cfg, deps.Pool, state.Settings, roots, log))
 	backups := newBackupService(cfg, deps.Pool, log)
 	jobs.RegisterBackup(workers, log, backups, state.Settings(), func(ctx context.Context) error {
 		_, err := client.Insert(ctx, jobs.BackupArgs{BackupKind: backup.KindScheduled}, nil)
@@ -365,6 +379,9 @@ func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 				&river.PeriodicJobOpts{RunOnStart: true}),
 			river.NewPeriodicJob(river.PeriodicInterval(15*time.Minute),
 				func() (river.JobArgs, *river.InsertOpts) { return jobs.DownloadMaintainArgs{}, nil }, nil),
+			river.NewPeriodicJob(river.PeriodicInterval(time.Hour),
+				func() (river.JobArgs, *river.InsertOpts) { return jobs.GuideRefreshDueArgs{}, nil },
+				&river.PeriodicJobOpts{RunOnStart: true}),
 		},
 	})
 	if err != nil {
@@ -445,4 +462,33 @@ func startDiscovery(ctx context.Context, cfg config.Config, id uuid.UUID, name f
 			log.Warn("client discovery unavailable", "addr", cfg.DiscoveryAddr, "err", err)
 		}
 	}()
+}
+
+// mediaRoots are the configured media folders plus the recordings folder (the
+// recordings library lives there, D-041).
+func mediaRoots(cfg config.Config, log *slog.Logger) (library.Roots, error) {
+	roots, err := library.ParseRoots(cfg.MediaRoots)
+	if err != nil {
+		return nil, err
+	}
+	if cfg.RecordingsDir == "" || !filepath.IsAbs(cfg.RecordingsDir) {
+		return roots, nil
+	}
+	if err := os.MkdirAll(cfg.RecordingsDir, 0o750); err != nil {
+		log.Warn("recordings folder unavailable; recordings cannot be made", "dir", cfg.RecordingsDir, "err", err)
+		return roots, nil
+	}
+	return append(roots, filepath.Clean(cfg.RecordingsDir)), nil
+}
+
+// newLiveTV builds the Live TV service; serve adds the stream parts and runs the DVR.
+func newLiveTV(cfg config.Config, pool *pgxpool.Pool, st func() *settings.Store, roots library.Roots, log *slog.Logger) *livetv.Service {
+	// Playlist and guide files may come from the media folders or <config>/livetv.
+	files := append(library.Roots{}, roots...)
+	if dir := filepath.Join(cfg.ConfigDir, "livetv"); os.MkdirAll(dir, 0o750) == nil {
+		files = append(files, dir)
+	}
+	return &livetv.Service{Pool: pool, Settings: st, FFmpeg: cfg.FFmpegPath, FFprobe: cfg.FFprobePath, FileRoots: files,
+		RecordingsDir: filepath.Clean(cfg.RecordingsDir), HTTP: livetv.NewHTTPClient(2*time.Minute, false),
+		ImageDir: filepath.Join(cfg.CacheDir, "livetv-images"), Log: log}
 }

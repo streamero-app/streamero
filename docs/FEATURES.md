@@ -233,14 +233,14 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 
 ## 10. Live TV i DVR
 
-- [ ] `[JF]` Tuneri: HDHomeRun (direct play na podržanim klijentima, auto-discovery), M3U (remux po defaultu, native framerate opcija) (P11)
-- [ ] `[JF]` EPG: XMLTV (import pozadina i thumbova epizoda, preskakanje nepromijenjenih programa), Schedules Direct (ispravno rukovanje error kodovima) (P11)
-- [ ] `[JF]` Mapiranje kanala na EPG (P11)
-- [ ] `[JF]` Vodič (guide grid), kanali, „On now", kategorije (filmovi, sport, vijesti, djeca) (P11)
-- [ ] `[JF]` Snimanje: pojedinačno, serije (series timers), pre/post padding, prioriteti, konflikti, lokacija snimki, post-processing skripta (P11)
-- [ ] `[JF]` Snimke kao biblioteka (P11)
-- [ ] `[JF]` Favoriti kanala, Live TV dozvole (P11)
-- [ ] `[JF]` Timeshift / pauziranje live streama (P11)
+- [ ] `[JF]` Tuneri: HDHomeRun (direct play na podržanim klijentima, auto-discovery), M3U (remux po defaultu, native framerate opcija) (P11) — gotovo: M3U (URL/datoteka, remux po defaultu, transkod po potrebi) i HDHomeRun (SSDP + ručna adresa, lineup, broj tunera), D-041; otvoreno: direct play bez HLS-a, native framerate
+- [ ] `[JF]` EPG: XMLTV (import pozadina i thumbova epizoda, preskakanje nepromijenjenih programa), Schedules Direct (ispravno rukovanje error kodovima) (P11) — XMLTV gotov (D-041); Schedules Direct otvoren
+- [x] `[JF]` Mapiranje kanala na EPG (P11)
+- [x] `[JF]` Vodič (guide grid), kanali, „On now", kategorije (filmovi, sport, vijesti, djeca) (P11) — mreža vodiča na webu; iOS/Android popis kanala
+- [x] `[JF]` Snimanje: pojedinačno, serije (series timers), pre/post padding, prioriteti, konflikti, lokacija snimki, post-processing skripta (P11)
+- [x] `[JF]` Snimke kao biblioteka (P11)
+- [x] `[JF]` Favoriti kanala, Live TV dozvole (P11)
+- [x] `[JF]` Timeshift / pauziranje live streama (P11)
 - [ ] `[+]` Detekcija reklama u snimkama (comskip) → Commercial segmenti (P11)
 
 ## 11. SyncPlay / Watch Party, remote control

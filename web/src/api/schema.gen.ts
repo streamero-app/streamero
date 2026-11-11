@@ -2421,6 +2421,438 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/livetv/channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Live TV channels with what is on now and next (liveTv permission) */
+        get: operations["listLiveTvChannels"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/livetv/channels/{channelId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channelId: components["parameters"]["ChannelId"];
+            };
+            cookie?: never;
+        };
+        /** One channel with now/next (liveTv permission) */
+        get: operations["getLiveTvChannel"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Guide mapping, category and visibility of a channel (manageLiveTv) */
+        patch: operations["updateLiveTvChannel"];
+        trace?: never;
+    };
+    "/livetv/channels/{channelId}/favorite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channelId: components["parameters"]["ChannelId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Mark a channel as a favourite of the viewer (profile or account) */
+        put: operations["addLiveTvFavorite"];
+        post?: never;
+        /** Remove a channel from the viewer's favourites */
+        delete: operations["removeLiveTvFavorite"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/livetv/channels/{channelId}/play": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channelId: components["parameters"]["ChannelId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Tune a channel and get a signed HLS URL (liveTv permission)
+         * @description The channel is always delivered as HLS: remuxed (stream copy) when the device
+         *     plays the channel's codecs, otherwise transcoded with the server's encoding
+         *     settings, using the same decision and permissions as on-demand playback. The
+         *     playlist is a sliding window of `timeshiftSeconds`, so players can pause and
+         *     rewind within it (time-shift). Viewers of the same channel with the same
+         *     delivery share one tuner. 503 `tuners_busy` when every tuner of the channel's
+         *     source is in use.
+         */
+        post: operations["playLiveTvChannel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/livetv/guide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Guide grid for a time window (liveTv permission) */
+        get: operations["getLiveTvGuide"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/livetv/on-now": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Programmes airing now, favourite channels first (Home row)
+         * @description Empty when Live TV is not set up or the viewer lacks the liveTv permission.
+         */
+        get: operations["getLiveTvOnNow"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/livetv/programs/{programId}": {
+        parameters: {
+            query?: {
+                /** @description Channel the programme is shown on (a guide channel can be mapped to several). */
+                channelId?: string;
+            };
+            header?: never;
+            path: {
+                programId: string;
+            };
+            cookie?: never;
+        };
+        /** One programme (liveTv permission) */
+        get: operations["getLiveTvProgram"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/livetv/recordings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Scheduled, running and finished recordings (liveTv permission) */
+        get: operations["listLiveTvRecordings"];
+        put?: never;
+        /** Record one programme (manageLiveTv) */
+        post: operations["createLiveTvRecording"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/livetv/recordings/{recordingId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recordingId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Cancel a scheduled recording, stop a running one or hide a finished one (manageLiveTv)
+         * @description A finished recording's file is never deleted here: it stays in the recordings
+         *     library. Files are only removed by the retention rules an administrator turned on.
+         */
+        delete: operations["deleteLiveTvRecording"];
+        options?: never;
+        head?: never;
+        /** Change padding or priority of a scheduled recording (manageLiveTv) */
+        patch: operations["updateLiveTvRecording"];
+        trace?: never;
+    };
+    "/livetv/series-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Series recording rules (liveTv permission) */
+        get: operations["listLiveTvSeriesRules"];
+        put?: never;
+        /** Record a series (manageLiveTv) */
+        post: operations["createLiveTvSeriesRule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/livetv/series-rules/{ruleId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ruleId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a series rule (manageLiveTv) */
+        put: operations["updateLiveTvSeriesRule"];
+        post?: never;
+        /**
+         * Delete a series rule and its upcoming recordings (manageLiveTv)
+         * @description Finished recordings of the rule are kept.
+         */
+        delete: operations["deleteLiveTvSeriesRule"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/livetv/tuners": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tuner sources (manageLiveTv) */
+        get: operations["listLiveTvTuners"];
+        put?: never;
+        /** Add an M3U playlist or an HDHomeRun device and load its channels (manageLiveTv) */
+        post: operations["createLiveTvTuner"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/livetv/tuners/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check a tuner configuration without saving it (manageLiveTv) */
+        post: operations["testLiveTvTuner"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/livetv/tuners/discover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Find HDHomeRun devices on the local network (manageLiveTv)
+         * @description SSDP search on the server's networks; every answer is confirmed through the
+         *     device's HTTP API (`/discover.json`). With Docker bridge networking the search
+         *     usually finds nothing: add the device by its address instead.
+         */
+        get: operations["discoverLiveTvTuners"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/livetv/tuners/{tunerId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tunerId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a tuner source and reload its channels (manageLiveTv) */
+        put: operations["updateLiveTvTuner"];
+        post?: never;
+        /** Remove a tuner source and its channels (manageLiveTv) */
+        delete: operations["deleteLiveTvTuner"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/livetv/tuners/{tunerId}/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tunerId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reload the channel list of a tuner source (manageLiveTv) */
+        post: operations["refreshLiveTvTuner"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/livetv/guides": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** XMLTV guide sources (manageLiveTv) */
+        get: operations["listLiveTvGuides"];
+        put?: never;
+        /** Add an XMLTV guide source; it is loaded in the background (manageLiveTv) */
+        post: operations["createLiveTvGuide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/livetv/guides/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check an XMLTV source without saving it (manageLiveTv) */
+        post: operations["testLiveTvGuide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/livetv/guides/{guideId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                guideId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Change an XMLTV guide source (manageLiveTv) */
+        put: operations["updateLiveTvGuide"];
+        post?: never;
+        /** Remove an XMLTV guide source and its programmes (manageLiveTv) */
+        delete: operations["deleteLiveTvGuide"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/livetv/guides/{guideId}/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                guideId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reload a guide source now (queued; manageLiveTv) */
+        post: operations["refreshLiveTvGuide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/livetv/mapping": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every channel with its guide mapping, and the guide channels to map to (manageLiveTv) */
+        get: operations["getLiveTvMapping"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/livetv/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** DVR and time-shift settings (manageLiveTv) */
+        get: operations["getLiveTvSettings"];
+        /** Change DVR and time-shift settings (manageLiveTv; the post-processing command only by administrators) */
+        put: operations["updateLiveTvSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3016,7 +3448,7 @@ export interface components {
             };
         };
         /** @enum {string} */
-        TaskKey: "scan_all" | "refresh_metadata" | "cleanup_images" | "analyze_media" | "detect_segments" | "backup";
+        TaskKey: "scan_all" | "refresh_metadata" | "cleanup_images" | "analyze_media" | "detect_segments" | "backup" | "refresh_guide";
         Task: {
             key: components["schemas"]["TaskKey"];
             running: boolean;
@@ -4178,6 +4610,344 @@ export interface components {
             progress: components["schemas"]["ImportProgress"];
             report?: components["schemas"]["ImportReport"];
         };
+        /**
+         * @description Normalised category of a channel or programme (from M3U group-title or XMLTV category).
+         * @enum {string}
+         */
+        LiveTvCategory: "movies" | "sports" | "news" | "kids";
+        LiveTvProgram: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            channelId: string;
+            channelName?: string;
+            channelNumber?: string;
+            title: string;
+            /** @description Episode title. */
+            subtitle?: string;
+            description?: string;
+            /** Format: date-time */
+            start: string;
+            /** Format: date-time */
+            end: string;
+            /** @description Categories as the guide names them. */
+            categories: string[];
+            category?: components["schemas"]["LiveTvCategory"];
+            season?: number;
+            episode?: number;
+            year?: number;
+            isNew: boolean;
+            isPremiere?: boolean;
+            /** @description The guide marks it as previously shown. */
+            isRepeat?: boolean;
+            isLive?: boolean;
+            /** @description Signed image URL (relative to the server). */
+            imageUrl?: string;
+            /**
+             * Format: uuid
+             * @description Recording scheduled for this programme on this channel.
+             */
+            recordingId?: string;
+            recordingStatus?: components["schemas"]["LiveTvRecordingStatus"];
+            /** Format: uuid */
+            seriesRuleId?: string;
+        };
+        LiveTvChannel: {
+            /** Format: uuid */
+            id: string;
+            number: string;
+            name: string;
+            /** @description Group as the source names it (M3U group-title). */
+            group?: string;
+            category?: components["schemas"]["LiveTvCategory"];
+            /** @description Signed logo URL (relative to the server). */
+            logoUrl?: string;
+            /** Format: uuid */
+            tunerId: string;
+            favorite: boolean;
+            hd?: boolean;
+            now?: components["schemas"]["LiveTvProgram"];
+            next?: components["schemas"]["LiveTvProgram"];
+        };
+        LiveTvGuideRow: {
+            channel: components["schemas"]["LiveTvChannel"];
+            programs: components["schemas"]["LiveTvProgram"][];
+        };
+        LiveTvGuide: {
+            /** Format: date-time */
+            start: string;
+            /** Format: date-time */
+            end: string;
+            rows: components["schemas"]["LiveTvGuideRow"][];
+        };
+        LiveTvPlayRequest: {
+            device: components["schemas"]["DeviceProfile"];
+        };
+        LiveTvPlayback: {
+            /** Format: uuid */
+            channelId: string;
+            /** @description Signed HLS playlist URL (relative to the server); a sliding live window. */
+            url: string;
+            /** @enum {string} */
+            method: "remux" | "transcode";
+            reason?: string;
+            /** @description How far back the viewer can pause or rewind. */
+            timeshiftSeconds: number;
+            now?: components["schemas"]["LiveTvProgram"];
+        };
+        /** @enum {string} */
+        LiveTvRecordingStatus: "scheduled" | "conflict" | "recording" | "completed" | "failed" | "cancelled" | "deleted";
+        LiveTvRecording: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            channelId?: string;
+            channelName?: string;
+            channelNumber?: string;
+            /** Format: uuid */
+            programId?: string;
+            /** Format: uuid */
+            seriesRuleId?: string;
+            title: string;
+            subtitle?: string;
+            description?: string;
+            season?: number;
+            episode?: number;
+            /** Format: date-time */
+            start: string;
+            /** Format: date-time */
+            end: string;
+            prePaddingSeconds: number;
+            postPaddingSeconds: number;
+            /** @description Higher wins when tuners run out. */
+            priority: number;
+            status: components["schemas"]["LiveTvRecordingStatus"];
+            /** @description Why it failed, or which recordings it conflicts with. */
+            error?: string;
+            /** Format: int64 */
+            sizeBytes?: number;
+            /**
+             * Format: uuid
+             * @description Library item of the finished recording (once scanned).
+             */
+            itemId?: string;
+            imageUrl?: string;
+            postProcessError?: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        LiveTvRecordingCreate: {
+            /** Format: uuid */
+            programId: string;
+            /**
+             * Format: uuid
+             * @description Channel to record from (default the first channel showing the programme).
+             */
+            channelId?: string;
+            prePaddingSeconds?: number;
+            postPaddingSeconds?: number;
+            priority?: number;
+        };
+        LiveTvRecordingUpdate: {
+            prePaddingSeconds?: number;
+            postPaddingSeconds?: number;
+            priority?: number;
+        };
+        LiveTvSeriesRule: {
+            /** Format: uuid */
+            id: string;
+            /** @description Programme title to match (case-insensitive). */
+            title: string;
+            /**
+             * Format: uuid
+             * @description Only this channel; absent = any channel.
+             */
+            channelId?: string;
+            channelName?: string;
+            /** @description Skip airings the guide marks as repeats and episodes already recorded or scheduled. */
+            newOnly: boolean;
+            priority: number;
+            prePaddingSeconds?: number;
+            postPaddingSeconds?: number;
+            /** @description Retention keeps this many newest recordings (0 = the server default); only when retention is turned on. */
+            keepLast: number;
+            /** @description Number of scheduled airings. */
+            upcoming: number;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        LiveTvSeriesRuleInput: {
+            title?: string;
+            /**
+             * Format: uuid
+             * @description Take the title from this programme (when title is absent).
+             */
+            programId?: string;
+            /** Format: uuid */
+            channelId?: string;
+            newOnly?: boolean;
+            priority?: number;
+            prePaddingSeconds?: number;
+            postPaddingSeconds?: number;
+            keepLast?: number;
+        };
+        /** @enum {string} */
+        LiveTvTunerKind: "m3u" | "hdhomerun";
+        LiveTvTuner: {
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["LiveTvTunerKind"];
+            name: string;
+            /** @description Playlist URL (m3u) or device address (hdhomerun). */
+            url?: string;
+            /** @description Playlist file on the server (m3u, instead of url). */
+            filePath?: string;
+            /** @description Simultaneous streams allowed (0 = unlimited, m3u only). */
+            tunerCount: number;
+            userAgent?: string;
+            enabled: boolean;
+            channelCount: number;
+            deviceId?: string;
+            model?: string;
+            /** Format: date-time */
+            lastRefreshAt?: string;
+            error?: string;
+        };
+        LiveTvTunerInput: {
+            kind: components["schemas"]["LiveTvTunerKind"];
+            name: string;
+            url?: string;
+            filePath?: string;
+            /** @description m3u: streams the provider allows at once (0 = unlimited). hdhomerun: absent = the tuner count the device reports. */
+            tunerCount?: number;
+            userAgent?: string;
+            enabled?: boolean;
+        };
+        LiveTvTestResult: {
+            ok: boolean;
+            message: string;
+            channelCount?: number;
+            programCount?: number;
+            tunerCount?: number;
+            model?: string;
+        };
+        LiveTvDiscoveredTuner: {
+            deviceId: string;
+            name: string;
+            model?: string;
+            url: string;
+            tunerCount: number;
+            /** @description A tuner source with this device already exists. */
+            added: boolean;
+        };
+        LiveTvGuideSource: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            url?: string;
+            filePath?: string;
+            /** @description IANA zone for guide times without an offset (default UTC). */
+            timezone?: string;
+            refreshHours: number;
+            enabled: boolean;
+            channelCount: number;
+            programCount: number;
+            /** Format: date-time */
+            lastRefreshAt?: string;
+            /**
+             * Format: date-time
+             * @description Last refresh that found changed programmes.
+             */
+            lastChangedAt?: string;
+            /** @description Summary of the last refresh, e.g. "12 new, 3 changed, 840 unchanged". */
+            lastResult?: string;
+            error?: string;
+        };
+        LiveTvGuideSourceInput: {
+            name: string;
+            url?: string;
+            filePath?: string;
+            timezone?: string;
+            refreshHours?: number;
+            enabled?: boolean;
+        };
+        /** @enum {string} */
+        LiveTvMappingMode: "auto" | "manual" | "none";
+        LiveTvChannelAdmin: {
+            channel: components["schemas"]["LiveTvChannel"];
+            tunerName: string;
+            mapping: components["schemas"]["LiveTvMappingMode"];
+            /** Format: uuid */
+            guideSourceId?: string;
+            /** @description XMLTV channel id the channel is mapped to (automatically or by hand). */
+            guideChannelId?: string;
+            hidden: boolean;
+            categoryOverride?: components["schemas"]["LiveTvCategory"];
+            videoCodec?: string;
+            audioCodec?: string;
+        };
+        LiveTvGuideChannel: {
+            /** Format: uuid */
+            sourceId: string;
+            id: string;
+            name: string;
+        };
+        LiveTvMapping: {
+            channels: components["schemas"]["LiveTvChannelAdmin"][];
+            guideChannels: components["schemas"]["LiveTvGuideChannel"][];
+        };
+        LiveTvChannelUpdate: {
+            mapping?: components["schemas"]["LiveTvMappingMode"];
+            /**
+             * Format: uuid
+             * @description With mapping manual.
+             */
+            guideSourceId?: string;
+            /** @description With mapping manual. */
+            guideChannelId?: string;
+            hidden?: boolean;
+            /**
+             * @description Override the category ("auto" = from the source).
+             * @enum {string}
+             */
+            category?: "auto" | "movies" | "sports" | "news" | "kids";
+        };
+        /** @description Opt-in clean-up of finished recordings. Only files the DVR recorded are ever deleted. */
+        LiveTvRetention: {
+            enabled: boolean;
+            /** @description Delete recordings older than this (0 = never). */
+            deleteAfterDays: number;
+            /** @description Per series rule, keep this many newest recordings (0 = all); rules can override. */
+            keepLast: number;
+        };
+        /**
+         * @description Program run after every finished recording, without a shell. command is an
+         *     absolute path to an executable; each element of args is passed as one argument
+         *     after replacing the placeholders {path} {dir} {filename} {title} {subtitle}
+         *     {channel} {channelNumber} {start} {end} {season} {episode} {recordingId}.
+         *     Only administrators may change it. Empty command = off.
+         */
+        LiveTvPostProcess: {
+            command: string;
+            args: string[];
+            timeoutMinutes: number;
+        };
+        LiveTvSettings: {
+            /** @description Default start padding of new recordings. */
+            prePaddingSeconds: number;
+            postPaddingSeconds: number;
+            /** @description Length of the rolling buffer viewers can pause and rewind in. */
+            timeshiftMinutes: number;
+            retention: components["schemas"]["LiveTvRetention"];
+            postProcess: components["schemas"]["LiveTvPostProcess"];
+            /** @description Folder recordings are written to (STREAMERO_RECORDINGS_DIR). */
+            readonly recordingsPath?: string;
+            /**
+             * Format: uuid
+             * @description Library the recordings appear in (created with the first recording).
+             */
+            readonly recordingsLibraryId?: string;
+        };
     };
     responses: {
         /** @description Redirect (to the provider, the web client or the app) */
@@ -4230,6 +5000,7 @@ export interface components {
         BackupName: string;
         ProfileId: string;
         UserId: string;
+        ChannelId: string;
     };
     requestBodies: never;
     headers: never;
@@ -8077,6 +8848,788 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ImportRun"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listLiveTvChannels: {
+        parameters: {
+            query?: {
+                category?: components["schemas"]["LiveTvCategory"];
+                /** @description Only the viewer's favourite channels. */
+                favorites?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Channels in channel-number order (favourites are flagged) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveTvChannel"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getLiveTvChannel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channelId: components["parameters"]["ChannelId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Channel */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveTvChannel"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateLiveTvChannel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channelId: components["parameters"]["ChannelId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveTvChannelUpdate"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveTvChannelAdmin"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    addLiveTvFavorite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channelId: components["parameters"]["ChannelId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Saved */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    removeLiveTvFavorite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channelId: components["parameters"]["ChannelId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    playLiveTvChannel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channelId: components["parameters"]["ChannelId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveTvPlayRequest"];
+            };
+        };
+        responses: {
+            /** @description How to play */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveTvPlayback"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getLiveTvGuide: {
+        parameters: {
+            query?: {
+                /** @description Window start (default now, rounded down to the half hour). */
+                start?: string;
+                /** @description Window length in hours (default 3). */
+                hours?: number;
+                category?: components["schemas"]["LiveTvCategory"];
+                favorites?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Channels with their programmes in the window */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveTvGuide"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getLiveTvOnNow: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Channels that have a programme now */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveTvChannel"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getLiveTvProgram: {
+        parameters: {
+            query?: {
+                /** @description Channel the programme is shown on (a guide channel can be mapped to several). */
+                channelId?: string;
+            };
+            header?: never;
+            path: {
+                programId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Programme */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveTvProgram"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listLiveTvRecordings: {
+        parameters: {
+            query?: {
+                /** @description Only these states (default all but cancelled and deleted). */
+                status?: components["schemas"]["LiveTvRecordingStatus"][];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recordings, upcoming first by start time, then finished newest first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveTvRecording"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createLiveTvRecording: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveTvRecordingCreate"];
+            };
+        };
+        responses: {
+            /** @description Scheduled (status scheduled, or conflict when no tuner is free) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveTvRecording"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteLiveTvRecording: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recordingId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Done */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateLiveTvRecording: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recordingId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveTvRecordingUpdate"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveTvRecording"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listLiveTvSeriesRules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Rules */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveTvSeriesRule"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createLiveTvSeriesRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveTvSeriesRuleInput"];
+            };
+        };
+        responses: {
+            /** @description Created; matching airings are scheduled at once */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveTvSeriesRule"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateLiveTvSeriesRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ruleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveTvSeriesRuleInput"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveTvSeriesRule"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteLiveTvSeriesRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ruleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listLiveTvTuners: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tuners */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveTvTuner"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createLiveTvTuner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveTvTunerInput"];
+            };
+        };
+        responses: {
+            /** @description Added */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveTvTuner"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    testLiveTvTuner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveTvTunerInput"];
+            };
+        };
+        responses: {
+            /** @description Result (ok false with a message when it does not work) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveTvTestResult"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    discoverLiveTvTuners: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Devices found */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveTvDiscoveredTuner"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateLiveTvTuner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tunerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveTvTunerInput"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveTvTuner"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteLiveTvTuner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tunerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    refreshLiveTvTuner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tunerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Reloaded */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveTvTuner"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listLiveTvGuides: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Guide sources */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveTvGuideSource"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createLiveTvGuide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveTvGuideSourceInput"];
+            };
+        };
+        responses: {
+            /** @description Added */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveTvGuideSource"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    testLiveTvGuide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveTvGuideSourceInput"];
+            };
+        };
+        responses: {
+            /** @description Result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveTvTestResult"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateLiveTvGuide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                guideId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveTvGuideSourceInput"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveTvGuideSource"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteLiveTvGuide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                guideId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    refreshLiveTvGuide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                guideId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getLiveTvMapping: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Mapping */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveTvMapping"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getLiveTvSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveTvSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateLiveTvSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveTvSettings"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveTvSettings"];
                 };
             };
             default: components["responses"]["Error"];

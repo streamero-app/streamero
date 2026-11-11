@@ -3,8 +3,10 @@
 package gen
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/go-faster/errors"
 	"github.com/google/uuid"
@@ -93,6 +95,71 @@ func decodeAcceptInviteParams(args [1]string, argsEscaped bool, r *http.Request)
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "token",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// AddLiveTvFavoriteParams is parameters of addLiveTvFavorite operation.
+type AddLiveTvFavoriteParams struct {
+	ChannelId uuid.UUID
+}
+
+func unpackAddLiveTvFavoriteParams(packed middleware.Parameters) (params AddLiveTvFavoriteParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "channelId",
+			In:   "path",
+		}
+		params.ChannelId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeAddLiveTvFavoriteParams(args [1]string, argsEscaped bool, r *http.Request) (params AddLiveTvFavoriteParams, _ error) {
+	// Decode path: channelId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "channelId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ChannelId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "channelId",
 			In:   "path",
 			Err:  err,
 		}
@@ -790,6 +857,266 @@ func decodeDeleteLibraryParams(args [1]string, argsEscaped bool, r *http.Request
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "libraryId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// DeleteLiveTvGuideParams is parameters of deleteLiveTvGuide operation.
+type DeleteLiveTvGuideParams struct {
+	GuideId uuid.UUID
+}
+
+func unpackDeleteLiveTvGuideParams(packed middleware.Parameters) (params DeleteLiveTvGuideParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "guideId",
+			In:   "path",
+		}
+		params.GuideId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeDeleteLiveTvGuideParams(args [1]string, argsEscaped bool, r *http.Request) (params DeleteLiveTvGuideParams, _ error) {
+	// Decode path: guideId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "guideId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.GuideId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "guideId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// DeleteLiveTvRecordingParams is parameters of deleteLiveTvRecording operation.
+type DeleteLiveTvRecordingParams struct {
+	RecordingId uuid.UUID
+}
+
+func unpackDeleteLiveTvRecordingParams(packed middleware.Parameters) (params DeleteLiveTvRecordingParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "recordingId",
+			In:   "path",
+		}
+		params.RecordingId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeDeleteLiveTvRecordingParams(args [1]string, argsEscaped bool, r *http.Request) (params DeleteLiveTvRecordingParams, _ error) {
+	// Decode path: recordingId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "recordingId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.RecordingId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "recordingId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// DeleteLiveTvSeriesRuleParams is parameters of deleteLiveTvSeriesRule operation.
+type DeleteLiveTvSeriesRuleParams struct {
+	RuleId uuid.UUID
+}
+
+func unpackDeleteLiveTvSeriesRuleParams(packed middleware.Parameters) (params DeleteLiveTvSeriesRuleParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "ruleId",
+			In:   "path",
+		}
+		params.RuleId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeDeleteLiveTvSeriesRuleParams(args [1]string, argsEscaped bool, r *http.Request) (params DeleteLiveTvSeriesRuleParams, _ error) {
+	// Decode path: ruleId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "ruleId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.RuleId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "ruleId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// DeleteLiveTvTunerParams is parameters of deleteLiveTvTuner operation.
+type DeleteLiveTvTunerParams struct {
+	TunerId uuid.UUID
+}
+
+func unpackDeleteLiveTvTunerParams(packed middleware.Parameters) (params DeleteLiveTvTunerParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "tunerId",
+			In:   "path",
+		}
+		params.TunerId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeDeleteLiveTvTunerParams(args [1]string, argsEscaped bool, r *http.Request) (params DeleteLiveTvTunerParams, _ error) {
+	// Decode path: tunerId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "tunerId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.TunerId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "tunerId",
 			In:   "path",
 			Err:  err,
 		}
@@ -2427,6 +2754,537 @@ func decodeGetItemImageParams(args [2]string, argsEscaped bool, r *http.Request)
 		return params, &ogenerrors.DecodeParamError{
 			Name: "imageType",
 			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// GetLiveTvChannelParams is parameters of getLiveTvChannel operation.
+type GetLiveTvChannelParams struct {
+	ChannelId uuid.UUID
+}
+
+func unpackGetLiveTvChannelParams(packed middleware.Parameters) (params GetLiveTvChannelParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "channelId",
+			In:   "path",
+		}
+		params.ChannelId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeGetLiveTvChannelParams(args [1]string, argsEscaped bool, r *http.Request) (params GetLiveTvChannelParams, _ error) {
+	// Decode path: channelId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "channelId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ChannelId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "channelId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// GetLiveTvGuideParams is parameters of getLiveTvGuide operation.
+type GetLiveTvGuideParams struct {
+	// Window start (default now, rounded down to the half hour).
+	Start OptDateTime `json:",omitempty,omitzero"`
+	// Window length in hours (default 3).
+	Hours     OptInt            `json:",omitempty,omitzero"`
+	Category  OptLiveTvCategory `json:",omitempty,omitzero"`
+	Favorites OptBool           `json:",omitempty,omitzero"`
+}
+
+func unpackGetLiveTvGuideParams(packed middleware.Parameters) (params GetLiveTvGuideParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "start",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Start = v.(OptDateTime)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "hours",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Hours = v.(OptInt)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "category",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Category = v.(OptLiveTvCategory)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "favorites",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Favorites = v.(OptBool)
+		}
+	}
+	return params
+}
+
+func decodeGetLiveTvGuideParams(args [0]string, argsEscaped bool, r *http.Request) (params GetLiveTvGuideParams, _ error) {
+	q := uri.NewQueryDecoder(r.URL.Query())
+	// Decode query: start.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "start",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotStartVal time.Time
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToDateTime(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotStartVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Start.SetTo(paramsDotStartVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "start",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: hours.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "hours",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotHoursVal int
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToInt(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotHoursVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Hours.SetTo(paramsDotHoursVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.Hours.Get(); ok {
+					if err := func() error {
+						if err := (validate.Int{
+							MinSet:        true,
+							Min:           1,
+							MaxSet:        true,
+							Max:           24,
+							MinExclusive:  false,
+							MaxExclusive:  false,
+							MultipleOfSet: false,
+							MultipleOf:    0,
+							Pattern:       nil,
+						}).Validate(int64(value)); err != nil {
+							return errors.Wrap(err, "int")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "hours",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: category.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "category",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotCategoryVal LiveTvCategory
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotCategoryVal = LiveTvCategory(c)
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Category.SetTo(paramsDotCategoryVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.Category.Get(); ok {
+					if err := func() error {
+						if err := value.Validate(); err != nil {
+							return err
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "category",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: favorites.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "favorites",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotFavoritesVal bool
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToBool(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotFavoritesVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Favorites.SetTo(paramsDotFavoritesVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "favorites",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// GetLiveTvOnNowParams is parameters of getLiveTvOnNow operation.
+type GetLiveTvOnNowParams struct {
+	Limit OptInt `json:",omitempty,omitzero"`
+}
+
+func unpackGetLiveTvOnNowParams(packed middleware.Parameters) (params GetLiveTvOnNowParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "limit",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Limit = v.(OptInt)
+		}
+	}
+	return params
+}
+
+func decodeGetLiveTvOnNowParams(args [0]string, argsEscaped bool, r *http.Request) (params GetLiveTvOnNowParams, _ error) {
+	q := uri.NewQueryDecoder(r.URL.Query())
+	// Decode query: limit.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "limit",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotLimitVal int
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToInt(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotLimitVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Limit.SetTo(paramsDotLimitVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.Limit.Get(); ok {
+					if err := func() error {
+						if err := (validate.Int{
+							MinSet:        true,
+							Min:           1,
+							MaxSet:        true,
+							Max:           50,
+							MinExclusive:  false,
+							MaxExclusive:  false,
+							MultipleOfSet: false,
+							MultipleOf:    0,
+							Pattern:       nil,
+						}).Validate(int64(value)); err != nil {
+							return errors.Wrap(err, "int")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "limit",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// GetLiveTvProgramParams is parameters of getLiveTvProgram operation.
+type GetLiveTvProgramParams struct {
+	ProgramId uuid.UUID
+	// Channel the programme is shown on (a guide channel can be mapped to several).
+	ChannelId OptUUID `json:",omitempty,omitzero"`
+}
+
+func unpackGetLiveTvProgramParams(packed middleware.Parameters) (params GetLiveTvProgramParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "programId",
+			In:   "path",
+		}
+		params.ProgramId = packed[key].(uuid.UUID)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "channelId",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.ChannelId = v.(OptUUID)
+		}
+	}
+	return params
+}
+
+func decodeGetLiveTvProgramParams(args [1]string, argsEscaped bool, r *http.Request) (params GetLiveTvProgramParams, _ error) {
+	q := uri.NewQueryDecoder(r.URL.Query())
+	// Decode path: programId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "programId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ProgramId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "programId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode query: channelId.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "channelId",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotChannelIdVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotChannelIdVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.ChannelId.SetTo(paramsDotChannelIdVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "channelId",
+			In:   "query",
 			Err:  err,
 		}
 	}
@@ -4654,6 +5512,227 @@ func decodeListLibrarySeriesParams(args [1]string, argsEscaped bool, r *http.Req
 	return params, nil
 }
 
+// ListLiveTvChannelsParams is parameters of listLiveTvChannels operation.
+type ListLiveTvChannelsParams struct {
+	Category OptLiveTvCategory `json:",omitempty,omitzero"`
+	// Only the viewer's favourite channels.
+	Favorites OptBool `json:",omitempty,omitzero"`
+}
+
+func unpackListLiveTvChannelsParams(packed middleware.Parameters) (params ListLiveTvChannelsParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "category",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Category = v.(OptLiveTvCategory)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "favorites",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Favorites = v.(OptBool)
+		}
+	}
+	return params
+}
+
+func decodeListLiveTvChannelsParams(args [0]string, argsEscaped bool, r *http.Request) (params ListLiveTvChannelsParams, _ error) {
+	q := uri.NewQueryDecoder(r.URL.Query())
+	// Decode query: category.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "category",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotCategoryVal LiveTvCategory
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotCategoryVal = LiveTvCategory(c)
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Category.SetTo(paramsDotCategoryVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.Category.Get(); ok {
+					if err := func() error {
+						if err := value.Validate(); err != nil {
+							return err
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "category",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: favorites.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "favorites",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotFavoritesVal bool
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToBool(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotFavoritesVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Favorites.SetTo(paramsDotFavoritesVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "favorites",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// ListLiveTvRecordingsParams is parameters of listLiveTvRecordings operation.
+type ListLiveTvRecordingsParams struct {
+	// Only these states (default all but cancelled and deleted).
+	Status []LiveTvRecordingStatus `json:",omitempty"`
+}
+
+func unpackListLiveTvRecordingsParams(packed middleware.Parameters) (params ListLiveTvRecordingsParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "status",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Status = v.([]LiveTvRecordingStatus)
+		}
+	}
+	return params
+}
+
+func decodeListLiveTvRecordingsParams(args [0]string, argsEscaped bool, r *http.Request) (params ListLiveTvRecordingsParams, _ error) {
+	q := uri.NewQueryDecoder(r.URL.Query())
+	// Decode query: status.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "status",
+			Style:   uri.QueryStyleForm,
+			Explode: false,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				params.Status = nil
+				return d.DecodeArray(func(d uri.Decoder) error {
+					var paramsDotStatusVal LiveTvRecordingStatus
+					if err := func() error {
+						val, err := d.DecodeValue()
+						if err != nil {
+							return err
+						}
+
+						c, err := conv.ToString(val)
+						if err != nil {
+							return err
+						}
+
+						paramsDotStatusVal = LiveTvRecordingStatus(c)
+						return nil
+					}(); err != nil {
+						return err
+					}
+					params.Status = append(params.Status, paramsDotStatusVal)
+					return nil
+				})
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				var failures []validate.FieldError
+				for i, elem := range params.Status {
+					if err := func() error {
+						if err := elem.Validate(); err != nil {
+							return err
+						}
+						return nil
+					}(); err != nil {
+						failures = append(failures, validate.FieldError{
+							Name:  fmt.Sprintf("[%d]", i),
+							Error: err,
+						})
+					}
+				}
+				if len(failures) > 0 {
+					return &validate.Error{Fields: failures}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "status",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // ListUpcomingParams is parameters of listUpcoming operation.
 type ListUpcomingParams struct {
 	Days OptInt `json:",omitempty,omitzero"`
@@ -5818,6 +6897,71 @@ func decodeOpenBookParams(args [1]string, argsEscaped bool, r *http.Request) (pa
 	return params, nil
 }
 
+// PlayLiveTvChannelParams is parameters of playLiveTvChannel operation.
+type PlayLiveTvChannelParams struct {
+	ChannelId uuid.UUID
+}
+
+func unpackPlayLiveTvChannelParams(packed middleware.Parameters) (params PlayLiveTvChannelParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "channelId",
+			In:   "path",
+		}
+		params.ChannelId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodePlayLiveTvChannelParams(args [1]string, argsEscaped bool, r *http.Request) (params PlayLiveTvChannelParams, _ error) {
+	// Decode path: channelId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "channelId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ChannelId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "channelId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // RefreshItemParams is parameters of refreshItem operation.
 type RefreshItemParams struct {
 	ItemId uuid.UUID
@@ -5941,6 +7085,201 @@ func decodeRefreshLibraryMetadataParams(args [1]string, argsEscaped bool, r *htt
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "libraryId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// RefreshLiveTvGuideParams is parameters of refreshLiveTvGuide operation.
+type RefreshLiveTvGuideParams struct {
+	GuideId uuid.UUID
+}
+
+func unpackRefreshLiveTvGuideParams(packed middleware.Parameters) (params RefreshLiveTvGuideParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "guideId",
+			In:   "path",
+		}
+		params.GuideId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeRefreshLiveTvGuideParams(args [1]string, argsEscaped bool, r *http.Request) (params RefreshLiveTvGuideParams, _ error) {
+	// Decode path: guideId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "guideId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.GuideId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "guideId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// RefreshLiveTvTunerParams is parameters of refreshLiveTvTuner operation.
+type RefreshLiveTvTunerParams struct {
+	TunerId uuid.UUID
+}
+
+func unpackRefreshLiveTvTunerParams(packed middleware.Parameters) (params RefreshLiveTvTunerParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "tunerId",
+			In:   "path",
+		}
+		params.TunerId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeRefreshLiveTvTunerParams(args [1]string, argsEscaped bool, r *http.Request) (params RefreshLiveTvTunerParams, _ error) {
+	// Decode path: tunerId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "tunerId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.TunerId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "tunerId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// RemoveLiveTvFavoriteParams is parameters of removeLiveTvFavorite operation.
+type RemoveLiveTvFavoriteParams struct {
+	ChannelId uuid.UUID
+}
+
+func unpackRemoveLiveTvFavoriteParams(packed middleware.Parameters) (params RemoveLiveTvFavoriteParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "channelId",
+			In:   "path",
+		}
+		params.ChannelId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeRemoveLiveTvFavoriteParams(args [1]string, argsEscaped bool, r *http.Request) (params RemoveLiveTvFavoriteParams, _ error) {
+	// Decode path: channelId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "channelId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ChannelId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "channelId",
 			In:   "path",
 			Err:  err,
 		}
@@ -7188,6 +8527,331 @@ func decodeUpdateLibraryParams(args [1]string, argsEscaped bool, r *http.Request
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "libraryId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// UpdateLiveTvChannelParams is parameters of updateLiveTvChannel operation.
+type UpdateLiveTvChannelParams struct {
+	ChannelId uuid.UUID
+}
+
+func unpackUpdateLiveTvChannelParams(packed middleware.Parameters) (params UpdateLiveTvChannelParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "channelId",
+			In:   "path",
+		}
+		params.ChannelId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeUpdateLiveTvChannelParams(args [1]string, argsEscaped bool, r *http.Request) (params UpdateLiveTvChannelParams, _ error) {
+	// Decode path: channelId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "channelId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ChannelId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "channelId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// UpdateLiveTvGuideParams is parameters of updateLiveTvGuide operation.
+type UpdateLiveTvGuideParams struct {
+	GuideId uuid.UUID
+}
+
+func unpackUpdateLiveTvGuideParams(packed middleware.Parameters) (params UpdateLiveTvGuideParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "guideId",
+			In:   "path",
+		}
+		params.GuideId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeUpdateLiveTvGuideParams(args [1]string, argsEscaped bool, r *http.Request) (params UpdateLiveTvGuideParams, _ error) {
+	// Decode path: guideId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "guideId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.GuideId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "guideId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// UpdateLiveTvRecordingParams is parameters of updateLiveTvRecording operation.
+type UpdateLiveTvRecordingParams struct {
+	RecordingId uuid.UUID
+}
+
+func unpackUpdateLiveTvRecordingParams(packed middleware.Parameters) (params UpdateLiveTvRecordingParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "recordingId",
+			In:   "path",
+		}
+		params.RecordingId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeUpdateLiveTvRecordingParams(args [1]string, argsEscaped bool, r *http.Request) (params UpdateLiveTvRecordingParams, _ error) {
+	// Decode path: recordingId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "recordingId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.RecordingId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "recordingId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// UpdateLiveTvSeriesRuleParams is parameters of updateLiveTvSeriesRule operation.
+type UpdateLiveTvSeriesRuleParams struct {
+	RuleId uuid.UUID
+}
+
+func unpackUpdateLiveTvSeriesRuleParams(packed middleware.Parameters) (params UpdateLiveTvSeriesRuleParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "ruleId",
+			In:   "path",
+		}
+		params.RuleId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeUpdateLiveTvSeriesRuleParams(args [1]string, argsEscaped bool, r *http.Request) (params UpdateLiveTvSeriesRuleParams, _ error) {
+	// Decode path: ruleId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "ruleId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.RuleId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "ruleId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// UpdateLiveTvTunerParams is parameters of updateLiveTvTuner operation.
+type UpdateLiveTvTunerParams struct {
+	TunerId uuid.UUID
+}
+
+func unpackUpdateLiveTvTunerParams(packed middleware.Parameters) (params UpdateLiveTvTunerParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "tunerId",
+			In:   "path",
+		}
+		params.TunerId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeUpdateLiveTvTunerParams(args [1]string, argsEscaped bool, r *http.Request) (params UpdateLiveTvTunerParams, _ error) {
+	// Decode path: tunerId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "tunerId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.TunerId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "tunerId",
 			In:   "path",
 			Err:  err,
 		}
