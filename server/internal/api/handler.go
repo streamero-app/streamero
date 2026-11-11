@@ -14,6 +14,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/activity"
 	"github.com/streamero-app/streamero/server/internal/api/gen"
 	"github.com/streamero-app/streamero/server/internal/auth"
+	"github.com/streamero-app/streamero/server/internal/dlna"
 	"github.com/streamero-app/streamero/server/internal/library"
 	"github.com/streamero-app/streamero/server/internal/logbuf"
 	"github.com/streamero-app/streamero/server/internal/metadata"
@@ -60,7 +61,9 @@ type Handler struct {
 	// EnqueueImport queues an import run for the worker (nil until ready).
 	EnqueueImport func(ctx context.Context, runID uuid.UUID) error
 	// Backup is set once the database is ready (nil until then).
-	Backup    atomic.Pointer[Backups]
+	Backup atomic.Pointer[Backups]
+	// DLNA is the DLNA media server (nil when turned off with STREAMERO_DLNA=false).
+	DLNA      atomic.Pointer[dlna.Server]
 	restoring atomic.Bool
 }
 

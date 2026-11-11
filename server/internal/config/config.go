@@ -36,7 +36,15 @@ type Config struct {
 	DiscoveryAddr string // UDP listen address, default ":7359"
 	// DiscoveryURL is the server address announced to discovering clients
 	// (default: http://<address of the interface facing the client>:<HTTP port>).
-	DiscoveryURL    string
+	DiscoveryURL string
+	// DLNA runs the DLNA media server listeners (D-038); what it serves is
+	// switched on by an administrator in the settings (off by default).
+	DLNA         bool
+	DLNAHTTPAddr string // TCP listen address of the DLNA HTTP side, default ":8788"
+	DLNASSDPAddr string // UDP listen address for SSDP, default ":1900"
+	// DLNAURL is the address announced to TVs, e.g. http://192.168.1.10:8788
+	// (default: the address of the interface facing the TV).
+	DLNAURL         string
 	LogLevel        string
 	ShutdownTimeout time.Duration
 }
@@ -73,6 +81,12 @@ func Load() (Config, error) {
 	}
 	c.DiscoveryAddr = env("STREAMERO_DISCOVERY_ADDR", ":7359")
 	c.DiscoveryURL = strings.TrimRight(os.Getenv("STREAMERO_DISCOVERY_URL"), "/")
+	if c.DLNA, err = envBool("STREAMERO_DLNA", true); err != nil {
+		return c, err
+	}
+	c.DLNAHTTPAddr = env("STREAMERO_DLNA_HTTP_ADDR", ":8788")
+	c.DLNASSDPAddr = env("STREAMERO_DLNA_SSDP_ADDR", ":1900")
+	c.DLNAURL = strings.TrimRight(os.Getenv("STREAMERO_DLNA_URL"), "/")
 	if c.AuthRatePerMin, c.AuthRateBurst, err = parseRate(env("STREAMERO_AUTH_RATE_LIMIT", "20,10")); err != nil {
 		return c, err
 	}

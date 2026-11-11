@@ -71,7 +71,7 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 	}
 	t.Cleanup(deps.Close)
 	if _, err := deps.Pool.Exec(ctx, `TRUNCATE users, sessions, audit_log, api_keys, user_totp, recovery_codes, quick_connect, invites, profiles, import_runs;
-		DELETE FROM settings WHERE key IN ('setup.completed', 'server.name', 'playback.resume', 'encoding', 'branding', 'integrations.requests', 'enhancements')`); err != nil {
+		DELETE FROM settings WHERE key IN ('setup.completed', 'server.name', 'playback.resume', 'encoding', 'branding', 'integrations.requests', 'enhancements', 'dlna')`); err != nil {
 		t.Fatal(err)
 	}
 	mediaRoot = t.TempDir()
