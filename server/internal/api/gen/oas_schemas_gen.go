@@ -352,6 +352,145 @@ func (s *AudioStream) SetTitle(val OptString) {
 	s.Title = val
 }
 
+// Ref: #/components/schemas/AudiobookChapter
+type AudiobookChapter struct {
+	Title string `json:"title"`
+	// Position in the whole book.
+	StartMs int64 `json:"startMs"`
+	EndMs   int64 `json:"endMs"`
+}
+
+// GetTitle returns the value of Title.
+func (s *AudiobookChapter) GetTitle() string {
+	return s.Title
+}
+
+// GetStartMs returns the value of StartMs.
+func (s *AudiobookChapter) GetStartMs() int64 {
+	return s.StartMs
+}
+
+// GetEndMs returns the value of EndMs.
+func (s *AudiobookChapter) GetEndMs() int64 {
+	return s.EndMs
+}
+
+// SetTitle sets the value of Title.
+func (s *AudiobookChapter) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetStartMs sets the value of StartMs.
+func (s *AudiobookChapter) SetStartMs(val int64) {
+	s.StartMs = val
+}
+
+// SetEndMs sets the value of EndMs.
+func (s *AudiobookChapter) SetEndMs(val int64) {
+	s.EndMs = val
+}
+
+// Ref: #/components/schemas/AudiobookManifest
+type AudiobookManifest struct {
+	DurationMs int64 `json:"durationMs"`
+	// Saved listening position of the current profile in the whole book.
+	PositionMs int64 `json:"positionMs"`
+	// The files in listening order (one for an M4B).
+	Parts []AudiobookPart `json:"parts"`
+	// Chapters from the file (M4B) or one per file; positions are in the whole book.
+	Chapters []AudiobookChapter `json:"chapters"`
+}
+
+// GetDurationMs returns the value of DurationMs.
+func (s *AudiobookManifest) GetDurationMs() int64 {
+	return s.DurationMs
+}
+
+// GetPositionMs returns the value of PositionMs.
+func (s *AudiobookManifest) GetPositionMs() int64 {
+	return s.PositionMs
+}
+
+// GetParts returns the value of Parts.
+func (s *AudiobookManifest) GetParts() []AudiobookPart {
+	return s.Parts
+}
+
+// GetChapters returns the value of Chapters.
+func (s *AudiobookManifest) GetChapters() []AudiobookChapter {
+	return s.Chapters
+}
+
+// SetDurationMs sets the value of DurationMs.
+func (s *AudiobookManifest) SetDurationMs(val int64) {
+	s.DurationMs = val
+}
+
+// SetPositionMs sets the value of PositionMs.
+func (s *AudiobookManifest) SetPositionMs(val int64) {
+	s.PositionMs = val
+}
+
+// SetParts sets the value of Parts.
+func (s *AudiobookManifest) SetParts(val []AudiobookPart) {
+	s.Parts = val
+}
+
+// SetChapters sets the value of Chapters.
+func (s *AudiobookManifest) SetChapters(val []AudiobookChapter) {
+	s.Chapters = val
+}
+
+// Ref: #/components/schemas/AudiobookPart
+type AudiobookPart struct {
+	// Pass to startPlayback as fileId to get the stream URL.
+	FileId uuid.UUID `json:"fileId"`
+	Title  string    `json:"title"`
+	// Where this file starts in the whole book.
+	OffsetMs   int64 `json:"offsetMs"`
+	DurationMs int64 `json:"durationMs"`
+}
+
+// GetFileId returns the value of FileId.
+func (s *AudiobookPart) GetFileId() uuid.UUID {
+	return s.FileId
+}
+
+// GetTitle returns the value of Title.
+func (s *AudiobookPart) GetTitle() string {
+	return s.Title
+}
+
+// GetOffsetMs returns the value of OffsetMs.
+func (s *AudiobookPart) GetOffsetMs() int64 {
+	return s.OffsetMs
+}
+
+// GetDurationMs returns the value of DurationMs.
+func (s *AudiobookPart) GetDurationMs() int64 {
+	return s.DurationMs
+}
+
+// SetFileId sets the value of FileId.
+func (s *AudiobookPart) SetFileId(val uuid.UUID) {
+	s.FileId = val
+}
+
+// SetTitle sets the value of Title.
+func (s *AudiobookPart) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetOffsetMs sets the value of OffsetMs.
+func (s *AudiobookPart) SetOffsetMs(val int64) {
+	s.OffsetMs = val
+}
+
+// SetDurationMs sets the value of DurationMs.
+func (s *AudiobookPart) SetDurationMs(val int64) {
+	s.DurationMs = val
+}
+
 // Ref: #/components/schemas/AuthProviders
 type AuthProviders struct {
 	// Username/password sign-in is offered (local accounts or LDAP).
@@ -818,6 +957,168 @@ func (s *BackupSettings) SetKeepLast(val int) {
 // SetIncludeImages sets the value of IncludeImages.
 func (s *BackupSettings) SetIncludeImages(val bool) {
 	s.IncludeImages = val
+}
+
+// What a book, comic or audiobook file says about itself.
+// Ref: #/components/schemas/BookDetails
+type BookDetails struct {
+	Format  string   `json:"format"`
+	Authors []string `json:"authors"`
+	// Audiobooks.
+	Narrators   []string   `json:"narrators"`
+	SeriesName  OptString  `json:"seriesName"`
+	SeriesIndex OptFloat64 `json:"seriesIndex"`
+	Volume      OptFloat64 `json:"volume"`
+	Chapter     OptFloat64 `json:"chapter"`
+	PageCount   OptInt     `json:"pageCount"`
+	Isbn        OptString  `json:"isbn"`
+	Publisher   OptString  `json:"publisher"`
+	Language    OptString  `json:"language"`
+	// Publication date as written in the file (e.g. "2019" or "2019-04-01").
+	Published   OptString `json:"published"`
+	Description OptString `json:"description"`
+	// Read right to left (manga, or an EPUB with rtl page progression).
+	RightToLeft OptBool `json:"rightToLeft"`
+}
+
+// GetFormat returns the value of Format.
+func (s *BookDetails) GetFormat() string {
+	return s.Format
+}
+
+// GetAuthors returns the value of Authors.
+func (s *BookDetails) GetAuthors() []string {
+	return s.Authors
+}
+
+// GetNarrators returns the value of Narrators.
+func (s *BookDetails) GetNarrators() []string {
+	return s.Narrators
+}
+
+// GetSeriesName returns the value of SeriesName.
+func (s *BookDetails) GetSeriesName() OptString {
+	return s.SeriesName
+}
+
+// GetSeriesIndex returns the value of SeriesIndex.
+func (s *BookDetails) GetSeriesIndex() OptFloat64 {
+	return s.SeriesIndex
+}
+
+// GetVolume returns the value of Volume.
+func (s *BookDetails) GetVolume() OptFloat64 {
+	return s.Volume
+}
+
+// GetChapter returns the value of Chapter.
+func (s *BookDetails) GetChapter() OptFloat64 {
+	return s.Chapter
+}
+
+// GetPageCount returns the value of PageCount.
+func (s *BookDetails) GetPageCount() OptInt {
+	return s.PageCount
+}
+
+// GetIsbn returns the value of Isbn.
+func (s *BookDetails) GetIsbn() OptString {
+	return s.Isbn
+}
+
+// GetPublisher returns the value of Publisher.
+func (s *BookDetails) GetPublisher() OptString {
+	return s.Publisher
+}
+
+// GetLanguage returns the value of Language.
+func (s *BookDetails) GetLanguage() OptString {
+	return s.Language
+}
+
+// GetPublished returns the value of Published.
+func (s *BookDetails) GetPublished() OptString {
+	return s.Published
+}
+
+// GetDescription returns the value of Description.
+func (s *BookDetails) GetDescription() OptString {
+	return s.Description
+}
+
+// GetRightToLeft returns the value of RightToLeft.
+func (s *BookDetails) GetRightToLeft() OptBool {
+	return s.RightToLeft
+}
+
+// SetFormat sets the value of Format.
+func (s *BookDetails) SetFormat(val string) {
+	s.Format = val
+}
+
+// SetAuthors sets the value of Authors.
+func (s *BookDetails) SetAuthors(val []string) {
+	s.Authors = val
+}
+
+// SetNarrators sets the value of Narrators.
+func (s *BookDetails) SetNarrators(val []string) {
+	s.Narrators = val
+}
+
+// SetSeriesName sets the value of SeriesName.
+func (s *BookDetails) SetSeriesName(val OptString) {
+	s.SeriesName = val
+}
+
+// SetSeriesIndex sets the value of SeriesIndex.
+func (s *BookDetails) SetSeriesIndex(val OptFloat64) {
+	s.SeriesIndex = val
+}
+
+// SetVolume sets the value of Volume.
+func (s *BookDetails) SetVolume(val OptFloat64) {
+	s.Volume = val
+}
+
+// SetChapter sets the value of Chapter.
+func (s *BookDetails) SetChapter(val OptFloat64) {
+	s.Chapter = val
+}
+
+// SetPageCount sets the value of PageCount.
+func (s *BookDetails) SetPageCount(val OptInt) {
+	s.PageCount = val
+}
+
+// SetIsbn sets the value of Isbn.
+func (s *BookDetails) SetIsbn(val OptString) {
+	s.Isbn = val
+}
+
+// SetPublisher sets the value of Publisher.
+func (s *BookDetails) SetPublisher(val OptString) {
+	s.Publisher = val
+}
+
+// SetLanguage sets the value of Language.
+func (s *BookDetails) SetLanguage(val OptString) {
+	s.Language = val
+}
+
+// SetPublished sets the value of Published.
+func (s *BookDetails) SetPublished(val OptString) {
+	s.Published = val
+}
+
+// SetDescription sets the value of Description.
+func (s *BookDetails) SetDescription(val OptString) {
+	s.Description = val
+}
+
+// SetRightToLeft sets the value of RightToLeft.
+func (s *BookDetails) SetRightToLeft(val OptBool) {
+	s.RightToLeft = val
 }
 
 // Ref: #/components/schemas/BrandingSettings
@@ -3929,6 +4230,8 @@ func (s *InviteInfo) SetExpiresAt(val time.Time) {
 
 // Ref: #/components/schemas/ItemDetail
 type ItemDetail struct {
+	Book  OptBookDetails  `json:"book"`
+	Photo OptPhotoDetails `json:"photo"`
 	// Metadata was edited by hand and is kept on refresh.
 	Locked        OptBool      `json:"locked"`
 	Collections   []Collection `json:"collections"`
@@ -3957,6 +4260,16 @@ type ItemDetail struct {
 	ProviderIds ItemDetailProviderIds `json:"providerIds"`
 	Files       []MediaFile           `json:"files"`
 	Children    []ItemSummary         `json:"children"`
+}
+
+// GetBook returns the value of Book.
+func (s *ItemDetail) GetBook() OptBookDetails {
+	return s.Book
+}
+
+// GetPhoto returns the value of Photo.
+func (s *ItemDetail) GetPhoto() OptPhotoDetails {
+	return s.Photo
 }
 
 // GetLocked returns the value of Locked.
@@ -4067,6 +4380,16 @@ func (s *ItemDetail) GetFiles() []MediaFile {
 // GetChildren returns the value of Children.
 func (s *ItemDetail) GetChildren() []ItemSummary {
 	return s.Children
+}
+
+// SetBook sets the value of Book.
+func (s *ItemDetail) SetBook(val OptBookDetails) {
+	s.Book = val
+}
+
+// SetPhoto sets the value of Photo.
+func (s *ItemDetail) SetPhoto(val OptPhotoDetails) {
+	s.Photo = val
 }
 
 // SetLocked sets the value of Locked.
@@ -4195,13 +4518,18 @@ func (s *ItemDetailProviderIds) init() ItemDetailProviderIds {
 type ItemKind string
 
 const (
-	ItemKindMovie   ItemKind = "movie"
-	ItemKindSeries  ItemKind = "series"
-	ItemKindSeason  ItemKind = "season"
-	ItemKindEpisode ItemKind = "episode"
-	ItemKindArtist  ItemKind = "artist"
-	ItemKindAlbum   ItemKind = "album"
-	ItemKindTrack   ItemKind = "track"
+	ItemKindMovie      ItemKind = "movie"
+	ItemKindSeries     ItemKind = "series"
+	ItemKindSeason     ItemKind = "season"
+	ItemKindEpisode    ItemKind = "episode"
+	ItemKindArtist     ItemKind = "artist"
+	ItemKindAlbum      ItemKind = "album"
+	ItemKindTrack      ItemKind = "track"
+	ItemKindBook       ItemKind = "book"
+	ItemKindAudiobook  ItemKind = "audiobook"
+	ItemKindPhotoalbum ItemKind = "photoalbum"
+	ItemKindPhoto      ItemKind = "photo"
+	ItemKindVideo      ItemKind = "video"
 )
 
 // AllValues returns all ItemKind values.
@@ -4214,6 +4542,11 @@ func (ItemKind) AllValues() []ItemKind {
 		ItemKindArtist,
 		ItemKindAlbum,
 		ItemKindTrack,
+		ItemKindBook,
+		ItemKindAudiobook,
+		ItemKindPhotoalbum,
+		ItemKindPhoto,
+		ItemKindVideo,
 	}
 }
 
@@ -4233,6 +4566,16 @@ func (s ItemKind) MarshalText() ([]byte, error) {
 	case ItemKindAlbum:
 		return []byte(s), nil
 	case ItemKindTrack:
+		return []byte(s), nil
+	case ItemKindBook:
+		return []byte(s), nil
+	case ItemKindAudiobook:
+		return []byte(s), nil
+	case ItemKindPhotoalbum:
+		return []byte(s), nil
+	case ItemKindPhoto:
+		return []byte(s), nil
+	case ItemKindVideo:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -4262,6 +4605,21 @@ func (s *ItemKind) UnmarshalText(data []byte) error {
 		return nil
 	case ItemKindTrack:
 		*s = ItemKindTrack
+		return nil
+	case ItemKindBook:
+		*s = ItemKindBook
+		return nil
+	case ItemKindAudiobook:
+		*s = ItemKindAudiobook
+		return nil
+	case ItemKindPhotoalbum:
+		*s = ItemKindPhotoalbum
+		return nil
+	case ItemKindPhoto:
+		*s = ItemKindPhoto
+		return nil
+	case ItemKindVideo:
+		*s = ItemKindVideo
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -4332,6 +4690,24 @@ type ItemSummary struct {
 	// Watched by the current profile.
 	Played   OptBool `json:"played"`
 	Favorite OptBool `json:"favorite"`
+	// Books and audiobooks, the authors.
+	Authors []string `json:"authors"`
+	// Books and audiobooks, the series they belong to.
+	SeriesName OptString `json:"seriesName"`
+	// Position in the series (may be fractional, e.g. 2.5).
+	SeriesIndex OptFloat64 `json:"seriesIndex"`
+	// Books, the file format (epub, pdf, mobi, azw3, cbz, cbr, cb7, cbt); audiobooks, m4b or the audio
+	// container.
+	BookFormat OptString `json:"bookFormat"`
+	// Books, the fraction the current profile has read (0–1).
+	Progression OptFloat64 `json:"progression"`
+	// Photos and videos, when they were taken (EXIF), else the file's modification time.
+	TakenAt OptDateTime `json:"takenAt"`
+	// Photos and videos, the picture width (as displayed, after EXIF rotation).
+	Width  OptInt `json:"width"`
+	Height OptInt `json:"height"`
+	// Photo albums, the number of photos, videos and sub-albums directly in them.
+	ChildCount OptInt `json:"childCount"`
 }
 
 // GetID returns the value of ID.
@@ -4454,6 +4830,51 @@ func (s *ItemSummary) GetFavorite() OptBool {
 	return s.Favorite
 }
 
+// GetAuthors returns the value of Authors.
+func (s *ItemSummary) GetAuthors() []string {
+	return s.Authors
+}
+
+// GetSeriesName returns the value of SeriesName.
+func (s *ItemSummary) GetSeriesName() OptString {
+	return s.SeriesName
+}
+
+// GetSeriesIndex returns the value of SeriesIndex.
+func (s *ItemSummary) GetSeriesIndex() OptFloat64 {
+	return s.SeriesIndex
+}
+
+// GetBookFormat returns the value of BookFormat.
+func (s *ItemSummary) GetBookFormat() OptString {
+	return s.BookFormat
+}
+
+// GetProgression returns the value of Progression.
+func (s *ItemSummary) GetProgression() OptFloat64 {
+	return s.Progression
+}
+
+// GetTakenAt returns the value of TakenAt.
+func (s *ItemSummary) GetTakenAt() OptDateTime {
+	return s.TakenAt
+}
+
+// GetWidth returns the value of Width.
+func (s *ItemSummary) GetWidth() OptInt {
+	return s.Width
+}
+
+// GetHeight returns the value of Height.
+func (s *ItemSummary) GetHeight() OptInt {
+	return s.Height
+}
+
+// GetChildCount returns the value of ChildCount.
+func (s *ItemSummary) GetChildCount() OptInt {
+	return s.ChildCount
+}
+
 // SetID sets the value of ID.
 func (s *ItemSummary) SetID(val uuid.UUID) {
 	s.ID = val
@@ -4572,6 +4993,51 @@ func (s *ItemSummary) SetPlayed(val OptBool) {
 // SetFavorite sets the value of Favorite.
 func (s *ItemSummary) SetFavorite(val OptBool) {
 	s.Favorite = val
+}
+
+// SetAuthors sets the value of Authors.
+func (s *ItemSummary) SetAuthors(val []string) {
+	s.Authors = val
+}
+
+// SetSeriesName sets the value of SeriesName.
+func (s *ItemSummary) SetSeriesName(val OptString) {
+	s.SeriesName = val
+}
+
+// SetSeriesIndex sets the value of SeriesIndex.
+func (s *ItemSummary) SetSeriesIndex(val OptFloat64) {
+	s.SeriesIndex = val
+}
+
+// SetBookFormat sets the value of BookFormat.
+func (s *ItemSummary) SetBookFormat(val OptString) {
+	s.BookFormat = val
+}
+
+// SetProgression sets the value of Progression.
+func (s *ItemSummary) SetProgression(val OptFloat64) {
+	s.Progression = val
+}
+
+// SetTakenAt sets the value of TakenAt.
+func (s *ItemSummary) SetTakenAt(val OptDateTime) {
+	s.TakenAt = val
+}
+
+// SetWidth sets the value of Width.
+func (s *ItemSummary) SetWidth(val OptInt) {
+	s.Width = val
+}
+
+// SetHeight sets the value of Height.
+func (s *ItemSummary) SetHeight(val OptInt) {
+	s.Height = val
+}
+
+// SetChildCount sets the value of ChildCount.
+func (s *ItemSummary) SetChildCount(val OptInt) {
+	s.ChildCount = val
 }
 
 // Ref: #/components/schemas/LdapSettings
@@ -5198,10 +5664,13 @@ func (s *LibraryInput) SetPaths(val []string) {
 type LibraryKind string
 
 const (
-	LibraryKindMovies LibraryKind = "movies"
-	LibraryKindShows  LibraryKind = "shows"
-	LibraryKindMusic  LibraryKind = "music"
-	LibraryKindMixed  LibraryKind = "mixed"
+	LibraryKindMovies     LibraryKind = "movies"
+	LibraryKindShows      LibraryKind = "shows"
+	LibraryKindMusic      LibraryKind = "music"
+	LibraryKindMixed      LibraryKind = "mixed"
+	LibraryKindBooks      LibraryKind = "books"
+	LibraryKindAudiobooks LibraryKind = "audiobooks"
+	LibraryKindPhotos     LibraryKind = "photos"
 )
 
 // AllValues returns all LibraryKind values.
@@ -5211,6 +5680,9 @@ func (LibraryKind) AllValues() []LibraryKind {
 		LibraryKindShows,
 		LibraryKindMusic,
 		LibraryKindMixed,
+		LibraryKindBooks,
+		LibraryKindAudiobooks,
+		LibraryKindPhotos,
 	}
 }
 
@@ -5224,6 +5696,12 @@ func (s LibraryKind) MarshalText() ([]byte, error) {
 	case LibraryKindMusic:
 		return []byte(s), nil
 	case LibraryKindMixed:
+		return []byte(s), nil
+	case LibraryKindBooks:
+		return []byte(s), nil
+	case LibraryKindAudiobooks:
+		return []byte(s), nil
+	case LibraryKindPhotos:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -5244,6 +5722,15 @@ func (s *LibraryKind) UnmarshalText(data []byte) error {
 		return nil
 	case LibraryKindMixed:
 		*s = LibraryKindMixed
+		return nil
+	case LibraryKindBooks:
+		*s = LibraryKindBooks
+		return nil
+	case LibraryKindAudiobooks:
+		*s = LibraryKindAudiobooks
+		return nil
+	case LibraryKindPhotos:
+		*s = LibraryKindPhotos
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -5404,9 +5891,14 @@ func (s *LinkedIdentityKind) UnmarshalText(data []byte) error {
 type ListLibraryItemsKind string
 
 const (
-	ListLibraryItemsKindArtist ListLibraryItemsKind = "artist"
-	ListLibraryItemsKindAlbum  ListLibraryItemsKind = "album"
-	ListLibraryItemsKindTrack  ListLibraryItemsKind = "track"
+	ListLibraryItemsKindArtist     ListLibraryItemsKind = "artist"
+	ListLibraryItemsKindAlbum      ListLibraryItemsKind = "album"
+	ListLibraryItemsKindTrack      ListLibraryItemsKind = "track"
+	ListLibraryItemsKindBook       ListLibraryItemsKind = "book"
+	ListLibraryItemsKindAudiobook  ListLibraryItemsKind = "audiobook"
+	ListLibraryItemsKindPhotoalbum ListLibraryItemsKind = "photoalbum"
+	ListLibraryItemsKindPhoto      ListLibraryItemsKind = "photo"
+	ListLibraryItemsKindVideo      ListLibraryItemsKind = "video"
 )
 
 // AllValues returns all ListLibraryItemsKind values.
@@ -5415,6 +5907,11 @@ func (ListLibraryItemsKind) AllValues() []ListLibraryItemsKind {
 		ListLibraryItemsKindArtist,
 		ListLibraryItemsKindAlbum,
 		ListLibraryItemsKindTrack,
+		ListLibraryItemsKindBook,
+		ListLibraryItemsKindAudiobook,
+		ListLibraryItemsKindPhotoalbum,
+		ListLibraryItemsKindPhoto,
+		ListLibraryItemsKindVideo,
 	}
 }
 
@@ -5426,6 +5923,16 @@ func (s ListLibraryItemsKind) MarshalText() ([]byte, error) {
 	case ListLibraryItemsKindAlbum:
 		return []byte(s), nil
 	case ListLibraryItemsKindTrack:
+		return []byte(s), nil
+	case ListLibraryItemsKindBook:
+		return []byte(s), nil
+	case ListLibraryItemsKindAudiobook:
+		return []byte(s), nil
+	case ListLibraryItemsKindPhotoalbum:
+		return []byte(s), nil
+	case ListLibraryItemsKindPhoto:
+		return []byte(s), nil
+	case ListLibraryItemsKindVideo:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -5444,6 +5951,21 @@ func (s *ListLibraryItemsKind) UnmarshalText(data []byte) error {
 	case ListLibraryItemsKindTrack:
 		*s = ListLibraryItemsKindTrack
 		return nil
+	case ListLibraryItemsKindBook:
+		*s = ListLibraryItemsKindBook
+		return nil
+	case ListLibraryItemsKindAudiobook:
+		*s = ListLibraryItemsKindAudiobook
+		return nil
+	case ListLibraryItemsKindPhotoalbum:
+		*s = ListLibraryItemsKindPhotoalbum
+		return nil
+	case ListLibraryItemsKindPhoto:
+		*s = ListLibraryItemsKindPhoto
+		return nil
+	case ListLibraryItemsKindVideo:
+		*s = ListLibraryItemsKindVideo
+		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
 	}
@@ -5457,6 +5979,8 @@ const (
 	ListLibraryItemsSortAdded  ListLibraryItemsSort = "added"
 	ListLibraryItemsSortRating ListLibraryItemsSort = "rating"
 	ListLibraryItemsSortRandom ListLibraryItemsSort = "random"
+	ListLibraryItemsSortTaken  ListLibraryItemsSort = "taken"
+	ListLibraryItemsSortSeries ListLibraryItemsSort = "series"
 )
 
 // AllValues returns all ListLibraryItemsSort values.
@@ -5467,6 +5991,8 @@ func (ListLibraryItemsSort) AllValues() []ListLibraryItemsSort {
 		ListLibraryItemsSortAdded,
 		ListLibraryItemsSortRating,
 		ListLibraryItemsSortRandom,
+		ListLibraryItemsSortTaken,
+		ListLibraryItemsSortSeries,
 	}
 }
 
@@ -5482,6 +6008,10 @@ func (s ListLibraryItemsSort) MarshalText() ([]byte, error) {
 	case ListLibraryItemsSortRating:
 		return []byte(s), nil
 	case ListLibraryItemsSortRandom:
+		return []byte(s), nil
+	case ListLibraryItemsSortTaken:
+		return []byte(s), nil
+	case ListLibraryItemsSortSeries:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -5505,6 +6035,12 @@ func (s *ListLibraryItemsSort) UnmarshalText(data []byte) error {
 		return nil
 	case ListLibraryItemsSortRandom:
 		*s = ListLibraryItemsSortRandom
+		return nil
+	case ListLibraryItemsSortTaken:
+		*s = ListLibraryItemsSortTaken
+		return nil
+	case ListLibraryItemsSortSeries:
+		*s = ListLibraryItemsSortSeries
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -6041,11 +6577,26 @@ func (s *MetadataEdit) SetLocked(val bool) {
 
 // Ref: #/components/schemas/MetadataSettings
 type MetadataSettings struct {
-	TmdbConfigured bool `json:"tmdbConfigured"`
+	// Fill missing book descriptions and covers from Open Library (off by default; never required).
+	OnlineBookMetadata OptBool `json:"onlineBookMetadata"`
+	// Show where photos were taken (EXIF GPS). Off by default; the location is never sent to clients while
+	// off.
+	PhotoLocation  OptBool `json:"photoLocation"`
+	TmdbConfigured bool    `json:"tmdbConfigured"`
 	// Preferred metadata language, e.g. "hr-HR" (English is the fallback).
 	Language string `json:"language"`
 	// Country for age ratings and release dates, e.g. "HR".
 	Country string `json:"country"`
+}
+
+// GetOnlineBookMetadata returns the value of OnlineBookMetadata.
+func (s *MetadataSettings) GetOnlineBookMetadata() OptBool {
+	return s.OnlineBookMetadata
+}
+
+// GetPhotoLocation returns the value of PhotoLocation.
+func (s *MetadataSettings) GetPhotoLocation() OptBool {
+	return s.PhotoLocation
 }
 
 // GetTmdbConfigured returns the value of TmdbConfigured.
@@ -6061,6 +6612,16 @@ func (s *MetadataSettings) GetLanguage() string {
 // GetCountry returns the value of Country.
 func (s *MetadataSettings) GetCountry() string {
 	return s.Country
+}
+
+// SetOnlineBookMetadata sets the value of OnlineBookMetadata.
+func (s *MetadataSettings) SetOnlineBookMetadata(val OptBool) {
+	s.OnlineBookMetadata = val
+}
+
+// SetPhotoLocation sets the value of PhotoLocation.
+func (s *MetadataSettings) SetPhotoLocation(val OptBool) {
+	s.PhotoLocation = val
 }
 
 // SetTmdbConfigured sets the value of TmdbConfigured.
@@ -6080,11 +6641,25 @@ func (s *MetadataSettings) SetCountry(val string) {
 
 // Ref: #/components/schemas/MetadataSettingsInput
 type MetadataSettingsInput struct {
+	// Omit to keep the current setting.
+	OnlineBookMetadata OptBool `json:"onlineBookMetadata"`
+	// Omit to keep the current setting.
+	PhotoLocation OptBool `json:"photoLocation"`
 	// TMDb API key (v3) or API Read Access Token (v4). Omit to keep the current key.
 	TmdbApiKey    OptString `json:"tmdbApiKey"`
 	RemoveTmdbKey OptBool   `json:"removeTmdbKey"`
 	Language      string    `json:"language"`
 	Country       string    `json:"country"`
+}
+
+// GetOnlineBookMetadata returns the value of OnlineBookMetadata.
+func (s *MetadataSettingsInput) GetOnlineBookMetadata() OptBool {
+	return s.OnlineBookMetadata
+}
+
+// GetPhotoLocation returns the value of PhotoLocation.
+func (s *MetadataSettingsInput) GetPhotoLocation() OptBool {
+	return s.PhotoLocation
 }
 
 // GetTmdbApiKey returns the value of TmdbApiKey.
@@ -6107,6 +6682,16 @@ func (s *MetadataSettingsInput) GetCountry() string {
 	return s.Country
 }
 
+// SetOnlineBookMetadata sets the value of OnlineBookMetadata.
+func (s *MetadataSettingsInput) SetOnlineBookMetadata(val OptBool) {
+	s.OnlineBookMetadata = val
+}
+
+// SetPhotoLocation sets the value of PhotoLocation.
+func (s *MetadataSettingsInput) SetPhotoLocation(val OptBool) {
+	s.PhotoLocation = val
+}
+
 // SetTmdbApiKey sets the value of TmdbApiKey.
 func (s *MetadataSettingsInput) SetTmdbApiKey(val OptString) {
 	s.TmdbApiKey = val
@@ -6125,6 +6710,44 @@ func (s *MetadataSettingsInput) SetLanguage(val string) {
 // SetCountry sets the value of Country.
 func (s *MetadataSettingsInput) SetCountry(val string) {
 	s.Country = val
+}
+
+// Ref: #/components/schemas/NameCount
+type NameCount struct {
+	Name  string `json:"name"`
+	Count int    `json:"count"`
+	// An item to take a cover from (first book of the series, a book of the author).
+	ItemId OptUUID `json:"itemId"`
+}
+
+// GetName returns the value of Name.
+func (s *NameCount) GetName() string {
+	return s.Name
+}
+
+// GetCount returns the value of Count.
+func (s *NameCount) GetCount() int {
+	return s.Count
+}
+
+// GetItemId returns the value of ItemId.
+func (s *NameCount) GetItemId() OptUUID {
+	return s.ItemId
+}
+
+// SetName sets the value of Name.
+func (s *NameCount) SetName(val string) {
+	s.Name = val
+}
+
+// SetCount sets the value of Count.
+func (s *NameCount) SetCount(val int) {
+	s.Count = val
+}
+
+// SetItemId sets the value of ItemId.
+func (s *NameCount) SetItemId(val OptUUID) {
+	s.ItemId = val
 }
 
 // Ref: #/components/schemas/NotificationEvent
@@ -7258,6 +7881,52 @@ func (o OptActivityEntryDetail) Or(d ActivityEntryDetail) ActivityEntryDetail {
 	return d
 }
 
+// NewOptBookDetails returns new OptBookDetails with value set to v.
+func NewOptBookDetails(v BookDetails) OptBookDetails {
+	return OptBookDetails{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptBookDetails is optional BookDetails.
+type OptBookDetails struct {
+	Value BookDetails
+	Set   bool
+}
+
+// IsSet returns true if OptBookDetails was set.
+func (o OptBookDetails) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptBookDetails) Reset() {
+	var v BookDetails
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptBookDetails) SetTo(v BookDetails) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptBookDetails) Get() (v BookDetails, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptBookDetails) Or(d BookDetails) BookDetails {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptBool returns new OptBool with value set to v.
 func NewOptBool(v bool) OptBool {
 	return OptBool{
@@ -7896,6 +8565,52 @@ func (o OptPasswordConfirmRequest) Get() (v PasswordConfirmRequest, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptPasswordConfirmRequest) Or(d PasswordConfirmRequest) PasswordConfirmRequest {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptPhotoDetails returns new OptPhotoDetails with value set to v.
+func NewOptPhotoDetails(v PhotoDetails) OptPhotoDetails {
+	return OptPhotoDetails{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptPhotoDetails is optional PhotoDetails.
+type OptPhotoDetails struct {
+	Value PhotoDetails
+	Set   bool
+}
+
+// IsSet returns true if OptPhotoDetails was set.
+func (o OptPhotoDetails) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptPhotoDetails) Reset() {
+	var v PhotoDetails
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptPhotoDetails) SetTo(v PhotoDetails) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptPhotoDetails) Get() (v PhotoDetails, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptPhotoDetails) Or(d PhotoDetails) PhotoDetails {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -8600,6 +9315,195 @@ func (s *Person) SetRole(val OptString) {
 // SetImageUrl sets the value of ImageUrl.
 func (s *Person) SetImageUrl(val OptString) {
 	s.ImageUrl = val
+}
+
+// Ref: #/components/schemas/PhotoDetails
+type PhotoDetails struct {
+	TakenAt OptDateTime `json:"takenAt"`
+	Width   OptInt      `json:"width"`
+	Height  OptInt      `json:"height"`
+	Camera  OptString   `json:"camera"`
+	Lens    OptString   `json:"lens"`
+	// Millimetres.
+	FocalLength OptFloat64 `json:"focalLength"`
+	FNumber     OptFloat64 `json:"fNumber"`
+	// E.g. "1/250".
+	ExposureTime OptString `json:"exposureTime"`
+	Iso          OptInt    `json:"iso"`
+	// Only when the administrator allows photo locations.
+	Latitude  OptFloat64 `json:"latitude"`
+	Longitude OptFloat64 `json:"longitude"`
+}
+
+// GetTakenAt returns the value of TakenAt.
+func (s *PhotoDetails) GetTakenAt() OptDateTime {
+	return s.TakenAt
+}
+
+// GetWidth returns the value of Width.
+func (s *PhotoDetails) GetWidth() OptInt {
+	return s.Width
+}
+
+// GetHeight returns the value of Height.
+func (s *PhotoDetails) GetHeight() OptInt {
+	return s.Height
+}
+
+// GetCamera returns the value of Camera.
+func (s *PhotoDetails) GetCamera() OptString {
+	return s.Camera
+}
+
+// GetLens returns the value of Lens.
+func (s *PhotoDetails) GetLens() OptString {
+	return s.Lens
+}
+
+// GetFocalLength returns the value of FocalLength.
+func (s *PhotoDetails) GetFocalLength() OptFloat64 {
+	return s.FocalLength
+}
+
+// GetFNumber returns the value of FNumber.
+func (s *PhotoDetails) GetFNumber() OptFloat64 {
+	return s.FNumber
+}
+
+// GetExposureTime returns the value of ExposureTime.
+func (s *PhotoDetails) GetExposureTime() OptString {
+	return s.ExposureTime
+}
+
+// GetIso returns the value of Iso.
+func (s *PhotoDetails) GetIso() OptInt {
+	return s.Iso
+}
+
+// GetLatitude returns the value of Latitude.
+func (s *PhotoDetails) GetLatitude() OptFloat64 {
+	return s.Latitude
+}
+
+// GetLongitude returns the value of Longitude.
+func (s *PhotoDetails) GetLongitude() OptFloat64 {
+	return s.Longitude
+}
+
+// SetTakenAt sets the value of TakenAt.
+func (s *PhotoDetails) SetTakenAt(val OptDateTime) {
+	s.TakenAt = val
+}
+
+// SetWidth sets the value of Width.
+func (s *PhotoDetails) SetWidth(val OptInt) {
+	s.Width = val
+}
+
+// SetHeight sets the value of Height.
+func (s *PhotoDetails) SetHeight(val OptInt) {
+	s.Height = val
+}
+
+// SetCamera sets the value of Camera.
+func (s *PhotoDetails) SetCamera(val OptString) {
+	s.Camera = val
+}
+
+// SetLens sets the value of Lens.
+func (s *PhotoDetails) SetLens(val OptString) {
+	s.Lens = val
+}
+
+// SetFocalLength sets the value of FocalLength.
+func (s *PhotoDetails) SetFocalLength(val OptFloat64) {
+	s.FocalLength = val
+}
+
+// SetFNumber sets the value of FNumber.
+func (s *PhotoDetails) SetFNumber(val OptFloat64) {
+	s.FNumber = val
+}
+
+// SetExposureTime sets the value of ExposureTime.
+func (s *PhotoDetails) SetExposureTime(val OptString) {
+	s.ExposureTime = val
+}
+
+// SetIso sets the value of Iso.
+func (s *PhotoDetails) SetIso(val OptInt) {
+	s.Iso = val
+}
+
+// SetLatitude sets the value of Latitude.
+func (s *PhotoDetails) SetLatitude(val OptFloat64) {
+	s.Latitude = val
+}
+
+// SetLongitude sets the value of Longitude.
+func (s *PhotoDetails) SetLongitude(val OptFloat64) {
+	s.Longitude = val
+}
+
+// Ref: #/components/schemas/PhotoView
+type PhotoView struct {
+	// Signed URL of the picture in a format every client can show (HEIC is converted to JPEG).
+	URL string `json:"url"`
+	// Signed URL of the original file (download).
+	OriginalUrl OptString `json:"originalUrl"`
+	MimeType    string    `json:"mimeType"`
+	Width       OptInt    `json:"width"`
+	Height      OptInt    `json:"height"`
+}
+
+// GetURL returns the value of URL.
+func (s *PhotoView) GetURL() string {
+	return s.URL
+}
+
+// GetOriginalUrl returns the value of OriginalUrl.
+func (s *PhotoView) GetOriginalUrl() OptString {
+	return s.OriginalUrl
+}
+
+// GetMimeType returns the value of MimeType.
+func (s *PhotoView) GetMimeType() string {
+	return s.MimeType
+}
+
+// GetWidth returns the value of Width.
+func (s *PhotoView) GetWidth() OptInt {
+	return s.Width
+}
+
+// GetHeight returns the value of Height.
+func (s *PhotoView) GetHeight() OptInt {
+	return s.Height
+}
+
+// SetURL sets the value of URL.
+func (s *PhotoView) SetURL(val string) {
+	s.URL = val
+}
+
+// SetOriginalUrl sets the value of OriginalUrl.
+func (s *PhotoView) SetOriginalUrl(val OptString) {
+	s.OriginalUrl = val
+}
+
+// SetMimeType sets the value of MimeType.
+func (s *PhotoView) SetMimeType(val string) {
+	s.MimeType = val
+}
+
+// SetWidth sets the value of Width.
+func (s *PhotoView) SetWidth(val OptInt) {
+	s.Width = val
+}
+
+// SetHeight sets the value of Height.
+func (s *PhotoView) SetHeight(val OptInt) {
+	s.Height = val
 }
 
 // Ref: #/components/schemas/PinRequest
@@ -10052,6 +10956,191 @@ func (s *QuickConnectStart) SetExpiresAt(val time.Time) {
 	s.ExpiresAt = val
 }
 
+// Everything a reader needs to open a book or comic.
+// Ref: #/components/schemas/ReadManifest
+type ReadManifest struct {
+	// Epub, pdf, mobi, azw3, cbz, cbr, cb7 or cbt.
+	Format string `json:"format"`
+	// Signed URL of the original file (EPUB, PDF, MOBI readers; downloads).
+	FileUrl   string `json:"fileUrl"`
+	PageCount OptInt `json:"pageCount"`
+	// Comics, signed URLs of the page images in reading order (empty for other formats).
+	Pages       []string        `json:"pages"`
+	RightToLeft bool            `json:"rightToLeft"`
+	Progress    ReadingProgress `json:"progress"`
+}
+
+// GetFormat returns the value of Format.
+func (s *ReadManifest) GetFormat() string {
+	return s.Format
+}
+
+// GetFileUrl returns the value of FileUrl.
+func (s *ReadManifest) GetFileUrl() string {
+	return s.FileUrl
+}
+
+// GetPageCount returns the value of PageCount.
+func (s *ReadManifest) GetPageCount() OptInt {
+	return s.PageCount
+}
+
+// GetPages returns the value of Pages.
+func (s *ReadManifest) GetPages() []string {
+	return s.Pages
+}
+
+// GetRightToLeft returns the value of RightToLeft.
+func (s *ReadManifest) GetRightToLeft() bool {
+	return s.RightToLeft
+}
+
+// GetProgress returns the value of Progress.
+func (s *ReadManifest) GetProgress() ReadingProgress {
+	return s.Progress
+}
+
+// SetFormat sets the value of Format.
+func (s *ReadManifest) SetFormat(val string) {
+	s.Format = val
+}
+
+// SetFileUrl sets the value of FileUrl.
+func (s *ReadManifest) SetFileUrl(val string) {
+	s.FileUrl = val
+}
+
+// SetPageCount sets the value of PageCount.
+func (s *ReadManifest) SetPageCount(val OptInt) {
+	s.PageCount = val
+}
+
+// SetPages sets the value of Pages.
+func (s *ReadManifest) SetPages(val []string) {
+	s.Pages = val
+}
+
+// SetRightToLeft sets the value of RightToLeft.
+func (s *ReadManifest) SetRightToLeft(val bool) {
+	s.RightToLeft = val
+}
+
+// SetProgress sets the value of Progress.
+func (s *ReadManifest) SetProgress(val ReadingProgress) {
+	s.Progress = val
+}
+
+// Ref: #/components/schemas/ReadingProgress
+type ReadingProgress struct {
+	// Zero-based page (PDF, comics).
+	Page OptInt `json:"page"`
+	// EPUB position (an EPUB CFI).
+	Locator OptString `json:"locator"`
+	// Fraction read, 0–1.
+	Progression float64     `json:"progression"`
+	Finished    bool        `json:"finished"`
+	UpdatedAt   OptDateTime `json:"updatedAt"`
+}
+
+// GetPage returns the value of Page.
+func (s *ReadingProgress) GetPage() OptInt {
+	return s.Page
+}
+
+// GetLocator returns the value of Locator.
+func (s *ReadingProgress) GetLocator() OptString {
+	return s.Locator
+}
+
+// GetProgression returns the value of Progression.
+func (s *ReadingProgress) GetProgression() float64 {
+	return s.Progression
+}
+
+// GetFinished returns the value of Finished.
+func (s *ReadingProgress) GetFinished() bool {
+	return s.Finished
+}
+
+// GetUpdatedAt returns the value of UpdatedAt.
+func (s *ReadingProgress) GetUpdatedAt() OptDateTime {
+	return s.UpdatedAt
+}
+
+// SetPage sets the value of Page.
+func (s *ReadingProgress) SetPage(val OptInt) {
+	s.Page = val
+}
+
+// SetLocator sets the value of Locator.
+func (s *ReadingProgress) SetLocator(val OptString) {
+	s.Locator = val
+}
+
+// SetProgression sets the value of Progression.
+func (s *ReadingProgress) SetProgression(val float64) {
+	s.Progression = val
+}
+
+// SetFinished sets the value of Finished.
+func (s *ReadingProgress) SetFinished(val bool) {
+	s.Finished = val
+}
+
+// SetUpdatedAt sets the value of UpdatedAt.
+func (s *ReadingProgress) SetUpdatedAt(val OptDateTime) {
+	s.UpdatedAt = val
+}
+
+// Ref: #/components/schemas/ReadingProgressInput
+type ReadingProgressInput struct {
+	Page        OptInt    `json:"page"`
+	Locator     OptString `json:"locator"`
+	Progression float64   `json:"progression"`
+	// Mark as read (set automatically at the last page).
+	Finished OptBool `json:"finished"`
+}
+
+// GetPage returns the value of Page.
+func (s *ReadingProgressInput) GetPage() OptInt {
+	return s.Page
+}
+
+// GetLocator returns the value of Locator.
+func (s *ReadingProgressInput) GetLocator() OptString {
+	return s.Locator
+}
+
+// GetProgression returns the value of Progression.
+func (s *ReadingProgressInput) GetProgression() float64 {
+	return s.Progression
+}
+
+// GetFinished returns the value of Finished.
+func (s *ReadingProgressInput) GetFinished() OptBool {
+	return s.Finished
+}
+
+// SetPage sets the value of Page.
+func (s *ReadingProgressInput) SetPage(val OptInt) {
+	s.Page = val
+}
+
+// SetLocator sets the value of Locator.
+func (s *ReadingProgressInput) SetLocator(val OptString) {
+	s.Locator = val
+}
+
+// SetProgression sets the value of Progression.
+func (s *ReadingProgressInput) SetProgression(val float64) {
+	s.Progression = val
+}
+
+// SetFinished sets the value of Finished.
+func (s *ReadingProgressInput) SetFinished(val OptBool) {
+	s.Finished = val
+}
+
 // Ref: #/components/schemas/RecoveryCodes
 type RecoveryCodes struct {
 	RecoveryCodes []string `json:"recoveryCodes"`
@@ -10561,6 +11650,9 @@ type RevokeSessionNoContent struct{}
 
 // RunTaskAccepted is response for RunTask operation.
 type RunTaskAccepted struct{}
+
+// SaveReadingProgressNoContent is response for SaveReadingProgress operation.
+type SaveReadingProgressNoContent struct{}
 
 // ScanLibraryAccepted is response for ScanLibrary operation.
 type ScanLibraryAccepted struct{}

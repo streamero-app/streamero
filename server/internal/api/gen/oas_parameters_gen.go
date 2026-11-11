@@ -2321,6 +2321,71 @@ func decodeGetPlaylistParams(args [1]string, argsEscaped bool, r *http.Request) 
 	return params, nil
 }
 
+// GetReadingProgressParams is parameters of getReadingProgress operation.
+type GetReadingProgressParams struct {
+	ItemId uuid.UUID
+}
+
+func unpackGetReadingProgressParams(packed middleware.Parameters) (params GetReadingProgressParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "itemId",
+			In:   "path",
+		}
+		params.ItemId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeGetReadingProgressParams(args [1]string, argsEscaped bool, r *http.Request) (params GetReadingProgressParams, _ error) {
+	// Decode path: itemId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "itemId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ItemId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "itemId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // GetServerLogsParams is parameters of getServerLogs operation.
 type GetServerLogsParams struct {
 	Level OptGetServerLogsLevel `json:",omitempty,omitzero"`
@@ -3090,6 +3155,71 @@ func decodeJoinSyncGroupParams(args [1]string, argsEscaped bool, r *http.Request
 	return params, nil
 }
 
+// ListLibraryAuthorsParams is parameters of listLibraryAuthors operation.
+type ListLibraryAuthorsParams struct {
+	LibraryId uuid.UUID
+}
+
+func unpackListLibraryAuthorsParams(packed middleware.Parameters) (params ListLibraryAuthorsParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "libraryId",
+			In:   "path",
+		}
+		params.LibraryId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeListLibraryAuthorsParams(args [1]string, argsEscaped bool, r *http.Request) (params ListLibraryAuthorsParams, _ error) {
+	// Decode path: libraryId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "libraryId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.LibraryId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "libraryId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // ListLibraryGenresParams is parameters of listLibraryGenres operation.
 type ListLibraryGenresParams struct {
 	LibraryId uuid.UUID
@@ -3158,10 +3288,12 @@ func decodeListLibraryGenresParams(args [1]string, argsEscaped bool, r *http.Req
 // ListLibraryItemsParams is parameters of listLibraryItems operation.
 type ListLibraryItemsParams struct {
 	LibraryId uuid.UUID
-	Limit     OptInt                  `json:",omitempty,omitzero"`
-	Offset    OptInt                  `json:",omitempty,omitzero"`
-	Sort      OptListLibraryItemsSort `json:",omitempty,omitzero"`
-	Genre     OptString               `json:",omitempty,omitzero"`
+	Limit     OptInt `json:",omitempty,omitzero"`
+	Offset    OptInt `json:",omitempty,omitzero"`
+	// "taken" sorts photos and videos by the date they were taken (newest first); "series" sorts books by
+	// series and position in it.
+	Sort  OptListLibraryItemsSort `json:",omitempty,omitzero"`
+	Genre OptString               `json:",omitempty,omitzero"`
 	// Only items the current profile has not watched.
 	Unplayed OptBool `json:",omitempty,omitzero"`
 	// Only items on the current profile's list.
@@ -3172,8 +3304,15 @@ type ListLibraryItemsParams struct {
 	YearTo    OptInt  `json:",omitempty,omitzero"`
 	// First letter of the sort title ("#" for digits and symbols).
 	Letter OptString `json:",omitempty,omitzero"`
-	// In music libraries, list artists, albums or tracks instead of top-level items.
+	// List items of this kind instead of top-level items: artists, albums or tracks in music libraries;
+	// books or audiobooks; photo albums, photos or videos (with parentId, those of one album).
 	Kind OptListLibraryItemsKind `json:",omitempty,omitzero"`
+	// Only books and audiobooks by this author (exact name).
+	Author OptString `json:",omitempty,omitzero"`
+	// Only books and audiobooks of this series (exact name).
+	Series OptString `json:",omitempty,omitzero"`
+	// Only the direct children of this item (the photos and sub-albums of a photo album), paged.
+	ParentId OptUUID `json:",omitempty,omitzero"`
 }
 
 func unpackListLibraryItemsParams(packed middleware.Parameters) (params ListLibraryItemsParams) {
@@ -3281,6 +3420,33 @@ func unpackListLibraryItemsParams(packed middleware.Parameters) (params ListLibr
 		}
 		if v, ok := packed[key]; ok {
 			params.Kind = v.(OptListLibraryItemsKind)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "author",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Author = v.(OptString)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "series",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Series = v.(OptString)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "parentId",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.ParentId = v.(OptUUID)
 		}
 	}
 	return params
@@ -3980,6 +4146,248 @@ func decodeListLibraryItemsParams(args [1]string, argsEscaped bool, r *http.Requ
 		return params, &ogenerrors.DecodeParamError{
 			Name: "kind",
 			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: author.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "author",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotAuthorVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotAuthorVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Author.SetTo(paramsDotAuthorVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.Author.Get(); ok {
+					if err := func() error {
+						if err := (validate.String{
+							MinLength:     0,
+							MinLengthSet:  false,
+							MaxLength:     300,
+							MaxLengthSet:  true,
+							Email:         false,
+							Hostname:      false,
+							Regex:         nil,
+							MinNumeric:    0,
+							MinNumericSet: false,
+							MaxNumeric:    0,
+							MaxNumericSet: false,
+						}).Validate(string(value)); err != nil {
+							return errors.Wrap(err, "string")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "author",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: series.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "series",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotSeriesVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotSeriesVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Series.SetTo(paramsDotSeriesVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.Series.Get(); ok {
+					if err := func() error {
+						if err := (validate.String{
+							MinLength:     0,
+							MinLengthSet:  false,
+							MaxLength:     300,
+							MaxLengthSet:  true,
+							Email:         false,
+							Hostname:      false,
+							Regex:         nil,
+							MinNumeric:    0,
+							MinNumericSet: false,
+							MaxNumeric:    0,
+							MaxNumericSet: false,
+						}).Validate(string(value)); err != nil {
+							return errors.Wrap(err, "string")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "series",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: parentId.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "parentId",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotParentIdVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotParentIdVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.ParentId.SetTo(paramsDotParentIdVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "parentId",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// ListLibrarySeriesParams is parameters of listLibrarySeries operation.
+type ListLibrarySeriesParams struct {
+	LibraryId uuid.UUID
+}
+
+func unpackListLibrarySeriesParams(packed middleware.Parameters) (params ListLibrarySeriesParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "libraryId",
+			In:   "path",
+		}
+		params.LibraryId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeListLibrarySeriesParams(args [1]string, argsEscaped bool, r *http.Request) (params ListLibrarySeriesParams, _ error) {
+	// Decode path: libraryId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "libraryId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.LibraryId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "libraryId",
+			In:   "path",
 			Err:  err,
 		}
 	}
@@ -5020,6 +5428,136 @@ func decodeOidcLinkParams(args [1]string, argsEscaped bool, r *http.Request) (pa
 	return params, nil
 }
 
+// OpenAudiobookParams is parameters of openAudiobook operation.
+type OpenAudiobookParams struct {
+	ItemId uuid.UUID
+}
+
+func unpackOpenAudiobookParams(packed middleware.Parameters) (params OpenAudiobookParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "itemId",
+			In:   "path",
+		}
+		params.ItemId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeOpenAudiobookParams(args [1]string, argsEscaped bool, r *http.Request) (params OpenAudiobookParams, _ error) {
+	// Decode path: itemId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "itemId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ItemId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "itemId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// OpenBookParams is parameters of openBook operation.
+type OpenBookParams struct {
+	ItemId uuid.UUID
+}
+
+func unpackOpenBookParams(packed middleware.Parameters) (params OpenBookParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "itemId",
+			In:   "path",
+		}
+		params.ItemId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeOpenBookParams(args [1]string, argsEscaped bool, r *http.Request) (params OpenBookParams, _ error) {
+	// Decode path: itemId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "itemId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ItemId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "itemId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // RefreshItemParams is parameters of refreshItem operation.
 type RefreshItemParams struct {
 	ItemId uuid.UUID
@@ -5497,6 +6035,71 @@ func decodeRunTaskParams(args [1]string, argsEscaped bool, r *http.Request) (par
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "taskKey",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// SaveReadingProgressParams is parameters of saveReadingProgress operation.
+type SaveReadingProgressParams struct {
+	ItemId uuid.UUID
+}
+
+func unpackSaveReadingProgressParams(packed middleware.Parameters) (params SaveReadingProgressParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "itemId",
+			In:   "path",
+		}
+		params.ItemId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeSaveReadingProgressParams(args [1]string, argsEscaped bool, r *http.Request) (params SaveReadingProgressParams, _ error) {
+	// Decode path: itemId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "itemId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ItemId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "itemId",
 			In:   "path",
 			Err:  err,
 		}
@@ -6629,6 +7232,71 @@ func unpackUpdateUserDataParams(packed middleware.Parameters) (params UpdateUser
 }
 
 func decodeUpdateUserDataParams(args [1]string, argsEscaped bool, r *http.Request) (params UpdateUserDataParams, _ error) {
+	// Decode path: itemId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "itemId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ItemId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "itemId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// ViewPhotoParams is parameters of viewPhoto operation.
+type ViewPhotoParams struct {
+	ItemId uuid.UUID
+}
+
+func unpackViewPhotoParams(packed middleware.Parameters) (params ViewPhotoParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "itemId",
+			In:   "path",
+		}
+		params.ItemId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeViewPhotoParams(args [1]string, argsEscaped bool, r *http.Request) (params ViewPhotoParams, _ error) {
 	// Decode path: itemId.
 	if err := func() error {
 		param := args[0]

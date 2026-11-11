@@ -52,6 +52,12 @@ type Handler interface {
 	//
 	// POST /setup
 	CompleteSetup(ctx context.Context, req *SetupRequest) (*SignedInHeaders, error)
+	// ContinueReading implements continueReading operation.
+	//
+	// Books and audiobooks the current profile started and has not finished, most recent first.
+	//
+	// GET /home/continue-reading
+	ContinueReading(ctx context.Context) ([]ItemSummary, error)
 	// ContinueWatching implements continueWatching operation.
 	//
 	// Started but unfinished items of the current profile, most recent first.
@@ -367,6 +373,12 @@ type Handler interface {
 	//
 	// GET /me/preferences
 	GetPreferences(ctx context.Context) (*PlaybackPreferences, error)
+	// GetReadingProgress implements getReadingProgress operation.
+	//
+	// Reading position of the current profile.
+	//
+	// GET /items/{itemId}/reading-progress
+	GetReadingProgress(ctx context.Context, params GetReadingProgressParams) (*ReadingProgress, error)
 	// GetRequestSettings implements getRequestSettings operation.
 	//
 	// Seerr / Radarr / Sonarr connections (admin; keys are never returned).
@@ -488,6 +500,12 @@ type Handler interface {
 	//
 	// GET /libraries
 	ListLibraries(ctx context.Context) ([]Library, error)
+	// ListLibraryAuthors implements listLibraryAuthors operation.
+	//
+	// Authors in a book or audiobook library with how many titles each has.
+	//
+	// GET /libraries/{libraryId}/authors
+	ListLibraryAuthors(ctx context.Context, params ListLibraryAuthorsParams) ([]NameCount, error)
 	// ListLibraryGenres implements listLibraryGenres operation.
 	//
 	// Genres used in a library (for filters).
@@ -500,6 +518,12 @@ type Handler interface {
 	//
 	// GET /libraries/{libraryId}/items
 	ListLibraryItems(ctx context.Context, params ListLibraryItemsParams) (*ItemPage, error)
+	// ListLibrarySeries implements listLibrarySeries operation.
+	//
+	// Series in a book or audiobook library with how many titles each has.
+	//
+	// GET /libraries/{libraryId}/series
+	ListLibrarySeries(ctx context.Context, params ListLibrarySeriesParams) ([]NameCount, error)
 	// ListOidcProviders implements listOidcProviders operation.
 	//
 	// OpenID Connect providers (admin; client secrets are never returned).
@@ -605,6 +629,18 @@ type Handler interface {
 	//
 	// POST /auth/oidc/{providerId}/link
 	OidcLink(ctx context.Context, params OidcLinkParams) (*OidcLinkStartHeaders, error)
+	// OpenAudiobook implements openAudiobook operation.
+	//
+	// Parts, chapters and saved position of an audiobook (positions report through reportProgress).
+	//
+	// GET /items/{itemId}/listen
+	OpenAudiobook(ctx context.Context, params OpenAudiobookParams) (*AudiobookManifest, error)
+	// OpenBook implements openBook operation.
+	//
+	// Open a book or comic for reading (signed file and page URLs and the saved position).
+	//
+	// GET /items/{itemId}/read
+	OpenBook(ctx context.Context, params OpenBookParams) (*ReadManifest, error)
 	// Ping implements ping operation.
 	//
 	// Liveness probe for clients.
@@ -674,6 +710,12 @@ type Handler interface {
 	//
 	// POST /tasks/{taskKey}/run
 	RunTask(ctx context.Context, params RunTaskParams) error
+	// SaveReadingProgress implements saveReadingProgress operation.
+	//
+	// Save the reading position of the current profile (synced to every client).
+	//
+	// PUT /items/{itemId}/reading-progress
+	SaveReadingProgress(ctx context.Context, req *ReadingProgressInput, params SaveReadingProgressParams) error
 	// ScanLibrary implements scanLibrary operation.
 	//
 	// Scan a library for new, changed and removed files (admin).
@@ -918,6 +960,12 @@ type Handler interface {
 	//
 	// POST /backups/upload
 	UploadBackup(ctx context.Context, req UploadBackupReq) (*Backup, error)
+	// ViewPhoto implements viewPhoto operation.
+	//
+	// A signed URL of a photo for the lightbox (videos play through startPlayback).
+	//
+	// GET /items/{itemId}/photo
+	ViewPhoto(ctx context.Context, params ViewPhotoParams) (*PhotoView, error)
 	// NewError creates *ErrorStatusCode from error returned by handler.
 	//
 	// Used for common default response.

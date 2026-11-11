@@ -33,6 +33,10 @@ tags:
       the API: the session cookie from the same origin, or `Authorization: Bearer`).
       Every socket message is a JSON object with a `type`: clients send
       `SyncClientMessage`, the server sends `SyncServerMessage` (D-036).
+  - name: books
+    description: Books, comics and audiobooks (D-039).
+  - name: photos
+    description: Photo libraries (D-039).
 security: []
 paths:
   /system/info:
@@ -1263,8 +1267,11 @@ paths:
         in: query
         schema:
           type: string
-          enum: [title, year, added, rating, random]
+          enum: [title, year, added, rating, random, taken, series]
           default: title
+        description: >-
+          "taken" sorts photos and videos by the date they were taken (newest first);
+          "series" sorts books by series and position in it.
       - name: genre
         in: query
         schema:
@@ -1305,10 +1312,30 @@ paths:
           maxLength: 1
       - name: kind
         in: query
-        description: In music libraries, list artists, albums or tracks instead of top-level items.
+        description: >-
+          List items of this kind instead of top-level items: artists, albums or tracks in music
+          libraries; books or audiobooks; photo albums, photos or videos (with parentId, those of one album).
         schema:
           type: string
-          enum: [artist, album, track]
+          enum: [artist, album, track, book, audiobook, photoalbum, photo, video]
+      - name: author
+        in: query
+        description: Only books and audiobooks by this author (exact name).
+        schema:
+          type: string
+          maxLength: 300
+      - name: series
+        in: query
+        description: Only books and audiobooks of this series (exact name).
+        schema:
+          type: string
+          maxLength: 300
+      - name: parentId
+        in: query
+        description: Only the direct children of this item (the photos and sub-albums of a photo album), paged.
+        schema:
+          type: string
+          format: uuid
     get:
       operationId: listLibraryItems
       summary: Top-level items of a library (movies, series), paged
@@ -1905,6 +1932,173 @@ paths:
       responses:
         "200":
           description: Episodes, most recently watched series first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ItemSummary"
+        default:
+          $ref: "#/components/responses/Error"
+  /items/{itemId}/read:
+    parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: openBook
+      summary: Open a book or comic for reading (signed file and page URLs and the saved position)
+      tags: [books]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Reader manifest
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadManifest"
+        default:
+          $ref: "#/components/responses/Error"
+  /items/{itemId}/reading-progress:
+    parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getReadingProgress
+      summary: Reading position of the current profile
+      tags: [books]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Position
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadingProgress"
+        default:
+          $ref: "#/components/responses/Error"
+    put:
+      operationId: saveReadingProgress
+      summary: Save the reading position of the current profile (synced to every client)
+      tags: [books]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReadingProgressInput"
+      responses:
+        "204":
+          description: Saved
+        default:
+          $ref: "#/components/responses/Error"
+  /items/{itemId}/listen:
+    parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: openAudiobook
+      summary: Parts, chapters and saved position of an audiobook (positions report through reportProgress)
+      tags: [books]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Audiobook
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AudiobookManifest"
+        default:
+          $ref: "#/components/responses/Error"
+  /items/{itemId}/photo:
+    parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: viewPhoto
+      summary: A signed URL of a photo for the lightbox (videos play through startPlayback)
+      tags: [photos]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Photo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PhotoView"
+        default:
+          $ref: "#/components/responses/Error"
+  /libraries/{libraryId}/authors:
+    parameters:
+      - $ref: "#/components/parameters/LibraryId"
+    get:
+      operationId: listLibraryAuthors
+      summary: Authors in a book or audiobook library with how many titles each has
+      tags: [books]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Authors by name
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NameCount"
+        default:
+          $ref: "#/components/responses/Error"
+  /libraries/{libraryId}/series:
+    parameters:
+      - $ref: "#/components/parameters/LibraryId"
+    get:
+      operationId: listLibrarySeries
+      summary: Series in a book or audiobook library with how many titles each has
+      tags: [books]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Series by name
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NameCount"
+        default:
+          $ref: "#/components/responses/Error"
+  /home/continue-reading:
+    get:
+      operationId: continueReading
+      summary: Books and audiobooks the current profile started and has not finished, most recent first
+      tags: [books]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Items
           content:
             application/json:
               schema:
@@ -3773,7 +3967,7 @@ components:
           type: string
     LibraryKind:
       type: string
-      enum: [movies, shows, music, mixed]
+      enum: [movies, shows, music, mixed, books, audiobooks, photos]
     LibraryInput:
       type: object
       required: [name, kind, paths]
@@ -3826,7 +4020,7 @@ components:
           type: integer
     ItemKind:
       type: string
-      enum: [movie, series, season, episode, artist, album, track]
+      enum: [movie, series, season, episode, artist, album, track, book, audiobook, photoalbum, photo, video]
     DeviceProfile:
       type: object
       description: What the client can decode natively.
@@ -4540,6 +4734,12 @@ components:
       type: object
       required: [tmdbConfigured, language, country]
       properties:
+        onlineBookMetadata:
+          type: boolean
+          description: Fill missing book descriptions and covers from Open Library (off by default; never required).
+        photoLocation:
+          type: boolean
+          description: Show where photos were taken (EXIF GPS). Off by default; the location is never sent to clients while off.
         tmdbConfigured:
           type: boolean
         language:
@@ -4552,6 +4752,12 @@ components:
       type: object
       required: [language, country]
       properties:
+        onlineBookMetadata:
+          type: boolean
+          description: Omit to keep the current setting.
+        photoLocation:
+          type: boolean
+          description: Omit to keep the current setting.
         tmdbApiKey:
           type: string
           maxLength: 512
@@ -4648,6 +4854,241 @@ components:
           description: Watched by the current profile.
         favorite:
           type: boolean
+        authors:
+          type: array
+          description: Books and audiobooks, the authors.
+          items:
+            type: string
+        seriesName:
+          type: string
+          description: Books and audiobooks, the series they belong to.
+        seriesIndex:
+          type: number
+          description: Position in the series (may be fractional, e.g. 2.5).
+        bookFormat:
+          type: string
+          description: Books, the file format (epub, pdf, mobi, azw3, cbz, cbr, cb7, cbt); audiobooks, m4b or the audio container.
+        progression:
+          type: number
+          description: Books, the fraction the current profile has read (0–1).
+        takenAt:
+          type: string
+          format: date-time
+          description: Photos and videos, when they were taken (EXIF), else the file's modification time.
+        width:
+          type: integer
+          description: Photos and videos, the picture width (as displayed, after EXIF rotation).
+        height:
+          type: integer
+        childCount:
+          type: integer
+          description: Photo albums, the number of photos, videos and sub-albums directly in them.
+    BookDetails:
+      type: object
+      required: [format, authors]
+      description: What a book, comic or audiobook file says about itself.
+      properties:
+        format:
+          type: string
+        authors:
+          type: array
+          items:
+            type: string
+        narrators:
+          type: array
+          description: Audiobooks.
+          items:
+            type: string
+        seriesName:
+          type: string
+        seriesIndex:
+          type: number
+        volume:
+          type: number
+        chapter:
+          type: number
+        pageCount:
+          type: integer
+        isbn:
+          type: string
+        publisher:
+          type: string
+        language:
+          type: string
+        published:
+          type: string
+          description: Publication date as written in the file (e.g. "2019" or "2019-04-01").
+        description:
+          type: string
+        rightToLeft:
+          type: boolean
+          description: Read right to left (manga, or an EPUB with rtl page progression).
+    PhotoDetails:
+      type: object
+      properties:
+        takenAt:
+          type: string
+          format: date-time
+        width:
+          type: integer
+        height:
+          type: integer
+        camera:
+          type: string
+        lens:
+          type: string
+        focalLength:
+          type: number
+          description: Millimetres.
+        fNumber:
+          type: number
+        exposureTime:
+          type: string
+          description: e.g. "1/250".
+        iso:
+          type: integer
+        latitude:
+          type: number
+          description: Only when the administrator allows photo locations.
+        longitude:
+          type: number
+    ReadingProgress:
+      type: object
+      required: [progression, finished]
+      properties:
+        page:
+          type: integer
+          description: Zero-based page (PDF, comics).
+        locator:
+          type: string
+          description: EPUB position (an EPUB CFI).
+        progression:
+          type: number
+          description: Fraction read, 0–1.
+        finished:
+          type: boolean
+        updatedAt:
+          type: string
+          format: date-time
+    ReadingProgressInput:
+      type: object
+      required: [progression]
+      properties:
+        page:
+          type: integer
+          minimum: 0
+          maximum: 1000000
+        locator:
+          type: string
+          maxLength: 2000
+        progression:
+          type: number
+          minimum: 0
+          maximum: 1
+        finished:
+          type: boolean
+          description: Mark as read (set automatically at the last page).
+    ReadManifest:
+      type: object
+      required: [format, fileUrl, pages, rightToLeft, progress]
+      description: Everything a reader needs to open a book or comic.
+      properties:
+        format:
+          type: string
+          description: epub, pdf, mobi, azw3, cbz, cbr, cb7 or cbt.
+        fileUrl:
+          type: string
+          description: Signed URL of the original file (EPUB, PDF, MOBI readers; downloads).
+        pageCount:
+          type: integer
+        pages:
+          type: array
+          description: Comics, signed URLs of the page images in reading order (empty for other formats).
+          items:
+            type: string
+        rightToLeft:
+          type: boolean
+        progress:
+          $ref: "#/components/schemas/ReadingProgress"
+    AudiobookPart:
+      type: object
+      required: [fileId, title, offsetMs, durationMs]
+      properties:
+        fileId:
+          type: string
+          format: uuid
+          description: Pass to startPlayback as fileId to get the stream URL.
+        title:
+          type: string
+        offsetMs:
+          type: integer
+          format: int64
+          description: Where this file starts in the whole book.
+        durationMs:
+          type: integer
+          format: int64
+    AudiobookChapter:
+      type: object
+      required: [title, startMs, endMs]
+      properties:
+        title:
+          type: string
+        startMs:
+          type: integer
+          format: int64
+          description: Position in the whole book.
+        endMs:
+          type: integer
+          format: int64
+    AudiobookManifest:
+      type: object
+      required: [durationMs, positionMs, parts, chapters]
+      properties:
+        durationMs:
+          type: integer
+          format: int64
+        positionMs:
+          type: integer
+          format: int64
+          description: Saved listening position of the current profile in the whole book.
+        parts:
+          type: array
+          description: The files in listening order (one for an M4B).
+          items:
+            $ref: "#/components/schemas/AudiobookPart"
+        chapters:
+          type: array
+          description: Chapters from the file (M4B) or one per file; positions are in the whole book.
+          items:
+            $ref: "#/components/schemas/AudiobookChapter"
+    PhotoView:
+      type: object
+      required: [url, mimeType]
+      properties:
+        url:
+          type: string
+          description: Signed URL of the picture in a format every client can show (HEIC is converted to JPEG).
+        originalUrl:
+          type: string
+          description: Signed URL of the original file (download).
+        mimeType:
+          type: string
+        width:
+          type: integer
+        height:
+          type: integer
+    NameCount:
+      type: object
+      required: [name, count]
+      properties:
+        name:
+          type: string
+        count:
+          type: integer
+        itemId:
+          type: string
+          format: uuid
+          description: An item to take a cover from (first book of the series, a book of the author).
     ItemPage:
       type: object
       required: [items, total]
@@ -4724,6 +5165,10 @@ components:
       type: object
       required: [item, libraryId, files, children, providerIds, genres, cast, crew, hasBackdrop]
       properties:
+        book:
+          $ref: "#/components/schemas/BookDetails"
+        photo:
+          $ref: "#/components/schemas/PhotoDetails"
         locked:
           type: boolean
           description: Metadata was edited by hand and is kept on refresh.
