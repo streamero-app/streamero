@@ -260,6 +260,19 @@ func encodeCreateProfileResponse(response *Profile, w http.ResponseWriter, span 
 	return nil
 }
 
+func encodeCreateSyncGroupResponse(response *SyncGroup, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
 func encodeCreateUserResponse(response *User, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(201)
@@ -728,6 +741,30 @@ func encodeGetMetadataSettingsResponse(response *MetadataSettings, w http.Respon
 	return nil
 }
 
+func encodeGetMySyncGroupResponse(response GetMySyncGroupRes, w http.ResponseWriter, span trace.Span) error {
+	switch response := response.(type) {
+	case *SyncGroup:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(200)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *GetMySyncGroupNoContent:
+		w.WriteHeader(204)
+
+		return nil
+
+	default:
+		return errors.Errorf("unexpected response type: %T", response)
+	}
+}
+
 func encodeGetNotificationSettingsResponse(response *NotificationSettings, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
@@ -845,6 +882,19 @@ func encodeGetServerLogsResponse(response []LogEntry, w http.ResponseWriter, spa
 }
 
 func encodeGetServerSettingsResponse(response *ServerSettings, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
+func encodeGetSyncGroupResponse(response *SyncGroup, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
 
@@ -975,6 +1025,25 @@ func encodeInitiateQuickConnectResponse(response *QuickConnectStart, w http.Resp
 	if _, err := e.WriteTo(w); err != nil {
 		return errors.Wrap(err, "write")
 	}
+
+	return nil
+}
+
+func encodeJoinSyncGroupResponse(response *SyncGroup, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
+func encodeLeaveSyncGroupResponse(response *LeaveSyncGroupNoContent, w http.ResponseWriter, span trace.Span) error {
+	w.WriteHeader(204)
 
 	return nil
 }
@@ -1189,6 +1258,23 @@ func encodeListProfilesResponse(response []Profile, w http.ResponseWriter, span 
 }
 
 func encodeListSessionsResponse(response []Session, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	e.ArrStart()
+	for _, elem := range response {
+		elem.Encode(e)
+	}
+	e.ArrEnd()
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
+func encodeListSyncGroupsResponse(response []SyncGroup, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
 

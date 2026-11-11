@@ -3526,6 +3526,133 @@ func (s *CreateInviteRequest) UnmarshalJSON(data []byte) error {
 }
 
 // Encode implements json.Marshaler.
+func (s *CreateSyncGroupRequest) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *CreateSyncGroupRequest) encodeFields(e *jx.Encoder) {
+	{
+		if s.Name.Set {
+			e.FieldStart("name")
+			s.Name.Encode(e)
+		}
+	}
+	{
+		if s.ItemIds != nil {
+			e.FieldStart("itemIds")
+			e.ArrStart()
+			for _, elem := range s.ItemIds {
+				json.EncodeUUID(e, elem)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.Index.Set {
+			e.FieldStart("index")
+			s.Index.Encode(e)
+		}
+	}
+	{
+		if s.StartMs.Set {
+			e.FieldStart("startMs")
+			s.StartMs.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfCreateSyncGroupRequest = [4]string{
+	0: "name",
+	1: "itemIds",
+	2: "index",
+	3: "startMs",
+}
+
+// Decode decodes CreateSyncGroupRequest from json.
+func (s *CreateSyncGroupRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateSyncGroupRequest to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "name":
+			if err := func() error {
+				s.Name.Reset()
+				if err := s.Name.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"name\"")
+			}
+		case "itemIds":
+			if err := func() error {
+				s.ItemIds = make([]uuid.UUID, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem uuid.UUID
+					v, err := json.DecodeUUID(d)
+					elem = v
+					if err != nil {
+						return err
+					}
+					s.ItemIds = append(s.ItemIds, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"itemIds\"")
+			}
+		case "index":
+			if err := func() error {
+				s.Index.Reset()
+				if err := s.Index.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"index\"")
+			}
+		case "startMs":
+			if err := func() error {
+				s.StartMs.Reset()
+				if err := s.StartMs.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"startMs\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode CreateSyncGroupRequest")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateSyncGroupRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateSyncGroupRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
 func (s *CreateUserRequest) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
@@ -22767,6 +22894,748 @@ func (s *SubtitleStream) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *SubtitleStream) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *SyncGroup) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *SyncGroup) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("name")
+		e.Str(s.Name)
+	}
+	{
+		e.FieldStart("state")
+		s.State.Encode(e)
+	}
+	{
+		e.FieldStart("queue")
+		e.ArrStart()
+		for _, elem := range s.Queue {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+	{
+		e.FieldStart("index")
+		e.Int(s.Index)
+	}
+	{
+		e.FieldStart("positionMs")
+		e.Int64(s.PositionMs)
+	}
+	{
+		e.FieldStart("anchorAt")
+		e.Int64(s.AnchorAt)
+	}
+	{
+		e.FieldStart("speed")
+		e.Float64(s.Speed)
+	}
+	{
+		e.FieldStart("version")
+		e.Int64(s.Version)
+	}
+	{
+		if s.Reason.Set {
+			e.FieldStart("reason")
+			s.Reason.Encode(e)
+		}
+	}
+	{
+		if s.Actor.Set {
+			e.FieldStart("actor")
+			s.Actor.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("members")
+		e.ArrStart()
+		for _, elem := range s.Members {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+	{
+		e.FieldStart("serverTime")
+		e.Int64(s.ServerTime)
+	}
+	{
+		e.FieldStart("createdAt")
+		json.EncodeDateTime(e, s.CreatedAt)
+	}
+	{
+		if s.SelfId.Set {
+			e.FieldStart("selfId")
+			s.SelfId.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfSyncGroup = [15]string{
+	0:  "id",
+	1:  "name",
+	2:  "state",
+	3:  "queue",
+	4:  "index",
+	5:  "positionMs",
+	6:  "anchorAt",
+	7:  "speed",
+	8:  "version",
+	9:  "reason",
+	10: "actor",
+	11: "members",
+	12: "serverTime",
+	13: "createdAt",
+	14: "selfId",
+}
+
+// Decode decodes SyncGroup from json.
+func (s *SyncGroup) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode SyncGroup to nil")
+	}
+	var requiredBitSet [2]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "id":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "name":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Name = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"name\"")
+			}
+		case "state":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.State.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"state\"")
+			}
+		case "queue":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				s.Queue = make([]SyncQueueEntry, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem SyncQueueEntry
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Queue = append(s.Queue, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"queue\"")
+			}
+		case "index":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Int()
+				s.Index = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"index\"")
+			}
+		case "positionMs":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Int64()
+				s.PositionMs = int64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"positionMs\"")
+			}
+		case "anchorAt":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Int64()
+				s.AnchorAt = int64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"anchorAt\"")
+			}
+		case "speed":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				v, err := d.Float64()
+				s.Speed = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"speed\"")
+			}
+		case "version":
+			requiredBitSet[1] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int64()
+				s.Version = int64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"version\"")
+			}
+		case "reason":
+			if err := func() error {
+				s.Reason.Reset()
+				if err := s.Reason.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"reason\"")
+			}
+		case "actor":
+			if err := func() error {
+				s.Actor.Reset()
+				if err := s.Actor.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"actor\"")
+			}
+		case "members":
+			requiredBitSet[1] |= 1 << 3
+			if err := func() error {
+				s.Members = make([]SyncMember, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem SyncMember
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Members = append(s.Members, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"members\"")
+			}
+		case "serverTime":
+			requiredBitSet[1] |= 1 << 4
+			if err := func() error {
+				v, err := d.Int64()
+				s.ServerTime = int64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"serverTime\"")
+			}
+		case "createdAt":
+			requiredBitSet[1] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.CreatedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdAt\"")
+			}
+		case "selfId":
+			if err := func() error {
+				s.SelfId.Reset()
+				if err := s.SelfId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"selfId\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode SyncGroup")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [2]uint8{
+		0b11111111,
+		0b00111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfSyncGroup) {
+					name = jsonFieldsNameOfSyncGroup[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *SyncGroup) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *SyncGroup) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes SyncGroupState as json.
+func (s SyncGroupState) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes SyncGroupState from json.
+func (s *SyncGroupState) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode SyncGroupState to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch SyncGroupState(v) {
+	case SyncGroupStateIdle:
+		*s = SyncGroupStateIdle
+	case SyncGroupStateWaiting:
+		*s = SyncGroupStateWaiting
+	case SyncGroupStatePaused:
+		*s = SyncGroupStatePaused
+	case SyncGroupStatePlaying:
+		*s = SyncGroupStatePlaying
+	default:
+		*s = SyncGroupState(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s SyncGroupState) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *SyncGroupState) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *SyncMember) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *SyncMember) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("name")
+		e.Str(s.Name)
+	}
+	{
+		e.FieldStart("device")
+		e.Str(s.Device)
+	}
+	{
+		e.FieldStart("ready")
+		e.Bool(s.Ready)
+	}
+	{
+		e.FieldStart("buffering")
+		e.Bool(s.Buffering)
+	}
+	{
+		e.FieldStart("connected")
+		e.Bool(s.Connected)
+	}
+	{
+		e.FieldStart("lagging")
+		e.Bool(s.Lagging)
+	}
+}
+
+var jsonFieldsNameOfSyncMember = [7]string{
+	0: "id",
+	1: "name",
+	2: "device",
+	3: "ready",
+	4: "buffering",
+	5: "connected",
+	6: "lagging",
+}
+
+// Decode decodes SyncMember from json.
+func (s *SyncMember) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode SyncMember to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "id":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "name":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Name = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"name\"")
+			}
+		case "device":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Device = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"device\"")
+			}
+		case "ready":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Bool()
+				s.Ready = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"ready\"")
+			}
+		case "buffering":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Bool()
+				s.Buffering = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"buffering\"")
+			}
+		case "connected":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Bool()
+				s.Connected = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"connected\"")
+			}
+		case "lagging":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Bool()
+				s.Lagging = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"lagging\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode SyncMember")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b01111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfSyncMember) {
+					name = jsonFieldsNameOfSyncMember[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *SyncMember) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *SyncMember) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *SyncQueueEntry) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *SyncQueueEntry) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("itemId")
+		json.EncodeUUID(e, s.ItemId)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		if s.DurationMs.Set {
+			e.FieldStart("durationMs")
+			s.DurationMs.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfSyncQueueEntry = [4]string{
+	0: "id",
+	1: "itemId",
+	2: "title",
+	3: "durationMs",
+}
+
+// Decode decodes SyncQueueEntry from json.
+func (s *SyncQueueEntry) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode SyncQueueEntry to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "id":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "itemId":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ItemId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"itemId\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "durationMs":
+			if err := func() error {
+				s.DurationMs.Reset()
+				if err := s.DurationMs.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"durationMs\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode SyncQueueEntry")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfSyncQueueEntry) {
+					name = jsonFieldsNameOfSyncQueueEntry[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *SyncQueueEntry) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *SyncQueueEntry) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

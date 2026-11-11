@@ -1801,6 +1801,99 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/syncplay/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Watch-together groups the caller may join (needs the syncPlay permission) */
+        get: operations["listSyncGroups"];
+        put?: never;
+        /** Start a watch-together group and join it (leaves any other group first) */
+        post: operations["createSyncGroup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/syncplay/groups/{groupId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: components["parameters"]["GroupId"];
+            };
+            cookie?: never;
+        };
+        /** One group (invite page preview) */
+        get: operations["getSyncGroup"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/syncplay/groups/{groupId}/join": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: components["parameters"]["GroupId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Join a group (leaves any other group first)
+         * @description Refused with 403 when the caller cannot open an item in the group's queue.
+         */
+        post: operations["joinSyncGroup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/syncplay/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The group this session is in (after a reconnect) */
+        get: operations["getMySyncGroup"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/syncplay/leave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Leave the current group; playback of the others continues */
+        post: operations["leaveSyncGroup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/settings/requests": {
         parameters: {
             query?: never;
@@ -2936,6 +3029,152 @@ export interface components {
             kind: "message" | "stop";
             text?: string;
         };
+        CreateSyncGroupRequest: {
+            name?: string;
+            /** @description Shared queue to start with (optional; can be set later over the socket) */
+            itemIds?: string[];
+            /** @description Entry of itemIds to play first */
+            index?: number;
+            /** Format: int64 */
+            startMs?: number;
+        };
+        /**
+         * @description A watch-together group. Times are the server's clock in Unix milliseconds.
+         *     While `state` is `playing`, the shared position at server time `now` is
+         *     `positionMs + max(0, now - anchorAt) * speed`; an `anchorAt` in the future
+         *     means "start from positionMs at that moment". In the other states the
+         *     position is `positionMs`.
+         */
+        SyncGroup: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** @enum {string} */
+            state: "idle" | "waiting" | "paused" | "playing";
+            queue: components["schemas"]["SyncQueueEntry"][];
+            /** @description Current queue entry (-1 = nothing) */
+            index: number;
+            /** Format: int64 */
+            positionMs: number;
+            /** Format: int64 */
+            anchorAt: number;
+            /** Format: double */
+            speed: number;
+            /**
+             * Format: int64
+             * @description Increases with every change
+             */
+            version: number;
+            /** @description What caused the last change (create, join, leave, play, pause, seek, speed, queue, next, previous, jump, buffering, ready, timeout, ended) */
+            reason?: string;
+            /** @description Name of the member who caused the last change */
+            actor?: string;
+            members: components["schemas"]["SyncMember"][];
+            /** Format: int64 */
+            serverTime: number;
+            /** Format: date-time */
+            createdAt: string;
+            /**
+             * Format: uuid
+             * @description The receiving member's id (only in answers and messages for a member)
+             */
+            selfId?: string;
+        };
+        SyncQueueEntry: {
+            /**
+             * Format: uuid
+             * @description Entry id (the same item can be queued twice)
+             */
+            id: string;
+            /** Format: uuid */
+            itemId: string;
+            title: string;
+            /** Format: int64 */
+            durationMs?: number;
+        };
+        SyncMember: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            device: string;
+            /** @description Loaded the current entry at the shared position */
+            ready: boolean;
+            buffering: boolean;
+            /** @description Has a live socket (disconnected members never hold up the others) */
+            connected: boolean;
+            /** @description Took too long to get ready; the group went on without them */
+            lagging: boolean;
+        };
+        /**
+         * @description Drift correction for one member. `rate`: play at `rate` (absolute) for
+         *     `durationMs`, then return to the group speed. `seek`: jump to the shared
+         *     position (positionMs is the shared position at serverTime of the message).
+         */
+        SyncCorrection: {
+            /** @enum {string} */
+            mode: "rate" | "seek";
+            /** Format: double */
+            rate?: number;
+            /** Format: int64 */
+            durationMs?: number;
+            /** Format: int64 */
+            positionMs?: number;
+            /**
+             * Format: int64
+             * @description Reported minus shared position (positive = ahead)
+             */
+            driftMs: number;
+        };
+        /**
+         * @description Socket message from a client. `ping` (clientTime) measures the clock
+         *     offset. Group commands: `play`, `pause`, `seek` (positionMs), `speed`
+         *     (speed), `setQueue` (itemIds, index, startMs), `queue` (itemIds, appended),
+         *     `next` / `previous` (entryId = the entry the sender is on, so several
+         *     members reaching the end skip once), `jump` (entryId). Player reports
+         *     (`at` = server clock ms, via the ping offset): `ready` once the current
+         *     entry is loaded at the shared position, `buffering` when a ready player
+         *     stalls, `position` about once a second while playing (drift correction).
+         */
+        SyncClientMessage: {
+            /** @enum {string} */
+            type: "ping" | "play" | "pause" | "seek" | "speed" | "setQueue" | "queue" | "next" | "previous" | "jump" | "ready" | "buffering" | "position";
+            /** Format: int64 */
+            clientTime?: number;
+            /** Format: int64 */
+            positionMs?: number;
+            /** Format: double */
+            speed?: number;
+            itemIds?: string[];
+            index?: number;
+            /** Format: int64 */
+            startMs?: number;
+            /** Format: uuid */
+            entryId?: string;
+            /** Format: int64 */
+            at?: number;
+            playing?: boolean;
+        };
+        /**
+         * @description Socket message from the server. `hello` on connect; `pong` answers a
+         *     ping (clientTime echoed, serverTime); `state` carries the whole group
+         *     after every change (no `group` = not in a group, `reason` says why:
+         *     left, removed, closed); `correction` is drift correction for this member;
+         *     `error` reports a refused command (code: rate_limited, not_in_group,
+         *     forbidden, invalid, not_found).
+         */
+        SyncServerMessage: {
+            /** @enum {string} */
+            type: "hello" | "pong" | "state" | "correction" | "error";
+            /** Format: int64 */
+            serverTime: number;
+            /** Format: int64 */
+            clientTime?: number;
+            group?: components["schemas"]["SyncGroup"];
+            reason?: string;
+            correction?: components["schemas"]["SyncCorrection"];
+            code?: string;
+            message?: string;
+        };
         UpdateMeRequest: {
             displayName?: string;
             /** @description Used for notifications; empty removes it. */
@@ -3390,6 +3629,7 @@ export interface components {
         LibraryId: string;
         CollectionId: string;
         PlaylistId: string;
+        GroupId: string;
         /** @description File name of a backup in the backup folder. */
         BackupName: string;
         ProfileId: string;
@@ -6311,6 +6551,145 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["SessionCommand"][];
                 };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listSyncGroups: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Groups, newest first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncGroup"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createSyncGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSyncGroupRequest"];
+            };
+        };
+        responses: {
+            /** @description The new group */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncGroup"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getSyncGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: components["parameters"]["GroupId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The group */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncGroup"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    joinSyncGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: components["parameters"]["GroupId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The group, with selfId set */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncGroup"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getMySyncGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The group, with selfId set */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncGroup"];
+                };
+            };
+            /** @description Not in a group */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    leaveSyncGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Left (or was not in a group) */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             default: components["responses"]["Error"];
         };

@@ -107,6 +107,12 @@ type Handler interface {
 	//
 	// POST /profiles
 	CreateProfile(ctx context.Context, req *ProfileInput) (*Profile, error)
+	// CreateSyncGroup implements createSyncGroup operation.
+	//
+	// Start a watch-together group and join it (leaves any other group first).
+	//
+	// POST /syncplay/groups
+	CreateSyncGroup(ctx context.Context, req *CreateSyncGroupRequest) (*SyncGroup, error)
 	// CreateUser implements createUser operation.
 	//
 	// Create a user (admin).
@@ -331,6 +337,12 @@ type Handler interface {
 	//
 	// GET /settings/metadata
 	GetMetadataSettings(ctx context.Context) (*MetadataSettings, error)
+	// GetMySyncGroup implements getMySyncGroup operation.
+	//
+	// The group this session is in (after a reconnect).
+	//
+	// GET /syncplay/me
+	GetMySyncGroup(ctx context.Context) (GetMySyncGroupRes, error)
 	// GetNotificationSettings implements getNotificationSettings operation.
 	//
 	// Webhook / push notification targets.
@@ -379,6 +391,12 @@ type Handler interface {
 	//
 	// GET /settings/server
 	GetServerSettings(ctx context.Context) (*ServerSettings, error)
+	// GetSyncGroup implements getSyncGroup operation.
+	//
+	// One group (invite page preview).
+	//
+	// GET /syncplay/groups/{groupId}
+	GetSyncGroup(ctx context.Context, params GetSyncGroupParams) (*SyncGroup, error)
 	// GetSystemInfo implements getSystemInfo operation.
 	//
 	// Unauthenticated. Used by clients to verify a server URL before login.
@@ -410,6 +428,18 @@ type Handler interface {
 	//
 	// POST /quickconnect/initiate
 	InitiateQuickConnect(ctx context.Context, req OptDeviceInfo) (*QuickConnectStart, error)
+	// JoinSyncGroup implements joinSyncGroup operation.
+	//
+	// Refused with 403 when the caller cannot open an item in the group's queue.
+	//
+	// POST /syncplay/groups/{groupId}/join
+	JoinSyncGroup(ctx context.Context, params JoinSyncGroupParams) (*SyncGroup, error)
+	// LeaveSyncGroup implements leaveSyncGroup operation.
+	//
+	// Leave the current group; playback of the others continues.
+	//
+	// POST /syncplay/leave
+	LeaveSyncGroup(ctx context.Context) error
 	// ListAPIKeys implements listAPIKeys operation.
 	//
 	// API keys for integrations (admin).
@@ -494,6 +524,12 @@ type Handler interface {
 	//
 	// GET /sessions
 	ListSessions(ctx context.Context) ([]Session, error)
+	// ListSyncGroups implements listSyncGroups operation.
+	//
+	// Watch-together groups the caller may join (needs the syncPlay permission).
+	//
+	// GET /syncplay/groups
+	ListSyncGroups(ctx context.Context) ([]SyncGroup, error)
 	// ListTasks implements listTasks operation.
 	//
 	// Scheduled maintenance tasks and their last run.

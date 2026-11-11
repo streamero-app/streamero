@@ -26,6 +26,13 @@ tags:
   - name: collections
   - name: playlists
   - name: import
+  - name: syncplay
+    description: |
+      Watch together (SyncPlay). Groups are managed here; playback inside a group
+      runs over the WebSocket `GET /api/v1/syncplay/socket` (same credentials as
+      the API: the session cookie from the same origin, or `Authorization: Bearer`).
+      Every socket message is a JSON object with a `type`: clients send
+      `SyncClientMessage`, the server sends `SyncServerMessage` (D-036).
 security: []
 paths:
   /system/info:
@@ -2664,6 +2671,112 @@ paths:
                   $ref: "#/components/schemas/SessionCommand"
         default:
           $ref: "#/components/responses/Error"
+  /syncplay/groups:
+    get:
+      operationId: listSyncGroups
+      summary: Watch-together groups the caller may join (needs the syncPlay permission)
+      tags: [syncplay]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Groups, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SyncGroup"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createSyncGroup
+      summary: Start a watch-together group and join it (leaves any other group first)
+      tags: [syncplay]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSyncGroupRequest"
+      responses:
+        "200":
+          description: The new group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncGroup"
+        default:
+          $ref: "#/components/responses/Error"
+  /syncplay/groups/{groupId}:
+    parameters:
+      - $ref: "#/components/parameters/GroupId"
+    get:
+      operationId: getSyncGroup
+      summary: One group (invite page preview)
+      tags: [syncplay]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: The group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncGroup"
+        default:
+          $ref: "#/components/responses/Error"
+  /syncplay/groups/{groupId}/join:
+    parameters:
+      - $ref: "#/components/parameters/GroupId"
+    post:
+      operationId: joinSyncGroup
+      summary: Join a group (leaves any other group first)
+      description: Refused with 403 when the caller cannot open an item in the group's queue.
+      tags: [syncplay]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: The group, with selfId set
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncGroup"
+        default:
+          $ref: "#/components/responses/Error"
+  /syncplay/me:
+    get:
+      operationId: getMySyncGroup
+      summary: The group this session is in (after a reconnect)
+      tags: [syncplay]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: The group, with selfId set
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncGroup"
+        "204":
+          description: Not in a group
+        default:
+          $ref: "#/components/responses/Error"
+  /syncplay/leave:
+    post:
+      operationId: leaveSyncGroup
+      summary: Leave the current group; playback of the others continues
+      tags: [syncplay]
+      security:
+        - sessionToken: []
+      responses:
+        "204":
+          description: Left (or was not in a group)
+        default:
+          $ref: "#/components/responses/Error"
   /settings/requests:
     get:
       operationId: getRequestSettings
@@ -3047,6 +3160,13 @@ components:
         format: uuid
     PlaylistId:
       name: playlistId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    GroupId:
+      name: groupId
       in: path
       required: true
       schema:
@@ -4857,6 +4977,221 @@ components:
         text:
           type: string
           maxLength: 500
+    CreateSyncGroupRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 80
+        itemIds:
+          description: Shared queue to start with (optional; can be set later over the socket)
+          type: array
+          maxItems: 200
+          items:
+            type: string
+            format: uuid
+        index:
+          description: Entry of itemIds to play first
+          type: integer
+          minimum: 0
+        startMs:
+          type: integer
+          format: int64
+          minimum: 0
+    SyncGroup:
+      type: object
+      description: |
+        A watch-together group. Times are the server's clock in Unix milliseconds.
+        While `state` is `playing`, the shared position at server time `now` is
+        `positionMs + max(0, now - anchorAt) * speed`; an `anchorAt` in the future
+        means "start from positionMs at that moment". In the other states the
+        position is `positionMs`.
+      required: [id, name, state, queue, index, positionMs, anchorAt, speed, version, members, serverTime, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        state:
+          type: string
+          enum: [idle, waiting, paused, playing]
+        queue:
+          type: array
+          items:
+            $ref: "#/components/schemas/SyncQueueEntry"
+        index:
+          description: Current queue entry (-1 = nothing)
+          type: integer
+        positionMs:
+          type: integer
+          format: int64
+        anchorAt:
+          type: integer
+          format: int64
+        speed:
+          type: number
+          format: double
+        version:
+          description: Increases with every change
+          type: integer
+          format: int64
+        reason:
+          description: What caused the last change (create, join, leave, play, pause, seek, speed, queue, next, previous, jump, buffering, ready, timeout, ended)
+          type: string
+        actor:
+          description: Name of the member who caused the last change
+          type: string
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/SyncMember"
+        serverTime:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+        selfId:
+          description: The receiving member's id (only in answers and messages for a member)
+          type: string
+          format: uuid
+    SyncQueueEntry:
+      type: object
+      required: [id, itemId, title]
+      properties:
+        id:
+          description: Entry id (the same item can be queued twice)
+          type: string
+          format: uuid
+        itemId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        durationMs:
+          type: integer
+          format: int64
+    SyncMember:
+      type: object
+      required: [id, name, device, ready, buffering, connected, lagging]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        device:
+          type: string
+        ready:
+          description: Loaded the current entry at the shared position
+          type: boolean
+        buffering:
+          type: boolean
+        connected:
+          description: Has a live socket (disconnected members never hold up the others)
+          type: boolean
+        lagging:
+          description: Took too long to get ready; the group went on without them
+          type: boolean
+    SyncCorrection:
+      type: object
+      description: |
+        Drift correction for one member. `rate`: play at `rate` (absolute) for
+        `durationMs`, then return to the group speed. `seek`: jump to the shared
+        position (positionMs is the shared position at serverTime of the message).
+      required: [mode, driftMs]
+      properties:
+        mode:
+          type: string
+          enum: [rate, seek]
+        rate:
+          type: number
+          format: double
+        durationMs:
+          type: integer
+          format: int64
+        positionMs:
+          type: integer
+          format: int64
+        driftMs:
+          description: Reported minus shared position (positive = ahead)
+          type: integer
+          format: int64
+    SyncClientMessage:
+      type: object
+      description: |
+        Socket message from a client. `ping` (clientTime) measures the clock
+        offset. Group commands: `play`, `pause`, `seek` (positionMs), `speed`
+        (speed), `setQueue` (itemIds, index, startMs), `queue` (itemIds, appended),
+        `next` / `previous` (entryId = the entry the sender is on, so several
+        members reaching the end skip once), `jump` (entryId). Player reports
+        (`at` = server clock ms, via the ping offset): `ready` once the current
+        entry is loaded at the shared position, `buffering` when a ready player
+        stalls, `position` about once a second while playing (drift correction).
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [ping, play, pause, seek, speed, setQueue, queue, next, previous, jump, ready, buffering, position]
+        clientTime:
+          type: integer
+          format: int64
+        positionMs:
+          type: integer
+          format: int64
+        speed:
+          type: number
+          format: double
+        itemIds:
+          type: array
+          maxItems: 200
+          items:
+            type: string
+            format: uuid
+        index:
+          type: integer
+        startMs:
+          type: integer
+          format: int64
+        entryId:
+          type: string
+          format: uuid
+        at:
+          type: integer
+          format: int64
+        playing:
+          type: boolean
+    SyncServerMessage:
+      type: object
+      description: |
+        Socket message from the server. `hello` on connect; `pong` answers a
+        ping (clientTime echoed, serverTime); `state` carries the whole group
+        after every change (no `group` = not in a group, `reason` says why:
+        left, removed, closed); `correction` is drift correction for this member;
+        `error` reports a refused command (code: rate_limited, not_in_group,
+        forbidden, invalid, not_found).
+      required: [type, serverTime]
+      properties:
+        type:
+          type: string
+          enum: [hello, pong, state, correction, error]
+        serverTime:
+          type: integer
+          format: int64
+        clientTime:
+          type: integer
+          format: int64
+        group:
+          $ref: "#/components/schemas/SyncGroup"
+        reason:
+          type: string
+        correction:
+          $ref: "#/components/schemas/SyncCorrection"
+        code:
+          type: string
+        message:
+          type: string
     UpdateMeRequest:
       type: object
       properties:

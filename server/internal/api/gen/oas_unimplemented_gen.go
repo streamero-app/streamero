@@ -160,6 +160,15 @@ func (UnimplementedHandler) CreateProfile(ctx context.Context, req *ProfileInput
 	return r, ht.ErrNotImplemented
 }
 
+// CreateSyncGroup implements createSyncGroup operation.
+//
+// Start a watch-together group and join it (leaves any other group first).
+//
+// POST /syncplay/groups
+func (UnimplementedHandler) CreateSyncGroup(ctx context.Context, req *CreateSyncGroupRequest) (r *SyncGroup, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // CreateUser implements createUser operation.
 //
 // Create a user (admin).
@@ -495,6 +504,15 @@ func (UnimplementedHandler) GetMetadataSettings(ctx context.Context) (r *Metadat
 	return r, ht.ErrNotImplemented
 }
 
+// GetMySyncGroup implements getMySyncGroup operation.
+//
+// The group this session is in (after a reconnect).
+//
+// GET /syncplay/me
+func (UnimplementedHandler) GetMySyncGroup(ctx context.Context) (r GetMySyncGroupRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetNotificationSettings implements getNotificationSettings operation.
 //
 // Webhook / push notification targets.
@@ -567,6 +585,15 @@ func (UnimplementedHandler) GetServerSettings(ctx context.Context) (r *ServerSet
 	return r, ht.ErrNotImplemented
 }
 
+// GetSyncGroup implements getSyncGroup operation.
+//
+// One group (invite page preview).
+//
+// GET /syncplay/groups/{groupId}
+func (UnimplementedHandler) GetSyncGroup(ctx context.Context, params GetSyncGroupParams) (r *SyncGroup, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetSystemInfo implements getSystemInfo operation.
 //
 // Unauthenticated. Used by clients to verify a server URL before login.
@@ -611,6 +638,24 @@ func (UnimplementedHandler) IdentifySearch(ctx context.Context, params IdentifyS
 // POST /quickconnect/initiate
 func (UnimplementedHandler) InitiateQuickConnect(ctx context.Context, req OptDeviceInfo) (r *QuickConnectStart, _ error) {
 	return r, ht.ErrNotImplemented
+}
+
+// JoinSyncGroup implements joinSyncGroup operation.
+//
+// Refused with 403 when the caller cannot open an item in the group's queue.
+//
+// POST /syncplay/groups/{groupId}/join
+func (UnimplementedHandler) JoinSyncGroup(ctx context.Context, params JoinSyncGroupParams) (r *SyncGroup, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// LeaveSyncGroup implements leaveSyncGroup operation.
+//
+// Leave the current group; playback of the others continues.
+//
+// POST /syncplay/leave
+func (UnimplementedHandler) LeaveSyncGroup(ctx context.Context) error {
+	return ht.ErrNotImplemented
 }
 
 // ListAPIKeys implements listAPIKeys operation.
@@ -736,6 +781,15 @@ func (UnimplementedHandler) ListProfiles(ctx context.Context) (r []Profile, _ er
 //
 // GET /sessions
 func (UnimplementedHandler) ListSessions(ctx context.Context) (r []Session, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListSyncGroups implements listSyncGroups operation.
+//
+// Watch-together groups the caller may join (needs the syncPlay permission).
+//
+// GET /syncplay/groups
+func (UnimplementedHandler) ListSyncGroups(ctx context.Context) (r []SyncGroup, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

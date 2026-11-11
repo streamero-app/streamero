@@ -1161,6 +1161,56 @@ func (s *CreateInviteRequest) SetPermissions(val OptUserPermissions) {
 	s.Permissions = val
 }
 
+// Ref: #/components/schemas/CreateSyncGroupRequest
+type CreateSyncGroupRequest struct {
+	Name OptString `json:"name"`
+	// Shared queue to start with (optional; can be set later over the socket).
+	ItemIds []uuid.UUID `json:"itemIds"`
+	// Entry of itemIds to play first.
+	Index   OptInt   `json:"index"`
+	StartMs OptInt64 `json:"startMs"`
+}
+
+// GetName returns the value of Name.
+func (s *CreateSyncGroupRequest) GetName() OptString {
+	return s.Name
+}
+
+// GetItemIds returns the value of ItemIds.
+func (s *CreateSyncGroupRequest) GetItemIds() []uuid.UUID {
+	return s.ItemIds
+}
+
+// GetIndex returns the value of Index.
+func (s *CreateSyncGroupRequest) GetIndex() OptInt {
+	return s.Index
+}
+
+// GetStartMs returns the value of StartMs.
+func (s *CreateSyncGroupRequest) GetStartMs() OptInt64 {
+	return s.StartMs
+}
+
+// SetName sets the value of Name.
+func (s *CreateSyncGroupRequest) SetName(val OptString) {
+	s.Name = val
+}
+
+// SetItemIds sets the value of ItemIds.
+func (s *CreateSyncGroupRequest) SetItemIds(val []uuid.UUID) {
+	s.ItemIds = val
+}
+
+// SetIndex sets the value of Index.
+func (s *CreateSyncGroupRequest) SetIndex(val OptInt) {
+	s.Index = val
+}
+
+// SetStartMs sets the value of StartMs.
+func (s *CreateSyncGroupRequest) SetStartMs(val OptInt64) {
+	s.StartMs = val
+}
+
 // Ref: #/components/schemas/CreateUserRequest
 type CreateUserRequest struct {
 	Username    Username           `json:"username"`
@@ -2784,6 +2834,11 @@ func (s *GetItemImageOKHeaders) SetCacheControl(val OptString) {
 func (s *GetItemImageOKHeaders) SetResponse(val GetItemImageOK) {
 	s.Response = val
 }
+
+// GetMySyncGroupNoContent is response for GetMySyncGroup operation.
+type GetMySyncGroupNoContent struct{}
+
+func (*GetMySyncGroupNoContent) getMySyncGroupRes() {}
 
 type GetPersonImageOK struct {
 	Data io.Reader
@@ -5028,6 +5083,9 @@ func (s *LdapTestResult) SetIsAdmin(val OptBool) {
 func (s *LdapTestResult) SetAllowed(val OptBool) {
 	s.Allowed = val
 }
+
+// LeaveSyncGroupNoContent is response for LeaveSyncGroup operation.
+type LeaveSyncGroupNoContent struct{}
 
 // Ref: #/components/schemas/Library
 type Library struct {
@@ -11255,6 +11313,375 @@ func (s *SubtitleStream) SetForced(val OptBool) {
 // SetExternal sets the value of External.
 func (s *SubtitleStream) SetExternal(val bool) {
 	s.External = val
+}
+
+// A watch-together group. Times are the server's clock in Unix milliseconds. While `state` is
+// `playing`, the shared position at server time `now` is
+// `positionMs + max(0, now - anchorAt) * speed`; an `anchorAt` in the future means "start from
+// positionMs at that moment". In the other states the position is `positionMs`.
+// Ref: #/components/schemas/SyncGroup
+type SyncGroup struct {
+	ID    uuid.UUID        `json:"id"`
+	Name  string           `json:"name"`
+	State SyncGroupState   `json:"state"`
+	Queue []SyncQueueEntry `json:"queue"`
+	// Current queue entry (-1 = nothing).
+	Index      int     `json:"index"`
+	PositionMs int64   `json:"positionMs"`
+	AnchorAt   int64   `json:"anchorAt"`
+	Speed      float64 `json:"speed"`
+	// Increases with every change.
+	Version int64 `json:"version"`
+	// What caused the last change (create, join, leave, play, pause, seek, speed, queue, next, previous,
+	// jump, buffering, ready, timeout, ended).
+	Reason OptString `json:"reason"`
+	// Name of the member who caused the last change.
+	Actor      OptString    `json:"actor"`
+	Members    []SyncMember `json:"members"`
+	ServerTime int64        `json:"serverTime"`
+	CreatedAt  time.Time    `json:"createdAt"`
+	// The receiving member's id (only in answers and messages for a member).
+	SelfId OptUUID `json:"selfId"`
+}
+
+// GetID returns the value of ID.
+func (s *SyncGroup) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetName returns the value of Name.
+func (s *SyncGroup) GetName() string {
+	return s.Name
+}
+
+// GetState returns the value of State.
+func (s *SyncGroup) GetState() SyncGroupState {
+	return s.State
+}
+
+// GetQueue returns the value of Queue.
+func (s *SyncGroup) GetQueue() []SyncQueueEntry {
+	return s.Queue
+}
+
+// GetIndex returns the value of Index.
+func (s *SyncGroup) GetIndex() int {
+	return s.Index
+}
+
+// GetPositionMs returns the value of PositionMs.
+func (s *SyncGroup) GetPositionMs() int64 {
+	return s.PositionMs
+}
+
+// GetAnchorAt returns the value of AnchorAt.
+func (s *SyncGroup) GetAnchorAt() int64 {
+	return s.AnchorAt
+}
+
+// GetSpeed returns the value of Speed.
+func (s *SyncGroup) GetSpeed() float64 {
+	return s.Speed
+}
+
+// GetVersion returns the value of Version.
+func (s *SyncGroup) GetVersion() int64 {
+	return s.Version
+}
+
+// GetReason returns the value of Reason.
+func (s *SyncGroup) GetReason() OptString {
+	return s.Reason
+}
+
+// GetActor returns the value of Actor.
+func (s *SyncGroup) GetActor() OptString {
+	return s.Actor
+}
+
+// GetMembers returns the value of Members.
+func (s *SyncGroup) GetMembers() []SyncMember {
+	return s.Members
+}
+
+// GetServerTime returns the value of ServerTime.
+func (s *SyncGroup) GetServerTime() int64 {
+	return s.ServerTime
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *SyncGroup) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetSelfId returns the value of SelfId.
+func (s *SyncGroup) GetSelfId() OptUUID {
+	return s.SelfId
+}
+
+// SetID sets the value of ID.
+func (s *SyncGroup) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetName sets the value of Name.
+func (s *SyncGroup) SetName(val string) {
+	s.Name = val
+}
+
+// SetState sets the value of State.
+func (s *SyncGroup) SetState(val SyncGroupState) {
+	s.State = val
+}
+
+// SetQueue sets the value of Queue.
+func (s *SyncGroup) SetQueue(val []SyncQueueEntry) {
+	s.Queue = val
+}
+
+// SetIndex sets the value of Index.
+func (s *SyncGroup) SetIndex(val int) {
+	s.Index = val
+}
+
+// SetPositionMs sets the value of PositionMs.
+func (s *SyncGroup) SetPositionMs(val int64) {
+	s.PositionMs = val
+}
+
+// SetAnchorAt sets the value of AnchorAt.
+func (s *SyncGroup) SetAnchorAt(val int64) {
+	s.AnchorAt = val
+}
+
+// SetSpeed sets the value of Speed.
+func (s *SyncGroup) SetSpeed(val float64) {
+	s.Speed = val
+}
+
+// SetVersion sets the value of Version.
+func (s *SyncGroup) SetVersion(val int64) {
+	s.Version = val
+}
+
+// SetReason sets the value of Reason.
+func (s *SyncGroup) SetReason(val OptString) {
+	s.Reason = val
+}
+
+// SetActor sets the value of Actor.
+func (s *SyncGroup) SetActor(val OptString) {
+	s.Actor = val
+}
+
+// SetMembers sets the value of Members.
+func (s *SyncGroup) SetMembers(val []SyncMember) {
+	s.Members = val
+}
+
+// SetServerTime sets the value of ServerTime.
+func (s *SyncGroup) SetServerTime(val int64) {
+	s.ServerTime = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *SyncGroup) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetSelfId sets the value of SelfId.
+func (s *SyncGroup) SetSelfId(val OptUUID) {
+	s.SelfId = val
+}
+
+func (*SyncGroup) getMySyncGroupRes() {}
+
+type SyncGroupState string
+
+const (
+	SyncGroupStateIdle    SyncGroupState = "idle"
+	SyncGroupStateWaiting SyncGroupState = "waiting"
+	SyncGroupStatePaused  SyncGroupState = "paused"
+	SyncGroupStatePlaying SyncGroupState = "playing"
+)
+
+// AllValues returns all SyncGroupState values.
+func (SyncGroupState) AllValues() []SyncGroupState {
+	return []SyncGroupState{
+		SyncGroupStateIdle,
+		SyncGroupStateWaiting,
+		SyncGroupStatePaused,
+		SyncGroupStatePlaying,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s SyncGroupState) MarshalText() ([]byte, error) {
+	switch s {
+	case SyncGroupStateIdle:
+		return []byte(s), nil
+	case SyncGroupStateWaiting:
+		return []byte(s), nil
+	case SyncGroupStatePaused:
+		return []byte(s), nil
+	case SyncGroupStatePlaying:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *SyncGroupState) UnmarshalText(data []byte) error {
+	switch SyncGroupState(data) {
+	case SyncGroupStateIdle:
+		*s = SyncGroupStateIdle
+		return nil
+	case SyncGroupStateWaiting:
+		*s = SyncGroupStateWaiting
+		return nil
+	case SyncGroupStatePaused:
+		*s = SyncGroupStatePaused
+		return nil
+	case SyncGroupStatePlaying:
+		*s = SyncGroupStatePlaying
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/SyncMember
+type SyncMember struct {
+	ID     uuid.UUID `json:"id"`
+	Name   string    `json:"name"`
+	Device string    `json:"device"`
+	// Loaded the current entry at the shared position.
+	Ready     bool `json:"ready"`
+	Buffering bool `json:"buffering"`
+	// Has a live socket (disconnected members never hold up the others).
+	Connected bool `json:"connected"`
+	// Took too long to get ready; the group went on without them.
+	Lagging bool `json:"lagging"`
+}
+
+// GetID returns the value of ID.
+func (s *SyncMember) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetName returns the value of Name.
+func (s *SyncMember) GetName() string {
+	return s.Name
+}
+
+// GetDevice returns the value of Device.
+func (s *SyncMember) GetDevice() string {
+	return s.Device
+}
+
+// GetReady returns the value of Ready.
+func (s *SyncMember) GetReady() bool {
+	return s.Ready
+}
+
+// GetBuffering returns the value of Buffering.
+func (s *SyncMember) GetBuffering() bool {
+	return s.Buffering
+}
+
+// GetConnected returns the value of Connected.
+func (s *SyncMember) GetConnected() bool {
+	return s.Connected
+}
+
+// GetLagging returns the value of Lagging.
+func (s *SyncMember) GetLagging() bool {
+	return s.Lagging
+}
+
+// SetID sets the value of ID.
+func (s *SyncMember) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetName sets the value of Name.
+func (s *SyncMember) SetName(val string) {
+	s.Name = val
+}
+
+// SetDevice sets the value of Device.
+func (s *SyncMember) SetDevice(val string) {
+	s.Device = val
+}
+
+// SetReady sets the value of Ready.
+func (s *SyncMember) SetReady(val bool) {
+	s.Ready = val
+}
+
+// SetBuffering sets the value of Buffering.
+func (s *SyncMember) SetBuffering(val bool) {
+	s.Buffering = val
+}
+
+// SetConnected sets the value of Connected.
+func (s *SyncMember) SetConnected(val bool) {
+	s.Connected = val
+}
+
+// SetLagging sets the value of Lagging.
+func (s *SyncMember) SetLagging(val bool) {
+	s.Lagging = val
+}
+
+// Ref: #/components/schemas/SyncQueueEntry
+type SyncQueueEntry struct {
+	// Entry id (the same item can be queued twice).
+	ID         uuid.UUID `json:"id"`
+	ItemId     uuid.UUID `json:"itemId"`
+	Title      string    `json:"title"`
+	DurationMs OptInt64  `json:"durationMs"`
+}
+
+// GetID returns the value of ID.
+func (s *SyncQueueEntry) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetItemId returns the value of ItemId.
+func (s *SyncQueueEntry) GetItemId() uuid.UUID {
+	return s.ItemId
+}
+
+// GetTitle returns the value of Title.
+func (s *SyncQueueEntry) GetTitle() string {
+	return s.Title
+}
+
+// GetDurationMs returns the value of DurationMs.
+func (s *SyncQueueEntry) GetDurationMs() OptInt64 {
+	return s.DurationMs
+}
+
+// SetID sets the value of ID.
+func (s *SyncQueueEntry) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetItemId sets the value of ItemId.
+func (s *SyncQueueEntry) SetItemId(val uuid.UUID) {
+	s.ItemId = val
+}
+
+// SetTitle sets the value of Title.
+func (s *SyncQueueEntry) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetDurationMs sets the value of DurationMs.
+func (s *SyncQueueEntry) SetDurationMs(val OptInt64) {
+	s.DurationMs = val
 }
 
 // Ref: #/components/schemas/SystemInfo
