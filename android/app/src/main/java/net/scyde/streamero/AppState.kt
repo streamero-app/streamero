@@ -5,6 +5,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import coil.ImageLoader
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import net.scyde.streamero.offline.OfflineAccounts
 import net.scyde.streamero.api.Api
 import net.scyde.streamero.api.ApiException
 import net.scyde.streamero.offline.OfflineManager
@@ -37,9 +42,14 @@ class AppState(val app: Application) {
     val sync = SyncSession()
     /** Downloads kept on the device; usable without the server. */
     val offline = OfflineManager(app) { api ?: session.api ?: runCatching { session.restore() }.getOrNull() }
+    /** Work that must finish after a screen is gone (the last progress report of a closed player). */
+    val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    /** The server stopped accepting the session after start: the app goes back to sign-in. */
+    var sessionExpired by mutableStateOf(false)
 
     fun attach(a: Api?) {
         api = a
+        a?.onUnauthorized = { appScope.launch { if (api === a) expireSession() } }
         images = a?.let { ImageLoader.Builder(app).okHttpClient(it.http).crossfade(true).build() }
         music.api = a
         sync.api = a
@@ -63,7 +73,7 @@ class AppState(val app: Application) {
             enhancements = runCatching { a.enhancements() }.getOrDefault(Enhancements())
             Connection.Ok
         } catch (e: ApiException) {
-            if (e.status == 401) Connection.SignedOut else Connection.Unreachable
+            if (e.status == 401) { forgetSession(); Connection.SignedOut } else Connection.Unreachable
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
             Connection.Unreachable
@@ -73,8 +83,29 @@ class AppState(val app: Application) {
     suspend fun signOut() {
         if (sync.group != null) sync.leave()
         runCatching { api?.logout() }
+        forgetSession()
+    }
+
+    /** After sign-in: shows (and syncs) the downloads of this account on this server only. */
+    suspend fun bindOffline() {
+        val a = api ?: return
+        val u = me ?: return
+        val serverId = runCatching { a.info().id }.getOrElse { a.base.host + "-" + a.base.port }
+        offline.bind(OfflineAccounts.key(serverId, u.id))
+        sessionExpired = false
+    }
+
+    private suspend fun expireSession() {
+        if (sessionExpired || me == null) return
+        if (sync.group != null) sync.leaveInBackground()
+        forgetSession()
+        sessionExpired = true
+    }
+
+    private suspend fun forgetSession() {
         music.stop()
         session.setToken(null)
         me = null
+        offline.bind(null)
     }
 }
