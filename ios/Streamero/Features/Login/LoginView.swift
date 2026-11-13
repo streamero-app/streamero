@@ -45,7 +45,7 @@ struct LoginView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
                         .shadow(color: Theme.accent.opacity(0.35), radius: 20, y: 8)
                         .padding(.bottom, 10)
-                    Text(server.name).font(Theme.display(32)).lineLimit(2).minimumScaleFactor(0.5)
+                    Text(server.name).displayFont(32).lineLimit(2).minimumScaleFactor(0.5)
                     Text(server.url.host() ?? server.url.absoluteString).foregroundStyle(Theme.textMuted)
                 }
                 .padding(.top, 48)
@@ -89,7 +89,7 @@ struct LoginView: View {
 
     private var form: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("login.title").font(Theme.display(24))
+            Text("login.title").displayFont(24)
             ForEach(providers?.oidc ?? [], id: \.id) { provider in
                 Button {
                     Task { await signInWithSSO(provider) }

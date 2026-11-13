@@ -44,7 +44,7 @@ struct LoadingView: View {
 struct SectionHead: View {
     let title: LocalizedStringKey
     var body: some View {
-        Text(title).font(Theme.head()).textCase(.uppercase).foregroundStyle(Theme.text)
+        Text(title).headFont().textCase(.uppercase).foregroundStyle(Theme.text)
     }
 }
 
@@ -52,7 +52,7 @@ struct SectionHead: View {
 struct PageTitle: View {
     let title: LocalizedStringKey
     var body: some View {
-        Text(title).font(Theme.display(34)).foregroundStyle(Theme.text)
+        Text(title).displayFont(34).foregroundStyle(Theme.text)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

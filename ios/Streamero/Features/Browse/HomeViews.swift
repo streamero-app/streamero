@@ -194,7 +194,7 @@ struct ProfileGateView: View {
         let me = app.me
         VStack(spacing: 36) {
             Spacer()
-            Text("profiles.whoIsWatching").font(Theme.display(26)).foregroundStyle(Theme.text)
+            Text("profiles.whoIsWatching").displayFont(26).foregroundStyle(Theme.text)
             LazyVGrid(columns: columns, spacing: 28) {
                 tile(name: me?.displayName ?? me?.username ?? "", color: "#8A5A3A",
                      url: me?.hasAvatar == true ? me.flatMap { client.avatarURL(owner: $0.id) } : nil, locked: false) { chooseMain() }
@@ -358,7 +358,7 @@ struct HomeTab: View {
 
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("home_empty_title").font(Theme.display(34)).foregroundStyle(Theme.text)
+            Text("home_empty_title").displayFont(34).foregroundStyle(Theme.text)
             Text(app.isAdmin ? "home_empty_admin" : "home_empty_user").foregroundStyle(Theme.textMuted)
         }
         .padding(.horizontal, 20)

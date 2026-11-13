@@ -20,7 +20,7 @@ struct HeroView: View {
                     PosterPlaceholder(title: "")
                 }
             }
-            .frame(height: 560).frame(maxWidth: .infinity).clipped()
+            .frame(maxWidth: .infinity, maxHeight: .infinity).clipped()
             // The picture dissolves into the lit room instead of ending in a hard edge.
             .mask(LinearGradient(colors: [.black, .black, .black.opacity(0.6), .clear], startPoint: .top, endPoint: .bottom))
             LinearGradient(colors: [.black.opacity(0.5), .clear, .black.opacity(0.25), .black.opacity(0.45)],
@@ -28,23 +28,39 @@ struct HeroView: View {
             VStack(alignment: .leading, spacing: 12) {
                 TitleArt(id: item.id, title: item.title, hasLogo: item.hasLogo == true, client: client, size: 44)
                 MetaLine(item: item)
-                HStack(spacing: 12) {
-                    if playable {
-                        Button(action: onPlay) { Label("player.play", systemImage: "play.fill") }.buttonStyle(PrimaryButtonStyle(hex: item.colors?.first))
-                    }
-                    NavigationLink(value: Route.item(item.id)) { Label("home.moreInfo", systemImage: "info.circle") }
-                        .buttonStyle(MutedButtonStyle())
-                    if let onRandom {
-                        Button(action: onRandom) { Image(systemName: "shuffle") }
-                            .buttonStyle(CircleButtonStyle())
-                            .accessibilityLabel(Text("enh_random"))
-                    }
+                // Narrow screens and large text drop the secondary label before anything wraps.
+                ViewThatFits(in: .horizontal) {
+                    actions(labelled: true)
+                    actions(labelled: false)
                 }
                 .padding(.top, 4)
             }
             .padding(.horizontal, 20).padding(.bottom, 8)
         }
-        .frame(height: 560)
+        .heroFrame(maximum: 560)
+    }
+
+    private func actions(labelled: Bool) -> some View {
+        HStack(spacing: 12) {
+            if playable {
+                Button(action: onPlay) { Label("player.play", systemImage: "play.fill").fixedSize() }
+                    .buttonStyle(PrimaryButtonStyle(hex: item.colors?.first))
+            }
+            NavigationLink(value: Route.item(item.id)) {
+                if labelled {
+                    Label("home.moreInfo", systemImage: "info.circle").fixedSize()
+                } else {
+                    Image(systemName: "info.circle")
+                }
+            }
+            .buttonStyle(MutedButtonStyle())
+            .accessibilityLabel(Text("home.moreInfo"))
+            if let onRandom {
+                Button(action: onRandom) { Image(systemName: "shuffle") }
+                    .buttonStyle(CircleButtonStyle())
+                    .accessibilityLabel(Text("enh_random"))
+            }
+        }
     }
 }
 
@@ -64,7 +80,7 @@ struct TitleArt: View {
                 .shadow(color: .black.opacity(0.5), radius: 10)
                 .accessibilityLabel(Text(title))
         } else {
-            Text(title).font(Theme.display(size)).foregroundStyle(Theme.text).lineLimit(3).minimumScaleFactor(0.5)
+            Text(title).displayFont(size).foregroundStyle(Theme.text).lineLimit(3).minimumScaleFactor(0.5)
         }
     }
 }
@@ -93,7 +109,7 @@ struct Shelf<Content: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(title).font(Theme.head()).textCase(.uppercase).padding(.horizontal, 20)
+            Text(title).headFont().textCase(.uppercase).padding(.horizontal, 20)
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(alignment: .top, spacing: 14) { content() }
                     .padding(.horizontal, 20)
@@ -227,7 +243,7 @@ struct LibraryTile: View {
     var body: some View {
         HStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 6) {
-                Text(library.name).font(Theme.display(26)).foregroundStyle(Theme.text)
+                Text(library.name).displayFont(26).foregroundStyle(Theme.text)
                 Text("home.items \(library.itemCount)").font(.subheadline).foregroundStyle(Theme.textMuted)
             }
             Spacer()

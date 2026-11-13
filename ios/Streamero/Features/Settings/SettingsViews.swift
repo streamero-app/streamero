@@ -138,7 +138,7 @@ struct MeTab: View {
         HStack(spacing: 14) {
             AvatarView(name: name, color: p?.color, url: picture, token: client.token, size: 64)
             VStack(alignment: .leading, spacing: 4) {
-                Text(verbatim: name).font(Theme.display(24)).foregroundStyle(Theme.text).lineLimit(2)
+                Text(verbatim: name).displayFont(24).foregroundStyle(Theme.text).lineLimit(2)
                 HStack(spacing: 4) {
                     Text(verbatim: "@\(me.username)")
                     if app.isAdmin { Text(verbatim: "·"); Text("administrator") }

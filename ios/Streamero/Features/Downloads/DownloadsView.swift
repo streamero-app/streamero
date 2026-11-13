@@ -69,7 +69,7 @@ struct DownloadsView: View {
                 Section {
                     ForEach(movies) { row($0) }
                 } header: {
-                    Text("downloads.movies").font(Theme.head(14)).foregroundStyle(Theme.textMuted)
+                    Text("downloads.movies").headFont(14).foregroundStyle(Theme.textMuted)
                 }
                 .listRowBackground(Theme.surface)
             }
@@ -97,7 +97,7 @@ struct DownloadsView: View {
                         }
                     }
                 } header: {
-                    Text("downloads.auto").font(Theme.head(14)).foregroundStyle(Theme.textMuted)
+                    Text("downloads.auto").headFont(14).foregroundStyle(Theme.textMuted)
                 } footer: {
                     Text("downloads.autoHint")
                 }
@@ -191,7 +191,7 @@ struct DownloadsView: View {
             LocalArtwork(url: downloads.localURL(group.poster), title: group.title)
                 .frame(width: 28, height: 42)
                 .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
-            Text(verbatim: group.title).font(Theme.head(14)).foregroundStyle(Theme.text).lineLimit(1)
+            Text(verbatim: group.title).headFont(14).foregroundStyle(Theme.text).lineLimit(1)
             Spacer()
             Text(verbatim: OfflineStorage.format(OfflineStorage.totalBytes(group.episodes)))
                 .font(.caption.monospacedDigit()).foregroundStyle(Theme.textMuted)

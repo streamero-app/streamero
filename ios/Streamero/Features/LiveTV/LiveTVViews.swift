@@ -84,7 +84,7 @@ struct ChannelLogo: View {
             if let logo = channel.logoUrl, let url = client.absolute(logo) {
                 AuthImage(url: url, token: client.token, fit: true).padding(6)
             } else {
-                Text(verbatim: channel.number).font(Theme.head(15)).foregroundStyle(Theme.textMuted)
+                Text(verbatim: channel.number).headFont(15).foregroundStyle(Theme.textMuted)
                     .lineLimit(1).minimumScaleFactor(0.5).padding(4)
             }
         }
@@ -175,7 +175,7 @@ struct LiveChannelView: View {
                     ChannelLogo(channel: channel, client: client, size: 64)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(verbatim: channel.number).font(.caption.monospacedDigit()).foregroundStyle(Theme.textFaint)
-                        Text(verbatim: channel.name).font(Theme.head(22)).foregroundStyle(Theme.text)
+                        Text(verbatim: channel.name).headFont(22).foregroundStyle(Theme.text)
                     }
                 }
                 .padding(.top, 8)
