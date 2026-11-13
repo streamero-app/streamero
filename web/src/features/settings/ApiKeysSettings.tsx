@@ -4,8 +4,10 @@ import { useTranslation } from "react-i18next";
 import { api, unwrap } from "@/api/client";
 import { Button, Card, ErrorText, TextField } from "@/components/ui";
 import { useDateTime } from "./SettingsLayout";
+import { useConfirm } from "@/components/Dialog";
 
 export function ApiKeysSettings() {
+  const confirmDialog = useConfirm();
   const { t } = useTranslation();
   const qc = useQueryClient();
   const fmt = useDateTime();
@@ -78,7 +80,7 @@ export function ApiKeysSettings() {
                 </p>
               </div>
               <Button variant="danger" disabled={remove.isPending}
-                onClick={() => window.confirm(t("apikeys.confirmRevoke", { name: k.name })) && remove.mutate(k.id)}>
+                onClick={() => void confirmDialog({ message: t("apikeys.confirmRevoke", { name: k.name }), danger: true }).then((ok) => ok && remove.mutate(k.id))}>
                 {t("apikeys.revoke")}
               </Button>
             </li>
