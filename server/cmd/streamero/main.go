@@ -176,7 +176,10 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			return kerr
 		}
 		hls := &stream.Manager{Dir: cfg.TranscodeDir, FFmpeg: cfg.FFmpegPath, Log: log, Encoding: h.LoadEncoding}
+		hls.CleanStale() // sessions of a run that ended without cleaning up
 		go hls.Reap(ctx)
+		// Also on an in-process restart, where ctx (and so Reap) keeps running.
+		defer hls.StopAll()
 		streamServer := &stream.Server{Pool: deps.Pool, Roots: roots, Signer: stream.Signer{Key: key}, HLS: hls, FFmpeg: cfg.FFmpegPath}
 		state.SetStream(streamServer)
 		libs := &library.Service{Pool: deps.Pool, Roots: roots, ImageDir: filepath.Join(cfg.CacheDir, "images"), Resume: h.LoadResume,

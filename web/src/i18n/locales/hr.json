@@ -200,6 +200,8 @@
     "tmdb_unreachable": "Server ne može doći do TMDb-a. Pokušajte kasnije.",
     "transcode_not_allowed": "Ova datoteka treba transkodiranje, koje vaš račun ne smije koristiti.",
     "transcode_failed": "Server nije mogao pripremiti ovu datoteku za reprodukciju.",
+    "transcoder_busy": "Server trenutno pretvara previše streamova. Zaustavi reprodukciju na drugom uređaju ili pokušaj za minutu.",
+    "request_too_large": "To je preveliko za slanje na server.",
     "not_playable": "Ova stavka nema datoteku za reprodukciju.",
     "invalid_notification_target": "Provjeri servis i URL (http ili https; Gotify treba app token).",
     "notification_failed": "Odredište nije prihvatilo poruku. Provjeri URL i token.",

@@ -200,6 +200,8 @@
     "tmdb_unreachable": "TMDb could not be reached from the server. Try again later.",
     "transcode_not_allowed": "This file needs transcoding, which your account is not allowed to use.",
     "transcode_failed": "The server could not prepare this file for playback.",
+    "transcoder_busy": "The server is converting too many streams right now. Stop playback on another device or try again in a minute.",
+    "request_too_large": "That is too large to send to the server.",
     "not_playable": "This item has no playable file.",
     "invalid_notification_target": "Check the service and URL (http or https; Gotify needs an app token).",
     "notification_failed": "The target did not accept the message. Check the URL and token.",
