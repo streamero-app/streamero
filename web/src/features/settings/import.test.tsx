@@ -89,7 +89,8 @@ describe("import from another server", () => {
 
   it("is not available to other users", async () => {
     mockApi(() => ({ status: 200, body: [] }));
-    renderApp("/settings/import", { me: testUser({ isAdmin: false }) });
-    await waitFor(() => expect(screen.queryByText("Import from another media server")).not.toBeInTheDocument());
+    const { router } = renderApp("/settings/import", { me: testUser({ isAdmin: false }) });
+    await waitFor(() => expect(router.state.location.pathname).toBe("/settings/account"));
+    expect(screen.queryByText("Import from another media server")).not.toBeInTheDocument();
   });
 });
