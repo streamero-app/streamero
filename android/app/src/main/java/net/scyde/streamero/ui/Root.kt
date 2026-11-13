@@ -69,6 +69,10 @@ fun StreameroRoot(state: AppState) {
         }
         retrying = false
     }
+    // The server refused the session later on (revoked, expired): back to sign-in.
+    LaunchedEffect(state.sessionExpired) {
+        if (state.sessionExpired && (gate == Gate.Ready || gate == Gate.Profiles)) gate = Gate.Login
+    }
     val ctx = LocalContext.current
     val tv = remember { isTelevision(ctx) }
     val density = LocalDensity.current
@@ -92,6 +96,7 @@ fun StreameroRoot(state: AppState) {
 
 private suspend fun afterSignIn(state: AppState): Gate {
     state.me?.language?.let { applyLanguage(it) }
+    state.bindOffline()
     val profiles = runCatching { state.api!!.profiles() }.getOrDefault(emptyList())
     return if (profiles.isNotEmpty() && state.me?.currentProfile == null) Gate.Profiles else Gate.Ready
 }

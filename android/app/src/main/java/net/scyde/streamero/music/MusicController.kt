@@ -16,6 +16,7 @@ import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -63,7 +64,8 @@ class MusicController(private val app: Application) {
             c.addListener(object : Player.Listener {
                 override fun onIsPlayingChanged(isPlaying: Boolean) { playing = isPlaying }
                 override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                    index = c.currentMediaItemIndex
+                    // By id: while the queue is still being resolved the player holds fewer items than the list shown.
+                    index = queue.indexOfFirst { it.id == mediaItem?.mediaId }.takeIf { it >= 0 } ?: c.currentMediaItemIndex
                     duration = queue.getOrNull(index)?.durationMs ?: 0L
                 }
             })
@@ -77,26 +79,45 @@ class MusicController(private val app: Application) {
         return Uri.parse(a.imageUrl(id, "poster"))
     }
 
-    /** Plays [tracks] from [start]; each track's stream URL comes from the server (signed). */
+    private var generation = 0
+    private var resolving: Job? = null
+
+    private fun mediaItem(a: Api, t: ItemSummary, url: String): MediaItem =
+        MediaItem.Builder().setMediaId(t.id).setUri(a.resolve(url))
+            .setMediaMetadata(MediaMetadata.Builder().setTitle(t.title).setArtist(t.artist).setAlbumTitle(t.album).setArtworkUri(cover(t)).build())
+            .build()
+
+    /**
+     * Plays [tracks] from [start]; each track's stream URL comes from the server (signed). The
+     * chosen track starts as soon as its own URL is known; the rest of the queue is resolved in
+     * parallel meanwhile and tracks the server cannot play are left out.
+     */
     fun play(tracks: List<ItemSummary>, start: Int = 0) {
         val a = api ?: return
         if (tracks.isEmpty()) return
         onStart()
-        val list = if (shuffle) listOf(tracks[start]) + tracks.filterIndexed { i, _ -> i != start }.shuffled() else tracks
-        val first = if (shuffle) 0 else start
+        val from = start.coerceIn(tracks.indices)
+        val list = if (shuffle) listOf(tracks[from]) + tracks.filterIndexed { i, _ -> i != from }.shuffled() else tracks
+        val first = if (shuffle) 0 else from
+        val gen = ++generation
+        resolving?.cancel()
         queue = list
         index = first
-        scope.launch {
+        resolving = scope.launch {
+            val resolve: suspend (ItemSummary) -> String? = { t -> a.playback(t.id, PlaybackRequest(AUDIO_PROFILE)).url }
+            val (at, head) = MusicQueue.first(list, first, resolve) ?: run { if (gen == generation) { queue = emptyList(); index = -1 }; return@launch }
             val c = controller()
-            val items = list.map { t ->
-                val info = runCatching { a.playback(t.id, PlaybackRequest(AUDIO_PROFILE)) }.getOrNull()
-                MediaItem.Builder().setMediaId(t.id).setUri(info?.let { a.resolve(it.url) } ?: "")
-                    .setMediaMetadata(MediaMetadata.Builder().setTitle(t.title).setArtist(t.artist).setAlbumTitle(t.album).setArtworkUri(cover(t)).build())
-                    .build()
-            }
-            c.setMediaItems(items, first, 0)
+            if (gen != generation) return@launch
+            index = at
+            c.setMediaItems(listOf(mediaItem(a, head.track, head.stream)), 0, 0)
             c.prepare()
             c.play()
+            val (before, after) = MusicQueue.rest(list, at, resolve = resolve)
+            if (gen != generation) return@launch
+            c.addMediaItems(0, before.map { mediaItem(a, it.track, it.stream) })
+            c.addMediaItems(after.map { mediaItem(a, it.track, it.stream) })
+            queue = before.map { it.track } + head.track + after.map { it.track }
+            index = c.currentMediaItemIndex
         }
     }
 
@@ -104,7 +125,12 @@ class MusicController(private val app: Application) {
     fun next() = scope.launch { controller().seekToNextMediaItem() }
     fun prev() = scope.launch { controller().seekToPrevious() }
     fun seek(ms: Long) = scope.launch { controller().seekTo(ms) }
-    fun jump(i: Int) = scope.launch { controller().seekTo(i, 0) }
+    fun jump(i: Int) = scope.launch {
+        val c = controller()
+        val id = queue.getOrNull(i)?.id ?: return@launch
+        val at = (0 until c.mediaItemCount).firstOrNull { c.getMediaItemAt(it).mediaId == id } ?: return@launch
+        c.seekTo(at, 0)
+    }
     fun pause() = scope.launch { controller?.pause() }
     fun cycleRepeat() = scope.launch {
         repeat = when (repeat) { Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL; Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE; else -> Player.REPEAT_MODE_OFF }
@@ -112,6 +138,8 @@ class MusicController(private val app: Application) {
     }
     fun toggleShuffle() = scope.launch { shuffle = !shuffle; controller().shuffleModeEnabled = shuffle }
     fun stop() {
+        generation++
+        resolving?.cancel()
         controller?.stop(); controller?.clearMediaItems()
         queue = emptyList(); index = -1; playing = false
     }

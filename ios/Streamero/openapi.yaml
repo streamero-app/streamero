@@ -1248,6 +1248,15 @@ paths:
       tags: [libraries]
       security:
         - sessionToken: []
+      parameters:
+        - name: confirmRemoval
+          in: query
+          description: >-
+            Also remove missing files that an earlier scan kept because the removal looked like an
+            offline folder (see ScanStatus.heldRemovals). Folders that cannot be read are still kept.
+          schema:
+            type: boolean
+            default: false
       responses:
         "202":
           description: Scan queued
@@ -4951,6 +4960,11 @@ components:
           type: string
         filesSeen:
           type: integer
+        heldRemovals:
+          type: integer
+          description: >-
+            Missing files the last scan kept because removing them looked like an offline or
+            half-mounted folder; scan with confirmRemoval to remove them.
     ItemKind:
       type: string
       enum: [movie, series, season, episode, artist, album, track, book, audiobook, photoalbum, photo, video]

@@ -137,7 +137,23 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       }
     })();
     return () => { cancelled = true; };
-  }, [current?.id, index]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Keyed on the song, not its place in the queue: shuffling moves the playing song to
+    // the top without restarting it. (Playing the same song again is handled in play().)
+  }, [current?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Signing out or switching profile unmounts the app shell: the music stops with it.
+  useEffect(() => () => {
+    const el = audio.current;
+    hls.current?.destroy();
+    hls.current = null;
+    if (el) {
+      el.pause();
+      el.removeAttribute("src");
+      try { el.load(); } catch { /* not implemented in test DOMs */ }
+    }
+    const ms = typeof navigator !== "undefined" ? navigator.mediaSession : undefined;
+    if (ms) ms.metadata = null;
+  }, []);
 
   const advance = useCallback((dir: 1 | -1, auto = false) => {
     setIndex((i) => {

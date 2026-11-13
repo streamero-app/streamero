@@ -7,6 +7,7 @@ struct PlayTarget: Identifiable, Hashable {
     var start: Int64? = nil
     var file: String? = nil
     var audio: Int? = nil
+    /// Index into the file's subtitle tracks (-1 = none, nil = automatic).
     var sub: Int? = nil
 }
 

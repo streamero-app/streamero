@@ -19,6 +19,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/streamero-app/streamero/server/internal/netx"
 	"github.com/streamero-app/streamero/server/internal/settings"
 )
 
@@ -66,7 +67,8 @@ func Load(ctx context.Context, st *settings.Store) ([]Target, error) {
 	return out, nil
 }
 
-// Save validates and stores targets; an empty token keeps the stored one of the same id.
+// Save validates and stores targets; an empty token keeps the stored one of the
+// same id as long as the URL still points at the same scheme and host.
 func Save(ctx context.Context, st *settings.Store, targets []Target) ([]Target, error) {
 	old, err := Load(ctx, st)
 	if err != nil {
@@ -77,15 +79,27 @@ func Save(ctx context.Context, st *settings.Store, targets []Target) ([]Target, 
 		if err := Validate(*t); err != nil {
 			return nil, err
 		}
-		if t.Token == "" {
-			for _, o := range old {
-				if o.ID == t.ID {
-					t.Token = o.Token
-				}
-			}
+		t.Token = StoredToken(*t, old)
+		if t.Kind == "gotify" && t.Token == "" {
+			return nil, fmt.Errorf("%w: Gotify needs an app token", ErrInvalid)
 		}
 	}
 	return targets, st.Set(ctx, settingsKey, targets)
+}
+
+// StoredToken is t's token, or, when none was sent, the stored token of the
+// same target if its URL has the same origin (a token never follows the target
+// to another host).
+func StoredToken(t Target, stored []Target) string {
+	if t.Token != "" {
+		return t.Token
+	}
+	for _, o := range stored {
+		if o.ID == t.ID && netx.SameOrigin(o.URL, t.URL) {
+			return o.Token
+		}
+	}
+	return ""
 }
 
 // Validate checks kind and URL.
@@ -168,7 +182,7 @@ func (d *Dispatcher) client() *http.Client {
 	if d.Client != nil {
 		return d.Client
 	}
-	return &http.Client{Timeout: 15 * time.Second}
+	return &http.Client{Timeout: 15 * time.Second, CheckRedirect: netx.SameHostRedirects}
 }
 
 // Send delivers one event to one target synchronously (also used by "Send test").
@@ -201,9 +215,9 @@ func (d *Dispatcher) Send(ctx context.Context, t Target, e Event) error {
 		if err != nil {
 			return err
 		}
-		q := u.Query()
-		q.Set("token", t.Token)
-		u.RawQuery = q.Encode()
+		// The app token goes in a header: in the query string it would end up in
+		// proxy logs and in the error text of a failed request.
+		headers["X-Gotify-Key"] = t.Token
 		target = u.String()
 		body, _ = json.Marshal(map[string]any{"title": e.Title, "message": e.Message, "priority": 5})
 	default:

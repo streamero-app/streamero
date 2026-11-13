@@ -96,6 +96,27 @@ describe("library pages", () => {
     await waitFor(() => expect(created).toEqual({ name: "Filmovi", kind: "movies", paths: ["/media"] }));
     expect(await screen.findByTestId("library-row")).toHaveTextContent("Filmovi");
   });
+
+  it("explains files kept by an offline-looking scan and removes them only when confirmed", async () => {
+    const scans: (string | null)[] = [];
+    mockApi(({ method, path, query }) => {
+      if (method === "POST" && path === `/libraries/${lib.id}/scan`) {
+        scans.push(query.get("confirmRemoval"));
+        return { status: 202, body: undefined };
+      }
+      if (path === "/libraries") return { status: 200, body: [{ ...lib, scan: { state: "idle", filesSeen: 3, heldRemovals: 25 } }] };
+      return { status: 200, body: [] };
+    });
+    const confirm = vi.fn(() => true);
+    vi.stubGlobal("confirm", confirm);
+    renderApp("/settings/libraries", { me: testUser({ isAdmin: true }) });
+    expect(await screen.findByTestId("held-removals")).toHaveTextContent("25 missing files were kept");
+    fireEvent.click(screen.getByRole("button", { name: "Scan now" }));
+    await waitFor(() => expect(scans).toEqual([null]));
+    fireEvent.click(screen.getByRole("button", { name: "Remove missing files" }));
+    await waitFor(() => expect(scans).toEqual([null, "true"]));
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining("Remove 25 missing files from Filmovi"));
+  });
 });
 
 describe("browse", () => {

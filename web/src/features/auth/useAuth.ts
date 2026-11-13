@@ -1,5 +1,25 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { api, deviceInfo, fetchMe, unwrap, type User } from "@/api/client";
+
+/**
+ * Whether the signed-in account may use administrator actions right now: an
+ * administrator who is not on a kid profile (the server refuses admin calls there).
+ */
+export function canAdminister(me: User | null | undefined): boolean {
+  return !!me?.isAdmin && !me.currentProfile?.isKid;
+}
+
+/** Query keys that belong to the account or the server, not to the profile in use. */
+const ACCOUNT_KEYS = new Set(["auth", "system", "profiles"]);
+
+/**
+ * After switching profile: drops every cached row of the previous profile (home rows,
+ * progress, preferences…) so none of it shows, then reloads the account.
+ */
+export async function resetProfileData(qc: QueryClient): Promise<void> {
+  qc.removeQueries({ predicate: (q) => !ACCOUNT_KEYS.has(String(q.queryKey[0])) });
+  await qc.invalidateQueries({ queryKey: meQueryKey });
+}
 
 export const meQueryKey = ["auth", "me"] as const;
 

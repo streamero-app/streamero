@@ -5,6 +5,7 @@ import { api, unwrap } from "@/api/client";
 import type { components } from "@/api/schema.gen";
 import { Badge, Button, Card, ErrorText, Select, SuccessText, TextField } from "@/components/ui";
 import { SettingRow, Toggle } from "./SettingRow";
+import { useConfirm } from "@/components/Dialog";
 
 type OidcProvider = components["schemas"]["OidcProvider"];
 type OidcInput = components["schemas"]["OidcProviderInput"];
@@ -75,6 +76,7 @@ function GeneralCard() {
 }
 
 function OidcCard() {
+  const confirmDialog = useConfirm();
   const { t } = useTranslation();
   const qc = useQueryClient();
   const list = useQuery({ queryKey: ["settings", "oidc"], queryFn: async () => unwrap(await api.GET("/settings/auth/oidc")) });
@@ -101,7 +103,7 @@ function OidcCard() {
             </div>
             <Button variant="ghost" onClick={() => setEditing({ existing: p })}>{t("common.edit")}</Button>
             <Button variant="danger" disabled={remove.isPending}
-              onClick={() => window.confirm(t("sso.confirmDelete", { name: p.label })) && remove.mutate(p.id)}>{t("common.delete")}</Button>
+              onClick={() => void confirmDialog({ message: t("sso.confirmDelete", { name: p.label }), danger: true }).then((ok) => ok && remove.mutate(p.id))}>{t("common.delete")}</Button>
           </li>
         ))}
       </ul>

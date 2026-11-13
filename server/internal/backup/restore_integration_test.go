@@ -110,6 +110,7 @@ func TestBackupRestoreIntegration(t *testing.T) {
 	exec(t, pool, `INSERT INTO sessions (id, user_id, token_hash, expires_at) VALUES ($1, $2, '\xdeadbeef', now() + interval '1 day')`, uuid.New(), ana)
 	exec(t, pool, `INSERT INTO libraries (id, name, kind, paths, scan_state) VALUES ($1, 'Filmovi', 'movies', ARRAY['/media/a', '/media/b c'], 'scanning')`, lib)
 	exec(t, pool, `INSERT INTO settings (key, value) VALUES ('test.key', '{"v": 1}')`)
+	exec(t, pool, `INSERT INTO settings (key, value) VALUES ('stream.key', '"key-at-backup"')`)
 	exec(t, pool, `INSERT INTO audit_log (action) VALUES ('one'), ('two')`)
 	var lastAudit int64
 	if err := pool.QueryRow(ctx, `SELECT max(id) FROM audit_log`).Scan(&lastAudit); err != nil {
@@ -150,6 +151,7 @@ func TestBackupRestoreIntegration(t *testing.T) {
 	exec(t, pool, `DELETE FROM users WHERE id = $1`, ana) // cascades to sessions
 	exec(t, pool, `INSERT INTO users (id, username, password_hash) VALUES ($1, 'ivo', 'h')`, ivo)
 	exec(t, pool, `UPDATE settings SET value = '{"v": 2}' WHERE key = 'test.key'`)
+	exec(t, pool, `UPDATE settings SET value = '"key-now"' WHERE key = 'stream.key'`)
 	exec(t, pool, `INSERT INTO audit_log (action) VALUES ('three'), ('four'), ('five')`)
 	mustWrite(t, filepath.Join(root, "config", "extra", "settings.yml"), "a: 2")
 	if err := os.Remove(filepath.Join(root, "cache", "avatars", "x.jpg")); err != nil {
@@ -176,6 +178,10 @@ func TestBackupRestoreIntegration(t *testing.T) {
 	var v string
 	if err := pool.QueryRow(ctx, `SELECT value->>'v' FROM settings WHERE key = 'test.key'`).Scan(&v); err != nil || v != "1" {
 		t.Errorf("setting %q %v", v, err)
+	}
+	// The stream signing key is never in a backup; a restore keeps the server's own.
+	if err := pool.QueryRow(ctx, `SELECT value #>> '{}' FROM settings WHERE key = 'stream.key'`).Scan(&v); err != nil || v != "key-now" {
+		t.Errorf("stream key after restore %q %v", v, err)
 	}
 	var paths []string
 	var state string
@@ -216,8 +222,13 @@ func TestBackupRestoreIntegration(t *testing.T) {
 	if safety == nil || safety.Kind != KindPreRestore {
 		t.Fatalf("safety backup missing: %+v", list)
 	}
+	// Without a key of its own the server gets none from the backup (a fresh one is made at start).
+	exec(t, pool, `DELETE FROM settings WHERE key = 'stream.key'`)
 	if _, err := svc.Restore(ctx, filepath.Join(svc.Dir, safety.Name), RestoreOptions{}); err != nil {
 		t.Fatal(err)
+	}
+	if n := count(t, pool, `SELECT count(*) FROM settings WHERE key = 'stream.key'`); n != 0 {
+		t.Errorf("a stream key came back from a backup: %d", n)
 	}
 	if _, ok := getUser(t, pool, ivo); !ok {
 		t.Error("safety backup did not bring back the later user")

@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { api, unwrap } from "@/api/client";
 import { Badge, Button, Card, ErrorText, TextField } from "@/components/ui";
+import { useConfirm } from "@/components/Dialog";
 import { useDateTime } from "./SettingsLayout";
 
 const EXPIRY = [24, 24 * 7, 24 * 30] as const;
@@ -11,6 +12,7 @@ export function InvitesSettings() {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const fmt = useDateTime();
+  const confirmDialog = useConfirm();
   const invites = useQuery({ queryKey: ["invites"], queryFn: async () => unwrap(await api.GET("/invites")) });
   const [form, setForm] = useState({ note: "", expiresInHours: 24 * 7, maxUses: 1 });
   const [link, setLink] = useState<string | null>(null);
@@ -92,7 +94,8 @@ export function InvitesSettings() {
                   </p>
                   <p className="text-xs text-muted">{t("invites.meta", { uses: i.uses, max: i.maxUses, expires: fmt(i.expiresAt), user: i.createdBy })}</p>
                 </div>
-                <Button variant="danger" disabled={remove.isPending} onClick={() => remove.mutate(i.id)}>{t("invites.revoke")}</Button>
+                <Button variant="danger" disabled={remove.isPending} onClick={() => void confirmDialog({ message: t("invites.confirmRevoke", { name: i.note || t("invites.untitled") }), confirmLabel: t("invites.revoke"), danger: true })
+                    .then((ok) => ok && remove.mutate(i.id))}>{t("invites.revoke")}</Button>
               </li>
             );
           })}

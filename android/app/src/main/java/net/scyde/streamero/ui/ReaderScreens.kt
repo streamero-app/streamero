@@ -161,7 +161,7 @@ private fun SaveProgress(state: AppState, api: Api, id: String, page: Int, count
     val opened = remember { page }
     val moved = remember { booleanArrayOf(false) }
     val latest by rememberUpdatedState(page)
-    val save = remember { { p: Int -> state.scope.launch { runCatching { api.saveReadingProgress(id, ReadingProgressInput(progressionOf(p, count), page = p)) } } } }
+    val save = remember { { p: Int -> state.appScope.launch { runCatching { api.saveReadingProgress(id, ReadingProgressInput(progressionOf(p, count), page = p)) } } } }
     LaunchedEffect(page) {
         if (page != opened) moved[0] = true
         if (moved[0]) { delay(1500); save(page) }

@@ -16,7 +16,8 @@
     "edit": "Edit",
     "delete": "Delete",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "episodeCode": "S{{season}}:E{{episode}}"
   },
   "nav": {
     "home": "Home",
@@ -133,7 +134,9 @@
     "lastSeen": "last active {{when}}",
     "signOut": "Sign out",
     "rename": "Rename",
-    "name": "Device name"
+    "name": "Device name",
+    "confirmSignOut": "Sign out “{{name}}”? It will have to sign in again.",
+    "confirmSignOutSelf": "Sign out of this device?"
   },
   "users": {
     "add": "Add user",
@@ -164,7 +167,8 @@
     "version": "Version {{version}}",
     "versionLabel": "Version",
     "about": "About this server",
-    "id": "Server ID"
+    "id": "Server ID",
+    "apiVersion": "API version"
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",
@@ -200,6 +204,8 @@
     "tmdb_unreachable": "TMDb could not be reached from the server. Try again later.",
     "transcode_not_allowed": "This file needs transcoding, which your account is not allowed to use.",
     "transcode_failed": "The server could not prepare this file for playback.",
+    "transcoder_busy": "The server is converting too many streams right now. Stop playback on another device or try again in a minute.",
+    "request_too_large": "That is too large to send to the server.",
     "not_playable": "This item has no playable file.",
     "invalid_notification_target": "Check the service and URL (http or https; Gotify needs an app token).",
     "notification_failed": "The target did not accept the message. Check the URL and token.",
@@ -234,7 +240,8 @@
     "invalid_settings": "Please check the settings.",
     "provider_unreachable": "The provider could not be reached or answered incorrectly.",
     "tuners_busy": "Every tuner is in use right now. Try again when a recording or another viewer finishes.",
-    "channel_unavailable": "The channel can't be tuned right now."
+    "channel_unavailable": "The channel can't be tuned right now.",
+    "file_missing": "This file is no longer where the server expected it. The library is being rescanned; try again in a minute."
   },
   "notFound": {
     "title": "Page not found",
@@ -326,7 +333,8 @@
     "invalidText": "This invite link has expired, was used up or was revoked. Ask for a new one.",
     "joinTitle": "Join {{server}}",
     "joinIntro": "You were invited. Choose a username and password for your account.",
-    "join": "Create account"
+    "join": "Create account",
+    "confirmRevoke": "Revoke the invite “{{name}}”? The link stops working immediately."
   },
   "profiles": {
     "intro": "Profiles let several people share this account (up to 6). A kids profile cannot open settings; leaving it needs the account password.",
@@ -378,6 +386,11 @@
     "scan": "Scan now",
     "remove": "Remove",
     "confirmDelete": "Remove library {{name}} from Streamero? The files stay untouched.",
+    "held_one": "{{count}} missing file was kept: a library folder looks offline or mostly empty. If you deleted it on purpose, remove it from the library.",
+    "held_few": "{{count}} missing files were kept: a library folder looks offline or mostly empty. If you deleted them on purpose, remove them from the library.",
+    "held_other": "{{count}} missing files were kept: a library folder looks offline or mostly empty. If you deleted them on purpose, remove them from the library.",
+    "removeMissing": "Remove missing files",
+    "confirmRemoveMissing": "Remove {{count}} missing files from {{name}}? Watch history of those titles is lost. Files on disk are not touched.",
     "meta": "{{count}} items · {{files}} files · scanned {{when}}",
     "items_one": "{{count}} item",
     "items_other": "{{count}} items",
@@ -546,7 +559,10 @@
     "keyFullscreen": "Full screen",
     "keySubtitles": "Subtitles on/off",
     "keyHelp": "This help",
-    "keyClose": "Close a panel"
+    "keyClose": "Close a panel",
+    "fallback": "This browser couldn't play the file directly, so it is being converted.",
+    "playbackFailed": "This video can't be played in this browser right now.",
+    "retry": "Try again"
   },
   "search": {
     "title": "Search",
@@ -725,7 +741,8 @@
     "event_scan.failed": "Failed scans",
     "enabled": "Enabled",
     "test": "Send test",
-    "testSent": "Test message sent."
+    "testSent": "Test message sent.",
+    "namePlaceholder": "Discord #movies"
   },
   "playbackPrefs": {
     "title": "Playback",
@@ -1038,7 +1055,7 @@
     "download": "Download"
   },
   "import": {
-    "title": "Import from Jellyfin",
+    "title": "Import from another media server",
     "intro": "Bring over what each person watched, where they stopped, their favourites and playlists before you switch the old server off. Media files are not copied or changed.",
     "url": "Server address",
     "urlHint": "As Streamero's server reaches it, e.g. http://192.168.1.10:8096",
@@ -1573,5 +1590,10 @@
     "favorite": "Favourite",
     "info": "Details",
     "onMap": "Show on map"
+  },
+  "dialog": {
+    "confirm": "Confirm",
+    "ok": "OK",
+    "create": "Create"
   }
 }

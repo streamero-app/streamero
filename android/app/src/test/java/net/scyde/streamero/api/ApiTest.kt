@@ -69,6 +69,30 @@ class ApiTest {
         ws.cancel()
     }
 
+    @Test fun aRejectedSessionIsReported() = runTest {
+        var calls = 0
+        api.onUnauthorized = { calls++ }
+        server.enqueue(MockResponse().setResponseCode(401).setBody("""{"code":"invalid_pin","message":"wrong"}"""))
+        runCatching { api.selectProfile("p", "0000") }
+        assertEquals("a wrong PIN is not a lost session", 0, calls)
+        server.enqueue(MockResponse().setResponseCode(401).setBody("""{"code":"unauthenticated","message":"not signed in"}"""))
+        val e = runCatching { api.me() }.exceptionOrNull() as ApiException
+        assertEquals("unauthenticated", e.code)
+        assertEquals(1, calls)
+    }
+
+    @Test fun playbackRequestCarriesTheSubtitleChoice() = runTest {
+        server.enqueue(MockResponse().setBody("""{"fileId":"f","method":"transcode","url":"/s.m3u8","startMs":0,"audio":[],"subtitles":[],
+            "bitmapSubtitles":[{"index":2,"codec":"hdmv_pgs_subtitle","language":"hr"}],"burnedSubtitle":2}"""))
+        val pi = api.playback("i", PlaybackRequest(net.scyde.streamero.player.SAFE_PROFILE, subtitleIndex = 2))
+        assertEquals(2, pi.burnedSubtitle)
+        assertEquals("hdmv_pgs_subtitle", pi.bitmapSubtitles.single().codec)
+        val body = server.takeRequest().body.readUtf8()
+        assertTrue(body, "\"subtitleIndex\":2" in body)
+        assertFalse(body, "burnSubtitle" in body)
+        assertTrue(body, "\"videoCodecs\":[\"h264\"]" in body)
+    }
+
     @Test fun inviteLinkPointsAtTheServer() {
         assertEquals(server.url("/").toString().trimEnd('/') + "/together/abc", api.inviteLink("abc"))
     }

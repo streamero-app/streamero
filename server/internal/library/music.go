@@ -123,13 +123,14 @@ func readTrack(f planFile, tags map[string]string) musicTrack {
 }
 
 // collectAudio lists the audio files under root.
-func collectAudio(ctx context.Context, root string) ([]planFile, error) {
+func collectAudio(ctx context.Context, root string, unreadable *[]string) ([]planFile, error) {
 	var out []planFile
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			if path == root {
 				return err
 			}
+			*unreadable = append(*unreadable, path)
 			return nil
 		}
 		if ctx.Err() != nil {
@@ -147,6 +148,7 @@ func collectAudio(ctx context.Context, root string) ([]planFile, error) {
 		}
 		info, err := d.Info()
 		if err != nil {
+			*unreadable = append(*unreadable, path)
 			return nil
 		}
 		out = append(out, planFile{path: path, size: info.Size(), mtime: info.ModTime().UTC().Truncate(time.Microsecond)})
@@ -158,10 +160,10 @@ func collectAudio(ctx context.Context, root string) ([]planFile, error) {
 // planMusic groups audio files into artists, albums and tracks. Tags of new or
 // changed files are read first (and handed to apply, which then does not probe
 // them again); unchanged files use the tags stored at their last scan.
-func (s *Scanner) planMusic(ctx context.Context, libID string, roots []string) (map[string]*planItem, map[string]probeOutcome, map[string][]string, error) {
+func (s *Scanner) planMusic(ctx context.Context, libID string, walk *walkResult) (map[string]*planItem, map[string]probeOutcome, map[string][]string, error) {
 	var files []planFile
-	for _, root := range roots {
-		fs, err := collectAudio(ctx, root)
+	for _, root := range walk.roots {
+		fs, err := collectAudio(ctx, root, &walk.unreadable)
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("reading %s: %w", root, err)
 		}

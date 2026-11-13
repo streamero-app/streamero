@@ -167,16 +167,19 @@ cat > "$T/epub/OEBPS/content.opf" <<'OPF'
   <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
   <item id="cover" href="cover.jpg" media-type="image/jpeg" properties="cover-image"/>
   <item id="c1" href="c1.xhtml" media-type="application/xhtml+xml"/><item id="c2" href="c2.xhtml" media-type="application/xhtml+xml"/>
+  <item id="css" href="style.css" media-type="text/css"/>
  </manifest>
  <spine><itemref idref="c1"/><itemref idref="c2"/></spine>
 </package>
 OPF
 printf '<?xml version="1.0"?><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Contents</title></head><body><nav epub:type="toc"><ol><li><a href="c1.xhtml">One</a></li><li><a href="c2.xhtml">Two</a></li></ol></nav></body></html>' > "$T/epub/OEBPS/nav.xhtml"
 for c in 1 2; do
-  { printf '<?xml version="1.0"?><html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter %s</title></head><body><h1>Chapter %s</h1>' "$c" "$c"
+  { printf '<?xml version="1.0"?><html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter %s</title><link rel="stylesheet" type="text/css" href="style.css"/></head><body><h1>Chapter %s</h1>' "$c" "$c"
     for p in $(seq 1 30); do printf '<p>Paragraph %s of chapter %s. The ship drifted between the stars while the crew argued about dinner.</p>' "$p" "$c"; done
     printf '</body></html>'; } > "$T/epub/OEBPS/c$c.xhtml"
 done
+# A book stylesheet: the reader loads it from a blob: URL, which the web client's CSP must allow.
+printf 'h1 { letter-spacing: 3px; }\n' > "$T/epub/OEBPS/style.css"
 "${FF[@]}" -f lavfi -i "color=c=0x7a2a2a:size=600x900:duration=1" -frames:v 1 "$T/epub/OEBPS/cover.jpg"
 zipfile "$OUT/books/Ana Novak/The Long Way.epub" "$T/epub"
 printf '<?xml version="1.0"?><ComicInfo><Series>Space Cats</Series><Number>1</Number><Writer>Mia Writer</Writer><Manga>YesAndRightToLeft</Manga><Summary>Cats, in space.</Summary></ComicInfo>' > "$T/comic/ComicInfo.xml"

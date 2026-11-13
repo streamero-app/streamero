@@ -144,19 +144,28 @@ func (s *Service) UpdateProfile(ctx context.Context, p Principal, id uuid.UUID, 
 		id, p.User.ID, name, strings.ToLower(in.Color), in.IsKid, in.MaxRating, hash, in.RemovePin))
 }
 
-// DeleteProfile removes one of the caller's profiles (sessions using it fall back to the main profile).
+// DeleteProfile removes one of the caller's profiles. Other devices using it are
+// signed out: falling back to the main profile would hand a child's device the
+// whole (perhaps administrator) account. The caller's own session, an adult
+// one, falls back to the main profile.
 func (s *Service) DeleteProfile(ctx context.Context, p Principal, id uuid.UUID) error {
 	if p.IsKid() {
 		return ErrKidProfile
 	}
-	tag, err := s.pool.Exec(ctx, `DELETE FROM profiles WHERE id = $1 AND user_id = $2`, id, p.User.ID)
-	if err != nil {
-		return err
-	}
-	if tag.RowsAffected() == 0 {
-		return ErrNotFound
-	}
-	return nil
+	return pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `DELETE FROM sessions WHERE profile_id = $1 AND user_id = $2 AND id <> $3`,
+			id, p.User.ID, p.SessionID); err != nil {
+			return err
+		}
+		tag, err := tx.Exec(ctx, `DELETE FROM profiles WHERE id = $1 AND user_id = $2`, id, p.User.ID)
+		if err != nil {
+			return err
+		}
+		if tag.RowsAffected() == 0 {
+			return ErrNotFound
+		}
+		return nil
+	})
 }
 
 // SelectProfile switches the caller's session to a profile, checking its PIN.

@@ -222,6 +222,19 @@ struct PlaybackRequest: Codable, Sendable, Equatable {
     var fileId: String?
     var audioIndex: Int?
     var startMs: Int64?
+    /// Index into the file's subtitle tracks (-1 = none, nil = automatic). A bitmap track is
+    /// burned into the picture by the server.
+    var subtitleIndex: Int? = nil
+    /// Burn a text track in too (keeps ASS/SSA styling).
+    var burnSubtitle: Bool? = nil
+}
+
+/// A picture-based subtitle track (PGS, VobSub, DVB): the server burns it in when chosen.
+struct PlaybackBitmapSubtitle: Codable, Sendable, Equatable, Hashable {
+    var index: Int
+    var codec: String
+    var language: String?
+    var forced: Bool?
 }
 
 struct PlaybackSubtitle: Codable, Sendable, Equatable, Hashable {
@@ -252,6 +265,10 @@ struct PlaybackInfo: Codable, Sendable, Equatable {
     var segments: [MediaSegment]?
     var trickplay: TrickplayInfo?
     var reason: String?
+    /// Bitmap tracks; choosing one restarts the stream with `subtitleIndex` (burned in).
+    var bitmapSubtitles: [PlaybackBitmapSubtitle]? = nil
+    /// The file subtitle track drawn into this stream (nil = none).
+    var burnedSubtitle: Int? = nil
 }
 
 struct ProgressReport: Codable, Sendable, Equatable {

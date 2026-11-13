@@ -108,6 +108,7 @@ func (r *Refresher) RefreshLibrary(ctx context.Context, libraryID uuid.UUID, for
 		return 0, err
 	}
 	done := 0
+	var temporary error
 	for _, it := range items {
 		if ctx.Err() != nil {
 			return done, ctx.Err()
@@ -116,9 +117,90 @@ func (r *Refresher) RefreshLibrary(ctx context.Context, libraryID uuid.UUID, for
 			if errors.Is(err, ErrInvalidKey) {
 				return done, err
 			}
+			if !permanent(err) {
+				// TMDb busy or unreachable: leave the title pending for a later run.
+				r.Log.Warn("metadata refresh failed, will retry", "item", it.title, "err", err)
+				temporary = err
+				continue
+			}
 			r.Log.Info("no metadata", "item", it.title, "err", err)
 			_, _ = r.Pool.Exec(ctx, `UPDATE items SET metadata_refreshed_at = now(), metadata_error = $2 WHERE id = $1`, it.id, err.Error())
 			continue
+		}
+		done++
+	}
+	n, err := r.refreshNewSeasons(ctx, c, cfg, libraryID)
+	done += n
+	if err != nil {
+		if errors.Is(err, ErrInvalidKey) || ctx.Err() != nil {
+			return done, err
+		}
+		temporary = err
+	}
+	if temporary != nil {
+		return done, fmt.Errorf("%w (some titles will be retried): %w", ErrTemporary, temporary)
+	}
+	return done, nil
+}
+
+// permanent reports errors that retrying will not fix: TMDb has no such title.
+// Anything else (TMDb or the network failing) leaves the title for a later run.
+func permanent(err error) bool {
+	return errors.Is(err, errNotFound) || errors.Is(err, errNoMatch)
+}
+
+var errNoMatch = errors.New("no TMDb match")
+
+// refreshNewSeasons fills seasons and episodes that were added to a series after
+// its metadata was fetched (a new season on disk, or a new episode in a known
+// season). Only those seasons are fetched again: the series itself, its artwork
+// and its cast stay as they are. Episodes TMDb does not list yet are tried again
+// a day later.
+func (r *Refresher) refreshNewSeasons(ctx context.Context, c *TMDb, cfg Settings, libraryID uuid.UUID) (int, error) {
+	rows, err := r.Pool.Query(ctx, `SELECT s.id, ser.provider_ids->>'tmdb', s.season_number
+		FROM items s JOIN items ser ON ser.id = s.parent_id
+		WHERE s.library_id = $1 AND s.kind = 'season' AND s.season_number IS NOT NULL
+			AND ser.kind = 'series' AND ser.metadata_refreshed_at IS NOT NULL AND NOT ser.metadata_locked
+			AND ser.provider_ids ? 'tmdb'
+			AND (s.metadata_refreshed_at IS NULL OR EXISTS (SELECT 1 FROM items e WHERE e.parent_id = s.id AND e.kind = 'episode'
+				AND (e.metadata_refreshed_at IS NULL
+					OR (e.metadata_error IS NOT NULL AND e.metadata_refreshed_at < now() - interval '1 day'))))`, libraryID)
+	if err != nil {
+		return 0, err
+	}
+	type todo struct {
+		id     uuid.UUID
+		tmdb   string
+		season int
+	}
+	var list []todo
+	for rows.Next() {
+		var t todo
+		if err := rows.Scan(&t.id, &t.tmdb, &t.season); err != nil {
+			rows.Close()
+			return 0, err
+		}
+		list = append(list, t)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return 0, err
+	}
+	done := 0
+	for _, t := range list {
+		if ctx.Err() != nil {
+			return done, ctx.Err()
+		}
+		seriesID, err := strconv.Atoi(t.tmdb)
+		if err != nil {
+			continue
+		}
+		sd, err := c.SeasonDetails(ctx, seriesID, t.season, cfg.Language)
+		if err != nil && !errors.Is(err, errNotFound) {
+			return done, err
+		}
+		if err := r.storeSeason(ctx, c, t.id, sd.PosterPath, sd.Overview, sd.Episodes); err != nil {
+			return done, err
 		}
 		done++
 	}
@@ -264,7 +346,7 @@ func (r *Refresher) resolveID(ctx context.Context, c *TMDb, kind string, it item
 	}
 	id, err := c.Search(ctx, kind, it.title, year, lang)
 	if errors.Is(err, errNotFound) {
-		return 0, fmt.Errorf("no TMDb match for %q", it.title)
+		return 0, fmt.Errorf("%w for %q", errNoMatch, it.title)
 	}
 	return id, err
 }
@@ -470,49 +552,65 @@ func (r *Refresher) refreshSeasons(ctx context.Context, c *TMDb, cfg Settings, s
 		if s.season == nil {
 			continue
 		}
-		poster := r.saveImage(ctx, c, s.id, "poster", posters[*s.season], "w500")
 		eps, overview, err := c.Season(ctx, d.ID, *s.season, cfg.Language)
 		if err != nil && !errors.Is(err, errNotFound) {
 			return err
 		}
-		_, _ = r.Pool.Exec(ctx, `UPDATE items SET has_poster = ($2 OR has_poster), overview = NULLIF($3, ''), metadata_refreshed_at = now(), nfo_read_at = NULL WHERE id = $1`,
-			s.id, poster, overview)
-		byNumber := map[int]Episode{}
-		for _, e := range eps {
-			byNumber[e.EpisodeNumber] = e
-		}
-		rows, err := r.Pool.Query(ctx, `SELECT id, library_id, kind, title, year, season_number, episode_number, provider_ids
-			FROM items WHERE parent_id = $1`, s.id)
-		if err != nil {
+		if err := r.storeSeason(ctx, c, s.id, posters[*s.season], overview, eps); err != nil {
 			return err
 		}
-		episodes, err := collectItems(rows)
-		if err != nil {
-			return err
+	}
+	return nil
+}
+
+// storeSeason saves a season's poster and overview and its episodes' details.
+// Episodes TMDb does not list (yet) are marked so they are tried again a day later
+// instead of on every run.
+func (r *Refresher) storeSeason(ctx context.Context, c *TMDb, seasonID uuid.UUID, posterPath, overview string, eps []Episode) error {
+	poster := r.saveImage(ctx, c, seasonID, "poster", posterPath, "w500")
+	if _, err := r.Pool.Exec(ctx, `UPDATE items SET has_poster = ($2 OR has_poster), overview = COALESCE(NULLIF($3, ''), overview),
+		metadata_refreshed_at = now(), nfo_read_at = NULL WHERE id = $1`, seasonID, poster, overview); err != nil {
+		return err
+	}
+	byNumber := map[int]Episode{}
+	for _, e := range eps {
+		byNumber[e.EpisodeNumber] = e
+	}
+	rows, err := r.Pool.Query(ctx, `SELECT id, library_id, kind, title, year, season_number, episode_number, provider_ids
+		FROM items WHERE parent_id = $1`, seasonID)
+	if err != nil {
+		return err
+	}
+	episodes, err := collectItems(rows)
+	if err != nil {
+		return err
+	}
+	for _, e := range episodes {
+		if e.ep == nil {
+			continue
 		}
-		for _, e := range episodes {
-			if e.ep == nil {
-				continue
-			}
-			meta, ok := byNumber[*e.ep]
-			if !ok {
-				continue
-			}
-			still := r.saveImage(ctx, c, e.id, "still", meta.StillPath, "w300")
-			var air *time.Time
-			if t, err := time.Parse("2006-01-02", meta.AirDate); err == nil {
-				air = &t
-			}
-			var rating *float64
-			if meta.VoteAverage > 0 {
-				v := meta.VoteAverage
-				rating = &v
-			}
-			if _, err := r.Pool.Exec(ctx, `UPDATE items SET metadata_title = NULLIF($2, ''), overview = NULLIF($3, ''),
-					premiere_date = $4, community_rating = $5, has_poster = ($6 OR has_poster), metadata_refreshed_at = now(), metadata_error = NULL, nfo_read_at = NULL
-				WHERE id = $1`, e.id, meta.Name, meta.Overview, air, rating, still); err != nil {
+		meta, ok := byNumber[*e.ep]
+		if !ok {
+			if _, err := r.Pool.Exec(ctx, `UPDATE items SET metadata_refreshed_at = now(),
+				metadata_error = CASE WHEN metadata_title IS NULL THEN 'episode not listed on TMDb yet' ELSE metadata_error END WHERE id = $1`, e.id); err != nil {
 				return err
 			}
+			continue
+		}
+		still := r.saveImage(ctx, c, e.id, "still", meta.StillPath, "w300")
+		var air *time.Time
+		if t, err := time.Parse("2006-01-02", meta.AirDate); err == nil {
+			air = &t
+		}
+		var rating *float64
+		if meta.VoteAverage > 0 {
+			v := meta.VoteAverage
+			rating = &v
+		}
+		if _, err := r.Pool.Exec(ctx, `UPDATE items SET metadata_title = NULLIF($2, ''), overview = NULLIF($3, ''),
+				premiere_date = $4, community_rating = $5, has_poster = ($6 OR has_poster), metadata_refreshed_at = now(), metadata_error = NULL, nfo_read_at = NULL
+			WHERE id = $1`, e.id, meta.Name, meta.Overview, air, rating, still); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -565,6 +663,74 @@ func (r *Refresher) CleanupImages(ctx context.Context) error {
 		}
 		if !exists {
 			_ = os.RemoveAll(filepath.Join(r.ImageDir, e.Name()))
+		}
+	}
+	if err := r.cleanupPeople(ctx); err != nil {
+		return err
+	}
+	return r.cleanupCollections(ctx)
+}
+
+// cleanupPeople removes cached photos of people no item credits any more.
+func (r *Refresher) cleanupPeople(ctx context.Context) error {
+	entries, err := os.ReadDir(filepath.Join(r.ImageDir, "people"))
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return err
+	}
+	used := map[int64]bool{}
+	rows, err := r.Pool.Query(ctx, `SELECT DISTINCT tmdb_person_id FROM item_people WHERE tmdb_person_id IS NOT NULL`)
+	if err != nil {
+		return err
+	}
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			rows.Close()
+			return err
+		}
+		used[id] = true
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	for _, e := range entries {
+		id, err := strconv.ParseInt(strings.TrimSuffix(e.Name(), ".jpg"), 10, 64)
+		if err != nil || e.IsDir() || !strings.HasSuffix(e.Name(), ".jpg") || used[id] {
+			continue // not a cached photo (".tmp" leftovers are replaced on the next download)
+		}
+		// A refresh running right now saves photos before it stores the credits.
+		if info, err := e.Info(); err != nil || time.Since(info.ModTime()) < time.Hour {
+			continue
+		}
+		_ = os.Remove(filepath.Join(r.ImageDir, "people", e.Name()))
+	}
+	return nil
+}
+
+// cleanupCollections removes cached artwork of deleted collections.
+func (r *Refresher) cleanupCollections(ctx context.Context) error {
+	entries, err := os.ReadDir(filepath.Join(r.ImageDir, "collections"))
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return err
+	}
+	for _, e := range entries {
+		id, err := uuid.Parse(e.Name())
+		if err != nil || !e.IsDir() {
+			continue
+		}
+		var exists bool
+		if err := r.Pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM collections WHERE id = $1)`, id).Scan(&exists); err != nil {
+			return err
+		}
+		if !exists {
+			_ = os.RemoveAll(filepath.Join(r.ImageDir, "collections", e.Name()))
 		}
 	}
 	return nil

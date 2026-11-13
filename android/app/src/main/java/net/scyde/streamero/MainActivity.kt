@@ -4,7 +4,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.SystemBarStyle
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatDelegate
@@ -12,7 +12,11 @@ import androidx.core.os.LocaleListCompat
 import net.scyde.streamero.api.SsoBroker
 import net.scyde.streamero.ui.StreameroRoot
 
-class MainActivity : ComponentActivity() {
+/**
+ * An AppCompatActivity (not a plain ComponentActivity) so the in-app language applies on
+ * Android 8–12 too: AppCompat stores the choice and applies it to the activity before Android 13.
+ */
+class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val bars = SystemBarStyle.dark(Color.TRANSPARENT)

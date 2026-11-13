@@ -3,11 +3,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { api, unwrap } from "@/api/client";
 import { Badge, Button, Card, ErrorText, SuccessText, TextField } from "@/components/ui";
+import { useConfirm } from "@/components/Dialog";
 
 const LANGUAGES = ["en-US", "hr-HR", "en-GB", "de-DE", "sr-RS", "bs-BA", "sl-SI", "it-IT", "fr-FR", "es-ES"];
 const COUNTRIES = ["US", "HR", "GB", "DE", "AT", "RS", "BA", "SI", "IT", "FR", "ES"];
 
 export function MetadataSettings() {
+  const confirmDialog = useConfirm();
   const { t } = useTranslation();
   const qc = useQueryClient();
   const settings = useQuery({ queryKey: ["settings", "metadata"], queryFn: async () => unwrap(await api.GET("/settings/metadata")) });
@@ -84,7 +86,7 @@ export function MetadataSettings() {
           <Button type="submit" disabled={save.isPending}>{save.isPending ? t("metadata.checking") : t("common.save")}</Button>
           {configured && (
             <Button type="button" variant="danger" disabled={save.isPending}
-              onClick={() => window.confirm(t("metadata.confirmRemove")) && save.mutate(true)}>{t("metadata.removeKey")}</Button>
+              onClick={() => void confirmDialog({ message: t("metadata.confirmRemove"), danger: true }).then((ok) => ok && save.mutate(true))}>{t("metadata.removeKey")}</Button>
           )}
         </div>
       </form>

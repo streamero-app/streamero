@@ -32,7 +32,7 @@ type OLBook struct {
 	CoverID     int
 }
 
-var errNoMatch = errors.New("open library: no match")
+var errOLNoMatch = errors.New("open library: no match")
 
 func (o *OpenLibrary) base() string {
 	if o.Base != "" {
@@ -67,7 +67,7 @@ func (o *OpenLibrary) get(ctx context.Context, u string, v any) error {
 	}
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode == http.StatusNotFound {
-		return errNoMatch
+		return errOLNoMatch
 	}
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("open library: %s", resp.Status)
@@ -112,7 +112,7 @@ func (o *OpenLibrary) Lookup(ctx context.Context, isbn, title, author string) (O
 			if len(ed.Works) > 0 {
 				workKey = ed.Works[0].Key
 			}
-		} else if !errors.Is(err, errNoMatch) {
+		} else if !errors.Is(err, errOLNoMatch) {
 			return out, err
 		}
 	}
@@ -132,7 +132,7 @@ func (o *OpenLibrary) Lookup(ctx context.Context, isbn, title, author string) (O
 		}
 		if len(res.Docs) == 0 {
 			if out.CoverID == 0 && out.Description == "" {
-				return out, errNoMatch
+				return out, errOLNoMatch
 			}
 			return out, nil
 		}
@@ -176,7 +176,7 @@ func (o *OpenLibrary) Cover(ctx context.Context, id int, dst string) error {
 		return err
 	}
 	if len(data) < 1024 {
-		return errNoMatch // the 1×1 placeholder Open Library returns for missing covers
+		return errOLNoMatch // the 1×1 placeholder Open Library returns for missing covers
 	}
 	if err := os.MkdirAll(filepath.Dir(dst), 0o750); err != nil {
 		return err
@@ -228,7 +228,7 @@ func (r *Refresher) OnlineBooks(ctx context.Context, libraryID uuid.UUID) (int, 
 			time.Sleep(ol.Pace)
 		}
 		b, err := ol.Lookup(ctx, x.isbn, x.title, x.author)
-		if err != nil && !errors.Is(err, errNoMatch) {
+		if err != nil && !errors.Is(err, errOLNoMatch) {
 			r.Log.Info("open library lookup failed", "title", x.title, "err", err)
 			continue // try again next time
 		}

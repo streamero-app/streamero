@@ -40,22 +40,37 @@ struct RouteDestination: View {
     }
 }
 
-/// Signed-in root: profile picker, then the five tabs with the music bar above them.
+/// Signed-in root. The shared state (music player, watch together) is built once per sign-in,
+/// not on every redraw of the parent.
 struct MainView: View {
     let server: SavedServer
     let client: MediaClient
-    @State private var app: AppState
+    @State private var app: AppState?
+
+    var body: some View {
+        Group {
+            if let app {
+                MainContent(server: server, client: client, app: app)
+            } else {
+                Theme.background.ignoresSafeArea()
+            }
+        }
+        .onAppear {
+            if app == nil { app = AppState(server: server, client: client) }
+        }
+    }
+}
+
+/// Profile picker, then the five tabs with the music bar above them.
+private struct MainContent: View {
+    let server: SavedServer
+    let client: MediaClient
+    let app: AppState
     @State private var generation = 0
     @State private var loadFailed = false
     @State private var showDownloads = false
     @Environment(SessionStore.self) private var session
     @Environment(\.locale) private var systemLocale
-
-    init(server: SavedServer, client: MediaClient) {
-        self.server = server
-        self.client = client
-        _app = State(initialValue: AppState(server: server, client: client))
-    }
 
     var body: some View {
         Group {
@@ -87,6 +102,22 @@ struct MainView: View {
         .environment(app)
         .environment(\.locale, app.locale ?? systemLocale)
         .task { await bootstrap() }
+        .onAppear { watchSessionExpiry() }
+    }
+
+    /// A token the server rejects mid-session (revoked device, password changed elsewhere)
+    /// returns to the sign-in screen instead of leaving every screen failing.
+    private func watchSessionExpiry() {
+        let session = session
+        let server = server
+        let music = app.music
+        SessionExpiry.setHandler { token in
+            Task { @MainActor in
+                guard session.token(for: server) == token else { return }
+                music.stop()
+                session.expire(server: server, token: token)
+            }
+        }
     }
 
     private func bootstrap() async {
@@ -167,7 +198,7 @@ struct ProfileGateView: View {
     @State private var pin = ""
     @State private var askPassword = false
     @State private var password = ""
-    @State private var failed = false
+    @State private var failure: LocalizedStringKey?
 
     private let columns = [GridItem(.adaptive(minimum: 120), spacing: 24)]
 
@@ -175,7 +206,7 @@ struct ProfileGateView: View {
         let me = app.me
         VStack(spacing: 36) {
             Spacer()
-            Text("profiles.whoIsWatching").font(Theme.display(26)).foregroundStyle(Theme.text)
+            Text("profiles.whoIsWatching").displayFont(26).foregroundStyle(Theme.text)
             LazyVGrid(columns: columns, spacing: 28) {
                 tile(name: me?.displayName ?? me?.username ?? "", color: "#8A5A3A",
                      url: me?.hasAvatar == true ? me.flatMap { client.avatarURL(owner: $0.id) } : nil, locked: false) { chooseMain() }
@@ -211,7 +242,9 @@ struct ProfileGateView: View {
             }
             Button("player.back", role: .cancel) { password = "" }
         }
-        .alert(Text("profiles.wrongPin"), isPresented: $failed) { Button("OK") {} }
+        .alert(Text(failure ?? "err_generic"), isPresented: Binding(get: { failure != nil }, set: { if !$0 { failure = nil } })) {
+            Button("ok") { failure = nil }
+        }
     }
 
     /// Leaving a kids profile needs the account password; any other profile just switches.
@@ -230,7 +263,7 @@ struct ProfileGateView: View {
             await app.refreshMe()
             done()
         } catch {
-            failed = true
+            failure = ProfileGateMessage.key(for: error)
         }
     }
 
@@ -245,6 +278,22 @@ struct ProfileGateView: View {
             }
         }
         .buttonStyle(CardPressStyle())
+    }
+}
+
+/// Why switching profiles failed, from the server's error code.
+enum ProfileGateMessage {
+    static func key(for error: Error) -> LocalizedStringKey {
+        guard let api = error as? APIError else { return "err_network" }
+        switch api.code {
+        case "invalid_pin": return "profiles.wrongPin"
+        case "pin_required": return "profiles.pinRequired"
+        case "profile_locked": return "profiles.locked"
+        case "invalid_credentials": return "profiles.wrongPassword"
+        case "rate_limited": return "login.error.rateLimited"
+        case "not_found": return "profiles.notFound"
+        default: return api.status == 0 || api.status >= 500 ? "err_network" : "err_generic"
+        }
     }
 }
 
@@ -329,7 +378,7 @@ struct HomeTab: View {
 
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("home_empty_title").font(Theme.display(34)).foregroundStyle(Theme.text)
+            Text("home_empty_title").displayFont(34).foregroundStyle(Theme.text)
             Text(app.isAdmin ? "home_empty_admin" : "home_empty_user").foregroundStyle(Theme.textMuted)
         }
         .padding(.horizontal, 20)
@@ -415,16 +464,24 @@ struct HomeTab: View {
     }
 
     private func load() async {
+        let client = client
         do {
+            // All shelves load at once; only "latest" decides whether Home failed.
             async let prefs = try? client.preferences()
-            let latest = try await client.latest()
-            let d = HomeData(latest: latest,
-                             cont: (try? await client.continueWatching()) ?? [],
-                             reading: (try? await client.continueReading()) ?? [],
-                             nextUp: (try? await client.nextUp()) ?? [],
-                             favorites: (try? await client.favorites()) ?? [],
-                             collections: (try? await client.collections()) ?? [],
-                             libraries: (try? await client.libraries()) ?? [],
+            async let latest = client.latest()
+            async let cont = try? client.continueWatching()
+            async let reading = try? client.continueReading()
+            async let nextUp = try? client.nextUp()
+            async let favorites = try? client.favorites()
+            async let collections = try? client.collections()
+            async let libraries = try? client.libraries()
+            let d = HomeData(latest: try await latest,
+                             cont: await cont ?? [],
+                             reading: await reading ?? [],
+                             nextUp: await nextUp ?? [],
+                             favorites: await favorites ?? [],
+                             collections: await collections ?? [],
+                             libraries: await libraries ?? [],
                              sections: await prefs?.homeSections)
             data = d
             error = nil

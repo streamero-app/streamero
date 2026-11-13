@@ -46,6 +46,8 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
+import androidx.media3.common.Player
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
@@ -344,17 +346,21 @@ fun OfflinePlayerScreen(state: AppState, itemId: String, onClose: () -> Unit) {
         }
         return
     }
-    val player = remember { ExoPlayer.Builder(ctx).build() }
+    val player = remember { videoPlayer(ctx) }
     val scope = rememberCoroutineScope()
+    var error by remember { mutableStateOf<Throwable?>(null) }
     fun duration(): Long? = player.duration.takeIf { it != C.TIME_UNSET && it > 0 } ?: entry.durationMs
 
     DisposableEffect(itemId) {
-        val act = ctx as Activity
+        val act = ctx.findActivity()
         state.music.pause()
-        act.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        val ctl = WindowCompat.getInsetsController(act.window, act.window.decorView)
-        ctl.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        ctl.hide(WindowInsetsCompat.Type.systemBars())
+        act?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        val ctl = act?.let { WindowCompat.getInsetsController(it.window, it.window.decorView) }
+        ctl?.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        ctl?.hide(WindowInsetsCompat.Type.systemBars())
+        // A local file that does not play will not play better on a retry: say so instead of a black screen.
+        val l = object : Player.Listener { override fun onPlayerError(e: PlaybackException) { error = e } }
+        player.addListener(l)
         val subs = entry.subtitles.mapNotNull { s ->
             offline.store.file(s.file)?.takeIf { it.exists() }?.let { f ->
                 MediaItem.SubtitleConfiguration.Builder(Uri.fromFile(f)).setMimeType(MimeTypes.APPLICATION_SUBRIP)
@@ -367,8 +373,9 @@ fun OfflinePlayerScreen(state: AppState, itemId: String, onClose: () -> Unit) {
         player.prepare()
         onDispose {
             offline.finishPlayback(itemId, player.currentPosition, duration())
-            ctl.show(WindowInsetsCompat.Type.systemBars())
-            act.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            ctl?.show(WindowInsetsCompat.Type.systemBars())
+            act?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            player.removeListener(l)
             player.release()
         }
     }
@@ -384,9 +391,13 @@ fun OfflinePlayerScreen(state: AppState, itemId: String, onClose: () -> Unit) {
             }
         }
     }
+    val inPip = videoLifecycle(player, state.enhancements.autoPip)
     BackHandler { onClose() }
     Box(Modifier.fillMaxSize().background(Color.Black)) {
-        AndroidView({ PlayerView(it).apply { this.player = player; setShowSubtitleButton(true); setShowNextButton(false); setShowPreviousButton(false) } }, Modifier.fillMaxSize())
+        AndroidView({ PlayerView(it).apply { this.player = player; setShowSubtitleButton(true); setShowNextButton(false); setShowPreviousButton(false); applyCaptionLook(null) } }, Modifier.fillMaxSize(),
+            update = { v -> v.useController = !inPip; if (inPip) v.hideController() })
+        if (inPip) return@Box
+        error?.let { PlayerErrorBox(it, null, onClose) }
         Row(Modifier.align(Alignment.TopStart).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onClose) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back), tint = Color.White) }
             Text(entry.item.seriesTitle?.let { "$it · " }.orEmpty() + entry.item.title, color = Color.White, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)

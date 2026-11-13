@@ -33,6 +33,9 @@ type Library struct {
 	ScanError  string
 	LastScanAt *time.Time
 	FilesSeen  int
+	// HeldRemovals counts missing files the last scan kept because removing them
+	// looked like an offline folder (D-043).
+	HeldRemovals int
 }
 
 // Person is a cast or crew member.
@@ -99,6 +102,9 @@ type Service struct {
 	Pool    *pgxpool.Pool
 	Roots   Roots
 	Enqueue func(ctx context.Context, libraryID uuid.UUID) error // queue a scan job
+	// EnqueueConfirmed queues a scan that removes missing files even when that looks
+	// like an offline folder (the admin confirmed it; D-043). Nil: not supported.
+	EnqueueConfirmed func(ctx context.Context, libraryID uuid.UUID) error
 	// EnqueueMetadata queues a metadata refresh (force = refetch everything).
 	EnqueueMetadata func(ctx context.Context, libraryID uuid.UUID, force bool) error
 	// ImageDir holds cached artwork (<dir>/<item id>/<kind>.jpg).
@@ -107,12 +113,12 @@ type Service struct {
 	Resume func(ctx context.Context) Resume
 }
 
-const libCols = `l.id, l.name, l.kind, l.paths, l.scan_state, COALESCE(l.scan_error, ''), l.last_scan_at, l.files_seen,
+const libCols = `l.id, l.name, l.kind, l.paths, l.scan_state, COALESCE(l.scan_error, ''), l.last_scan_at, l.files_seen, l.held_removals,
 	(SELECT count(*) FROM items i WHERE i.library_id = l.id AND i.parent_id IS NULL)`
 
 func scanLibrary(row pgx.Row) (Library, error) {
 	var l Library
-	err := row.Scan(&l.ID, &l.Name, &l.Kind, &l.Paths, &l.ScanState, &l.ScanError, &l.LastScanAt, &l.FilesSeen, &l.ItemCount)
+	err := row.Scan(&l.ID, &l.Name, &l.Kind, &l.Paths, &l.ScanState, &l.ScanError, &l.LastScanAt, &l.FilesSeen, &l.HeldRemovals, &l.ItemCount)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return l, ErrNotFound
 	}
@@ -233,6 +239,23 @@ func (s *Service) Scan(ctx context.Context, id uuid.UUID) error {
 	// Always enqueue: the job queue drops duplicates while one is waiting, and a
 	// state left at "queued" by a lost job must never block scanning for good.
 	return s.Enqueue(ctx, id)
+}
+
+// ScanConfirmRemoval queues a scan that also removes the missing files a previous
+// scan kept because their removal looked like an offline folder.
+func (s *Service) ScanConfirmRemoval(ctx context.Context, id uuid.UUID) error {
+	if s.EnqueueConfirmed == nil {
+		return s.Scan(ctx, id)
+	}
+	tag, err := s.Pool.Exec(ctx, `UPDATE libraries SET scan_state = CASE WHEN scan_state = 'scanning' THEN scan_state ELSE 'queued' END
+		WHERE id = $1`, id)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return s.EnqueueConfirmed(ctx, id)
 }
 
 const itemCols = `i.id, i.library_id, i.parent_id, i.kind, COALESCE(i.metadata_title, i.title), i.year, i.season_number,

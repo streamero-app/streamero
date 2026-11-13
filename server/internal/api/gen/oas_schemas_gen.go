@@ -15382,6 +15382,9 @@ type ScanStatus struct {
 	LastScanAt OptDateTime     `json:"lastScanAt"`
 	Error      OptString       `json:"error"`
 	FilesSeen  OptInt          `json:"filesSeen"`
+	// Missing files the last scan kept because removing them looked like an offline or half-mounted
+	// folder; scan with confirmRemoval to remove them.
+	HeldRemovals OptInt `json:"heldRemovals"`
 }
 
 // GetState returns the value of State.
@@ -15404,6 +15407,11 @@ func (s *ScanStatus) GetFilesSeen() OptInt {
 	return s.FilesSeen
 }
 
+// GetHeldRemovals returns the value of HeldRemovals.
+func (s *ScanStatus) GetHeldRemovals() OptInt {
+	return s.HeldRemovals
+}
+
 // SetState sets the value of State.
 func (s *ScanStatus) SetState(val ScanStatusState) {
 	s.State = val
@@ -15422,6 +15430,11 @@ func (s *ScanStatus) SetError(val OptString) {
 // SetFilesSeen sets the value of FilesSeen.
 func (s *ScanStatus) SetFilesSeen(val OptInt) {
 	s.FilesSeen = val
+}
+
+// SetHeldRemovals sets the value of HeldRemovals.
+func (s *ScanStatus) SetHeldRemovals(val OptInt) {
+	s.HeldRemovals = val
 }
 
 type ScanStatusState string

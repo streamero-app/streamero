@@ -10,9 +10,15 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
+	"unicode"
+
+	"golang.org/x/text/runes"
+	"golang.org/x/text/transform"
+	"golang.org/x/text/unicode/norm"
 )
 
 // ErrInvalidKey means TMDb rejected the API key.
@@ -66,10 +72,46 @@ func (c *TMDb) pace(ctx context.Context) error {
 	}
 }
 
+// ErrTemporary marks failures that are worth trying again later (TMDb busy or
+// unreachable); the title is not marked as having no metadata.
+var ErrTemporary = errors.New("TMDb is temporarily unavailable")
+
+// Retries of get(): rate limits (429, honouring Retry-After), server errors and
+// network failures are tried again with a growing pause before giving up.
+var (
+	retryAttempts = 4
+	retryBase     = time.Second
+	retryMax      = 30 * time.Second
+)
+
+// get fetches path, retrying temporary failures; what still fails temporarily
+// after the retries wraps ErrTemporary.
 func (c *TMDb) get(ctx context.Context, path string, q url.Values, out any) error {
-	if err := c.pace(ctx); err != nil {
-		return err
+	var err error
+	for attempt := range retryAttempts {
+		var wait time.Duration
+		wait, err = c.getOnce(ctx, path, q, out)
+		if err == nil || !errors.Is(err, ErrTemporary) || attempt == retryAttempts-1 {
+			return err
+		}
+		if wait <= 0 {
+			wait = retryBase << attempt
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(min(wait, retryMax)):
+		}
 	}
+	return err
+}
+
+// getOnce makes one request; for a temporary failure it may say how long to wait.
+func (c *TMDb) getOnce(ctx context.Context, path string, q url.Values, out any) (time.Duration, error) {
+	if err := c.pace(ctx); err != nil {
+		return 0, err
+	}
+	q = cloneValues(q)
 	if q == nil {
 		q = url.Values{}
 	}
@@ -79,7 +121,7 @@ func (c *TMDb) get(ctx context.Context, path string, q url.Values, out any) erro
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.base()+path+"?"+q.Encode(), nil)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if bearer {
 		req.Header.Set("Authorization", "Bearer "+c.Key)
@@ -87,18 +129,48 @@ func (c *TMDb) get(ctx context.Context, path string, q url.Values, out any) erro
 	req.Header.Set("Accept", "application/json")
 	resp, err := c.client().Do(req)
 	if err != nil {
-		return err
+		if ctx.Err() != nil {
+			return 0, ctx.Err()
+		}
+		return 0, fmt.Errorf("%w: %s: %w", ErrTemporary, path, err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 	switch {
 	case resp.StatusCode == http.StatusUnauthorized:
-		return ErrInvalidKey
+		return 0, ErrInvalidKey
 	case resp.StatusCode == http.StatusNotFound:
-		return errNotFound
+		return 0, errNotFound
+	case resp.StatusCode == http.StatusTooManyRequests:
+		return retryAfter(resp.Header.Get("Retry-After")), fmt.Errorf("%w: %s: HTTP 429", ErrTemporary, path)
+	case resp.StatusCode >= 500:
+		return retryAfter(resp.Header.Get("Retry-After")), fmt.Errorf("%w: %s: HTTP %d", ErrTemporary, path, resp.StatusCode)
 	case resp.StatusCode >= 300:
-		return fmt.Errorf("TMDb %s: HTTP %d", path, resp.StatusCode)
+		return 0, fmt.Errorf("TMDb %s: HTTP %d", path, resp.StatusCode)
 	}
-	return json.NewDecoder(io.LimitReader(resp.Body, 8<<20)).Decode(out)
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 8<<20)).Decode(out); err != nil {
+		return 0, fmt.Errorf("%w: %s: %w", ErrTemporary, path, err) // cut-off response
+	}
+	return 0, nil
+}
+
+// retryAfter reads a Retry-After header in seconds (0 when absent or a date).
+func retryAfter(v string) time.Duration {
+	n, err := strconv.Atoi(strings.TrimSpace(v))
+	if err != nil || n < 0 {
+		return 0
+	}
+	return time.Duration(n) * time.Second
+}
+
+func cloneValues(q url.Values) url.Values {
+	if q == nil {
+		return nil
+	}
+	out := make(url.Values, len(q))
+	for k, v := range q {
+		out[k] = append([]string(nil), v...)
+	}
+	return out
 }
 
 var errNotFound = errors.New("not found on TMDb")
@@ -179,10 +251,22 @@ func (c *TMDb) Search(ctx context.Context, kind, title string, year int, lang st
 			return 0, errNotFound
 		}
 		// Prefer an exact title match among the first results.
+		want := foldTitle(title)
 		for _, r := range out.Results[:min(5, len(out.Results))] {
-			if strings.EqualFold(r.Title, title) || strings.EqualFold(r.Name, title) {
+			if foldTitle(r.Title) == want || foldTitle(r.Name) == want ||
+				foldTitle(r.OriginalTitle) == want || foldTitle(r.OriginalName) == want {
 				return r.ID, nil
 			}
+		}
+		if !withYear && year > 0 {
+			// Without the year filter the first hit is often another film of a similar
+			// name: accept it only when its year is within one of the file's.
+			for _, r := range out.Results[:min(5, len(out.Results))] {
+				if y := resultYear(r); y > 0 && y >= year-1 && y <= year+1 {
+					return r.ID, nil
+				}
+			}
+			return 0, errNotFound
 		}
 		return out.Results[0].ID, nil
 	}
@@ -191,6 +275,33 @@ func (c *TMDb) Search(ctx context.Context, kind, title string, year int, lang st
 		return try(false) // year in the file name may be off by one
 	}
 	return id, err
+}
+
+// resultYear is the release (or first air) year of a search hit, 0 if unknown.
+func resultYear(r searchResult) int {
+	d := firstNonEmpty(r.ReleaseDate, r.FirstAirDate)
+	if len(d) < 4 {
+		return 0
+	}
+	y, err := strconv.Atoi(d[:4])
+	if err != nil {
+		return 0
+	}
+	return y
+}
+
+// foldTitle compares titles without case, accents and punctuation
+// ("Amélie" = "amelie", "Spider-Man" = "spider man").
+func foldTitle(s string) string {
+	if s == "" {
+		return ""
+	}
+	t, _, err := transform.String(transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC), s)
+	if err != nil {
+		t = s
+	}
+	t = strings.NewReplacer("đ", "d", "Đ", "d", "ß", "ss", "æ", "ae", "ø", "o", "&", " and ").Replace(strings.ToLower(t))
+	return strings.Join(strings.FieldsFunc(t, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) }), " ")
 }
 
 // FindIMDb resolves an IMDb ID to a TMDb movie or series ID.
@@ -388,12 +499,22 @@ type Episode struct {
 
 // Season fetches the episodes of a season.
 func (c *TMDb) Season(ctx context.Context, seriesID, season int, lang string) ([]Episode, string, error) {
-	var out struct {
-		Overview string    `json:"overview"`
-		Episodes []Episode `json:"episodes"`
-	}
+	d, err := c.SeasonDetails(ctx, seriesID, season, lang)
+	return d.Episodes, d.Overview, err
+}
+
+// SeasonDetails is a season with its poster and episodes.
+type SeasonDetails struct {
+	Overview   string    `json:"overview"`
+	PosterPath string    `json:"poster_path"`
+	Episodes   []Episode `json:"episodes"`
+}
+
+// SeasonDetails fetches a season with its poster and episodes.
+func (c *TMDb) SeasonDetails(ctx context.Context, seriesID, season int, lang string) (SeasonDetails, error) {
+	var out SeasonDetails
 	err := c.get(ctx, fmt.Sprintf("/tv/%d/season/%d", seriesID, season), url.Values{"language": {lang}}, &out)
-	return out.Episodes, out.Overview, err
+	return out, err
 }
 
 // Image downloads artwork in the given size (e.g. "w500", "w1280").

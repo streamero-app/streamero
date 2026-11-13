@@ -63,10 +63,20 @@ fun HomeScreen(state: AppState, nav: NavHostController) {
     val img: (String, String) -> String = api::imageUrl
     val tv = LocalTv.current
     val mem = rememberFocusMemory()
+    val scope = rememberCoroutineScope()
+    // "Remove from Continue watching" (an enhancement): a long press forgets the position.
+    var removed by remember { mutableStateOf(setOf<String>()) }
+    var removing by remember { mutableStateOf<ItemSummary?>(null) }
+    var removeError by remember { mutableStateOf<Throwable?>(null) }
+    removing?.let { r ->
+        ConfirmDialog(stringResource(R.string.continue_remove_confirm, r.seriesTitle ?: r.title), stringResource(R.string.remove), { removing = null }) {
+            scope.launch { runCatching { api.progress(r.id, ProgressReport(0)) }.onSuccess { removed = removed + r.id }.onFailure { removeError = it } }
+        }
+    }
     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(if (tv) 18.dp else 28.dp), contentPadding = PaddingValues(bottom = 24.dp)) {
         item { Stage(state, nav, data?.latest.orEmpty(), mem) }
         if (loading) item { Loading() }
-        if (error != null) item { Box(Modifier.padding(20.dp)) { ErrorLine(error) } }
+        if (error != null || removeError != null) item { Box(Modifier.padding(20.dp)) { ErrorLine(error ?: removeError) } }
         val d = data ?: return@LazyColumn
         if (d.latest.isEmpty() && d.cont.isEmpty() && d.reading.isEmpty() && d.nextUp.isEmpty() && d.favorites.isEmpty() && d.collections.isEmpty()) item {
             Column(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 20.dp, vertical = 48.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -81,7 +91,11 @@ fun HomeScreen(state: AppState, nav: NavHostController) {
                 "reading" -> item {
                     Shelf(stringResource(R.string.continue_reading), d.reading) { b -> BookCard(api, b, if (b.kind == "audiobook") 150.dp else Dims.poster, Modifier.rememberFocus(mem, "r" + b.id)) { nav.navigate("item/${b.id}") } }
                 }
-                "continue" -> item { Shelf(stringResource(R.string.continue_watching), d.cont) { WideCard(it, img, Dims.wide, Modifier.rememberFocus(mem, "c" + it.id)) { nav.watch(it.id) } } }
+                "continue" -> item {
+                    Shelf(stringResource(R.string.continue_watching), d.cont.filter { it.id !in removed }) {
+                        WideCard(it, img, Dims.wide, Modifier.rememberFocus(mem, "c" + it.id), onLongClick = if (state.enhancements.removeFromContinue) ({ removing = it }) else null) { nav.watch(it.id) }
+                    }
+                }
                 "nextUp" -> item { Shelf(stringResource(R.string.next_up), d.nextUp) { WideCard(it, img, Dims.wide, Modifier.rememberFocus(mem, "n" + it.id)) { nav.watch(it.id) } } }
                 "latest" -> item { Shelf(stringResource(R.string.recently_added), d.latest) { PosterCard(it, img, Dims.poster, state.enhancements.qualityTags, Modifier.rememberFocus(mem, "l" + it.id)) { nav.navigate("item/${it.id}") } } }
                 "favorites" -> item { Shelf(stringResource(R.string.my_list), d.favorites) { PosterCard(it, img, Dims.poster, state.enhancements.qualityTags, Modifier.rememberFocus(mem, "f" + it.id)) { nav.navigate("item/${it.id}") } } }
@@ -124,7 +138,7 @@ fun Stage(state: AppState, nav: NavHostController, pool: List<ItemSummary>, mem:
         if (tv) Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Kino.bg.copy(alpha = 0.85f), Color.Transparent), endX = 1400f)))
         Column(Modifier.align(Alignment.BottomStart).padding(horizontal = Dims.edge).then(if (tv) Modifier.fillMaxWidth(0.62f) else Modifier), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(p.title, style = Display.copy(fontSize = if (tv) 52.sp else 44.sp), color = Kino.text, maxLines = if (tv) 2 else 3, overflow = TextOverflow.Ellipsis)
-            Text(listOfNotNull(p.rating?.let { "★ %.1f".format(it) }, p.year?.toString(), p.durationMs?.let { "${it / 60000} min" }).joinToString("  ·  "), color = Kino.muted)
+            Text(listOfNotNull(p.rating?.let { stringResource(R.string.rating_value, it) }, p.year?.toString(), p.durationMs?.let { stringResource(R.string.minutes_short, it / 60000) }).joinToString("  ·  "), color = Kino.muted)
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (p.kind == "movie") PrimaryButton(stringResource(R.string.play), { nav.watch(p.id) }, Modifier.rememberFocus(mem, "stage-play", default = true), icon = Icons.Default.PlayArrow)
                 GlassButton(stringResource(R.string.more_info), { nav.navigate("item/${p.id}") }, Modifier.rememberFocus(mem, "stage-info", default = p.kind != "movie"), icon = Icons.Outlined.Info)
@@ -380,7 +394,7 @@ fun DiscoverScreen(state: AppState, nav: NavHostController) {
                         Column(Modifier.width(240.dp).then(if (LocalTv.current) Modifier.focusClickable { } else Modifier).clip(CardShape).background(Kino.surface).padding(12.dp)) {
                             Text(u.date.take(10), color = LocalAccent.current, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             Text(u.seriesTitle ?: u.title, color = Kino.text, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(if (u.kind == "episode") "S${u.season}:E${u.episode} · ${u.title}" else stringResource(R.string.movie), color = Kino.muted, fontSize = 13.sp, maxLines = 1)
+                            Text(if (u.kind == "episode") stringResource(R.string.episode_code_title, u.season ?: 0, u.episode ?: 0, u.title) else stringResource(R.string.movie), color = Kino.muted, fontSize = 13.sp, maxLines = 1)
                         }
                     }
                 }

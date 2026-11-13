@@ -38,10 +38,21 @@ jobs:
             CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- | xcpretty; exit ${PIPESTATUS[0]}
       - name: Build unsigned .ipa
         run: |
+          # "v0.10.1" → 0.10.1. A release's build number is derived from it (major*10000 +
+          # minor*100 + patch), the same value scripts/update-feather-source.py writes as the
+          # Feather source's buildVersion; other builds use the run number.
+          MARKETING="${VERSION#v}"; MARKETING="${MARKETING%%-*}"
+          if [ -n "${{ inputs.version }}" ]; then
+            IFS=. read -r MAJOR MINOR PATCH <<< "$MARKETING"
+            BUILD=$((MAJOR * 10000 + MINOR * 100 + PATCH))
+          else
+            BUILD="${{ github.run_number }}"
+          fi
+          echo "Version $MARKETING, build $BUILD"
           xcodebuild -project Streamero.xcodeproj -scheme Streamero -configuration Release \
             -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
             -skipPackagePluginValidation -skipMacroValidation \
-            MARKETING_VERSION="${VERSION%%-*}" CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
+            MARKETING_VERSION="$MARKETING" CURRENT_PROJECT_VERSION="$BUILD" \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
           mkdir -p Payload && cp -R build/Build/Products/Release-iphoneos/Streamero.app Payload/
           zip -qry "Streamero-${VERSION}.ipa" Payload

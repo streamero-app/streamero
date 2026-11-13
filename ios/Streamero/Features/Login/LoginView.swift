@@ -34,6 +34,7 @@ struct LoginView: View {
     @State private var error: LocalizedStringKey?
     @State private var quickConnect = false
     @State private var providers: Components.Schemas.AuthProviders?
+    @State private var showServers = false
     @Environment(\.webAuthenticationSession) private var webAuthenticationSession
 
     var body: some View {
@@ -44,7 +45,7 @@ struct LoginView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
                         .shadow(color: Theme.accent.opacity(0.35), radius: 20, y: 8)
                         .padding(.bottom, 10)
-                    Text(server.name).font(Theme.display(32)).lineLimit(2).minimumScaleFactor(0.5)
+                    Text(server.name).displayFont(32).lineLimit(2).minimumScaleFactor(0.5)
                     Text(server.url.host() ?? server.url.absoluteString).foregroundStyle(Theme.textMuted)
                 }
                 .padding(.top, 48)
@@ -55,14 +56,24 @@ struct LoginView: View {
                     form
                 }
 
-                Button("server.remove", role: .destructive) { servers.remove(server) }
-                    .font(.footnote)
-                    .padding(.top, 24)
+                VStack(spacing: 14) {
+                    Button { showServers = true } label: {
+                        Label(servers.servers.count > 1 ? LocalizedStringKey("servers.switch") : LocalizedStringKey("servers.add"), systemImage: "server.rack")
+                    }
+                    .foregroundStyle(Theme.textMuted)
+                    Button("server.remove", role: .destructive) {
+                        session.forget(serverID: server.id)
+                        servers.remove(server)
+                    }
+                }
+                .font(.footnote)
+                .padding(.top, 24)
             }
             .padding(24)
             .frame(maxWidth: 480)
             .frame(maxWidth: .infinity)
         }
+        .sheet(isPresented: $showServers) { ServerListView() }
         .task(id: server.id) {
             // Older servers have no /auth/providers: they offer passwords only.
             providers = try? await AuthClient(baseURL: server.url).providers()
@@ -78,7 +89,7 @@ struct LoginView: View {
 
     private var form: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("login.title").font(Theme.display(24))
+            Text("login.title").displayFont(24)
             ForEach(providers?.oidc ?? [], id: \.id) { provider in
                 Button {
                     Task { await signInWithSSO(provider) }
@@ -149,8 +160,8 @@ struct LoginView: View {
                 using: url, callbackURLScheme: SingleSignOn.callbackScheme) // default: shared browser session
             switch SingleSignOn.parseCallback(callback) {
             case .code(let code):
-                let (token, user) = try await AuthClient(baseURL: server.url).exchangeOIDC(code: code, verifier: verifier)
-                session.signedIn(server: server, token: token, user: user)
+                let (token, _) = try await AuthClient(baseURL: server.url).exchangeOIDC(code: code, verifier: verifier)
+                session.signedIn(server: server, token: token)
             case .failed(let code):
                 error = LoginMessage.key(for: code)
             case nil:
@@ -170,9 +181,9 @@ struct LoginView: View {
         error = nil
         defer { busy = false }
         do {
-            let (token, user) = try await AuthClient(baseURL: server.url)
+            let (token, _) = try await AuthClient(baseURL: server.url)
                 .login(username: username, password: password, totpCode: needsCode ? totpCode : nil)
-            session.signedIn(server: server, token: token, user: user)
+            session.signedIn(server: server, token: token)
         } catch let apiError as APIError where apiError.code == "totp_required" {
             needsCode = true
         } catch let apiError as APIError {
@@ -199,6 +210,8 @@ struct QuickConnectView: View {
     @Environment(SessionStore.self) private var session
     @State private var code: String?
     @State private var error: LocalizedStringKey?
+    /// The running request-and-poll; one at a time, stopped when the view goes away.
+    @State private var poll: Task<Void, Never>?
 
     var body: some View {
         VStack(spacing: 16) {
@@ -212,29 +225,40 @@ struct QuickConnectView: View {
             }
             if let error {
                 Text(error).font(.footnote).foregroundStyle(.red)
-                Button("quickConnect.newCode") { Task { await run() } }
+                Button("quickConnect.newCode") { start() }
             }
             Button("quickConnect.usePassword", action: onCancel)
         }
-        .task { await run() }
+        .onAppear { start() }
+        .onDisappear {
+            poll?.cancel()
+            poll = nil
+        }
+    }
+
+    private func start() {
+        poll?.cancel()
+        poll = Task { await run() }
     }
 
     private func run() async {
         error = nil
         let client = AuthClient(baseURL: server.url)
         do {
-            let start = try await client.initiateQuickConnect()
-            code = start.code
+            let started = try await client.initiateQuickConnect()
+            code = started.code
             while !Task.isCancelled {
                 try await Task.sleep(for: .seconds(3))
-                if case .signedIn(let token, let user) = try await client.pollQuickConnect(secret: start.secret) {
-                    session.signedIn(server: server, token: token, user: user)
+                if case .signedIn(let token, _) = try await client.pollQuickConnect(secret: started.secret) {
+                    guard !Task.isCancelled else { return }
+                    session.signedIn(server: server, token: token)
                     return
                 }
             }
         } catch is CancellationError {
             return
         } catch let apiError as APIError {
+            if Task.isCancelled { return }
             code = nil
             error = LoginMessage.key(for: apiError.code)
         } catch {

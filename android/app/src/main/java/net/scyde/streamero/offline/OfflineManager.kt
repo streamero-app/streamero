@@ -12,6 +12,9 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -19,6 +22,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import net.scyde.streamero.api.Api
 import net.scyde.streamero.api.ApiException
 import net.scyde.streamero.api.Download
@@ -33,7 +38,19 @@ import java.util.concurrent.TimeUnit
  * and syncs offline progress back (on start, resume, regained connectivity and after playback).
  */
 class OfflineManager(private val context: Context, private val apiProvider: suspend () -> Api?) {
-    val store = OfflineStore(File(context.getExternalFilesDir(null) ?: context.filesDir, "offline"))
+    private val root = File(context.getExternalFilesDir(null) ?: context.filesDir, "offline")
+    private var account: String? = OfflineAccounts.current(root)
+    /**
+     * The library of the signed-in account (see [OfflineAccounts]). Until the first sign-in after
+     * the update, a library from before downloads were per account is shown as it is.
+     */
+    var store by mutableStateOf(
+        if (account == null && OfflineAccounts.hasLegacy(root)) OfflineStore(root) else OfflineStore(OfflineAccounts.dir(root, account))
+    )
+        private set
+    /** Whether the server confirmed in this run that the session belongs to [account]; nothing syncs before. */
+    @Volatile private var confirmed = false
+    private val binding = Mutex()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val syncing = Mutex()
     private val work get() = WorkManager.getInstance(context)
@@ -58,6 +75,25 @@ class OfflineManager(private val context: Context, private val apiProvider: susp
                 override fun onLost(network: Network) { _online.value = false }
             })
         }
+    }
+
+    /**
+     * Switches to the downloads of [key] (an account on a server, from [OfflineAccounts.key]), or
+     * hides them all when signed out. Transfers of another account stop; the first account to
+     * sign in after the update takes over the downloads made before.
+     */
+    suspend fun bind(key: String?) = binding.withLock {
+        confirmed = key != null
+        if (key == account && store.root == OfflineAccounts.dir(root, key)) { if (key != null) resumePending(); return@withLock }
+        work.cancelAllWorkByTag(TAG)
+        val dir = OfflineAccounts.dir(root, key)
+        store = withContext(Dispatchers.IO) {
+            if (key != null) OfflineAccounts.migrateLegacy(root, dir)
+            OfflineAccounts.setCurrent(root, key)
+            OfflineStore(dir)
+        }
+        account = key
+        if (key != null) resumePending()
     }
 
     // ---- Downloads ----
@@ -188,6 +224,7 @@ class OfflineManager(private val context: Context, private val apiProvider: susp
     suspend fun sync(): Boolean {
         if (!syncing.tryLock()) return true
         try {
+            if (!confirmed) return false
             val api = api() ?: return false
             val before = store.data.value.entries
             if (before.isNotEmpty()) {

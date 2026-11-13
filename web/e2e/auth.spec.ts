@@ -65,6 +65,7 @@ test("admin adds a user; user signs in; admin signs the device out", async ({ pa
   const row = page.getByTestId("session-row").filter({ hasText: user.username });
   await expect(row).toBeVisible();
   await row.getByRole("button", { name: "Sign out" }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Sign out" }).click();
   await expect(row).toHaveCount(0);
   await other.goto("/settings/devices");
   await expect(other).toHaveURL(/\/login$/);
@@ -174,7 +175,11 @@ test("playback: player opens the real file; forced transcode serves HLS", async 
 
 test("books, comics, audiobooks and photos: scan, read, listen and view", async ({ page }) => {
   test.setTimeout(240_000);
+  // The readers run under the web client's Content-Security-Policy: nothing may be blocked.
+  const cspViolations: string[] = [];
+  page.on("console", (msg) => { if (/Content Security Policy|Content-Security-Policy/i.test(msg.text())) cspViolations.push(msg.text()); });
   await signIn(page, admin);
+  expect((await page.request.get("/")).headers()["content-security-policy"]).toContain("frame-src");
   const libs: Record<string, string> = {};
   for (const [name, kind, folder] of [["E2E Books", "books", "books"], ["E2E Audiobooks", "audiobooks", "audiobooks"], ["E2E Photos", "photos", "photos"]]) {
     const res = await page.request.post("/api/v1/libraries", { data: { name, kind, paths: [`/fixtures/${folder}`] } });
@@ -209,10 +214,15 @@ test("books, comics, audiobooks and photos: scan, read, listen and view", async 
   await expect(page.getByTestId("book-page")).toContainText("Wayfarers #1");
   await page.getByTestId("read").click();
   await expect(page.getByTestId("epub-position")).toHaveText(/\d/, { timeout: 30_000 });
-  await expect(page.frameLocator("foliate-view iframe").first().locator("h1")).toHaveText("Chapter 1", { timeout: 30_000 }).catch(async () => {
-    // The paginator keeps its iframe in a shadow root; fall back to checking the reported position.
-    await expect(page.getByTestId("epub-position")).toBeVisible();
-  });
+  // The section is a blob: document in an iframe inside the reader's closed shadow root,
+  // styled by the book's own stylesheet (also a blob: URL): both must pass the CSP.
+  await expect.poll(async () => {
+    const texts = await Promise.all(page.frames().filter((f) => f.url().startsWith("blob:")).map((f) => f.evaluate(() => {
+      const h = document.querySelector("h1");
+      return h ? `${h.textContent} ${getComputedStyle(h).letterSpacing}` : "";
+    }).catch(() => "")));
+    return texts.find((t) => t !== "") ?? "";
+  }, { timeout: 30_000 }).toBe("Chapter 1 3px");
   await page.keyboard.press("ArrowRight");
   await page.mouse.move(200, 200);
   await page.getByTestId("reader-back").click();
@@ -246,6 +256,7 @@ test("books, comics, audiobooks and photos: scan, read, listen and view", async 
   await page.getByTestId("slideshow-interval").selectOption("3");
   await page.keyboard.press("Escape");
   await expect(page.getByTestId("lightbox")).toHaveCount(0);
+  expect(cspViolations).toEqual([]);
 });
 
 test("wrong passwords lock the account", async ({ page }) => {

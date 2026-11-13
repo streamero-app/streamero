@@ -35,8 +35,9 @@ describe("books", () => {
       return { status: 200, body: [] };
     });
     renderApp(`/library/${lib}`, { me: testUser() });
-    expect(await screen.findByTestId("books-library")).toHaveTextContent("1 book");
+    // The library page loads on demand; the count follows its first page of items.
     expect(await screen.findByTestId("book-card")).toHaveTextContent("Space Cats 003");
+    await waitFor(() => expect(screen.getByTestId("books-library")).toHaveTextContent("1 book"));
     fireEvent.click(screen.getByRole("tab", { name: "Authors" }));
     fireEvent.click(await screen.findByRole("button", { name: /Mia Writer/ }));
     await waitFor(() => expect(asked.some((q) => q.includes("author=Mia+Writer"))).toBe(true));

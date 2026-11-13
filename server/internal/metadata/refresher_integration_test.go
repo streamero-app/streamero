@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/google/uuid"
@@ -20,6 +21,9 @@ import (
 	"github.com/streamero-app/streamero/server/internal/library"
 	"github.com/streamero-app/streamero/server/internal/settings"
 )
+
+// seriesCalls counts requests for the details of series 333.
+var seriesCalls atomic.Int32
 
 // fakeTMDb serves just enough of the TMDb API for the refresher.
 func fakeTMDb(t *testing.T) *httptest.Server {
@@ -63,6 +67,7 @@ func fakeTMDb(t *testing.T) *httptest.Server {
 		write(w, map[string]any{"results": []map[string]any{{"id": 333, "name": "Test Show"}}})
 	}))
 	mux.HandleFunc("/3/tv/333", auth(func(w http.ResponseWriter, _ *http.Request) {
+		seriesCalls.Add(1)
 		write(w, map[string]any{"id": 333, "name": "Testna serija", "overview": "Serija.", "first_air_date": "2020-01-01",
 			"poster_path": "/sp.jpg", "external_ids": map[string]any{"imdb_id": "tt333", "tvdb_id": 9},
 			"content_ratings": map[string]any{"results": []map[string]any{{"iso_3166_1": "US", "rating": "TV-14"}}},
@@ -70,6 +75,10 @@ func fakeTMDb(t *testing.T) *httptest.Server {
 	}))
 	mux.HandleFunc("/3/tv/333/season/1", auth(func(w http.ResponseWriter, _ *http.Request) {
 		write(w, map[string]any{"episodes": []map[string]any{{"episode_number": 1, "name": "Pilot", "overview": "Početak.", "air_date": "2020-01-01", "still_path": "/e1.jpg"}}})
+	}))
+	mux.HandleFunc("/3/tv/333/season/2", auth(func(w http.ResponseWriter, _ *http.Request) {
+		write(w, map[string]any{"poster_path": "/s2.jpg", "overview": "Druga sezona.",
+			"episodes": []map[string]any{{"episode_number": 1, "name": "Second Season Opener", "still_path": "/e21.jpg"}}})
 	}))
 	mux.HandleFunc("/img/", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("\xff\xd8\xffjpeg")) })
 	srv := httptest.NewServer(mux)

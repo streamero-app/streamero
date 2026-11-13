@@ -119,8 +119,22 @@ func fresh(src, dst string) bool {
 	return err1 == nil && err2 == nil && !a.ModTime().After(b.ModTime())
 }
 
+// photoSlots caps how many photo conversions run at once on the whole server: an
+// album of HEIC pictures opened on several devices must not start an ffmpeg per
+// picture (the transcode caps of D-044 only count streaming sessions).
+var photoSlots = make(chan struct{}, 4)
+
 // convertPhoto writes a JPEG of at most 3840 px (the image's own rotation applied).
 func (s *Server) convertPhoto(ctx context.Context, src, dst string) error {
+	select {
+	case photoSlots <- struct{}{}:
+		defer func() { <-photoSlots }()
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	if fresh(src, dst) {
+		return nil // converted by another request while this one waited
+	}
 	if err := os.MkdirAll(filepath.Dir(dst), 0o750); err != nil { //nolint:gosec // G703: cache path built from a UUID
 		return err
 	}

@@ -585,6 +585,8 @@ func (s *Server) playbackInfo(w http.ResponseWriter, r *http.Request) {
 			return
 		case errors.Is(err, stream.ErrTranscodeDenied):
 			code = "NotAllowed"
+		case errors.Is(err, stream.ErrBusy):
+			code = "RateLimitExceeded" // too many transcodes (server-wide or for the account)
 		}
 		s.Log.Warn("compat playback failed", "item", id, "err", err)
 		writeJSON(w, map[string]any{"MediaSources": []any{}, "PlaySessionId": playID, "ErrorCode": code})
@@ -736,6 +738,10 @@ func (s *Server) media(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		info, err := s.Stream.Start(r.Context(), s.Libraries, p, id, req)
+		if errors.Is(err, stream.ErrBusy) {
+			http.Error(w, "too many transcodes at once", http.StatusServiceUnavailable)
+			return
+		}
 		if err != nil {
 			http.Error(w, "playback is not possible", http.StatusConflict)
 			return

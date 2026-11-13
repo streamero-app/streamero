@@ -178,6 +178,18 @@ func PickSubtitle(subs []SubtitleChoice, audioLang string, p Prefs) int {
 // season or directly under the series).
 const seriesOf = `CASE WHEN par.kind = 'season' THEN par.parent_id ELSE e.parent_id END`
 
+// episodesOf is a subquery of the episodes of a series (id, season_number,
+// episode_number): those directly under it and those in its seasons. Both halves
+// look the parent up in items_parent_idx; matching on seriesOf instead would read
+// every episode of every library for each series.
+func episodesOf(series string) string {
+	return `SELECT e.id, e.season_number, e.episode_number FROM items e
+			WHERE e.parent_id = ` + series + ` AND e.kind = 'episode'
+		UNION ALL
+		SELECT e.id, e.season_number, e.episode_number FROM items s JOIN items e ON e.parent_id = s.id
+			WHERE s.parent_id = ` + series + ` AND s.kind = 'season' AND e.kind = 'episode'`
+}
+
 // NextUp returns, for each series the owner has watched an episode of, the next
 // unwatched episode after the furthest one watched; most recently watched first.
 func (s *Service) NextUp(ctx context.Context, owner uuid.UUID, limit int) ([]Item, error) {
@@ -192,9 +204,9 @@ func (s *Service) NextUp(ctx context.Context, owner uuid.UUID, limit int) ([]Ite
 		)
 		SELECT `+itemCols+` FROM watched w
 		JOIN LATERAL (
-			SELECT e.id FROM items e JOIN items par ON par.id = e.parent_id
+			SELECT e.id FROM (`+episodesOf("w.series_id")+`) e
 			LEFT JOIN user_item_data x ON x.item_id = e.id AND x.owner_id = $1
-			WHERE e.kind = 'episode' AND `+seriesOf+` = w.series_id AND COALESCE(e.season_number, 1) > 0
+			WHERE COALESCE(e.season_number, 1) > 0
 				AND (COALESCE(e.season_number, 1), e.episode_number) > (w.season, w.episode)
 				AND NOT COALESCE(x.played, false) AND COALESCE(x.position_ms, 0) = 0
 			ORDER BY COALESCE(e.season_number, 1), e.episode_number LIMIT 1
@@ -216,9 +228,8 @@ func (s *Service) NextEpisode(ctx context.Context, owner, id uuid.UUID) (Item, e
 		)
 		SELECT `+itemCols+` FROM cur
 		JOIN LATERAL (
-			SELECT e.id FROM items e JOIN items par ON par.id = e.parent_id
-			WHERE e.kind = 'episode' AND `+seriesOf+` = cur.series_id
-				AND (COALESCE(e.season_number, 1), e.episode_number) > (cur.season, cur.episode)
+			SELECT e.id FROM (`+episodesOf("cur.series_id")+`) e
+			WHERE (COALESCE(e.season_number, 1), e.episode_number) > (cur.season, cur.episode)
 				AND COALESCE(e.season_number, 1) > 0
 			ORDER BY COALESCE(e.season_number, 1), e.episode_number LIMIT 1
 		) nxt ON true

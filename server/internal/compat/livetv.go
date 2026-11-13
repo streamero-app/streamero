@@ -41,7 +41,11 @@ func (s *Server) liveRoutes(r chi.Router) {
 	r.Get("/livetv/recordings/folders", emptyResult)
 }
 
-func canWatchLive(p auth.Principal) bool { return p.User.IsAdmin || p.User.Permissions.LiveTV }
+// canWatchLive: the liveTv permission, never from a kids profile (channels and
+// recordings have no age ratings to filter by).
+func canWatchLive(p auth.Principal) bool {
+	return !p.IsKid() && (p.User.IsAdmin || p.User.Permissions.LiveTV)
+}
 
 // liveReady returns the service when the caller may watch Live TV.
 func (s *Server) liveReady(w http.ResponseWriter, r *http.Request) (*livetv.Service, auth.Principal, bool) {

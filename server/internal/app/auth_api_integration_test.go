@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha1"
 	"encoding/base32"
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"image"
@@ -26,6 +28,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/streamero-app/streamero/server/internal/activity"
@@ -45,6 +48,44 @@ import (
 )
 
 const testSetupCode = "TEST-CODE"
+
+// TestMain gives this package's integration tests a database of their own. The test
+// server TRUNCATEs users, downloads and sessions on every start; on the shared
+// STREAMERO_TEST_DB_URL that deadlocked (40P01) with other packages' cascading deletes
+// (media_files → download_transcodes → downloads), which `go test ./...` runs in parallel.
+func TestMain(m *testing.M) {
+	base := os.Getenv("STREAMERO_TEST_DB_URL")
+	if base == "" {
+		os.Exit(m.Run())
+	}
+	ctx := context.Background()
+	admin, err := pgx.Connect(ctx, base)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "app tests: connect:", err)
+		os.Exit(1)
+	}
+	var rnd [6]byte
+	_, _ = rand.Read(rnd[:])
+	name := "app_test_" + hex.EncodeToString(rnd[:])
+	if _, err := admin.Exec(ctx, `CREATE DATABASE `+name); err != nil {
+		fmt.Fprintln(os.Stderr, "app tests: create database:", err)
+		os.Exit(1)
+	}
+	u, err := url.Parse(base)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "app tests: database URL:", err)
+		os.Exit(1)
+	}
+	u.Path = "/" + name
+	_ = os.Setenv("STREAMERO_TEST_DB_URL", u.String())
+	code := m.Run()
+	// FORCE ends connections the tests left open (pools of finished test servers).
+	if _, err := admin.Exec(ctx, `DROP DATABASE IF EXISTS `+name+` WITH (FORCE)`); err != nil {
+		fmt.Fprintln(os.Stderr, "app tests: drop database:", err)
+	}
+	_ = admin.Close(ctx)
+	os.Exit(code)
+}
 
 // mediaRoot is the media folder of the most recent test server.
 var mediaRoot string
@@ -1085,6 +1126,18 @@ func TestPlaybackIntegration(t *testing.T) {
 	if adminC.do("GET", "/items/"+item, nil, &detail); detail.Item.Played {
 		t.Fatal("watched state leaked into another profile")
 	}
+	// A file that disappeared since the scan answers file_missing and queues a rescan.
+	if err := os.Remove(movies + "/Film (2020)/Film (2020).mp4"); err != nil {
+		t.Fatal(err)
+	}
+	var missing struct{ Code string }
+	if s := adminC.do("POST", "/items/"+item+"/playback", map[string]any{"device": web}, &missing); s != 404 || missing.Code != "file_missing" {
+		t.Fatalf("missing file: HTTP %d %+v", s, missing)
+	}
+	var state string
+	if err := testPool.QueryRow(context.Background(), `SELECT scan_state FROM libraries WHERE id = $1`, libID).Scan(&state); err != nil || (state != "queued" && state != "scanning") {
+		t.Fatalf("rescan not queued: %q %v", state, err)
+	}
 	_ = adminC.do("DELETE", "/libraries/"+lib.ID, nil, nil)
 }
 
@@ -1997,6 +2050,15 @@ func TestDiscoverIntegration(t *testing.T) {
 	var checks []map[string]any
 	if c.do("POST", "/settings/requests/test", nil, &checks); len(checks) != 1 || checks[0]["ok"] != true || checks[0]["version"] != "2.7.3" {
 		t.Fatalf("test connection: %v", checks)
+	}
+	// Pointing the integration at another host drops the stored key (it is never sent there);
+	// the same host with another path keeps it.
+	if c.do("PUT", "/settings/requests", map[string]any{"seerrUrl": "http://other.example:5055", "usersCanRequest": false}, &rs); rs["seerrConfigured"] != false {
+		t.Fatalf("key kept for another host: %v", rs)
+	}
+	c.do("PUT", "/settings/requests", map[string]any{"seerrUrl": seerr.URL, "seerrApiKey": "seerr-key", "usersCanRequest": false}, nil)
+	if c.do("PUT", "/settings/requests", map[string]any{"seerrUrl": seerr.URL + "/", "usersCanRequest": false}, &rs); rs["seerrConfigured"] != true {
+		t.Fatalf("key lost for the same host: %v", rs)
 	}
 	// A title already in the library comes back as available with its item id.
 	if _, err := testPool.Exec(context.Background(), `INSERT INTO libraries (id, name, kind, paths) VALUES ('01a1c0a0-0000-7000-8000-000000000001', 'D', 'movies', '{/x}') ON CONFLICT DO NOTHING;

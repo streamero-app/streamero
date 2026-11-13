@@ -1,0 +1,24 @@
+{
+  "sourceLanguage": "en",
+  "version": "1.0",
+  "strings": {
+    "NSLocalNetworkUsageDescription": {
+      "comment": "Shown when the app first connects to a server on the local network (iOS asks for any LAN address).",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Streamero connects to media servers on your local network."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Streamero se spaja na media servere u tvojoj lokalnoj mreži."
+          }
+        }
+      }
+    }
+  }
+}

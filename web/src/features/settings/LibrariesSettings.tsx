@@ -5,6 +5,7 @@ import { api, unwrap } from "@/api/client";
 import { Badge, Button, Card, ErrorText, TextField } from "@/components/ui";
 import type { Library } from "@/features/library/format";
 import { useDateTime } from "./SettingsLayout";
+import { useConfirm } from "@/components/Dialog";
 
 type Kind = Library["kind"];
 type Form = { id: string | null; name: string; kind: Kind; paths: string[] };
@@ -48,6 +49,7 @@ function FolderPicker({ onPick, onClose }: { onPick: (path: string) => void; onC
 }
 
 export function LibrariesSettings() {
+  const confirmDialog = useConfirm();
   const { t } = useTranslation();
   const qc = useQueryClient();
   const fmt = useDateTime();
@@ -73,7 +75,10 @@ export function LibrariesSettings() {
     },
   });
   const scan = useMutation({
-    mutationFn: async (id: string) => unwrap(await api.POST("/libraries/{libraryId}/scan", { params: { path: { libraryId: id } } })),
+    mutationFn: async ({ id, confirmRemoval }: { id: string; confirmRemoval?: boolean }) =>
+      unwrap(await api.POST("/libraries/{libraryId}/scan", {
+        params: { path: { libraryId: id }, query: confirmRemoval ? { confirmRemoval: true } : {} },
+      })),
     onSuccess: () => void refresh(),
   });
   const refreshMeta = useMutation({
@@ -118,10 +123,21 @@ export function LibrariesSettings() {
               </div>
               <ul className="text-xs text-muted">{l.paths.map((p) => <li key={p}><code>{p}</code></li>)}</ul>
               {l.scan.state === "failed" && l.scan.error && <p className="text-xs text-danger">{l.scan.error}</p>}
+              {l.scan.state !== "failed" && (l.scan.heldRemovals ?? 0) > 0 && (
+                <p className="text-xs text-danger" data-testid="held-removals">{t("libraries.held", { count: l.scan.heldRemovals })}</p>
+              )}
+              {l.scan.state !== "failed" && !l.scan.heldRemovals && l.scan.error && <p className="text-xs text-muted">{l.scan.error}</p>}
               <div className="flex flex-wrap gap-2">
-                <Button variant="secondary" disabled={busyStates.has(l.scan.state) || scan.isPending} onClick={() => scan.mutate(l.id)}>
+                <Button variant="secondary" disabled={busyStates.has(l.scan.state) || scan.isPending} onClick={() => scan.mutate({ id: l.id })}>
                   {t("libraries.scan")}
                 </Button>
+                {(l.scan.heldRemovals ?? 0) > 0 && (
+                  <Button variant="danger" disabled={busyStates.has(l.scan.state) || scan.isPending}
+                    onClick={() => window.confirm(t("libraries.confirmRemoveMissing", { count: l.scan.heldRemovals, name: l.name })) &&
+                      scan.mutate({ id: l.id, confirmRemoval: true })}>
+                    {t("libraries.removeMissing")}
+                  </Button>
+                )}
                 <Button variant="secondary" disabled={refreshMeta.isPending} onClick={() => refreshMeta.mutate(l.id)}>
                   {t("libraries.refreshMetadata")}
                 </Button>
@@ -129,7 +145,7 @@ export function LibrariesSettings() {
                   {t("profiles.edit")}
                 </Button>
                 <Button variant="danger" disabled={remove.isPending}
-                  onClick={() => window.confirm(t("libraries.confirmDelete", { name: l.name })) && remove.mutate(l.id)}>
+                  onClick={() => void confirmDialog({ message: t("libraries.confirmDelete", { name: l.name }), danger: true }).then((ok) => ok && remove.mutate(l.id))}>
                   {t("libraries.remove")}
                 </Button>
               </div>

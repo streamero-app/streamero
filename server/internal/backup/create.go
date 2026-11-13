@@ -186,7 +186,15 @@ func copyOut(ctx context.Context, tx pgx.Tx, dir, table string, cols []string) (
 	defer func() { _ = f.Close() }()
 	sum := sha256.New()
 	cw := &countingWriter{w: io.MultiWriter(f, sum)}
-	tag, err := tx.Conn().PgConn().CopyTo(ctx, cw, "COPY "+copyTarget(table, cols)+" TO STDOUT")
+	src := copyTarget(table, cols)
+	if where, ok := secretRows[table]; ok {
+		quoted := make([]string, len(cols))
+		for i, c := range cols {
+			quoted[i] = pgx.Identifier{c}.Sanitize()
+		}
+		src = "(SELECT " + strings.Join(quoted, ", ") + " FROM " + pgx.Identifier{table}.Sanitize() + " WHERE " + where + ")"
+	}
+	tag, err := tx.Conn().PgConn().CopyTo(ctx, cw, "COPY "+src+" TO STDOUT")
 	if err != nil {
 		_ = os.Remove(p)
 		return Table{}, err
@@ -239,6 +247,17 @@ func dataTables(ctx context.Context, q querier) ([]string, error) {
 var secretColumns = map[string][]string{
 	// The other server's API key, kept only while an import runs.
 	"import_runs": {"secret"},
+}
+
+// StreamKeySetting is the settings row holding the stream URL signing key.
+const StreamKeySetting = "stream.key"
+
+// secretRows are rows never written into a backup (SQL conditions for the rows
+// that are kept). The stream signing key stays with the server: whoever reads a
+// backup could otherwise sign media links, and a restore keeps the running
+// server's key (see Restore).
+var secretRows = map[string]string{
+	"settings": "key <> '" + StreamKeySetting + "'",
 }
 
 // withoutSecrets drops the secretColumns of a table from its column list.

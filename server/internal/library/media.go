@@ -121,14 +121,16 @@ func (s *Scanner) knownMeta(ctx context.Context, libID uuid.UUID) (map[string]*M
 }
 
 // walkMedia lists the regular files under root that match keep (ignored names,
-// ignore markers and symlinks are skipped, as everywhere else).
-func walkMedia(ctx context.Context, root string, keep func(name string) bool) ([]planFile, error) {
+// ignore markers and symlinks are skipped, as everywhere else). Folders and files
+// that cannot be read are added to unreadable (nothing under them may be removed).
+func walkMedia(ctx context.Context, root string, unreadable *[]string, keep func(name string) bool) ([]planFile, error) {
 	var out []planFile
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			if path == root {
 				return err
 			}
+			*unreadable = append(*unreadable, path)
 			return nil
 		}
 		if ctx.Err() != nil {
@@ -146,6 +148,7 @@ func walkMedia(ctx context.Context, root string, keep func(name string) bool) ([
 		}
 		info, err := d.Info()
 		if err != nil {
+			*unreadable = append(*unreadable, path)
 			return nil
 		}
 		out = append(out, planFile{path: path, size: info.Size(), mtime: info.ModTime().UTC().Truncate(time.Microsecond)})
@@ -169,7 +172,7 @@ func depth(root, p string) int {
 
 // planBooks makes one item per book or comic file. New and changed files are read
 // (OPF, ComicInfo.xml, PDF, MOBI headers); unchanged files keep what was read before.
-func (s *Scanner) planBooks(ctx context.Context, libID uuid.UUID, roots []string) (map[string]*planItem, map[string]probeOutcome, error) {
+func (s *Scanner) planBooks(ctx context.Context, libID uuid.UUID, walk *walkResult) (map[string]*planItem, map[string]probeOutcome, error) {
 	knownF, err := s.knownFiles(ctx, libID)
 	if err != nil {
 		return nil, nil, err
@@ -180,8 +183,8 @@ func (s *Scanner) planBooks(ctx context.Context, libID uuid.UUID, roots []string
 	}
 	plan := map[string]*planItem{}
 	probed := map[string]probeOutcome{}
-	for _, root := range roots {
-		files, err := walkMedia(ctx, root, func(n string) bool { return books.FormatOf(n) != "" })
+	for _, root := range walk.roots {
+		files, err := walkMedia(ctx, root, &walk.unreadable, func(n string) bool { return books.FormatOf(n) != "" })
 		if err != nil {
 			return nil, nil, fmt.Errorf("reading %s: %w", root, err)
 		}
@@ -307,7 +310,7 @@ func AudiobookPartOrder(paths []string, tags func(string) map[string]string) {
 
 // planAudiobooks groups audio files into books: every M4B file is a book; the
 // other audio files of one folder (and its CD1/CD2 sub-folders) form one book.
-func (s *Scanner) planAudiobooks(ctx context.Context, libID uuid.UUID, roots []string) (map[string]*planItem, map[string]probeOutcome, error) {
+func (s *Scanner) planAudiobooks(ctx context.Context, libID uuid.UUID, walk *walkResult) (map[string]*planItem, map[string]probeOutcome, error) {
 	knownF, err := s.knownFiles(ctx, libID)
 	if err != nil {
 		return nil, nil, err
@@ -318,8 +321,8 @@ func (s *Scanner) planAudiobooks(ctx context.Context, libID uuid.UUID, roots []s
 	}
 	groups := map[string]*group{}
 	var all []planFile
-	for _, root := range roots {
-		files, err := walkMedia(ctx, root, IsAudiobookPart)
+	for _, root := range walk.roots {
+		files, err := walkMedia(ctx, root, &walk.unreadable, IsAudiobookPart)
 		if err != nil {
 			return nil, nil, fmt.Errorf("reading %s: %w", root, err)
 		}
@@ -449,7 +452,7 @@ func audiobookMeta(root, key string, single bool, t map[string]string) *MediaMet
 
 // planPhotos makes an album per folder that holds pictures or videos (nested
 // folders are nested albums), and an item per picture and video.
-func (s *Scanner) planPhotos(ctx context.Context, libID uuid.UUID, roots []string) (map[string]*planItem, map[string]probeOutcome, error) {
+func (s *Scanner) planPhotos(ctx context.Context, libID uuid.UUID, walk *walkResult) (map[string]*planItem, map[string]probeOutcome, error) {
 	knownF, err := s.knownFiles(ctx, libID)
 	if err != nil {
 		return nil, nil, err
@@ -466,8 +469,8 @@ func (s *Scanner) planPhotos(ctx context.Context, libID uuid.UUID, roots []strin
 		f    planFile
 	}
 	var entries []entry
-	for _, root := range roots {
-		files, err := walkMedia(ctx, root, func(n string) bool { return IsPhoto(n) || IsVideo(n) })
+	for _, root := range walk.roots {
+		files, err := walkMedia(ctx, root, &walk.unreadable, func(n string) bool { return IsPhoto(n) || IsVideo(n) })
 		if err != nil {
 			return nil, nil, fmt.Errorf("reading %s: %w", root, err)
 		}

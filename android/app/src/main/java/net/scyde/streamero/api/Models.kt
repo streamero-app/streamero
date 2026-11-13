@@ -119,15 +119,32 @@ import kotlinx.serialization.json.JsonElement
 @Serializable data class PhotoView(val url: String, val originalUrl: String? = null, val mimeType: String = "", val width: Int? = null, val height: Int? = null)
 @Serializable data class NameCount(val name: String, val count: Int = 0, val itemId: String? = null)
 
-@Serializable data class DeviceProfile(val containers: List<String>, val videoCodecs: List<String>, val audioCodecs: List<String>, val hls: Boolean, val maxHeight: Int? = null, val maxBitrate: Int? = null)
-@Serializable data class PlaybackRequest(val device: DeviceProfile, val fileId: String? = null, val audioIndex: Int? = null, val startMs: Long? = null)
+@Serializable data class DeviceProfile(
+    val containers: List<String>, val videoCodecs: List<String>, val audioCodecs: List<String>, val hls: Boolean,
+    val maxHeight: Int? = null, val maxBitrate: Int? = null,
+    /** Bitmap subtitle formats drawn by the player itself on direct play; others are burned in when chosen. */
+    val subtitleCodecs: List<String>? = null,
+)
+@Serializable data class PlaybackRequest(
+    val device: DeviceProfile, val fileId: String? = null, val audioIndex: Int? = null, val startMs: Long? = null,
+    /** The file's subtitle track chosen by the viewer (-1 = none, absent = automatic); a bitmap track is burned in. */
+    val subtitleIndex: Int? = null,
+    /** Burn [subtitleIndex] in even when it is a text track. */
+    val burnSubtitle: Boolean? = null,
+)
+/** A text subtitle track, offered as WebVTT at [url] (signed; times of the file, see Subtitles.url for HLS). */
 @Serializable data class PlaybackSubtitle(val index: Int, val language: String? = null, val forced: Boolean = false, val external: Boolean = false, val url: String)
+@Serializable data class PlaybackBitmapSubtitle(val index: Int, val codec: String, val language: String? = null, val forced: Boolean = false)
 @Serializable data class MediaSegment(val kind: String, val startMs: Long, val endMs: Long)
 @Serializable data class PlaybackInfo(
     val fileId: String, val method: String, val url: String, val startMs: Long = 0, val durationMs: Long? = null,
     val audio: List<AudioStream> = emptyList(), val audioIndex: Int? = null, val subtitles: List<PlaybackSubtitle> = emptyList(),
     val subtitleDefault: Int? = null, val chapters: List<Chapter> = emptyList(), val segments: List<MediaSegment> = emptyList(),
     val trickplay: TrickplayInfo? = null, val reason: String? = null,
+    /** Bitmap tracks; choosing one restarts playback with it burned in. */
+    val bitmapSubtitles: List<PlaybackBitmapSubtitle> = emptyList(),
+    /** The file subtitle index burned into this stream, null when none. */
+    val burnedSubtitle: Int? = null,
 )
 @Serializable data class ProgressReport(val positionMs: Long, val durationMs: Long? = null, val played: Boolean? = null)
 @Serializable data class UserDataUpdate(val favorite: Boolean? = null, val played: Boolean? = null)

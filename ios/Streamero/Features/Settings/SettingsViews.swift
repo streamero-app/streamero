@@ -57,6 +57,7 @@ struct MeTab: View {
     let signOut: () -> Void
     @Environment(AppState.self) private var app
     @State private var showQuickConnect = false
+    @State private var showServers = false
     @State private var showTogether = false
     @State private var togetherPlay: PlayTarget?
 
@@ -88,8 +89,18 @@ struct MeTab: View {
                 }
             }
             Section {
-                Button { showQuickConnect = true } label: { Text("quickConnect.approveTitle").foregroundStyle(Theme.text) }
+                // A kids profile cannot sign other devices in to the account.
+                if !app.isKid {
+                    Button { showQuickConnect = true } label: { Text("quickConnect.approveTitle").foregroundStyle(Theme.text) }
+                }
                 Button { app.showProfileGate = true } label: { Text("switch_profile").foregroundStyle(Theme.text) }
+                Button { showServers = true } label: {
+                    HStack {
+                        Text("servers.title").foregroundStyle(Theme.text)
+                        Spacer()
+                        Text(verbatim: app.server.name).foregroundStyle(Theme.textMuted).lineLimit(1)
+                    }
+                }
                 Button(role: .destructive, action: signOut) { Text("sign_out") }
             }
         }
@@ -97,6 +108,7 @@ struct MeTab: View {
         .background(Theme.background)
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showQuickConnect) { QuickConnectApproveView(client: client) }
+        .sheet(isPresented: $showServers) { ServerListView().environment(\.locale, app.locale ?? Locale.current) }
         .sheet(isPresented: $showTogether, onDismiss: {
             if let target = togetherPlay {
                 togetherPlay = nil
@@ -126,7 +138,7 @@ struct MeTab: View {
         HStack(spacing: 14) {
             AvatarView(name: name, color: p?.color, url: picture, token: client.token, size: 64)
             VStack(alignment: .leading, spacing: 4) {
-                Text(verbatim: name).font(Theme.display(24)).foregroundStyle(Theme.text).lineLimit(2)
+                Text(verbatim: name).displayFont(24).foregroundStyle(Theme.text).lineLimit(2)
                 HStack(spacing: 4) {
                     Text(verbatim: "@\(me.username)")
                     if app.isAdmin { Text(verbatim: "·"); Text("administrator") }
@@ -349,7 +361,8 @@ private struct PlaybackPage: View {
         [Opt("", "any")] + ["en", "hr", "de", "fr", "es", "it", "sr", "bs", "sl", "pl", "ru", "ja"].map { Opt($0, verbatim: $0.languageName) }
     }
 
-    private func seconds(_ values: [Int]) -> [Opt<Int>] { values.map { Opt($0, verbatim: "\($0) s") } }
+    private func seconds(_ values: [Int]) -> [Opt<Int>] { values.map { Opt($0, "seconds_short \($0)") } }
+    private func mbps(_ values: [Int]) -> [Opt<Int>] { values.map { Opt($0 * 1000, "mbps \($0)") } }
 
     var body: some View {
         Form {
@@ -377,10 +390,8 @@ private struct PlaybackPage: View {
                     OptPicker(title: "max_resolution", selection: zeroAsNil(p.maxHeight), options: [
                         Opt(0, "original"), Opt(2160, verbatim: "4K"), Opt(1080, verbatim: "1080p"), Opt(720, verbatim: "720p"), Opt(480, verbatim: "480p"),
                     ])
-                    OptPicker(title: "max_bitrate", selection: zeroAsNil(p.maxBitrateKbps), options: [
-                        Opt(0, "no_limit"), Opt(40000, verbatim: "40 Mbit/s"), Opt(20000, verbatim: "20 Mbit/s"), Opt(10000, verbatim: "10 Mbit/s"),
-                        Opt(4000, verbatim: "4 Mbit/s"), Opt(2000, verbatim: "2 Mbit/s"), Opt(1000, verbatim: "1 Mbit/s"),
-                    ])
+                    OptPicker(title: "max_bitrate", selection: zeroAsNil(p.maxBitrateKbps),
+                              options: [Opt(0, "no_limit")] + mbps([40, 20, 10, 4, 2, 1]))
                 } header: { Text("quality") }
             }
         }

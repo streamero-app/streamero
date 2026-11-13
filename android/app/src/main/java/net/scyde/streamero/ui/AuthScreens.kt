@@ -88,7 +88,8 @@ fun LoginScreen(state: AppState, onChangeServer: () -> Unit, onSignedIn: () -> U
     var totp by remember { mutableStateOf("") }
     var needTotp by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf<Throwable?>(null) }
+    // Sent back here because the server ended the session: say so.
+    var error by remember { mutableStateOf<Throwable?>(if (state.sessionExpired) ApiException(401, "unauthenticated", "") else null) }
     var disclaimer by remember { mutableStateOf<String?>(null) }
     var serverName by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
