@@ -29015,13 +29015,20 @@ func (s *ScanStatus) encodeFields(e *jx.Encoder) {
 			s.FilesSeen.Encode(e)
 		}
 	}
+	{
+		if s.HeldRemovals.Set {
+			e.FieldStart("heldRemovals")
+			s.HeldRemovals.Encode(e)
+		}
+	}
 }
 
-var jsonFieldsNameOfScanStatus = [4]string{
+var jsonFieldsNameOfScanStatus = [5]string{
 	0: "state",
 	1: "lastScanAt",
 	2: "error",
 	3: "filesSeen",
+	4: "heldRemovals",
 }
 
 // Decode decodes ScanStatus from json.
@@ -29072,6 +29079,16 @@ func (s *ScanStatus) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"filesSeen\"")
+			}
+		case "heldRemovals":
+			if err := func() error {
+				s.HeldRemovals.Reset()
+				if err := s.HeldRemovals.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"heldRemovals\"")
 			}
 		default:
 			return d.Skip()

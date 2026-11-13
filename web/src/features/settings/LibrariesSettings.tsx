@@ -73,7 +73,10 @@ export function LibrariesSettings() {
     },
   });
   const scan = useMutation({
-    mutationFn: async (id: string) => unwrap(await api.POST("/libraries/{libraryId}/scan", { params: { path: { libraryId: id } } })),
+    mutationFn: async ({ id, confirmRemoval }: { id: string; confirmRemoval?: boolean }) =>
+      unwrap(await api.POST("/libraries/{libraryId}/scan", {
+        params: { path: { libraryId: id }, query: confirmRemoval ? { confirmRemoval: true } : {} },
+      })),
     onSuccess: () => void refresh(),
   });
   const refreshMeta = useMutation({
@@ -118,10 +121,21 @@ export function LibrariesSettings() {
               </div>
               <ul className="text-xs text-muted">{l.paths.map((p) => <li key={p}><code>{p}</code></li>)}</ul>
               {l.scan.state === "failed" && l.scan.error && <p className="text-xs text-danger">{l.scan.error}</p>}
+              {l.scan.state !== "failed" && (l.scan.heldRemovals ?? 0) > 0 && (
+                <p className="text-xs text-danger" data-testid="held-removals">{t("libraries.held", { count: l.scan.heldRemovals })}</p>
+              )}
+              {l.scan.state !== "failed" && !l.scan.heldRemovals && l.scan.error && <p className="text-xs text-muted">{l.scan.error}</p>}
               <div className="flex flex-wrap gap-2">
-                <Button variant="secondary" disabled={busyStates.has(l.scan.state) || scan.isPending} onClick={() => scan.mutate(l.id)}>
+                <Button variant="secondary" disabled={busyStates.has(l.scan.state) || scan.isPending} onClick={() => scan.mutate({ id: l.id })}>
                   {t("libraries.scan")}
                 </Button>
+                {(l.scan.heldRemovals ?? 0) > 0 && (
+                  <Button variant="danger" disabled={busyStates.has(l.scan.state) || scan.isPending}
+                    onClick={() => window.confirm(t("libraries.confirmRemoveMissing", { count: l.scan.heldRemovals, name: l.name })) &&
+                      scan.mutate({ id: l.id, confirmRemoval: true })}>
+                    {t("libraries.removeMissing")}
+                  </Button>
+                )}
                 <Button variant="secondary" disabled={refreshMeta.isPending} onClick={() => refreshMeta.mutate(l.id)}>
                   {t("libraries.refreshMetadata")}
                 </Button>

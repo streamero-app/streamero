@@ -7105,10 +7105,22 @@ func decodeRunTaskParams(args [1]string, argsEscaped bool, r *http.Request) (par
 
 // ScanLibraryParams is parameters of scanLibrary operation.
 type ScanLibraryParams struct {
-	LibraryId uuid.UUID
+	// Also remove missing files that an earlier scan kept because the removal looked like an offline
+	// folder (see ScanStatus.heldRemovals). Folders that cannot be read are still kept.
+	ConfirmRemoval OptBool `json:",omitempty,omitzero"`
+	LibraryId      uuid.UUID
 }
 
 func unpackScanLibraryParams(packed middleware.Parameters) (params ScanLibraryParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "confirmRemoval",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.ConfirmRemoval = v.(OptBool)
+		}
+	}
 	{
 		key := middleware.ParameterKey{
 			Name: "libraryId",
@@ -7120,6 +7132,53 @@ func unpackScanLibraryParams(packed middleware.Parameters) (params ScanLibraryPa
 }
 
 func decodeScanLibraryParams(args [1]string, argsEscaped bool, r *http.Request) (params ScanLibraryParams, _ error) {
+	q := uri.NewQueryDecoder(r.URL.Query())
+	// Set default value for query: confirmRemoval.
+	{
+		val := bool(false)
+		params.ConfirmRemoval.SetTo(val)
+	}
+	// Decode query: confirmRemoval.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "confirmRemoval",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotConfirmRemovalVal bool
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToBool(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotConfirmRemovalVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.ConfirmRemoval.SetTo(paramsDotConfirmRemovalVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "confirmRemoval",
+			In:   "query",
+			Err:  err,
+		}
+	}
 	// Decode path: libraryId.
 	if err := func() error {
 		param := args[0]
