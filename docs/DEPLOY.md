@@ -24,6 +24,8 @@ Edit `.env`:
 | `STREAMERO_VERSION` | a release such as `0.2.0` (or `edge` = latest `main`); `latest` = newest release |
 | `HTTP_PORT` | `8787`, or `127.0.0.1:8787` behind a reverse proxy |
 | `STREAMERO_TRUSTED_PROXIES` | only behind a reverse proxy (see below) |
+| `DLNA_HTTP_PORT` | `127.0.0.1:8788` (default, off the network); for smart TVs set `<lan-ip>:8788`, e.g. `192.168.1.10:8788`. Never publish it on all addresses: behind Docker's bridge every request comes from the bridge gateway, so the server's LAN-only check cannot tell an outside client from a TV. Never forward it on the router. |
+| `DISCOVERY_PORT` | `127.0.0.1:7359` (default); `<lan-ip>:7359` for app discovery on your network (needs host networking to receive broadcasts) |
 | `TZ` | e.g. `Europe/Zagreb` |
 
 Start and create the admin:

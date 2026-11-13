@@ -16,6 +16,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/streamero-app/streamero/server/internal/library"
 )
 
@@ -30,11 +32,24 @@ type Job struct {
 	// ADTSAudio marks AAC in ADTS framing (MPEG-TS sources): copied into fMP4 it
 	// needs the aac_adtstoasc bitstream filter.
 	ADTSAudio bool
+	// HEVC marks an HEVC source: copied into fMP4 it is tagged hvc1, the only
+	// HEVC sample entry Apple's players accept in HLS.
+	HEVC bool
+	// Owner is the account the session counts against (PerUserSessions); the
+	// zero UUID is not counted per account (administrators, shared live channels).
+	Owner uuid.UUID
+	// Client identifies the device (sign-in session) the stream is for: its
+	// previous stream is stopped first, so restarting on a seek or a track
+	// switch never piles up ffmpeg processes. Empty = not tied to a device.
+	Client string
+	live   bool // a sliding live window (set by StartLive)
 }
 
 type session struct {
+	owner   uuid.UUID
+	client  string
+	live    bool // no EXT-X-START: players join a live window at its edge
 	dir     string
-	cmd     *exec.Cmd
 	cancel  context.CancelFunc
 	lastHit time.Time
 	done    chan struct{}
@@ -65,7 +80,11 @@ func newID() string {
 // Args builds the ffmpeg command line for a job (exported for tests).
 func Args(j Job, dir string, enc Encoding) []string {
 	enc = enc.Normalize()
-	a := codecArgs(j, dir, enc)
+	// Read at most twice real time after a first minute at full speed: a fast remux of
+	// a large file would otherwise fill the transcode directory (a RAM disk) long before
+	// anyone watches it. A seek past what is ready restarts the session at the target.
+	j.InputArgs = append([]string{"-readrate", "2", "-readrate_initial_burst", "60"}, j.InputArgs...)
+	a := append(codecArgs(j, dir, enc), hevcTag(j)...)
 	return append(a, "-f", "hls", "-hls_time", strconv.Itoa(enc.SegmentSeconds), "-hls_playlist_type", "event", "-hls_segment_type", "fmp4",
 		"-hls_fmp4_init_filename", "init.mp4", "-hls_segment_filename", filepath.Join(dir, "seg_%05d.m4s"),
 		"-start_number", "0", filepath.Join(dir, "index.m3u8"))
@@ -203,11 +222,20 @@ func codecArgs(j Job, dir string, enc Encoding) []string {
 func LiveArgs(j Job, dir string, enc Encoding, window int) []string {
 	enc = enc.Normalize()
 	j.StartMS = 0
-	a := codecArgs(j, dir, enc)
+	a := append(codecArgs(j, dir, enc), hevcTag(j)...)
 	return append(a, "-f", "hls", "-hls_time", strconv.Itoa(enc.SegmentSeconds), "-hls_list_size", strconv.Itoa(max(window, 3)),
 		"-hls_delete_threshold", "2", "-hls_flags", "delete_segments+independent_segments+program_date_time",
 		"-hls_segment_type", "fmp4", "-hls_fmp4_init_filename", "init.mp4",
 		"-hls_segment_filename", filepath.Join(dir, "seg_%05d.m4s"), "-start_number", "0", filepath.Join(dir, "index.m3u8"))
+}
+
+// hevcTag tags stream-copied HEVC as hvc1 (ffmpeg writes hev1 by default, which
+// Safari and AVPlayer refuse in HLS: a black picture).
+func hevcTag(j Job) []string {
+	if j.HEVC && !j.Plan.TranscodeVideo && !j.Plan.AudioOnly {
+		return []string{"-tag:v", "hvc1"}
+	}
+	return nil
 }
 
 // Start launches ffmpeg and waits until the first segment is listed.
@@ -219,6 +247,7 @@ func (m *Manager) Start(ctx context.Context, j Job) (string, error) {
 // the session ends for any reason (idle, Stop, ffmpeg exit after a failed start).
 // The live input has no end: the session lives until nobody requests it.
 func (m *Manager) StartLive(ctx context.Context, j Job, window int, onStop func()) (string, error) {
+	j.live = true
 	return m.start(ctx, j, func(dir string, enc Encoding) []string { return LiveArgs(j, dir, enc, window) }, onStop)
 }
 
@@ -227,16 +256,74 @@ func (m *Manager) start(ctx context.Context, j Job, build func(dir string, enc E
 	if m.Encoding != nil {
 		enc = m.Encoding(ctx).Normalize()
 	}
-	if j.Plan.TranscodeVideo && enc.MaxSessions > 0 && m.Active() >= enc.MaxSessions {
-		return "", ErrBusy
+	if j.Client != "" {
+		m.stopClient(j.Client)
 	}
+	id, err := m.launch(ctx, j, build, enc, onStop, j.Plan.TranscodeVideo && enc.HWAccel != "none")
+	var hw *hwFailure
+	if errors.As(err, &hw) {
+		// The hardware encoder failed before the first segment (driver, device missing
+		// from the container, unsupported input): retry once in software.
+		m.Log.Warn("hardware transcoding failed; retrying in software", "hwaccel", enc.HWAccel, "err", hw.err)
+		enc.HWAccel = "none"
+		return m.launch(ctx, j, build, enc, onStop, false)
+	}
+	return id, err
+}
+
+// hwFailure is a hardware session whose ffmpeg exited before the first segment.
+type hwFailure struct{ err error }
+
+func (e *hwFailure) Error() string { return e.err.Error() }
+
+// reserve registers a session under the caps (server-wide and per account) in
+// one step, so concurrent starts cannot both take the last slot.
+func (m *Manager) reserve(id string, s *session, limit int) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if len(m.streams) >= limit {
+		return ErrBusy
+	}
+	if s.owner != uuid.Nil {
+		n := 0
+		for _, x := range m.streams {
+			if x.owner == s.owner {
+				n++
+			}
+		}
+		if n >= PerUserSessions {
+			return ErrBusy
+		}
+	}
+	if m.streams == nil {
+		m.streams = map[string]*session{}
+	}
+	m.streams[id] = s
+	return nil
+}
+
+// launch starts one ffmpeg session. With canRetry, an ffmpeg exit before the
+// first segment returns *hwFailure and leaves onStop for the retry.
+func (m *Manager) launch(ctx context.Context, j Job, build func(dir string, enc Encoding) []string, enc Encoding, onStop func(), canRetry bool) (string, error) {
 	id := newID()
 	dir := filepath.Join(m.Dir, id)
-	if err := os.MkdirAll(dir, 0o750); err != nil {
+	runCtx, cancel := context.WithCancel(context.Background())
+	s := &session{owner: j.Owner, client: j.Client, live: j.live, dir: dir, cancel: cancel, lastHit: time.Now(), done: make(chan struct{}), onStop: onStop}
+	if err := m.reserve(id, s, enc.SessionLimit()); err != nil {
+		cancel()
 		if onStop != nil {
 			onStop()
 		}
 		return "", err
+	}
+	// fail ends the reserved session before ffmpeg ran.
+	fail := func(err error) (string, error) {
+		close(s.done)
+		m.stop(id)
+		return "", err
+	}
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		return fail(err)
 	}
 	if b := j.Plan.Burn; b != nil && j.Plan.TranscodeVideo && !b.Bitmap {
 		target := j.Input
@@ -244,24 +331,16 @@ func (m *Manager) start(ctx context.Context, j Job, build func(dir string, enc E
 			target = b.Path
 		}
 		if err := os.Symlink(target, burnSource(j, dir)); err != nil {
-			_ = os.RemoveAll(dir)
-			return "", fmt.Errorf("link subtitle source: %w", err)
+			return fail(fmt.Errorf("link subtitle source: %w", err))
 		}
 	}
-	runCtx, cancel := context.WithCancel(context.Background())
 	// #nosec G204 -- fixed binary; the input path was validated with ResolveSafePath.
 	cmd := exec.CommandContext(runCtx, m.FFmpeg, build(dir, enc)...)
-	var stderr strings.Builder
+	var stderr lockedBuilder
 	cmd.Stderr = &limitedWriter{w: &stderr, n: 4096}
 	if err := cmd.Start(); err != nil {
-		cancel()
-		_ = os.RemoveAll(dir)
-		if onStop != nil {
-			onStop()
-		}
-		return "", fmt.Errorf("start ffmpeg: %w", err)
+		return fail(fmt.Errorf("start ffmpeg: %w", err))
 	}
-	s := &session{dir: dir, cmd: cmd, cancel: cancel, lastHit: time.Now(), done: make(chan struct{}), onStop: onStop}
 	go func() {
 		err := cmd.Wait()
 		if err != nil && runCtx.Err() == nil {
@@ -269,12 +348,6 @@ func (m *Manager) start(ctx context.Context, j Job, build func(dir string, enc E
 		}
 		close(s.done)
 	}()
-	m.mu.Lock()
-	if m.streams == nil {
-		m.streams = map[string]*session{}
-	}
-	m.streams[id] = s
-	m.mu.Unlock()
 
 	deadline := time.After(30 * time.Second)
 	for {
@@ -289,14 +362,37 @@ func (m *Manager) start(ctx context.Context, j Job, build func(dir string, enc E
 			if playlistReady(filepath.Join(dir, "index.m3u8")) {
 				return id, nil // very short file: already finished
 			}
+			err := fmt.Errorf("ffmpeg exited: %s", strings.TrimSpace(stderr.String()))
+			if canRetry {
+				m.stopWith(id, false)
+				return "", &hwFailure{err: err}
+			}
 			m.stop(id)
-			return "", fmt.Errorf("ffmpeg exited: %s", strings.TrimSpace(stderr.String()))
+			return "", err
 		case <-deadline:
 			m.stop(id)
-			return "", errors.New("transcoder did not produce a segment in time")
+			return "", fmt.Errorf("transcoder did not produce a segment in time: %s", strings.TrimSpace(stderr.String()))
 		case <-time.After(150 * time.Millisecond):
 		}
 	}
+}
+
+// lockedBuilder is a strings.Builder safe for ffmpeg's stderr copier and a reader.
+type lockedBuilder struct {
+	mu sync.Mutex
+	b  strings.Builder
+}
+
+func (l *lockedBuilder) WriteString(p string) (int, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.b.WriteString(p)
+}
+
+func (l *lockedBuilder) String() string {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.b.String()
 }
 
 // burnSource is the path the subtitles filter reads: a link inside the session
@@ -371,12 +467,17 @@ func (m *Manager) File(id, name string) (string, error) {
 	return "", ErrNoSession
 }
 
-// Playlist returns the playlist with every URI signed (query appended).
+// Playlist returns the playlist with every URI signed (query appended). A
+// film's playlist is of the EVENT type while ffmpeg works on it, which players
+// may treat like live and join near its end: EXT-X-START puts them at the start.
 func (m *Manager) Playlist(id, query string) ([]byte, error) {
 	p, err := m.File(id, "index.m3u8")
 	if err != nil {
 		return nil, err
 	}
+	m.mu.Lock()
+	live := m.streams[id] != nil && m.streams[id].live
+	m.mu.Unlock()
 	f, err := os.Open(p) // #nosec G304 -- session directory
 	if err != nil {
 		return nil, err
@@ -394,11 +495,17 @@ func (m *Manager) Playlist(id, query string) ([]byte, error) {
 			line = line + "?" + query
 		}
 		out.WriteString(line + "\n")
+		if line == "#EXTM3U" && !live {
+			out.WriteString("#EXT-X-START:TIME-OFFSET=0,PRECISE=YES\n")
+		}
 	}
 	return []byte(out.String()), sc.Err()
 }
 
-func (m *Manager) stop(id string) {
+func (m *Manager) stop(id string) { m.stopWith(id, true) }
+
+// stopWith ends a session; callOnStop=false keeps its onStop for a retry.
+func (m *Manager) stopWith(id string, callOnStop bool) {
 	m.mu.Lock()
 	s, ok := m.streams[id]
 	delete(m.streams, id)
@@ -409,9 +516,67 @@ func (m *Manager) stop(id string) {
 	s.cancel()
 	<-s.done
 	_ = os.RemoveAll(s.dir)
-	if s.onStop != nil {
+	if callOnStop && s.onStop != nil {
 		s.onStop()
 	}
+}
+
+// stopClient ends the sessions started for a device, before it starts a new one.
+func (m *Manager) stopClient(client string) {
+	m.mu.Lock()
+	var ids []string
+	for id, s := range m.streams {
+		if s.client == client {
+			ids = append(ids, id)
+		}
+	}
+	m.mu.Unlock()
+	for _, id := range ids {
+		m.stop(id)
+	}
+}
+
+// StopAll ends every session (server shutdown or restart).
+func (m *Manager) StopAll() {
+	m.mu.Lock()
+	ids := make([]string, 0, len(m.streams))
+	for id := range m.streams {
+		ids = append(ids, id)
+	}
+	m.mu.Unlock()
+	for _, id := range ids {
+		m.stop(id)
+	}
+}
+
+// CleanStale removes session directories left by an earlier run (a crash or a
+// kill skips the normal cleanup). Only names this manager creates are touched.
+func (m *Manager) CleanStale() {
+	entries, err := os.ReadDir(m.Dir)
+	if err != nil {
+		return
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, e := range entries {
+		if !e.IsDir() || !isSessionID(e.Name()) || m.streams[e.Name()] != nil {
+			continue
+		}
+		_ = os.RemoveAll(filepath.Join(m.Dir, e.Name()))
+	}
+}
+
+// isSessionID reports whether name looks like newID's output (32 lower-case hex digits).
+func isSessionID(name string) bool {
+	if len(name) != 32 {
+		return false
+	}
+	for _, c := range name {
+		if (c < '0' || c > '9') && (c < 'a' || c > 'f') {
+			return false
+		}
+	}
+	return true
 }
 
 // Stop ends a session (e.g. a live channel whose tuner a recording needs).
@@ -444,15 +609,7 @@ func (m *Manager) Reap(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			m.mu.Lock()
-			ids := make([]string, 0, len(m.streams))
-			for id := range m.streams {
-				ids = append(ids, id)
-			}
-			m.mu.Unlock()
-			for _, id := range ids {
-				m.stop(id)
-			}
+			m.StopAll()
 			return
 		case now := <-t.C:
 			m.mu.Lock()

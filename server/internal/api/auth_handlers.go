@@ -502,7 +502,10 @@ func mapError(err error) *StatusError {
 	var secErr *ogenerrors.SecurityError
 	var decReq *ogenerrors.DecodeRequestError
 	var decParams *ogenerrors.DecodeParamsError
+	var tooLarge *http.MaxBytesError
 	switch {
+	case errors.As(err, &tooLarge):
+		return &StatusError{Status: http.StatusRequestEntityTooLarge, Code: "request_too_large", Message: "request body too large"}
 	case errors.As(err, &secErr):
 		return &StatusError{Status: http.StatusUnauthorized, Code: "unauthenticated", Message: "not signed in"}
 	case errors.As(err, &decReq), errors.As(err, &decParams):

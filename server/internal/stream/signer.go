@@ -47,10 +47,18 @@ func (s Signer) QueryUntil(scope string, exp time.Time) string {
 	return url.Values{"exp": {strconv.FormatInt(e, 10)}, "sig": {s.mac(scope, e)}}.Encode()
 }
 
+// MaxTTL is the longest validity the server ever signs (Live TV images: up to
+// 48 h, for a day-stable URL; stream links 8 h, compat tags 12 h, downloads 24 h)
+// plus slack for clock steps. A signature expiring later than this was not made
+// by this server's rules (e.g. minted with a leaked key) and is refused, so a
+// rotated or restored key bounds how long old links live.
+const MaxTTL = 48*time.Hour + 10*time.Minute
+
 // Valid reports whether the query signs scope and has not expired.
 func (s Signer) Valid(scope string, q url.Values) bool {
 	exp, err := strconv.ParseInt(q.Get("exp"), 10, 64)
-	if err != nil || s.now().Unix() > exp {
+	now := s.now()
+	if err != nil || now.Unix() > exp || exp > now.Add(MaxTTL).Unix() {
 		return false
 	}
 	return hmac.Equal([]byte(s.mac(scope, exp)), []byte(q.Get("sig")))

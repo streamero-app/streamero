@@ -165,6 +165,13 @@ func (s *Service) load(ctx context.Context, p string, m *Manifest, opts RestoreO
 		}
 		byEntry[t.Entry()] = t
 	}
+	// The running server keeps its stream signing key (older backups may carry
+	// another server's key; newer ones carry none).
+	var streamKey []byte
+	if err := tx.QueryRow(ctx, `SELECT value FROM settings WHERE key = $1`, StreamKeySetting).Scan(&streamKey); err != nil &&
+		!errors.Is(err, pgx.ErrNoRows) {
+		return nil, err
+	}
 	fks, err := dropForeignKeys(ctx, tx)
 	if err != nil {
 		return nil, err
@@ -184,6 +191,17 @@ func (s *Service) load(ctx context.Context, p string, m *Manifest, opts RestoreO
 
 	committed := false
 	finishDB := func() error {
+		var err error
+		if streamKey != nil {
+			_, err = tx.Exec(ctx, `INSERT INTO settings (key, value) VALUES ($1, $2)
+				ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`, StreamKeySetting, streamKey)
+		} else {
+			// No key here yet: the server creates a fresh one, never the backup's.
+			_, err = tx.Exec(ctx, `DELETE FROM settings WHERE key = $1`, StreamKeySetting)
+		}
+		if err != nil {
+			return err
+		}
 		for _, q := range quoted {
 			if _, err := tx.Exec(ctx, `ALTER TABLE `+q+` ENABLE TRIGGER USER`); err != nil {
 				return err

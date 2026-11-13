@@ -447,6 +447,21 @@ func ownerOf(p auth.Principal) uuid.UUID {
 
 func canSee(p auth.Principal) bool { return p.User.IsAdmin || p.User.Permissions.AllLibraries }
 
+// isAdmin reports administrator rights, which a kids profile never has (even on an
+// administrator's account), as in the Streamero API.
+func isAdmin(p auth.Principal) bool { return p.User.IsAdmin && !p.IsKid() }
+
+// selfDTO is the caller's account as its own client sees it: a kids profile is
+// not shown as an administrator (clients would offer their admin screens).
+func (s *Server) selfDTO(p auth.Principal) map[string]any {
+	dto := s.userDTO(p.User)
+	if policy, ok := dto["Policy"].(map[string]any); ok && p.IsKid() {
+		policy["IsAdministrator"] = false
+		policy["EnableLiveTvAccess"], policy["EnableLiveTvManagement"] = false, false
+	}
+	return dto
+}
+
 // --- system & users -----------------------------------------------------------
 
 func (s *Server) publicInfo(w http.ResponseWriter, r *http.Request) {
@@ -549,7 +564,7 @@ func (s *Server) userDTO(u auth.User) map[string]any {
 func (s *Server) authResult(p auth.Principal, token string, c client) map[string]any {
 	now := time.Now().UTC().Format(time.RFC3339)
 	return map[string]any{
-		"User": s.userDTO(p.User), "AccessToken": token, "ServerId": ID(s.ServerID),
+		"User": s.selfDTO(p), "AccessToken": token, "ServerId": ID(s.ServerID),
 		"SessionInfo": map[string]any{"Id": ID(p.SessionID), "UserId": ID(p.User.ID), "UserName": p.User.Username,
 			"Client": c.name, "DeviceName": c.device, "DeviceId": c.deviceID, "ApplicationVersion": c.version,
 			"ServerId": ID(s.ServerID), "PlayableMediaTypes": []string{"Video", "Audio"}, "LastActivityDate": now,
@@ -603,13 +618,13 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) me(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, s.userDTO(principal(r).User))
+	writeJSON(w, s.selfDTO(principal(r)))
 }
 
 func (s *Server) users(w http.ResponseWriter, r *http.Request) {
 	p := principal(r)
-	if !p.User.IsAdmin {
-		writeJSON(w, []any{s.userDTO(p.User)})
+	if !isAdmin(p) {
+		writeJSON(w, []any{s.selfDTO(p)})
 		return
 	}
 	users, err := s.Auth.ListUsers(r.Context())
@@ -632,10 +647,10 @@ func (s *Server) user(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if id == p.User.ID {
-		writeJSON(w, s.userDTO(p.User))
+		writeJSON(w, s.selfDTO(p))
 		return
 	}
-	if !p.User.IsAdmin {
+	if !isAdmin(p) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
@@ -776,7 +791,7 @@ func (s *Server) views(w http.ResponseWriter, r *http.Request) {
 // --- library change notifications (*arr "Emby/Jellyfin" connection) ---------
 
 func (s *Server) refreshAll(w http.ResponseWriter, r *http.Request) {
-	if !principal(r).User.IsAdmin {
+	if !isAdmin(principal(r)) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
@@ -792,7 +807,7 @@ func (s *Server) refreshAll(w http.ResponseWriter, r *http.Request) {
 // mediaUpdated scans the libraries containing the reported paths (or all when
 // the paths are unknown, e.g. the sender sees a different mount point).
 func (s *Server) mediaUpdated(w http.ResponseWriter, r *http.Request) {
-	if !principal(r).User.IsAdmin {
+	if !isAdmin(principal(r)) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
@@ -855,7 +870,7 @@ const webRedirectHTML = `<!doctype html><meta charset="utf-8"><title>Streamero</
 // createKey implements POST /Auth/Keys?App=<name> (admin): an integration API key.
 func (s *Server) createKey(w http.ResponseWriter, r *http.Request) {
 	p := principal(r)
-	if !p.User.IsAdmin {
+	if !isAdmin(p) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
@@ -883,7 +898,7 @@ func (s *Server) createKey(w http.ResponseWriter, r *http.Request) {
 
 // listKeys implements GET /Auth/Keys (admin): keys created here in the last minutes.
 func (s *Server) listKeys(w http.ResponseWriter, r *http.Request) {
-	if !principal(r).User.IsAdmin {
+	if !isAdmin(principal(r)) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}

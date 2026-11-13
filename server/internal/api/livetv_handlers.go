@@ -24,9 +24,10 @@ func (h *Handler) tv() (*livetv.Service, error) {
 	return h.LiveTV(), nil
 }
 
-// liveViewer: the liveTv permission (admins always).
+// liveViewer: the liveTv permission (admins always), never from a kids profile:
+// channels and recordings have no age ratings to filter by.
 func liveViewer(ctx context.Context) (auth.Principal, error) {
-	p, err := principal(ctx)
+	p, err := adult(ctx)
 	if err != nil {
 		return p, err
 	}

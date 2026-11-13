@@ -539,6 +539,8 @@ func (h *Handler) StartPlayback(ctx context.Context, req *gen.PlaybackRequest, p
 			return nil, &StatusError{Status: http.StatusConflict, Code: "not_playable", Message: err.Error()}
 		case errors.Is(err, stream.ErrTranscodeDenied):
 			return nil, &StatusError{Status: http.StatusForbidden, Code: "transcode_not_allowed", Message: err.Error()}
+		case errors.Is(err, stream.ErrBusy):
+			return nil, &StatusError{Status: http.StatusServiceUnavailable, Code: "transcoder_busy", Message: err.Error()}
 		case errors.Is(err, stream.ErrTranscoderFailure):
 			return nil, &StatusError{Status: http.StatusBadGateway, Code: "transcode_failed", Message: err.Error()}
 		case errors.Is(err, os.ErrNotExist):

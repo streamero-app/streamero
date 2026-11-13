@@ -27,6 +27,10 @@ type APIKey struct {
 
 // CreateAPIKey creates a key acting as the calling admin and returns the secret once.
 func (s *Service) CreateAPIKey(ctx context.Context, actor Principal, name string) (APIKey, string, error) {
+	if actor.IsKid() {
+		// A key acts with the account's full rights: never from a kids profile.
+		return APIKey{}, "", ErrKidProfile
+	}
 	name = truncate(name, 100)
 	if name == "" {
 		return APIKey{}, "", ErrInvalidName
