@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha1"
 	"encoding/base32"
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"image"
@@ -26,6 +28,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/streamero-app/streamero/server/internal/activity"
@@ -45,6 +48,44 @@ import (
 )
 
 const testSetupCode = "TEST-CODE"
+
+// TestMain gives this package's integration tests a database of their own. The test
+// server TRUNCATEs users, downloads and sessions on every start; on the shared
+// STREAMERO_TEST_DB_URL that deadlocked (40P01) with other packages' cascading deletes
+// (media_files → download_transcodes → downloads), which `go test ./...` runs in parallel.
+func TestMain(m *testing.M) {
+	base := os.Getenv("STREAMERO_TEST_DB_URL")
+	if base == "" {
+		os.Exit(m.Run())
+	}
+	ctx := context.Background()
+	admin, err := pgx.Connect(ctx, base)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "app tests: connect:", err)
+		os.Exit(1)
+	}
+	var rnd [6]byte
+	_, _ = rand.Read(rnd[:])
+	name := "app_test_" + hex.EncodeToString(rnd[:])
+	if _, err := admin.Exec(ctx, `CREATE DATABASE `+name); err != nil {
+		fmt.Fprintln(os.Stderr, "app tests: create database:", err)
+		os.Exit(1)
+	}
+	u, err := url.Parse(base)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "app tests: database URL:", err)
+		os.Exit(1)
+	}
+	u.Path = "/" + name
+	_ = os.Setenv("STREAMERO_TEST_DB_URL", u.String())
+	code := m.Run()
+	// FORCE ends connections the tests left open (pools of finished test servers).
+	if _, err := admin.Exec(ctx, `DROP DATABASE IF EXISTS `+name+` WITH (FORCE)`); err != nil {
+		fmt.Fprintln(os.Stderr, "app tests: drop database:", err)
+	}
+	_ = admin.Close(ctx)
+	os.Exit(code)
+}
 
 // mediaRoot is the media folder of the most recent test server.
 var mediaRoot string
