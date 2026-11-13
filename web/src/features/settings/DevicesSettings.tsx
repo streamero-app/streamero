@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { api, unwrap } from "@/api/client";
 import { Badge, Button, Card, ErrorText, TextField } from "@/components/ui";
 import { useLogout, useMe } from "@/features/auth/useAuth";
+import { useConfirm } from "@/components/Dialog";
 import { useDateTime } from "./SettingsLayout";
 
 export function DevicesSettings() {
@@ -14,6 +15,7 @@ export function DevicesSettings() {
   const fmt = useDateTime();
   const { data: me } = useMe();
   const logout = useLogout();
+  const confirmDialog = useConfirm();
   const sessions = useQuery({ queryKey: ["sessions"], queryFn: async () => unwrap(await api.GET("/sessions")) });
   const [editing, setEditing] = useState<{ id: string; name: string } | null>(null);
   const rename = useMutation({
@@ -46,9 +48,14 @@ export function DevicesSettings() {
             </div>
             <Button variant="secondary" onClick={() => setEditing({ id: s.id, name: s.deviceName })}>{t("devices.rename")}</Button>
             <Button variant="danger" disabled={revoke.isPending || logout.isPending}
-              onClick={() => s.current
-                ? logout.mutate(undefined, { onSettled: () => void navigate({ to: "/login" }) })
-                : revoke.mutate(s.id)}>
+              onClick={() => void confirmDialog({
+                message: s.current ? t("devices.confirmSignOutSelf") : t("devices.confirmSignOut", { name: s.deviceName || t("devices.unknown") }),
+                confirmLabel: t("devices.signOut"), danger: true,
+              }).then((ok) => {
+                if (!ok) return;
+                if (s.current) logout.mutate(undefined, { onSettled: () => void navigate({ to: "/login" }) });
+                else revoke.mutate(s.id);
+              })}>
               {t("devices.signOut")}
             </Button>
             {editing?.id === s.id && (

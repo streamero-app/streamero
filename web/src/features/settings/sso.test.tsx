@@ -84,7 +84,6 @@ describe("Sign-in settings (admin)", () => {
 describe("My account linked sign-in", () => {
   it("lists linked accounts, hides the password form for SSO-only users and unlinks", async () => {
     setLanguage("en");
-    vi.stubGlobal("confirm", () => true);
     const fetch = mockApi(({ method, path }) => {
       if (path === "/auth/providers") return { status: 200, body: providers() };
       if (path === "/auth/identities") return { status: 200, body: { hasPassword: false, identities: [
@@ -98,6 +97,7 @@ describe("My account linked sign-in", () => {
     expect(screen.queryByRole("heading", { name: "Change password" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Link Authentik" })).not.toBeInTheDocument(); // already linked
     fireEvent.click(screen.getByRole("button", { name: "Unlink" }));
+    fireEvent.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Confirm" }));
     expect(await screen.findByText("This is the only way this account can sign in, so it cannot be unlinked.")).toBeInTheDocument();
     expect(fetch.mock.calls.some(([r]) => (r as Request).method === "DELETE")).toBe(true);
   });

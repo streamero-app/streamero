@@ -1,51 +1,66 @@
-import type { ComponentType } from "react";
-import { createRootRoute, createRoute, createRouter, Navigate, Outlet, redirect } from "@tanstack/react-router";
+import type { FunctionComponent } from "react";
+import { createRootRoute, createRoute, createRouter, lazyRouteComponent, Navigate, Outlet, redirect } from "@tanstack/react-router";
 import { ServerGate } from "@/features/server/ServerGate";
+import { DialogProvider } from "@/components/Dialog";
 import { AmbientProvider } from "@/features/ambient/Ambient";
 import { useSystemInfo } from "@/features/server/useSystemInfo";
 import { AppShell } from "@/features/auth/AppShell";
-import { useMe } from "@/features/auth/useAuth";
-import { SettingsLayout } from "@/features/settings/SettingsLayout";
-import { AccountSettings } from "@/features/settings/AccountSettings";
-import { DevicesSettings } from "@/features/settings/DevicesSettings";
-import { ServerSettingsPage } from "@/features/settings/ServerSettingsPage";
-import { UsersSettings } from "@/features/settings/UsersSettings";
-import { ApiKeysSettings } from "@/features/settings/ApiKeysSettings";
-import { QuickConnectSettings } from "@/features/settings/QuickConnectSettings";
+import { canAdminister, useMe } from "@/features/auth/useAuth";
 import { HomePage } from "@/routes/HomePage";
 import { LoginPage } from "@/routes/LoginPage";
 import { SetupPage } from "@/routes/SetupPage";
 import { InvitePage } from "@/routes/InvitePage";
-import { InvitesSettings } from "@/features/settings/InvitesSettings";
-import { ProfilesSettings } from "@/features/settings/ProfilesSettings";
-import { LibrariesSettings } from "@/features/settings/LibrariesSettings";
-import { MetadataSettings } from "@/features/settings/MetadataSettings";
-import { IntegrationsSettings } from "@/features/settings/IntegrationsSettings";
-import { DashboardSettings, TasksSettings } from "@/features/settings/DashboardSettings";
-import { NotificationsSettings } from "@/features/settings/NotificationsSettings";
-import { HomeSettings, PlaybackSettings, SubtitleSettings } from "@/features/settings/PlaybackSettings";
-import { ActivitySettings, BrandingSettings, LogsSettings, TranscodingSettings } from "@/features/settings/ServerExtraSettings";
 import { ItemPage, LibrariesPage, LibraryPage, MyListPage } from "@/features/library/LibraryPages";
 import { ProfileGatePage } from "@/features/profiles/ProfileSwitcher";
-import { CollectionPage, CollectionsPage, PlaylistPage, PlaylistsPage } from "@/features/library/CollectionsPages";
-import { PlayerPage } from "@/features/player/PlayerPage";
 import { SearchPage } from "@/features/library/SearchPage";
-import { DiscoverPage } from "@/features/discover/DiscoverPage";
-import { RequestsSettings } from "@/features/settings/RequestsSettings";
-import { ImportSettings } from "@/features/settings/ImportSettings";
-import { EnhancementsSettings } from "@/features/settings/EnhancementsSettings";
-import { BackupSettings } from "@/features/settings/BackupSettings";
-import { SsoSettings } from "@/features/settings/SsoSettings";
 import { NotFoundPage } from "@/routes/NotFoundPage";
-import { TogetherInvitePage, TogetherListPage } from "@/features/syncplay/WatchTogether";
-import { LiveTvLayout } from "@/features/livetv/LiveTvLayout";
-import { GuidePage } from "@/features/livetv/GuidePage";
-import { ChannelsPage } from "@/features/livetv/ChannelsPage";
-import { RecordingsPage, SchedulePage } from "@/features/livetv/RecordingsPage";
-import { SeriesPage } from "@/features/livetv/SeriesPage";
-import { LivePlayer } from "@/features/livetv/LivePlayer";
 import { canManageLiveTv } from "@/features/livetv/api";
-import { LiveTvSettings } from "@/features/settings/LiveTvSettings";
+
+// Pages outside the everyday path load on first visit (their own chunks): settings,
+// Live TV, the players, watch together, discover and collections.
+const SettingsLayout = lazyRouteComponent(() => import("@/features/settings/SettingsLayout"), "SettingsLayout");
+const AccountSettings = lazyRouteComponent(() => import("@/features/settings/AccountSettings"), "AccountSettings");
+const DevicesSettings = lazyRouteComponent(() => import("@/features/settings/DevicesSettings"), "DevicesSettings");
+const ServerSettingsPage = lazyRouteComponent(() => import("@/features/settings/ServerSettingsPage"), "ServerSettingsPage");
+const UsersSettings = lazyRouteComponent(() => import("@/features/settings/UsersSettings"), "UsersSettings");
+const ApiKeysSettings = lazyRouteComponent(() => import("@/features/settings/ApiKeysSettings"), "ApiKeysSettings");
+const QuickConnectSettings = lazyRouteComponent(() => import("@/features/settings/QuickConnectSettings"), "QuickConnectSettings");
+const InvitesSettings = lazyRouteComponent(() => import("@/features/settings/InvitesSettings"), "InvitesSettings");
+const ProfilesSettings = lazyRouteComponent(() => import("@/features/settings/ProfilesSettings"), "ProfilesSettings");
+const LibrariesSettings = lazyRouteComponent(() => import("@/features/settings/LibrariesSettings"), "LibrariesSettings");
+const MetadataSettings = lazyRouteComponent(() => import("@/features/settings/MetadataSettings"), "MetadataSettings");
+const IntegrationsSettings = lazyRouteComponent(() => import("@/features/settings/IntegrationsSettings"), "IntegrationsSettings");
+const DashboardSettings = lazyRouteComponent(() => import("@/features/settings/DashboardSettings"), "DashboardSettings");
+const TasksSettings = lazyRouteComponent(() => import("@/features/settings/DashboardSettings"), "TasksSettings");
+const NotificationsSettings = lazyRouteComponent(() => import("@/features/settings/NotificationsSettings"), "NotificationsSettings");
+const HomeSettings = lazyRouteComponent(() => import("@/features/settings/PlaybackSettings"), "HomeSettings");
+const PlaybackSettings = lazyRouteComponent(() => import("@/features/settings/PlaybackSettings"), "PlaybackSettings");
+const SubtitleSettings = lazyRouteComponent(() => import("@/features/settings/PlaybackSettings"), "SubtitleSettings");
+const ActivitySettings = lazyRouteComponent(() => import("@/features/settings/ServerExtraSettings"), "ActivitySettings");
+const BrandingSettings = lazyRouteComponent(() => import("@/features/settings/ServerExtraSettings"), "BrandingSettings");
+const LogsSettings = lazyRouteComponent(() => import("@/features/settings/ServerExtraSettings"), "LogsSettings");
+const TranscodingSettings = lazyRouteComponent(() => import("@/features/settings/ServerExtraSettings"), "TranscodingSettings");
+const CollectionPage = lazyRouteComponent(() => import("@/features/library/CollectionsPages"), "CollectionPage");
+const CollectionsPage = lazyRouteComponent(() => import("@/features/library/CollectionsPages"), "CollectionsPage");
+const PlaylistPage = lazyRouteComponent(() => import("@/features/library/CollectionsPages"), "PlaylistPage");
+const PlaylistsPage = lazyRouteComponent(() => import("@/features/library/CollectionsPages"), "PlaylistsPage");
+const PlayerPage = lazyRouteComponent(() => import("@/features/player/PlayerPage"), "PlayerPage");
+const DiscoverPage = lazyRouteComponent(() => import("@/features/discover/DiscoverPage"), "DiscoverPage");
+const RequestsSettings = lazyRouteComponent(() => import("@/features/settings/RequestsSettings"), "RequestsSettings");
+const ImportSettings = lazyRouteComponent(() => import("@/features/settings/ImportSettings"), "ImportSettings");
+const EnhancementsSettings = lazyRouteComponent(() => import("@/features/settings/EnhancementsSettings"), "EnhancementsSettings");
+const BackupSettings = lazyRouteComponent(() => import("@/features/settings/BackupSettings"), "BackupSettings");
+const SsoSettings = lazyRouteComponent(() => import("@/features/settings/SsoSettings"), "SsoSettings");
+const TogetherInvitePage = lazyRouteComponent(() => import("@/features/syncplay/WatchTogether"), "TogetherInvitePage");
+const TogetherListPage = lazyRouteComponent(() => import("@/features/syncplay/WatchTogether"), "TogetherListPage");
+const LiveTvLayout = lazyRouteComponent(() => import("@/features/livetv/LiveTvLayout"), "LiveTvLayout");
+const GuidePage = lazyRouteComponent(() => import("@/features/livetv/GuidePage"), "GuidePage");
+const ChannelsPage = lazyRouteComponent(() => import("@/features/livetv/ChannelsPage"), "ChannelsPage");
+const RecordingsPage = lazyRouteComponent(() => import("@/features/livetv/RecordingsPage"), "RecordingsPage");
+const SchedulePage = lazyRouteComponent(() => import("@/features/livetv/RecordingsPage"), "SchedulePage");
+const SeriesPage = lazyRouteComponent(() => import("@/features/livetv/SeriesPage"), "SeriesPage");
+const LivePlayer = lazyRouteComponent(() => import("@/features/livetv/LivePlayer"), "LivePlayer");
+const LiveTvSettings = lazyRouteComponent(() => import("@/features/settings/LiveTvSettings"), "LiveTvSettings");
 
 /** The administrator's extra CSS (Settings → Branding), on every page. */
 function CustomCss() {
@@ -57,9 +72,11 @@ const rootRoute = createRootRoute({
   component: () => (
     <AmbientProvider>
       <CustomCss />
-      <ServerGate>
-        <Outlet />
-      </ServerGate>
+      <DialogProvider>
+        <ServerGate>
+          <Outlet />
+        </ServerGate>
+      </DialogProvider>
     </AmbientProvider>
   ),
   notFoundComponent: NotFoundPage,
@@ -120,23 +137,30 @@ const watchRoute = createRoute({
   },
 });
 
-function adminOnly(Page: ComponentType) {
-  return function AdminPage() {
+type Lazy = FunctionComponent & { preload?: () => Promise<void> | undefined };
+
+/**
+ * A gate in front of a lazily loaded page. It carries the page's preload so the
+ * router fetches the chunk while matching, and the page never suspends mid-render.
+ */
+function gated(Page: Lazy, allowed: (me: ReturnType<typeof useMe>["data"]) => boolean, to: "/" | "/settings/account"): Lazy {
+  const Gate: Lazy = () => {
     const { data: me } = useMe();
-    return me?.isAdmin ? <Page /> : <Navigate to="/settings/account" />;
+    return allowed(me) ? <Page /> : <Navigate to={to} />;
   };
+  Gate.preload = Page.preload;
+  return Gate;
+}
+
+/** Administrator pages (not from a kid profile, where the server refuses admin calls). */
+function adminOnly(Page: Lazy) {
+  return gated(Page, canAdminister, "/settings/account");
 }
 
 /** Live TV settings: administrators and users allowed to manage Live TV. */
-function LiveTvSettingsPage() {
-  const { data: me } = useMe();
-  return canManageLiveTv(me) ? <LiveTvSettings /> : <Navigate to="/settings/account" />;
-}
+const LiveTvSettingsPage = gated(LiveTvSettings, canManageLiveTv, "/settings/account");
 
-function AdultsOnlySettings() {
-  const { data: me } = useMe();
-  return me?.currentProfile?.isKid ? <Navigate to="/" /> : <SettingsLayout />;
-}
+const AdultsOnlySettings = gated(SettingsLayout, (me) => !me?.currentProfile?.isKid, "/");
 const settingsRoute = createRoute({ getParentRoute: () => appRoute, path: "/settings", component: AdultsOnlySettings });
 const settingsIndex = createRoute({
   getParentRoute: () => settingsRoute,

@@ -4,6 +4,7 @@ import { Plus, Repeat } from "lucide-react";
 import { Badge, Button, Card, ErrorText, Select, Spinner, TextField } from "@/components/ui";
 import { useMe } from "@/features/auth/useAuth";
 import { canManageLiveTv, useChannels, useDeleteRule, useSaveRule, useSeriesRules, type SeriesRule, type SeriesRuleInput } from "./api";
+import { useConfirm } from "@/components/Dialog";
 
 const optNum = (v: string): number | undefined => (v.trim() === "" ? undefined : Number(v));
 
@@ -61,6 +62,7 @@ export function SeriesRuleForm({ rule, onDone }: { rule?: SeriesRule; onDone: ()
 }
 
 function RuleRow({ rule, manage }: { rule: SeriesRule; manage: boolean }) {
+  const confirmDialog = useConfirm();
   const { t } = useTranslation();
   const del = useDeleteRule();
   const [editing, setEditing] = useState(false);
@@ -80,7 +82,7 @@ function RuleRow({ rule, manage }: { rule: SeriesRule; manage: boolean }) {
       {manage && (
         <div className="flex gap-2">
           <Button variant="secondary" onClick={() => setEditing(true)}>{t("common.edit")}</Button>
-          <Button variant="danger" disabled={del.isPending} onClick={() => { if (window.confirm(t("livetv.deleteRuleConfirm", { title: rule.title }))) del.mutate(rule.id); }}>
+          <Button variant="danger" disabled={del.isPending} onClick={() => { void confirmDialog({ message: t("livetv.deleteRuleConfirm", { title: rule.title }), danger: true }).then((ok) => { if (ok) del.mutate(rule.id); }); }}>
             {t("common.delete")}
           </Button>
         </div>

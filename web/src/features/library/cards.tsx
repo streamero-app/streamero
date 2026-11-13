@@ -123,7 +123,7 @@ export function TitleCard({ item, className = "", play = false }: { item: ItemSu
         <div className="absolute inset-x-0 bottom-0 flex flex-col gap-0.5 p-3.5 pb-3">
           <p className="truncate text-[15px] font-semibold text-text">{item.seriesTitle ?? item.title}</p>
           <p className="truncate text-[13px] text-text/65 tabular">
-            {item.seriesTitle ? `S${item.seasonNumber}:E${item.episodeNumber} · ${item.title}` : left ? t("home.minutesLeft", { count: left }) : item.year}
+            {item.seriesTitle ? `${t("common.episodeCode", { season: item.seasonNumber, episode: item.episodeNumber })} · ${item.title}` : left ? t("home.minutesLeft", { count: left }) : item.year}
           </p>
         </div>
         {progress > 0 && <ProgressBar value={progress} className="absolute inset-x-0 bottom-0" />}

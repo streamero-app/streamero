@@ -27,7 +27,7 @@ function TargetEditor({ target, onChange, onRemove }: { target: Target; onChange
     <li className="flex flex-col gap-4 rounded-md border border-border bg-white/[0.02] p-4" data-testid="notification-target">
       <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
         <TextField label={t("notifications.name")} value={target.name} maxLength={80} required
-          onChange={(e) => set({ name: e.target.value })} placeholder="Discord #filmovi" />
+          onChange={(e) => set({ name: e.target.value })} placeholder={t("notifications.namePlaceholder")} />
         <label className="flex flex-col gap-1.5 text-sm">
           <span className="font-medium text-text/90">{t("notifications.kind")}</span>
           <Select value={target.kind} onChange={(e) => set({ kind: e.target.value as Target["kind"] })} className="h-10">

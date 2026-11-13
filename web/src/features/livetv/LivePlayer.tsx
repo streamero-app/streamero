@@ -7,6 +7,7 @@ import { ArrowLeft, Maximize, Minimize, Pause, Play, RotateCcw, RotateCw, Volume
 import { api, unwrap } from "@/api/client";
 import { Button, ErrorText, Spinner } from "@/components/ui";
 import { detectDeviceProfile } from "@/features/player/deviceProfile";
+import { isFullscreen, toggleFullscreen as toggleFs, tryPlay } from "@/features/player/playback";
 import { useMusic } from "@/features/music/MusicPlayer";
 import type { Playback } from "./api";
 import { progress, timeOf } from "./time";
@@ -41,6 +42,8 @@ export function LivePlayer() {
   const [fullscreen, setFullscreen] = useState(false);
   const [chrome, setChrome] = useState(true);
   const [win, setWin] = useState({ start: 0, end: 0, at: 0 });
+  const [failed, setFailed] = useState(false); // the stream could not be played or recovered
+  const [blocked, setBlocked] = useState(false); // the browser wants a tap before playing
   const hideTimer = useRef<number | undefined>(undefined);
 
   const channel = useQuery({
@@ -63,20 +66,48 @@ export function LivePlayer() {
     let cancelled = false;
     hlsRef.current?.destroy();
     hlsRef.current = null;
+    setFailed(false);
+    setBlocked(false);
+    // Play once there is something to play; a browser that wants a tap first gets a big play button.
+    const begin = () => {
+      if (cancelled) return;
+      void tryPlay(video).then((refused) => { if (!cancelled && refused) setBlocked(true); });
+    };
+    const fail = () => { if (!cancelled) setFailed(true); };
+    video.addEventListener("error", fail);
     if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = info.url;
-      void video.play().catch(() => undefined);
+      video.src = info.url; // Safari plays HLS itself (no MANIFEST_PARSED)
+      video.addEventListener("canplay", begin, { once: true });
     } else {
       void import("hls.js").then(({ default: HlsCtor }) => {
         if (cancelled) return;
         const hls = new HlsCtor({ liveDurationInfinity: true, backBufferLength: info.timeshiftSeconds, maxBufferLength: 30 });
+        let retried = false;
+        let recovered = false;
+        hls.on(HlsCtor.Events.MANIFEST_PARSED, begin);
+        // One reload after a network error and one media recovery, then say so.
+        hls.on(HlsCtor.Events.ERROR, (_event, data) => {
+          if (!data.fatal) return;
+          if (data.type === HlsCtor.ErrorTypes.NETWORK_ERROR && !retried) {
+            retried = true;
+            hls.startLoad();
+          } else if (data.type === HlsCtor.ErrorTypes.MEDIA_ERROR && !recovered) {
+            recovered = true;
+            hls.recoverMediaError();
+          } else {
+            fail();
+          }
+        });
         hls.loadSource(info.url);
         hls.attachMedia(video);
         hlsRef.current = hls;
-        void video.play().catch(() => undefined);
       });
     }
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      video.removeEventListener("error", fail);
+      video.removeEventListener("canplay", begin);
+    };
   }, [info]);
   useEffect(() => () => hlsRef.current?.destroy(), []);
 
@@ -110,17 +141,23 @@ export function LivePlayer() {
   const togglePlay = useCallback(() => {
     const v = videoRef.current;
     if (!v) return;
-    if (v.paused) void v.play().catch(() => undefined);
-    else v.pause();
+    if (v.paused) {
+      setBlocked(false);
+      void tryPlay(v).then((refused) => { if (refused) setBlocked(true); });
+    } else v.pause();
   }, []);
-  const toggleFullscreen = useCallback(() => {
-    if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
-    else void rootRef.current?.requestFullscreen?.().catch(() => undefined);
-  }, []);
+  const toggleFullscreen = useCallback(() => toggleFs(rootRef.current, videoRef.current), []);
   useEffect(() => {
-    const onFs = () => setFullscreen(!!document.fullscreenElement);
+    const video = videoRef.current;
+    const onFs = () => setFullscreen(isFullscreen(video));
     document.addEventListener("fullscreenchange", onFs);
-    return () => document.removeEventListener("fullscreenchange", onFs);
+    video?.addEventListener("webkitbeginfullscreen", onFs);
+    video?.addEventListener("webkitendfullscreen", onFs);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFs);
+      video?.removeEventListener("webkitbeginfullscreen", onFs);
+      video?.removeEventListener("webkitendfullscreen", onFs);
+    };
   }, []);
 
   const poke = useCallback(() => {
@@ -157,18 +194,24 @@ export function LivePlayer() {
     <div ref={rootRef} className="fixed inset-0 z-50 bg-black text-white" data-testid="live-player" onPointerMove={poke} onClick={poke}
       style={{ cursor: chrome ? "default" : "none" }}>
       <video ref={videoRef} className="size-full object-contain" playsInline aria-label={ch?.name ?? t("livetv.title")}
-        onPlay={() => setPaused(false)} onPause={() => { setPaused(true); setChrome(true); }}
+        onPlay={() => { setPaused(false); setBlocked(false); }} onPause={() => { setPaused(true); setChrome(true); }}
         onWaiting={() => setWaiting(true)} onPlaying={() => setWaiting(false)} onCanPlay={() => setWaiting(false)}
         onVolumeChange={(e) => setMuted(e.currentTarget.muted)} onTimeUpdate={measure}
         onDoubleClick={toggleFullscreen} />
 
-      {(tune.isPending || (waiting && !tune.isError)) && (
+      {(tune.isPending || (waiting && !tune.isError && !failed && !blocked)) && (
         <div className="pointer-events-none absolute inset-0 grid place-items-center"><Spinner className="size-10" /></div>
       )}
-      {tune.isError && (
-        <div className="absolute inset-0 grid place-items-center p-6">
+      {blocked && !failed && !tune.isError && (
+        <button type="button" onClick={togglePlay} data-testid="tap-to-play" aria-label={t("player.play")}
+          className="absolute top-1/2 left-1/2 z-10 grid size-24 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/55 text-white ring-1 ring-white/25 backdrop-blur transition-[background-color,transform] duration-150 hover:bg-black/70 active:scale-95">
+          <Play className="size-10 translate-x-0.5 fill-current" aria-hidden />
+        </button>
+      )}
+      {(tune.isError || failed) && (
+        <div className="absolute inset-0 z-20 grid place-items-center p-6" role="alert" data-testid="live-error">
           <div className="flex max-w-md flex-col items-center gap-4 text-center">
-            <ErrorText error={tune.error} />
+            {tune.isError ? <ErrorText error={tune.error} /> : <p className="text-[15px] text-white/85">{t("player.playbackFailed")}</p>}
             <div className="flex gap-3">
               <Button onClick={() => tune.mutate()}>{t("livetv.retry")}</Button>
               <Button variant="secondary" onClick={back}>{t("livetv.back")}</Button>

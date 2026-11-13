@@ -42,7 +42,7 @@ export function ServerSettingsPage() {
           <dd>{info?.version}{info?.commit ? ` (${info.commit})` : ""}</dd>
           <dt className="text-muted">{t("server.id")}</dt>
           <dd className="font-mono text-xs break-all">{info?.id}</dd>
-          <dt className="text-muted">API</dt>
+          <dt className="text-muted">{t("server.apiVersion")}</dt>
           <dd>{info?.apiVersion}</dd>
         </dl>
       </Card>

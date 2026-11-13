@@ -8,6 +8,7 @@ import { Badge, Button, Card, ErrorText, SuccessText } from "@/components/ui";
 import { formatSize } from "@/features/library/format";
 import { SettingRow, Toggle } from "./SettingRow";
 import { useDateTime } from "./SettingsLayout";
+import { useConfirm } from "@/components/Dialog";
 
 type Backup = components["schemas"]["Backup"];
 type Overview = components["schemas"]["BackupOverview"];
@@ -64,6 +65,7 @@ function RestoreConfirm({ backup, onDone }: { backup: Backup; onDone: () => void
 }
 
 function BackupRow({ backup, busy }: { backup: Backup; busy: boolean }) {
+  const confirmDialog = useConfirm();
   const { t } = useTranslation();
   const qc = useQueryClient();
   const when = useDateTime();
@@ -99,7 +101,7 @@ function BackupRow({ backup, busy }: { backup: Backup; busy: boolean }) {
             <ArchiveRestore className="size-4" aria-hidden />{t("backups.restore")}
           </Button>
           <Button variant="danger" aria-label={t("backups.delete")} title={t("backups.delete")} disabled={del.isPending}
-            onClick={() => window.confirm(t("backups.deleteConfirm")) && del.mutate()}>
+            onClick={() => void confirmDialog({ message: t("backups.deleteConfirm"), danger: true }).then((ok) => ok && del.mutate())}>
             <Trash2 className="size-4" aria-hidden />
           </Button>
         </div>

@@ -6,10 +6,12 @@ import { Badge, Button, Card, ErrorText, SuccessText, TextField } from "@/compon
 import { useMe } from "@/features/auth/useAuth";
 import { useDateTime } from "./SettingsLayout";
 import { PermissionsEditor, type Permissions } from "./PermissionsEditor";
+import { useConfirm } from "@/components/Dialog";
 
 type Patch = { isAdmin?: boolean; disabled?: boolean; password?: string; resetTwoFactor?: boolean; permissions?: Permissions };
 
 export function UsersSettings() {
+  const confirmDialog = useConfirm();
   const { t } = useTranslation();
   const qc = useQueryClient();
   const fmt = useDateTime();
@@ -67,7 +69,7 @@ export function UsersSettings() {
             <UserRow key={u.id} user={u} isSelf={u.id === me?.id} fmt={fmt} busy={update.isPending || remove.isPending}
               onPatch={(patch) => update.mutate({ id: u.id, patch })}
               onDelete={() => {
-                if (window.confirm(t("users.confirmDelete", { name: u.username }))) remove.mutate(u.id);
+                void confirmDialog({ message: t("users.confirmDelete", { name: u.username }), danger: true }).then((ok) => { if (ok) remove.mutate(u.id); });
               }} />
           ))}
         </ul>
@@ -80,6 +82,7 @@ function UserRow({ user, isSelf, fmt, busy, onPatch, onDelete }: {
   user: User; isSelf: boolean; fmt: (iso?: string) => string; busy: boolean;
   onPatch: (p: Patch) => void; onDelete: () => void;
 }) {
+  const confirmDialog = useConfirm();
   const { t } = useTranslation();
   const [resetting, setResetting] = useState(false);
   const [editingPerms, setEditingPerms] = useState(false);
@@ -109,7 +112,7 @@ function UserRow({ user, isSelf, fmt, busy, onPatch, onDelete }: {
         )}
         {user.totpEnabled && !isSelf && (
           <Button variant="secondary" disabled={busy}
-            onClick={() => window.confirm(t("users.confirmReset2fa", { name: user.username })) && onPatch({ resetTwoFactor: true })}>
+            onClick={() => void confirmDialog({ message: t("users.confirmReset2fa", { name: user.username }), danger: true }).then((ok) => ok && onPatch({ resetTwoFactor: true }))}>
             {t("users.reset2fa")}
           </Button>
         )}

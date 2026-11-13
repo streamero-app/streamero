@@ -5,6 +5,7 @@ import { api, unwrap } from "@/api/client";
 import { Badge, Button, Card, ErrorText, SuccessText } from "@/components/ui";
 import { ssoErrorKey, takeQueryParam, useAuthProviders } from "@/features/auth/useSso";
 import { useDateTime } from "./SettingsLayout";
+import { useConfirm } from "@/components/Dialog";
 
 export const identitiesQueryKey = ["auth", "identities"];
 
@@ -14,6 +15,7 @@ export function useIdentities() {
 }
 
 export function LinkedAccountsCard() {
+  const confirmDialog = useConfirm();
   const { t } = useTranslation();
   const qc = useQueryClient();
   const fmt = useDateTime();
@@ -51,7 +53,7 @@ export function LinkedAccountsCard() {
               <p className="truncate text-[13px] text-text/55">{i.label}{i.lastLoginAt ? ` · ${t("account.lastSignIn", { date: fmt(i.lastLoginAt) })}` : ""}</p>
             </div>
             <Button variant="danger" disabled={unlink.isPending}
-              onClick={() => window.confirm(t("sso.confirmUnlink", { name: i.providerLabel })) && unlink.mutate(i.id)}>{t("sso.unlink")}</Button>
+              onClick={() => void confirmDialog({ message: t("sso.confirmUnlink", { name: i.providerLabel }), danger: true }).then((ok) => ok && unlink.mutate(i.id))}>{t("sso.unlink")}</Button>
           </li>
         ))}
       </ul>

@@ -53,6 +53,8 @@ struct RootView: View {
                     case .signedIn:
                         if let token = session.token(for: server) {
                             MainView(server: server, client: MediaClient(baseURL: server.url, token: token))
+                                // A new server or sign-in gets fresh state (music, player, profile).
+                                .id("\(server.id)|\(token)")
                         } else {
                             // The saved sign-in disappeared (for example the Keychain was reset): sign in again.
                             LoginView(server: server)

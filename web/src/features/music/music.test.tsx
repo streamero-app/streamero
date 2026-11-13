@@ -1,8 +1,9 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
 import { setLanguage } from "@/i18n";
 import { mockApi, renderApp, testUser } from "@/test-utils";
 import { detectAudioProfile } from "@/features/player/deviceProfile";
+import { MusicProvider, useMusic, type QueueTrack } from "./MusicPlayer";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -44,5 +45,41 @@ describe("music", () => {
     expect(p.containers).toEqual(["mp3", "flac"]);
     expect(p.audioCodecs).toEqual(["mp3", "flac"]);
     expect(p.videoCodecs).toEqual([]);
+  });
+});
+
+describe("music provider", () => {
+  function Controls() {
+    const m = useMusic();
+    return (
+      <>
+        <button type="button" onClick={() => m.play(tracks as QueueTrack[], 0)}>start</button>
+        <button type="button" onClick={() => m.setShuffle(true)}>shuffle</button>
+        <span data-testid="current">{m.current?.title}</span>
+      </>
+    );
+  }
+
+  it("does not restart the song on shuffle and stops when the app shell goes away", async () => {
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+    const pause = vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => undefined);
+    const plays: string[] = [];
+    mockApi(({ method, path }) => {
+      if (method === "POST" && path.endsWith("/playback")) {
+        plays.push(path);
+        return { status: 200, body: { method: "direct", url: "/stream/file/x.flac", fileId: "f", startMs: 0, audio: [], subtitles: [], durationMs: 185_000 } };
+      }
+      return { status: 200, body: [] };
+    });
+    const { unmount } = render(<MusicProvider><Controls /></MusicProvider>);
+    fireEvent.click(screen.getByText("start"));
+    await waitFor(() => expect(plays).toHaveLength(1));
+    fireEvent.click(screen.getByText("shuffle"));
+    expect(screen.getByTestId("current")).toHaveTextContent("Song 1");
+    await new Promise((r) => setTimeout(r, 30));
+    expect(plays).toHaveLength(1); // the playing song moved to the top of the queue; it did not reload
+    pause.mockClear();
+    unmount(); // sign-out or profile switch
+    expect(pause).toHaveBeenCalled();
   });
 });
