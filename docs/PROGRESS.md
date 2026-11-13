@@ -26,6 +26,9 @@ Web player: nastavak sljedeće epizode više ne dobiva poziciju prethodne; repro
 ## iOS popravci iz pregleda (branch `fix/ios-review`, PR #64, 2026-11-13)
 Player na AVPlayerViewControlleru (PiP, auto PiP, vlastite kontrole nestaju s AVKitovim), titlovi po indeksu u datoteci + bitmap titlovi utisnuti na serveru, glazba ne preuzima lock screen tijekom videa, Live TV/preuzimanja pauziraju glazbu, odjava na 401 usred sesije, offline samo kod mrežnih grešaka, više servera (Ja → Serveri), heroji prema visini ekrana, Dynamic Type za brand fontove, straničenje glazbe, Quick Connect poll vezan uz ekran, napredak i na pauzi/seeku/pozadini, CFBundleVersion = major·10000+minor·100+patch (isti u Feather sourceu), preostali HR prijevodi.
 
+## Sigurnosno ojačanje (branch `fix/security-hardening`, 2026-11-13)
+Limit tijela zahtjeva na API-ju (1 MiB, slike 16 MiB → 413), CSP i HSTS za web, gzip za web i JSON, ograničenja ffmpeg sesija (novi stream uređaja gasi prethodni, 3 po računu, zadano max(4, CPU) na serveru; D-044), dječji profil bez admin prava u compat API-ju i bez Live TV-a, brisanje profila odjavljuje njegove uređaje, rate limit odobravanja Quick Connecta, ključ za potpisivanje streamova ne ide u backup i potpisi ne vrijede dulje od 48 h, Gotify token u headeru, tajne integracija se ne šalju novom hostu, DLNA i discovery port zadano na `127.0.0.1` (D-045). Uz to: HEVC kopija s `hvc1` tagom, `EXT-X-START` za filmove, softverski fallback kad hardverski encoder padne, `-readrate 2` za VOD, čišćenje `/transcode` pri startu i gašenju, write deadline za DLNA.
+
 ## v0.10.1 (2026-11-11)
 Reprodukcija preskače verzije koje više nisu na disku (npr. epizodu koju je Sonarr premjestio iz `downloads`); kad nijedne nema, javlja `file_missing` i ponovno skenira biblioteku (#62).
 

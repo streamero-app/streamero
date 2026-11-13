@@ -26,6 +26,8 @@ type RouterOptions struct {
 	// NoCompatAtRoot turns off serving the compat API at Jellyfin-style root
 	// paths (it stays under /compat). Default: served at the root too (D-032).
 	NoCompatAtRoot bool
+	// Web serves the web client (nil = the embedded build).
+	Web http.Handler
 }
 
 // rateLimited lists the endpoints that accept secrets from anonymous or
@@ -46,6 +48,11 @@ func rateLimited(r *http.Request) bool {
 		strings.EqualFold(compatPath(p), "/Users/AuthenticateWithQuickConnect")):
 		return true
 	case strings.EqualFold(compatPath(p), "/QuickConnect/Initiate"):
+		return true
+	// Approving a code: a signed-in caller could otherwise try all 6-digit codes
+	// and take over whichever device is waiting.
+	case r.Method == http.MethodPost && (p == "/api/v1/quickconnect/authorize" ||
+		strings.EqualFold(compatPath(p), "/QuickConnect/Authorize")):
 		return true
 	case r.Method == http.MethodPost && strings.HasPrefix(p, "/api/v1/profiles/") && strings.HasSuffix(p, "/select"):
 		return true
@@ -108,7 +115,8 @@ func NewRouter(state *State, h *api.Handler, opts ...RouterOptions) (http.Handle
 
 	// Watch-together socket: a WebSocket, so outside the generated router (D-036).
 	r.Get("/api/v1/syncplay/socket", h.SyncPlaySocket)
-	r.Mount("/api/v1", startingGuard(state, apiServer))
+	compress := compressor()
+	r.Mount("/api/v1", compress(limitBody(startingGuard(state, apiServer))))
 	// Compatibility API for request managers and *arr notifications (D-016).
 	serveCompat := func(w http.ResponseWriter, req *http.Request) {
 		c := state.Compat()
@@ -134,7 +142,11 @@ func NewRouter(state *State, h *api.Handler, opts ...RouterOptions) (http.Handle
 	// clients call on the plain server address (D-032). Only exact compat routes
 	// are taken, so the web client's own routes (/library/<id>, /settings/…) and
 	// static files never reach the compat API.
-	spa := webui.Handler()
+	web := o.Web
+	if web == nil {
+		web = webui.Handler()
+	}
+	spa := webClientHeaders(compress(web))
 	r.Handle("/*", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if !o.NoCompatAtRoot && (compat.Matches(req.Method, req.URL.Path) || clientStylePath(req.URL.Path)) {
 			if rctx := chi.RouteContext(req.Context()); rctx != nil {
@@ -177,11 +189,16 @@ func sessionCookieHandler(next http.Handler, compatAtRoot bool) http.Handler {
 				r.Header.Set("Authorization", "Bearer "+c.Value)
 			}
 		}
-		// X-Forwarded-Proto only decides the cookie's Secure attribute, so trusting
-		// it without a known-proxy list cannot weaken authentication.
-		secure := r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https")
-		next.ServeHTTP(w, r.WithContext(api.WithSecure(r.Context(), secure)))
+		next.ServeHTTP(w, r.WithContext(api.WithSecure(r.Context(), isHTTPS(r))))
 	})
+}
+
+// isHTTPS reports whether the client connection is HTTPS. X-Forwarded-Proto
+// only decides the cookie's Secure attribute and HSTS, so trusting it without a
+// known-proxy list cannot weaken authentication (and browsers ignore HSTS
+// received over plain HTTP, so a forged header has no effect there).
+func isHTTPS(r *http.Request) bool {
+	return r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https")
 }
 
 func securityHeaders(next http.Handler) http.Handler {
@@ -190,11 +207,87 @@ func securityHeaders(next http.Handler) http.Handler {
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("Referrer-Policy", "same-origin")
 		h.Set("X-Frame-Options", "DENY")
+		if isHTTPS(r) {
+			h.Set("Strict-Transport-Security", "max-age=31536000")
+		}
 		if strings.HasPrefix(r.URL.Path, "/api/") {
 			h.Set("Cache-Control", "no-store")
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// webClientCSP is the Content-Security-Policy of the web client (D-045). Styles
+// allow 'unsafe-inline' for the administrator's custom CSS (an inline <style>);
+// workers allow blob: for hls.js; images allow any https: host because artwork
+// from search results, request managers and *arr calendars is shown from where
+// those services host it. Scripts only come from the server itself.
+const webClientCSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
+	"img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self'; worker-src 'self' blob:; " +
+	"font-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+
+// webClientHeaders adds the web client's CSP (only to its own pages and files:
+// media, the compat API and its pages set their own).
+func webClientHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Security-Policy", webClientCSP)
+		next.ServeHTTP(w, r)
+	})
+}
+
+// Request body limits for the native API (D-045): the generated decoders read
+// JSON bodies into memory, so without a cap one anonymous request could
+// exhaust the server's memory.
+const (
+	maxJSONBody   = 1 << 20  // every JSON request
+	maxAvatarBody = 16 << 20 // pictures (the handler accepts up to 8 MB)
+)
+
+// bodyLimit returns the size limit for a native API request (-1 = none: backup
+// uploads are administrator-only and streamed to disk, never held in memory).
+func bodyLimit(r *http.Request) int64 {
+	p := r.URL.Path
+	switch {
+	case p == "/api/v1/backups/upload":
+		return -1
+	case p == "/api/v1/auth/me/avatar",
+		strings.HasPrefix(p, "/api/v1/profiles/") && strings.HasSuffix(p, "/avatar") && strings.Count(p, "/") == 5:
+		return maxAvatarBody
+	}
+	return maxJSONBody
+}
+
+// limitBody caps request bodies; a body over the limit gets 413.
+func limitBody(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		limit := bodyLimit(r)
+		if limit >= 0 {
+			if r.ContentLength > limit {
+				writeJSON(w, http.StatusRequestEntityTooLarge, gen.Error{Code: "request_too_large", Message: "request body too large"})
+				return
+			}
+			r.Body = http.MaxBytesReader(w, r.Body, limit)
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// compressor gzips text responses (web client files, JSON) for clients that ask
+// for it. Media under /stream is never wrapped (byte ranges), nor are the
+// WebSocket routes; a Range request is passed through uncompressed.
+func compressor() func(http.Handler) http.Handler {
+	gz := middleware.Compress(5, "text/html", "text/css", "text/plain", "text/javascript", "application/javascript",
+		"application/json", "application/manifest+json", "image/svg+xml")
+	return func(next http.Handler) http.Handler {
+		compressed := gz(next)
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Header.Get("Range") != "" || r.Header.Get("Upgrade") != "" {
+				next.ServeHTTP(w, r)
+				return
+			}
+			compressed.ServeHTTP(w, r)
+		})
+	}
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

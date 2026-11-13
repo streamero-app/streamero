@@ -18,6 +18,11 @@ func Handler() http.Handler {
 	if err != nil {
 		panic(err)
 	}
+	return FromFS(sub)
+}
+
+// FromFS serves a built web client from sub (tests use a small in-memory one).
+func FromFS(sub fs.FS) http.Handler {
 	files := http.FileServer(http.FS(sub))
 	if _, err := fs.Stat(sub, "index.html"); err != nil {
 		return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

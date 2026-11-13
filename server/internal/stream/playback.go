@@ -241,7 +241,15 @@ func (s *Server) Start(ctx context.Context, lib *library.Service, p auth.Princip
 		if err != nil {
 			return Info{}, err
 		}
-		id, err := s.HLS.Start(ctx, Job{Input: path, StartMS: start, AudioIndex: audio, Plan: plan})
+		job := Job{Input: path, StartMS: start, AudioIndex: audio, Plan: plan, HEVC: strings.EqualFold(f.VideoCodec, "hevc")}
+		if !p.User.IsAdmin {
+			job.Owner = p.User.ID
+		}
+		if p.SessionID != uuid.Nil {
+			// One stream per signed-in device: a restart (seek, track switch) replaces it.
+			job.Client = p.SessionID.String()
+		}
+		id, err := s.HLS.Start(ctx, job)
 		if err != nil {
 			return Info{}, fmt.Errorf("%w: %w", ErrTranscoderFailure, err)
 		}

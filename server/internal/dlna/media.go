@@ -231,7 +231,8 @@ func (s *Server) transcode(w http.ResponseWriter, r *http.Request) {
 	if s.Encoding != nil {
 		enc = s.Encoding(ctx).Normalize()
 	}
-	if plan.TranscodeVideo && enc.MaxSessions > 0 && int(s.running.Load())+s.Stream.HLS.Active() >= enc.MaxSessions {
+	// Every ffmpeg counts against the server-wide cap, remuxes included.
+	if int(s.running.Load())+s.Stream.HLS.Active() >= enc.SessionLimit() {
 		http.Error(w, "too many transcodes at once", http.StatusServiceUnavailable)
 		return
 	}
@@ -257,24 +258,23 @@ func (s *Server) transcode(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "transcoder failed", http.StatusBadGateway)
 		return
 	}
-	if plan.TranscodeVideo {
-		s.running.Add(1)
-		defer s.running.Add(-1)
-	}
+	s.running.Add(1)
+	defer s.running.Add(-1)
 	play := s.tracker.start(s, r, row.ItemID, dur, prof.Label, plan.Method)
 	began := time.Now()
 	w.WriteHeader(http.StatusOK)
 	buf := make([]byte, 256<<10)
-	fl, _ := w.(http.Flusher)
+	rc := http.NewResponseController(w)
 	for {
 		n, rerr := out.Read(buf)
 		if n > 0 {
+			// A renderer that stops reading (paused, switched off without closing the
+			// connection) would otherwise hold ffmpeg and a transcode slot for good.
+			_ = rc.SetWriteDeadline(time.Now().Add(progressiveWriteTimeout))
 			if _, werr := w.Write(buf[:n]); werr != nil {
 				break
 			}
-			if fl != nil {
-				fl.Flush()
-			}
+			_ = rc.Flush()
 			play.at(min(dur, at+time.Since(began).Milliseconds()))
 		}
 		if rerr != nil {
@@ -341,6 +341,10 @@ func (s *Server) art(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "private, max-age=86400")
 	http.ServeContent(w, r, "", time.Time{}, bytes.NewReader(raw))
 }
+
+// progressiveWriteTimeout ends a transcoded stream whose renderer has stopped
+// reading for this long.
+const progressiveWriteTimeout = 2 * time.Minute
 
 var (
 	thumbMu    sync.Mutex

@@ -15,6 +15,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/api/gen"
 	"github.com/streamero-app/streamero/server/internal/auth"
 	"github.com/streamero-app/streamero/server/internal/library"
+	"github.com/streamero-app/streamero/server/internal/netx"
 	"github.com/streamero-app/streamero/server/internal/requests"
 )
 
@@ -65,6 +66,10 @@ func (h *Handler) UpdateRequestSettings(ctx context.Context, req *gen.RequestSet
 			clean, err := requests.CleanURL(v)
 			if err != nil {
 				return bad(err)
+			}
+			if *url != "" && !netx.SameOrigin(*url, clean) {
+				// A stored key belongs to the old host: never send it to a new one.
+				*key = ""
 			}
 			*url = clean
 		}

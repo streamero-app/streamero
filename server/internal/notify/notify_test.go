@@ -16,13 +16,14 @@ import (
 func TestSendFormatsPerKind(t *testing.T) {
 	type got struct {
 		path, ctype, auth, title string
-		query                    string
+		query, gotify            string
 		body                     []byte
 	}
 	reqs := make(chan got, 4)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b, _ := io.ReadAll(r.Body)
-		reqs <- got{r.URL.Path, r.Header.Get("Content-Type"), r.Header.Get("Authorization"), r.Header.Get("Title"), r.URL.RawQuery, b}
+		reqs <- got{r.URL.Path, r.Header.Get("Content-Type"), r.Header.Get("Authorization"), r.Header.Get("Title"), r.URL.RawQuery,
+			r.Header.Get("X-Gotify-Key"), b}
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer srv.Close()
@@ -55,7 +56,8 @@ func TestSendFormatsPerKind(t *testing.T) {
 		t.Fatal(err)
 	}
 	r = <-reqs
-	if r.path != "/message" || r.query != "token=app" || !strings.Contains(string(r.body), `"priority":5`) {
+	// The token goes in a header, never the URL (logs, error messages).
+	if r.path != "/message" || r.query != "" || r.gotify != "app" || !strings.Contains(string(r.body), `"priority":5`) {
 		t.Fatalf("gotify: %+v %s", r, r.body)
 	}
 
@@ -94,5 +96,38 @@ func TestValidate(t *testing.T) {
 		if err := Validate(tc.t); (err == nil) != tc.ok {
 			t.Errorf("%+v: err = %v", tc.t, err)
 		}
+	}
+}
+
+func TestStoredTokenStaysWithItsHost(t *testing.T) {
+	id := uuid.New()
+	stored := []Target{{ID: id, Kind: "gotify", URL: "https://push.example/", Token: "secret"}}
+	if tok := StoredToken(Target{ID: id, URL: "https://push.example/gotify"}, stored); tok != "secret" {
+		t.Fatalf("same host lost its token: %q", tok)
+	}
+	for _, u := range []string{"https://evil.example/", "http://push.example/", "https://push.example:8443/"} {
+		if tok := StoredToken(Target{ID: id, URL: u}, stored); tok != "" {
+			t.Errorf("%s got the stored token", u)
+		}
+	}
+	if tok := StoredToken(Target{ID: id, URL: "https://evil.example/", Token: "new"}, stored); tok != "new" {
+		t.Fatal("a token sent with the target must win")
+	}
+}
+
+func TestSendRefusesCrossHostRedirects(t *testing.T) {
+	var leaked string
+	other := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		leaked = r.Header.Get("X-Gotify-Key")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer other.Close()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, other.URL+"/message", http.StatusTemporaryRedirect)
+	}))
+	defer srv.Close()
+	err := (&Dispatcher{}).Send(context.Background(), Target{Kind: "gotify", URL: srv.URL, Token: "app"}, Event{Kind: Test})
+	if err == nil || leaked != "" {
+		t.Fatalf("redirect followed: err=%v leaked=%q", err, leaked)
 	}
 }

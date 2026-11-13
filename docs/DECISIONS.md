@@ -268,3 +268,21 @@ Restore: arhiva se najprije cijela provjeri (checksumi, nazivi unosa); kopija s 
 **Odluka:** ruta `/stream/sub/{fileId}/{n}.vtt` prima neobavezan, nepotpisan `offsetMs` (cijeli broj ≥ 0, ograničen trajanjem datoteke): svi cue-ovi pomiču se za toliko ranije, cue-ovi koji završe prije 0 se izbacuju, početak se reže na 0 (`stream.ShiftVTT`). Potpis i scope ostaju isti; SRT (offline sidecar), DLNA i compat ne koriste pomak. `playback.go` **ne dodaje** `offsetMs` sam u vraćene URL-ove: to bi već instalirane iOS buildove (Feather, sporo se ažuriraju) pomaknulo za `startMs` u krivom smjeru. Klijent ga dodaje kad je `method != "direct"` i `startMs > 0` (web od ovog PR-a; Android: jedna linija u `PlayerScreen.kt` pri izgradnji `SubtitleConfiguration`).
 **Posljedice:** web i (nakon promjene) Android imaju točne titlove nakon restarta streama bez posla na klijentu oko cue-ova. Ako se jednom uvede `-copyts`, klijenti jednostavno prestanu slati `offsetMs`.
 **Iznimka za naziv proizvoda u uputama (dopuna D-011/D-031):** tekst uputa za Seerr/Jellyseerr i *arr (`integrations.seerrIntro`, `integrations.arrIntro`) smije navesti „Jellyfin" / „Emby / Jellyfin" jer je to doslovan naziv opcije u tim aplikacijama koju korisnik mora odabrati. Naslovi, navigacija i ostali UI ne spominju drugi server (npr. „Uvoz s drugog medijskog servera").
+
+## D-044 Ograničenja ffmpeg sesija: jedan stream po uređaju, 3 po računu, zadani limit servera (2026-11-13)
+**Kontekst:** svaki `StartPlayback` (native, compat `PlaybackInfo`/`master.m3u8`, DLNA) pokreće ffmpeg, a sesija živi još 90 s bez zahtjeva. `MaxSessions` je zadano bio 0 (bez limita) i brojao samo transkodiranje videa, pa je bilo koji korisnik mogao pokrenuti neograničeno procesa. Player ujedno restarta stream na premotavanje i promjenu zvuka/titla, pa je s malim admin limitom (1–2) već drugi start dobivao `transcode_failed`.
+**Odluka:**
+- **Novi stream istog uređaja gasi prethodni.** Uređaj = sesija prijave (`Principal.SessionID`; isto za compat klijente koji šalju token). API ključevi nemaju sesiju i ne vežu se.
+- **Najviše 3 sesije po računu** (`stream.PerUserSessions`, konstanta), osim za administratore; dijeljeni Live TV kanali se ne broje po računu.
+- **Limit servera broji sve ffmpeg sesije** (remux, transkod, Live TV, DLNA); bez admin vrijednosti je `max(4, broj CPU-a)`. Provjera i upis su pod istim lockom.
+- Prekoračenje: `503 transcoder_busy` (native, s porukom u webu HR/EN), `RateLimitExceeded` u compat `PlaybackInfo`, `503` na `master.m3u8`.
+**Posljedice:** premotavanje, promjena zvuka/titla i SyncPlay grupa nikad ne udaraju u limit (uređaj ima jednu sesiju, članovi grupe su različiti uređaji). Dvije kartice istog preglednika dijele kolačić sesije, pa druga kartica gasi stream prve. Obitelj na jednom računu s više od 3 uređaja koji transkodiraju istovremeno dobije poruku; admin može koristiti više profila ili zasebne račune.
+
+## D-045 Ojačanje HTTP sloja: limit tijela, CSP, HSTS, gzip (2026-11-13)
+**Kontekst:** ogen dekoderi čitaju JSON tijelo u memoriju bez limita (anonimni `POST /quickconnect/poll` s više GB ruši server); web klijent nije imao CSP ni HSTS; bundle od ~900 KB išao je nekomprimiran.
+**Odluka:**
+- `/api/v1` ima limit tijela 1 MiB (slike profila/računa 16 MiB, upload backupa bez limita jer je samo za admina i ide izravno na disk); prekoračenje je `413 request_too_large`.
+- CSP samo za odgovore web klijenta (ne `/stream`, compat ni API): `default-src 'self'`, skripte samo sa servera, `style-src 'unsafe-inline'` zbog adminovog prilagođenog CSS-a (inline `<style>`), `worker-src blob:` za hls.js, `frame-ancestors 'none'`, `object-src 'none'`. **Odstupanje od prijedloga:** `img-src` dopušta i `https:` jer web prikazuje postere s TMDb-a (Discover, Identify), iz *arr kalendara i Seerra s njihovih adresa; bez toga bi te slike nestale.
+- `Strict-Transport-Security: max-age=31536000` samo kad je zahtjev HTTPS (TLS ili `X-Forwarded-Proto: https`; preglednici HSTS preko HTTP-a ignoriraju, pa lažni header ne može ništa).
+- gzip (chi `Compress`) za web klijent i JSON API, samo tekstualni tipovi; `/stream`, WebSocketi i zahtjevi s `Range` se ne diraju.
+**Posljedice:** compat stranice (web redirect s hash CSP-om) i Live TV slike zadržavaju svoje politike. Novi vanjski izvor skripti ili fontova u webu traži promjenu CSP-a.

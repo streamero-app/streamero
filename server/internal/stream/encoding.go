@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"runtime"
 	"strconv"
 )
 
@@ -18,7 +19,7 @@ type Encoding struct {
 	Quality        int    `json:"quality"` // CRF / CQ / QP
 	AudioKbps      int    `json:"audioBitrateKbps"`
 	SegmentSeconds int    `json:"segmentSeconds"`
-	MaxSessions    int    `json:"maxSessions"`           // 0 = unlimited
+	MaxSessions    int    `json:"maxSessions"`           // 0 = automatic (see SessionLimit)
 	ToneMapping    *bool  `json:"toneMapping,omitempty"` // nil = on
 }
 
@@ -55,8 +56,25 @@ func (e Encoding) Normalize() Encoding {
 // ToneMaps reports whether HDR is converted to SDR when transcoding (default on).
 func (e Encoding) ToneMaps() bool { return e.ToneMapping == nil || *e.ToneMapping }
 
-// ErrBusy means the configured number of simultaneous transcodes is reached.
+// ErrBusy means the number of simultaneous ffmpeg sessions (for the server or
+// for one account) is reached.
 var ErrBusy = errors.New("too many transcodes at once")
+
+// PerUserSessions is how many ffmpeg sessions one non-admin account may run at
+// once (D-044). A device's new stream replaces its previous one, so this only
+// counts different devices (or browser sessions) of the same account; live
+// channels are shared between viewers and are not counted per account.
+const PerUserSessions = 3
+
+// SessionLimit is the server-wide cap on running ffmpeg sessions (HLS, remux
+// included, and DLNA): the administrator's value, or max(4, CPU cores) when
+// none is set, so a flood of requests cannot start ffmpeg without bound.
+func (e Encoding) SessionLimit() int {
+	if e.MaxSessions > 0 {
+		return e.MaxSessions
+	}
+	return max(4, runtime.NumCPU())
+}
 
 // nvencPreset maps the x264 preset names onto NVENC's p1 (fastest) .. p7 (best).
 var nvencPreset = map[string]string{"ultrafast": "p1", "superfast": "p2", "veryfast": "p3", "faster": "p4", "fast": "p5", "medium": "p6", "slow": "p7"}
