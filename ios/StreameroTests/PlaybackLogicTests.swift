@@ -70,7 +70,9 @@ final class PlaybackLogicTests: XCTestCase {
     func testProgressEveryTenSecondsOfPlayback() {
         var t = ProgressTrigger()
         var reports = 0
-        for s in 0..<30 where t.tick(playing: true, positionMs: Int64(s) * 1000) { reports += 1 }
+        for s in 0..<30 {
+            if t.tick(playing: true, positionMs: Int64(s) * 1000) { reports += 1 }
+        }
         XCTAssertEqual(reports, 3)
     }
 

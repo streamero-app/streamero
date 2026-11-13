@@ -23,7 +23,7 @@ final class MusicPlayer {
     var current: ItemSummary? { queue.indices.contains(index) ? queue[index] : nil }
 
     private let client: MediaClient
-    private let player = AVPlayer()
+    private let player: AVPlayer
     private var loadTask: Task<Void, Never>?
     /// Observer tokens; removed when the player goes away (AppState is built once per sign-in).
     private let observers: PlayerObservers
@@ -33,6 +33,8 @@ final class MusicPlayer {
 
     init(client: MediaClient) {
         self.client = client
+        let player = AVPlayer()
+        self.player = player
         observers = PlayerObservers(player: player)
         observers.time = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.5, preferredTimescale: 600), queue: .main) { [weak self] _ in
             Task { @MainActor in self?.syncFromPlayer() }
