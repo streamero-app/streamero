@@ -20,6 +20,9 @@ P4 — Web pregledavanje (u tijeku); izdanja v0.2.0 i **v0.3.0** objavljena. P0 
 - Branch pushan, PR #1 (`phase/P0-foundations` → `main`) otvoren; `main` je prazan početni commit spojen u P0 (repo je bio prazan). CI zelen: `server`, `web`, `e2e`, iOS `build` (prvi uspješan iOS build, artefakt `streamero-ipa`).
 - `scripts/gen-fixtures.sh`: filmovi (H.264, 4K HEVC 10-bit, HDR10, AV1, multi-audio + poglavlja + embedded/external SRT/ASS, verzije, trailer), serija sa zajedničkim introm (2×4 ep.), multi-episode, specials, daily, anime absolute, glazba (FLAC/MP3), fotke.
 
+## Popravci web playera (branch `fix/web-player-review`, 2026-11-13)
+Web player: nastavak sljedeće epizode više ne dobiva poziciju prethodne; reprodukcija/pauza preživi promjenu zvuka, titla i premotavanje; odbijeni `play()` pokazuje veliki gumb za reprodukciju; druga greška pokazuje poruku s „Pokušaj ponovno"; brzina ostaje nakon restarta streama; razmak ne pokreće sljedeću epizodu; puni zaslon na iPhoneu; dodir prikazuje kontrole. Titlovi transkodiranog streama koji kreće usred filma više ne kasne (`offsetMs` na ruti titlova, D-042; Android to još treba koristiti). Live TV: oporavak od grešaka hls.js-a. Glazba staje pri odjavi/promjeni profila, shuffle ne restarta pjesmu. Promjena profila briše keš prethodnog profila. Admin akcije skrivene na dječjem profilu. Tematski dijalozi potvrde umjesto `window.confirm/prompt`. Postavke, Live TV, playeri, zajedničko gledanje, Otkrij, kolekcije i glazba učitavaju se zasebno (manji početni bundle).
+
 ## v0.10.1 (2026-11-11)
 Reprodukcija preskače verzije koje više nisu na disku (npr. epizodu koju je Sonarr premjestio iz `downloads`); kad nijedne nema, javlja `file_missing` i ponovno skenira biblioteku (#62).
 
