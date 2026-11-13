@@ -71,6 +71,16 @@ struct MediaClient: Sendable {
         _ = try await perform(method, path)
     }
 
+    /// A request without a body that answers with JSON (start 2FA setup, queue a backup).
+    func call<T: Decodable>(_ method: String, _ path: String) async throws -> T {
+        try JSONDecoder().decode(T.self, from: try await perform(method, path))
+    }
+
+    /// Uploads raw bytes (a profile picture).
+    func upload(_ method: String, _ path: String, data: Data, contentType: String) async throws {
+        _ = try await perform(method, path, body: data, contentType: contentType)
+    }
+
     // MARK: Account
 
     func me() async throws -> User { try await get("auth/me") }
