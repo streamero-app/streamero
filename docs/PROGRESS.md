@@ -20,6 +20,9 @@ P4 — Web pregledavanje (u tijeku); izdanja v0.2.0 i **v0.3.0** objavljena. P0 
 - Branch pushan, PR #1 (`phase/P0-foundations` → `main`) otvoren; `main` je prazan početni commit spojen u P0 (repo je bio prazan). CI zelen: `server`, `web`, `e2e`, iOS `build` (prvi uspješan iOS build, artefakt `streamero-ipa`).
 - `scripts/gen-fixtures.sh`: filmovi (H.264, 4K HEVC 10-bit, HDR10, AV1, multi-audio + poglavlja + embedded/external SRT/ASS, verzije, trailer), serija sa zajedničkim introm (2×4 ep.), multi-episode, specials, daily, anime absolute, glazba (FLAC/MP3), fotke.
 
+## Pouzdanost biblioteke (branch `fix/library-reliability`, 2026-11-13)
+Scan više ne briše biblioteku kad je disk odmontiran ili mapa nečitljiva (D-043, migracija 00032, potvrda u Postavke → Biblioteke); re-scan čuva TMDb/IMDb/TVDb ID-jeve (jednokratni popravak za već obrisane); nove sezone i epizode dobivaju metapodatke bez ponovnog dohvata cijele serije; zahtjev za scan/metapodatke dok isti posao radi stavlja jedan posao u red iza njega; TMDb 429/5xx/mrežne greške se ponavljaju i ne označavaju naslov kao „bez metapodataka"; pretraga bez godine prihvaća samo ±1 godinu ili isti naslov; Next Up koristi indeks; watcher ne prolazi cijelu biblioteku svake minute; neuspjeli probe se ponavlja (najviše jednom na sat) bez brisanja dobrih podataka; čišćenje slika osoba i kolekcija; `internal/app` testovi imaju vlastitu bazu (deadlock 40P01).
+
 ## v0.10.1 (2026-11-11)
 Reprodukcija preskače verzije koje više nisu na disku (npr. epizodu koju je Sonarr premjestio iz `downloads`); kad nijedne nema, javlja `file_missing` i ponovno skenira biblioteku (#62).
 
