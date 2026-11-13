@@ -1,6 +1,6 @@
 package net.scyde.streamero.api
 
-import java.io.IOException
+import kotlinx.coroutines.CancellationException
 import java.time.Instant
 import java.time.OffsetDateTime
 import kotlinx.coroutines.delay
@@ -41,7 +41,9 @@ fun quickConnectFlow(
     maxFailures: Int = 10,
 ): Flow<QuickConnectState> = flow {
     repeat(maxCodes) {
-        val start = try { api.start() } catch (e: ApiException) { emit(QuickConnectState.Failed(e)); return@flow } catch (e: IOException) { emit(QuickConnectState.Failed(e)); return@flow }
+        // Anything that goes wrong (no connection, an answer that cannot be read) ends in Failed,
+        // never in an exception that would take the sign-in screen down with it.
+        val start = try { api.start() } catch (e: CancellationException) { throw e } catch (e: Exception) { emit(QuickConnectState.Failed(e)); return@flow }
         val expires = runCatching { OffsetDateTime.parse(start.expiresAt).toInstant() }.getOrElse { now().plusSeconds(300) }
         emit(QuickConnectState.Code(start.code, expires))
         var failures = 0
@@ -49,11 +51,10 @@ fun quickConnectFlow(
             delay(intervalMs)
             val auth = try {
                 api.poll(start.secret)
-            } catch (e: ApiException) {
-                if (e.status == 404) break // expired or unknown: get a new code
-                if (++failures >= maxFailures) { emit(QuickConnectState.Failed(e)); return@flow }
-                null
-            } catch (e: IOException) {
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                if (e is ApiException && e.status == 404) break // expired or unknown: get a new code
                 if (++failures >= maxFailures) { emit(QuickConnectState.Failed(e)); return@flow }
                 null
             }
