@@ -33,13 +33,20 @@ enum Route: Hashable {
 
 /// Personal and administration settings; the admin pages also guard themselves.
 enum SettingsPage: String, CaseIterable, Hashable {
-    case account, playback, subtitles, home
-    case dashboard, libraries, users, metadata, transcoding, requests, enhancements, tasks, activity, logs, devices, invites, apikeys, server, branding
+    case account, security, profiles, devices, playback, subtitles, home
+    case dashboard, libraries, users, metadata, transcoding, requests, enhancements, tasks, activity, logs, invites, apikeys, server, branding
+    case notifications, backups, liveTvSources, signIn
 
-    static let userPages: [SettingsPage] = [.account, .playback, .subtitles, .home]
-    static let adminPages: [SettingsPage] = [.dashboard, .libraries, .users, .metadata, .transcoding, .requests, .enhancements, .tasks, .activity, .logs, .devices, .invites, .apikeys, .server, .branding]
+    /// Personal pages; a kids profile sees none of them. Devices lists the account's own
+    /// sign-ins (administrators see every user's).
+    static let userPages: [SettingsPage] = [.account, .security, .profiles, .devices, .playback, .subtitles, .home]
+    static let adminPages: [SettingsPage] = [
+        .dashboard, .libraries, .users, .metadata, .transcoding, .requests, .enhancements, .tasks, .activity, .logs,
+        .invites, .apikeys, .signIn, .notifications, .backups, .liveTvSources, .server, .branding,
+    ]
 
     var isAdminOnly: Bool { Self.adminPages.contains(self) }
+    var isPersonal: Bool { Self.userPages.contains(self) }
 }
 
 /// What the signed-in screens share: the server connection, who is signed in, music and the player.

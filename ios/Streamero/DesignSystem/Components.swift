@@ -21,11 +21,26 @@ func errorMessage(_ error: Error) -> Text {
     case "totp_required": return Text("err_totp")
     case "forbidden": return Text("err_forbidden")
     case "upstream_failed": return Text("err_upstream")
+    case let code where APIErrorText.codes.contains(code):
+        // Built as a String first: a literal with interpolation would become the key "errors.%@".
+        let key: String = "errors." + code
+        return Text(LocalizedStringKey(key))
     default:
         // The server's own message is English; unknown codes get a translated fallback.
         if api.status == 0 || api.status >= 500 { return Text("err_network") }
         return Text("err_generic")
     }
+}
+
+/// Server error codes with their own translated message (`errors.<code>`, same copy as the web).
+enum APIErrorText {
+    static let codes: Set<String> = [
+        "username_taken", "invalid_username", "invalid_request", "not_found", "password_mismatch",
+        "invalid_totp", "totp_enabled", "totp_not_started", "invalid_pin", "kid_profile", "too_many_profiles",
+        "invalid_notification_target", "notification_failed", "invalid_url", "invalid_image", "image_too_large",
+        "backup_newer_schema", "invalid_backup", "backup_busy", "backup_confirm_mismatch",
+        "no_sso_admin", "invalid_settings", "provider_unreachable", "no_local_password", "rate_limited",
+    ]
 }
 
 struct ErrorLine: View {
