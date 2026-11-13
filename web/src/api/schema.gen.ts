@@ -3001,6 +3001,8 @@ export interface components {
             lastScanAt?: string;
             error?: string;
             filesSeen?: number;
+            /** @description Missing files the last scan kept because removing them looked like an offline or half-mounted folder; scan with confirmRemoval to remove them. */
+            heldRemovals?: number;
         };
         /** @enum {string} */
         ItemKind: "movie" | "series" | "season" | "episode" | "artist" | "album" | "track";
@@ -6098,7 +6100,10 @@ export interface operations {
     };
     scanLibrary: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Also remove missing files that an earlier scan kept because the removal looked like an offline folder (see ScanStatus.heldRemovals). Folders that cannot be read are still kept. */
+                confirmRemoval?: boolean;
+            };
             header?: never;
             path: {
                 libraryId: components["parameters"]["LibraryId"];

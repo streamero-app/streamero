@@ -184,12 +184,13 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		state.SetStream(streamServer)
 		libs := &library.Service{Pool: deps.Pool, Roots: roots, ImageDir: filepath.Join(cfg.CacheDir, "images"), Resume: h.LoadResume,
 			Enqueue: func(ctx context.Context, id uuid.UUID) error {
-				_, err := inserter.Insert(ctx, jobs.LibraryScanArgs{LibraryID: id}, nil)
-				return err
+				return jobs.Enqueue(ctx, inserter, jobs.LibraryScanArgs{LibraryID: id})
+			},
+			EnqueueConfirmed: func(ctx context.Context, id uuid.UUID) error {
+				return jobs.Enqueue(ctx, inserter, jobs.LibraryScanArgs{LibraryID: id, ConfirmRemoval: true})
 			},
 			EnqueueMetadata: func(ctx context.Context, id uuid.UUID, force bool) error {
-				_, err := inserter.Insert(ctx, jobs.MetadataRefreshArgs{LibraryID: id, Force: force}, nil)
-				return err
+				return jobs.Enqueue(ctx, inserter, jobs.MetadataRefreshArgs{LibraryID: id, Force: force})
 			}}
 		h.RunTaskFn = func(ctx context.Context, key string) error {
 			var args river.JobArgs
@@ -317,8 +318,7 @@ func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	// The library service queues scans through this worker's own River client (set below).
 	var client *river.Client[pgx.Tx]
 	libraries := &library.Service{Pool: deps.Pool, Roots: roots, Enqueue: func(ctx context.Context, id uuid.UUID) error {
-		_, err := client.Insert(ctx, jobs.LibraryScanArgs{LibraryID: id}, nil)
-		return err
+		return jobs.Enqueue(ctx, client, jobs.LibraryScanArgs{LibraryID: id})
 	}}
 	workers := river.NewWorkers()
 	refresher := &metadata.Refresher{Pool: deps.Pool, Settings: state.Settings(), ImageDir: filepath.Join(cfg.CacheDir, "images"), Log: log,
@@ -332,20 +332,17 @@ func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	}}
 	jobs.Register(workers, log, &library.Scanner{Pool: deps.Pool, Roots: roots, Probe: library.FFprobe(cfg.FFprobePath), Log: log},
 		libraries, refresher, func(ctx context.Context, id uuid.UUID) error {
-			_, err := client.Insert(ctx, jobs.MetadataRefreshArgs{LibraryID: id}, nil)
-			return err
+			return jobs.Enqueue(ctx, client, jobs.MetadataRefreshArgs{LibraryID: id})
 		}, notifier,
 		&analyze.Analyzer{Pool: deps.Pool, FFmpeg: cfg.FFmpegPath, FFprobe: cfg.FFprobePath, CacheDir: cfg.CacheDir, Trickplay: true, Log: log,
 			ResolvePath: func(p string) (string, error) { return library.ResolveSafePath(roots, p) }},
 		func(ctx context.Context, id uuid.UUID) error {
-			_, err := client.Insert(ctx, jobs.MediaAnalyzeArgs{LibraryID: id}, nil)
-			return err
+			return jobs.Enqueue(ctx, client, jobs.MediaAnalyzeArgs{LibraryID: id})
 		},
 		&analyze.Detector{Pool: deps.Pool, FFmpeg: cfg.FFmpegPath, Fpcalc: cfg.FpcalcPath, Log: log,
 			ResolvePath: func(p string) (string, error) { return library.ResolveSafePath(roots, p) }},
 		func(ctx context.Context, id uuid.UUID) error {
-			_, err := client.Insert(ctx, jobs.SegmentDetectArgs{LibraryID: id}, nil)
-			return err
+			return jobs.Enqueue(ctx, client, jobs.SegmentDetectArgs{LibraryID: id})
 		})
 	jobs.RegisterImport(workers, &importer.Runner{Pool: deps.Pool, Log: log})
 	transcoder := &downloads.Transcoder{Pool: deps.Pool, Roots: roots, FFmpeg: cfg.FFmpegPath, Dir: filepath.Join(cfg.CacheDir, "downloads"),

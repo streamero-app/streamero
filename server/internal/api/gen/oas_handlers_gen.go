@@ -27392,6 +27392,10 @@ func (s *Server) handleScanLibraryRequest(args [1]string, argsEscaped bool, w ht
 			RawBody:          rawBody,
 			Params: middleware.Parameters{
 				{
+					Name: "confirmRemoval",
+					In:   "query",
+				}: params.ConfirmRemoval,
+				{
 					Name: "libraryId",
 					In:   "path",
 				}: params.LibraryId,

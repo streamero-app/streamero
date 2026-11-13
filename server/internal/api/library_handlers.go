@@ -120,6 +120,9 @@ func (h *Handler) ScanLibrary(ctx context.Context, params gen.ScanLibraryParams)
 	if _, err := admin(ctx); err != nil {
 		return err
 	}
+	if params.ConfirmRemoval.Or(false) {
+		return h.lib().ScanConfirmRemoval(ctx, params.LibraryId)
+	}
 	return h.lib().Scan(ctx, params.LibraryId)
 }
 
@@ -257,6 +260,9 @@ func toLibrary(l library.Library) gen.Library {
 		out.Scan.Error = gen.NewOptString(l.ScanError)
 	}
 	out.Scan.FilesSeen = gen.NewOptInt(l.FilesSeen)
+	if l.HeldRemovals > 0 {
+		out.Scan.HeldRemovals = gen.NewOptInt(l.HeldRemovals)
+	}
 	return out
 }
 

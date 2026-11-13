@@ -269,6 +269,14 @@ Restore: arhiva se najprije cijela provjeri (checksumi, nazivi unosa); kopija s 
 **Posljedice:** web i (nakon promjene) Android imaju točne titlove nakon restarta streama bez posla na klijentu oko cue-ova. Ako se jednom uvede `-copyts`, klijenti jednostavno prestanu slati `offsetMs`.
 **Iznimka za naziv proizvoda u uputama (dopuna D-011/D-031):** tekst uputa za Seerr/Jellyseerr i *arr (`integrations.seerrIntro`, `integrations.arrIntro`) smije navesti „Jellyfin" / „Emby / Jellyfin" jer je to doslovan naziv opcije u tim aplikacijama koju korisnik mora odabrati. Naslovi, navigacija i ostali UI ne spominju drugi server (npr. „Uvoz s drugog medijskog servera").
 
+## D-043 Skeniranje ne briše ono što ne može vidjeti (2026-11-13)
+**Kontekst:** skener je sve datoteke koje nije našao brisao iz baze, a brisanje stavki kaskadno briše povijest gledanja, osobe, preuzimanja, segmente i članstvo u kolekcijama. Nečitljiva podmapa preskakala se tiho, a odmontirani disk često ostavlja praznu točku montiranja — oboje je izgledalo kao „sve je obrisano".
+**Odluka:**
+- Skener bilježi mape (i datoteke) koje nije mogao pročitati; ništa ispod njih se ne briše, kao ni sezone, serije, albumi i izvođači iznad onoga što ostaje.
+- Ako bi se iz neke mape biblioteke uklonile sve poznate datoteke, ili više od polovice njih i barem 20, scan **ništa ne briše** (dodavanja i izmjene se i dalje upisuju). Broj zadržanih datoteka sprema se u `libraries.held_removals` (migracija **00032**), scan_error dobiva upozorenje, a web pokazuje poruku i gumb „Ukloni datoteke kojih nema" → `POST /libraries/{id}/scan?confirmRemoval=true`. Potvrda ne vrijedi za nečitljive mape.
+- Nema posebnog stanja „offline" za stavke: zadržane stavke ostaju kakve jesu, a reprodukcija već javlja `file_missing` (v0.10.1).
+**Posljedice:** namjerno brisanje velikog dijela biblioteke traži jedan klik potvrde. Prag (pola i barem 20) je konstanta u `scanner.go`.
+
 ## D-044 Ograničenja ffmpeg sesija: jedan stream po uređaju, 3 po računu, zadani limit servera (2026-11-13)
 **Kontekst:** svaki `StartPlayback` (native, compat `PlaybackInfo`/`master.m3u8`, DLNA) pokreće ffmpeg, a sesija živi još 90 s bez zahtjeva. `MaxSessions` je zadano bio 0 (bez limita) i brojao samo transkodiranje videa, pa je bilo koji korisnik mogao pokrenuti neograničeno procesa. Player ujedno restarta stream na premotavanje i promjenu zvuka/titla, pa je s malim admin limitom (1–2) već drugi start dobivao `transcode_failed`.
 **Odluka:**

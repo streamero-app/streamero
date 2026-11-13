@@ -24,6 +24,8 @@ type Watcher struct {
 	Trigger  func(ctx context.Context, libraryID uuid.UUID) error
 	Debounce time.Duration // quiet time after the last change (default 15s)
 	Refresh  time.Duration // how often the library list is reloaded (default 1m)
+
+	onWalk func(root string) // tests: called for every folder walk
 }
 
 type watchedLib struct {
@@ -47,10 +49,14 @@ func (w *Watcher) Run(ctx context.Context) error {
 
 	var libs []watchedLib
 	watched := map[string]bool{}
+	walked := map[string]bool{} // library folders walked by reload
 	limitWarned := false
 	pending := map[uuid.UUID]time.Time{}
 
 	add := func(root string) {
+		if w.onWalk != nil {
+			w.onWalk(root)
+		}
 		_ = filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 			if err != nil || !d.IsDir() {
 				return nil
@@ -97,8 +103,19 @@ func (w *Watcher) Run(ctx context.Context) error {
 		keep := map[string]bool{}
 		for _, l := range libs {
 			for _, r := range l.roots {
-				add(r)
+				// Only folders that are new since the last reload are walked: the ones
+				// already watched pick up their new sub-folders from Create events.
+				// A root that could not be watched (offline) is tried again.
+				if !walked[r] || !watched[r] {
+					add(r)
+					walked[r] = watched[r]
+				}
 				keep[r] = true
+			}
+		}
+		for r := range walked {
+			if !keep[r] {
+				delete(walked, r)
 			}
 		}
 		for p := range watched {

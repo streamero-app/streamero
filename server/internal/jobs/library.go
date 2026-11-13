@@ -21,15 +21,21 @@ import (
 // LibraryScanArgs scans one library.
 type LibraryScanArgs struct {
 	LibraryID uuid.UUID `json:"library_id"`
+	// ConfirmRemoval removes missing files even when that looks like an offline folder (D-043).
+	ConfirmRemoval bool `json:"confirm_removal,omitempty"`
+	// FollowUp marks a run queued while another one was running (see Enqueue).
+	FollowUp bool `json:"follow_up,omitempty"`
 }
+
+func (a LibraryScanArgs) followUp() river.JobArgs { a.FollowUp = true; return a }
 
 // Kind implements river.JobArgs.
 func (LibraryScanArgs) Kind() string { return "library.scan" }
 
-// InsertOpts keeps one pending scan per library.
 // whileQueued makes a job unique only while one is waiting or running. River's default
 // also counts completed jobs (until they are cleaned, ~24 h), which silently dropped
-// every rescan after the first one.
+// every rescan after the first one. River requires the running state here, so a
+// request made while the job runs queues a follow-up instead (Enqueue).
 var whileQueued = river.UniqueOpts{ByArgs: true, ByState: []rivertype.JobState{
 	rivertype.JobStateAvailable, rivertype.JobStatePending, rivertype.JobStateRunning, rivertype.JobStateScheduled,
 }}
@@ -55,8 +61,11 @@ func (w *LibraryScanWorker) Timeout(*river.Job[LibraryScanArgs]) time.Duration {
 
 // Work implements river.Worker.
 func (w *LibraryScanWorker) Work(ctx context.Context, job *river.Job[LibraryScanArgs]) error {
+	if err := waitForSibling(ctx, w.Scanner.Pool, job.Kind, job.ID, job.Args.LibraryID); err != nil {
+		return err
+	}
 	start := time.Now()
-	res, err := w.Scanner.Scan(ctx, job.Args.LibraryID)
+	res, err := w.Scanner.ScanWith(ctx, job.Args.LibraryID, library.ScanOptions{ConfirmRemoval: job.Args.ConfirmRemoval})
 	if err != nil {
 		w.Log.Warn("library scan failed", "library", job.Args.LibraryID, "err", err)
 		w.Notify.Emit(ctx, notify.Event{Kind: notify.ScanFailed, Title: "Library scan failed", Message: err.Error(),
@@ -156,7 +165,10 @@ func (w *LibraryScanAllWorker) Work(ctx context.Context, _ *river.Job[LibrarySca
 type MetadataRefreshArgs struct {
 	LibraryID uuid.UUID `json:"library_id"`
 	Force     bool      `json:"force"`
+	FollowUp  bool      `json:"follow_up,omitempty"`
 }
+
+func (a MetadataRefreshArgs) followUp() river.JobArgs { a.FollowUp = true; return a }
 
 // Kind implements river.JobArgs.
 func (MetadataRefreshArgs) Kind() string { return "metadata.refresh_library" }
@@ -182,11 +194,20 @@ func (w *MetadataRefreshWorker) Timeout(*river.Job[MetadataRefreshArgs]) time.Du
 
 // Work implements river.Worker.
 func (w *MetadataRefreshWorker) Work(ctx context.Context, job *river.Job[MetadataRefreshArgs]) error {
+	if err := waitForSibling(ctx, w.Refresher.Pool, job.Kind, job.ID, job.Args.LibraryID); err != nil {
+		return err
+	}
 	n, err := w.Refresher.RefreshLibrary(ctx, job.Args.LibraryID, job.Args.Force)
-	if err != nil {
-		if errors.Is(err, metadata.ErrInvalidKey) {
-			return river.JobCancel(err) // retrying will not help until an admin fixes the key
-		}
+	// TMDb being busy or unreachable leaves some titles pending: the rest of the
+	// pipeline still runs, and the job fails at the end so River retries them later.
+	var temporary error
+	switch {
+	case errors.Is(err, metadata.ErrInvalidKey):
+		return river.JobCancel(err) // retrying will not help until an admin fixes the key
+	case errors.Is(err, metadata.ErrTemporary):
+		w.Log.Warn("metadata refresh incomplete, will retry", "library", job.Args.LibraryID, "err", err)
+		temporary = err
+	case err != nil:
 		return err
 	}
 	w.Log.Info("metadata refreshed", "library", job.Args.LibraryID, "items", n)
@@ -224,7 +245,10 @@ func (w *MetadataRefreshWorker) Work(ctx context.Context, job *river.Job[Metadat
 			w.Log.Warn("could not queue media analysis", "err", err)
 		}
 	}
-	return w.Refresher.CleanupImages(ctx)
+	if err := w.Refresher.CleanupImages(ctx); err != nil {
+		return err
+	}
+	return temporary
 }
 
 // MetadataRefreshAllArgs queues a metadata refresh of every library (missing items only).
@@ -274,7 +298,10 @@ func (w *ImagesCleanupWorker) Work(ctx context.Context, _ *river.Job[ImagesClean
 // MediaAnalyzeArgs analyzes new files of a library (chapters, intro/credits, trickplay).
 type MediaAnalyzeArgs struct {
 	LibraryID uuid.UUID `json:"library_id"`
+	FollowUp  bool      `json:"follow_up,omitempty"`
 }
+
+func (a MediaAnalyzeArgs) followUp() river.JobArgs { a.FollowUp = true; return a }
 
 // Kind implements river.JobArgs.
 func (MediaAnalyzeArgs) Kind() string { return "media.analyze" }
@@ -300,6 +327,9 @@ func (w *MediaAnalyzeWorker) Timeout(*river.Job[MediaAnalyzeArgs]) time.Duration
 
 // Work implements river.Worker.
 func (w *MediaAnalyzeWorker) Work(ctx context.Context, job *river.Job[MediaAnalyzeArgs]) error {
+	if err := waitForSibling(ctx, w.Analyzer.Pool, job.Kind, job.ID, job.Args.LibraryID); err != nil {
+		return err
+	}
 	start := time.Now()
 	n, err := w.Analyzer.Run(ctx, job.Args.LibraryID)
 	if err != nil {
@@ -346,7 +376,10 @@ func (w *MediaAnalyzeAllWorker) Work(ctx context.Context, _ *river.Job[MediaAnal
 // have new or changed episodes (audio fingerprints, black frames).
 type SegmentDetectArgs struct {
 	LibraryID uuid.UUID `json:"library_id"`
+	FollowUp  bool      `json:"follow_up,omitempty"`
 }
+
+func (a SegmentDetectArgs) followUp() river.JobArgs { a.FollowUp = true; return a }
 
 // Kind implements river.JobArgs.
 func (SegmentDetectArgs) Kind() string { return "media.segments" }
@@ -370,6 +403,9 @@ func (w *SegmentDetectWorker) Timeout(*river.Job[SegmentDetectArgs]) time.Durati
 
 // Work implements river.Worker.
 func (w *SegmentDetectWorker) Work(ctx context.Context, job *river.Job[SegmentDetectArgs]) error {
+	if err := waitForSibling(ctx, w.Detector.Pool, job.Kind, job.ID, job.Args.LibraryID); err != nil {
+		return err
+	}
 	start := time.Now()
 	n, err := w.Detector.Run(ctx, job.Args.LibraryID)
 	if err != nil {
