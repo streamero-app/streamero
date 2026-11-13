@@ -5,6 +5,17 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+/**
+ * versionCode from the version: major*10000 + minor*100 + patch (0.10.1 → 1001). Release and
+ * main builds of the same version get the same code and a newer version always a higher one,
+ * so an installed app is never "downgraded" ("App not installed").
+ */
+fun versionCodeOf(name: String): Int {
+    val parts = Regex("""^v?(\d+)\.(\d+)\.(\d+)""").find(name)?.groupValues ?: return 1
+    return (parts[1].toInt() * 10000 + parts[2].toInt() * 100 + parts[3].toInt()).coerceAtLeast(1)
+}
+val appVersionName = System.getenv("VERSION_NAME") ?: "0.0.0-dev"
+
 android {
     namespace = "net.scyde.streamero"
     compileSdk = 35
@@ -14,16 +25,20 @@ android {
         applicationId = "net.scyde.streamero"
         minSdk = 26
         targetSdk = 35
-        versionCode = (System.getenv("VERSION_CODE") ?: "1").toInt()
-        versionName = System.getenv("VERSION_NAME") ?: "0.0.0-dev"
+        versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: versionCodeOf(appVersionName)
+        versionName = appVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
         // Releases are signed with the project key from CI secrets, so a new .apk installs
-        // over the old one. Without it (local builds) the debug key is used.
-        val ks = System.getenv("ANDROID_KEYSTORE")
-        if (ks != null && file(ks).exists()) {
+        // over the old one. Without it (local builds) the debug key is used. A keystore that is
+        // named but missing, or a CI release without one, fails the build instead of quietly
+        // producing a debug-signed .apk that cannot update the installed app.
+        val ks = System.getenv("ANDROID_KEYSTORE")?.ifBlank { null }
+        if (ks != null && !file(ks).exists()) throw GradleException("ANDROID_KEYSTORE is set to $ks, but that file does not exist")
+        if (ks == null && System.getenv("REQUIRE_RELEASE_SIGNING") == "true") throw GradleException("This release build needs the signing key (ANDROID_KEYSTORE_BASE64 secret)")
+        if (ks != null) {
             create("release") {
                 storeFile = file(ks)
                 storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
