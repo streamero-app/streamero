@@ -35,6 +35,7 @@ struct LoginView: View {
     @State private var quickConnect = false
     @State private var providers: Components.Schemas.AuthProviders?
     @State private var showServers = false
+    @State private var showInvite = false
     @Environment(\.webAuthenticationSession) private var webAuthenticationSession
 
     var body: some View {
@@ -74,6 +75,7 @@ struct LoginView: View {
             .frame(maxWidth: .infinity)
         }
         .sheet(isPresented: $showServers) { ServerListView() }
+        .sheet(isPresented: $showInvite) { InviteView(fallbackServer: server.url) }
         .task(id: server.id) {
             // Older servers have no /auth/providers: they offer passwords only.
             providers = try? await AuthClient(baseURL: server.url).providers()
@@ -129,6 +131,9 @@ struct LoginView: View {
             Button("quickConnect.use") { quickConnect = true }
                 .frame(maxWidth: .infinity)
                 .padding(.top, 4)
+            Button { showInvite = true } label: { Label("invite.have", systemImage: "envelope.open") }
+                .frame(maxWidth: .infinity)
+                .foregroundStyle(Theme.textMuted)
         }
     }
 

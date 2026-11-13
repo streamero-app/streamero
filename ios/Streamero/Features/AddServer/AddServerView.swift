@@ -8,6 +8,8 @@ struct AddServerView: View {
     @State private var address = ""
     @State private var checking = false
     @State private var error: LocalizedStringKey?
+    @State private var showInvite = false
+    @State private var serverBefore: String?
 
     var body: some View {
         VStack(spacing: 24) {
@@ -45,6 +47,10 @@ struct AddServerView: View {
             }
             .buttonStyle(PrimaryButtonStyle())
             .disabled(checking || address.isEmpty)
+            Button { showInvite = true } label: {
+                Label("invite.have", systemImage: "envelope.open")
+            }
+            .foregroundStyle(Theme.textMuted)
             if let onClose {
                 Button("player.back", action: onClose).foregroundStyle(Theme.textMuted)
             }
@@ -52,6 +58,13 @@ struct AddServerView: View {
             Spacer()
         }
         .padding(24)
+        .sheet(isPresented: $showInvite, onDismiss: {
+            // Signed up through an invite while this was shown over the server list: close it too.
+            if store.currentID != serverBefore { onClose?() }
+        }) {
+            InviteView(fallbackServer: ServerURL.normalize(address))
+                .onAppear { serverBefore = store.currentID }
+        }
         .frame(maxWidth: 480)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {

@@ -38,6 +38,8 @@ struct RootView: View {
     @Environment(ServerStore.self) private var store
     @Environment(SessionStore.self) private var session
     @Environment(\.scenePhase) private var phase
+    /// An invite opened through `streamero://invite?server=…&token=…`.
+    @State private var openedInvite: OpenedInvite?
 
     var body: some View {
         Group {
@@ -67,6 +69,13 @@ struct RootView: View {
                 AddServerView()
             }
         }
+        .onOpenURL { url in
+            // streamero://oidc is completed by the sign-in sheet itself; only invites land here.
+            if let parsed = InviteLink.parse(url: url) { openedInvite = OpenedInvite(link: parsed) }
+        }
+        .sheet(item: $openedInvite) { opened in
+            InviteView(initial: opened.link, fallbackServer: store.current?.url)
+        }
         .onChange(of: phase) { _, now in
             if now == .active { DownloadManager.shared.appBecameActive() }
         }
@@ -86,4 +95,10 @@ struct RootView: View {
         let token = session.token(for: server)
         DownloadManager.shared.activate(server: server, client: token.map { MediaClient(baseURL: server.url, token: $0) })
     }
+}
+
+/// An invite link handed to the app from outside.
+struct OpenedInvite: Identifiable {
+    let link: InviteLink.Parsed
+    var id: String { link.token }
 }
