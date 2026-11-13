@@ -26,10 +26,24 @@ jobs:
       run:
         working-directory: android
     env:
-      TAG: ${{ inputs.version || format('v0.0.0-{0}', github.run_number) }}
-      VERSION_CODE: ${{ github.run_number }}
+      RELEASE_TAG: ${{ inputs.version }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # tags, for the version of non-release builds
+      - name: Version
+        # versionCode = major*10000 + minor*100 + patch of the version (app/build.gradle.kts).
+        # A release uses its tag; other builds the last release tag, so they never get a higher
+        # code than the next release and installing that release over them works.
+        run: |
+          if [ -n "$RELEASE_TAG" ]; then
+            tag="$RELEASE_TAG"; name="${tag#v}"
+          else
+            tag="$(git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null || echo v0.0.0)"
+            name="${tag#v}-dev.${GITHUB_RUN_NUMBER}"
+          fi
+          echo "TAG=v$name" >> "$GITHUB_ENV"
+          echo "VERSION_NAME=$name" >> "$GITHUB_ENV"
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -50,8 +64,9 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          # A tagged release must be signed with the project key (the build fails otherwise).
+          REQUIRE_RELEASE_SIGNING: ${{ inputs.version && 'true' || 'false' }}
         run: |
-          export VERSION_NAME="${TAG#v}"
           ./gradlew --no-daemon :app:assembleRelease
           mkdir -p dist && cp app/build/outputs/apk/release/app-release.apk "dist/Streamero-$TAG.apk"
       - uses: actions/upload-artifact@v4

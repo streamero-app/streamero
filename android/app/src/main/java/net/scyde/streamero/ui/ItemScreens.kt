@@ -70,6 +70,11 @@ fun ItemScreen(state: AppState, nav: NavHostController, id: String) {
     val f = d.files.getOrNull(file)?.id?.takeIf { d.files.size > 1 }
     var invite by remember { mutableStateOf<String?>(null) }
     var togetherError by remember { mutableStateOf<Throwable?>(null) }
+    var actionError by remember { mutableStateOf<Throwable?>(null) }
+    fun userData(u: UserDataUpdate) {
+        actionError = null
+        scope.launch { runCatching { api.setUserData(it.id, u) }.onSuccess { reload++ }.onFailure { e -> actionError = e } }
+    }
     // Play, resume, my list, watched: under the hero on a phone, inside it on a TV.
     val actions: @Composable () -> Unit = {
         if (d.files.isNotEmpty()) {
@@ -78,11 +83,12 @@ fun ItemScreen(state: AppState, nav: NavHostController, id: String) {
             if (it.positionMs > 0) GlassButton(stringResource(R.string.from_start), { nav.watch(it.id, 0, f, audio, sub) }, if (tv) Modifier.rememberFocus(mem, "start") else Modifier.fillMaxWidth(), icon = Icons.Default.Replay)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            GlassButton(null, { scope.launch { api.setUserData(it.id, UserDataUpdate(favorite = !it.favorite)); reload++ } }, Modifier.rememberFocus(mem, "fav", default = d.files.isEmpty()).width(52.dp),
+            GlassButton(null, { userData(UserDataUpdate(favorite = !it.favorite)) }, Modifier.rememberFocus(mem, "fav", default = d.files.isEmpty()).width(52.dp),
                 icon = if (it.favorite) Icons.Default.Check else Icons.Default.Add, active = it.favorite)
-            GlassButton(stringResource(if (it.played) R.string.watched else R.string.mark_watched), { scope.launch { api.setUserData(it.id, UserDataUpdate(played = !it.played)); reload++ } },
+            GlassButton(stringResource(if (it.played) R.string.watched else R.string.mark_watched), { userData(UserDataUpdate(played = !it.played)) },
                 Modifier.rememberFocus(mem, "played"), icon = Icons.Default.Check, active = it.played)
         }
+        ErrorLine(actionError)
         if (d.files.isNotEmpty() && canWatchTogether(state)) {
             GlassButton(stringResource(R.string.watch_together), {
                 scope.launch { runCatching { state.sync.create(it.id, it.positionMs) }.onSuccess { g -> invite = g.id }.onFailure { e -> togetherError = e } }
@@ -104,9 +110,9 @@ fun ItemScreen(state: AppState, nav: NavHostController, id: String) {
                     if (tv) Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Kino.bg.copy(alpha = 0.9f), Color.Transparent), endX = 1500f)))
                     Column(Modifier.align(Alignment.BottomStart).padding(horizontal = Dims.edge).then(if (tv) Modifier.fillMaxWidth(0.62f) else Modifier), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         it.seriesTitle?.let { s -> Text(s.uppercase(), style = Head, color = Kino.muted, modifier = Modifier.focusClickable(scale = 1.02f) { it.seriesId?.let { sid -> nav.navigate("item/$sid") } }.padding(horizontal = if (tv) 4.dp else 0.dp)) }
-                        val title = if (it.kind == "episode") "E${it.episodeNumber} · ${it.title}" else it.title
+                        val title = if (it.kind == "episode") stringResource(R.string.episode_title, it.episodeNumber ?: 0, it.title) else it.title
                         Text(title, style = Display.copy(fontSize = 40.sp), color = Kino.text)
-                        Text(listOfNotNull(it.rating?.let { r -> "★ %.1f".format(r) }, it.year?.toString(), it.durationMs?.let { ms -> "${ms / 60000} min" },
+                        Text(listOfNotNull(it.rating?.let { r -> stringResource(R.string.rating_value, r) }, it.year?.toString(), it.durationMs?.let { ms -> stringResource(R.string.minutes_short, ms / 60000) },
                             d.genres.take(2).joinToString(", ").ifBlank { null }, d.officialRating, qualityTags(it.videoHeight, it.hdr).joinToString(" ").ifBlank { null }).joinToString("  ·  "), color = Kino.muted, fontSize = 14.sp)
                         d.tagline?.let { t -> Text(t, color = Kino.text.copy(alpha = 0.8f), fontSize = 16.sp) }
                         if (tv) {
@@ -185,7 +191,7 @@ fun ItemScreen(state: AppState, nav: NavHostController, id: String) {
                     d.files.forEach { f ->
                         Column(Modifier.fillMaxWidth().clip(CardShape).background(Kino.surface).padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(listOfNotNull(f.label, f.height?.let { h -> "${h}p" }, f.hdr, f.videoCodec?.uppercase(), f.container.uppercase()).joinToString(" · "), color = Kino.text, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                            if (f.audio.isNotEmpty()) Text(stringResource(R.string.audio) + ": " + f.audio.joinToString(" · ") { a -> listOfNotNull(a.language?.uppercase(), a.codec.uppercase(), a.channels?.let { c -> "${c}ch" }).joinToString(" ") }, color = Kino.muted, fontSize = 12.sp)
+                            if (f.audio.isNotEmpty()) Text(stringResource(R.string.audio) + ": " + f.audio.map { a -> listOfNotNull(a.language?.uppercase(), a.codec.uppercase(), a.channels?.let { c -> stringResource(R.string.channels_n, c) }).joinToString(" ") }.joinToString(" · "), color = Kino.muted, fontSize = 12.sp)
                             if (f.subtitles.isNotEmpty()) Text(stringResource(R.string.subtitles) + ": " + f.subtitles.joinToString(" · ") { s -> s.language?.uppercase() ?: "?" }, color = Kino.muted, fontSize = 12.sp)
                         }
                     }
@@ -212,7 +218,7 @@ private fun PlayOptions(d: ItemDetail, file: Int, audio: Int?, sub: Int?, onChan
         Picker(file, d.files.mapIndexed { i, x -> i to (x.label ?: listOfNotNull(x.height?.let { h -> "${h}p" }, x.hdr, x.videoCodec?.uppercase()).joinToString(" ")) }, { onChange(it, null, null) })
     }
     if (f.audio.size > 1) FieldRow(stringResource(R.string.audio)) {
-        Picker(audio ?: -1, listOf(-1 to stringResource(R.string.automatic)) + f.audio.mapIndexed { i, a -> i to listOfNotNull(a.language?.uppercase(), a.codec.uppercase(), a.channels?.let { c -> "${c}ch" }, a.title).joinToString(" · ") },
+        Picker(audio ?: -1, listOf(-1 to stringResource(R.string.automatic)) + f.audio.mapIndexed { i, a -> i to audioLabel(a) },
             { onChange(file, it.takeIf { x -> x >= 0 }, sub) })
     }
     if (f.subtitles.isNotEmpty()) FieldRow(stringResource(R.string.subtitles)) {
@@ -246,7 +252,7 @@ private fun EpisodeRow(state: AppState, nav: NavHostController, e: ItemSummary, 
         }
         Column(Modifier.weight(1f)) {
             Text("${e.episodeNumber ?: ""}. ${e.title}", color = Kino.text, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            Text(listOfNotNull(e.durationMs?.let { "${it / 60000} min" }, if (e.played) stringResource(R.string.watched) else null).joinToString(" · "), color = Kino.faint, fontSize = 13.sp)
+            Text(listOfNotNull(e.durationMs?.let { stringResource(R.string.minutes_short, it / 60000) }, if (e.played) stringResource(R.string.watched) else null).joinToString(" · "), color = Kino.faint, fontSize = 13.sp)
         }
         DownloadedMark(state, e.id)
     }

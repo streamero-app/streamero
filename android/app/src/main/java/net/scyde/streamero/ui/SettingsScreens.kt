@@ -107,6 +107,100 @@ fun MeScreen(state: AppState, nav: NavHostController, onSignedOut: () -> Unit, o
     }
 }
 
+/** A label for a value the server sends as a code; unknown codes are shown as they are. */
+@Composable
+private fun label(res: Int?, raw: String): String = if (res == null) raw else stringResource(res)
+
+fun taskLabelRes(key: String): Int? = when (key) {
+    "scan_all" -> R.string.task_scan
+    "refresh_metadata" -> R.string.task_metadata
+    "cleanup_images" -> R.string.task_cleanup
+    "analyze_media" -> R.string.task_analyze
+    "detect_segments" -> R.string.task_segments
+    "backup" -> R.string.task_backup
+    "refresh_guide" -> R.string.task_guide
+    else -> null
+}
+
+fun taskStateRes(state: String): Int? = when (state) {
+    "completed" -> R.string.task_completed
+    "failed" -> R.string.task_failed
+    "cancelled" -> R.string.task_cancelled
+    else -> null
+}
+
+fun playMethodRes(method: String): Int? = when (method) {
+    "direct" -> R.string.method_direct
+    "remux" -> R.string.method_remux
+    "transcode" -> R.string.method_transcode
+    else -> null
+}
+
+fun libraryKindRes(kind: String): Int? = when (kind) {
+    "movies" -> R.string.movies
+    "shows" -> R.string.shows
+    "music" -> R.string.music
+    "mixed" -> R.string.mixed
+    else -> null
+}
+
+fun scanStateRes(state: String): Int? = when (state) {
+    "idle" -> R.string.scan_idle
+    "queued" -> R.string.scan_queued
+    "scanning" -> R.string.scan_scanning
+    "failed" -> R.string.scan_failed
+    else -> null
+}
+
+fun storageKindRes(kind: String): Int? = when (kind) {
+    "media" -> R.string.storage_media
+    "cache" -> R.string.storage_cache
+    "transcode" -> R.string.storage_transcode
+    else -> null
+}
+
+fun logLevelRes(level: String): Int? = when (level) {
+    "debug" -> R.string.log_debug
+    "info" -> R.string.log_info
+    "warn" -> R.string.log_warn
+    "error" -> R.string.log_error
+    else -> null
+}
+
+fun activityRes(action: String): Int? = when (action) {
+    "apikey.created" -> R.string.act_apikey_created
+    "apikey.deleted" -> R.string.act_apikey_deleted
+    "invite.accepted" -> R.string.act_invite_accepted
+    "invite.created" -> R.string.act_invite_created
+    "invite.deleted" -> R.string.act_invite_deleted
+    "login.failed" -> R.string.act_login_failed
+    "login.succeeded" -> R.string.act_login_succeeded
+    "logout" -> R.string.act_logout
+    "password.changed" -> R.string.act_password_changed
+    "quickconnect.authorized" -> R.string.act_quickconnect
+    "session.revoked" -> R.string.act_session_revoked
+    "setup.completed" -> R.string.act_setup_completed
+    "task.started" -> R.string.act_task_started
+    "totp.disabled" -> R.string.act_totp_disabled
+    "totp.enabled" -> R.string.act_totp_enabled
+    "user.created" -> R.string.act_user_created
+    "user.deleted" -> R.string.act_user_deleted
+    "user.updated" -> R.string.act_user_updated
+    "item.identified" -> R.string.act_item_identified
+    "item.edited" -> R.string.act_item_edited
+    "session.message" -> R.string.act_session_message
+    "session.stop" -> R.string.act_session_stop
+    "account.updated" -> R.string.act_account_updated
+    "title.requested" -> R.string.act_title_requested
+    "subtitle.downloaded" -> R.string.act_subtitle_downloaded
+    else -> if (action.startsWith("settings.")) R.string.act_settings_changed else null
+}
+
+@Composable
+private fun seconds(n: Int) = stringResource(R.string.seconds_short, n)
+@Composable
+private fun mbits(kbps: Int) = stringResource(R.string.mbit_s, kbps / 1000)
+
 @Composable
 private fun SettingsLink(e: Entry, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Row(modifier.fillMaxWidth().focusClickable(scale = 1.02f, onClick = onClick).padding(horizontal = 20.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -207,7 +301,7 @@ private fun AccountPage(state: AppState) {
             Box(Modifier.clickable { pick.launch("image/*") }) { Avatar(me.displayName ?: me.username, "#8A5A3A", if (me.hasAvatar) api.avatarUrl(me.id) + "?v=" + System.identityHashCode(me) else null, 88.dp) }
             Column {
                 TextButton(onClick = { pick.launch("image/*") }) { Text(stringResource(R.string.change_picture)) }
-                if (me.hasAvatar) TextButton(onClick = { scope.launch { runCatching { api.removeAvatar(); state.refreshMe() } } }) { Text(stringResource(R.string.remove_picture), color = Kino.danger) }
+                if (me.hasAvatar) TextButton(onClick = { scope.launch { runCatching { api.removeAvatar(); state.refreshMe() }.onFailure { error = it } } }) { Text(stringResource(R.string.remove_picture), color = Kino.danger) }
             }
         }
         ErrorLine(error)
@@ -221,13 +315,15 @@ private fun AccountPage(state: AppState) {
     var cur by remember { mutableStateOf("") }
     var next by remember { mutableStateOf("") }
     var pwMsg by remember { mutableStateOf<String?>(null) }
+    var pwError by remember { mutableStateOf<Throwable?>(null) }
     Card(stringResource(R.string.change_password)) {
         Field(stringResource(R.string.current_password), cur, { cur = it }, secret = true)
         Field(stringResource(R.string.new_password), next, { next = it }, secret = true, hint = stringResource(R.string.password_hint))
         val ok = stringResource(R.string.password_changed)
-        PrimaryButton(stringResource(R.string.change_password), { scope.launch { runCatching { api.changePassword(cur, next) }.onSuccess { pwMsg = ok; cur = ""; next = "" }.onFailure { error = it } } },
+        PrimaryButton(stringResource(R.string.change_password), { pwError = null; pwMsg = null; scope.launch { runCatching { api.changePassword(cur, next) }.onSuccess { pwMsg = ok; cur = ""; next = "" }.onFailure { pwError = it } } },
             Modifier.fillMaxWidth(), enabled = cur.isNotBlank() && next.length >= 8)
         pwMsg?.let { Text(it, color = Kino.success) }
+        ErrorLine(pwError)
     }
 }
 
@@ -245,15 +341,15 @@ private fun PlaybackPage(state: AppState) {
             }
         }
         Card(stringResource(R.string.controls)) {
-            FieldRow(stringResource(R.string.skip_back)) { Picker(p.skipBackSeconds ?: 10, listOf(5, 10, 15, 30, 60).map { it to "$it s" }, { set(p.copy(skipBackSeconds = it)) }) }
-            FieldRow(stringResource(R.string.skip_forward)) { Picker(p.skipForwardSeconds ?: 10, listOf(5, 10, 15, 30, 60, 120).map { it to "$it s" }, { set(p.copy(skipForwardSeconds = it)) }) }
+            FieldRow(stringResource(R.string.skip_back)) { Picker(p.skipBackSeconds ?: 10, listOf(5, 10, 15, 30, 60).map { it to seconds(it) }, { set(p.copy(skipBackSeconds = it)) }) }
+            FieldRow(stringResource(R.string.skip_forward)) { Picker(p.skipForwardSeconds ?: 10, listOf(5, 10, 15, 30, 60, 120).map { it to seconds(it) }, { set(p.copy(skipForwardSeconds = it)) }) }
             FieldRow(stringResource(R.string.intros)) { Picker(p.skipIntro ?: "button", listOf("button" to stringResource(R.string.seg_button), "auto" to stringResource(R.string.seg_auto), "off" to stringResource(R.string.seg_off)), { set(p.copy(skipIntro = it)) }) }
             FieldRow(stringResource(R.string.credits)) { Picker(p.skipCredits ?: "button", listOf("button" to stringResource(R.string.credits_button), "auto" to stringResource(R.string.credits_auto), "off" to stringResource(R.string.seg_off)), { set(p.copy(skipCredits = it)) }) }
             Toggle(stringResource(R.string.autoplay), null, p.autoplayNext) { set(p.copy(autoplayNext = it)) }
         }
         Card(stringResource(R.string.quality)) {
             FieldRow(stringResource(R.string.max_resolution)) { Picker(p.maxHeight ?: 0, listOf(0 to stringResource(R.string.original), 2160 to "4K", 1080 to "1080p", 720 to "720p", 480 to "480p"), { set(p.copy(maxHeight = it.takeIf { x -> x > 0 })) }) }
-            FieldRow(stringResource(R.string.max_bitrate)) { Picker(p.maxBitrateKbps ?: 0, listOf(0 to stringResource(R.string.no_limit), 40000 to "40 Mbit/s", 20000 to "20 Mbit/s", 10000 to "10 Mbit/s", 4000 to "4 Mbit/s", 2000 to "2 Mbit/s", 1000 to "1 Mbit/s"), { set(p.copy(maxBitrateKbps = it.takeIf { x -> x > 0 })) }) }
+            FieldRow(stringResource(R.string.max_bitrate)) { Picker(p.maxBitrateKbps ?: 0, listOf(0 to stringResource(R.string.no_limit), 40000 to mbits(40000), 20000 to mbits(20000), 10000 to mbits(10000), 4000 to mbits(4000), 2000 to mbits(2000), 1000 to mbits(1000)), { set(p.copy(maxBitrateKbps = it.takeIf { x -> x > 0 })) }) }
         }
     }
 }
@@ -296,29 +392,34 @@ private fun DashboardPage(state: AppState, nav: NavHostController) {
     val (d, _, error) = rememberLoad(tick) { api.dashboard() }
     val scope = rememberCoroutineScope()
     LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(10_000); tick++ } }
-    ErrorLine(error)
+    var actionError by remember { mutableStateOf<Throwable?>(null) }
+    ErrorLine(error ?: actionError)
     val dash = d ?: return Loading()
     Card(stringResource(R.string.now_playing)) {
         if (dash.nowPlaying.isEmpty()) Text(stringResource(R.string.nobody_watching), color = Kino.muted)
         dash.nowPlaying.forEach { s ->
             var msg by remember(s.key) { mutableStateOf("") }
+            var confirmStop by remember(s.key) { mutableStateOf(false) }
             Column(Modifier.padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(s.title, color = Kino.text, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { nav.navigate("item/${s.itemId}") })
-                Text("${s.user}${s.profile?.let { " · $it" }.orEmpty()} · ${s.device} · ${s.method}${s.reason?.let { " ($it)" }.orEmpty()}", color = Kino.muted, fontSize = 13.sp)
+                Text("${s.user}${s.profile?.let { " · $it" }.orEmpty()} · ${s.device} · ${label(playMethodRes(s.method), s.method)}${s.reason?.let { " ($it)" }.orEmpty()}", color = Kino.muted, fontSize = 13.sp)
                 if (s.durationMs != null && s.durationMs > 0) ProgressLine((s.positionMs.toFloat() / s.durationMs).coerceIn(0f, 1f))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     OutlinedTextField(msg, { msg = it }, placeholder = { Text(stringResource(R.string.message)) }, singleLine = true, modifier = Modifier.weight(1f), shape = CardShape)
-                    GlassButton(stringResource(R.string.send), { scope.launch { runCatching { api.sendCommand(s.key, SessionCommand("message", msg)) }; msg = "" } }, enabled = msg.isNotBlank())
+                    GlassButton(stringResource(R.string.send), { scope.launch { runCatching { api.sendCommand(s.key, SessionCommand("message", msg)) }.onSuccess { msg = "" }.onFailure { actionError = it } } }, enabled = msg.isNotBlank())
                 }
                 val stopped = stringResource(R.string.stopped_by_admin)
-                TextButton(onClick = { scope.launch { runCatching { api.sendCommand(s.key, SessionCommand("stop", stopped)) }; tick++ } }) { Text(stringResource(R.string.stop_playback), color = Kino.danger) }
+                TextButton(onClick = { confirmStop = true }) { Text(stringResource(R.string.stop_playback), color = Kino.danger) }
+                if (confirmStop) ConfirmDialog(stringResource(R.string.stop_playback_confirm), stringResource(R.string.stop_playback), { confirmStop = false }) {
+                    scope.launch { runCatching { api.sendCommand(s.key, SessionCommand("stop", stopped)) }.onFailure { actionError = it }; tick++ }
+                }
             }
         }
         Text(stringResource(R.string.transcodes_now, dash.activeTranscodes), color = Kino.faint, fontSize = 13.sp)
     }
     Card(stringResource(R.string.storage)) {
         dash.storage.forEach { s ->
-            Text("${s.kind} · ${s.path}", color = Kino.text, fontSize = 14.sp)
+            Text("${label(storageKindRes(s.kind), s.kind)} · ${s.path}", color = Kino.text, fontSize = 14.sp)
             ProgressLine(1f - s.freeBytes.toFloat() / s.totalBytes.coerceAtLeast(1))
             Text(stringResource(R.string.free_of, s.freeBytes / 1_073_741_824, s.totalBytes / 1_073_741_824), color = Kino.faint, fontSize = 12.sp)
         }
@@ -337,15 +438,21 @@ private fun LibrariesAdminPage(state: AppState) {
     var path by remember { mutableStateOf("/media/") }
     var err by remember { mutableStateOf<Throwable?>(null) }
     ErrorLine(error ?: err)
+    var deleting by remember { mutableStateOf<Library?>(null) }
+    deleting?.let { l ->
+        ConfirmDialog(stringResource(R.string.delete_library_confirm, l.name), stringResource(R.string.delete), { deleting = null }) {
+            scope.launch { runCatching { api.deleteLibrary(l.id) }.onFailure { err = it }; tick++ }
+        }
+    }
     libs?.forEach { l ->
         Card(l.name) {
-            Text("${l.kind} · ${l.paths.joinToString()} · ${l.itemCount}", color = Kino.muted, fontSize = 13.sp)
-            Text(l.scan.state + (l.scan.error?.let { " · $it" }.orEmpty()), color = Kino.faint, fontSize = 12.sp)
+            Text("${label(libraryKindRes(l.kind), l.kind)} · ${l.paths.joinToString()} · ${itemsCount(l.itemCount)}", color = Kino.muted, fontSize = 13.sp)
+            Text(label(scanStateRes(l.scan.state), l.scan.state) + (l.scan.error?.let { " · $it" }.orEmpty()), color = Kino.faint, fontSize = 12.sp)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 GlassButton(stringResource(R.string.scan), { scope.launch { runCatching { api.scanLibrary(l.id) }.onFailure { err = it }; tick++ } })
                 GlassButton(stringResource(R.string.refresh_metadata), { scope.launch { runCatching { api.refreshLibraryMetadata(l.id) }.onFailure { err = it } } })
             }
-            TextButton(onClick = { scope.launch { runCatching { api.deleteLibrary(l.id) }.onFailure { err = it }; tick++ } }) { Text(stringResource(R.string.delete), color = Kino.danger) }
+            TextButton(onClick = { deleting = l }) { Text(stringResource(R.string.delete), color = Kino.danger) }
         }
     }
     Card(stringResource(R.string.add_library)) {
@@ -368,13 +475,19 @@ private fun UsersPage(state: AppState) {
     var admin by remember { mutableStateOf(false) }
     var err by remember { mutableStateOf<Throwable?>(null) }
     ErrorLine(error ?: err)
+    var deleting by remember { mutableStateOf<User?>(null) }
+    deleting?.let { u ->
+        ConfirmDialog(stringResource(R.string.delete_user_confirm, u.username), stringResource(R.string.delete), { deleting = null }) {
+            scope.launch { runCatching { api.deleteUser(u.id) }.onFailure { err = it }; tick++ }
+        }
+    }
     users?.forEach { u ->
         Card(u.displayName ?: u.username) {
             Text("@${u.username}" + (if (u.isAdmin) " · " + stringResource(R.string.administrator) else "") + (if (u.disabled) " · " + stringResource(R.string.disabled) else ""), color = Kino.muted, fontSize = 13.sp)
             if (u.id != state.me?.id) {
                 Toggle(stringResource(R.string.administrator), null, u.isAdmin) { on -> scope.launch { runCatching { api.updateUser(u.id, UpdateUser(isAdmin = on)) }.onFailure { err = it }; tick++ } }
                 Toggle(stringResource(R.string.disabled), null, u.disabled) { on -> scope.launch { runCatching { api.updateUser(u.id, UpdateUser(disabled = on)) }.onFailure { err = it }; tick++ } }
-                TextButton(onClick = { scope.launch { runCatching { api.deleteUser(u.id) }.onFailure { err = it }; tick++ } }) { Text(stringResource(R.string.delete), color = Kino.danger) }
+                TextButton(onClick = { deleting = u }) { Text(stringResource(R.string.delete), color = Kino.danger) }
             }
         }
     }
@@ -406,12 +519,12 @@ private fun TranscodingPage(state: AppState) {
     val api = state.api ?: return
     SettingsDoc(load = { api.encoding() }, save = { api.saveEncoding(it) }) { e, set ->
         Card(stringResource(R.string.transcoding)) {
-            FieldRow(stringResource(R.string.hw_accel)) { Picker(e.hardwareAcceleration, listOf("none" to stringResource(R.string.hw_none), "vaapi" to "VAAPI (Intel, AMD)", "qsv" to "Intel Quick Sync", "nvenc" to "NVIDIA NVENC"), { set(e.copy(hardwareAcceleration = it)) }) }
-            if (e.hardwareAcceleration == "vaapi") Field("VAAPI", e.vaapiDevice ?: "/dev/dri/renderD128", { set(e.copy(vaapiDevice = it)) })
+            FieldRow(stringResource(R.string.hw_accel)) { Picker(e.hardwareAcceleration, listOf("none" to stringResource(R.string.hw_none), "vaapi" to stringResource(R.string.hw_vaapi), "qsv" to stringResource(R.string.hw_qsv), "nvenc" to stringResource(R.string.hw_nvenc)), { set(e.copy(hardwareAcceleration = it)) }) }
+            if (e.hardwareAcceleration == "vaapi") Field(stringResource(R.string.hw_vaapi_device), e.vaapiDevice ?: "/dev/dri/renderD128", { set(e.copy(vaapiDevice = it)) })
             FieldRow(stringResource(R.string.encoder_speed)) { Picker(e.preset, listOf("ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow").map { it to it }, { set(e.copy(preset = it)) }) }
             FieldRow(stringResource(R.string.quality_value, e.quality)) { Slider(e.quality.toFloat(), { set(e.copy(quality = it.toInt())) }, valueRange = 14f..35f) }
-            FieldRow(stringResource(R.string.audio_bitrate)) { Picker(e.audioBitrateKbps, listOf(96, 128, 160, 192, 256, 320).map { it to "$it kbit/s" }, { set(e.copy(audioBitrateKbps = it)) }) }
-            FieldRow(stringResource(R.string.segment_length)) { Picker(e.segmentSeconds, listOf(2, 3, 4, 6, 8, 10).map { it to "$it s" }, { set(e.copy(segmentSeconds = it)) }) }
+            FieldRow(stringResource(R.string.audio_bitrate)) { Picker(e.audioBitrateKbps, listOf(96, 128, 160, 192, 256, 320).map { it to stringResource(R.string.kbit_s, it) }, { set(e.copy(audioBitrateKbps = it)) }) }
+            FieldRow(stringResource(R.string.segment_length)) { Picker(e.segmentSeconds, listOf(2, 3, 4, 6, 8, 10).map { it to seconds(it) }, { set(e.copy(segmentSeconds = it)) }) }
             FieldRow(stringResource(R.string.max_transcodes)) { Picker(e.maxSessions, listOf(0, 1, 2, 3, 4, 6, 8, 12, 16).map { it to if (it == 0) stringResource(R.string.no_limit) else it.toString() }, { set(e.copy(maxSessions = it)) }) }
             Toggle(stringResource(R.string.tone_mapping), null, e.toneMapping) { set(e.copy(toneMapping = it)) }
         }
@@ -430,11 +543,12 @@ private fun RequestsPage(state: AppState) {
     val api = state.api ?: return
     var keys by remember { mutableStateOf(mapOf<String, String>()) }
     var checks by remember { mutableStateOf<List<ConnectionCheck>>(emptyList()) }
+    var testError by remember { mutableStateOf<Throwable?>(null) }
     val scope = rememberCoroutineScope()
     SettingsDoc(load = { api.requestSettings() }, save = { s ->
         api.saveRequestSettings(RequestSettingsInput(s.usersCanRequest, s.seerrUrl, keys["seerr"], s.radarrUrl, keys["radarr"], s.sonarrUrl, keys["sonarr"], s.bazarrUrl, keys["bazarr"])).also { keys = emptyMap() }
     }) { s, set ->
-        Card("Seerr / Jellyseerr") {
+        Card(stringResource(R.string.requests_seerr)) {
             Field(stringResource(R.string.address), s.seerrUrl.orEmpty(), { set(s.copy(seerrUrl = it)) })
             Field(stringResource(R.string.api_key) + if (s.seerrConfigured) " ✓" else "", keys["seerr"].orEmpty(), { keys = keys + ("seerr" to it) }, secret = true)
             Toggle(stringResource(R.string.everyone_can_request), null, s.usersCanRequest) { set(s.copy(usersCanRequest = it)) }
@@ -449,7 +563,8 @@ private fun RequestsPage(state: AppState) {
             Field(stringResource(R.string.address), s.bazarrUrl.orEmpty(), { set(s.copy(bazarrUrl = it)) })
             Field(stringResource(R.string.api_key) + if (s.bazarrConfigured) " ✓" else "", keys["bazarr"].orEmpty(), { keys = keys + ("bazarr" to it) }, secret = true)
         }
-        GlassButton(stringResource(R.string.test_connections), { scope.launch { checks = runCatching { api.testRequestSettings() }.getOrDefault(emptyList()) } }, Modifier.fillMaxWidth())
+        GlassButton(stringResource(R.string.test_connections), { scope.launch { testError = null; runCatching { api.testRequestSettings() }.onSuccess { checks = it }.onFailure { testError = it } } }, Modifier.fillMaxWidth())
+        ErrorLine(testError)
         checks.forEach { c -> Text("${c.app}: " + if (c.ok) "✓ ${c.version.orEmpty()}" else c.error.orEmpty(), color = if (c.ok) Kino.success else Kino.danger) }
     }
 }
@@ -462,12 +577,12 @@ private fun EnhancementsPage(state: AppState) {
             Text(stringResource(R.string.enhancements_intro), color = Kino.muted, fontSize = 13.sp)
             Toggle(stringResource(R.string.enh_quality), null, e.qualityTags) { set(e.copy(qualityTags = it)) }
             Toggle(stringResource(R.string.enh_random), null, e.randomButton) { set(e.copy(randomButton = it)) }
-            Toggle(stringResource(R.string.enh_pause), null, e.pauseScreen) { set(e.copy(pauseScreen = it)) }
-            Toggle(stringResource(R.string.enh_continue), null, e.removeFromContinue) { set(e.copy(removeFromContinue = it)) }
+            Toggle(stringResource(R.string.enh_pause), stringResource(R.string.enh_pause_hint), e.pauseScreen) { set(e.copy(pauseScreen = it)) }
+            Toggle(stringResource(R.string.enh_continue), stringResource(R.string.enh_continue_hint), e.removeFromContinue) { set(e.copy(removeFromContinue = it)) }
             Toggle(stringResource(R.string.enh_search), null, e.discoverInSearch) { set(e.copy(discoverInSearch = it)) }
             Toggle(stringResource(R.string.enh_arr), null, e.arrLinks) { set(e.copy(arrLinks = it)) }
             Toggle(stringResource(R.string.enh_shortcuts), null, e.shortcutsHelp) { set(e.copy(shortcutsHelp = it)) }
-            Toggle(stringResource(R.string.enh_pip), null, e.autoPip) { set(e.copy(autoPip = it)) }
+            Toggle(stringResource(R.string.enh_pip), stringResource(R.string.enh_pip_hint), e.autoPip) { set(e.copy(autoPip = it)) }
         }
     }
 }
@@ -478,11 +593,12 @@ private fun TasksPage(state: AppState) {
     var tick by remember { mutableIntStateOf(0) }
     val (tasks, _, error) = rememberLoad(tick) { api.tasks() }
     val scope = rememberCoroutineScope()
-    ErrorLine(error)
+    var runError by remember { mutableStateOf<Throwable?>(null) }
+    ErrorLine(error ?: runError)
     tasks?.forEach { t ->
-        Card(stringResource(when (t.key) { "scan_all" -> R.string.task_scan; "refresh_metadata" -> R.string.task_metadata; "cleanup_images" -> R.string.task_cleanup; else -> R.string.task_analyze })) {
-            Text(listOfNotNull(t.lastRunAt?.take(16)?.replace('T', ' '), t.lastState, t.interval?.let { stringResource(R.string.every, it) }).joinToString(" · "), color = Kino.muted, fontSize = 13.sp)
-            GlassButton(if (t.running) stringResource(R.string.running) else stringResource(R.string.run_now), { scope.launch { runCatching { api.runTask(t.key) }; tick++ } }, enabled = !t.running)
+        Card(label(taskLabelRes(t.key), t.key)) {
+            Text(listOfNotNull(t.lastRunAt?.take(16)?.replace('T', ' '), t.lastState?.let { label(taskStateRes(it), it) }, t.interval?.let { stringResource(R.string.every, it) }).joinToString(" · "), color = Kino.muted, fontSize = 13.sp)
+            GlassButton(if (t.running) stringResource(R.string.running) else stringResource(R.string.run_now), { scope.launch { runError = null; runCatching { api.runTask(t.key) }.onFailure { runError = it }; tick++ } }, enabled = !t.running)
         }
     }
 }
@@ -496,7 +612,7 @@ private fun ActivityPage(state: AppState) {
     if (loading) Loading()
     page?.entries?.forEach { e ->
         Column(Modifier.padding(vertical = 6.dp)) {
-            Text(e.action + (e.user?.let { " · $it" }.orEmpty()), color = Kino.text, fontSize = 14.sp)
+            Text(label(activityRes(e.action), e.action) + (e.user?.let { " · $it" }.orEmpty()), color = Kino.text, fontSize = 14.sp)
             Text(e.at.take(19).replace('T', ' '), color = Kino.faint, fontSize = 12.sp)
         }
     }
@@ -512,7 +628,7 @@ private fun LogsPage(state: AppState) {
     var level by remember { mutableStateOf("info") }
     var q by remember { mutableStateOf("") }
     val (logs, loading, error) = rememberLoad(level to q) { api.logs(level, q) }
-    FieldRow(stringResource(R.string.level)) { Picker(level, listOf("debug", "info", "warn", "error").map { it to it }, { level = it }) }
+    FieldRow(stringResource(R.string.level)) { Picker(level, listOf("debug", "info", "warn", "error").map { it to label(logLevelRes(it), it) }, { level = it }) }
     OutlinedTextField(q, { q = it }, placeholder = { Text(stringResource(R.string.search)) }, singleLine = true, modifier = Modifier.fillMaxWidth(), shape = CardShape)
     ErrorLine(error)
     if (loading) Loading()
@@ -530,11 +646,18 @@ private fun DevicesPage(state: AppState) {
     var tick by remember { mutableIntStateOf(0) }
     val (sessions, _, error) = rememberLoad(tick) { api.sessions() }
     val scope = rememberCoroutineScope()
-    ErrorLine(error)
+    var err by remember { mutableStateOf<Throwable?>(null) }
+    var revoking by remember { mutableStateOf<SessionInfo?>(null) }
+    ErrorLine(error ?: err)
+    revoking?.let { s ->
+        ConfirmDialog(stringResource(R.string.revoke_session_confirm, s.deviceName, s.username), stringResource(R.string.sign_out), { revoking = null }) {
+            scope.launch { runCatching { api.revokeSession(s.id) }.onFailure { err = it }; tick++ }
+        }
+    }
     sessions?.forEach { s ->
         Card(s.deviceName) {
             Text("${s.username} · ${s.client} · ${s.lastSeenAt.take(16).replace('T', ' ')}", color = Kino.muted, fontSize = 13.sp)
-            if (!s.current) TextButton(onClick = { scope.launch { runCatching { api.revokeSession(s.id) }; tick++ } }) { Text(stringResource(R.string.sign_out), color = Kino.danger) }
+            if (!s.current) TextButton(onClick = { revoking = s }) { Text(stringResource(R.string.sign_out), color = Kino.danger) }
         }
     }
 }
@@ -546,13 +669,20 @@ private fun InvitesPage(state: AppState) {
     val (invites, _, error) = rememberLoad(tick) { api.invites() }
     val scope = rememberCoroutineScope()
     var link by remember { mutableStateOf<String?>(null) }
-    ErrorLine(error)
-    PrimaryButton(stringResource(R.string.create_invite), { scope.launch { runCatching { api.createInvite(CreateInvite(72, 1)) }.onSuccess { link = api.base.resolve("/invite/${it.token}").toString(); tick++ } } }, Modifier.fillMaxWidth())
+    var err by remember { mutableStateOf<Throwable?>(null) }
+    var deleting by remember { mutableStateOf<Invite?>(null) }
+    ErrorLine(error ?: err)
+    deleting?.let { i ->
+        ConfirmDialog(stringResource(R.string.delete_invite_confirm), stringResource(R.string.delete), { deleting = null }) {
+            scope.launch { runCatching { api.deleteInvite(i.id) }.onFailure { err = it }; tick++ }
+        }
+    }
+    PrimaryButton(stringResource(R.string.create_invite), { scope.launch { err = null; runCatching { api.createInvite(CreateInvite(72, 1)) }.onSuccess { link = api.base.resolve("/invite/${it.token}").toString(); tick++ }.onFailure { err = it } } }, Modifier.fillMaxWidth())
     link?.let { androidx.compose.foundation.text.selection.SelectionContainer { Text(it, color = Kino.text) } }
     invites?.forEach { i ->
         Card(i.note.ifBlank { i.id.take(8) }) {
             Text("${i.uses}/${i.maxUses} · ${i.expiresAt.take(16).replace('T', ' ')}", color = Kino.muted, fontSize = 13.sp)
-            TextButton(onClick = { scope.launch { runCatching { api.deleteInvite(i.id) }; tick++ } }) { Text(stringResource(R.string.delete), color = Kino.danger) }
+            TextButton(onClick = { deleting = i }) { Text(stringResource(R.string.delete), color = Kino.danger) }
         }
     }
 }
@@ -565,16 +695,23 @@ private fun ApiKeysPage(state: AppState) {
     val scope = rememberCoroutineScope()
     var name by remember { mutableStateOf("") }
     var created by remember { mutableStateOf<String?>(null) }
-    ErrorLine(error)
+    var err by remember { mutableStateOf<Throwable?>(null) }
+    var deleting by remember { mutableStateOf<ApiKey?>(null) }
+    ErrorLine(error ?: err)
+    deleting?.let { k ->
+        ConfirmDialog(stringResource(R.string.delete_api_key_confirm, k.name), stringResource(R.string.delete), { deleting = null }) {
+            scope.launch { runCatching { api.deleteApiKey(k.id) }.onFailure { err = it }; tick++ }
+        }
+    }
     Card(stringResource(R.string.create_api_key)) {
         Field(stringResource(R.string.name), name, { name = it })
-        PrimaryButton(stringResource(R.string.create_api_key), { scope.launch { runCatching { api.createApiKey(name) }.onSuccess { created = it.key; name = ""; tick++ } } }, Modifier.fillMaxWidth(), enabled = name.isNotBlank())
+        PrimaryButton(stringResource(R.string.create_api_key), { scope.launch { err = null; runCatching { api.createApiKey(name) }.onSuccess { created = it.key; name = ""; tick++ }.onFailure { err = it } } }, Modifier.fillMaxWidth(), enabled = name.isNotBlank())
         created?.let { androidx.compose.foundation.text.selection.SelectionContainer { Text(it, color = Kino.text, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace) } }
     }
     keys?.forEach { k ->
         Card(k.name) {
             Text("${k.prefix}… · ${k.createdBy} · ${k.lastUsedAt?.take(10) ?: "—"}", color = Kino.muted, fontSize = 13.sp)
-            TextButton(onClick = { scope.launch { runCatching { api.deleteApiKey(k.id) }; tick++ } }) { Text(stringResource(R.string.delete), color = Kino.danger) }
+            TextButton(onClick = { deleting = k }) { Text(stringResource(R.string.delete), color = Kino.danger) }
         }
     }
 }

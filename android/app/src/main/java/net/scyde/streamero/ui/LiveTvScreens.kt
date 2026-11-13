@@ -36,6 +36,11 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
+import net.scyde.streamero.player.ErrorAction
+import net.scyde.streamero.player.ErrorRecovery
+import net.scyde.streamero.player.SAFE_PROFILE
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
@@ -238,7 +243,7 @@ private fun ProgramRow(p: LiveTvProgram, now: Instant, manage: Boolean, busy: Bo
         }
         Text(p.title, color = Kino.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
         val episode = listOfNotNull(
-            if (p.season != null && p.episode != null) "S${p.season}:E${p.episode}" else null, p.subtitle).joinToString(" · ")
+            if (p.season != null && p.episode != null) stringResource(R.string.episode_code, p.season, p.episode) else null, p.subtitle).joinToString(" · ")
         if (episode.isNotEmpty()) Text(episode, color = Kino.muted, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         p.description?.let { Text(it, color = Kino.faint, fontSize = 13.sp, maxLines = 3, overflow = TextOverflow.Ellipsis) }
         if (airing) ProgressLine(programProgress(p, now))
@@ -258,38 +263,62 @@ private fun ProgramRow(p: LiveTvProgram, now: Instant, manage: Boolean, busy: Bo
 fun LivePlayerScreen(state: AppState, nav: NavHostController, channelId: String) {
     val api = state.api ?: return
     val ctx = LocalContext.current
-    val player = remember { ExoPlayer.Builder(ctx).build() }
+    val player = remember { videoPlayer(ctx) }
     var playback by remember { mutableStateOf<LiveTvPlayback?>(null) }
     var channel by remember { mutableStateOf<LiveTvChannel?>(null) }
     var error by remember { mutableStateOf<Throwable?>(null) }
+    var notice by remember { mutableStateOf<String?>(null) }
+    var attempt by remember { mutableIntStateOf(0) }
+    val recovery = remember { ErrorRecovery() }
 
     DisposableEffect(Unit) {
-        val act = ctx as Activity
+        val act = ctx.findActivity()
         state.music.pause()
-        act.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        val ctl = WindowCompat.getInsetsController(act.window, act.window.decorView)
-        ctl.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        ctl.hide(WindowInsetsCompat.Type.systemBars())
+        act?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        val ctl = act?.let { WindowCompat.getInsetsController(it.window, it.window.decorView) }
+        ctl?.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        ctl?.hide(WindowInsetsCompat.Type.systemBars())
+        // A stream the device cannot play: once more as plain H.264/AAC, then say so.
+        val l = object : Player.Listener {
+            override fun onPlayerError(e: PlaybackException) {
+                when (recovery.onError()) {
+                    ErrorAction.Fallback -> { notice = ctx.getString(R.string.player_fallback); attempt++ }
+                    ErrorAction.Fail -> error = e
+                }
+            }
+        }
+        player.addListener(l)
         onDispose {
-            ctl.show(WindowInsetsCompat.Type.systemBars())
-            act.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            ctl?.show(WindowInsetsCompat.Type.systemBars())
+            act?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            player.removeListener(l)
             player.release()
         }
     }
-    LaunchedEffect(channelId) {
-        channel = runCatching { api.liveChannels() }.getOrNull()?.firstOrNull { it.id == channelId }
+    val inPip = videoLifecycle(player, state.enhancements.autoPip)
+    LaunchedEffect(channelId, attempt) {
+        if (channel == null) channel = runCatching { api.liveChannels() }.getOrNull()?.firstOrNull { it.id == channelId }
         val prefs = runCatching { api.preferences() }.getOrNull()
-        runCatching { api.playChannel(channelId, androidDeviceProfile(prefs)) }
-            .onSuccess { pb ->
-                playback = pb
-                player.setMediaItem(MediaItem.Builder().setUri(Uri.parse(api.resolve(pb.url))).setMimeType(MimeTypes.APPLICATION_M3U8).build())
-                player.playWhenReady = true
-                player.prepare()
-            }.onFailure { error = it }
+        try {
+            val device = if (recovery.safe) SAFE_PROFILE.copy(maxHeight = prefs?.maxHeight, maxBitrate = prefs?.maxBitrateKbps?.let { it * 1000 }) else androidDeviceProfile(prefs)
+            val pb = api.playChannel(channelId, device)
+            playback = pb
+            error = null
+            player.setMediaItem(MediaItem.Builder().setUri(Uri.parse(api.resolve(pb.url))).setMimeType(MimeTypes.APPLICATION_M3U8).build())
+            player.playWhenReady = true
+            player.prepare()
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            error = e
+        }
     }
+    LaunchedEffect(notice) { if (notice != null) { delay(8_000); notice = null } }
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {
-        AndroidView({ PlayerView(it).apply { this.player = player; setShowNextButton(false); setShowPreviousButton(false) } }, Modifier.fillMaxSize())
+        AndroidView({ PlayerView(it).apply { this.player = player; setShowNextButton(false); setShowPreviousButton(false) } }, Modifier.fillMaxSize(),
+            update = { v -> v.useController = !inPip; if (inPip) v.hideController() })
+        if (inPip) return@Box
         Row(Modifier.align(Alignment.TopStart).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             if (!LocalTv.current) IconButton(onClick = { nav.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back), tint = Color.White) }
             Column {
@@ -298,8 +327,7 @@ fun LivePlayerScreen(state: AppState, nav: NavHostController, channelId: String)
             }
         }
         if (playback == null && error == null) CircularProgressIndicator(Modifier.align(Alignment.Center), color = Color.White)
-        errorText(error)?.let {
-            Text(it, color = Color.White, fontSize = 16.sp, modifier = Modifier.align(Alignment.Center).padding(24.dp).background(Color.Black.copy(alpha = 0.85f), CardShape).padding(16.dp))
-        }
+        notice?.let { Text(it, color = Color.White, fontSize = 15.sp, modifier = Modifier.align(Alignment.TopCenter).padding(top = 64.dp).background(Color.Black.copy(alpha = 0.85f), CardShape).padding(14.dp)) }
+        error?.let { PlayerErrorBox(it, { error = null; playback = null; attempt++ }, { nav.popBackStack() }) }
     }
 }

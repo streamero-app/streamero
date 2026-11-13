@@ -43,14 +43,20 @@ fun TvQuickConnect(state: AppState, serverName: String, onUsePassword: () -> Uni
     val scope = rememberCoroutineScope()
     LaunchedEffect(attempt) {
         current = null
-        quickConnectFlow(api.quickConnect(DeviceInfo(Build.MODEL ?: "Android TV", TV_CLIENT))).collect { s ->
-            current = s
-            if (s is QuickConnectState.Approved) {
-                runCatching {
-                    state.session.setToken(s.auth.token)
-                    state.refreshMe() ?: error("no user")
-                }.onSuccess { onSignedIn() }.onFailure { signInError = it }
+        try {
+            quickConnectFlow(api.quickConnect(DeviceInfo(Build.MODEL ?: "Android TV", TV_CLIENT))).collect { s ->
+                current = s
+                if (s is QuickConnectState.Approved) {
+                    runCatching {
+                        state.session.setToken(s.auth.token)
+                        state.refreshMe() ?: error("no user")
+                    }.onSuccess { onSignedIn() }.onFailure { signInError = it }
+                }
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            current = QuickConnectState.Failed(e)
         }
     }
     Box(Modifier.fillMaxSize().background(Brush.radialGradient(listOf(Kino.accent.copy(alpha = 0.22f), Kino.bg), radius = 1600f))) {

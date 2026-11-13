@@ -3,6 +3,7 @@ package net.scyde.streamero.ui
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -121,9 +122,11 @@ fun qualityTags(height: Int?, hdr: String?): List<String> = buildList {
 
 /** A landscape card (continue watching): a frame from the film, title over it. */
 @Composable
-fun WideCard(item: ItemSummary, imageUrl: (String, String) -> String, width: Dp, modifier: Modifier = Modifier, onClick: () -> Unit) {
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+fun WideCard(item: ItemSummary, imageUrl: (String, String) -> String, width: Dp, modifier: Modifier = Modifier, onLongClick: (() -> Unit)? = null, onClick: () -> Unit) {
     val (src, focused) = rememberFocusSource()
-    Box(modifier.width(width).focusRing(focused).aspectRatio(16f / 9f).clip(CardShape).background(Kino.surface2).clickable(interactionSource = src, indication = tapIndication(), onClick = onClick)) {
+    Box(modifier.width(width).focusRing(focused).aspectRatio(16f / 9f).clip(CardShape).background(Kino.surface2)
+        .combinedClickable(interactionSource = src, indication = tapIndication(), onLongClick = onLongClick, onClick = onClick)) {
         val src = when {
             item.hasBackdrop -> imageUrl(item.id, "backdrop")
             item.kind == "episode" && item.hasPoster -> imageUrl(item.id, "still")
@@ -134,7 +137,7 @@ fun WideCard(item: ItemSummary, imageUrl: (String, String) -> String, width: Dp,
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f)))))
         Column(Modifier.align(Alignment.BottomStart).padding(12.dp)) {
             Text(item.seriesTitle ?: item.title, color = Kino.text, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            val sub = if (item.seriesTitle != null) "S${item.seasonNumber}:E${item.episodeNumber} · ${item.title}" else item.year?.toString().orEmpty()
+            val sub = if (item.seriesTitle != null) androidx.compose.ui.res.stringResource(R.string.episode_code_title, item.seasonNumber ?: 0, item.episodeNumber ?: 0, item.title) else item.year?.toString().orEmpty()
             Text(sub, color = Kino.muted, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         ProgressLine(item.progress, Modifier.align(Alignment.BottomCenter))
@@ -163,28 +166,77 @@ fun Avatar(name: String, color: String?, imageUrl: String?, size: Dp, round: Boo
     }
 }
 
-/** A translated message for an API error. */
+/**
+ * The message for a server error code (the `code` of the error body, as in the web client's
+ * errors.*); null for codes this app has no wording for, which then get a generic message.
+ */
+fun errorMessageRes(code: String): Int? = when (code) {
+    "invalid_credentials" -> R.string.err_credentials
+    "totp_required" -> R.string.err_totp
+    "invalid_totp" -> R.string.err_invalid_totp
+    "forbidden" -> R.string.err_forbidden
+    "parental_limit" -> R.string.err_parental_limit
+    "upstream_failed" -> R.string.err_upstream
+    "invalid_state" -> R.string.err_sso_invalid_state
+    "provider_error", "internal" -> R.string.err_sso_provider
+    "no_account", "identity_taken" -> R.string.err_sso_no_account
+    "not_allowed" -> R.string.err_sso_not_allowed
+    "account_disabled" -> R.string.err_sso_disabled
+    "not_configured", "unknown_provider" -> R.string.err_sso_not_configured
+    "password_login_disabled" -> R.string.err_password_disabled
+    "tuners_busy" -> R.string.livetv_tuners_busy
+    "unauthenticated" -> R.string.err_session_expired
+    "account_locked" -> R.string.err_account_locked
+    "rate_limited" -> R.string.err_rate_limited
+    "not_found" -> R.string.err_not_found
+    "invalid_request" -> R.string.err_invalid_request
+    "username_taken" -> R.string.err_username_taken
+    "invalid_username" -> R.string.err_invalid_username
+    "last_admin" -> R.string.err_last_admin
+    "self" -> R.string.err_self
+    "invalid_name" -> R.string.err_invalid_name
+    "session_required" -> R.string.err_session_required
+    "pin_required" -> R.string.err_pin_required
+    "invalid_pin" -> R.string.err_invalid_pin
+    "profile_locked" -> R.string.err_profile_locked
+    "kid_profile" -> R.string.err_kid_profile
+    "invalid_path" -> R.string.err_invalid_path
+    "invalid_tmdb_key" -> R.string.err_invalid_tmdb_key
+    "tmdb_unreachable" -> R.string.err_tmdb_unreachable
+    "transcode_not_allowed", "transcode_denied" -> R.string.err_transcode_not_allowed
+    "transcode_failed" -> R.string.err_transcode_failed
+    "transcoder_busy" -> R.string.err_transcoder_busy
+    "not_playable" -> R.string.err_not_playable
+    "file_missing" -> R.string.err_file_missing
+    "channel_unavailable" -> R.string.err_channel_unavailable
+    "invalid_email" -> R.string.err_invalid_email
+    "invalid_image" -> R.string.err_invalid_image
+    "image_too_large" -> R.string.err_image_too_large
+    "invalid_url" -> R.string.err_invalid_url
+    "not_downloadable" -> R.string.err_not_downloadable
+    else -> null
+}
+
+/** A translated message for an error: a server code, a player failure or no connection. */
 @Composable
 fun errorText(e: Throwable?): String? {
     if (e == null) return null
-    val code = (e as? ApiException)?.code
-    return when (code) {
-        "invalid_credentials" -> androidx.compose.ui.res.stringResource(R.string.err_credentials)
-        "totp_required" -> androidx.compose.ui.res.stringResource(R.string.err_totp)
-        "forbidden" -> androidx.compose.ui.res.stringResource(R.string.err_forbidden)
-        "parental_limit" -> androidx.compose.ui.res.stringResource(R.string.err_parental_limit)
-        "upstream_failed" -> androidx.compose.ui.res.stringResource(R.string.err_upstream)
-        "invalid_state" -> androidx.compose.ui.res.stringResource(R.string.err_sso_invalid_state)
-        "provider_error", "internal" -> androidx.compose.ui.res.stringResource(R.string.err_sso_provider)
-        "no_account", "identity_taken" -> androidx.compose.ui.res.stringResource(R.string.err_sso_no_account)
-        "not_allowed" -> androidx.compose.ui.res.stringResource(R.string.err_sso_not_allowed)
-        "account_disabled" -> androidx.compose.ui.res.stringResource(R.string.err_sso_disabled)
-        "not_configured", "unknown_provider" -> androidx.compose.ui.res.stringResource(R.string.err_sso_not_configured)
-        "password_login_disabled" -> androidx.compose.ui.res.stringResource(R.string.err_password_disabled)
-        "tuners_busy" -> androidx.compose.ui.res.stringResource(R.string.livetv_tuners_busy)
-        null -> androidx.compose.ui.res.stringResource(R.string.err_network)
-        else -> e.message ?: androidx.compose.ui.res.stringResource(R.string.err_generic)
+    val res = when (e) {
+        is ApiException -> errorMessageRes(e.code) ?: R.string.err_generic
+        is androidx.media3.common.PlaybackException -> R.string.err_playback
+        is java.io.IOException -> R.string.err_network
+        else -> R.string.err_generic
     }
+    return androidx.compose.ui.res.stringResource(res)
+}
+
+/** Asks before something that cannot be undone. */
+@Composable
+fun ConfirmDialog(text: String, confirm: String, onDismiss: () -> Unit, onConfirm: () -> Unit) {
+    AlertDialog(onDismissRequest = onDismiss, containerColor = Kino.surface,
+        text = { Text(text, color = Kino.text) },
+        confirmButton = { TextButton(onClick = { onDismiss(); onConfirm() }) { Text(confirm, color = Kino.danger) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(androidx.compose.ui.res.stringResource(R.string.cancel), color = Kino.muted) } })
 }
 
 @Composable

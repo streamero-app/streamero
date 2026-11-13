@@ -61,6 +61,21 @@ class QuickConnectTest {
         assertTrue(states.last() is QuickConnectState.Failed)
     }
 
+    @Test fun anUnreadableAnswerFailsInsteadOfCrashing() = runTest {
+        val broken = object : QuickConnectApi {
+            override suspend fun start(): QuickConnectStart = throw IllegalStateException("not JSON")
+            override suspend fun poll(secret: String): AuthResult? = null
+        }
+        val states = quickConnectFlow(broken, clock()).toList()
+        assertTrue((states.single() as QuickConnectState.Failed).error is IllegalStateException)
+    }
+
+    @Test fun anUnexpectedPollErrorCountsAsAFailure() = runTest {
+        val fake = Fake(MutableList(5) { { throw RuntimeException("odd") } }, clock = clock())
+        val states = quickConnectFlow(fake, clock(), maxFailures = 2).toList()
+        assertTrue(states.last() is QuickConnectState.Failed)
+    }
+
     @Test fun stopsAfterSeveralUnusedCodes() = runTest {
         val fake = Fake(mutableListOf(), ttlSeconds = 10, clock = clock())
         val states = quickConnectFlow(fake, clock(), maxCodes = 2).toList()

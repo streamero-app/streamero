@@ -30,6 +30,13 @@ val json = Json { ignoreUnknownKeys = true; explicitNulls = false; encodeDefault
 class Api(baseUrl: String, @Volatile var token: String? = null) {
     val base: HttpUrl = baseUrl.trimEnd('/').toHttpUrl()
 
+    /**
+     * Called (on a background thread) when the server no longer accepts the session token:
+     * revoked from another device, expired, or the user was deleted. Wrong passwords or PINs
+     * are 401s too, but carry their own codes and are left to the screen that asked.
+     */
+    @Volatile var onUnauthorized: (() -> Unit)? = null
+
     val http: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
@@ -65,7 +72,9 @@ class Api(baseUrl: String, @Volatile var token: String? = null) {
                 val text = resp.body?.string().orEmpty()
                 if (!resp.isSuccessful) {
                     val err = runCatching { json.decodeFromString(ApiErrorBody.serializer(), text) }.getOrNull()
-                    throw ApiException(resp.code, err?.code ?: "generic", err?.message ?: "HTTP ${resp.code}")
+                    val e = ApiException(resp.code, err?.code ?: "generic", err?.message ?: "HTTP ${resp.code}")
+                    if (isSessionRejected(e) && token != null) onUnauthorized?.invoke()
+                    throw e
                 }
                 if (out == null || text.isEmpty()) null else json.decodeFromString(out, text)
             }
@@ -229,6 +238,8 @@ class Api(baseUrl: String, @Volatile var token: String? = null) {
     suspend fun saveEnhancements(e: Enhancements): Enhancements = put("enhancements", e)
 
     companion object {
+        /** The server refused the session itself (not a wrong password, PIN or code). */
+        fun isSessionRejected(e: ApiException) = e.status == 401 && e.code == "unauthenticated"
         val JSON = "application/json".toMediaType()
         val EMPTY: RequestBody = ByteArray(0).toRequestBody(null)
         @Suppress("unused") private val keep = String.serializer()
