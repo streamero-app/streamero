@@ -31,7 +31,9 @@ struct MusicLibraryView: View {
     let client: MediaClient
     @Environment(AppState.self) private var app
     @State private var tab = "album"
-    @State private var page: ItemPage?
+    @State private var items: [ItemSummary] = []
+    @State private var total = -1
+    @State private var loading = false
     @State private var error: Error?
 
     var body: some View {
@@ -45,22 +47,23 @@ struct MusicLibraryView: View {
                 }
                 Button { Task { await shuffleAll() } } label: { Label("shuffle_all", systemImage: "shuffle") }.buttonStyle(PrimaryButtonStyle())
                 ErrorLine(error: error)
-                if page == nil && error == nil { LoadingView() }
+                if total < 0 && error == nil { LoadingView() }
                 content
+                if loading && total >= 0 { LoadingView() }
             }
             .padding(.horizontal, 20).padding(.bottom, 20)
         }
         .background(Theme.background)
         .navigationBarTitleDisplayMode(.inline)
-        .task(id: tab) { await load() }
+        .task(id: tab) { await load(reset: true) }
     }
 
     @ViewBuilder private var content: some View {
-        let items = page?.items ?? []
         if tab == "track" {
             LazyVGrid(columns: trackColumns, spacing: 0) {
-                ForEach(Array(items.enumerated()), id: \.element.id) { i, _ in
+                ForEach(Array(items.enumerated()), id: \.element.id) { i, item in
                     TrackRow(tracks: items, index: i, showAlbum: true, client: client)
+                        .task(id: item.id) { await loadMoreIfLast(item) }
                 }
             }
         } else {
@@ -77,21 +80,41 @@ struct MusicLibraryView: View {
                         }
                     }
                     .buttonStyle(CardPressStyle())
+                    .task(id: item.id) { await loadMoreIfLast(item) }
                 }
             }
         }
+    }
+
+    /// Infinite scroll, like the other libraries: the next page loads when the last item shows.
+    private func loadMoreIfLast(_ item: ItemSummary) async {
+        if item.id == items.last?.id && total > items.count { await load(reset: false) }
     }
 
     private func tabButton(_ key: String, _ title: LocalizedStringKey) -> some View {
         Button { tab = key } label: { Text(title) }.buttonStyle(ToggleCapsuleStyle(active: tab == key))
     }
 
-    private func load() async {
-        page = nil
+    private func load(reset: Bool) async {
+        guard reset || !loading else { return }
+        if reset {
+            items = []
+            total = -1
+        }
+        loading = true
+        defer { loading = false }
+        let kind = tab
         do {
-            page = try await client.items(library: library.id, query: ["kind": tab, "sort": "title", "limit": "200"])
+            let page = try await client.items(library: library.id,
+                                              query: ["kind": kind, "sort": "title", "limit": "100", "offset": String(items.count)])
+            guard kind == tab else { return }
+            let known = Set(items.map(\.id))
+            items += page.items.filter { !known.contains($0.id) }
+            total = page.total
             error = nil
-        } catch is CancellationError { return } catch { self.error = error }
+        } catch is CancellationError { return } catch {
+            if !Task.isCancelled { self.error = error }
+        }
     }
 
     private func shuffleAll() async {
