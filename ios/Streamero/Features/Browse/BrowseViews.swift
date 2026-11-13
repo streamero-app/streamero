@@ -261,7 +261,7 @@ struct LibraryTile: View {
 
 func episodeTitle(_ it: ItemSummary) -> String {
     guard let e = it.episodeNumber else { return it.title }
-    return "E\(String(format: "%02d", e)) · \(it.title)"
+    return String(format: Loc.string("episode.short %lld"), e) + " · " + it.title
 }
 
 struct EpisodeRow: View {
@@ -277,7 +277,7 @@ struct EpisodeRow: View {
                 .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Theme.border))
             VStack(alignment: .leading, spacing: 3) {
                 if let e = item.episodeNumber {
-                    Text("E\(String(format: "%02d", e))").font(.caption.weight(.semibold).monospacedDigit()).foregroundStyle(Theme.accent)
+                    Text("episode.short \(e)").font(.caption.weight(.semibold).monospacedDigit()).foregroundStyle(Theme.accent)
                 }
                 Text(item.title).font(.subheadline.weight(.medium)).foregroundStyle(Theme.text).lineLimit(2)
             }
@@ -328,11 +328,11 @@ struct QuickConnectApproveView: View {
         do {
             let device = try await client.authorizeQuickConnect(code: code.trimmingCharacters(in: .whitespaces))
             failed = false
-            message = String(localized: "quickConnect.approved \(device)")
+            message = String(format: Loc.string("quickConnect.approved %@"), device)
             code = ""
         } catch {
             failed = true
-            message = String(localized: "quickConnect.expired")
+            message = Loc.string("quickConnect.expired")
         }
     }
 }

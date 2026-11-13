@@ -22,7 +22,8 @@ func errorMessage(_ error: Error) -> Text {
     case "forbidden": return Text("err_forbidden")
     case "upstream_failed": return Text("err_upstream")
     default:
-        if let message = api.message, !message.isEmpty { return Text(verbatim: message) }
+        // The server's own message is English; unknown codes get a translated fallback.
+        if api.status == 0 || api.status >= 500 { return Text("err_network") }
         return Text("err_generic")
     }
 }
