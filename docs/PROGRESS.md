@@ -20,6 +20,9 @@ P4 — Web pregledavanje (u tijeku); izdanja v0.2.0 i **v0.3.0** objavljena. P0 
 - Branch pushan, PR #1 (`phase/P0-foundations` → `main`) otvoren; `main` je prazan početni commit spojen u P0 (repo je bio prazan). CI zelen: `server`, `web`, `e2e`, iOS `build` (prvi uspješan iOS build, artefakt `streamero-ipa`).
 - `scripts/gen-fixtures.sh`: filmovi (H.264, 4K HEVC 10-bit, HDR10, AV1, multi-audio + poglavlja + embedded/external SRT/ASS, verzije, trailer), serija sa zajedničkim introm (2×4 ep.), multi-episode, specials, daily, anime absolute, glazba (FLAC/MP3), fotke.
 
+## Android: popravci iz pregleda (branch `fix/android-review`, 2026-11-13)
+Player: greška → jedan ponovni pokušaj s H.264/AAC profilom pa poruka s „Pokušaj ponovno" (i Live TV; offline player javlja grešku), audio fokus, pauza u pozadini i PiP (enhancement `autoPip`), titlovi s naslovne stranice po indeksu traga, slikovni titlovi (PGS/VobSub) utisnuti kao na webu, tekstualni titlovi bez ponovnog učitavanja, izgled titlova iz postavki, zadnji napredak i „pogledano" na kraju, automatska sljedeća epizoda, HEVC samo uz Main10 dekoder. Isteklu sesiju (401) vraća na prijavu; preuzimanja po serveru i korisniku (stara se jednom sele na prvi račun); glazba kreće odmah; versionCode iz verzije (0.10.1 → 1001) i release bez ključa pada; potvrde i greške u administraciji, prevedene poruke i oznake, bez backupa tokena. Unit testovi; na uređaju/emulatoru nije isprobano.
+
 ## v0.10.1 (2026-11-11)
 Reprodukcija preskače verzije koje više nisu na disku (npr. epizodu koju je Sonarr premjestio iz `downloads`); kad nijedne nema, javlja `file_missing` i ponovno skenira biblioteku (#62).
 
