@@ -50,7 +50,6 @@ type session struct {
 	client  string
 	live    bool // no EXT-X-START: players join a live window at its edge
 	dir     string
-	cmd     *exec.Cmd
 	cancel  context.CancelFunc
 	lastHit time.Time
 	done    chan struct{}
