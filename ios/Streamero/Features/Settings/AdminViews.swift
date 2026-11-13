@@ -525,39 +525,65 @@ struct LogsPage: View {
     }
 }
 
+/// Signed-in devices: the account's own for everyone, every user's for administrators.
 struct DevicesPage: View {
     let client: MediaClient
+    @Environment(AppState.self) private var app
     @State private var sessions: [SessionInfo]?
     @State private var error: Error?
+    @State private var signingOut: SessionInfo?
 
     var body: some View {
-        AdminGuarded {
-            List {
-                if let error { ErrorLine(error: error) }
-                ForEach(sessions ?? []) { s in
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(verbatim: s.deviceName).font(.subheadline.weight(.semibold))
-                        Text(verbatim: "\(s.username) · \(s.client) · \(shortTime(s.lastSeenAt))").font(.footnote).foregroundStyle(Theme.textMuted)
-                        if !s.current {
-                            ConfirmButton(title: "sign_out") {
-                                Task {
-                                    try? await client.revokeSession(s.id)
-                                    await load()
-                                }
-                            }
-                        }
+        List {
+            Section {
+                Text(app.isAdmin ? LocalizedStringKey("devices.introAdmin") : LocalizedStringKey("devices.intro")).font(.subheadline).foregroundStyle(Theme.textMuted)
+                    .listRowBackground(Color.clear)
+            }
+            if let error { ErrorLine(error: error) }
+            if sessions == nil && error == nil { LoadingView().listRowBackground(Color.clear) }
+            ForEach(sessions ?? []) { s in
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
+                        Text(verbatim: s.deviceName.isEmpty ? Loc.string("devices.unknown") : s.deviceName)
+                            .font(.subheadline.weight(.semibold))
+                        if s.current { TagBadge(text: "devices.current", tone: .success) }
+                    }
+                    Text(verbatim: [app.isAdmin ? s.username : nil, s.client, shortTime(s.lastSeenAt)].compactMap { $0 }.joined(separator: " · "))
+                        .font(.footnote).foregroundStyle(Theme.textMuted)
+                }
+                .swipeActions {
+                    if !s.current {
+                        Button("devices.signOut", role: .destructive) { signingOut = s }
+                    }
+                }
+                .contextMenu {
+                    if !s.current {
+                        Button("devices.signOut", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive) { signingOut = s }
                     }
                 }
             }
-            .task { await load() }
         }
+        .confirmationDialog(Text(verbatim: signingOut.map { String(format: Loc.string("devices.confirmSignOut %@"), $0.deviceName) } ?? ""),
+                            isPresented: Binding(get: { signingOut != nil }, set: { if !$0 { signingOut = nil } }),
+                            titleVisibility: .visible, presenting: signingOut) { s in
+            Button("devices.signOut", role: .destructive) {
+                Task {
+                    do {
+                        try await client.revokeSession(s.id)
+                        await load()
+                    } catch { self.error = error }
+                }
+            }
+        }
+        .refreshable { await load() }
+        .task { await load() }
     }
 
     private func load() async {
         do {
             sessions = try await client.sessions()
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError { return } catch { self.error = error }
     }
 }
 

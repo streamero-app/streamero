@@ -5,6 +5,12 @@ extension SettingsPage {
     var label: LocalizedStringKey {
         switch self {
         case .account: "my_account"
+        case .security: "twofa.title"
+        case .profiles: "profiles.manage"
+        case .notifications: "notifications.title"
+        case .backups: "backups.title"
+        case .liveTvSources: "livetvAdmin.sources"
+        case .signIn: "sso.pageTitle"
         case .playback: "playback"
         case .subtitles: "subtitles"
         case .home: "home_screen"
@@ -29,6 +35,12 @@ extension SettingsPage {
     var icon: String {
         switch self {
         case .account: "person"
+        case .security: "lock.shield"
+        case .profiles: "person.crop.square.on.square.angled"
+        case .notifications: "bell"
+        case .backups: "externaldrive.badge.timemachine"
+        case .liveTvSources: "antenna.radiowaves.left.and.right"
+        case .signIn: "person.badge.key"
         case .playback: "film"
         case .subtitles: "captions.bubble"
         case .home: "house"
@@ -158,7 +170,7 @@ struct SettingsPageView: View {
 
     var body: some View {
         Group {
-            if page.isAdminOnly && !app.isAdmin {
+            if (page.isAdminOnly && !app.isAdmin) || (page.isPersonal && app.isKid) {
                 ForbiddenView()
             } else {
                 content
@@ -173,6 +185,12 @@ struct SettingsPageView: View {
     @ViewBuilder private var content: some View {
         switch page {
         case .account: AccountPage(client: client)
+        case .security: TwoFactorPage(client: client)
+        case .profiles: ProfilesPage(client: client)
+        case .notifications: NotificationsPage(client: client)
+        case .backups: BackupsPage(client: client)
+        case .liveTvSources: LiveTvSourcesPage(client: client)
+        case .signIn: SignInSettingsPage(client: client)
         case .playback: PlaybackPage(client: client)
         case .subtitles: SubtitleLookPage(client: client)
         case .home: HomeSectionsPage(client: client)

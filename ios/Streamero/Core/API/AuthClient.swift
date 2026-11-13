@@ -116,6 +116,30 @@ struct AuthClient {
         }
     }
 
+    /// Checks an invite link; the server answers with its name when the invite is still valid.
+    func invite(token: String) async throws -> Components.Schemas.InviteInfo {
+        switch try await client.getInvite(path: .init(token: token)) {
+        case .ok(let ok):
+            return try ok.body.json
+        case .default(let status, let response):
+            throw APIError(status: status, code: (try? response.body.json.code) ?? "http_\(status)")
+        }
+    }
+
+    /// Creates an account from an invite and signs it in (returns the session token).
+    func acceptInvite(token: String, username: String, password: String) async throws -> (String, Components.Schemas.User) {
+        let device = await Self.device
+        let body = Components.Schemas.AcceptInviteRequest(username: username, password: password, useCookie: false, device: device)
+        switch try await client.acceptInvite(path: .init(token: token), body: .json(body)) {
+        case .ok(let ok):
+            let result = try ok.body.json
+            guard let token = result.token else { throw APIError(status: 200, code: "no_token") }
+            return (token, result.user)
+        case .default(let status, let response):
+            throw APIError(status: status, code: (try? response.body.json.code) ?? "http_\(status)")
+        }
+    }
+
     func me() async throws -> Components.Schemas.User {
         switch try await client.getMe() {
         case .ok(let ok):

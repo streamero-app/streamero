@@ -7154,6 +7154,4686 @@
         }
       }
     },
+    "profiles.add": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add profile"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dodaj profil"
+          }
+        }
+      }
+    },
+    "profiles.color": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Colour"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Boja"
+          }
+        }
+      }
+    },
+    "profiles.edit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uredi"
+          }
+        }
+      }
+    },
+    "profiles.intro": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Profiles let several people share this account (up to 6). A kids profile cannot open settings; leaving it needs the account password."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Profili omogućuju da više osoba dijeli ovaj račun (do 6). Dječji profil ne može otvoriti postavke; izlazak iz njega traži lozinku računa."
+          }
+        }
+      }
+    },
+    "profiles.kid": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kids"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dječji"
+          }
+        }
+      }
+    },
+    "profiles.kidProfile": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kids profile"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dječji profil"
+          }
+        }
+      }
+    },
+    "profiles.manage": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manage profiles"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upravljanje profilima"
+          }
+        }
+      }
+    },
+    "profiles.maxRating": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Age rating limit"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dobna granica"
+          }
+        }
+      }
+    },
+    "profiles.name": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ime"
+          }
+        }
+      }
+    },
+    "profiles.noLimit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No limit"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bez ograničenja"
+          }
+        }
+      }
+    },
+    "profiles.pinHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "4–6 digits. Leave empty to keep the current PIN."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "4–6 znamenki. Ostavite prazno da zadržite postojeći PIN."
+          }
+        }
+      }
+    },
+    "profiles.pinOptional": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PIN (optional)"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PIN (neobavezno)"
+          }
+        }
+      }
+    },
+    "profiles.pinProtected": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PIN"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PIN"
+          }
+        }
+      }
+    },
+    "profiles.removePin": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove PIN"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ukloni PIN"
+          }
+        }
+      }
+    },
+    "twofa.code": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Code from the app"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kod iz aplikacije"
+          }
+        }
+      }
+    },
+    "twofa.confirm": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirm and turn on"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Potvrdi i uključi"
+          }
+        }
+      }
+    },
+    "twofa.disable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn off"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Isključi"
+          }
+        }
+      }
+    },
+    "twofa.enable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn on"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uključi"
+          }
+        }
+      }
+    },
+    "twofa.enabledText": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign-in asks for a code from your authenticator app. To turn it off, confirm your password."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prijava traži kod iz aplikacije za autentifikaciju. Za isključivanje potvrdite lozinku."
+          }
+        }
+      }
+    },
+    "twofa.intro": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protect your account with a code from an authenticator app (Google Authenticator, Microsoft Authenticator, 1Password, Bitwarden…) in addition to your password."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zaštitite račun kodom iz aplikacije za autentifikaciju (Google Authenticator, Microsoft Authenticator, 1Password, Bitwarden…) uz lozinku."
+          }
+        }
+      }
+    },
+    "twofa.manual": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Or enter this key manually:"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ili ručno upišite ovaj ključ:"
+          }
+        }
+      }
+    },
+    "twofa.off": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Isključena"
+          }
+        }
+      }
+    },
+    "twofa.on": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uključena"
+          }
+        }
+      }
+    },
+    "twofa.openApp": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open in authenticator app"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otvori u aplikaciji za autentifikaciju"
+          }
+        }
+      }
+    },
+    "twofa.qrAlt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "QR code for the authenticator app"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "QR kod za aplikaciju za autentifikaciju"
+          }
+        }
+      }
+    },
+    "twofa.recoveryText": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Each code can be used once instead of an app code, e.g. if you lose your phone. They will not be shown again. Other devices were signed out."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Svaki kod se može jednom upotrijebiti umjesto koda iz aplikacije, npr. ako izgubite mobitel. Više se neće prikazati. Ostali uređaji su odjavljeni."
+          }
+        }
+      }
+    },
+    "twofa.recoveryTitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save these recovery codes"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spremite ove kodove za oporavak"
+          }
+        }
+      }
+    },
+    "twofa.step1": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scan the QR code with your authenticator app, or on this phone tap the link. Then enter the 6-digit code it shows."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skenirajte QR kod aplikacijom za autentifikaciju ili na ovom mobitelu dodirnite poveznicu. Zatim upišite 6-znamenkasti kod koji aplikacija prikazuje."
+          }
+        }
+      }
+    },
+    "twofa.title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Two-factor authentication"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dvofaktorska autentifikacija"
+          }
+        }
+      }
+    },
+    "devices.current": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This device"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ovaj uređaj"
+          }
+        }
+      }
+    },
+    "devices.intro": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Devices signed in to your account. Signing a device out takes effect immediately."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uređaji prijavljeni na vaš račun. Odjava uređaja djeluje odmah."
+          }
+        }
+      }
+    },
+    "devices.introAdmin": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Devices signed in to this server, for all users. Signing a device out takes effect immediately."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uređaji prijavljeni na ovaj server, za sve korisnike. Odjava uređaja djeluje odmah."
+          }
+        }
+      }
+    },
+    "devices.signOut": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign out"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odjavi"
+          }
+        }
+      }
+    },
+    "devices.unknown": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unknown device"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nepoznat uređaj"
+          }
+        }
+      }
+    },
+    "invites.invalidText": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This invite link has expired, was used up or was revoked. Ask for a new one."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ova pozivnica je istekla, potrošena je ili opozvana. Zatražite novu."
+          }
+        }
+      }
+    },
+    "invites.join": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create account"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Napravi račun"
+          }
+        }
+      }
+    },
+    "invites.joinIntro": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You were invited. Choose a username and password for your account."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pozvani ste. Odaberite korisničko ime i lozinku za svoj račun."
+          }
+        }
+      }
+    },
+    "common.cancel": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odustani"
+          }
+        }
+      }
+    },
+    "common.edit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uredi"
+          }
+        }
+      }
+    },
+    "common.yes": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yes"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Da"
+          }
+        }
+      }
+    },
+    "common.no": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ne"
+          }
+        }
+      }
+    },
+    "errors.invalid_username": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usernames may contain letters, digits, spaces and . _ - @"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Korisničko ime smije sadržavati slova, brojeve, razmake i . _ - @"
+          }
+        }
+      }
+    },
+    "errors.password_mismatch": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The passwords do not match."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lozinke se ne podudaraju."
+          }
+        }
+      }
+    },
+    "notifications.add": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add target"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dodaj odredište"
+          }
+        }
+      }
+    },
+    "notifications.appToken": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App token"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Token aplikacije"
+          }
+        }
+      }
+    },
+    "notifications.enabled": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enabled"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uključeno"
+          }
+        }
+      }
+    },
+    "notifications.event_item.added": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New titles"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nove naslove"
+          }
+        }
+      }
+    },
+    "notifications.event_login.failed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Failed sign-ins"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neuspjele prijave"
+          }
+        }
+      }
+    },
+    "notifications.event_login.succeeded": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign-ins"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prijave"
+          }
+        }
+      }
+    },
+    "notifications.event_playback.started": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Playback started"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Početak gledanja"
+          }
+        }
+      }
+    },
+    "notifications.event_scan.failed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Failed scans"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neuspjela skeniranja"
+          }
+        }
+      }
+    },
+    "notifications.events": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send for"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Šalji za"
+          }
+        }
+      }
+    },
+    "notifications.help_discord": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Channel settings → Integrations → Webhooks → New webhook → Copy URL."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Postavke kanala → Integracije → Webhookovi → Novi webhook → Kopiraj URL."
+          }
+        }
+      }
+    },
+    "notifications.help_generic": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Receives a JSON POST: event, title, message, data, server."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prima JSON POST: event, title, message, data, server."
+          }
+        }
+      }
+    },
+    "notifications.help_gotify": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Server address; the app token comes from Gotify → Apps."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adresa servera; app token dobiješ u Gotify → Apps."
+          }
+        }
+      }
+    },
+    "notifications.help_ntfy": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The full topic URL; add an access token for protected topics."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puni URL teme; za zaštićene teme dodaj access token."
+          }
+        }
+      }
+    },
+    "notifications.intro": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send server events to Discord, ntfy, Gotify or any webhook: new titles, who started watching, sign-ins."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Šalji događaje sa servera na Discord, ntfy, Gotify ili bilo koji webhook: novi naslovi, tko je počeo gledati, prijave."
+          }
+        }
+      }
+    },
+    "notifications.kind": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Service"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Servis"
+          }
+        }
+      }
+    },
+    "notifications.kind_discord": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discord"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discord"
+          }
+        }
+      }
+    },
+    "notifications.kind_generic": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Webhook (JSON)"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Webhook (JSON)"
+          }
+        }
+      }
+    },
+    "notifications.kind_gotify": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gotify"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gotify"
+          }
+        }
+      }
+    },
+    "notifications.kind_ntfy": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ntfy"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ntfy"
+          }
+        }
+      }
+    },
+    "notifications.name": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Naziv"
+          }
+        }
+      }
+    },
+    "notifications.namePlaceholder": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discord #movies"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discord #filmovi"
+          }
+        }
+      }
+    },
+    "notifications.none": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No targets yet."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Još nema odredišta."
+          }
+        }
+      }
+    },
+    "notifications.test": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send test"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pošalji test"
+          }
+        }
+      }
+    },
+    "notifications.testSent": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Test message sent."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Testna poruka poslana."
+          }
+        }
+      }
+    },
+    "notifications.title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notifications"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Obavijesti"
+          }
+        }
+      }
+    },
+    "notifications.token": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Access token (optional)"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Access token (neobavezno)"
+          }
+        }
+      }
+    },
+    "notifications.tokenStored": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stored — leave empty to keep"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spremljen — ostavi prazno da ostane"
+          }
+        }
+      }
+    },
+    "notifications.url": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "URL"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "URL"
+          }
+        }
+      }
+    },
+    "notifications.urlHint_discord": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "https://discord.com/api/webhooks/…"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "https://discord.com/api/webhooks/…"
+          }
+        }
+      }
+    },
+    "notifications.urlHint_generic": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "https://example.com/hook"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "https://primjer.hr/hook"
+          }
+        }
+      }
+    },
+    "notifications.urlHint_gotify": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "https://gotify.example.com"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "https://gotify.primjer.hr"
+          }
+        }
+      }
+    },
+    "notifications.urlHint_ntfy": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "https://ntfy.sh/my-streamero"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "https://ntfy.sh/moj-streamero"
+          }
+        }
+      }
+    },
+    "backups.delete": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Obriši"
+          }
+        }
+      }
+    },
+    "backups.deleteConfirm": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete this backup file? This cannot be undone."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Obrisati ovu datoteku kopije? To se ne može poništiti."
+          }
+        }
+      }
+    },
+    "backups.download": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preuzmi"
+          }
+        }
+      }
+    },
+    "backups.duringScan": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "taken during a scan"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "napravljena tijekom skeniranja"
+          }
+        }
+      }
+    },
+    "backups.enabled": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Daily backup"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dnevna kopija"
+          }
+        }
+      }
+    },
+    "backups.enabledHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The worker writes one backup a day."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Worker jednom dnevno napravi kopiju."
+          }
+        }
+      }
+    },
+    "backups.includeImages": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Include artwork"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uključi slike"
+          }
+        }
+      }
+    },
+    "backups.includeImagesHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloaded posters and backdrops can be fetched again, so they are left out by default. Including them makes backups much larger."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preuzeti posteri i pozadine mogu se ponovno dohvatiti pa su prema zadanom izostavljeni. S njima su kopije puno veće."
+          }
+        }
+      }
+    },
+    "backups.intro": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A backup holds the whole database (users, libraries, watch history, settings) and the config folder. Media files are never included."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopija sadrži cijelu bazu (korisnike, biblioteke, povijest gledanja, postavke) i mapu s konfiguracijom. Medijske datoteke nikad nisu uključene."
+          }
+        }
+      }
+    },
+    "backups.keepLast": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Čuvaj"
+          }
+        }
+      }
+    },
+    "backups.keepLastHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How many scheduled and manual backups to keep. Uploaded and pre-restore backups are only deleted by hand."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Koliko zakazanih i ručnih kopija čuvati. Učitane kopije i one prije vraćanja brišu se samo ručno."
+          }
+        }
+      }
+    },
+    "backups.kind_manual": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manual"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ručna"
+          }
+        }
+      }
+    },
+    "backups.kind_pre_restore": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Before restore"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prije vraćanja"
+          }
+        }
+      }
+    },
+    "backups.kind_scheduled": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scheduled"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zakazana"
+          }
+        }
+      }
+    },
+    "backups.kind_uploaded": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uploaded"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Učitana"
+          }
+        }
+      }
+    },
+    "backups.none": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No backups yet."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Još nema kopija."
+          }
+        }
+      }
+    },
+    "backups.now": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back up now"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Napravi kopiju sada"
+          }
+        }
+      }
+    },
+    "backups.problem_newer_schema": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Newer version"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Novija verzija"
+          }
+        }
+      }
+    },
+    "backups.problem_unreadable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unreadable"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nečitljiva"
+          }
+        }
+      }
+    },
+    "backups.restore": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vrati"
+          }
+        }
+      }
+    },
+    "backups.restoreConfirm": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore and restart"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vrati i ponovno pokreni"
+          }
+        }
+      }
+    },
+    "backups.restoreWarning": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Everything in the database is replaced with this backup: users, libraries, watch history and settings made after it are lost. A safety backup of the current state is written first, then the server restarts."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sve u bazi zamjenjuje se ovom kopijom: korisnici, biblioteke, povijest gledanja i postavke nastale nakon nje bit će izgubljeni. Najprije se sprema sigurnosna kopija trenutnog stanja, zatim se server ponovno pokreće."
+          }
+        }
+      }
+    },
+    "backups.running": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Backing up…"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Izrada kopije…"
+          }
+        }
+      }
+    },
+    "backups.scanWarning": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A library scan is running. The backup stays consistent, but titles still being added may be missing from it."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skeniranje biblioteke je u tijeku. Kopija ostaje dosljedna, ali naslovi koji se upravo dodaju možda neće biti u njoj."
+          }
+        }
+      }
+    },
+    "backups.scheduleTitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schedule"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raspored"
+          }
+        }
+      }
+    },
+    "backups.title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Backups"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sigurnosne kopije"
+          }
+        }
+      }
+    },
+    "backups.withArtwork": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "With artwork"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sa slikama"
+          }
+        }
+      }
+    },
+    "livetvAdmin.addGuide": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add guide"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dodaj vodič"
+          }
+        }
+      }
+    },
+    "livetvAdmin.addTuner": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add tuner"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dodaj tuner"
+          }
+        }
+      }
+    },
+    "livetvAdmin.deviceAddress": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Device address"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adresa uređaja"
+          }
+        }
+      }
+    },
+    "livetvAdmin.deviceAddressHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "IP address or URL of the HDHomeRun, e.g. http://192.168.1.50"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "IP adresa ili URL HDHomeRuna, npr. http://192.168.1.50"
+          }
+        }
+      }
+    },
+    "livetvAdmin.disabled": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Isključeno"
+          }
+        }
+      }
+    },
+    "livetvAdmin.enabled": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enabled"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uključeno"
+          }
+        }
+      }
+    },
+    "livetvAdmin.fileHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A path the server can read, inside the media folders or /config/livetv."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Putanja koju server može čitati, unutar mapa s medijima ili /config/livetv."
+          }
+        }
+      }
+    },
+    "livetvAdmin.fromFile": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "File on the server"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datoteka na serveru"
+          }
+        }
+      }
+    },
+    "livetvAdmin.fromUrl": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "From a URL"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "S adrese (URL)"
+          }
+        }
+      }
+    },
+    "livetvAdmin.guideFile": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guide file"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datoteka vodiča"
+          }
+        }
+      }
+    },
+    "livetvAdmin.guideUrl": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guide URL"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adresa vodiča"
+          }
+        }
+      }
+    },
+    "livetvAdmin.guideUrlHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plain or gzip-compressed (.xml.gz)."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Običan ili gzip (.xml.gz)."
+          }
+        }
+      }
+    },
+    "livetvAdmin.guides": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guide (XMLTV)"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vodič (XMLTV)"
+          }
+        }
+      }
+    },
+    "livetvAdmin.guidesIntro": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Programme listings in XMLTV format. Refreshed on a schedule; unchanged programmes are skipped."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Programski raspored u XMLTV formatu. Osvježava se po rasporedu; nepromijenjene emisije se preskaču."
+          }
+        }
+      }
+    },
+    "livetvAdmin.kind": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Type"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vrsta"
+          }
+        }
+      }
+    },
+    "livetvAdmin.kind_hdhomerun": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HDHomeRun"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HDHomeRun"
+          }
+        }
+      }
+    },
+    "livetvAdmin.kind_m3u": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "M3U playlist"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "M3U popis"
+          }
+        }
+      }
+    },
+    "livetvAdmin.name": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Naziv"
+          }
+        }
+      }
+    },
+    "livetvAdmin.noGuides": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No guides yet."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Još nema vodiča."
+          }
+        }
+      }
+    },
+    "livetvAdmin.noTuners": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No tuners yet."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Još nema tunera."
+          }
+        }
+      }
+    },
+    "livetvAdmin.notLoaded": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "not loaded yet"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "još nije učitano"
+          }
+        }
+      }
+    },
+    "livetvAdmin.playlistFile": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Playlist file"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datoteka popisa"
+          }
+        }
+      }
+    },
+    "livetvAdmin.playlistUrl": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Playlist URL"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adresa popisa"
+          }
+        }
+      }
+    },
+    "livetvAdmin.refreshChannels": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reload channels"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ponovno učitaj kanale"
+          }
+        }
+      }
+    },
+    "livetvAdmin.refreshHours": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refresh every (hours)"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Osvježi svakih (sati)"
+          }
+        }
+      }
+    },
+    "livetvAdmin.refreshNow": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refresh now"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Osvježi sada"
+          }
+        }
+      }
+    },
+    "livetvAdmin.refreshQueued": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refresh started."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Osvježavanje je pokrenuto."
+          }
+        }
+      }
+    },
+    "livetvAdmin.source": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Source"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Izvor"
+          }
+        }
+      }
+    },
+    "livetvAdmin.test": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Test"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Provjeri"
+          }
+        }
+      }
+    },
+    "livetvAdmin.timezone": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Time zone"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vremenska zona"
+          }
+        }
+      }
+    },
+    "livetvAdmin.timezoneHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only for times without an offset. Empty = UTC."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Samo za vremena bez pomaka. Prazno = UTC."
+          }
+        }
+      }
+    },
+    "livetvAdmin.tunerCount": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tuners"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tuneri"
+          }
+        }
+      }
+    },
+    "livetvAdmin.tunerCountHdhr": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empty = as many as the device has."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prazno = koliko ih uređaj ima."
+          }
+        }
+      }
+    },
+    "livetvAdmin.tunerCountM3u": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Streams your provider allows at once (0 = unlimited)."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Koliko streamova pružatelj dopušta odjednom (0 = neograničeno)."
+          }
+        }
+      }
+    },
+    "livetvAdmin.tuners": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tuners"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tuneri"
+          }
+        }
+      }
+    },
+    "livetvAdmin.tunersIntro": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Where channels come from: an M3U playlist from your provider, or an HDHomeRun on your network. The tuner count limits how many channels play or record at once."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odakle dolaze kanali: M3U popis od pružatelja ili HDHomeRun u tvojoj mreži. Broj tunera ograničava koliko se kanala istodobno gleda ili snima."
+          }
+        }
+      }
+    },
+    "livetvAdmin.unlimited": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "unlimited streams"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "neograničeno streamova"
+          }
+        }
+      }
+    },
+    "livetvAdmin.userAgent": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "User agent"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Korisnički agent (User-Agent)"
+          }
+        }
+      }
+    },
+    "livetvAdmin.userAgentHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only if your provider asks for a specific one."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Samo ako ga pružatelj traži."
+          }
+        }
+      }
+    },
+    "sso.addProvider": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add provider"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dodaj pružatelja"
+          }
+        }
+      }
+    },
+    "sso.adminGroup": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Administrator group"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grupa administratora"
+          }
+        }
+      }
+    },
+    "sso.adminGroupHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Members become administrators; others lose admin rights. Empty: managed in Streamero."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Članovi postaju administratori, ostali gube administratorska prava. Prazno: upravlja se u Streameru."
+          }
+        }
+      }
+    },
+    "sso.allowed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "May sign in"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Smije se prijaviti"
+          }
+        }
+      }
+    },
+    "sso.allowedGroup": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allowed group"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dopuštena grupa"
+          }
+        }
+      }
+    },
+    "sso.allowedGroupHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only members may sign in. Empty: everyone the provider signs in."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prijaviti se smiju samo članovi. Prazno: svi koje pružatelj prijavi."
+          }
+        }
+      }
+    },
+    "sso.autoCreate": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create accounts automatically"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatski stvaraj račune"
+          }
+        }
+      }
+    },
+    "sso.autoCreateHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A first sign-in creates a Streamero user. Otherwise only linked users can sign in."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prva prijava stvara Streamero korisnika. Inače se mogu prijaviti samo povezani korisnici."
+          }
+        }
+      }
+    },
+    "sso.baseDn": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Base DN"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bazni DN"
+          }
+        }
+      }
+    },
+    "sso.bindDn": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bind DN (service account)"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bind DN (servisni račun)"
+          }
+        }
+      }
+    },
+    "sso.bindPassword": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bind password"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bind lozinka"
+          }
+        }
+      }
+    },
+    "sso.caCert": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trusted CA certificate (PEM, optional)"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pouzdani CA certifikat (PEM, neobavezno)"
+          }
+        }
+      }
+    },
+    "sso.clientId": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Client ID"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Client ID"
+          }
+        }
+      }
+    },
+    "sso.clientSecret": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Client secret"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tajni ključ klijenta"
+          }
+        }
+      }
+    },
+    "sso.disablePassword": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn off password sign-in"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Isključi prijavu lozinkom"
+          }
+        }
+      }
+    },
+    "sso.disablePasswordHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only single sign-on and LDAP accounts can sign in. Needs an administrator who can already sign in that way."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prijaviti se mogu samo računi jedinstvene prijave i LDAP-a. Treba administrator koji se već može tako prijaviti."
+          }
+        }
+      }
+    },
+    "sso.disabled": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Isključeno"
+          }
+        }
+      }
+    },
+    "sso.emailAttr": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "E-mail attribute"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atribut e-pošte"
+          }
+        }
+      }
+    },
+    "sso.emailClaim": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "E-mail claim"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claim za e-poštu"
+          }
+        }
+      }
+    },
+    "sso.enabled": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uključeno"
+          }
+        }
+      }
+    },
+    "sso.enabledHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shown on the sign-in page."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prikazuje se na stranici prijave."
+          }
+        }
+      }
+    },
+    "sso.enabledLabel": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enabled"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uključen"
+          }
+        }
+      }
+    },
+    "sso.groupAttr": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Group membership attribute"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atribut članstva u grupama"
+          }
+        }
+      }
+    },
+    "sso.groupFilter": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Group filter (optional)"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filtar grupa (neobavezno)"
+          }
+        }
+      }
+    },
+    "sso.groupFilterHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search groups instead of reading memberOf, e.g. (&(objectClass=groupOfNames)(member={dn}))."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pretraži grupe umjesto čitanja memberOf, npr. (&(objectClass=groupOfNames)(member={dn}))."
+          }
+        }
+      }
+    },
+    "sso.groups": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Groups"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grupe"
+          }
+        }
+      }
+    },
+    "sso.groupsClaim": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Groups claim"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claim za grupe"
+          }
+        }
+      }
+    },
+    "sso.groupsClaimHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A dotted path works too, e.g. realm_access.roles."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Može i putanja s točkama, npr. realm_access.roles."
+          }
+        }
+      }
+    },
+    "sso.id": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ID"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ID"
+          }
+        }
+      }
+    },
+    "sso.idHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lower-case letters, digits and dashes. Part of the redirect URI; cannot be changed later."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mala slova, znamenke i crtice. Dio je redirect URI-ja; kasnije se ne može mijenjati."
+          }
+        }
+      }
+    },
+    "sso.intro": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Let people sign in with your identity provider (OpenID Connect) or directory (LDAP / Active Directory)."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Omogući prijavu preko pružatelja identiteta (OpenID Connect) ili imenika (LDAP / Active Directory)."
+          }
+        }
+      }
+    },
+    "sso.issuer": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Issuer URL"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "URL izdavatelja (issuer)"
+          }
+        }
+      }
+    },
+    "sso.issuerHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "For Microsoft use your tenant: https://login.microsoftonline.com/<tenant-id>/v2.0"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Za Microsoft koristi svoj tenant: https://login.microsoftonline.com/<tenant-id>/v2.0"
+          }
+        }
+      }
+    },
+    "sso.label": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Button label"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Natpis gumba"
+          }
+        }
+      }
+    },
+    "sso.labelHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shown as “Continue with …” on the sign-in page."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prikazuje se kao „Nastavi s …“ na stranici prijave."
+          }
+        }
+      }
+    },
+    "sso.ldapAdminGroupHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Group DN whose members are administrators. Empty: managed in Streamero."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DN grupe čiji su članovi administratori. Prazno: upravlja se u Streameru."
+          }
+        }
+      }
+    },
+    "sso.ldapAllowedGroupHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Group DN required to sign in. Empty: anyone the filter finds."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DN grupe potrebne za prijavu. Prazno: svatko koga filtar pronađe."
+          }
+        }
+      }
+    },
+    "sso.ldapEnabled": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LDAP sign-in"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prijava LDAP-om"
+          }
+        }
+      }
+    },
+    "sso.ldapEnabledHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usernames that are not Streamero accounts are looked up in the directory; an account is created on first sign-in."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Korisnička imena koja nisu Streamero računi traže se u imeniku; račun se stvara pri prvoj prijavi."
+          }
+        }
+      }
+    },
+    "sso.ldapIntro": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Directory users sign in with their username and password in the normal fields, on the web, in the apps and in third-party apps. Their password is never stored."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Korisnici imenika se prijavljuju korisničkim imenom i lozinkom u uobičajenim poljima, na webu, u aplikacijama i u aplikacijama trećih strana. Lozinka se nikad ne sprema."
+          }
+        }
+      }
+    },
+    "sso.ldapTestOk": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connected and signed in with the service account."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spojeno i prijavljeno servisnim računom."
+          }
+        }
+      }
+    },
+    "sso.ldapTitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LDAP / Active Directory"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LDAP / Active Directory"
+          }
+        }
+      }
+    },
+    "sso.ldapUrl": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Server"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Server"
+          }
+        }
+      }
+    },
+    "sso.ldapUrlHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ldaps://host:636 or ldap://host:389"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ldaps://host:636 ili ldap://host:389"
+          }
+        }
+      }
+    },
+    "sso.linkByEmail": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Link by verified e-mail"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poveži po potvrđenoj e-pošti"
+          }
+        }
+      }
+    },
+    "sso.linkByEmailHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "An existing user with the same e-mail address is linked on first sign-in, if the provider says the address is verified."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Postojeći korisnik s istom adresom povezuje se pri prvoj prijavi, ako pružatelj kaže da je adresa potvrđena."
+          }
+        }
+      }
+    },
+    "sso.nameAttr": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Display name attribute"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atribut imena za prikaz"
+          }
+        }
+      }
+    },
+    "sso.nameClaim": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Display name claim"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claim za ime za prikaz"
+          }
+        }
+      }
+    },
+    "sso.needsPublicUrl": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set the public address above to get the redirect URI."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Postavi javnu adresu iznad da dobiješ redirect URI."
+          }
+        }
+      }
+    },
+    "sso.noProviders": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No providers yet."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Još nema pružatelja."
+          }
+        }
+      }
+    },
+    "sso.oidcIntro": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Works with Authentik, Keycloak, Authelia, Microsoft Entra ID, Google and any provider with OpenID Connect discovery."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Radi s Authentikom, Keycloakom, Autheliom, Microsoft Entra ID-om, Googleom i svakim pružateljem s OpenID Connect discoveryjem."
+          }
+        }
+      }
+    },
+    "sso.oidcTitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Single sign-on (OpenID Connect)"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jedinstvena prijava (OpenID Connect)"
+          }
+        }
+      }
+    },
+    "sso.plainWarning": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Without StartTLS or ldaps:// passwords travel unencrypted."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bez StartTLS-a ili ldaps:// lozinke putuju nešifrirane."
+          }
+        }
+      }
+    },
+    "sso.preset": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Provider type"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vrsta pružatelja"
+          }
+        }
+      }
+    },
+    "sso.publicUrl": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Public address"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Javna adresa"
+          }
+        }
+      }
+    },
+    "sso.publicUrlHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The address people open Streamero at. Single sign-on redirects back here, so it must match exactly."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adresa na kojoj se otvara Streamero. Jedinstvena prijava se vraća ovamo, pa mora točno odgovarati."
+          }
+        }
+      }
+    },
+    "sso.recoveryActive": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recovery mode is on (STREAMERO_PASSWORD_LOGIN_RECOVERY): administrators can sign in with a password. Remove it once you are back in."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uključen je način oporavka (STREAMERO_PASSWORD_LOGIN_RECOVERY): administratori se mogu prijaviti lozinkom. Ukloni ga čim ponovno uđeš."
+          }
+        }
+      }
+    },
+    "sso.redirectUri": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redirect URI to register"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redirect URI za registraciju"
+          }
+        }
+      }
+    },
+    "sso.replaceSecret": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Replace secret"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zamijeni tajnu"
+          }
+        }
+      }
+    },
+    "sso.scopes": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scopes"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scopeovi"
+          }
+        }
+      }
+    },
+    "sso.scopesHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Separated by spaces; openid is always included."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odvojeni razmakom; openid je uvijek uključen."
+          }
+        }
+      }
+    },
+    "sso.secretHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stored on the server and never shown again. Leave empty to keep the current one."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprema se na serveru i više se ne prikazuje. Ostavi prazno da zadržiš postojeću."
+          }
+        }
+      }
+    },
+    "sso.skipVerify": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skip certificate check"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preskoči provjeru certifikata"
+          }
+        }
+      }
+    },
+    "sso.skipVerifyHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unsafe: anyone on the network could read passwords. For testing only."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nesigurno: bilo tko na mreži mogao bi čitati lozinke. Samo za testiranje."
+          }
+        }
+      }
+    },
+    "sso.startTls": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StartTLS"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StartTLS"
+          }
+        }
+      }
+    },
+    "sso.startTlsHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Encrypt ldap:// connections. Not needed for ldaps://."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Šifriraj ldap:// veze. Nije potrebno za ldaps://."
+          }
+        }
+      }
+    },
+    "sso.testConnection": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Test connection"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Provjeri vezu"
+          }
+        }
+      }
+    },
+    "sso.testNoPkce": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It does not advertise PKCE (S256); Streamero sends it anyway."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ne najavljuje PKCE (S256); Streamero ga svejedno šalje."
+          }
+        }
+      }
+    },
+    "sso.testUser": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Look up a user (optional)"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Potraži korisnika (neobavezno)"
+          }
+        }
+      }
+    },
+    "sso.testUserHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No password is checked."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lozinka se ne provjerava."
+          }
+        }
+      }
+    },
+    "sso.title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign-in"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prijava"
+          }
+        }
+      }
+    },
+    "sso.trustEmail": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Treat e-mail as verified"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Smatraj e-poštu potvrđenom"
+          }
+        }
+      }
+    },
+    "sso.trustEmailHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "For providers that do not send email_verified (e.g. Microsoft). Only for a provider you control."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Za pružatelje koji ne šalju email_verified (npr. Microsoft). Samo za pružatelja kojim upravljaš."
+          }
+        }
+      }
+    },
+    "sso.userFilter": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "User filter"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filtar korisnika"
+          }
+        }
+      }
+    },
+    "sso.userFilterHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "{username} is replaced (escaped). Active Directory: (&(objectClass=user)(sAMAccountName={username}))"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "{username} se zamjenjuje (escapeano). Active Directory: (&(objectClass=user)(sAMAccountName={username}))"
+          }
+        }
+      }
+    },
+    "sso.usernameAttr": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Username attribute"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atribut korisničkog imena"
+          }
+        }
+      }
+    },
+    "sso.usernameAttrHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "uid, or sAMAccountName for Active Directory."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "uid, ili sAMAccountName za Active Directory."
+          }
+        }
+      }
+    },
+    "sso.usernameClaim": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Username claim"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claim za korisničko ime"
+          }
+        }
+      }
+    },
+    "backups.folder %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Folder on the server: %@"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mapa na serveru: %@"
+          }
+        }
+      }
+    },
+    "backups.restore_failed %@ %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restoring %1$@ failed (%2$@)."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vraćanje kopije %1$@ nije uspjelo (%2$@)."
+          }
+        }
+      }
+    },
+    "backups.restore_succeeded %@ %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restored %1$@ (%2$@)."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopija %1$@ je vraćena (%2$@)."
+          }
+        }
+      }
+    },
+    "backups.restore_running %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restoring %@… The server restarts when it is done."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vraćanje kopije %@… Server se ponovno pokreće kad završi."
+          }
+        }
+      }
+    },
+    "backups.safetyBackup %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The state before the restore is kept as %@."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stanje prije vraćanja sačuvano je kao %@."
+          }
+        }
+      }
+    },
+    "backups.skipped %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "missing tables: %@"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "nedostaju tablice: %@"
+          }
+        }
+      }
+    },
+    "backups.typeName %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Type %@ to confirm"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upiši %@ za potvrdu"
+          }
+        }
+      }
+    },
+    "devices.confirmSignOut %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign out “%@”? It will have to sign in again."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odjaviti uređaj „%@”? Morat će se ponovno prijaviti."
+          }
+        }
+      }
+    },
+    "invites.joinTitle %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Join %@"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pridruži se: %@"
+          }
+        }
+      }
+    },
+    "livetvAdmin.deleteGuideConfirm %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove “%@” and its programmes?"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ukloniti „%@” i njegove emisije?"
+          }
+        }
+      }
+    },
+    "livetvAdmin.deleteTunerConfirm %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove “%@” and its channels? Scheduled recordings on them are cancelled."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ukloniti „%@” i njegove kanale? Zakazane snimke na njima se otkazuju."
+          }
+        }
+      }
+    },
+    "profiles.confirmDelete %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete profile %@?"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Obrisati profil %@?"
+          }
+        }
+      }
+    },
+    "profiles.upTo %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "up to %lld+"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "do %lld+"
+          }
+        }
+      }
+    },
+    "sso.confirmDelete %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove %@? Accounts linked through it will no longer be able to use it."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ukloniti %@? Računi povezani preko njega više ga neće moći koristiti."
+          }
+        }
+      }
+    },
+    "sso.ldapTestFailed %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Failed: %@"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neuspjelo: %@"
+          }
+        }
+      }
+    },
+    "sso.testOk %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The provider answered correctly (%lld signing keys)."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pružatelj je ispravno odgovorio (%lld ključeva za potpis)."
+          }
+        }
+      }
+    },
+    "errors.username_taken": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That username is already taken."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To korisničko ime je zauzeto."
+          }
+        }
+      }
+    },
+    "errors.invalid_request": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Please check the entered values (passwords need at least 8 characters)."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Provjerite unesene vrijednosti (lozinka mora imati najmanje 8 znakova)."
+          }
+        }
+      }
+    },
+    "errors.not_found": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not found — it may have been removed already."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nije pronađeno — možda je već uklonjeno."
+          }
+        }
+      }
+    },
+    "errors.invalid_totp": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The code is not correct or was already used."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kod nije ispravan ili je već iskorišten."
+          }
+        }
+      }
+    },
+    "errors.totp_enabled": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Two-factor authentication is already on."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dvofaktorska autentifikacija je već uključena."
+          }
+        }
+      }
+    },
+    "errors.totp_not_started": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start the setup again."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ponovno pokrenite postavljanje."
+          }
+        }
+      }
+    },
+    "errors.invalid_pin": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wrong PIN."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pogrešan PIN."
+          }
+        }
+      }
+    },
+    "errors.kid_profile": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not available in a kids profile."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nije dostupno u dječjem profilu."
+          }
+        }
+      }
+    },
+    "errors.too_many_profiles": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "An account can have at most 6 profiles."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Račun može imati najviše 6 profila."
+          }
+        }
+      }
+    },
+    "errors.invalid_notification_target": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check the service and URL (http or https; Gotify needs an app token)."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Provjeri servis i URL (http ili https; Gotify treba app token)."
+          }
+        }
+      }
+    },
+    "errors.notification_failed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The target did not accept the message. Check the URL and token."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odredište nije prihvatilo poruku. Provjeri URL i token."
+          }
+        }
+      }
+    },
+    "errors.invalid_url": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That address is not valid (use http:// or https://)."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adresa nije ispravna (koristi http:// ili https://)."
+          }
+        }
+      }
+    },
+    "errors.invalid_image": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That file is not a JPEG, PNG or GIF picture."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datoteka nije JPEG, PNG ili GIF slika."
+          }
+        }
+      }
+    },
+    "errors.image_too_large": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The picture is larger than 8 MB."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Slika je veća od 8 MB."
+          }
+        }
+      }
+    },
+    "errors.backup_newer_schema": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This backup was made by a newer Streamero version. Update the server first."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ovu kopiju napravila je novija verzija Streamera. Najprije ažuriraj server."
+          }
+        }
+      }
+    },
+    "errors.invalid_backup": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The file is not a readable Streamero backup."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datoteka nije ispravna Streamero sigurnosna kopija."
+          }
+        }
+      }
+    },
+    "errors.backup_busy": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Another backup or restore is running. Try again in a moment."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Već je u tijeku izrada ili vraćanje kopije. Pokušaj ponovno za trenutak."
+          }
+        }
+      }
+    },
+    "errors.backup_confirm_mismatch": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Type the backup name exactly to confirm."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Za potvrdu točno upiši naziv kopije."
+          }
+        }
+      }
+    },
+    "errors.no_sso_admin": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Link an administrator to single sign-on or LDAP first, or you could lock everyone out."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Najprije poveži administratora s jedinstvenom prijavom ili LDAP-om, inače bi svi ostali bez pristupa."
+          }
+        }
+      }
+    },
+    "errors.invalid_settings": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Please check the settings."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Provjeri postavke."
+          }
+        }
+      }
+    },
+    "errors.provider_unreachable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The provider could not be reached or answered incorrectly."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pružatelj nije dostupan ili je odgovorio neispravno."
+          }
+        }
+      }
+    },
+    "errors.no_local_password": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This account signs in through single sign-on or LDAP and has no Streamero password."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ovaj račun se prijavljuje jedinstvenom prijavom ili LDAP-om i nema Streamero lozinku."
+          }
+        }
+      }
+    },
+    "errors.rate_limited": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Too many attempts from your network. Wait a moment and try again."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Previše pokušaja s vaše mreže. Pričekajte trenutak pa pokušajte ponovno."
+          }
+        }
+      }
+    },
+    "livetvAdmin.channelsN %lld": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld channel"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld channels"
+                }
+              }
+            }
+          }
+        },
+        "hr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld kanal"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld kanala"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld kanala"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "livetvAdmin.programsN %lld": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld programme"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld programmes"
+                }
+              }
+            }
+          }
+        },
+        "hr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld emisija"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld emisije"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld emisija"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "livetvAdmin.tunersN %lld": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld tuner"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld tuners"
+                }
+              }
+            }
+          }
+        },
+        "hr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld tuner"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld tunera"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld tunera"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "livetvAdmin.everyHours %lld": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "every %lld hour"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "every %lld hours"
+                }
+              }
+            }
+          }
+        },
+        "hr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "svakih %lld sat"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "svaka %lld sata"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "svakih %lld sati"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "invite.confirmPassword": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirm password"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Potvrdi lozinku"
+          }
+        }
+      }
+    },
+    "sso.pageTitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign-in"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prijava"
+          }
+        }
+      }
+    },
+    "common.copied": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copied"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopirano"
+          }
+        }
+      }
+    },
+    "common.copy": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopiraj"
+          }
+        }
+      }
+    },
+    "common.share": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Podijeli"
+          }
+        }
+      }
+    },
+    "invite.have": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I have an invite"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Imam pozivnicu"
+          }
+        }
+      }
+    },
+    "invite.title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Join with an invite"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pridruži se pozivnicom"
+          }
+        }
+      }
+    },
+    "invite.intro": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paste the invite link you received (https://…/invite/…). The code on its own works too."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zalijepite poveznicu pozivnice koju ste dobili (https://…/invite/…). Može i samo kod."
+          }
+        }
+      }
+    },
+    "invite.linkPlaceholder": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invite link or code"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poveznica ili kod pozivnice"
+          }
+        }
+      }
+    },
+    "invite.badLink": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That does not look like an invite link."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To ne izgleda kao poveznica pozivnice."
+          }
+        }
+      }
+    },
+    "invite.continue": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nastavi"
+          }
+        }
+      }
+    },
+    "invite.paste": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paste"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zalijepi"
+          }
+        }
+      }
+    },
+    "invite.otherLink": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use a different invite"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Koristi drugu pozivnicu"
+          }
+        }
+      }
+    },
+    "livetvAdmin.sources": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live TV sources"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Izvori TV-a uživo"
+          }
+        }
+      }
+    },
+    "livetvAdmin.mappingOnWeb": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Matching channels to the guide, categories and DVR settings are edited in the web app (Settings → Live TV)."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Povezivanje kanala s vodičem, kategorije i DVR postavke uređuju se u web aplikaciji (Postavke → TV uživo)."
+          }
+        }
+      }
+    },
+    "notifications.confirmDelete %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete the target “%@”?"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Obrisati odredište „%@”?"
+          }
+        }
+      }
+    },
+    "profiles.limitReached %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "An account can have at most %lld profiles."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Račun može imati najviše %lld profila."
+          }
+        }
+      }
+    },
+    "profiles.nameHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use 1 to 40 characters."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upišite od 1 do 40 znakova."
+          }
+        }
+      }
+    },
+    "profiles.none": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No profiles yet. The account itself is the main profile."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Još nema profila. Sam račun je glavni profil."
+          }
+        }
+      }
+    },
+    "profiles.pinInvalid": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The PIN must have 4 to 6 digits."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PIN mora imati od 4 do 6 znamenki."
+          }
+        }
+      }
+    },
+    "sso.secretStored": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stored"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spremljeno"
+          }
+        }
+      }
+    },
+    "twofa.regenerateHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To get new recovery codes, turn two-factor authentication off and on again."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Za nove kodove za oporavak isključite pa ponovno uključite dvofaktorsku autentifikaciju."
+          }
+        }
+      }
+    },
+    "twofa.savedCodes": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I have saved the codes"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kodovi su spremljeni"
+          }
+        }
+      }
+    },
     "books.all": {
       "localizations": {
         "en": {
