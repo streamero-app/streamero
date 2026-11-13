@@ -12393,6 +12393,54 @@
           }
         }
       }
+    },
+    "books": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Books and comics"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Knjige i stripovi"
+          }
+        }
+      }
+    },
+    "audiobooks": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audiobooks"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audioknjige"
+          }
+        }
+      }
+    },
+    "photos": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photos"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotografije"
+          }
+        }
+      }
     }
   }
 }
