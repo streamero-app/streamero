@@ -45,7 +45,7 @@ import net.scyde.streamero.R
 import net.scyde.streamero.applyLanguage
 import kotlinx.coroutines.launch
 
-private enum class Gate { Loading, Server, Login, Profiles, Ready, Offline }
+private enum class Gate { Loading, Server, Login, Invite, Profiles, Ready, Offline }
 
 @Composable
 fun StreameroRoot(state: AppState) {
@@ -73,6 +73,12 @@ fun StreameroRoot(state: AppState) {
     LaunchedEffect(state.sessionExpired) {
         if (state.sessionExpired && (gate == Gate.Ready || gate == Gate.Profiles)) gate = Gate.Login
     }
+    // An invite link opened the app (streamero://invite…): only before anyone is signed in.
+    val invite by InviteBroker.pending.collectAsState()
+    var inviteFrom by remember { mutableStateOf(Gate.Login) }
+    LaunchedEffect(invite, gate) {
+        if (invite != null && (gate == Gate.Server || gate == Gate.Login)) { inviteFrom = gate; gate = Gate.Invite }
+    }
     val ctx = LocalContext.current
     val tv = remember { isTelevision(ctx) }
     val density = LocalDensity.current
@@ -83,8 +89,14 @@ fun StreameroRoot(state: AppState) {
             Surface(Modifier.fillMaxSize(), color = Kino.bg) {
                 when (gate) {
                     Gate.Loading -> Loading(Modifier.fillMaxSize())
-                    Gate.Server -> ServerScreen(state) { gate = Gate.Login }
-                    Gate.Login -> LoginScreen(state, onChangeServer = { gate = Gate.Server }) { scope.launch { gate = afterSignIn(state) } }
+                    Gate.Server -> ServerScreen(state, onInvite = { inviteFrom = Gate.Server; gate = Gate.Invite }) { gate = Gate.Login }
+                    Gate.Login -> LoginScreen(state, onChangeServer = { gate = Gate.Server }, onInvite = { inviteFrom = Gate.Login; gate = Gate.Invite }) { scope.launch { gate = afterSignIn(state) } }
+                    Gate.Invite -> {
+                        val initial = remember { InviteBroker.pending.value.also { InviteBroker.pending.value = null } }
+                        InviteScreen(state, initial, onBack = { gate = if (state.api == null) Gate.Server else if (inviteFrom == Gate.Server) Gate.Server else Gate.Login }) {
+                            scope.launch { gate = afterSignIn(state) }
+                        }
+                    }
                     Gate.Profiles -> ProfileGate(state) { gate = Gate.Ready }
                     Gate.Ready -> Main(state, onSignedOut = { gate = Gate.Login }, onSwitchProfile = { gate = Gate.Profiles })
                     Gate.Offline -> OfflineMain(state, retrying) { if (!retrying) attempt++ }

@@ -214,6 +214,16 @@ fun errorMessageRes(code: String): Int? = when (code) {
     "image_too_large" -> R.string.err_image_too_large
     "invalid_url" -> R.string.err_invalid_url
     "not_downloadable" -> R.string.err_not_downloadable
+    "too_many_profiles" -> R.string.err_too_many_profiles
+    "totp_enabled" -> R.string.err_totp_enabled
+    "totp_not_started" -> R.string.err_totp_not_started
+    "no_authenticator" -> R.string.err_no_authenticator
+    "backup_newer_schema" -> R.string.err_backup_newer_schema
+    "invalid_backup" -> R.string.err_invalid_backup
+    "backup_busy" -> R.string.err_backup_busy
+    "backup_confirm_mismatch" -> R.string.err_backup_confirm_mismatch
+    "no_sso_admin" -> R.string.err_no_sso_admin
+    "no_local_password" -> R.string.err_no_local_password
     else -> null
 }
 

@@ -37,7 +37,7 @@ import net.scyde.streamero.api.DeviceInfo
 import net.scyde.streamero.api.Profile
 
 @Composable
-private fun AuthFrame(title: String, subtitle: String?, content: @Composable ColumnScope.() -> Unit) {
+internal fun AuthFrame(title: String, subtitle: String?, content: @Composable ColumnScope.() -> Unit) {
     val tv = LocalTv.current
     Box(Modifier.fillMaxSize().background(Brush.radialGradient(listOf(Kino.accent.copy(alpha = 0.22f), Kino.bg), radius = 1400f))) {
         // On a TV the form keeps a readable width on the left instead of spanning the screen.
@@ -55,7 +55,7 @@ private fun AuthFrame(title: String, subtitle: String?, content: @Composable Col
 }
 
 @Composable
-fun ServerScreen(state: AppState, onConnected: () -> Unit) {
+fun ServerScreen(state: AppState, onInvite: () -> Unit = {}, onConnected: () -> Unit) {
     var url by remember { mutableStateOf("https://") }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<Throwable?>(null) }
@@ -78,11 +78,13 @@ fun ServerScreen(state: AppState, onConnected: () -> Unit) {
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Go), keyboardActions = KeyboardActions(onGo = { connect() }), modifier = Modifier.fillMaxWidth().initialFocus().dpadExit(), shape = CardShape)
         ErrorLine(error)
         PrimaryButton(stringResource(R.string.connect), enabled = !busy && url.length > 8, modifier = Modifier.fillMaxWidth(), onClick = connect)
+        // An invite link names its server, so it can be used before choosing one.
+        if (!LocalTv.current) TextButton(onClick = onInvite) { Text(stringResource(R.string.invite_have), color = Kino.muted) }
     }
 }
 
 @Composable
-fun LoginScreen(state: AppState, onChangeServer: () -> Unit, onSignedIn: () -> Unit) {
+fun LoginScreen(state: AppState, onChangeServer: () -> Unit, onInvite: () -> Unit = {}, onSignedIn: () -> Unit) {
     var user by remember { mutableStateOf("") }
     var pass by remember { mutableStateOf("") }
     var totp by remember { mutableStateOf("") }
@@ -159,6 +161,7 @@ fun LoginScreen(state: AppState, onChangeServer: () -> Unit, onSignedIn: () -> U
         }
         if (tv) GlassButton(stringResource(R.string.qc_use), { usePassword = false }, Modifier.fillMaxWidth())
         val changeServer: () -> Unit = { scope.launch { state.session.forgetServer(); state.attach(null); onChangeServer() } }
+        if (!tv) TextButton(onClick = onInvite) { Text(stringResource(R.string.invite_have), color = Kino.muted) }
         if (tv) GlassButton(stringResource(R.string.change_server), changeServer, Modifier.fillMaxWidth())
         else TextButton(onClick = changeServer) { Text(stringResource(R.string.change_server), color = Kino.muted) }
         disclaimer?.let { Text(it, color = Kino.muted, fontSize = 13.sp) }
