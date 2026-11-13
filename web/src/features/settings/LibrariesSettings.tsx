@@ -5,6 +5,7 @@ import { api, unwrap } from "@/api/client";
 import { Badge, Button, Card, ErrorText, TextField } from "@/components/ui";
 import type { Library } from "@/features/library/format";
 import { useDateTime } from "./SettingsLayout";
+import { useConfirm } from "@/components/Dialog";
 
 type Kind = Library["kind"];
 type Form = { id: string | null; name: string; kind: Kind; paths: string[] };
@@ -48,6 +49,7 @@ function FolderPicker({ onPick, onClose }: { onPick: (path: string) => void; onC
 }
 
 export function LibrariesSettings() {
+  const confirmDialog = useConfirm();
   const { t } = useTranslation();
   const qc = useQueryClient();
   const fmt = useDateTime();
@@ -129,7 +131,7 @@ export function LibrariesSettings() {
                   {t("profiles.edit")}
                 </Button>
                 <Button variant="danger" disabled={remove.isPending}
-                  onClick={() => window.confirm(t("libraries.confirmDelete", { name: l.name })) && remove.mutate(l.id)}>
+                  onClick={() => void confirmDialog({ message: t("libraries.confirmDelete", { name: l.name }), danger: true }).then((ok) => ok && remove.mutate(l.id))}>
                   {t("libraries.remove")}
                 </Button>
               </div>

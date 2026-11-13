@@ -7,7 +7,7 @@ import { api, unwrap } from "@/api/client";
 import type { components } from "@/api/schema.gen";
 import { Button, ErrorText, Spinner, TextField } from "@/components/ui";
 import { Mark } from "@/components/Logo";
-import { useMe } from "@/features/auth/useAuth";
+import { resetProfileData, useMe } from "@/features/auth/useAuth";
 
 export type Profile = components["schemas"]["Profile"];
 export const MAIN_COLOR = "#8a5a2b";
@@ -78,7 +78,8 @@ export function ProfileGatePage() {
       markProfilePicked();
       setTarget(null);
       setSecret("");
-      await qc.invalidateQueries();
+      // The new profile must never see the previous one's rows, not even for a moment.
+      await resetProfileData(qc);
       void navigate({ to: "/" });
     },
   });

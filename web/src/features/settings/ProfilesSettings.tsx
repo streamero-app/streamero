@@ -5,6 +5,7 @@ import { api, unwrap } from "@/api/client";
 import { Badge, Button, Card, ErrorText, TextField } from "@/components/ui";
 import { AvatarPicker } from "./AvatarPicker";
 import { type Profile } from "@/features/profiles/ProfileSwitcher";
+import { useConfirm } from "@/components/Dialog";
 
 const COLORS = ["#e5484d", "#f76b15", "#ffc53d", "#3dd68c", "#0090ff", "#8e4ec6", "#d6409f", "#6e6e80"];
 const RATINGS = [0, 6, 7, 12, 13, 15, 16, 18];
@@ -13,6 +14,7 @@ type Form = { name: string; color: string; isKid: boolean; maxRating: number | "
 const empty: Form = { name: "", color: COLORS[0]!, isKid: false, maxRating: "", pin: "", removePin: false };
 
 export function ProfilesSettings() {
+  const confirmDialog = useConfirm();
   const { t } = useTranslation();
   const qc = useQueryClient();
   const profiles = useQuery({ queryKey: ["profiles"], queryFn: async () => unwrap(await api.GET("/profiles")) });
@@ -68,7 +70,7 @@ export function ProfilesSettings() {
             </div>
             <Button variant="secondary" onClick={() => edit(p)}>{t("profiles.edit")}</Button>
             <Button variant="danger" disabled={remove.isPending}
-              onClick={() => window.confirm(t("profiles.confirmDelete", { name: p.name })) && remove.mutate(p.id)}>
+              onClick={() => void confirmDialog({ message: t("profiles.confirmDelete", { name: p.name }), danger: true }).then((ok) => ok && remove.mutate(p.id))}>
               {t("users.delete")}
             </Button>
           </li>

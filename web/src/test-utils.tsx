@@ -1,9 +1,18 @@
-import { render } from "@testing-library/react";
+import { render, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/react-router";
-import { vi } from "vitest";
+import { afterEach, expect, vi } from "vitest";
 import type { SystemInfo, User } from "@/api/client";
 import { routeTree } from "@/app/router";
+
+// Pages load lazily: a test that ends mid-navigation (a redirect still fetching its
+// chunk) would let the router update React after the DOM is gone. Let it settle
+// first (registered after Testing Library's cleanup, so it runs before it).
+const routers = new Set<{ state: { status: string } }>();
+afterEach(async () => {
+  for (const r of routers) await waitFor(() => expect(r.state.status).toBe("idle")).catch(() => undefined);
+  routers.clear();
+});
 
 export const testInfo = (over: Partial<SystemInfo> = {}): SystemInfo => ({
   id: "0190a8b0-0000-7000-8000-000000000000", name: "Test", product: "Streamero", version: "0.1.0",
@@ -41,6 +50,7 @@ export function renderApp(path: string, { info = testInfo(), me = null as User |
   qc.setQueryData(["system", "info"], info);
   qc.setQueryData(["auth", "me"], me);
   const router = createRouter({ routeTree, history: createMemoryHistory({ initialEntries: [path] }) });
+  routers.add(router);
   const utils = render(
     <QueryClientProvider client={qc}>
       <RouterProvider router={router} />

@@ -11,9 +11,10 @@ import { useEnhancements } from "@/features/enhancements/useEnhancements";
 import { formatDuration } from "@/features/library/format";
 import { useMusic } from "@/features/music/MusicPlayer";
 import type { components } from "@/api/schema.gen";
-import { ErrorText, Spinner } from "@/components/ui";
+import { Button, ErrorText, Spinner } from "@/components/ui";
 import { imageUrl } from "@/features/library/format";
 import { detectDeviceProfile, SAFE_PROFILE } from "./deviceProfile";
+import { isFullscreen, keyBelongsToControl, requestSequence, subtitleSrc, toggleFullscreen as toggleFs, tryPlay } from "./playback";
 import { useGroupPlayback } from "@/features/syncplay/useGroupPlayback";
 import { TogetherError, TogetherPanel, WaitingBanner } from "@/features/syncplay/WatchTogether";
 
@@ -136,6 +137,19 @@ export function PlayerPage() {
   const offsetRef = useRef(0); // HLS streams start at info.startMs; direct play starts at 0
   const lastSave = useRef(0);
   const firstStart = useRef(true);
+  // The title whose stream is in the <video> (null while the next one is being prepared):
+  // progress is only ever saved for it, never for the title the URL already points at.
+  const mediaRef = useRef<{ itemId: string; durationMs?: number } | null>(null);
+  const seq = useRef(requestSequence());
+  // Whether the stream being prepared should start playing (a viewer who paused stays paused).
+  const resumeRef = useRef(true);
+  const [blocked, setBlocked] = useState(false); // the browser refused to play without a tap
+  const [failed, setFailed] = useState(false); // the safe stream failed too
+  const lastPos = useRef(0);
+  const creditsDone = useRef(false);
+  const stopTimer = useRef<number | undefined>(undefined);
+  const trackEls = useRef<(HTMLTrackElement | null)[]>([]);
+  const pointerType = useRef("mouse");
   const [position, setPosition] = useState(0);
   const [buffered, setBuffered] = useState(0);
   const [paused, setPaused] = useState(true);
@@ -145,6 +159,8 @@ export function PlayerPage() {
   const [volume, setVolume] = useState(1);
   const [muted, setMuted] = useState(false);
   const [speed, setSpeed] = useState(1);
+  const speedRef = useRef(1);
+  speedRef.current = speed;
   const [fullscreen, setFullscreen] = useState(false);
   const [chrome, setChrome] = useState(true);
   const [panel, setPanel] = useState<"tracks" | "speed" | "together" | null>(search.together ? "together" : null);
@@ -161,17 +177,21 @@ export function PlayerPage() {
 
   // After the stream fails in this browser, ask for one that every browser decodes.
   const safeMode = useRef(false);
-  const start = useMutation({
-    mutationFn: async (v: { audioIndex?: number; startMs?: number; subtitleIndex?: number }) =>
+  const startMutation = useMutation({
+    mutationFn: async (v: { audioIndex?: number; startMs?: number; subtitleIndex?: number; itemId: string; seq: number }) =>
       unwrap(await api.POST("/items/{itemId}/playback", {
-        params: { path: { itemId } },
+        params: { path: { itemId: v.itemId } },
         // The version chosen on the title page stays for audio switches and seeks.
         body: {
           device: safeMode.current ? SAFE_PROFILE : detectDeviceProfile(), audioIndex: v.audioIndex, startMs: v.startMs === undefined ? undefined : Math.round(v.startMs),
           fileId: search.file, subtitleIndex: v.subtitleIndex,
         },
       })),
-    onSuccess: (data) => {
+    onSuccess: (data, v) => {
+      // An older request (an earlier seek, or the previous title) answered late.
+      if (!seq.current.isLatest(v.seq)) return;
+      mediaRef.current = { itemId: v.itemId, durationMs: data.durationMs };
+      setFailed(false);
       setInfo(data);
       // The viewer's subtitle preference (or the choice made on the title page) applies
       // when an item starts, not on audio switches or seeks.
@@ -182,6 +202,19 @@ export function PlayerPage() {
       }
     },
   });
+  /** Asks for a stream of the current title; only the newest request's answer is played. */
+  const start = {
+    isPending: startMutation.isPending,
+    error: startMutation.error,
+    mutate: (v: { audioIndex?: number; startMs?: number; subtitleIndex?: number }) =>
+      startMutation.mutate({ ...v, itemId, seq: seq.current.next() }),
+  };
+  /** Restarts the stream (audio switch, burned-in subtitle, seek past the encoded part), keeping play/pause. */
+  const restart = (v: { audioIndex?: number; startMs?: number; subtitleIndex?: number }) => {
+    const video = videoRef.current;
+    resumeRef.current = !!video && !video.paused;
+    start.mutate(v);
+  };
   // Messages and stop requests from an administrator (Settings → Dashboard).
   const [notice, setNotice] = useState<string | null>(null);
   const commands = useQuery({
@@ -197,7 +230,8 @@ export function PlayerPage() {
         save(true);
         setNotice(c.text || t("player.stoppedByAdmin"));
         // Leave the message on screen for a moment, then return to the title.
-        window.setTimeout(() => void navigate({ to: "/item/$itemId", params: { itemId }, replace: true }), 5000);
+        window.clearTimeout(stopTimer.current);
+        stopTimer.current = window.setTimeout(() => void navigate({ to: "/item/$itemId", params: { itemId }, replace: true }), 5000);
         return;
       }
       setNotice(c.text ?? "");
@@ -236,20 +270,45 @@ export function PlayerPage() {
     return v ? Math.round(offsetRef.current + v.currentTime * 1000) : 0;
   }, []);
 
+  /** Saves the position of the title that is actually in the player (see mediaRef). */
   const save = useCallback((force = false) => {
+    const media = mediaRef.current;
+    if (!media) return;
     const now = Date.now();
     if (!force && now - lastSave.current < SAVE_EVERY_MS) return;
     lastSave.current = now;
     const pos = absolute();
     if (pos <= 0) return;
     void api.PUT("/items/{itemId}/progress", {
-      params: { path: { itemId } },
-      body: { positionMs: pos, durationMs: info?.durationMs },
+      params: { path: { itemId: media.itemId } },
+      body: { positionMs: pos, durationMs: media.durationMs },
     }).then(() => qc.invalidateQueries({ queryKey: ["continue"] }));
-  }, [itemId, info?.durationMs, absolute, qc]);
+  }, [absolute, qc]);
+  const saveRef = useRef(save);
+  saveRef.current = save;
 
   // Start (honours ?start= from "play from beginning"); again when moving to the next title.
   useEffect(() => {
+    // Moving on (next episode, playlist): the previous title keeps its own position,
+    // and nothing is saved against the new one until its stream is in the player.
+    if (mediaRef.current && mediaRef.current.itemId !== itemId) {
+      saveRef.current(true);
+      mediaRef.current = null;
+      const video = videoRef.current;
+      hlsRef.current?.destroy();
+      hlsRef.current = null;
+      if (video) {
+        video.pause();
+        video.removeAttribute("src");
+      }
+    }
+    offsetRef.current = 0;
+    safeMode.current = false;
+    resumeRef.current = true;
+    creditsDone.current = false;
+    lastPos.current = 0;
+    setFailed(false);
+    setBlocked(false);
     firstStart.current = true;
     setInfo(null);
     setSubtitle(-1);
@@ -273,12 +332,32 @@ export function PlayerPage() {
     // The browser could not decode what it said it could (e.g. 10-bit HEVC or surround audio):
     // restart once at the same position as a stream every browser plays.
     const fallback = () => {
-      if (cancelled || safeMode.current) return;
+      if (cancelled) return;
+      // The stream every browser plays failed as well: say so instead of a black screen.
+      if (safeMode.current) {
+        setFailed(true);
+        return;
+      }
       safeMode.current = true;
       setNotice(t("player.fallback"));
-      start.mutate({ audioIndex, startMs: absolute(), subtitleIndex: info.burnedSubtitle ?? -1 });
+      resumeRef.current = resume || !video.paused;
+      start.mutate({ audioIndex, startMs: lastPos.current, subtitleIndex: info.burnedSubtitle ?? -1 });
+    };
+    // Start only once there is something to play, and only if the viewer was not paused.
+    const resume = resumeRef.current;
+    lastPos.current = info.startMs;
+    const begin = () => {
+      if (cancelled || !resume) return;
+      void tryPlay(video).then((refused) => { if (!cancelled && refused) setBlocked(true); });
+    };
+    // The speed survives every restart (a new source resets playbackRate).
+    const keepSpeed = () => {
+      video.defaultPlaybackRate = speedRef.current;
+      video.playbackRate = speedRef.current;
     };
     video.addEventListener("error", fallback);
+    video.addEventListener("loadedmetadata", keepSpeed);
+    let native = true;
     if (info.method === "direct") {
       offsetRef.current = 0;
       video.src = info.url;
@@ -289,15 +368,16 @@ export function PlayerPage() {
     } else {
       offsetRef.current = info.startMs;
       if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        video.src = info.url; // Safari / iOS play HLS natively
+        video.src = info.url; // Safari / iOS play HLS natively (no MANIFEST_PARSED: wait for canplay)
       } else {
+        native = false;
         void import("hls.js").then(({ default: HlsCtor }) => {
           if (cancelled) return;
           const hls = new HlsCtor({ maxBufferLength: 30 });
           let recovered = false;
           let retried = false;
           // play() before the stream is attached is rejected, which left the player paused.
-          hls.on(HlsCtor.Events.MANIFEST_PARSED, () => void video.play().catch(() => undefined));
+          hls.on(HlsCtor.Events.MANIFEST_PARSED, begin);
           hls.on(HlsCtor.Events.ERROR, (_event, data) => {
             if (!data.fatal) return;
             if (data.type === HlsCtor.ErrorTypes.NETWORK_ERROR && !retried) {
@@ -316,26 +396,32 @@ export function PlayerPage() {
         });
       }
     }
-    video.playbackRate = speed;
-    void video.play().catch(() => undefined); // autoplay may need a click
+    keepSpeed();
+    if (native) video.addEventListener("canplay", begin, { once: true });
+    resumeRef.current = true;
     return () => {
       cancelled = true;
       video.removeEventListener("error", fallback);
+      video.removeEventListener("loadedmetadata", keepSpeed);
+      video.removeEventListener("canplay", begin);
     };
   }, [info]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Subtitles: show the chosen <track>, hide the others.
+  // Subtitles: show the chosen <track>, hide every other text track (including any
+  // the browser or hls.js added, which would shift positions in video.textTracks).
   useEffect(() => {
+    const chosen = subtitle >= 0 ? trackEls.current[subtitle]?.track : undefined;
     const tracks = videoRef.current?.textTracks;
-    if (!tracks) return;
-    for (let i = 0; i < tracks.length; i++) tracks[i]!.mode = i === subtitle ? "showing" : "disabled";
+    if (tracks) for (let i = 0; i < tracks.length; i++) if (tracks[i] !== chosen) tracks[i]!.mode = "disabled";
+    if (chosen) chosen.mode = "showing";
   }, [subtitle, info]);
 
-  // Save progress on leave.
+  // Leaving the player: save where the viewer stopped, release the stream and timers.
   useEffect(() => () => {
-    save(true);
+    saveRef.current(true);
     hlsRef.current?.destroy();
-  }, [save]);
+    window.clearTimeout(stopTimer.current);
+  }, []);
 
   /** A burned-in subtitle stays in the picture when the stream restarts (seek, audio switch). */
   const burned = info?.burnedSubtitle ?? -1;
@@ -343,7 +429,7 @@ export function PlayerPage() {
   const changeAudio = (idx: number) => {
     setAudioIndex(idx);
     save(true);
-    start.mutate({ audioIndex: idx, startMs: absolute(), subtitleIndex: burned });
+    restart({ audioIndex: idx, startMs: absolute(), subtitleIndex: burned });
   };
 
   /** Text tracks switch in the player; bitmap tracks restart the stream with the track burned in. */
@@ -353,14 +439,14 @@ export function PlayerPage() {
       if (n === burned) return;
       setSubtitle(-1);
       save(true);
-      start.mutate({ audioIndex, startMs: absolute(), subtitleIndex: n });
+      restart({ audioIndex, startMs: absolute(), subtitleIndex: n });
       return;
     }
     const text = kind === "t" ? n : -1;
     setSubtitle(text);
     if (burned >= 0) {
       save(true);
-      start.mutate({ audioIndex, startMs: absolute(), subtitleIndex: -1 });
+      restart({ audioIndex, startMs: absolute(), subtitleIndex: -1 });
     }
   };
   const subtitleValue = burned >= 0 ? `b:${burned}` : subtitle >= 0 ? `t:${subtitle}` : "off";
@@ -378,10 +464,10 @@ export function PlayerPage() {
       const rel = (target - offsetRef.current) / 1000;
       const end = v.seekable.length ? v.seekable.end(v.seekable.length - 1) : 0;
       if (rel >= 0 && rel <= end) v.currentTime = rel;
-      else start.mutate({ audioIndex, startMs: target, subtitleIndex: info.burnedSubtitle ?? -1 });
+      else restart({ audioIndex, startMs: target, subtitleIndex: info.burnedSubtitle ?? -1 });
     }
     setPosition(target);
-  }, [info, durationMs, audioIndex, start]);
+  }, [info, durationMs, audioIndex, restart]);
 
   // Watch together: in a group, the controls act for everyone (D-036).
   const group = useGroupPlayback({ video: videoRef, itemId, loaded: !!info && !start.isPending, absolute, seekLocal });
@@ -409,17 +495,24 @@ export function PlayerPage() {
       else group.play();
       return;
     }
-    if (v.paused) void v.play()?.catch(() => undefined);
-    else v.pause();
+    if (v.paused) {
+      setBlocked(false);
+      void tryPlay(v).then((refused) => { if (refused) setBlocked(true); });
+    } else v.pause();
   }, [group]);
-  const toggleFullscreen = useCallback(() => {
-    if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
-    else void rootRef.current?.requestFullscreen?.().catch(() => undefined);
-  }, []);
+  const toggleFullscreen = useCallback(() => toggleFs(rootRef.current, videoRef.current), []);
   useEffect(() => {
-    const onFs = () => setFullscreen(!!document.fullscreenElement);
+    const video = videoRef.current;
+    const onFs = () => setFullscreen(isFullscreen(video));
     document.addEventListener("fullscreenchange", onFs);
-    return () => document.removeEventListener("fullscreenchange", onFs);
+    // iPhone: the video's own full screen.
+    video?.addEventListener("webkitbeginfullscreen", onFs);
+    video?.addEventListener("webkitendfullscreen", onFs);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFs);
+      video?.removeEventListener("webkitbeginfullscreen", onFs);
+      video?.removeEventListener("webkitendfullscreen", onFs);
+    };
   }, []);
 
   // Segments: skip intro/recap, and credits bring up the next title.
@@ -439,10 +532,6 @@ export function PlayerPage() {
       seekTo(skippable.endMs);
     }
   }, [introMode, skippable?.startMs]); // eslint-disable-line react-hooks/exhaustive-deps
-  // Credits on "auto" go straight to the next title when there is one.
-  useEffect(() => {
-    if (creditsMode === "auto" && inCredits && next.data && autoplay) playNext();
-  }, [creditsMode, inCredits]); // eslint-disable-line react-hooks/exhaustive-deps
   const remaining = durationMs ? durationMs - position : null;
   const showNext = !group.active && !!next.data && !dismissed && (ended || inCredits || (remaining !== null && remaining <= 20_000 && position > 0));
   const [countdown, setCountdown] = useState(upNext);
@@ -463,6 +552,15 @@ export function PlayerPage() {
   useEffect(() => {
     if (showNext && autoplay && upNext > 0 && countdown <= 0) playNext();
   }, [countdown, showNext, autoplay, playNext]);
+  // Credits on "auto" go straight to the next title when there is one, once per title
+  // (the next title or the preferences may only arrive after the credits started).
+  useEffect(() => {
+    if (creditsDone.current || group.active) return;
+    if (creditsMode === "auto" && inCredits && next.data && autoplay) {
+      creditsDone.current = true;
+      playNext();
+    }
+  }, [creditsMode, inCredits, next.data, autoplay, playNext, group.active]);
 
   // Keyboard and TV remote. Runs before the app's arrow-key navigation (capture phase).
   useEffect(() => {
@@ -470,7 +568,8 @@ export function PlayerPage() {
       const v = videoRef.current;
       if (!v || e.ctrlKey || e.metaKey || e.altKey) return;
       const tag = (e.target as HTMLElement | null)?.tagName;
-      if (tag === "SELECT" || tag === "INPUT" || tag === "BUTTON" && (e.key === " " || e.key === "Enter")) return;
+      // Space plays/pauses unless the viewer deliberately moved focus to a control.
+      if (tag === "SELECT" || tag === "INPUT" || tag === "TEXTAREA" || keyBelongsToControl(e.target, e.key)) return;
       let handled = true;
       switch (e.key) {
         case " ": case "k": case "K": case "MediaPlayPause": togglePlay(); break;
@@ -522,37 +621,74 @@ export function PlayerPage() {
     return () => document.removeEventListener("visibilitychange", onVis);
   }, [enh.autoPip]);
   const title = it ? (isEpisode && it.seasonNumber !== undefined && it.episodeNumber !== undefined
-    ? `S${it.seasonNumber}:E${it.episodeNumber} · ${it.title}` : it.title) : "";
+    ? `${t("common.episodeCode", { season: it.seasonNumber, episode: it.episodeNumber })} · ${it.title}` : it.title) : "";
   const visible = chrome || paused || !!panel;
+  const retry = () => {
+    setFailed(false);
+    resumeRef.current = true;
+    // Before the first stream arrived, retry the original request (resume point, ?start=).
+    if (firstStart.current) start.mutate({ startMs: search.start, audioIndex: audioIndex ?? search.audio, subtitleIndex: search.sub });
+    else start.mutate({ audioIndex, startMs: lastPos.current, subtitleIndex: burned });
+  };
 
   return (
     <div ref={rootRef} className={`fixed inset-0 z-50 bg-black text-white ${visible ? "" : "cursor-none"}`} data-testid="player"
-      onPointerMove={poke} onPointerDown={poke}>
+      onPointerMove={(e) => { if (e.pointerType !== "touch") poke(); }}
+      onPointerDown={(e) => {
+        pointerType.current = e.pointerType;
+        // A tap on the picture is handled by its click (show/hide the controls); anything else wakes them.
+        if (e.pointerType !== "touch" || e.target !== videoRef.current) poke();
+      }}>
       <style>{subtitleCss(prefs.data)}</style>
-      <video ref={videoRef} className="absolute inset-0 size-full" playsInline autoPlay data-testid="video"
-        onClick={togglePlay} onDoubleClick={toggleFullscreen}
+      <video ref={videoRef} className="absolute inset-0 size-full" playsInline data-testid="video"
+        onClick={() => {
+          // Touch: a tap shows or hides the controls; play/pause is the button.
+          if (pointerType.current !== "touch") togglePlay();
+          else if (visible) { setChrome(false); setPanel(null); }
+          else poke();
+        }}
+        onDoubleClick={toggleFullscreen}
         onTimeUpdate={(e) => {
           save();
           const v = e.currentTarget;
+          lastPos.current = offsetRef.current + v.currentTime * 1000;
           setPosition(offsetRef.current + v.currentTime * 1000);
           if (v.buffered?.length) setBuffered(offsetRef.current + v.buffered.end(v.buffered.length - 1) * 1000);
         }}
-        onPlay={() => { setPaused(false); setEnded(false); poke(); }}
+        onPlay={() => { setPaused(false); setEnded(false); setBlocked(false); poke(); }}
         onPause={() => { setPaused(true); save(true); }}
         onWaiting={() => setWaiting(true)} onPlaying={() => setWaiting(false)} onCanPlay={() => setWaiting(false)}
         onVolumeChange={(e) => { setVolume(e.currentTarget.volume); setMuted(e.currentTarget.muted); }}
         onEnded={() => { save(true); setEnded(true); }}>
-        {info?.subtitles.map((s) => (
-          <track key={s.index} kind="subtitles" src={s.url} srcLang={s.language ?? "und"} label={s.language ?? String(s.index)} />
+        {/* A transcoded stream that starts mid-way runs from 0: the server shifts its cues to match. */}
+        {info?.subtitles.map((s, i) => (
+          <track key={`${s.index}:${info.startMs}`} ref={(el) => { trackEls.current[i] = el; }} kind="subtitles"
+            src={subtitleSrc(s.url, info.method, info.startMs)} srcLang={s.language ?? "und"} label={s.language ?? String(s.index)} />
         ))}
       </video>
 
-      {(start.isPending || waiting) && !start.error && (
+      {(start.isPending || waiting) && !start.error && !failed && !blocked && (
         <p role="status" className="pointer-events-none absolute inset-0 flex items-center justify-center gap-3 text-white/80">
           <Spinner className="size-10" />{start.isPending && <span className="sr-only">{t("player.preparing")}</span>}
         </p>
       )}
-      {start.error && <div className="absolute top-1/2 left-1/2 max-w-md -translate-x-1/2 -translate-y-1/2 rounded-card bg-surface p-4"><ErrorText error={start.error} /></div>}
+      {/* The browser wants a tap before it plays (autoplay policy): one tap resumes. */}
+      {blocked && !failed && !start.error && (
+        <button type="button" onClick={togglePlay} data-testid="tap-to-play" aria-label={t("player.play")}
+          className="absolute top-1/2 left-1/2 z-10 grid size-24 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/55 text-white ring-1 ring-white/25 backdrop-blur transition-[background-color,transform] duration-150 hover:bg-black/70 active:scale-95">
+          <Play className="size-10 translate-x-0.5 fill-current" aria-hidden />
+        </button>
+      )}
+      {(start.error || failed) && (
+        <div role="alert" data-testid="playback-error"
+          className="absolute top-1/2 left-1/2 z-20 flex w-[min(92vw,440px)] -translate-x-1/2 -translate-y-1/2 flex-col items-start gap-4 rounded-card bg-surface p-5 ring-1 ring-white/10">
+          {start.error ? <ErrorText error={start.error} /> : <p className="text-[15px] leading-snug text-text">{t("player.playbackFailed")}</p>}
+          <div className="flex gap-2">
+            <Button onClick={retry}>{t("player.retry")}</Button>
+            <Link to="/item/$itemId" params={{ itemId }} className="inline-flex h-10 items-center rounded-[6px] px-4 text-sm font-semibold text-text/80 hover:bg-white/10">{t("player.back")}</Link>
+          </div>
+        </div>
+      )}
 
       {/* Top bar */}
       <div className={`absolute inset-x-0 top-0 flex items-center gap-3 bg-gradient-to-b from-black/80 to-transparent px-4 pt-4 pb-10 transition-opacity duration-300 sm:px-8 ${visible ? "opacity-100" : "pointer-events-none opacity-0"}`}>
@@ -632,10 +768,12 @@ export function PlayerPage() {
           <div className="flex min-w-0 flex-1 flex-col gap-2">
             <p className="text-xs text-white/60">{autoplay && upNext > 0 ? t(search.playlist ? "player.nextItemIn" : "player.nextIn", { seconds: Math.max(0, countdown) }) : t("player.upNext")}</p>
             <p className="truncate text-sm font-semibold">
-              {next.data.seasonNumber !== undefined && next.data.episodeNumber !== undefined ? `S${next.data.seasonNumber}:E${next.data.episodeNumber} · ` : ""}{next.data.title}
+              {next.data.seasonNumber !== undefined && next.data.episodeNumber !== undefined
+                ? `${t("common.episodeCode", { season: next.data.seasonNumber, episode: next.data.episodeNumber })} · ` : ""}{next.data.title}
             </p>
             <div className="mt-auto flex gap-2">
-              <button type="button" onClick={playNext} autoFocus
+              {/* No autofocus: Space keeps playing/pausing the film until the viewer moves to this button. */}
+              <button type="button" onClick={playNext}
                 className="inline-flex h-8 items-center gap-1.5 rounded-md bg-white px-3 text-sm font-bold text-black hover:bg-white/85">
                 <Play className="size-3.5 fill-current" aria-hidden />{t("player.playNext")}
               </button>
@@ -740,7 +878,10 @@ export function PlayerPage() {
             onClick={() => {
               setSpeed(s);
               if (group.active) group.setSpeed(s);
-              else if (videoRef.current) videoRef.current.playbackRate = s;
+              else if (videoRef.current) {
+                videoRef.current.defaultPlaybackRate = s;
+                videoRef.current.playbackRate = s;
+              }
               setPanel(null);
             }}
             className={`block w-full rounded px-4 py-2 text-left text-sm tabular hover:bg-white/10 ${speed === s ? "font-bold text-accent" : ""}`}>
