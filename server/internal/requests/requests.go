@@ -14,6 +14,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/streamero-app/streamero/server/internal/netx"
 )
 
 // KeySettings is the settings key.
@@ -74,7 +76,7 @@ func (c *Client) http() *http.Client {
 	if c.HTTP != nil {
 		return c.HTTP
 	}
-	return &http.Client{Timeout: 12 * time.Second}
+	return &http.Client{Timeout: 12 * time.Second, CheckRedirect: netx.SameHostRedirects}
 }
 
 func (c *Client) do(ctx context.Context, app, method, base, key, path string, body, out any) error {

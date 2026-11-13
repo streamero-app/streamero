@@ -2010,6 +2010,15 @@ func TestDiscoverIntegration(t *testing.T) {
 	if c.do("POST", "/settings/requests/test", nil, &checks); len(checks) != 1 || checks[0]["ok"] != true || checks[0]["version"] != "2.7.3" {
 		t.Fatalf("test connection: %v", checks)
 	}
+	// Pointing the integration at another host drops the stored key (it is never sent there);
+	// the same host with another path keeps it.
+	if c.do("PUT", "/settings/requests", map[string]any{"seerrUrl": "http://other.example:5055", "usersCanRequest": false}, &rs); rs["seerrConfigured"] != false {
+		t.Fatalf("key kept for another host: %v", rs)
+	}
+	c.do("PUT", "/settings/requests", map[string]any{"seerrUrl": seerr.URL, "seerrApiKey": "seerr-key", "usersCanRequest": false}, nil)
+	if c.do("PUT", "/settings/requests", map[string]any{"seerrUrl": seerr.URL + "/", "usersCanRequest": false}, &rs); rs["seerrConfigured"] != true {
+		t.Fatalf("key lost for the same host: %v", rs)
+	}
 	// A title already in the library comes back as available with its item id.
 	if _, err := testPool.Exec(context.Background(), `INSERT INTO libraries (id, name, kind, paths) VALUES ('01a1c0a0-0000-7000-8000-000000000001', 'D', 'movies', '{/x}') ON CONFLICT DO NOTHING;
 		INSERT INTO items (id, library_id, kind, path, title, sort_title, provider_ids) VALUES ('01a1c0a0-0000-7000-8000-000000000002', '01a1c0a0-0000-7000-8000-000000000001', 'movie', '/x/m', 'The Matrix', 'Matrix', '{"tmdb":"603"}')

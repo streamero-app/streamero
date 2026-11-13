@@ -269,11 +269,7 @@ func (h *Handler) TestNotification(ctx context.Context, req *gen.NotificationTar
 	t := fromTarget(*req)
 	if t.Token == "" && t.ID != uuid.Nil {
 		if stored, err := notify.Load(ctx, h.Settings()); err == nil {
-			for _, s := range stored {
-				if s.ID == t.ID {
-					t.Token = s.Token
-				}
-			}
+			t.Token = notify.StoredToken(t, stored)
 		}
 	}
 	if err := notify.Validate(t); err != nil {
