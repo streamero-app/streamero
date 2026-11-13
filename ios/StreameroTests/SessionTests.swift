@@ -42,4 +42,20 @@ final class SessionTests: XCTestCase {
         XCTAssertEqual(ProfileGateMessage.key(for: URLError(.notConnectedToInternet)), "err_network")
         XCTAssertEqual(ProfileGateMessage.key(for: APIError(status: 400, code: "something_new")), "err_generic")
     }
+
+    @MainActor
+    func testServersSwitchAndRemember() {
+        let defaults = UserDefaults(suiteName: "test-\(UUID().uuidString)")!
+        let a = SavedServer(id: "a", name: "Home", url: URL(string: "https://a.invalid")!, version: "1")
+        let b = SavedServer(id: "b", name: "Cabin", url: URL(string: "https://b.invalid")!, version: "1")
+        let store = ServerStore(defaults: defaults)
+        store.add(a)
+        store.add(b)
+        XCTAssertEqual(store.current?.id, "b", "a new server is used right away")
+        store.select(a)
+        XCTAssertEqual(ServerStore(defaults: defaults).current?.id, "a", "the choice survives a relaunch")
+        XCTAssertEqual(store.servers.map(\.id), ["a", "b"])
+        store.remove(a)
+        XCTAssertEqual(store.current?.id, "b")
+    }
 }

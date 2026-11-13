@@ -57,6 +57,7 @@ struct MeTab: View {
     let signOut: () -> Void
     @Environment(AppState.self) private var app
     @State private var showQuickConnect = false
+    @State private var showServers = false
     @State private var showTogether = false
     @State private var togetherPlay: PlayTarget?
 
@@ -93,6 +94,13 @@ struct MeTab: View {
                     Button { showQuickConnect = true } label: { Text("quickConnect.approveTitle").foregroundStyle(Theme.text) }
                 }
                 Button { app.showProfileGate = true } label: { Text("switch_profile").foregroundStyle(Theme.text) }
+                Button { showServers = true } label: {
+                    HStack {
+                        Text("servers.title").foregroundStyle(Theme.text)
+                        Spacer()
+                        Text(verbatim: app.server.name).foregroundStyle(Theme.textMuted).lineLimit(1)
+                    }
+                }
                 Button(role: .destructive, action: signOut) { Text("sign_out") }
             }
         }
@@ -100,6 +108,7 @@ struct MeTab: View {
         .background(Theme.background)
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showQuickConnect) { QuickConnectApproveView(client: client) }
+        .sheet(isPresented: $showServers) { ServerListView().environment(\.locale, app.locale ?? Locale.current) }
         .sheet(isPresented: $showTogether, onDismiss: {
             if let target = togetherPlay {
                 togetherPlay = nil

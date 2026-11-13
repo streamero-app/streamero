@@ -34,6 +34,7 @@ struct LoginView: View {
     @State private var error: LocalizedStringKey?
     @State private var quickConnect = false
     @State private var providers: Components.Schemas.AuthProviders?
+    @State private var showServers = false
     @Environment(\.webAuthenticationSession) private var webAuthenticationSession
 
     var body: some View {
@@ -55,14 +56,24 @@ struct LoginView: View {
                     form
                 }
 
-                Button("server.remove", role: .destructive) { servers.remove(server) }
-                    .font(.footnote)
-                    .padding(.top, 24)
+                VStack(spacing: 14) {
+                    Button { showServers = true } label: {
+                        Label(servers.servers.count > 1 ? LocalizedStringKey("servers.switch") : LocalizedStringKey("servers.add"), systemImage: "server.rack")
+                    }
+                    .foregroundStyle(Theme.textMuted)
+                    Button("server.remove", role: .destructive) {
+                        session.forget(serverID: server.id)
+                        servers.remove(server)
+                    }
+                }
+                .font(.footnote)
+                .padding(.top, 24)
             }
             .padding(24)
             .frame(maxWidth: 480)
             .frame(maxWidth: .infinity)
         }
+        .sheet(isPresented: $showServers) { ServerListView() }
         .task(id: server.id) {
             // Older servers have no /auth/providers: they offer passwords only.
             providers = try? await AuthClient(baseURL: server.url).providers()

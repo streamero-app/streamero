@@ -32,7 +32,7 @@ final class SessionStore {
     /// Adding a server always starts with the sign-in screen, even if it was used before.
     func forget(serverID: String) {
         tokens.setToken(nil, for: serverID)
-        state = .signedOut
+        if self.serverID == nil || self.serverID == serverID { state = .signedOut }
     }
 
     func token(for server: SavedServer) -> String? { tokens.token(for: server.id) }

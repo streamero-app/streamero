@@ -8,13 +8,16 @@ struct SavedServer: Codable, Identifiable, Equatable {
     var version: String
 }
 
-/// Persists known servers. Credentials (P1) go to the Keychain, never here.
+/// Persists known servers and which one is in use. Credentials go to the Keychain (one token
+/// per server), never here, so switching servers keeps each sign-in.
 @MainActor
 @Observable
 final class ServerStore {
     private(set) var servers: [SavedServer] = []
-    var current: SavedServer? { servers.first }
+    private(set) var currentID: String?
+    var current: SavedServer? { servers.first { $0.id == currentID } ?? servers.first }
     private let key = "streamero.servers"
+    private let currentKey = "streamero.currentServer"
     private let defaults: UserDefaults
 
     init(defaults: UserDefaults = .standard) {
@@ -23,16 +26,32 @@ final class ServerStore {
            let saved = try? JSONDecoder().decode([SavedServer].self, from: data) {
             servers = saved
         }
+        currentID = defaults.string(forKey: currentKey)
     }
 
+    /// Adds (or refreshes) a server and switches to it.
     func add(_ server: SavedServer) {
-        servers.removeAll { $0.id == server.id }
-        servers.insert(server, at: 0)
+        if let i = servers.firstIndex(where: { $0.id == server.id }) {
+            servers[i] = server
+        } else {
+            servers.append(server)
+        }
+        select(server)
         save()
+    }
+
+    func select(_ server: SavedServer) {
+        guard servers.contains(where: { $0.id == server.id }) else { return }
+        currentID = server.id
+        defaults.set(server.id, forKey: currentKey)
     }
 
     func remove(_ server: SavedServer) {
         servers.removeAll { $0.id == server.id }
+        if currentID == server.id {
+            currentID = servers.first?.id
+            defaults.set(currentID, forKey: currentKey)
+        }
         save()
     }
 
