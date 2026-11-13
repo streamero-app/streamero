@@ -1,7 +1,6 @@
 package net.scyde.streamero.ui
 
 import android.app.Activity
-import android.media.MediaCodecList
 import android.net.Uri
 import android.view.WindowManager
 import androidx.annotation.OptIn
@@ -49,36 +48,79 @@ import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.TrackSelectionOverride
+import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import androidx.navigation.NavHostController
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import net.scyde.streamero.AppState
 import net.scyde.streamero.R
 import net.scyde.streamero.api.*
+import net.scyde.streamero.player.ErrorAction
+import net.scyde.streamero.player.ErrorRecovery
+import net.scyde.streamero.player.SAFE_PROFILE
+import net.scyde.streamero.player.SubtitleChoice
+import net.scyde.streamero.player.Subtitles
+import net.scyde.streamero.player.autoplayNextOnEnd
+import net.scyde.streamero.player.playWhenReadyAfterReload
 import net.scyde.streamero.sync.PlayerAction
 import net.scyde.streamero.sync.PlayerSnapshot
 import net.scyde.streamero.sync.SyncSession
 
-/** What this phone decodes in hardware (the server converts the rest). */
-fun androidDeviceProfile(prefs: Preferences?): DeviceProfile {
-    val types = MediaCodecList(MediaCodecList.REGULAR_CODECS).codecInfos.filter { !it.isEncoder }.flatMap { it.supportedTypes.toList() }.map { it.lowercase() }.toSet()
-    val video = buildList {
-        add("h264")
-        if ("video/hevc" in types) add("hevc")
-        if ("video/x-vnd.on2.vp9" in types) add("vp9")
-        if ("video/av01" in types) add("av1")
+/** Short names of bitmap subtitle formats (ffprobe codec names). */
+fun bitmapName(codec: String): String {
+    val c = codec.lowercase()
+    return when {
+        "pgs" in c || c == "sup" -> "PGS"
+        "dvb" in c -> "DVB"
+        "dvd" in c || c == "vobsub" -> "VobSub"
+        else -> c.uppercase()
     }
-    val audio = buildList {
-        addAll(listOf("aac", "mp3", "opus", "flac", "vorbis"))
-        if ("audio/ac3" in types) add("ac3")
-        if ("audio/eac3" in types) add("eac3")
+}
+
+/** "EN · AC3 · 6 ch · Commentary". */
+@Composable
+fun audioLabel(a: AudioStream): String =
+    listOfNotNull(a.language?.uppercase(), a.codec.uppercase(), a.channels?.let { stringResource(R.string.channels_n, it) }, a.title).joinToString(" · ")
+
+/** Off, the text tracks, then the bitmap tracks (those are burned into the picture). */
+@Composable
+fun subtitleOptions(pi: PlaybackInfo): List<Pair<SubtitleChoice, String>> {
+    val forced = stringResource(R.string.forced)
+    return listOf<Pair<SubtitleChoice, String>>(SubtitleChoice.Off to stringResource(R.string.off)) +
+        pi.subtitles.mapIndexed { i, s -> SubtitleChoice.Text(i) to listOfNotNull(s.language?.uppercase() ?: "?", if (s.forced) forced else null).joinToString(" · ") } +
+        pi.bitmapSubtitles.map { b -> SubtitleChoice.Burned(b.index) to listOfNotNull(b.language?.uppercase() ?: "?", bitmapName(b.codec), if (b.forced) forced else null).joinToString(" · ") }
+}
+
+/** Shows the chosen side-loaded text track (or none) without reloading the stream. */
+@OptIn(UnstableApi::class)
+private fun applySubtitle(player: ExoPlayer, pi: PlaybackInfo?, choice: SubtitleChoice) {
+    val b = player.trackSelectionParameters.buildUpon().clearOverridesOfType(C.TRACK_TYPE_TEXT)
+    val text = (choice as? SubtitleChoice.Text)?.let { pi?.subtitles?.getOrNull(it.position) }
+    if (text == null) {
+        b.setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
+    } else {
+        b.setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
+        val key = Subtitles.trackId(text.index)
+        var found = false
+        for (g in player.currentTracks.groups) {
+            if (g.type != C.TRACK_TYPE_TEXT) continue
+            val i = (0 until g.length).firstOrNull { val f = g.getTrackFormat(it); f.id?.endsWith(key) == true || f.label == key } ?: continue
+            b.setOverrideForType(TrackSelectionOverride(g.mediaTrackGroup, i))
+            found = true
+            break
+        }
+        // Tracks not known yet: the language picks it now, the override follows in onTracksChanged.
+        if (!found) b.setPreferredTextLanguage(text.language)
     }
-    return DeviceProfile(listOf("mp4", "m4v", "mov", "mkv", "webm", "ts"), video, audio, hls = true,
-        maxHeight = prefs?.maxHeight, maxBitrate = prefs?.maxBitrateKbps?.let { it * 1000 })
+    player.trackSelectionParameters = b.build()
 }
 
 @OptIn(UnstableApi::class)
@@ -87,18 +129,22 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
     val api = state.api ?: return
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
-    val player = remember { ExoPlayer.Builder(ctx).build() }
+    val player = remember { videoPlayer(ctx) }
     var info by remember { mutableStateOf<PlaybackInfo?>(null) }
     var detail by remember { mutableStateOf<ItemDetail?>(null) }
     var prefs by remember { mutableStateOf<Preferences?>(null) }
     var error by remember { mutableStateOf<Throwable?>(null) }
-    var subtitle by remember { mutableIntStateOf(-1) }
+    var subtitle by remember { mutableStateOf<SubtitleChoice>(SubtitleChoice.Off) }
     var audio by remember { mutableStateOf(audioChoice) }
     var position by remember { mutableLongStateOf(0L) }
     var notice by remember { mutableStateOf<String?>(null) }
     var next by remember { mutableStateOf<ItemSummary?>(null) }
     var panel by remember { mutableStateOf(false) }
     var skipped by remember { mutableStateOf<Long?>(null) }
+    var ended by remember { mutableStateOf(false) }
+    var firstStart by remember { mutableStateOf(true) }
+    var recovery by remember { mutableStateOf(ErrorRecovery()) }
+    var loadJob by remember { mutableStateOf<Job?>(null) }
     val offset = remember { mutableLongStateOf(0L) } // HLS starts at info.startMs
     // Watch together: the group decides what plays (it may switch to another item), the
     // local controls ask the group instead of acting on the player.
@@ -111,58 +157,100 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
     val controls = remember { GroupControlledPlayer(player) { rel -> offset.longValue + rel } }
     SideEffect { controls.group = if (grouped) sync else null }
 
+    fun abs(): Long = offset.longValue + player.currentPosition
+
+    /**
+     * (Re)starts the stream at [startMs]. [subRequest] is the subtitleIndex for the server: the
+     * title page's choice on the first start, afterwards the burned-in track (or -1). A reload
+     * keeps the player paused when it was paused.
+     */
+    fun load(startMs: Long?, audioIndex: Int?, subRequest: Int?,
+             autoplay: Boolean = playWhenReadyAfterReload(if (info == null) null else player.playWhenReady, sync.group != null)) {
+        prepared = false
+        val id = current
+        val first = firstStart
+        val safe = recovery.safe
+        loadJob?.cancel()
+        loadJob = scope.launch {
+            try {
+                val device = if (safe) SAFE_PROFILE.copy(maxHeight = prefs?.maxHeight, maxBitrate = prefs?.maxBitrateKbps?.let { it * 1000 }) else androidDeviceProfile(prefs)
+                val pi = api.playback(id, PlaybackRequest(device, if (id == itemId) file else null, audioIndex, startMs?.coerceAtLeast(0), subtitleIndex = subRequest))
+                info = pi
+                error = null
+                subtitle = if (first) Subtitles.initial(pi, subRequest) else Subtitles.afterReload(pi, subtitle)
+                firstStart = false
+                // Every text track is side-loaded, so switching between them needs no reload. The
+                // URLs are used as the server gives them (already aligned with where the stream starts).
+                val subs = pi.subtitles.map { s ->
+                    val key = Subtitles.trackId(s.index)
+                    MediaItem.SubtitleConfiguration.Builder(Uri.parse(api.resolve(s.url))).setId(key).setLabel(key).setMimeType(MimeTypes.TEXT_VTT)
+                        .setLanguage(s.language).setSelectionFlags(if (s.forced) C.SELECTION_FLAG_FORCED else 0).build()
+                }
+                val item = MediaItem.Builder().setUri(api.resolve(pi.url)).setSubtitleConfigurations(subs)
+                    .apply { if (pi.method != "direct") setMimeType(MimeTypes.APPLICATION_M3U8) }.build()
+                offset.longValue = if (pi.method == "direct") 0 else pi.startMs
+                player.setMediaItem(item, if (pi.method == "direct") pi.startMs else 0)
+                applySubtitle(player, pi, subtitle)
+                player.playWhenReady = autoplay
+                player.prepare()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                error = e
+            }
+        }
+    }
+
+    fun reload(startMs: Long? = abs(), autoplay: Boolean? = null) {
+        if (autoplay == null) load(startMs, audio, Subtitles.requestIndex(subtitle)) else load(startMs, audio, Subtitles.requestIndex(subtitle), autoplay)
+    }
+
     // Full screen, landscape-friendly, screen kept on.
     DisposableEffect(Unit) {
-        val act = ctx as Activity
+        val act = ctx.findActivity()
         state.music.pause()
-        act.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        val ctl = WindowCompat.getInsetsController(act.window, act.window.decorView)
-        ctl.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        ctl.hide(WindowInsetsCompat.Type.systemBars())
-        val ready = object : Player.Listener {
-            override fun onPlaybackStateChanged(s: Int) { if (s == Player.STATE_READY) prepared = true }
+        act?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        val ctl = act?.let { WindowCompat.getInsetsController(it.window, it.window.decorView) }
+        ctl?.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        ctl?.hide(WindowInsetsCompat.Type.systemBars())
+        val listener = object : Player.Listener {
+            override fun onPlaybackStateChanged(s: Int) {
+                if (s == Player.STATE_READY) prepared = true
+                if (s == Player.STATE_ENDED) ended = true
+            }
+            override fun onTracksChanged(tracks: Tracks) { if (subtitle is SubtitleChoice.Text) applySubtitle(player, info, subtitle) }
+            // The device could not play what it said it could (10-bit video, an audio format...):
+            // once, restart from here with a stream every device plays; after that, say so.
+            override fun onPlayerError(e: PlaybackException) {
+                when (recovery.onError()) {
+                    ErrorAction.Fallback -> { notice = ctx.getString(R.string.player_fallback); reload(autoplay = true) }
+                    ErrorAction.Fail -> error = e
+                }
+            }
         }
-        player.addListener(ready)
+        player.addListener(listener)
         onDispose {
-            ctl.show(WindowInsetsCompat.Type.systemBars())
-            act.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-            player.removeListener(ready)
+            // The last position is read before the player goes and sent on the app's scope,
+            // so it arrives even though this screen is already gone.
+            val id = current
+            val pos = abs()
+            val dur = info?.durationMs
+            if (info != null && pos > 0 && !ended) state.appScope.launch { runCatching { api.progress(id, ProgressReport(pos, dur)) } }
+            ctl?.show(WindowInsetsCompat.Type.systemBars())
+            act?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            player.removeListener(listener)
             player.release()
             // Closing the player leaves the group, so nobody waits for a screen that is gone.
             if (sync.group != null) sync.leaveInBackground()
         }
     }
-
-    fun abs(): Long = offset.longValue + player.currentPosition
-
-    fun load(startMs: Long?, audioIndex: Int?, subIndex: Int?, autoplay: Boolean = sync.group == null) {
-        prepared = false
-        val id = current
-        scope.launch {
-            runCatching { api.playback(id, PlaybackRequest(androidDeviceProfile(prefs), if (id == itemId) file else null, audioIndex, startMs?.coerceAtLeast(0))) }
-                .onSuccess { pi ->
-                    info = pi
-                    val chosenSub = subIndex ?: pi.subtitleDefault ?: -1
-                    subtitle = chosenSub
-                    val subs = pi.subtitles.getOrNull(chosenSub)?.let { s ->
-                        listOf(MediaItem.SubtitleConfiguration.Builder(Uri.parse(api.resolve(s.url))).setMimeType(MimeTypes.TEXT_VTT)
-                            .setLanguage(s.language).setSelectionFlags(C.SELECTION_FLAG_DEFAULT).build())
-                    }.orEmpty()
-                    val item = MediaItem.Builder().setUri(api.resolve(pi.url)).setSubtitleConfigurations(subs)
-                        .apply { if (pi.method != "direct") setMimeType(MimeTypes.APPLICATION_M3U8) }.build()
-                    offset.longValue = if (pi.method == "direct") 0 else pi.startMs
-                    player.setMediaItem(item, if (pi.method == "direct") pi.startMs else 0)
-                    player.playWhenReady = autoplay
-                    player.prepare()
-                }.onFailure { error = it }
-        }
-    }
+    val inPip = videoLifecycle(player, state.enhancements.autoPip)
 
     LaunchedEffect(current) {
         if (prefs == null) prefs = runCatching { api.preferences() }.getOrNull()
         detail = runCatching { api.item(current) }.getOrNull()
         next = api.nextEpisode(current)
-        if (sync.group == null) load(start, audioChoice, subChoice)
+        if (sync.group == null) load(start, audioChoice, subChoice, autoplay = true)
     }
     // In a group, the engine drives the player a few times a second and reports back.
     LaunchedEffect(grouped) {
@@ -175,10 +263,12 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
                     is PlayerAction.Load -> {
                         val same = a.entry.itemId == itemId
                         syncEntry = a.entry.id
-                        if (current != a.entry.itemId) { current = a.entry.itemId; info = null; error = null }
-                        load(a.startMs, if (same) audioChoice else null, if (same) subChoice else null, autoplay = false)
+                        if (current != a.entry.itemId) {
+                            current = a.entry.itemId; info = null; error = null; ended = false; firstStart = true; recovery = ErrorRecovery()
+                        }
+                        load(a.startMs, if (same) audioChoice else null, if (same && firstStart) subChoice else Subtitles.requestIndex(subtitle), autoplay = false)
                     }
-                    is PlayerAction.Seek -> seekTo(player, info, offset, a.positionMs) { s -> load(s, audio, subtitle) }
+                    is PlayerAction.Seek -> seekTo(player, info, offset, a.positionMs) { s -> reload(s) }
                     PlayerAction.Play -> player.play()
                     PlayerAction.Pause -> player.pause()
                     is PlayerAction.Speed -> player.setPlaybackSpeed(a.speed.toFloat())
@@ -192,7 +282,7 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
     }
     // Local seeks (skip intro, TV remote) go to the whole group while in one.
     fun seekAbs(ms: Long) {
-        if (sync.group != null) sync.send(sync.engine.seek(ms)) else seekTo(player, info, offset, ms) { s -> load(s, audio, subtitle) }
+        if (sync.group != null) sync.send(sync.engine.seek(ms)) else seekTo(player, info, offset, ms) { s -> reload(s) }
     }
     // Progress every 10 s; messages and stop requests from an administrator every 4 s.
     LaunchedEffect(info) {
@@ -219,27 +309,57 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
     val inCredits = info?.segments?.any { it.kind == "credits" && position >= it.startMs } == true
     // The group's queue decides what comes next, not this device.
     val nextUp = next.takeIf { !grouped }
-    val showNext = nextUp != null && (inCredits || (dur > 0 && dur - position < 20_000 && position > 0))
+    val showNext = nextUp != null && (ended || inCredits || (dur > 0 && dur - position < 20_000 && position > 0))
+    val autoplayNext = prefs?.autoplayNext ?: true
     val tv = LocalTv.current
-    val leave: () -> Unit = { val id = current; runCatching { scope.launch { api.progress(id, ProgressReport(abs(), info?.durationMs)) } }; nav.popBackStack() }
+    val leave: () -> Unit = { nav.popBackStack() }
+    val playNext: () -> Unit = { nextUp?.let { n -> nav.popBackStack(); nav.watch(n.id) } }
+    // The end: marked watched, and with "play the next episode" on, the next one starts.
+    LaunchedEffect(ended) {
+        if (!ended) return@LaunchedEffect
+        val id = current
+        val total = info?.durationMs ?: dur
+        state.appScope.launch { runCatching { api.progress(id, ProgressReport(if (total > 0) total else abs(), info?.durationMs, played = true)) } }
+        if (autoplayNextOnEnd(autoplayNext, nextUp != null, grouped)) playNext()
+    }
+    // Credits on "automatic" go straight on to the next episode.
+    LaunchedEffect(inCredits) {
+        if (inCredits && prefs?.skipCredits == "auto" && autoplayNextOnEnd(autoplayNext, nextUp != null, grouped)) playNext()
+    }
+    fun chooseSubtitle(x: SubtitleChoice) {
+        val from = subtitle
+        subtitle = x
+        panel = false
+        if (Subtitles.needsReload(from, x)) reload() else applySubtitle(player, info, x)
+    }
+    fun chooseAudio(a: Int) { audio = a; panel = false; reload() }
+    val retry: () -> Unit = { error = null; if (info == null) load(start, audioChoice, subChoice, autoplay = true) else reload(autoplay = true) }
+    val it0 = detail?.item
+    val pauseTitle = it0?.let { if (it.kind == "episode") stringResource(R.string.episode_title, it.episodeNumber ?: 0, it.title) else it.title }
 
     if (tv) {
         Box(Modifier.fillMaxSize()) {
             TvPlayerChrome(controls, info, detail, prefs, dur, position, intro, introMode, skipped, showNext, nextUp, panel, audio, subtitle, error, notice,
                 abs = ::abs, setPanel = { panel = it }, onSkipIntro = { i -> skipped = i.startMs; seekAbs(i.endMs) },
                 onSeek = ::seekAbs,
-                onNext = { nav.popBackStack(); nav.watch(nextUp!!.id) },
-                onAudio = { a -> audio = a; panel = false; load(abs(), a, subtitle) },
-                onSubtitle = { x -> subtitle = x; panel = false; load(abs(), audio, x) },
+                onNext = playNext,
+                onAudio = ::chooseAudio,
+                onSubtitle = ::chooseSubtitle,
+                onRetry = retry,
                 onLeave = leave)
+            if (!panel) PauseInfo(player, state.enhancements.pauseScreen, pauseTitle, it0?.seriesTitle, detail?.overview)
             // On a TV the group is shown, not operated: back leaves the player and the group.
             group?.let { SyncOverlay(it, sync.connected, null, Modifier.align(Alignment.TopEnd).padding(horizontal = 48.dp, vertical = 32.dp)) }
         }
         return
     }
 
+    BackHandler { if (panel) panel = false else leave() }
     Box(Modifier.fillMaxSize().background(Color.Black)) {
-        AndroidView({ PlayerView(it).apply { this.player = controls; setShowSubtitleButton(false); setShowNextButton(false); setShowPreviousButton(false) } }, Modifier.fillMaxSize())
+        AndroidView({ PlayerView(it).apply { this.player = controls; setShowSubtitleButton(false); setShowNextButton(false); setShowPreviousButton(false) } }, Modifier.fillMaxSize(),
+            update = { v -> v.useController = !inPip; if (inPip) v.hideController(); v.applyCaptionLook(prefs) })
+        if (inPip) return@Box
+        PauseInfo(player, state.enhancements.pauseScreen, pauseTitle, it0?.seriesTitle, detail?.overview)
         group?.let { SyncOverlay(it, sync.connected, { sync.leaveInBackground() }, Modifier.align(Alignment.TopEnd).padding(top = 64.dp, end = 12.dp)) }
         Row(Modifier.align(Alignment.TopStart).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = leave) {
@@ -247,31 +367,28 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
             }
             Text(detail?.item?.let { it.seriesTitle?.let { s -> "$s · " }.orEmpty() + it.title }.orEmpty(), color = Color.White, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.weight(1f))
-            if (info != null && (info!!.subtitles.isNotEmpty() || info!!.audio.size > 1)) IconButton(onClick = { panel = true }) { Icon(Icons.Default.ClosedCaption, stringResource(R.string.subtitles), tint = Color.White) }
+            info?.let { pi -> if (pi.subtitles.isNotEmpty() || pi.bitmapSubtitles.isNotEmpty() || pi.audio.size > 1) IconButton(onClick = { panel = true }) { Icon(Icons.Default.ClosedCaption, stringResource(R.string.subtitles), tint = Color.White) } }
         }
         if (intro != null && introMode == "button" && skipped != intro.startMs) Button(onClick = { skipped = intro.startMs; seekAbs(intro.endMs) },
             Modifier.align(Alignment.BottomEnd).padding(24.dp, 96.dp), shape = CardShape, colors = ButtonDefaults.buttonColors(containerColor = Color.Black.copy(alpha = 0.7f), contentColor = Color.White)) {
             Icon(Icons.Default.SkipNext, null); Spacer(Modifier.width(6.dp)); Text(stringResource(if (intro.kind == "recap") R.string.skip_recap else R.string.skip_intro))
         }
-        if (showNext && (prefs?.skipCredits ?: "button") != "off") Button(onClick = { nav.popBackStack(); nav.watch(nextUp!!.id) },
+        if (showNext && (prefs?.skipCredits ?: "button") != "off") Button(onClick = playNext,
             Modifier.align(Alignment.BottomEnd).padding(24.dp, 96.dp), shape = CardShape, colors = ButtonDefaults.buttonColors(containerColor = Kino.text, contentColor = Kino.bg)) {
             Text(stringResource(R.string.next_episode) + ": " + nextUp!!.title, maxLines = 1)
         }
         notice?.let { Text(it, color = Color.White, fontSize = 16.sp, modifier = Modifier.align(Alignment.TopCenter).padding(top = 64.dp).background(Color.Black.copy(alpha = 0.85f), CardShape).padding(14.dp)) }
-        error?.let { Box(Modifier.align(Alignment.Center).background(Kino.surface, CardShape).padding(16.dp)) { ErrorLine(it) } }
+        error?.let { PlayerErrorBox(it, retry, leave) }
     }
-    if (panel) {
-        val pi = info!!
+    if (panel && !inPip) info?.let { pi ->
         AlertDialog(onDismissRequest = { panel = false }, confirmButton = { TextButton(onClick = { panel = false }) { Text(stringResource(R.string.close)) } },
             containerColor = Kino.surface, title = { Text(stringResource(R.string.audio_and_subtitles)) }, text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     if (pi.audio.size > 1) FieldRow(stringResource(R.string.audio)) {
-                        Picker(audio ?: pi.audioIndex ?: 0, pi.audio.mapIndexed { i, a -> i to listOfNotNull(a.language?.uppercase(), a.codec.uppercase(), a.title).joinToString(" · ") },
-                            { audio = it; panel = false; load(abs(), it, subtitle) })
+                        Picker(audio ?: pi.audioIndex ?: 0, pi.audio.mapIndexed { i, a -> i to audioLabel(a) }, ::chooseAudio)
                     }
-                    if (pi.subtitles.isNotEmpty()) FieldRow(stringResource(R.string.subtitles)) {
-                        Picker(subtitle, listOf(-1 to stringResource(R.string.off)) + pi.subtitles.mapIndexed { i, s -> i to listOfNotNull(s.language?.uppercase() ?: "?", if (s.forced) stringResource(R.string.forced) else null).joinToString(" · ") },
-                            { subtitle = it; panel = false; load(abs(), audio, it) })
+                    if (pi.subtitles.isNotEmpty() || pi.bitmapSubtitles.isNotEmpty()) FieldRow(stringResource(R.string.subtitles)) {
+                        Picker(subtitle, subtitleOptions(pi), ::chooseSubtitle)
                     }
                 }
             })
@@ -324,9 +441,9 @@ private class GroupControlledPlayer(private val inner: Player, private val absol
 private fun TvPlayerChrome(
     player: Player, info: PlaybackInfo?, detail: ItemDetail?, prefs: Preferences?, dur: Long, position: Long,
     intro: MediaSegment?, introMode: String, skipped: Long?, showNext: Boolean, next: ItemSummary?, panel: Boolean,
-    audio: Int?, subtitle: Int, error: Throwable?, notice: String?,
+    audio: Int?, subtitle: SubtitleChoice, error: Throwable?, notice: String?,
     abs: () -> Long, setPanel: (Boolean) -> Unit, onSkipIntro: (MediaSegment) -> Unit, onSeek: (Long) -> Unit, onNext: () -> Unit,
-    onAudio: (Int) -> Unit, onSubtitle: (Int) -> Unit, onLeave: () -> Unit,
+    onAudio: (Int) -> Unit, onSubtitle: (SubtitleChoice) -> Unit, onRetry: () -> Unit, onLeave: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     var controls by remember { mutableStateOf(false) }
@@ -401,7 +518,8 @@ private fun TvPlayerChrome(
             }
         }
         .focusRequester(root).focusable()) {
-        AndroidView({ PlayerView(it).apply { this.player = player; useController = false; isFocusable = false; descendantFocusability = android.view.ViewGroup.FOCUS_BLOCK_DESCENDANTS } }, Modifier.fillMaxSize())
+        AndroidView({ PlayerView(it).apply { this.player = player; useController = false; isFocusable = false; descendantFocusability = android.view.ViewGroup.FOCUS_BLOCK_DESCENDANTS } }, Modifier.fillMaxSize(),
+            update = { v -> v.applyCaptionLook(prefs) })
         SeekNote(seekDelta)
 
         // Seeking with the controls hidden still shows where the film will land.
@@ -416,7 +534,7 @@ private fun TvPlayerChrome(
                 Box(Modifier.fillMaxWidth().height(160.dp).background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.75f), Color.Transparent))))
                 Column(Modifier.align(Alignment.TopStart).padding(horizontal = 56.dp, vertical = 32.dp)) {
                     detail?.item?.seriesTitle?.let { Text(it.uppercase(), style = Head, color = Kino.muted) }
-                    Text(detail?.item?.let { if (it.kind == "episode") "E${it.episodeNumber} · ${it.title}" else it.title }.orEmpty(), style = Display.copy(fontSize = 34.sp), color = Kino.text, maxLines = 1)
+                    Text(detail?.item?.let { if (it.kind == "episode") stringResource(R.string.episode_title, it.episodeNumber ?: 0, it.title) else it.title }.orEmpty(), style = Display.copy(fontSize = 34.sp), color = Kino.text, maxLines = 1)
                 }
                 Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f))))
                     .padding(horizontal = 56.dp).padding(top = 60.dp, bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
@@ -431,7 +549,7 @@ private fun TvPlayerChrome(
                             Modifier.initialFocus()) { toggle() }
                         TvPlayerButton(Icons.Default.Forward10, stringResource(R.string.fast_forward)) { nudge(fwd) }
                         Spacer(Modifier.weight(1f))
-                        if (info != null && (info.subtitles.isNotEmpty() || info.audio.size > 1))
+                        if (info != null && (info.subtitles.isNotEmpty() || info.bitmapSubtitles.isNotEmpty() || info.audio.size > 1))
                             TvPlayerButton(Icons.Default.ClosedCaption, stringResource(R.string.audio_and_subtitles), wide = true) { controls = false; setPanel(true) }
                         if (next != null) TvPlayerButton(Icons.Default.SkipNext, stringResource(R.string.next_episode), wide = true) { onNext() }
                     }
@@ -447,7 +565,7 @@ private fun TvPlayerChrome(
         }
         if (panel && info != null) TvTracksPanel(info, audio, subtitle, onAudio, onSubtitle, Modifier.align(Alignment.CenterEnd))
         notice?.let { Text(it, color = Color.White, fontSize = 18.sp, modifier = Modifier.align(Alignment.TopCenter).padding(top = 64.dp).background(Color.Black.copy(alpha = 0.85f), CardShape).padding(16.dp)) }
-        error?.let { Box(Modifier.align(Alignment.Center).background(Kino.surface, CardShape).padding(16.dp)) { ErrorLine(it) } }
+        error?.let { PlayerErrorBox(it, onRetry, onLeave) }
         if (info == null && error == null) CircularProgressIndicator(Modifier.align(Alignment.Center), color = Kino.text, strokeWidth = 2.dp)
     }
 }

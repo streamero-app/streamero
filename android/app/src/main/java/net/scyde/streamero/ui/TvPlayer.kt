@@ -1,5 +1,8 @@
 package net.scyde.streamero.ui
 
+import net.scyde.streamero.player.SubtitleChoice
+import androidx.compose.foundation.lazy.items
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -95,26 +98,20 @@ fun BoxScope.SeekNote(deltaMs: Long?) {
 
 /** Audio and subtitle choice as a side panel the remote moves through. */
 @Composable
-fun TvTracksPanel(info: PlaybackInfo, audio: Int?, subtitle: Int, onAudio: (Int) -> Unit, onSubtitle: (Int) -> Unit, modifier: Modifier = Modifier) {
-    val off = stringResource(R.string.off)
-    val forced = stringResource(R.string.forced)
+fun TvTracksPanel(info: PlaybackInfo, audio: Int?, subtitle: SubtitleChoice, onAudio: (Int) -> Unit, onSubtitle: (SubtitleChoice) -> Unit, modifier: Modifier = Modifier) {
+    val subs = subtitleOptions(info)
     LazyColumn(modifier.fillMaxHeight().width(380.dp).background(Brush.horizontalGradient(listOf(Color.Transparent, Kino.bg.copy(alpha = 0.92f), Kino.bg), endX = 120f))
         .padding(start = 40.dp, end = 28.dp), contentPadding = PaddingValues(vertical = 36.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        if (info.subtitles.isNotEmpty()) {
+        if (subs.size > 1) {
             item { Text(stringResource(R.string.subtitles).uppercase(), style = Head, color = Kino.text, modifier = Modifier.padding(bottom = 6.dp)) }
-            item { ChoiceRow(off, subtitle == -1, Modifier.initialFocus(subtitle == -1)) { onSubtitle(-1) } }
-            itemsIndexed(info.subtitles) { i, s ->
-                ChoiceRow(listOfNotNull(s.language?.uppercase() ?: "?", if (s.forced) forced else null).joinToString(" · "), subtitle == i, Modifier.initialFocus(subtitle == i)) { onSubtitle(i) }
-            }
+            items(subs) { (choice, label) -> ChoiceRow(label, subtitle == choice, Modifier.initialFocus(subtitle == choice)) { onSubtitle(choice) } }
         }
         if (info.audio.size > 1) {
             item { Text(stringResource(R.string.audio).uppercase(), style = Head, color = Kino.text, modifier = Modifier.padding(top = 18.dp, bottom = 6.dp)) }
             itemsIndexed(info.audio) { i, a ->
                 val chosen = (audio ?: info.audioIndex ?: 0) == i
-                ChoiceRow(listOfNotNull(a.language?.uppercase(), a.codec.uppercase(), a.channels?.let { c -> "${c}ch" }, a.title).joinToString(" · "), chosen,
-                    Modifier.initialFocus(chosen && info.subtitles.isEmpty())) { onAudio(i) }
+                ChoiceRow(audioLabel(a), chosen, Modifier.initialFocus(chosen && subs.size <= 1)) { onAudio(i) }
             }
         }
     }
 }
-
