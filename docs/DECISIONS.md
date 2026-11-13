@@ -263,7 +263,7 @@ Restore: arhiva se najprije cijela provjeri (checksumi, nazivi unosa); kopija s 
 - **Compat API: izvedivo za gledanje.** Javni opis definira `/LiveTv/Channels`, `/LiveTv/Programs` (GET i POST), `/LiveTv/Programs/Recommended`, `/LiveTv/GuideInfo`, `/LiveTv/Info` i `TvChannel`/`Program` stavke; kanal se reproducira kroz postojeći `PlaybackInfo` kao `TranscodingUrl` (HLS, `IsInfiniteStream`), slike kanala preusmjeravaju na potpisani logo, `Policy.EnableLiveTvAccess/Management` prate dozvole. Snimke, timeri i serijski timeri vraćaju prazan popis (upravljanje u Streamero aplikacijama); `LiveStreams/Open` nije napravljen jer klijenti s `RequiresOpening: false` idu ravno na URL.
 **Posljedice:** time-shift prozor zauzima RAM u `/transcode` (≈ bitrate × trajanje po aktivnom kanalu; 30 min HD remuxa je nekoliko stotina MB). Gledanje snimke koja još traje nije posebno podržano (datoteka se pojavi u biblioteci nakon kraja). Schedules Direct i detekcija reklama (comskip → segmenti) nisu u ovom koraku; comskip se može pokrenuti kao post-processing. Aplikacije (iOS, Android) nemaju mrežu vodiča, samo popis kanala s programom kanala.
 
-## D-042 Ograničenja ffmpeg sesija: jedan stream po uređaju, 3 po računu, zadani limit servera (2026-11-13)
+## D-044 Ograničenja ffmpeg sesija: jedan stream po uređaju, 3 po računu, zadani limit servera (2026-11-13)
 **Kontekst:** svaki `StartPlayback` (native, compat `PlaybackInfo`/`master.m3u8`, DLNA) pokreće ffmpeg, a sesija živi još 90 s bez zahtjeva. `MaxSessions` je zadano bio 0 (bez limita) i brojao samo transkodiranje videa, pa je bilo koji korisnik mogao pokrenuti neograničeno procesa. Player ujedno restarta stream na premotavanje i promjenu zvuka/titla, pa je s malim admin limitom (1–2) već drugi start dobivao `transcode_failed`.
 **Odluka:**
 - **Novi stream istog uređaja gasi prethodni.** Uređaj = sesija prijave (`Principal.SessionID`; isto za compat klijente koji šalju token). API ključevi nemaju sesiju i ne vežu se.
@@ -272,7 +272,7 @@ Restore: arhiva se najprije cijela provjeri (checksumi, nazivi unosa); kopija s 
 - Prekoračenje: `503 transcoder_busy` (native, s porukom u webu HR/EN), `RateLimitExceeded` u compat `PlaybackInfo`, `503` na `master.m3u8`.
 **Posljedice:** premotavanje, promjena zvuka/titla i SyncPlay grupa nikad ne udaraju u limit (uređaj ima jednu sesiju, članovi grupe su različiti uređaji). Dvije kartice istog preglednika dijele kolačić sesije, pa druga kartica gasi stream prve. Obitelj na jednom računu s više od 3 uređaja koji transkodiraju istovremeno dobije poruku; admin može koristiti više profila ili zasebne račune.
 
-## D-043 Ojačanje HTTP sloja: limit tijela, CSP, HSTS, gzip (2026-11-13)
+## D-045 Ojačanje HTTP sloja: limit tijela, CSP, HSTS, gzip (2026-11-13)
 **Kontekst:** ogen dekoderi čitaju JSON tijelo u memoriju bez limita (anonimni `POST /quickconnect/poll` s više GB ruši server); web klijent nije imao CSP ni HSTS; bundle od ~900 KB išao je nekomprimiran.
 **Odluka:**
 - `/api/v1` ima limit tijela 1 MiB (slike profila/računa 16 MiB, upload backupa bez limita jer je samo za admina i ide izravno na disk); prekoračenje je `413 request_too_large`.

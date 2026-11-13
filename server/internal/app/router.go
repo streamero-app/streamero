@@ -217,7 +217,7 @@ func securityHeaders(next http.Handler) http.Handler {
 	})
 }
 
-// webClientCSP is the Content-Security-Policy of the web client (D-043). Styles
+// webClientCSP is the Content-Security-Policy of the web client (D-045). Styles
 // allow 'unsafe-inline' for the administrator's custom CSS (an inline <style>);
 // workers allow blob: for hls.js; images allow any https: host because artwork
 // from search results, request managers and *arr calendars is shown from where
@@ -235,7 +235,7 @@ func webClientHeaders(next http.Handler) http.Handler {
 	})
 }
 
-// Request body limits for the native API (D-043): the generated decoders read
+// Request body limits for the native API (D-045): the generated decoders read
 // JSON bodies into memory, so without a cap one anonymous request could
 // exhaust the server's memory.
 const (

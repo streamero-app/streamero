@@ -61,7 +61,7 @@ func (e Encoding) ToneMaps() bool { return e.ToneMapping == nil || *e.ToneMappin
 var ErrBusy = errors.New("too many transcodes at once")
 
 // PerUserSessions is how many ffmpeg sessions one non-admin account may run at
-// once (D-042). A device's new stream replaces its previous one, so this only
+// once (D-044). A device's new stream replaces its previous one, so this only
 // counts different devices (or browser sessions) of the same account; live
 // channels are shared between viewers and are not counted per account.
 const PerUserSessions = 3
