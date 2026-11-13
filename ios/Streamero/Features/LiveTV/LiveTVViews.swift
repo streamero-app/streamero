@@ -84,7 +84,7 @@ struct ChannelLogo: View {
             if let logo = channel.logoUrl, let url = client.absolute(logo) {
                 AuthImage(url: url, token: client.token, fit: true).padding(6)
             } else {
-                Text(verbatim: channel.number).font(Theme.head(15)).foregroundStyle(Theme.textMuted)
+                Text(verbatim: channel.number).headFont(15).foregroundStyle(Theme.textMuted)
                     .lineLimit(1).minimumScaleFactor(0.5).padding(4)
             }
         }
@@ -175,7 +175,7 @@ struct LiveChannelView: View {
                     ChannelLogo(channel: channel, client: client, size: 64)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(verbatim: channel.number).font(.caption.monospacedDigit()).foregroundStyle(Theme.textFaint)
-                        Text(verbatim: channel.name).font(Theme.head(22)).foregroundStyle(Theme.text)
+                        Text(verbatim: channel.name).headFont(22).foregroundStyle(Theme.text)
                     }
                 }
                 .padding(.top, 8)
@@ -275,14 +275,17 @@ struct LivePlayerView: View {
     let channel: LiveTvChannel
     let client: MediaClient
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppState.self) private var app
     @State private var player: AVPlayer?
     @State private var error: Error?
+    @State private var chrome = PlayerChrome()
 
     var body: some View {
         ZStack(alignment: .topLeading) {
             Color.black.ignoresSafeArea()
             if let player {
-                VideoPlayer(player: player).ignoresSafeArea()
+                SystemVideoPlayer(player: player, autoPip: app.enhancements.autoPip) { point, size in chrome.tap(at: point, in: size) }
+                    .ignoresSafeArea()
             } else if let error {
                 errorMessage(error).foregroundStyle(.white).padding().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -293,9 +296,19 @@ struct LivePlayerView: View {
                     .padding(12).background(.black.opacity(0.4), in: Circle())
             }
             .accessibilityLabel(Text("player.back"))
-            .padding(16)
+            // Below AVKit's own top row; fades with its controls.
+            .padding(.horizontal, 16).padding(.top, player == nil ? 16 : 56)
+            .opacity(player == nil || chrome.visible ? 1 : 0)
+            .allowsHitTesting(player == nil || chrome.visible)
         }
+        .videoAudioFocus(app.music)
         .task { await start() }
+        .task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1))
+                chrome.sync(playing: player?.timeControlStatus == .playing)
+            }
+        }
         .onDisappear {
             player?.pause()
             player = nil

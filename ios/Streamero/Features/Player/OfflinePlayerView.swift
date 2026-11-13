@@ -13,7 +13,7 @@ final class OfflinePlayerModel {
     private(set) var subtitleIndex = -1
     private(set) var cue: SubtitleCue?
     private var cues: [SubtitleCue] = []
-    private var ticks = 0
+    private var progress = ProgressTrigger()
     private var closed = false
 
     init(entry: OfflineEntry) {
@@ -41,10 +41,8 @@ final class OfflinePlayerModel {
             return
         }
         let p = AVPlayer(url: url)
-        let start = current.resumeMs
-        if start > 0 {
-            await p.seek(to: CMTime(value: start, timescale: 1000))
-        }
+        // Seeking before the item is ready can land on the wrong spot or be dropped.
+        await p.seekWhenReady(toMs: current.resumeMs)
         player = p
         p.play()
         // Forced subtitles (foreign dialogue) start on by themselves.
@@ -77,15 +75,16 @@ final class OfflinePlayerModel {
         return entry.durationMs ?? entry.item.durationMs
     }
 
-    /// One tick per second: subtitles; every 10 s the position is recorded.
+    var isPlaying: Bool { player?.timeControlStatus == .playing }
+
+    /// One tick per second: subtitles; the position is recorded every 10 s and after a pause or seek.
     func tick() async {
         guard let player else { return }
         cue = WebVTT.cue(in: cues, at: positionMs)
-        ticks += 1
-        if ticks % 10 == 0 && player.timeControlStatus == .playing { await record() }
+        if progress.tick(playing: player.timeControlStatus == .playing, positionMs: positionMs) { await record() }
     }
 
-    private func record() async {
+    func record() async {
         let pos = positionMs
         guard pos > 0 else { return }
         let manager = DownloadManager.shared
@@ -108,10 +107,15 @@ final class OfflinePlayerModel {
 
 /// Full-screen player for a downloaded item; works without any connection.
 struct OfflinePlayerView: View {
+    /// Music to pause while the video plays (nil in the offline library, where none runs).
+    let music: MusicPlayer?
     @State private var model: OfflinePlayerModel
+    @State private var chrome = PlayerChrome()
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
 
-    init(entry: OfflineEntry) {
+    init(entry: OfflineEntry, music: MusicPlayer?) {
+        self.music = music
         _model = State(initialValue: OfflinePlayerModel(entry: entry))
     }
 
@@ -119,7 +123,8 @@ struct OfflinePlayerView: View {
         ZStack {
             Color.black.ignoresSafeArea()
             if let player = model.player {
-                VideoPlayer(player: player).ignoresSafeArea()
+                SystemVideoPlayer(player: player) { point, size in chrome.tap(at: point, in: size) }
+                    .ignoresSafeArea()
             } else if model.missing {
                 Text("downloads.missing").foregroundStyle(.white).multilineTextAlignment(.center).padding()
             } else {
@@ -127,22 +132,31 @@ struct OfflinePlayerView: View {
             }
             if let cue = model.cue {
                 SubtitleStyle(prefs: nil).view(cue.text)
-                    .padding(.horizontal, 24).padding(.bottom, 56)
+                    .padding(.horizontal, 24).padding(.bottom, chrome.visible ? 112 : 36)
                     .frame(maxHeight: .infinity, alignment: .bottom)
                     .allowsHitTesting(false)
+                    .animation(.easeOut(duration: 0.25), value: chrome.visible)
             }
             VStack {
                 topBar
+                    .padding(.top, 40)
+                    .opacity(chrome.visible ? 1 : 0)
+                    .allowsHitTesting(chrome.visible)
                 Spacer()
             }
         }
+        .videoAudioFocus(music)
         .task {
             UIApplication.shared.isIdleTimerDisabled = true
             await model.begin()
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
                 await model.tick()
+                chrome.sync(playing: model.isPlaying)
             }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .background { Task { await model.record() } }
         }
         .onDisappear {
             UIApplication.shared.isIdleTimerDisabled = false

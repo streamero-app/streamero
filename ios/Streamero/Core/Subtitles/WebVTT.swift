@@ -52,4 +52,12 @@ enum WebVTT {
     static func cue(in cues: [SubtitleCue], at ms: Int64) -> SubtitleCue? {
         cues.last { ms >= $0.startMs && ms < $0.endMs }
     }
+
+    /// Where a subtitle file's clock starts in the film. The server may hand out WebVTT that is
+    /// already shifted to a resumed stream (`offsetMs` in the signed URL); its cues then count from
+    /// that position. The app does no shifting of its own, it only reads which clock the file uses.
+    static func clockStart(of url: URL) -> Int64 {
+        let items = URLComponents(url: url, resolvingAgainstBaseURL: true)?.queryItems ?? []
+        return items.first { $0.name == "offsetMs" }?.value.flatMap { Int64($0) } ?? 0
+    }
 }
