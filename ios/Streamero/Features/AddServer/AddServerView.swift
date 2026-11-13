@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct AddServerView: View {
+    /// Set when shown over another screen (the server list): a way back and a call once added.
+    var onClose: (() -> Void)? = nil
     @Environment(ServerStore.self) private var store
     @Environment(SessionStore.self) private var session
     @State private var address = ""
@@ -15,7 +17,7 @@ struct AddServerView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                     .shadow(color: Theme.accent.opacity(0.4), radius: 24, y: 10)
                     .padding(.bottom, 8)
-                Text("app.name").font(Theme.display(36)).minimumScaleFactor(0.6)
+                Text("app.name").displayFont(36).minimumScaleFactor(0.6)
                 Text("addServer.subtitle").foregroundStyle(Theme.textMuted)
             }
             VStack(alignment: .leading, spacing: 8) {
@@ -43,6 +45,9 @@ struct AddServerView: View {
             }
             .buttonStyle(PrimaryButtonStyle())
             .disabled(checking || address.isEmpty)
+            if let onClose {
+                Button("player.back", action: onClose).foregroundStyle(Theme.textMuted)
+            }
             Spacer()
             Spacer()
         }
@@ -70,6 +75,7 @@ struct AddServerView: View {
             let info = try await SystemClient(baseURL: url).info()
             session.forget(serverID: info.id)
             store.add(SavedServer(id: info.id, name: info.name, url: url, version: info.version))
+            onClose?()
         } catch ServerCheckError.starting {
             error = "addServer.error.starting"
         } catch ServerCheckError.notStreamero {

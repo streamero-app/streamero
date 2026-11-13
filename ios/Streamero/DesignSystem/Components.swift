@@ -22,7 +22,8 @@ func errorMessage(_ error: Error) -> Text {
     case "forbidden": return Text("err_forbidden")
     case "upstream_failed": return Text("err_upstream")
     default:
-        if let message = api.message, !message.isEmpty { return Text(verbatim: message) }
+        // The server's own message is English; unknown codes get a translated fallback.
+        if api.status == 0 || api.status >= 500 { return Text("err_network") }
         return Text("err_generic")
     }
 }
@@ -44,7 +45,7 @@ struct LoadingView: View {
 struct SectionHead: View {
     let title: LocalizedStringKey
     var body: some View {
-        Text(title).font(Theme.head()).textCase(.uppercase).foregroundStyle(Theme.text)
+        Text(title).headFont().textCase(.uppercase).foregroundStyle(Theme.text)
     }
 }
 
@@ -52,7 +53,7 @@ struct SectionHead: View {
 struct PageTitle: View {
     let title: LocalizedStringKey
     var body: some View {
-        Text(title).font(Theme.display(34)).foregroundStyle(Theme.text)
+        Text(title).displayFont(34).foregroundStyle(Theme.text)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

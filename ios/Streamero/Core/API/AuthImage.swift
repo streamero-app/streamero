@@ -71,7 +71,7 @@ struct PosterPlaceholder: View {
                            center: .topLeading, startRadius: 0, endRadius: 320)
             if !title.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(title).font(Theme.display(22)).foregroundStyle(.white.opacity(0.95))
+                    Text(title).displayFont(22).foregroundStyle(.white.opacity(0.95))
                         .lineLimit(4).minimumScaleFactor(0.7)
                     if let year { Text(String(year)).font(.caption2).foregroundStyle(.white.opacity(0.5)) }
                 }

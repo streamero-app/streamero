@@ -47,7 +47,7 @@ targets:
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
         UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
         UIBackgroundModes: [audio, fetch]
-        NSLocalNetworkUsageDescription: Streamero finds media servers on your local network.
+        NSLocalNetworkUsageDescription: Streamero connects to media servers on your local network.
         NSBonjourServices: [_streamero._tcp]
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true   # self-hosted servers on LAN often use plain HTTP

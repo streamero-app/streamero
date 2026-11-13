@@ -65,6 +65,7 @@ test("admin adds a user; user signs in; admin signs the device out", async ({ pa
   const row = page.getByTestId("session-row").filter({ hasText: user.username });
   await expect(row).toBeVisible();
   await row.getByRole("button", { name: "Sign out" }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Sign out" }).click();
   await expect(row).toHaveCount(0);
   await other.goto("/settings/devices");
   await expect(other).toHaveURL(/\/login$/);

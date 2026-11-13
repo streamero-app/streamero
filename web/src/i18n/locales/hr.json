@@ -16,7 +16,8 @@
     "edit": "Uredi",
     "delete": "Obriši",
     "yes": "Da",
-    "no": "Ne"
+    "no": "Ne",
+    "episodeCode": "S{{season}}:E{{episode}}"
   },
   "nav": {
     "home": "Početna",
@@ -133,7 +134,9 @@
     "lastSeen": "zadnja aktivnost {{when}}",
     "signOut": "Odjavi",
     "rename": "Preimenuj",
-    "name": "Ime uređaja"
+    "name": "Ime uređaja",
+    "confirmSignOut": "Odjaviti uređaj „{{name}}”? Morat će se ponovno prijaviti.",
+    "confirmSignOutSelf": "Odjaviti se s ovog uređaja?"
   },
   "users": {
     "add": "Dodaj korisnika",
@@ -164,7 +167,8 @@
     "version": "Verzija {{version}}",
     "versionLabel": "Verzija",
     "about": "O ovom serveru",
-    "id": "ID servera"
+    "id": "ID servera",
+    "apiVersion": "Verzija API-ja"
   },
   "errors": {
     "generic": "Nešto nije u redu. Pokušajte ponovno.",
@@ -329,7 +333,8 @@
     "invalidText": "Ova pozivnica je istekla, potrošena je ili opozvana. Zatražite novu.",
     "joinTitle": "Pridruži se: {{server}}",
     "joinIntro": "Pozvani ste. Odaberite korisničko ime i lozinku za svoj račun.",
-    "join": "Napravi račun"
+    "join": "Napravi račun",
+    "confirmRevoke": "Opozvati pozivnicu „{{name}}”? Poveznica odmah prestaje vrijediti."
   },
   "profiles": {
     "intro": "Profili omogućuju da više osoba dijeli ovaj račun (do 6). Dječji profil ne može otvoriti postavke; izlazak iz njega traži lozinku računa.",
@@ -537,7 +542,9 @@
     "keySubtitles": "Titlovi uključi/isključi",
     "keyHelp": "Ova pomoć",
     "keyClose": "Zatvori panel",
-    "fallback": "Preglednik nije mogao izravno pustiti datoteku, pa se pretvara."
+    "fallback": "Preglednik nije mogao izravno pustiti datoteku, pa se pretvara.",
+    "playbackFailed": "Ovaj video trenutačno se ne može reproducirati u ovom pregledniku.",
+    "retry": "Pokušaj ponovno"
   },
   "search": {
     "title": "Pretraga",
@@ -554,7 +561,7 @@
     "host": "Host",
     "port": "Port",
     "ssl": "SSL",
-    "urlBase": "URL base",
+    "urlBase": "Osnovna putanja (URL base)",
     "on": "uključeno",
     "off": "isključeno",
     "seerrIntro": "U Seerr/Jellyseerru odaberite \"Jellyfin\" kao media server i upišite:",
@@ -706,7 +713,7 @@
     "help_gotify": "Adresa servera; app token dobiješ u Gotify → Apps.",
     "help_generic": "Prima JSON POST: event, title, message, data, server.",
     "token": "Access token (neobavezno)",
-    "appToken": "App token",
+    "appToken": "Token aplikacije",
     "tokenStored": "Spremljen — ostavi prazno da ostane",
     "events": "Šalji za",
     "event_item.added": "Nove naslove",
@@ -716,7 +723,8 @@
     "event_scan.failed": "Neuspjela skeniranja",
     "enabled": "Uključeno",
     "test": "Pošalji test",
-    "testSent": "Testna poruka poslana."
+    "testSent": "Testna poruka poslana.",
+    "namePlaceholder": "Discord #filmovi"
   },
   "playbackPrefs": {
     "title": "Reprodukcija",
@@ -924,7 +932,7 @@
     "cssHint": "Dodaje se na svaku stranicu web klijenta. Ovdje se mogu promijeniti i tokeni dizajna poput --amb-a ili --color-bg."
   },
   "discover": {
-    "title": "Discover",
+    "title": "Otkrij",
     "short": "Otkrij",
     "intro": "Pronađi bilo koji film ili seriju. Ako još nije ovdje, zatraži ga i automatski će se preuzeti preko Seerra, Radarra i Sonarra.",
     "placeholder": "Film, serija ili crtić…",
@@ -1029,7 +1037,7 @@
     "download": "Preuzmi"
   },
   "import": {
-    "title": "Uvoz iz Jellyfina",
+    "title": "Uvoz s drugog medijskog servera",
     "intro": "Prenesite što je tko gledao, gdje je stao, favorite i popise za reprodukciju prije nego ugasite stari poslužitelj. Medijske datoteke se ne kopiraju niti mijenjaju.",
     "url": "Adresa poslužitelja",
     "urlHint": "Kako je vidi Streamero poslužitelj, npr. http://192.168.1.10:8096",
@@ -1124,10 +1132,10 @@
     "labelHint": "Prikazuje se kao „Nastavi s …“ na stranici prijave.",
     "id": "ID",
     "idHint": "Mala slova, znamenke i crtice. Dio je redirect URI-ja; kasnije se ne može mijenjati.",
-    "issuer": "Issuer URL",
+    "issuer": "URL izdavatelja (issuer)",
     "issuerHint": "Za Microsoft koristi svoj tenant: https://login.microsoftonline.com/<tenant-id>/v2.0",
     "clientId": "Client ID",
-    "clientSecret": "Client secret",
+    "clientSecret": "Tajni ključ klijenta",
     "replaceSecret": "Zamijeni tajnu",
     "secretHint": "Sprema se na serveru i više se ne prikazuje. Ostavi prazno da zadržiš postojeću.",
     "scopes": "Scopeovi",
@@ -1263,7 +1271,7 @@
     "transcodes": "Pretvorena preuzimanja",
     "noTranscodes": "Ništa se ne pretvara za preuzimanje.",
     "removeTranscode": "Zaustavi i ukloni",
-    "quality_original": "Original",
+    "quality_original": "Izvorna",
     "quality_source": "Izvorna rezolucija",
     "quality_1080p": "1080p",
     "quality_720p": "720p",
@@ -1393,7 +1401,7 @@
     "tunerCount": "Tuneri",
     "tunerCountM3u": "Koliko streamova pružatelj dopušta odjednom (0 = neograničeno).",
     "tunerCountHdhr": "Prazno = koliko ih uređaj ima.",
-    "userAgent": "User agent",
+    "userAgent": "Korisnički agent (User-Agent)",
     "userAgentHint": "Samo ako ga pružatelj traži.",
     "enabled": "Uključeno",
     "disabled": "Isključeno",
@@ -1477,5 +1485,10 @@
     "postProcessSet": "Pokreće {{command}}.",
     "postProcessOff": "Isključeno.",
     "postProcessAdminOnly": "Mijenjati ga mogu samo administratori."
+  },
+  "dialog": {
+    "confirm": "Potvrdi",
+    "ok": "U redu",
+    "create": "Napravi"
   }
 }

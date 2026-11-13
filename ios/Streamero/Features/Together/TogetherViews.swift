@@ -271,7 +271,7 @@ struct TogetherInviteSheet: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 18) {
-                Text("together.created").font(Theme.display(26)).foregroundStyle(Theme.text)
+                Text("together.created").displayFont(26).foregroundStyle(Theme.text)
                 Text("together.createdHint").font(.callout).foregroundStyle(Theme.textMuted)
                 Text(verbatim: link.absoluteString)
                     .font(.footnote.monospaced()).foregroundStyle(Theme.text)

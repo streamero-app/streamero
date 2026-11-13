@@ -108,6 +108,7 @@ select option { background: var(--color-surface); color: var(--color-text); }
 
 /* Page content enters once, softly; nothing re-animates on scroll. */
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 .enter { animation: rise 560ms var(--ease-out) both; }
 .enter-2 { animation: rise 560ms var(--ease-out) 70ms both; }
 .enter-3 { animation: rise 560ms var(--ease-out) 140ms both; }

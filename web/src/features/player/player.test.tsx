@@ -67,6 +67,12 @@ describe("player", () => {
     fireEvent.error(video);
     await new Promise((r) => setTimeout(r, 50));
     expect(devices).toHaveLength(2);
+    // The safe stream failed too: say so (no silent black screen) and let the viewer retry it.
+    expect(await screen.findByTestId("playback-error")).toHaveTextContent("can't be played in this browser");
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    await waitFor(() => expect(devices).toHaveLength(3));
+    expect(devices[2]?.videoCodecs).toEqual(["h264"]);
+    await waitFor(() => expect(screen.queryByTestId("playback-error")).not.toBeInTheDocument());
   });
 
   it("adds the stream offset for HLS that starts mid-way", async () => {
@@ -74,7 +80,7 @@ describe("player", () => {
     mockApi(({ method, path, body }) => {
       if (method === "POST" && path.endsWith("/playback")) {
         return { status: 200, body: { fileId: "f", method: "transcode", url: "/stream/hls/s/index.m3u8?exp=1&sig=x", startMs: 600_000,
-          audio: [], subtitles: [] } };
+          audio: [], subtitles: [{ index: 0, url: "/stream/sub/f/0.vtt?exp=1&sig=x", external: true, language: "hr" }] } };
       }
       if (method === "PUT") {
         progress = body;
@@ -87,6 +93,8 @@ describe("player", () => {
     renderApp(`/watch/${item.id}`, { me: testUser() });
     const video = (await screen.findByTestId("video")) as HTMLVideoElement;
     await waitFor(() => expect(screen.getByTestId("play-method")).toHaveTextContent("Transcoding"));
+    // The stream's 0 is 10:00 into the file: the subtitle cues are asked for shifted to match.
+    expect(video.querySelector("track")?.getAttribute("src")).toBe("/stream/sub/f/0.vtt?exp=1&sig=x&offsetMs=600000");
     Object.defineProperty(video, "currentTime", { value: 5, configurable: true });
     fireEvent.pause(video);
     await waitFor(() => expect(progress).toMatchObject({ positionMs: 605_000 }));
@@ -203,6 +211,151 @@ describe("player", () => {
     await waitFor(() => expect(starts).toHaveLength(2));
     expect(Number.isInteger(starts[1])).toBe(true);
     expect(starts[1]).toBe(Math.round((217 / 333) * 5_400_123));
+  });
+
+  const detailOf = (it: typeof item) => ({ item: it, libraryId: "l", providerIds: {}, files: [], children: [], genres: [], cast: [], crew: [], hasBackdrop: false });
+
+  it("keeps each episode's own position when moving on to the next one", async () => {
+    const ep = { ...item, id: "0190a8b0-0000-7000-8000-00000000e001", kind: "episode", title: "Pilot", seasonNumber: 1, episodeNumber: 1 };
+    const nextEp = { ...ep, id: "0190a8b0-0000-7000-8000-00000000e002", title: "Second", episodeNumber: 2 };
+    const puts: { path: string; body: unknown }[] = [];
+    let starts = 0;
+    mockApi(({ method, path, body }) => {
+      if (method === "POST" && path.endsWith("/playback")) {
+        starts++;
+        return { status: 200, body: { fileId: "f", method: "direct", url: `/stream/file/f/ep${starts}.mp4?exp=1&sig=x`, startMs: 0, durationMs: 100_000,
+          audio: [{ codec: "aac" }], subtitles: [] } };
+      }
+      if (path === `/items/${ep.id}/next`) return { status: 200, body: nextEp };
+      if (path === `/items/${nextEp.id}/next`) return { status: 404, body: { code: "not_found", message: "" } };
+      if (path === "/me/preferences") return { status: 200, body: { autoplayNext: false } };
+      if (method === "PUT") {
+        puts.push({ path, body });
+        return { status: 204 };
+      }
+      return { status: 200, body: detailOf(path.includes(nextEp.id) ? nextEp : ep) };
+    });
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+    vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => undefined);
+    const { router } = renderApp(`/watch/${ep.id}`, { me: testUser() });
+    const video = (await screen.findByTestId("video")) as HTMLVideoElement;
+    await waitFor(() => expect(video.getAttribute("src")).toContain("ep1.mp4"));
+    Object.defineProperty(video, "currentTime", { value: 95, configurable: true, writable: true });
+    fireEvent.ended(video);
+    fireEvent.click(await screen.findByRole("button", { name: /Play now/ }));
+    await waitFor(() => expect(router.state.location.pathname).toBe(`/watch/${nextEp.id}`));
+    await waitFor(() => expect(starts).toBe(2));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(puts.some((p) => p.path === `/items/${ep.id}/progress` && (p.body as { positionMs: number }).positionMs === 95_000)).toBe(true);
+    // The next episode never gets the previous one's end position (it would resume near the end).
+    expect(puts.filter((p) => p.path === `/items/${nextEp.id}/progress`)).toEqual([]);
+  });
+
+  it("does not steal focus for Play next: Space keeps playing and pausing", async () => {
+    const ep = { ...item, id: "0190a8b0-0000-7000-8000-00000000e003", kind: "episode", title: "Pilot", seasonNumber: 1, episodeNumber: 1 };
+    const nextEp = { ...ep, id: "0190a8b0-0000-7000-8000-00000000e004", title: "Second", episodeNumber: 2 };
+    mockApi(({ method, path }) => {
+      if (method === "POST" && path.endsWith("/playback")) {
+        return { status: 200, body: { fileId: "f", method: "direct", url: "/stream/file/f/video.mp4?exp=1&sig=x", startMs: 0, durationMs: 100_000,
+          audio: [{ codec: "aac" }], subtitles: [] } };
+      }
+      if (path === `/items/${ep.id}/next`) return { status: 200, body: nextEp };
+      if (path === "/me/preferences") return { status: 200, body: { autoplayNext: false } };
+      if (method === "PUT") return { status: 204 };
+      return { status: 200, body: detailOf(ep) };
+    });
+    const play = vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+    const { router } = renderApp(`/watch/${ep.id}`, { me: testUser() });
+    const video = (await screen.findByTestId("video")) as HTMLVideoElement;
+    await waitFor(() => expect(video.getAttribute("src")).toContain("video.mp4"));
+    Object.defineProperty(video, "currentTime", { value: 90, configurable: true, writable: true });
+    fireEvent.timeUpdate(video); // 10 s left: the up-next card appears
+    const next = await screen.findByRole("button", { name: /Play now/ });
+    expect(next).not.toHaveFocus();
+    play.mockClear();
+    fireEvent.keyDown(document.body, { key: " " });
+    expect(play).toHaveBeenCalledTimes(1);
+    expect(router.state.location.pathname).toBe(`/watch/${ep.id}`);
+  });
+
+  it("keeps a paused viewer paused when the audio track restarts the stream", async () => {
+    let n = 0;
+    mockApi(({ method, path }) => {
+      if (method === "POST" && path.endsWith("/playback")) {
+        n++;
+        return { status: 200, body: { fileId: "f", method: "transcode", url: `/stream/hls/s${n}/index.m3u8?exp=1&sig=x`, startMs: 0, durationMs: 100_000,
+          audio: [{ codec: "aac", language: "en" }, { codec: "ac3", language: "hr" }], subtitles: [] } };
+      }
+      if (method === "PUT") return { status: 204 };
+      return { status: 200, body: detailOf(item) };
+    });
+    const play = vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+    vi.spyOn(HTMLMediaElement.prototype, "canPlayType").mockImplementation((t: string) => (t.includes("mpegurl") ? "maybe" : ""));
+    renderApp(`/watch/${item.id}`, { me: testUser() });
+    const video = (await screen.findByTestId("video")) as HTMLVideoElement;
+    await waitFor(() => expect(video.getAttribute("src")).toContain("/s1/"));
+    // Safari-style native HLS: playback starts once the stream can play.
+    expect(play).not.toHaveBeenCalled();
+    fireEvent.canPlay(video);
+    expect(play).toHaveBeenCalledTimes(1);
+
+    // Playing → switch audio → plays again.
+    Object.defineProperty(video, "paused", { value: false, configurable: true });
+    fireEvent.change(screen.getByLabelText("Audio"), { target: { value: "1" } });
+    await waitFor(() => expect(video.getAttribute("src")).toContain("/s2/"));
+    fireEvent.canPlay(video);
+    expect(play).toHaveBeenCalledTimes(2);
+
+    // Paused → switch audio → stays paused.
+    Object.defineProperty(video, "paused", { value: true, configurable: true });
+    fireEvent.change(screen.getByLabelText("Audio"), { target: { value: "0" } });
+    await waitFor(() => expect(video.getAttribute("src")).toContain("/s3/"));
+    fireEvent.canPlay(video);
+    expect(play).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows a big play button when the browser refuses to start on its own", async () => {
+    mockApi(({ method, path }) => {
+      if (method === "POST" && path.endsWith("/playback")) {
+        return { status: 200, body: { fileId: "f", method: "direct", url: "/stream/file/f/video.mp4?exp=1&sig=x", startMs: 0, durationMs: 100_000,
+          audio: [{ codec: "aac" }], subtitles: [] } };
+      }
+      if (method === "PUT") return { status: 204 };
+      return { status: 200, body: detailOf(item) };
+    });
+    const play = vi.spyOn(HTMLMediaElement.prototype, "play").mockRejectedValueOnce(new DOMException("gesture needed", "NotAllowedError"));
+    renderApp(`/watch/${item.id}`, { me: testUser() });
+    const video = (await screen.findByTestId("video")) as HTMLVideoElement;
+    await waitFor(() => expect(video.getAttribute("src")).toContain("video.mp4"));
+    fireEvent.canPlay(video);
+    const big = await screen.findByTestId("tap-to-play");
+    play.mockResolvedValue(undefined);
+    fireEvent.click(big);
+    expect(play).toHaveBeenCalledTimes(2);
+    fireEvent.play(video);
+    await waitFor(() => expect(screen.queryByTestId("tap-to-play")).not.toBeInTheDocument());
+  });
+
+  it("keeps the chosen speed when a new stream loads", async () => {
+    mockApi(({ method, path }) => {
+      if (method === "POST" && path.endsWith("/playback")) {
+        return { status: 200, body: { fileId: "f", method: "direct", url: "/stream/file/f/video.mp4?exp=1&sig=x", startMs: 0, durationMs: 100_000,
+          audio: [{ codec: "aac" }], subtitles: [] } };
+      }
+      if (method === "PUT") return { status: 204 };
+      return { status: 200, body: detailOf(item) };
+    });
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+    renderApp(`/watch/${item.id}`, { me: testUser() });
+    const video = (await screen.findByTestId("video")) as HTMLVideoElement;
+    await waitFor(() => expect(video.getAttribute("src")).toContain("video.mp4"));
+    fireEvent.click(screen.getByRole("button", { name: "Playback speed" }));
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "1.5×", hidden: true }));
+    expect(video.playbackRate).toBe(1.5);
+    expect(video.defaultPlaybackRate).toBe(1.5);
+    video.playbackRate = 1; // what a new source does
+    fireEvent.loadedMetadata(video);
+    expect(video.playbackRate).toBe(1.5);
   });
 });
 
