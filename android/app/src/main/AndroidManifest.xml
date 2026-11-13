@@ -40,6 +40,13 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="streamero" android:host="oidc" />
             </intent-filter>
+            <!-- Invite links shared as streamero://invite?server=…&token=… (ui/InviteScreen.kt). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="streamero" android:host="invite" />
+            </intent-filter>
         </activity>
         <service
             android:name=".music.MusicService"
