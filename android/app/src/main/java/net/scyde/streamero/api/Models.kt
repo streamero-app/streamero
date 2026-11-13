@@ -56,8 +56,16 @@ import kotlinx.serialization.json.JsonElement
     val artist: String? = null, val album: String? = null, val rating: Double? = null,
     val positionMs: Long = 0, val durationMs: Long? = null, val played: Boolean = false, val favorite: Boolean = false,
     val colors: List<String>? = null, val videoHeight: Int? = null, val hdr: String? = null,
+    // Books, audiobooks and photos
+    val authors: List<String>? = null, val seriesName: String? = null, val seriesIndex: Double? = null,
+    val bookFormat: String? = null, val progression: Double? = null, val takenAt: String? = null,
+    val width: Int? = null, val height: Int? = null, val childCount: Int? = null,
 ) {
-    val progress: Float get() = if (durationMs != null && durationMs > 0 && positionMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
+    val progress: Float get() = when {
+        progression != null && progression > 0 -> progression.toFloat().coerceIn(0f, 1f)
+        durationMs != null && durationMs > 0 && positionMs > 0 -> (positionMs.toFloat() / durationMs).coerceIn(0f, 1f)
+        else -> 0f
+    }
 }
 
 @Serializable data class ItemPage(val items: List<ItemSummary>, val total: Int)
@@ -83,7 +91,33 @@ import kotlinx.serialization.json.JsonElement
     val children: List<ItemSummary> = emptyList(), val collections: List<MediaCollection> = emptyList(),
     val chapters: List<Chapter> = emptyList(), val trickplay: TrickplayInfo? = null,
     val providerIds: Map<String, String> = emptyMap(), val metadataError: String? = null,
+    val book: BookDetails? = null, val photo: PhotoDetails? = null,
 )
+
+// Books, comics, audiobooks and photos
+@Serializable data class BookDetails(
+    val format: String, val authors: List<String> = emptyList(), val narrators: List<String> = emptyList(),
+    val seriesName: String? = null, val seriesIndex: Double? = null, val volume: Double? = null, val chapter: Double? = null,
+    val pageCount: Int? = null, val isbn: String? = null, val publisher: String? = null, val language: String? = null,
+    val published: String? = null, val description: String? = null, val rightToLeft: Boolean = false,
+)
+@Serializable data class PhotoDetails(
+    val takenAt: String? = null, val width: Int? = null, val height: Int? = null, val camera: String? = null, val lens: String? = null,
+    val focalLength: Double? = null, val fNumber: Double? = null, val exposureTime: String? = null, val iso: Int? = null,
+    val latitude: Double? = null, val longitude: Double? = null,
+)
+@Serializable data class ReadingProgress(val page: Int? = null, val locator: String? = null, val progression: Double = 0.0, val finished: Boolean = false, val updatedAt: String? = null)
+/** PUT body of reading-progress; absent fields are left out. */
+@Serializable data class ReadingProgressInput(val progression: Double, val page: Int? = null, val locator: String? = null, val finished: Boolean? = null)
+@Serializable data class ReadManifest(
+    val format: String, val fileUrl: String, val pageCount: Int? = null, val pages: List<String> = emptyList(),
+    val rightToLeft: Boolean = false, val progress: ReadingProgress = ReadingProgress(),
+)
+@Serializable data class AudiobookPart(val fileId: String, val title: String, val offsetMs: Long, val durationMs: Long)
+@Serializable data class AudiobookChapter(val title: String, val startMs: Long, val endMs: Long)
+@Serializable data class AudiobookManifest(val durationMs: Long, val positionMs: Long = 0, val parts: List<AudiobookPart> = emptyList(), val chapters: List<AudiobookChapter> = emptyList())
+@Serializable data class PhotoView(val url: String, val originalUrl: String? = null, val mimeType: String = "", val width: Int? = null, val height: Int? = null)
+@Serializable data class NameCount(val name: String, val count: Int = 0, val itemId: String? = null)
 
 @Serializable data class DeviceProfile(
     val containers: List<String>, val videoCodecs: List<String>, val audioCodecs: List<String>, val hls: Boolean,

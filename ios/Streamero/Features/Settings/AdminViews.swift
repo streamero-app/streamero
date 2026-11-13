@@ -145,7 +145,8 @@ struct LibrariesAdminPage: View {
                 }
                 Section {
                     TextField("name", text: $name)
-                    OptPicker(title: "kind", selection: $kind, options: [Opt("movies", "movies"), Opt("shows", "shows"), Opt("music", "music"), Opt("mixed", "mixed")])
+                    OptPicker(title: "kind", selection: $kind, options: [Opt("movies", "movies"), Opt("shows", "shows"), Opt("music", "music"), Opt("mixed", "mixed"),
+                                       Opt("books", "books"), Opt("audiobooks", "audiobooks"), Opt("photos", "photos")])
                     TextField("folder", text: $path).textInputAutocapitalization(.never).autocorrectionDisabled()
                     Button("add_library") {
                         let input = LibraryInput(name: name, kind: kind, paths: [path])

@@ -68,6 +68,15 @@ type Item struct {
 	DurationMS                        *int64
 	AddedAt                           time.Time
 	ProviderIDs                       map[string]string
+	// Books, audiobooks and photos.
+	Authors       []string
+	SeriesName    *string
+	SeriesIndex   *float64
+	BookFormat    *string
+	Progression   *float64
+	TakenAt       *time.Time
+	Width, Height *int
+	ChildCount    *int
 }
 
 // MediaFile is a file belonging to an item.
@@ -251,13 +260,17 @@ func (s *Service) ScanConfirmRemoval(ctx context.Context, id uuid.UUID) error {
 
 const itemCols = `i.id, i.library_id, i.parent_id, i.kind, COALESCE(i.metadata_title, i.title), i.year, i.season_number,
 	i.episode_number, i.episode_number_end, i.added_at, i.provider_ids,
-	(SELECT max(f.duration_ms) FROM media_files f WHERE f.item_id = i.id), i.has_poster, i.has_backdrop, i.has_logo, i.colors, i.community_rating,
+	(SELECT CASE WHEN i.kind = 'audiobook' THEN sum(f.duration_ms) ELSE max(f.duration_ms) END FROM media_files f WHERE f.item_id = i.id), i.has_poster, i.has_backdrop, i.has_logo, i.colors, i.community_rating,
 	COALESCE(u.position_ms, 0), COALESCE(u.played, false), COALESCE(u.favorite, false),
 	(SELECT max(f.height) FROM media_files f WHERE f.item_id = i.id),
 	(SELECT f.hdr FROM media_files f WHERE f.item_id = i.id AND f.hdr <> '' ORDER BY f.height DESC NULLS LAST LIMIT 1),
 	CASE i.kind WHEN 'album' THEN (SELECT p.title FROM items p WHERE p.id = i.parent_id)
 		WHEN 'track' THEN COALESCE(i.artist, (SELECT g.title FROM items a JOIN items g ON g.id = a.parent_id WHERE a.id = i.parent_id)) END,
-	CASE WHEN i.kind = 'track' THEN (SELECT a.title FROM items a WHERE a.id = i.parent_id) END`
+	CASE WHEN i.kind = 'track' THEN (SELECT a.title FROM items a WHERE a.id = i.parent_id) END,
+	i.authors, i.series_name, i.series_index, i.media_meta->>'format', u.progression, i.taken_at,
+	CASE WHEN i.kind IN ('photo', 'video') THEN (SELECT f.width FROM media_files f WHERE f.item_id = i.id LIMIT 1) END,
+	CASE WHEN i.kind IN ('photo', 'video') THEN (SELECT f.height FROM media_files f WHERE f.item_id = i.id LIMIT 1) END,
+	CASE WHEN i.kind = 'photoalbum' THEN (SELECT count(*)::int FROM items c WHERE c.parent_id = i.id) END`
 
 // userJoin attaches the viewer's playback state ($owner is the profile or user id).
 func userJoin(owner string) string {
@@ -269,7 +282,8 @@ func scanItem(row pgx.Row) (Item, error) {
 	var ids []byte
 	err := row.Scan(&it.ID, &it.LibraryID, &it.ParentID, &it.Kind, &it.Title, &it.Year, &it.Season, &it.Episode,
 		&it.EpisodeEnd, &it.AddedAt, &ids, &it.DurationMS, &it.HasPoster, &it.HasBackdrop, &it.HasLogo, &it.Colors, &it.Rating, &it.PositionMS, &it.Played, &it.Favorite,
-		&it.VideoHeight, &it.HDR, &it.Artist, &it.Album)
+		&it.VideoHeight, &it.HDR, &it.Artist, &it.Album,
+		&it.Authors, &it.SeriesName, &it.SeriesIndex, &it.BookFormat, &it.Progression, &it.TakenAt, &it.Width, &it.Height, &it.ChildCount)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return it, ErrNotFound
 	}
@@ -283,9 +297,11 @@ type ItemFilter struct {
 	Unplayed         bool
 	Favorite         bool
 	Resumable        bool
-	YearFrom, YearTo int    // 0 = open
-	Letter           string // "A".."Z", "#" for anything else, "" = all
-	Kind             string // music: artist, album or track instead of top-level items
+	YearFrom, YearTo int        // 0 = open
+	Letter           string     // "A".."Z", "#" for anything else, "" = all
+	Kind             string     // music: artist, album or track instead of top-level items
+	Author, Series   string     // books and audiobooks by this author / of this series
+	ParentID         *uuid.UUID // only the direct children of this item (photo albums), paged
 	// ExcludeRatings hides items with one of these official ratings (parental limits, see RatingAge).
 	ExcludeRatings []string
 }
@@ -302,11 +318,21 @@ func (s *Service) ListItems(ctx context.Context, libID, owner uuid.UUID, sortBy 
 		order = "i.community_rating DESC NULLS LAST, i.sort_title"
 	case "random":
 		order = "random()"
+	case "taken":
+		order = "i.taken_at DESC NULLS LAST, i.sort_title"
+	case "series":
+		order = "i.series_name NULLS LAST, i.series_index NULLS LAST, i.sort_title"
+	}
+	if f.ParentID != nil {
+		order = "i.kind <> 'photoalbum', " + order // sub-albums before the pictures
 	}
 	if f.Kind == "track" && sortBy == "title" {
 		order = "(SELECT a.sort_title FROM items a WHERE a.id = i.parent_id), i.parent_id, i.season_number NULLS FIRST, i.episode_number NULLS LAST, i.sort_title"
 	}
-	where := ` WHERE i.library_id = $1 AND (($10 = '' AND i.parent_id IS NULL) OR i.kind = $10)
+	where := ` WHERE i.library_id = $1
+		AND (($12::uuid IS NULL AND (($10 = '' AND i.parent_id IS NULL) OR i.kind = $10))
+			OR ($12::uuid IS NOT NULL AND i.parent_id = $12 AND ($10 = '' OR i.kind = $10)))
+		AND ($13 = '' OR i.authors @> ARRAY[$13]::text[]) AND ($14 = '' OR i.series_name = $14)
 		AND ($2 = '' OR i.genres @> ARRAY[$2]::text[]) AND (NOT $3 OR NOT COALESCE(u.played, false))
 		AND (NOT $5 OR COALESCE(u.favorite, false)) AND (NOT $6 OR (COALESCE(u.position_ms, 0) > 0 AND NOT COALESCE(u.played, false)))
 		AND ($7 = 0 OR i.year >= $7) AND ($8 = 0 OR i.year <= $8)
@@ -316,14 +342,15 @@ func (s *Service) ListItems(ctx context.Context, libID, owner uuid.UUID, sortBy 
 	if excl == nil {
 		excl = []string{}
 	}
-	args := []any{libID, f.Genre, f.Unplayed, owner, f.Favorite, f.Resumable, f.YearFrom, f.YearTo, strings.ToUpper(f.Letter), f.Kind, excl}
+	args := []any{libID, f.Genre, f.Unplayed, owner, f.Favorite, f.Resumable, f.YearFrom, f.YearTo, strings.ToUpper(f.Letter), f.Kind, excl,
+		f.ParentID, f.Author, f.Series}
 	var total int
 	if err := s.Pool.QueryRow(ctx, `SELECT count(*) FROM items i`+userJoin("$4")+where, args...).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 	// #nosec G202 -- order is one of the constants above
 	rows, err := s.Pool.Query(ctx, `SELECT `+itemCols+` FROM items i`+userJoin("$4")+where+`
-		ORDER BY `+order+` LIMIT $12 OFFSET $13`, append(args, limit, offset)...)
+		ORDER BY `+order+` LIMIT $15 OFFSET $16`, append(args, limit, offset)...)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -365,7 +392,7 @@ func (s *Service) GetItem(ctx context.Context, id, owner uuid.UUID) (Item, []Med
 	}
 	rows.Close()
 	rows, err = s.Pool.Query(ctx, `SELECT `+itemCols+` FROM items i`+userJoin("$2")+`WHERE i.parent_id = $1
-		ORDER BY i.season_number NULLS LAST, i.episode_number NULLS LAST, i.sort_title`, id, owner)
+		ORDER BY i.kind <> 'photoalbum', i.season_number NULLS LAST, i.episode_number NULLS LAST, i.taken_at NULLS LAST, i.sort_title`, id, owner)
 	if err != nil {
 		return it, nil, nil, err
 	}
@@ -489,32 +516,55 @@ func (s *Service) SaveProgressAt(ctx context.Context, owner, itemID uuid.UUID, p
 }
 
 func (s *Service) saveProgress(ctx context.Context, owner, itemID uuid.UUID, positionMS int64, durationMS *int64, played bool, at *time.Time) (bool, error) {
-	var dur int64
+	var dur, total int64
+	var kind string
+	_ = s.Pool.QueryRow(ctx, `SELECT i.kind, COALESCE((SELECT max(duration_ms) FROM media_files WHERE item_id = i.id), 0),
+			COALESCE((SELECT sum(duration_ms) FROM media_files WHERE item_id = i.id), 0)
+		FROM items i WHERE i.id = $1`, itemID).Scan(&kind, &dur, &total)
+	if kind == "audiobook" {
+		dur = total // a multi-file book reports its position in the whole book
+	}
 	if durationMS != nil {
 		dur = *durationMS
-	} else {
-		_ = s.Pool.QueryRow(ctx, `SELECT COALESCE(max(duration_ms), 0) FROM media_files WHERE item_id = $1`, itemID).Scan(&dur)
 	}
 	r := DefaultResume()
 	if s.Resume != nil {
 		r = s.Resume(ctx)
 	}
-	if dur > 0 && positionMS*100 >= dur*int64(r.MaxPercent) {
-		played = true
-	}
-	// Too early, or too short a title, to be worth resuming.
-	if !played && (dur > 0 && positionMS*100 < dur*int64(r.MinPercent) || dur > 0 && dur < int64(r.MinDurationSeconds)*1000) {
-		positionMS = 0
+	var progression *float64
+	if kind == "audiobook" {
+		// A book is finished in its last minute (its last 0.5% when shorter), not at 90%,
+		// and every position is kept: there is no "too early to resume" in a 10-hour book.
+		if dur > 0 && positionMS >= dur-min(60_000, dur/200) {
+			played = true
+		}
+		if dur > 0 && !played {
+			p := float64(positionMS) / float64(dur)
+			progression = &p
+		}
+	} else {
+		if dur > 0 && positionMS*100 >= dur*int64(r.MaxPercent) {
+			played = true
+		}
+		// Too early, or too short a title, to be worth resuming.
+		if !played && (dur > 0 && positionMS*100 < dur*int64(r.MinPercent) || dur > 0 && dur < int64(r.MinDurationSeconds)*1000) {
+			positionMS = 0
+		}
 	}
 	if played {
 		positionMS = 0
+		one := 1.0
+		if kind == "audiobook" {
+			progression = &one
+		}
 	}
 	if at == nil {
-		tag, err := s.Pool.Exec(ctx, `INSERT INTO user_item_data (owner_id, item_id, position_ms, played, play_count, last_played_at)
-			SELECT $1, $2, $3, $4, CASE WHEN $4 THEN 1 ELSE 0 END, now() WHERE EXISTS (SELECT 1 FROM items WHERE id = $2)
+		tag, err := s.Pool.Exec(ctx, `INSERT INTO user_item_data (owner_id, item_id, position_ms, played, play_count, last_played_at, progression)
+			SELECT $1, $2, $3, $4, CASE WHEN $4 THEN 1 ELSE 0 END, now(), $5 WHERE EXISTS (SELECT 1 FROM items WHERE id = $2)
 			ON CONFLICT (owner_id, item_id) DO UPDATE SET position_ms = EXCLUDED.position_ms, last_played_at = now(),
 				play_count = user_item_data.play_count + CASE WHEN EXCLUDED.played AND NOT user_item_data.played THEN 1 ELSE 0 END,
-				played = EXCLUDED.played`, owner, itemID, positionMS, played)
+				played = EXCLUDED.played, progression = COALESCE(EXCLUDED.progression, user_item_data.progression)`,
+			owner, itemID, positionMS, played, progression)
 		if err != nil {
 			return false, err
 		}
@@ -528,12 +578,12 @@ func (s *Service) saveProgress(ctx context.Context, owner, itemID uuid.UUID, pos
 	if now := time.Now(); when.After(now) {
 		when = now
 	}
-	tag, err := s.Pool.Exec(ctx, `INSERT INTO user_item_data (owner_id, item_id, position_ms, played, play_count, last_played_at)
-		SELECT $1, $2, $3, $4, CASE WHEN $4 THEN 1 ELSE 0 END, $5 WHERE EXISTS (SELECT 1 FROM items WHERE id = $2)
+	tag, err := s.Pool.Exec(ctx, `INSERT INTO user_item_data (owner_id, item_id, position_ms, played, play_count, last_played_at, progression)
+		SELECT $1, $2, $3, $4, CASE WHEN $4 THEN 1 ELSE 0 END, $5, $6 WHERE EXISTS (SELECT 1 FROM items WHERE id = $2)
 		ON CONFLICT (owner_id, item_id) DO UPDATE SET position_ms = EXCLUDED.position_ms, last_played_at = EXCLUDED.last_played_at,
 			play_count = user_item_data.play_count + CASE WHEN EXCLUDED.played AND NOT user_item_data.played THEN 1 ELSE 0 END,
-			played = EXCLUDED.played
-		WHERE user_item_data.last_played_at < EXCLUDED.last_played_at`, owner, itemID, positionMS, played, when)
+			played = EXCLUDED.played, progression = COALESCE(EXCLUDED.progression, user_item_data.progression)
+		WHERE user_item_data.last_played_at < EXCLUDED.last_played_at`, owner, itemID, positionMS, played, when, progression)
 	if err != nil {
 		return false, err
 	}
@@ -608,7 +658,7 @@ func (s *Service) Search(ctx context.Context, owner uuid.UUID, q string, limit i
 	}
 	like := "%" + strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`).Replace(q) + "%"
 	return s.queryItems(ctx, `SELECT `+itemCols+` FROM items i`+userJoin("$3")+`
-		WHERE i.kind IN ('movie', 'series', 'episode', 'artist', 'album', 'track') AND (
+		WHERE i.kind IN ('movie', 'series', 'episode', 'artist', 'album', 'track', 'book', 'audiobook', 'photoalbum') AND (
 			lower(COALESCE(i.metadata_title, i.title)) LIKE $2
 			-- typo tolerance: 0.35 keeps swapped letters ("matirx") and drops unrelated titles
 			OR word_similarity($1, lower(COALESCE(i.metadata_title, i.title))) >= 0.35

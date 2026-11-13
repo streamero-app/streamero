@@ -17,7 +17,7 @@ import { NotFoundPage } from "@/routes/NotFoundPage";
 import { canManageLiveTv } from "@/features/livetv/api";
 
 // Pages outside the everyday path load on first visit (their own chunks): settings,
-// Live TV, the players, watch together, discover and collections.
+// Live TV, the players and the book reader, watch together, discover and collections.
 const SettingsLayout = lazyRouteComponent(() => import("@/features/settings/SettingsLayout"), "SettingsLayout");
 const AccountSettings = lazyRouteComponent(() => import("@/features/settings/AccountSettings"), "AccountSettings");
 const DevicesSettings = lazyRouteComponent(() => import("@/features/settings/DevicesSettings"), "DevicesSettings");
@@ -61,6 +61,7 @@ const SchedulePage = lazyRouteComponent(() => import("@/features/livetv/Recordin
 const SeriesPage = lazyRouteComponent(() => import("@/features/livetv/SeriesPage"), "SeriesPage");
 const LivePlayer = lazyRouteComponent(() => import("@/features/livetv/LivePlayer"), "LivePlayer");
 const LiveTvSettings = lazyRouteComponent(() => import("@/features/settings/LiveTvSettings"), "LiveTvSettings");
+const ReaderPage = lazyRouteComponent(() => import("@/features/books/ReaderPage"), "ReaderPage");
 
 /** The administrator's extra CSS (Settings → Branding), on every page. */
 function CustomCss() {
@@ -110,6 +111,7 @@ const discoverRoute = createRoute({
   component: DiscoverPage,
   validateSearch: (s: Record<string, unknown>): { q?: string } => (typeof s.q === "string" && s.q ? { q: s.q } : {}),
 });
+const readRoute = createRoute({ getParentRoute: () => appRoute, path: "/read/$itemId", component: ReaderPage });
 const togetherRoute = createRoute({ getParentRoute: () => appRoute, path: "/together", component: TogetherListPage });
 const togetherInviteRoute = createRoute({ getParentRoute: () => appRoute, path: "/together/$groupId", component: TogetherInvitePage });
 // Live TV (D-041): the player sits beside the section so it gets the whole screen.
@@ -213,6 +215,7 @@ export const routeTree = rootRoute.addChildren([
     playlistRoute,
     librariesRoute2,
     watchRoute,
+    readRoute,
     liveTvRoute.addChildren([liveGuideRoute, liveChannelsRoute, liveRecordingsRoute, liveScheduleRoute, liveSeriesRoute]),
     liveWatchRoute,
     togetherRoute,

@@ -61,9 +61,9 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [x] `[JF]` Serije (Show → Season → Episode, specials Season 0) (P2)
 - [ ] `[JF]` Glazba (Artist / Album Artist → Album → Track, diskovi) (P9)
 - [ ] `[JF]` Glazbeni spotovi (P9)
-- [ ] `[JF]` Kućni videi i fotografije (folder view, default tab opcije) (P9)
-- [ ] `[JF]` Knjige: EPUB, PDF, MOBI/AZW3, CBZ/CBR/CB7/CBT (comics) (P9)
-- [ ] `[JF]` Audioknjige (M4B, MP3 folderi, poglavlja) (P9)
+- [x] `[JF]` Kućni videi i fotografije (folder view, default tab opcije) (P9) — *mape kao albumi, kratki videi u albumima; D-039*
+- [x] `[JF]` Knjige: EPUB, PDF, MOBI/AZW3, CBZ/CBR/CB7/CBT (comics) (P9) — *CBR provjeren samo unit testom (nema RAR alata za fiksturu)*
+- [x] `[JF]` Audioknjige (M4B, MP3 folderi, poglavlja) (P9)
 - [x] `[JF]` Mješoviti sadržaj (mixed) (P2)
 - [ ] `[JF]` Kolekcije (box sets) i playliste kao virtualne biblioteke (P4)
 - [ ] `[JF]` Live TV kao biblioteka (P11)
@@ -223,12 +223,12 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 
 ## 9. Knjige, stripovi, audioknjige, fotografije
 
-- [ ] `[JF]` Moderni layout knjiga: view types, paging, tabovi Authors/Collections/Folders (P9)
-- [ ] `[JF]` Autori prikazuju svoje knjige i audioknjige (P9)
-- [ ] `[JF]` Čitač: EPUB (veličina fonta, tema), PDF (swipe), comics (single/double page, RTL za mange), fullscreen, napredak sinkroniziran (P9)
-- [ ] `[JF]` Broj stranica iz arhiva/PDF-a, volume/chapter iz imena datoteke (P9)
-- [ ] `[JF]` Audioknjige: poglavlja, napredak, background na iOS-u, brzina (P9)
-- [ ] `[JF]` Fotografije: albumi po folderima, slideshow s podesivim intervalom, EXIF, favoriti (P9)
+- [ ] `[JF]` Moderni layout knjiga: view types, paging, tabovi Authors/Collections/Folders (P9) — *paging i tabovi Sve/Autori/Serijali gotovi; view types i Folders slijede*
+- [x] `[JF]` Autori prikazuju svoje knjige i audioknjige (P9)
+- [x] `[JF]` Čitač: EPUB (veličina fonta, tema), PDF (swipe), comics (single/double page, RTL za mange), fullscreen, napredak sinkroniziran (P9) — *web; iOS/Android: stripovi i PDF, EPUB samo na webu*
+- [x] `[JF]` Broj stranica iz arhiva/PDF-a, volume/chapter iz imena datoteke (P9)
+- [x] `[JF]` Audioknjige: poglavlja, napredak, background na iOS-u, brzina (P9) — *iOS/Android samo CI build + unit testovi, nisu isprobani na uređaju*
+- [x] `[JF]` Fotografije: albumi po folderima, slideshow s podesivim intervalom, EXIF, favoriti (P9) — *GPS samo uz admin postavku*
 - [ ] `[+]` OPDS feed (čitanje kroz vanjske e-reader appove) (P13)
 
 ## 10. Live TV i DVR

@@ -53,12 +53,12 @@ jobs:
       - uses: golangci/golangci-lint-action@v8
         with:
           working-directory: server
-      - name: ffmpeg and fpcalc for the media tests (frame artwork, burn-in, intro detection)
+      - name: ffmpeg, fpcalc and pdftoppm for the media tests (frame artwork, burn-in, intro detection, book covers)
         # The runners' package mirrors sometimes fail to resolve for a while: retry with pauses.
         run: |
           for attempt in 1 2 3 4 5; do
             sudo apt-get update -qq -o Acquire::Retries=5 \
-              && sudo apt-get install -y -qq --no-install-recommends -o Acquire::Retries=5 ffmpeg libchromaprint-tools \
+              && sudo apt-get install -y -qq --no-install-recommends -o Acquire::Retries=5 ffmpeg libchromaprint-tools poppler-utils \
               && exit 0
             echo "apt attempt $attempt failed; retrying in $((attempt * 30))s"
             sleep $((attempt * 30))

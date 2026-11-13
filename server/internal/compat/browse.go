@@ -31,6 +31,10 @@ func (s *Server) item(w http.ResponseWriter, r *http.Request) {
 	}
 	// A library ID asked as an item (clients do this for views).
 	if lib, err := s.Libraries.Get(r.Context(), id); err == nil {
+		if !library.IsStreamingLibrary(lib.Kind) {
+			http.NotFound(w, r)
+			return
+		}
 		writeJSON(w, s.viewDTO(lib))
 		return
 	}
@@ -380,7 +384,7 @@ func (s *Server) searchHints(w http.ResponseWriter, r *http.Request) {
 	}
 	var ids []uuid.UUID
 	for _, it := range found {
-		if len(allowed) == 0 || allowed[it.Kind] {
+		if library.IsStreamingKind(it.Kind) && (len(allowed) == 0 || allowed[it.Kind]) {
 			ids = append(ids, it.ID)
 		}
 	}

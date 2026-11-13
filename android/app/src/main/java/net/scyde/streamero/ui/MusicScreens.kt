@@ -151,6 +151,7 @@ fun ArtistScreen(state: AppState, nav: NavHostController, d: ItemDetail) {
 /** The music bar above the tabs; tap to open the queue. */
 @Composable
 fun MiniPlayer(state: AppState, nav: NavHostController) {
+    if (state.book.book != null) { AudiobookMiniBar(state, nav); return }
     val m = state.music
     val c = m.current ?: return
     val api = state.api ?: return

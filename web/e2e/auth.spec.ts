@@ -173,6 +173,92 @@ test("playback: player opens the real file; forced transcode serves HLS", async 
   await page.goto("/");
 });
 
+test("books, comics, audiobooks and photos: scan, read, listen and view", async ({ page }) => {
+  test.setTimeout(240_000);
+  // The readers run under the web client's Content-Security-Policy: nothing may be blocked.
+  const cspViolations: string[] = [];
+  page.on("console", (msg) => { if (/Content Security Policy|Content-Security-Policy/i.test(msg.text())) cspViolations.push(msg.text()); });
+  await signIn(page, admin);
+  expect((await page.request.get("/")).headers()["content-security-policy"]).toContain("frame-src");
+  const libs: Record<string, string> = {};
+  for (const [name, kind, folder] of [["E2E Books", "books", "books"], ["E2E Audiobooks", "audiobooks", "audiobooks"], ["E2E Photos", "photos", "photos"]]) {
+    const res = await page.request.post("/api/v1/libraries", { data: { name, kind, paths: [`/fixtures/${folder}`] } });
+    expect(res.status()).toBe(201);
+    libs[kind!] = (await res.json()).id;
+  }
+  // The worker scans with real ffprobe, then makes covers and thumbnails.
+  await expect.poll(async () => {
+    const list = await (await page.request.get("/api/v1/libraries")).json();
+    return list.filter((l: { id: string; itemCount: number }) => Object.values(libs).includes(l.id) && l.itemCount > 0).length;
+  }, { timeout: 120_000 }).toBe(3);
+
+  // Books: library, comic reader (right to left), progress kept.
+  await page.goto(`/library/${libs.books}`);
+  await expect(page.getByTestId("book-card")).toHaveCount(4);
+  await page.getByTestId("book-card").filter({ hasText: "Space Cats 001" }).click();
+  await expect(page.getByTestId("book-page")).toContainText("Mia Writer");
+  await page.getByTestId("read").click();
+  await expect(page.getByTestId("comic-position")).toHaveText(/Page 1 of 4/);
+  await expect(page.getByTestId("comic-page").first()).toHaveJSProperty("complete", true);
+  expect(await page.getByTestId("comic-page").first().evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(800);
+  await page.keyboard.press("ArrowLeft"); // manga: left turns forward
+  await expect(page.getByTestId("comic-position")).toHaveText(/Page 2 of 4/);
+  await page.waitForTimeout(2000);
+  await page.mouse.move(200, 200);
+  await page.getByTestId("reader-back").click();
+  await expect(page.getByTestId("read")).toContainText("50");
+
+  // EPUB in the reader.
+  await page.goto(`/library/${libs.books}`);
+  await page.getByTestId("book-card").filter({ hasText: "The Long Way" }).click();
+  await expect(page.getByTestId("book-page")).toContainText("Wayfarers #1");
+  await page.getByTestId("read").click();
+  await expect(page.getByTestId("epub-position")).toHaveText(/\d/, { timeout: 30_000 });
+  // The section is a blob: document in an iframe inside the reader's closed shadow root,
+  // styled by the book's own stylesheet (also a blob: URL): both must pass the CSP.
+  await expect.poll(async () => {
+    const texts = await Promise.all(page.frames().filter((f) => f.url().startsWith("blob:")).map((f) => f.evaluate(() => {
+      const h = document.querySelector("h1");
+      return h ? `${h.textContent} ${getComputedStyle(h).letterSpacing}` : "";
+    }).catch(() => "")));
+    return texts.find((t) => t !== "") ?? "";
+  }, { timeout: 30_000 }).toBe("Chapter 1 3px");
+  await page.keyboard.press("ArrowRight");
+  await page.mouse.move(200, 200);
+  await page.getByTestId("reader-back").click();
+
+  // PDF.
+  await page.goto(`/library/${libs.books}`);
+  await page.getByTestId("book-card").filter({ hasText: "Plain Document" }).click();
+  await page.getByTestId("read").click();
+  await expect(page.getByTestId("pdf-position")).toHaveText("Page 1 of 2", { timeout: 30_000 });
+  await page.keyboard.press("ArrowRight");
+  await expect(page.getByTestId("pdf-position")).toHaveText("Page 2 of 2");
+  await page.mouse.move(200, 200);
+  await page.getByTestId("reader-back").click();
+
+  // Audiobook: chapters from the M4B, playback through the music bar.
+  await page.goto(`/library/${libs.audiobooks}`);
+  await page.getByTestId("book-card").filter({ hasText: "The Sound Book" }).click();
+  await expect(page.getByTestId("book-page")).toContainText("Nina Narrator");
+  await expect(page.getByTestId("chapter-list")).toContainText("Closing");
+  await page.getByTestId("chapter-list").getByRole("button").nth(1).click();
+  await expect(page.getByTestId("now-playing-bar")).toContainText("The Sound Book");
+  await page.getByTestId("speed").selectOption("1.5");
+
+  // Photos: album, lightbox, slideshow interval.
+  await page.goto(`/library/${libs.photos}`);
+  await page.getByTestId("photo-album").filter({ hasText: "Holiday 2025" }).click();
+  await expect(page.getByTestId("photo-album")).toContainText("Beach");
+  await page.getByTestId("photo-thumb").first().click();
+  await expect(page.getByTestId("lightbox-image")).toBeVisible();
+  expect(await page.getByTestId("lightbox-image").evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(1600);
+  await page.getByTestId("slideshow-interval").selectOption("3");
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("lightbox")).toHaveCount(0);
+  expect(cspViolations).toEqual([]);
+});
+
 test("wrong passwords lock the account", async ({ page }) => {
   await page.goto("/login");
   for (let i = 0; i < 5; i++) {

@@ -96,6 +96,15 @@ func (UnimplementedHandler) CompleteSetup(ctx context.Context, req *SetupRequest
 	return r, ht.ErrNotImplemented
 }
 
+// ContinueReading implements continueReading operation.
+//
+// Books and audiobooks the current profile started and has not finished, most recent first.
+//
+// GET /home/continue-reading
+func (UnimplementedHandler) ContinueReading(ctx context.Context) (r []ItemSummary, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ContinueWatching implements continueWatching operation.
 //
 // Started but unfinished items of the current profile, most recent first.
@@ -761,6 +770,15 @@ func (UnimplementedHandler) GetPreferences(ctx context.Context) (r *PlaybackPref
 	return r, ht.ErrNotImplemented
 }
 
+// GetReadingProgress implements getReadingProgress operation.
+//
+// Reading position of the current profile.
+//
+// GET /items/{itemId}/reading-progress
+func (UnimplementedHandler) GetReadingProgress(ctx context.Context, params GetReadingProgressParams) (r *ReadingProgress, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetRequestSettings implements getRequestSettings operation.
 //
 // Seerr / Radarr / Sonarr connections (admin; keys are never returned).
@@ -954,6 +972,15 @@ func (UnimplementedHandler) ListLibraries(ctx context.Context) (r []Library, _ e
 	return r, ht.ErrNotImplemented
 }
 
+// ListLibraryAuthors implements listLibraryAuthors operation.
+//
+// Authors in a book or audiobook library with how many titles each has.
+//
+// GET /libraries/{libraryId}/authors
+func (UnimplementedHandler) ListLibraryAuthors(ctx context.Context, params ListLibraryAuthorsParams) (r []NameCount, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ListLibraryGenres implements listLibraryGenres operation.
 //
 // Genres used in a library (for filters).
@@ -969,6 +996,15 @@ func (UnimplementedHandler) ListLibraryGenres(ctx context.Context, params ListLi
 //
 // GET /libraries/{libraryId}/items
 func (UnimplementedHandler) ListLibraryItems(ctx context.Context, params ListLibraryItemsParams) (r *ItemPage, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListLibrarySeries implements listLibrarySeries operation.
+//
+// Series in a book or audiobook library with how many titles each has.
+//
+// GET /libraries/{libraryId}/series
+func (UnimplementedHandler) ListLibrarySeries(ctx context.Context, params ListLibrarySeriesParams) (r []NameCount, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -1170,6 +1206,24 @@ func (UnimplementedHandler) OidcLink(ctx context.Context, params OidcLinkParams)
 	return r, ht.ErrNotImplemented
 }
 
+// OpenAudiobook implements openAudiobook operation.
+//
+// Parts, chapters and saved position of an audiobook (positions report through reportProgress).
+//
+// GET /items/{itemId}/listen
+func (UnimplementedHandler) OpenAudiobook(ctx context.Context, params OpenAudiobookParams) (r *AudiobookManifest, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// OpenBook implements openBook operation.
+//
+// Open a book or comic for reading (signed file and page URLs and the saved position).
+//
+// GET /items/{itemId}/read
+func (UnimplementedHandler) OpenBook(ctx context.Context, params OpenBookParams) (r *ReadManifest, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // Ping implements ping operation.
 //
 // Liveness probe for clients.
@@ -1309,6 +1363,15 @@ func (UnimplementedHandler) RevokeSession(ctx context.Context, params RevokeSess
 //
 // POST /tasks/{taskKey}/run
 func (UnimplementedHandler) RunTask(ctx context.Context, params RunTaskParams) error {
+	return ht.ErrNotImplemented
+}
+
+// SaveReadingProgress implements saveReadingProgress operation.
+//
+// Save the reading position of the current profile (synced to every client).
+//
+// PUT /items/{itemId}/reading-progress
+func (UnimplementedHandler) SaveReadingProgress(ctx context.Context, req *ReadingProgressInput, params SaveReadingProgressParams) error {
 	return ht.ErrNotImplemented
 }
 
@@ -1767,6 +1830,15 @@ func (UnimplementedHandler) UpdateUserData(ctx context.Context, req *UserDataUpd
 //
 // POST /backups/upload
 func (UnimplementedHandler) UploadBackup(ctx context.Context, req UploadBackupReq) (r *Backup, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ViewPhoto implements viewPhoto operation.
+//
+// A signed URL of a photo for the lightbox (videos play through startPlayback).
+//
+// GET /items/{itemId}/photo
+func (UnimplementedHandler) ViewPhoto(ctx context.Context, params ViewPhotoParams) (r *PhotoView, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

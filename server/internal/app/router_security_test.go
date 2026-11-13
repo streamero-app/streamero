@@ -88,7 +88,9 @@ func TestWebClientSecurityHeaders(t *testing.T) {
 	h := readyRouter(t, RouterOptions{})
 	rec := do(h, "/library/123")
 	csp := rec.Header().Get("Content-Security-Policy")
-	for _, want := range []string{"default-src 'self'", "script-src 'self';", "frame-ancestors 'none'", "object-src 'none'"} {
+	for _, want := range []string{"default-src 'self'", "script-src 'self';", "frame-ancestors 'none'", "object-src 'none'",
+		// the book reader's sections (blob: iframes) and their stylesheets and fonts
+		"frame-src 'self' blob:;", "style-src 'self' 'unsafe-inline' blob:;", "font-src 'self' data: blob:;"} {
 		if !strings.Contains(csp, want) {
 			t.Errorf("CSP lacks %q: %s", want, csp)
 		}

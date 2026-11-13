@@ -14,7 +14,9 @@ import net.scyde.streamero.api.Api
 import net.scyde.streamero.api.ApiException
 import net.scyde.streamero.offline.OfflineManager
 import net.scyde.streamero.api.Enhancements
+import net.scyde.streamero.api.ItemSummary
 import net.scyde.streamero.api.User
+import net.scyde.streamero.books.AudiobookController
 import net.scyde.streamero.data.Session
 import net.scyde.streamero.music.MusicController
 import net.scyde.streamero.sync.SyncSession
@@ -39,10 +41,20 @@ class AppState(val app: Application) {
     var enhancements by mutableStateOf(Enhancements())
     var images by mutableStateOf<ImageLoader?>(null)
     val music = MusicController(app)
+    val book = AudiobookController(app)
     val sync = SyncSession()
     /** Downloads kept on the device; usable without the server. */
     val offline = OfflineManager(app) { api ?: session.api ?: runCatching { session.restore() }.getOrNull() }
-    /** Work that must finish after a screen is gone (the last progress report of a closed player). */
+    /** The photos around the one opened in the viewer, to swipe through (set by the grid). */
+    var photoStrip by mutableStateOf<List<ItemSummary>>(emptyList())
+
+    init {
+        // Music and audiobooks share one background player; whichever starts takes it over.
+        music.onStart = { book.release(stopPlayer = false) }
+        book.onStart = { music.stop() }
+    }
+
+    /** Work that must finish after a screen is gone (the last progress report of a closed player, the reading position). */
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     /** The server stopped accepting the session after start: the app goes back to sign-in. */
     var sessionExpired by mutableStateOf(false)
@@ -52,6 +64,7 @@ class AppState(val app: Application) {
         a?.onUnauthorized = { appScope.launch { if (api === a) expireSession() } }
         images = a?.let { ImageLoader.Builder(app).okHttpClient(it.http).crossfade(true).build() }
         music.api = a
+        book.api = a
         sync.api = a
     }
 
@@ -104,6 +117,7 @@ class AppState(val app: Application) {
 
     private suspend fun forgetSession() {
         music.stop()
+        book.release(stopPlayer = true)
         session.setToken(null)
         me = null
         offline.bind(null)

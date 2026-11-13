@@ -6,11 +6,20 @@ import { Link, useParams } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Check, Info, LayoutGrid, List, Play, Plus, RotateCcw, Shuffle, Volume2, VolumeX, X } from "lucide-react";
 import { useEnhancements, useSurprise } from "@/features/enhancements/useEnhancements";
-// Music views load on demand (their own chunk); most visitors never open a music library.
+// Music, book and photo views load on demand (their own chunks); most visitors never open those libraries.
 const MusicLibrary = lazy(() => import("@/features/music/MusicPages").then((m) => ({ default: m.MusicLibrary })));
 const AlbumView = lazy(() => import("@/features/music/MusicPages").then((m) => ({ default: m.AlbumView })));
 const ArtistView = lazy(() => import("@/features/music/MusicPages").then((m) => ({ default: m.ArtistView })));
-const musicFallback = <div className="flex h-64 items-center justify-center"><Spinner /></div>;
+const BooksLibrary = lazy(() => import("@/features/books/BooksPages").then((m) => ({ default: m.BooksLibrary })));
+const BookView = lazy(() => import("@/features/books/BooksPages").then((m) => ({ default: m.BookView })));
+const BookCard = lazy(() => import("@/features/books/BooksPages").then((m) => ({ default: m.BookCard })));
+const PhotosLibrary = lazy(() => import("@/features/photos/PhotosPages").then((m) => ({ default: m.PhotosLibrary })));
+const PhotoAlbumView = lazy(() => import("@/features/photos/PhotosPages").then((m) => ({ default: m.PhotoAlbumView })));
+const PhotoItemView = lazy(() => import("@/features/photos/PhotosPages").then((m) => ({ default: m.PhotoItemView })));
+const pageFallback = <div className="flex h-64 items-center justify-center"><Spinner /></div>;
+
+/** Libraries with their own pages (not the movie/show grid, not on the home rows). */
+const ownPages = ["music", "books", "audiobooks", "photos"];
 import { SubtitleFinder } from "./SubtitleFinder";
 import { DownloadOriginalButton } from "@/features/downloads/DownloadOriginal";
 import { api, unwrap } from "@/api/client";
@@ -232,7 +241,7 @@ export function Billboard({ pool, label }: { pool?: ItemSummary[]; label?: strin
             <Info className="size-5" aria-hidden />{t("home.moreInfo")}
           </Link>
           {enh.randomButton && (
-            <button type="button" onClick={() => void surprise((Array.isArray(libs.data) ? libs.data : []).filter((l) => l.kind !== "music").map((l) => l.id))}
+            <button type="button" onClick={() => void surprise((Array.isArray(libs.data) ? libs.data : []).filter((l) => !ownPages.includes(l.kind)).map((l) => l.id))}
               aria-label={t("home.surprise")} title={t("home.surprise")} data-testid="surprise"
               className={`${pressable} ${buttonVariants.glass} tv-focus size-13 rounded-[6px]`}>
               <Shuffle className="size-5" aria-hidden />
@@ -331,6 +340,7 @@ export function HomeContent() {
   const latest = useQuery({ queryKey: ["latest"], queryFn: async () => unwrap(await api.GET("/home/latest")) });
   const cont = useQuery({ queryKey: ["continue"], queryFn: async () => unwrap(await api.GET("/home/continue")) });
   const nextUp = useQuery({ queryKey: ["next-up"], queryFn: async () => unwrap(await api.GET("/home/next-up")) });
+  const reading = useQuery({ queryKey: ["continue-reading"], queryFn: async () => unwrap(await api.GET("/home/continue-reading")) });
   const favs = useQuery({ queryKey: ["favorites"], queryFn: async () => unwrap(await api.GET("/home/favorites")) });
   const name = me?.currentProfile?.name ?? me?.username;
   const up = Array.isArray(nextUp.data) ? nextUp.data : [];
@@ -339,9 +349,14 @@ export function HomeContent() {
   const libs = Array.isArray(libraries.data) ? libraries.data : [];
   const blocks: Record<HomeSection, ReactNode> = {
     continue: (
-      <Row title={t("home.continue")} testId="continue" count={cont.data?.length ?? 0}>
-        {cont.data?.map((it) => <TitleCard key={it.id} item={it} className={rowCard} play />)}
-      </Row>
+      <>
+        <Row title={t("home.continue")} testId="continue" count={cont.data?.length ?? 0}>
+          {cont.data?.map((it) => <TitleCard key={it.id} item={it} className={rowCard} play />)}
+        </Row>
+        <Row title={t("books.continueRow")} testId="continue-reading" count={reading.data?.length ?? 0}>
+          {reading.data?.map((it) => <div key={it.id} className="w-[34vw] shrink-0 sm:w-[150px] xl:w-[170px]"><Suspense fallback={<div className="aspect-[2/3] rounded-[4px] bg-surface-2" />}><BookCard item={it} /></Suspense></div>)}
+        </Row>
+      </>
     ),
     nextUp: (
       <Row title={t("home.nextUp")} testId="next-up" count={up.length}>
@@ -359,8 +374,8 @@ export function HomeContent() {
       </Row>
     ),
     collections: <CollectionsRow />,
-    top: libs.filter((l) => l.kind !== "music").map((l) => <LibraryTop key={l.id} library={l} />),
-    genres: libs.filter((l) => l.kind !== "music").map((l) => <LibraryRows key={l.id} library={l} />),
+    top: libs.filter((l) => !ownPages.includes(l.kind)).map((l) => <LibraryTop key={l.id} library={l} />),
+    genres: libs.filter((l) => !ownPages.includes(l.kind)).map((l) => <LibraryRows key={l.id} library={l} />),
     libraries: <LibraryShelf />,
   };
   return (
@@ -599,7 +614,9 @@ export function LibraryPage() {
   const tabClass = "relative h-11 shrink-0 px-1 text-[15px] font-medium text-text/60 transition-colors hover:text-text after:absolute after:inset-x-0 after:bottom-0 after:h-[2px] after:scale-x-0 after:bg-[var(--amb-a)] after:transition-transform aria-selected:text-text aria-selected:after:scale-x-100";
   const decades = [2020, 2010, 2000, 1990, 1980, 1970, 1960, 1950];
 
-  if (isMusic && lib) return <Suspense fallback={musicFallback}><MusicLibrary library={lib} /></Suspense>;
+  if (isMusic && lib) return <Suspense fallback={pageFallback}><MusicLibrary library={lib} /></Suspense>;
+  if (lib && (lib.kind === "books" || lib.kind === "audiobooks")) return <Suspense fallback={pageFallback}><BooksLibrary key={lib.id} library={lib} /></Suspense>;
+  if (lib?.kind === "photos") return <Suspense fallback={pageFallback}><PhotosLibrary key={lib.id} library={lib} /></Suspense>;
   return (
     <div className="flex flex-col gap-6">
       <Billboard pool={pool} />
@@ -981,8 +998,11 @@ export function ItemPage() {
   useAmbientLight(detail.data?.item.colors);
   if (detail.error) return <div className={`pt-24 ${gutter}`}><ErrorText error={detail.error} /></div>;
   if (!d) return <div role="status" className="flex min-h-[70vh] items-center justify-center"><Spinner /></div>;
-  if (d.item.kind === "album") return <Suspense fallback={musicFallback}><AlbumView d={d} /></Suspense>;
-  if (d.item.kind === "artist") return <Suspense fallback={musicFallback}><ArtistView d={d} /></Suspense>;
+  if (d.item.kind === "album") return <Suspense fallback={pageFallback}><AlbumView d={d} /></Suspense>;
+  if (d.item.kind === "artist") return <Suspense fallback={pageFallback}><ArtistView d={d} /></Suspense>;
+  if (d.item.kind === "book" || d.item.kind === "audiobook") return <Suspense fallback={pageFallback}><BookView key={d.item.id} d={d} /></Suspense>;
+  if (d.item.kind === "photoalbum") return <Suspense fallback={pageFallback}><PhotoAlbumView key={d.item.id} d={d} /></Suspense>;
+  if (d.item.kind === "photo" || d.item.kind === "video") return <Suspense fallback={pageFallback}><PhotoItemView key={d.item.id} d={d} /></Suspense>;
   const it = { ...d.item, hasBackdrop: d.hasBackdrop };
   const isEpisode = it.kind === "episode";
   const directors = d.crew.filter((p) => p.role === "Director").map((p) => p.name);

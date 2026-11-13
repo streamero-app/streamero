@@ -13,14 +13,16 @@ export function MetadataSettings() {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const settings = useQuery({ queryKey: ["settings", "metadata"], queryFn: async () => unwrap(await api.GET("/settings/metadata")) });
-  const [form, setForm] = useState({ key: "", language: "en-US", country: "US" });
+  const [form, setForm] = useState({ key: "", language: "en-US", country: "US", onlineBooks: false, photoLocation: false });
   useEffect(() => {
-    if (settings.data) setForm((f) => ({ ...f, language: settings.data.language, country: settings.data.country }));
+    if (settings.data) setForm((f) => ({ ...f, language: settings.data.language, country: settings.data.country,
+      onlineBooks: !!settings.data.onlineBookMetadata, photoLocation: !!settings.data.photoLocation }));
   }, [settings.data]);
   const save = useMutation({
     mutationFn: async (remove: boolean) =>
       unwrap(await api.PUT("/settings/metadata", {
-        body: { language: form.language, country: form.country, tmdbApiKey: form.key.trim() || undefined, removeTmdbKey: remove || undefined },
+        body: { language: form.language, country: form.country, tmdbApiKey: form.key.trim() || undefined, removeTmdbKey: remove || undefined,
+          onlineBookMetadata: form.onlineBooks, photoLocation: form.photoLocation },
       })),
     onSuccess: (data) => {
       qc.setQueryData(["settings", "metadata"], data);
@@ -63,6 +65,21 @@ export function MetadataSettings() {
             {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </label>
+        <fieldset className="flex flex-col gap-3 border-t border-border pt-4">
+          <legend className="sr-only">{t("metadata.booksPhotos")}</legend>
+          <label className="flex items-start gap-3 text-sm">
+            <input type="checkbox" className="mt-1 accent-[var(--color-accent)]" checked={form.onlineBooks} data-testid="online-books"
+              onChange={(e) => setForm({ ...form, onlineBooks: e.target.checked })} />
+            <span><span className="block font-medium text-text">{t("metadata.onlineBooks")}</span>
+              <span className="text-muted">{t("metadata.onlineBooksHint")}</span></span>
+          </label>
+          <label className="flex items-start gap-3 text-sm">
+            <input type="checkbox" className="mt-1 accent-[var(--color-accent)]" checked={form.photoLocation} data-testid="photo-location"
+              onChange={(e) => setForm({ ...form, photoLocation: e.target.checked })} />
+            <span><span className="block font-medium text-text">{t("metadata.photoLocation")}</span>
+              <span className="text-muted">{t("metadata.photoLocationHint")}</span></span>
+          </label>
+        </fieldset>
         <ErrorText error={settings.error ?? save.error} />
         {save.isSuccess && <SuccessText>{t("metadata.saved")}</SuccessText>}
         <div className="flex flex-wrap gap-2">

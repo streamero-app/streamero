@@ -133,7 +133,7 @@ func (s *Server) library(ctx context.Context, q request, id uuid.UUID) (library.
 		return library.Library{}, errNoObject
 	}
 	l, err := s.Library.Get(ctx, id)
-	if errors.Is(err, library.ErrNotFound) {
+	if errors.Is(err, library.ErrNotFound) || (err == nil && !library.IsStreamingLibrary(l.Kind)) {
 		return l, errNoObject
 	}
 	return l, err
@@ -242,6 +242,9 @@ func (s *Server) children(ctx context.Context, q request, n node, id string, sta
 				return nil, 0, err
 			}
 			for _, l := range libs {
+				if !library.IsStreamingLibrary(l.Kind) {
+					continue // books, audiobooks and photos are not offered to televisions (D-039)
+				}
 				out = append(out, Object{ID: "l:" + l.ID.String(), ParentID: "0", Title: l.Name, Class: classFolder,
 					Container: true, ChildCount: len(subsOf(l.Kind))})
 			}
@@ -364,8 +367,8 @@ func (s *Server) item(ctx context.Context, q request, id uuid.UUID) (library.Ite
 		return library.Item{}, nil, nil, errNoObject
 	}
 	it, files, kids, err := s.Library.GetItem(ctx, id, q.v.Owner)
-	if errors.Is(err, library.ErrNotFound) {
-		return it, nil, nil, errNoObject
+	if errors.Is(err, library.ErrNotFound) || (err == nil && !library.IsStreamingKind(it.Kind)) {
+		return library.Item{}, nil, nil, errNoObject
 	}
 	return it, files, kids, err
 }

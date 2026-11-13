@@ -53,6 +53,15 @@ fun ItemScreen(state: AppState, nav: NavHostController, id: String) {
     when (d.item.kind) {
         "album" -> { AlbumScreen(state, nav, d); return }
         "artist" -> { ArtistScreen(state, nav, d); return }
+        "book", "audiobook" -> { BookScreen(state, nav, d); return }
+        "photoalbum" -> { PhotoAlbumScreen(state, nav, d); return }
+        "photo" -> {
+            LaunchedEffect(Unit) {
+                if (state.photoStrip.none { p -> p.id == id }) state.photoStrip = listOf(d.item)
+                nav.navigate("photo/$id") { popUpTo("item/$id") { inclusive = true } }
+            }
+            return
+        }
         "track" -> { LaunchedEffect(Unit) { d.parentId?.let { nav.navigate("item/$it") { popUpTo("item/$id") { inclusive = true } } } }; return }
     }
     val it = d.item
@@ -202,7 +211,7 @@ fun ItemScreen(state: AppState, nav: NavHostController, id: String) {
 }
 
 @Composable
-private fun Fact(label: String, value: String) {
+fun Fact(label: String, value: String) {
     if (value.isBlank()) return
     Column {
         Text(label.uppercase(), style = Label, color = Kino.faint)

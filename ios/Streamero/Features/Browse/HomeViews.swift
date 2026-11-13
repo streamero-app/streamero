@@ -19,9 +19,15 @@ struct RouteDestination: View {
         case .library(let library):
             if library.kind == "music" {
                 MusicLibraryView(library: library, client: client)
+            } else if library.kind == "books" || library.kind == "audiobooks" {
+                BookLibraryView(library: library, client: client)
+            } else if library.kind == "photos" {
+                PhotoLibraryView(library: library, client: client)
             } else {
                 LibraryView(route: library, client: client)
             }
+        case .books(let list): BookListView(route: list, client: client)
+        case .photoAlbum(let album): PhotoAlbumView(route: album, client: client)
         case .favorites: FavoritesView(client: client)
         case .collections: CollectionsView(client: client)
         case .collection(let id): CollectionView(id: id, client: client)
@@ -133,6 +139,7 @@ private struct MainContent: View {
 
     private func signOut() async {
         app.music.stop()
+        app.audiobook.stop()
         await session.signOut(server: server)
     }
 
@@ -172,7 +179,12 @@ private struct MainContent: View {
         NavigationStack {
             content().withAppRoutes(client: client)
         }
-        .safeAreaInset(edge: .bottom) { MiniPlayerBar(client: client) }
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: 0) {
+                AudiobookMiniBar(client: client)
+                MiniPlayerBar(client: client)
+            }
+        }
     }
 }
 
@@ -297,6 +309,7 @@ struct HomeTab: View {
     private struct HomeData {
         var latest: [ItemSummary]
         var cont: [ItemSummary]
+        var reading: [ItemSummary]
         var nextUp: [ItemSummary]
         var favorites: [ItemSummary]
         var collections: [MediaCollection]
@@ -314,7 +327,7 @@ struct HomeTab: View {
 
     private var isEmpty: Bool {
         guard let d = data else { return false }
-        return d.latest.isEmpty && d.cont.isEmpty && d.nextUp.isEmpty && d.favorites.isEmpty && d.collections.isEmpty
+        return d.latest.isEmpty && d.cont.isEmpty && d.reading.isEmpty && d.nextUp.isEmpty && d.favorites.isEmpty && d.collections.isEmpty
     }
 
     var body: some View {
@@ -331,7 +344,7 @@ struct HomeTab: View {
                 ErrorLine(error: error).padding(.horizontal, 20)
                 if isEmpty { emptyState }
                 if let data {
-                    ForEach(data.sections ?? Self.defaultOrder, id: \.self) { section in
+                    ForEach(Self.withReading(data.sections ?? Self.defaultOrder), id: \.self) { section in
                         shelf(section, data)
                     }
                 }
@@ -355,6 +368,13 @@ struct HomeTab: View {
     }
 
     private static let defaultOrder = ["continue", "nextUp", "latest", "favorites", "collections", "libraries"]
+
+    /// Continue reading has no section key of its own: it follows continue watching, or leads.
+    private static func withReading(_ sections: [String]) -> [String] {
+        var out = sections
+        if let i = out.firstIndex(of: "continue") { out.insert("reading", at: i + 1) } else { out.insert("reading", at: 0) }
+        return out
+    }
 
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -385,6 +405,15 @@ struct HomeTab: View {
         switch section {
         case "continue":
             if !d.cont.isEmpty { playShelf("continue_watching", d.cont) }
+        case "reading":
+            if !d.reading.isEmpty {
+                Shelf(title: "books.continueReading") {
+                    ForEach(d.reading) { item in
+                        NavigationLink(value: Route.item(item.id)) { BookCard(item: item, client: client).frame(width: 120) }
+                            .buttonStyle(CardPressStyle())
+                    }
+                }
+            }
         case "nextUp":
             if !d.nextUp.isEmpty { playShelf("next_up", d.nextUp) }
         case "latest":
@@ -441,12 +470,14 @@ struct HomeTab: View {
             async let prefs = try? client.preferences()
             async let latest = client.latest()
             async let cont = try? client.continueWatching()
+            async let reading = try? client.continueReading()
             async let nextUp = try? client.nextUp()
             async let favorites = try? client.favorites()
             async let collections = try? client.collections()
             async let libraries = try? client.libraries()
             let d = HomeData(latest: try await latest,
                              cont: await cont ?? [],
+                             reading: await reading ?? [],
                              nextUp: await nextUp ?? [],
                              favorites: await favorites ?? [],
                              collections: await collections ?? [],
@@ -460,7 +491,8 @@ struct HomeTab: View {
     }
 
     private func surprise() async {
-        let libs = ((try? await client.libraries()) ?? []).filter { $0.kind != "music" }.shuffled()
+        let skip: Set<String> = ["music", "books", "audiobooks", "photos"]
+        let libs = ((try? await client.libraries()) ?? []).filter { !skip.contains($0.kind) }.shuffled()
         for lib in libs {
             if let item = try? await client.items(library: lib.id, query: ["sort": "random", "unplayed": "true", "limit": "1"]).items.first {
                 randomItem = item.id

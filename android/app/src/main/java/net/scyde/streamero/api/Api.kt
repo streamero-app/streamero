@@ -148,6 +148,16 @@ class Api(baseUrl: String, @Volatile var token: String? = null) {
     suspend fun playlists(): List<Playlist> = get("playlists")
     suspend fun playlist(id: String): PlaylistDetail = get("playlists/$id")
 
+    // Books, audiobooks and photos
+    suspend fun authors(libraryId: String): List<NameCount> = get("libraries/$libraryId/authors")
+    suspend fun series(libraryId: String): List<NameCount> = get("libraries/$libraryId/series")
+    suspend fun continueReading(): List<ItemSummary> = get("home/continue-reading")
+    suspend fun openBook(id: String): ReadManifest = get("items/$id/read")
+    suspend fun readingProgress(id: String): ReadingProgress = get("items/$id/reading-progress")
+    suspend fun saveReadingProgress(id: String, p: ReadingProgressInput) = send("PUT", "items/$id/reading-progress", p)
+    suspend fun listen(id: String): AudiobookManifest = get("items/$id/listen")
+    suspend fun photo(id: String): PhotoView = get("items/$id/photo")
+
     // Playback
     suspend fun playback(id: String, r: PlaybackRequest): PlaybackInfo = post("items/$id/playback", r)
     suspend fun progress(id: String, p: ProgressReport) = send("PUT", "items/$id/progress", p)

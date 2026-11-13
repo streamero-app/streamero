@@ -782,7 +782,9 @@ func (s *Server) views(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		for _, l := range libs {
-			out = append(out, s.viewDTO(l))
+			if library.IsStreamingLibrary(l.Kind) {
+				out = append(out, s.viewDTO(l))
+			}
 		}
 	}
 	writeJSON(w, queryResult(out, len(out), 0))

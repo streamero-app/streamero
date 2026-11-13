@@ -222,9 +222,14 @@ func securityHeaders(next http.Handler) http.Handler {
 // workers allow blob: for hls.js; images allow any https: host because artwork
 // from search results, request managers and *arr calendars is shown from where
 // those services host it. Scripts only come from the server itself.
-const webClientCSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
+//
+// The EPUB/MOBI reader (D-046) shows each book section as a blob: document in an
+// iframe (frame-src blob:). A blob: document inherits this policy, so the book's
+// own stylesheets and fonts, which the reader also turns into blob: URLs, need
+// style-src and font-src blob: (the section adds a stricter policy of its own).
+const webClientCSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' blob:; " +
 	"img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self'; worker-src 'self' blob:; " +
-	"font-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+	"frame-src 'self' blob:; font-src 'self' data: blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
 
 // webClientHeaders adds the web client's CSP (only to its own pages and files:
 // media, the compat API and its pages set their own).

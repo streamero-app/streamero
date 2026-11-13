@@ -229,6 +229,18 @@ func (w *MetadataRefreshWorker) Work(ctx context.Context, job *river.Job[Metadat
 	} else if m > 0 {
 		w.Log.Info("music artwork imported", "library", job.Args.LibraryID, "items", m)
 	}
+	// Books, audiobooks and photos: covers and thumbnails from the files themselves.
+	if m, err := w.Refresher.MediaArtwork(ctx, job.Args.LibraryID); err != nil {
+		w.Log.Warn("book and photo artwork failed", "library", job.Args.LibraryID, "err", err)
+	} else if m > 0 {
+		w.Log.Info("book and photo artwork created", "library", job.Args.LibraryID, "items", m)
+	}
+	// Optional (admin toggle): descriptions and covers the files lack, from Open Library.
+	if m, err := w.Refresher.OnlineBooks(ctx, job.Args.LibraryID); err != nil {
+		w.Log.Warn("online book metadata failed", "library", job.Args.LibraryID, "err", err)
+	} else if m > 0 {
+		w.Log.Info("online book metadata applied", "library", job.Args.LibraryID, "items", m)
+	}
 	// Whatever TMDb could not illustrate gets a frame from its own video.
 	if g, err := w.Refresher.GrabFrames(ctx, job.Args.LibraryID); err != nil {
 		w.Log.Warn("frame grab failed", "library", job.Args.LibraryID, "err", err)

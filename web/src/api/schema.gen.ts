@@ -879,7 +879,8 @@ export interface paths {
             query?: {
                 limit?: number;
                 offset?: number;
-                sort?: "title" | "year" | "added" | "rating" | "random";
+                /** @description "taken" sorts photos and videos by the date they were taken (newest first); "series" sorts books by series and position in it. */
+                sort?: "title" | "year" | "added" | "rating" | "random" | "taken" | "series";
                 genre?: string;
                 /** @description Only items the current profile has not watched. */
                 unplayed?: boolean;
@@ -891,8 +892,14 @@ export interface paths {
                 yearTo?: number;
                 /** @description First letter of the sort title ("#" for digits and symbols). */
                 letter?: string;
-                /** @description In music libraries, list artists, albums or tracks instead of top-level items. */
-                kind?: "artist" | "album" | "track";
+                /** @description List items of this kind instead of top-level items: artists, albums or tracks in music libraries; books or audiobooks; photo albums, photos or videos (with parentId, those of one album). */
+                kind?: "artist" | "album" | "track" | "book" | "audiobook" | "photoalbum" | "photo" | "video";
+                /** @description Only books and audiobooks by this author (exact name). */
+                author?: string;
+                /** @description Only books and audiobooks of this series (exact name). */
+                series?: string;
+                /** @description Only the direct children of this item (the photos and sub-albums of a photo album), paged. */
+                parentId?: string;
             };
             header?: never;
             path: {
@@ -1414,6 +1421,138 @@ export interface paths {
         get: operations["getDownloadSettings"];
         /** Update download transcoding limits (admin) */
         put: operations["updateDownloadSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/items/{itemId}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        /** Open a book or comic for reading (signed file and page URLs and the saved position) */
+        get: operations["openBook"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/items/{itemId}/reading-progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        /** Reading position of the current profile */
+        get: operations["getReadingProgress"];
+        /** Save the reading position of the current profile (synced to every client) */
+        put: operations["saveReadingProgress"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/items/{itemId}/listen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        /** Parts, chapters and saved position of an audiobook (positions report through reportProgress) */
+        get: operations["openAudiobook"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/items/{itemId}/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        /** A signed URL of a photo for the lightbox (videos play through startPlayback) */
+        get: operations["viewPhoto"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/libraries/{libraryId}/authors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                libraryId: components["parameters"]["LibraryId"];
+            };
+            cookie?: never;
+        };
+        /** Authors in a book or audiobook library with how many titles each has */
+        get: operations["listLibraryAuthors"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/libraries/{libraryId}/series": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                libraryId: components["parameters"]["LibraryId"];
+            };
+            cookie?: never;
+        };
+        /** Series in a book or audiobook library with how many titles each has */
+        get: operations["listLibrarySeries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/home/continue-reading": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Books and audiobooks the current profile started and has not finished, most recent first */
+        get: operations["continueReading"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -2979,7 +3118,7 @@ export interface components {
             deviceName: string;
         };
         /** @enum {string} */
-        LibraryKind: "movies" | "shows" | "music" | "mixed";
+        LibraryKind: "movies" | "shows" | "music" | "mixed" | "books" | "audiobooks" | "photos";
         LibraryInput: {
             name: string;
             kind: components["schemas"]["LibraryKind"];
@@ -3005,7 +3144,7 @@ export interface components {
             heldRemovals?: number;
         };
         /** @enum {string} */
-        ItemKind: "movie" | "series" | "season" | "episode" | "artist" | "album" | "track";
+        ItemKind: "movie" | "series" | "season" | "episode" | "artist" | "album" | "track" | "book" | "audiobook" | "photoalbum" | "photo" | "video";
         /** @description What the client can decode natively. */
         DeviceProfile: {
             /** @description e.g. ["mp4", "webm"] */
@@ -3530,6 +3669,10 @@ export interface components {
             sheetUrls: string[];
         };
         MetadataSettings: {
+            /** @description Fill missing book descriptions and covers from Open Library (off by default; never required). */
+            onlineBookMetadata?: boolean;
+            /** @description Show where photos were taken (EXIF GPS). Off by default; the location is never sent to clients while off. */
+            photoLocation?: boolean;
             tmdbConfigured: boolean;
             /** @description Preferred metadata language, e.g. "hr-HR" (English is the fallback). */
             language: string;
@@ -3537,6 +3680,10 @@ export interface components {
             country: string;
         };
         MetadataSettingsInput: {
+            /** @description Omit to keep the current setting. */
+            onlineBookMetadata?: boolean;
+            /** @description Omit to keep the current setting. */
+            photoLocation?: boolean;
             /** @description TMDb API key (v3) or API Read Access Token (v4). Omit to keep the current key. */
             tmdbApiKey?: string;
             removeTmdbKey?: boolean;
@@ -3599,6 +3746,149 @@ export interface components {
             /** @description Watched by the current profile. */
             played?: boolean;
             favorite?: boolean;
+            /** @description Books and audiobooks, the authors. */
+            authors?: string[];
+            /** @description Books and audiobooks, the series they belong to. */
+            seriesName?: string;
+            /** @description Position in the series (may be fractional, e.g. 2.5). */
+            seriesIndex?: number;
+            /** @description Books, the file format (epub, pdf, mobi, azw3, cbz, cbr, cb7, cbt); audiobooks, m4b or the audio container. */
+            bookFormat?: string;
+            /** @description Books, the fraction the current profile has read (0–1). */
+            progression?: number;
+            /**
+             * Format: date-time
+             * @description Photos and videos, when they were taken (EXIF), else the file's modification time.
+             */
+            takenAt?: string;
+            /** @description Photos and videos, the picture width (as displayed, after EXIF rotation). */
+            width?: number;
+            height?: number;
+            /** @description Photo albums, the number of photos, videos and sub-albums directly in them. */
+            childCount?: number;
+        };
+        /** @description What a book, comic or audiobook file says about itself. */
+        BookDetails: {
+            format: string;
+            authors: string[];
+            /** @description Audiobooks. */
+            narrators?: string[];
+            seriesName?: string;
+            seriesIndex?: number;
+            volume?: number;
+            chapter?: number;
+            pageCount?: number;
+            isbn?: string;
+            publisher?: string;
+            language?: string;
+            /** @description Publication date as written in the file (e.g. "2019" or "2019-04-01"). */
+            published?: string;
+            description?: string;
+            /** @description Read right to left (manga, or an EPUB with rtl page progression). */
+            rightToLeft?: boolean;
+        };
+        PhotoDetails: {
+            /** Format: date-time */
+            takenAt?: string;
+            width?: number;
+            height?: number;
+            camera?: string;
+            lens?: string;
+            /** @description Millimetres. */
+            focalLength?: number;
+            fNumber?: number;
+            /** @description e.g. "1/250". */
+            exposureTime?: string;
+            iso?: number;
+            /** @description Only when the administrator allows photo locations. */
+            latitude?: number;
+            longitude?: number;
+        };
+        ReadingProgress: {
+            /** @description Zero-based page (PDF, comics). */
+            page?: number;
+            /** @description EPUB position (an EPUB CFI). */
+            locator?: string;
+            /** @description Fraction read, 0–1. */
+            progression: number;
+            finished: boolean;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        ReadingProgressInput: {
+            page?: number;
+            locator?: string;
+            progression: number;
+            /** @description Mark as read (set automatically at the last page). */
+            finished?: boolean;
+        };
+        /** @description Everything a reader needs to open a book or comic. */
+        ReadManifest: {
+            /** @description epub, pdf, mobi, azw3, cbz, cbr, cb7 or cbt. */
+            format: string;
+            /** @description Signed URL of the original file (EPUB, PDF, MOBI readers; downloads). */
+            fileUrl: string;
+            pageCount?: number;
+            /** @description Comics, signed URLs of the page images in reading order (empty for other formats). */
+            pages: string[];
+            rightToLeft: boolean;
+            progress: components["schemas"]["ReadingProgress"];
+        };
+        AudiobookPart: {
+            /**
+             * Format: uuid
+             * @description Pass to startPlayback as fileId to get the stream URL.
+             */
+            fileId: string;
+            title: string;
+            /**
+             * Format: int64
+             * @description Where this file starts in the whole book.
+             */
+            offsetMs: number;
+            /** Format: int64 */
+            durationMs: number;
+        };
+        AudiobookChapter: {
+            title: string;
+            /**
+             * Format: int64
+             * @description Position in the whole book.
+             */
+            startMs: number;
+            /** Format: int64 */
+            endMs: number;
+        };
+        AudiobookManifest: {
+            /** Format: int64 */
+            durationMs: number;
+            /**
+             * Format: int64
+             * @description Saved listening position of the current profile in the whole book.
+             */
+            positionMs: number;
+            /** @description The files in listening order (one for an M4B). */
+            parts: components["schemas"]["AudiobookPart"][];
+            /** @description Chapters from the file (M4B) or one per file; positions are in the whole book. */
+            chapters: components["schemas"]["AudiobookChapter"][];
+        };
+        PhotoView: {
+            /** @description Signed URL of the picture in a format every client can show (HEIC is converted to JPEG). */
+            url: string;
+            /** @description Signed URL of the original file (download). */
+            originalUrl?: string;
+            mimeType: string;
+            width?: number;
+            height?: number;
+        };
+        NameCount: {
+            name: string;
+            count: number;
+            /**
+             * Format: uuid
+             * @description An item to take a cover from (first book of the series, a book of the author).
+             */
+            itemId?: string;
         };
         ItemPage: {
             items: components["schemas"]["ItemSummary"][];
@@ -3637,6 +3927,8 @@ export interface components {
             external: boolean;
         };
         ItemDetail: {
+            book?: components["schemas"]["BookDetails"];
+            photo?: components["schemas"]["PhotoDetails"];
             /** @description Metadata was edited by hand and is kept on refresh. */
             locked?: boolean;
             collections?: components["schemas"]["Collection"][];
@@ -6127,7 +6419,8 @@ export interface operations {
             query?: {
                 limit?: number;
                 offset?: number;
-                sort?: "title" | "year" | "added" | "rating" | "random";
+                /** @description "taken" sorts photos and videos by the date they were taken (newest first); "series" sorts books by series and position in it. */
+                sort?: "title" | "year" | "added" | "rating" | "random" | "taken" | "series";
                 genre?: string;
                 /** @description Only items the current profile has not watched. */
                 unplayed?: boolean;
@@ -6139,8 +6432,14 @@ export interface operations {
                 yearTo?: number;
                 /** @description First letter of the sort title ("#" for digits and symbols). */
                 letter?: string;
-                /** @description In music libraries, list artists, albums or tracks instead of top-level items. */
-                kind?: "artist" | "album" | "track";
+                /** @description List items of this kind instead of top-level items: artists, albums or tracks in music libraries; books or audiobooks; photo albums, photos or videos (with parentId, those of one album). */
+                kind?: "artist" | "album" | "track" | "book" | "audiobook" | "photoalbum" | "photo" | "video";
+                /** @description Only books and audiobooks by this author (exact name). */
+                author?: string;
+                /** @description Only books and audiobooks of this series (exact name). */
+                series?: string;
+                /** @description Only the direct children of this item (the photos and sub-albums of a photo album), paged. */
+                parentId?: string;
             };
             header?: never;
             path: {
@@ -7009,6 +7308,190 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DownloadSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    openBook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Reader manifest */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadManifest"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getReadingProgress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Position */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadingProgress"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    saveReadingProgress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReadingProgressInput"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    openAudiobook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Audiobook */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudiobookManifest"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    viewPhoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Photo */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhotoView"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listLibraryAuthors: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                libraryId: components["parameters"]["LibraryId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authors by name */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NameCount"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listLibrarySeries: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                libraryId: components["parameters"]["LibraryId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Series by name */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NameCount"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    continueReading: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Items */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemSummary"][];
                 };
             };
             default: components["responses"]["Error"];

@@ -180,7 +180,8 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		go hls.Reap(ctx)
 		// Also on an in-process restart, where ctx (and so Reap) keeps running.
 		defer hls.StopAll()
-		streamServer := &stream.Server{Pool: deps.Pool, Roots: roots, Signer: stream.Signer{Key: key}, HLS: hls, FFmpeg: cfg.FFmpegPath}
+		streamServer := &stream.Server{Pool: deps.Pool, Roots: roots, Signer: stream.Signer{Key: key}, HLS: hls, FFmpeg: cfg.FFmpegPath,
+			PhotoCache: filepath.Join(cfg.CacheDir, "photos")}
 		state.SetStream(streamServer)
 		libs := &library.Service{Pool: deps.Pool, Roots: roots, ImageDir: filepath.Join(cfg.CacheDir, "images"), Resume: h.LoadResume,
 			Enqueue: func(ctx context.Context, id uuid.UUID) error {

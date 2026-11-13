@@ -113,15 +113,18 @@ final class PlayerChrome {
     }
 }
 
-/// While a video plays, music is paused and its lock-screen controls step aside; both come back
-/// (paused) when the video closes.
+/// While a video plays, music and audiobooks are paused and music's lock-screen controls step
+/// aside; both come back (paused) when the video closes.
 struct VideoAudioFocus: ViewModifier {
     let music: MusicPlayer?
+    /// Absent in the offline player, which can open without a signed-in app state.
+    @Environment(AppState.self) private var app: AppState?
 
     func body(content: Content) -> some View {
         content
             .onAppear {
                 music?.pause()
+                app?.audiobook.pause()
                 music?.suspendRemote()
             }
             .onDisappear { music?.resumeRemote() }

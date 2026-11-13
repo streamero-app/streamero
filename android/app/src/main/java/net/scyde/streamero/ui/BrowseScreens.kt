@@ -57,7 +57,7 @@ fun HomeScreen(state: AppState, nav: NavHostController) {
         val prefs = runCatching { api.preferences() }.getOrNull()
         HomeData(api.latest(), runCatching { api.continueWatching() }.getOrDefault(emptyList()), runCatching { api.nextUp() }.getOrDefault(emptyList()),
             runCatching { api.favorites() }.getOrDefault(emptyList()), runCatching { api.collections() }.getOrDefault(emptyList()),
-            runCatching { api.libraries() }.getOrDefault(emptyList()), prefs?.homeSections,
+            runCatching { api.libraries() }.getOrDefault(emptyList()), prefs?.homeSections, runCatching { api.continueReading() }.getOrDefault(emptyList()),
             if (net.scyde.streamero.livetv.canWatchLiveTv(state.me)) runCatching { api.liveOnNow() }.getOrDefault(emptyList()) else emptyList())
     }
     val img: (String, String) -> String = api::imageUrl
@@ -78,16 +78,19 @@ fun HomeScreen(state: AppState, nav: NavHostController) {
         if (loading) item { Loading() }
         if (error != null || removeError != null) item { Box(Modifier.padding(20.dp)) { ErrorLine(error ?: removeError) } }
         val d = data ?: return@LazyColumn
-        if (d.latest.isEmpty() && d.cont.isEmpty() && d.nextUp.isEmpty() && d.favorites.isEmpty() && d.collections.isEmpty()) item {
+        if (d.latest.isEmpty() && d.cont.isEmpty() && d.reading.isEmpty() && d.nextUp.isEmpty() && d.favorites.isEmpty() && d.collections.isEmpty()) item {
             Column(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 20.dp, vertical = 48.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(stringResource(R.string.home_empty_title), style = Display.copy(fontSize = 34.sp), color = Kino.text)
                 Text(stringResource(if (state.isAdmin) R.string.home_empty_admin else R.string.home_empty_user), color = Kino.muted, fontSize = 15.sp)
             }
         }
         if (d.onNow.isNotEmpty()) item { OnNowShelf(state, nav, d.onNow) }
-        val order = d.sections ?: listOf("continue", "nextUp", "latest", "favorites", "collections", "libraries")
+        val order = homeOrder(d.sections)
         order.forEach { s ->
             when (s) {
+                "reading" -> item {
+                    Shelf(stringResource(R.string.continue_reading), d.reading) { b -> BookCard(api, b, if (b.kind == "audiobook") 150.dp else Dims.poster, Modifier.rememberFocus(mem, "r" + b.id)) { nav.navigate("item/${b.id}") } }
+                }
                 "continue" -> item {
                     Shelf(stringResource(R.string.continue_watching), d.cont.filter { it.id !in removed }) {
                         WideCard(it, img, Dims.wide, Modifier.rememberFocus(mem, "c" + it.id), onLongClick = if (state.enhancements.removeFromContinue) ({ removing = it }) else null) { nav.watch(it.id) }
@@ -106,8 +109,17 @@ fun HomeScreen(state: AppState, nav: NavHostController) {
 }
 
 private data class HomeData(val latest: List<ItemSummary>, val cont: List<ItemSummary>, val nextUp: List<ItemSummary>, val favorites: List<ItemSummary>,
-    val collections: List<MediaCollection>, val libraries: List<Library>, val sections: List<String>?,
+    val collections: List<MediaCollection>, val libraries: List<Library>, val sections: List<String>?, val reading: List<ItemSummary> = emptyList(),
     val onNow: List<LiveTvChannel> = emptyList())
+
+/** The home sections in order; books in progress come right after the films in progress. */
+fun homeOrder(sections: List<String>?): List<String> {
+    val order = sections ?: listOf("continue", "nextUp", "latest", "favorites", "collections", "libraries")
+    if ("reading" in order) return order
+    val at = order.indexOf("continue")
+    // A home page set up without "continue" keeps its choice; the reading row then leads.
+    return if (at >= 0) order.take(at + 1) + "reading" + order.drop(at + 1) else listOf("reading") + order
+}
 
 /** The stage: one film edge to edge with its title set large, chosen from the newest titles. */
 @Composable
@@ -132,7 +144,7 @@ fun Stage(state: AppState, nav: NavHostController, pool: List<ItemSummary>, mem:
                 GlassButton(stringResource(R.string.more_info), { nav.navigate("item/${p.id}") }, Modifier.rememberFocus(mem, "stage-info", default = p.kind != "movie"), icon = Icons.Outlined.Info)
                 if (state.enhancements.randomButton) GlassButton(null, {
                     scope.launch {
-                        val libs = runCatching { api.libraries() }.getOrDefault(emptyList()).filter { it.kind != "music" }.shuffled()
+                        val libs = runCatching { api.libraries() }.getOrDefault(emptyList()).filter { it.kind in listOf("movies", "shows", "mixed") }.shuffled()
                         for (l in libs) {
                             val it = runCatching { api.items(l.id, mapOf("sort" to "random", "unplayed" to true, "limit" to 1)).items.firstOrNull() }.getOrNull()
                             if (it != null) { nav.navigate("item/${it.id}"); break }
@@ -221,7 +233,11 @@ fun LibraryScreen(state: AppState, nav: NavHostController, libraryId: String) {
     if (libraryId == "favorites") { FavoritesScreen(state, nav); return }
     val (libs) = rememberLoad(Unit) { api.libraries() }
     val lib = libs?.firstOrNull { it.id == libraryId }
-    if (lib?.kind == "music") { MusicLibraryScreen(state, nav, lib); return }
+    when (lib?.kind) {
+        "music" -> { MusicLibraryScreen(state, nav, lib); return }
+        "books", "audiobooks" -> { BooksLibraryScreen(state, nav, lib); return }
+        "photos" -> { PhotosLibraryScreen(state, nav, lib); return }
+    }
     var sort by remember { mutableStateOf("added") }
     var genre by remember { mutableStateOf("") }
     var status by remember { mutableStateOf("") }

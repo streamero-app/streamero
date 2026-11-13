@@ -364,3 +364,63 @@ func TestWatcherWalksRootsOnceIntegration(t *testing.T) {
 		t.Fatalf("library folder walked %d times, want 1", n)
 	}
 }
+
+// Book, audiobook and photo libraries go through the same removal safety: an emptied
+// folder removes nothing and an unreadable sub-folder keeps its items.
+func TestMediaLibrariesScanSafetyIntegration(t *testing.T) {
+	root := t.TempDir()
+	shelf := filepath.Join(root, "books")
+	touch(t, shelf, "Ana Novak/One.epub", "Ana Novak/Two.epub", "Locked/Three.pdf", "Gone/Four.epub")
+	f := newFixture(t, root)
+	ctx := context.Background()
+	lib, err := f.svc.Create(ctx, "Shelf", "books", []string{shelf})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = f.svc.Delete(context.Background(), lib.ID) })
+	f.scan(t, lib.ID)
+	if _, files := f.countItems(t, lib.ID); files != 4 {
+		t.Fatalf("first scan: %d files", files)
+	}
+
+	if os.Geteuid() != 0 { // root reads every folder
+		locked := filepath.Join(shelf, "Locked")
+		if err := os.Chmod(locked, 0); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.RemoveAll(filepath.Join(shelf, "Gone")); err != nil {
+			t.Fatal(err)
+		}
+		res := f.scan(t, lib.ID)
+		if res.Removed != 1 || len(res.Unreadable) != 1 {
+			t.Fatalf("scan with an unreadable folder: %+v", res)
+		}
+		if _, files := f.countItems(t, lib.ID); files != 3 {
+			t.Fatalf("unreadable folder lost its books: %d files", files)
+		}
+		if err := os.Chmod(locked, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Every book gone at once (an unmounted disk): nothing is removed until confirmed.
+	entries, err := os.ReadDir(shelf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range entries {
+		if err := os.RemoveAll(filepath.Join(shelf, e.Name())); err != nil {
+			t.Fatal(err)
+		}
+	}
+	_, before := f.countItems(t, lib.ID)
+	if res := f.scan(t, lib.ID); res.Removed != 0 || res.Held != before {
+		t.Fatalf("emptied books folder: %+v (had %d files)", res, before)
+	}
+	if _, files := f.countItems(t, lib.ID); files != before {
+		t.Fatalf("books removed from an emptied folder: %d of %d", files, before)
+	}
+	if res, err := f.scanner.ScanWith(ctx, lib.ID, ScanOptions{ConfirmRemoval: true}); err != nil || res.Removed != before {
+		t.Fatalf("confirmed scan: %+v %v", res, err)
+	}
+}
