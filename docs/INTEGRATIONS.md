@@ -175,7 +175,10 @@ Docker bridge network does not pass into the container (same as the LAN discover
 broadcast above). For TVs to find Streamero by themselves, run the `streamero`
 service with `network_mode: host` (then remove its `ports:`) or on a macvlan
 network with its own LAN address. With bridge networking the compose file still
-publishes the DLNA HTTP port 8788, and `STREAMERO_DLNA_URL=http://<LAN address of
+publishes the DLNA HTTP port on loopback only (`DLNA_HTTP_PORT=127.0.0.1:8788`); set
+`DLNA_HTTP_PORT=<LAN address of the host>:8788` in `.env` to reach it from TVs (behind
+the bridge every request comes from the gateway, so the LAN-only check alone cannot
+keep outside clients away). `STREAMERO_DLNA_URL=http://<LAN address of
 the host>:8788` sets the address announced to TVs, but most TVs cannot add a server
 by address. UDP 1900 is shared (`SO_REUSEADDR`) with other UPnP software on the
 host. Only clients with private, loopback or link-local addresses get answers on
