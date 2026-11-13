@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Design tokens — "Kino platno" (D-019): the film owns the screen, warm near-black around it,
 /// paper-white primary action, titles set wide like opening credits. Same palette as the web client.
@@ -16,10 +17,45 @@ enum Theme {
     static let cornerRadius: CGFloat = 8
     static let posterRadius: CGFloat = 6
 
-    /// Wide, heavy title type (title cards, hero titles). Pair with `.textCase(.uppercase)`.
+    /// Wide, heavy title type (title cards, hero titles) at a fixed size. Views use
+    /// `.displayFont(_:)`, which follows Dynamic Type.
     static func display(_ size: CGFloat) -> Font { .system(size: size, weight: .black).width(.expanded) }
-    /// Section heads: the same voice, calmer.
+    /// Section heads: the same voice, calmer (views use `.headFont(_:)`).
     static func head(_ size: CGFloat = 19) -> Font { .system(size: size, weight: .heavy).width(.expanded) }
+
+    /// A brand size scaled for the reader's text size. Display type is already large, so its
+    /// growth is capped (`maxScale`) to keep titles on screen at accessibility sizes.
+    static func scaledSize(_ size: CGFloat, for typeSize: DynamicTypeSize, maxScale: CGFloat) -> CGFloat {
+        let traits = UITraitCollection(preferredContentSizeCategory: contentSizeCategory(typeSize))
+        let scaled = UIFontMetrics(forTextStyle: .title1).scaledValue(for: size, compatibleWith: traits)
+        return min(scaled, size * maxScale)
+    }
+
+    static func contentSizeCategory(_ size: DynamicTypeSize) -> UIContentSizeCategory {
+        switch size {
+        case .xSmall: .extraSmall
+        case .small: .small
+        case .medium: .medium
+        case .large: .large
+        case .xLarge: .extraLarge
+        case .xxLarge: .extraExtraLarge
+        case .xxxLarge: .extraExtraExtraLarge
+        case .accessibility1: .accessibilityMedium
+        case .accessibility2: .accessibilityLarge
+        case .accessibility3: .accessibilityExtraLarge
+        case .accessibility4: .accessibilityExtraExtraLarge
+        case .accessibility5: .accessibilityExtraExtraExtraLarge
+        @unknown default: .large
+        }
+    }
+
+    /// Height of a full-bleed hero: most of the screen, never more than `maximum`, and lower
+    /// when the screen is short (landscape iPhone) so the content below still peeks in.
+    static func heroHeight(container: CGFloat, compactHeight: Bool, maximum: CGFloat) -> CGFloat {
+        guard container > 0 else { return maximum }
+        if compactHeight { return min(maximum, max(220, container * 0.8)) }
+        return min(maximum, max(300, container * 0.72))
+    }
 
     /// Stable, muted hue for artwork placeholders.
     static func hue(for title: String) -> Double {
@@ -27,6 +63,39 @@ enum Theme {
         for u in title.unicodeScalars { h = (h &* 31 &+ Int(u.value)) % 360 }
         return Double(abs(h)) / 360
     }
+}
+
+/// Brand type that follows Dynamic Type (capped, see `Theme.scaledSize`).
+struct ThemeFont: ViewModifier {
+    let size: CGFloat
+    let weight: Font.Weight
+    let maxScale: CGFloat
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    func body(content: Content) -> some View {
+        content.font(.system(size: Theme.scaledSize(size, for: typeSize, maxScale: maxScale), weight: weight).width(.expanded))
+    }
+}
+
+/// Sizes a full-bleed hero relative to the scroll view it sits in (see `Theme.heroHeight`).
+struct HeroFrame: ViewModifier {
+    let maximum: CGFloat
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+
+    func body(content: Content) -> some View {
+        let compact = verticalSizeClass == .compact
+        content.containerRelativeFrame(.vertical) { length, _ in
+            Theme.heroHeight(container: length, compactHeight: compact, maximum: maximum)
+        }
+    }
+}
+
+extension View {
+    /// Wide, heavy title type. Pair with `.textCase(.uppercase)`.
+    func displayFont(_ size: CGFloat) -> some View { modifier(ThemeFont(size: size, weight: .black, maxScale: 1.35)) }
+    /// Section heads: the same voice, calmer.
+    func headFont(_ size: CGFloat = 19) -> some View { modifier(ThemeFont(size: size, weight: .heavy, maxScale: 1.6)) }
+    func heroFrame(maximum: CGFloat) -> some View { modifier(HeroFrame(maximum: maximum)) }
 }
 
 /// The dark around the screen, with the film's light pooling low on the left.

@@ -23,6 +23,9 @@ P4 — Web pregledavanje (u tijeku); izdanja v0.2.0 i **v0.3.0** objavljena. P0 
 ## Pouzdanost biblioteke (branch `fix/library-reliability`, 2026-11-13)
 Scan više ne briše biblioteku kad je disk odmontiran ili mapa nečitljiva (D-043, migracija 00032, potvrda u Postavke → Biblioteke); re-scan čuva TMDb/IMDb/TVDb ID-jeve (jednokratni popravak za već obrisane); nove sezone i epizode dobivaju metapodatke bez ponovnog dohvata cijele serije; zahtjev za scan/metapodatke dok isti posao radi stavlja jedan posao u red iza njega; TMDb 429/5xx/mrežne greške se ponavljaju i ne označavaju naslov kao „bez metapodataka"; pretraga bez godine prihvaća samo ±1 godinu ili isti naslov; Next Up koristi indeks; watcher ne prolazi cijelu biblioteku svake minute; neuspjeli probe se ponavlja (najviše jednom na sat) bez brisanja dobrih podataka; čišćenje slika osoba i kolekcija; `internal/app` testovi imaju vlastitu bazu (deadlock 40P01).
 
+## iOS popravci iz pregleda (branch `fix/ios-review`, PR #64, 2026-11-13)
+Player na AVPlayerViewControlleru (PiP, auto PiP, vlastite kontrole nestaju s AVKitovim), titlovi po indeksu u datoteci + bitmap titlovi utisnuti na serveru, glazba ne preuzima lock screen tijekom videa, Live TV/preuzimanja pauziraju glazbu, odjava na 401 usred sesije, offline samo kod mrežnih grešaka, više servera (Ja → Serveri), heroji prema visini ekrana, Dynamic Type za brand fontove, straničenje glazbe, Quick Connect poll vezan uz ekran, napredak i na pauzi/seeku/pozadini, CFBundleVersion = major·10000+minor·100+patch (isti u Feather sourceu), preostali HR prijevodi.
+
 ## v0.10.1 (2026-11-11)
 Reprodukcija preskače verzije koje više nisu na disku (npr. epizodu koju je Sonarr premjestio iz `downloads`); kad nijedne nema, javlja `file_missing` i ponovno skenira biblioteku (#62).
 

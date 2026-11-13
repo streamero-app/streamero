@@ -34,9 +34,17 @@ struct MediaClient: Sendable {
         guard let http = response as? HTTPURLResponse else { throw APIError(status: 0, code: "bad_response") }
         guard (200..<300).contains(http.statusCode) else {
             let err = try? JSONDecoder().decode(APIErrorBody.self, from: data)
-            throw APIError(status: http.statusCode, code: err?.code ?? "http_\(http.statusCode)", message: err?.message)
+            let error = APIError(status: http.statusCode, code: err?.code ?? "http_\(http.statusCode)", message: err?.message)
+            if Self.sessionExpired(error) { SessionExpiry.notify(token: token) }
+            throw error
         }
         return data
+    }
+
+    /// Whether an error means the session token itself was rejected (signed out elsewhere,
+    /// revoked, expired). A wrong PIN or password is also a 401 but keeps the session.
+    static func sessionExpired(_ error: APIError) -> Bool {
+        error.status == 401 && (error.code == "unauthenticated" || error.code == "http_401")
     }
 
     func get<T: Decodable>(_ path: String, query: [String: String?] = [:]) async throws -> T {
@@ -151,9 +159,11 @@ struct MediaClient: Sendable {
         audioCodecs: ["mp3", "flac", "aac", "alac"],
         hls: true)
 
-    func startPlayback(item id: String, startMs: Int64? = nil, audioIndex: Int? = nil,
+    /// `subtitleIndex` is an index into the file's subtitle tracks (-1 = none, nil = automatic).
+    func startPlayback(item id: String, startMs: Int64? = nil, audioIndex: Int? = nil, subtitleIndex: Int? = nil,
                        fileId: String? = nil, profile: DeviceProfile = MediaClient.device) async throws -> PlaybackInfo {
-        try await post("items/\(id)/playback", PlaybackRequest(device: profile, fileId: fileId, audioIndex: audioIndex, startMs: startMs))
+        try await post("items/\(id)/playback", PlaybackRequest(device: profile, fileId: fileId, audioIndex: audioIndex,
+                                                               startMs: startMs, subtitleIndex: subtitleIndex))
     }
 
     func reportProgress(item id: String, positionMs: Int64, durationMs: Int64?) async {
@@ -307,4 +317,21 @@ struct MediaClient: Sendable {
     func collectionImageURL(_ id: String, type: String) -> URL? { absolute("/api/v1/collections/\(id)/images/\(type)") }
     /// Absolute URL of an invite link on this server.
     func inviteLink(token: String) -> URL? { absolute("/invite/\(token)") }
+}
+
+/// The shared hook for a session the server rejected mid-session: the signed-in screen
+/// registers it and returns to the sign-in screen.
+enum SessionExpiry {
+    private static let lock = NSLock()
+    nonisolated(unsafe) private static var handler: (@Sendable (String) -> Void)?
+
+    /// `handler` gets the rejected token, so a stale client of another server is ignored.
+    static func setHandler(_ handler: (@Sendable (String) -> Void)?) {
+        lock.withLock { self.handler = handler }
+    }
+
+    static func notify(token: String) {
+        let handler = lock.withLock { self.handler }
+        handler?(token)
+    }
 }
