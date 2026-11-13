@@ -210,6 +210,8 @@ struct QuickConnectView: View {
     @Environment(SessionStore.self) private var session
     @State private var code: String?
     @State private var error: LocalizedStringKey?
+    /// The running request-and-poll; one at a time, stopped when the view goes away.
+    @State private var poll: Task<Void, Never>?
 
     var body: some View {
         VStack(spacing: 16) {
@@ -223,22 +225,32 @@ struct QuickConnectView: View {
             }
             if let error {
                 Text(error).font(.footnote).foregroundStyle(.red)
-                Button("quickConnect.newCode") { Task { await run() } }
+                Button("quickConnect.newCode") { start() }
             }
             Button("quickConnect.usePassword", action: onCancel)
         }
-        .task { await run() }
+        .onAppear { start() }
+        .onDisappear {
+            poll?.cancel()
+            poll = nil
+        }
+    }
+
+    private func start() {
+        poll?.cancel()
+        poll = Task { await run() }
     }
 
     private func run() async {
         error = nil
         let client = AuthClient(baseURL: server.url)
         do {
-            let start = try await client.initiateQuickConnect()
-            code = start.code
+            let started = try await client.initiateQuickConnect()
+            code = started.code
             while !Task.isCancelled {
                 try await Task.sleep(for: .seconds(3))
-                if case .signedIn(let token, _) = try await client.pollQuickConnect(secret: start.secret) {
+                if case .signedIn(let token, _) = try await client.pollQuickConnect(secret: started.secret) {
+                    guard !Task.isCancelled else { return }
                     session.signedIn(server: server, token: token)
                     return
                 }
@@ -246,6 +258,7 @@ struct QuickConnectView: View {
         } catch is CancellationError {
             return
         } catch let apiError as APIError {
+            if Task.isCancelled { return }
             code = nil
             error = LoginMessage.key(for: apiError.code)
         } catch {
