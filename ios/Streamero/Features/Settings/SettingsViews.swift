@@ -88,7 +88,10 @@ struct MeTab: View {
                 }
             }
             Section {
-                Button { showQuickConnect = true } label: { Text("quickConnect.approveTitle").foregroundStyle(Theme.text) }
+                // A kids profile cannot sign other devices in to the account.
+                if !app.isKid {
+                    Button { showQuickConnect = true } label: { Text("quickConnect.approveTitle").foregroundStyle(Theme.text) }
+                }
                 Button { app.showProfileGate = true } label: { Text("switch_profile").foregroundStyle(Theme.text) }
                 Button(role: .destructive, action: signOut) { Text("sign_out") }
             }

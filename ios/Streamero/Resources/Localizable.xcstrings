@@ -6945,6 +6945,86 @@
           }
         }
       }
+    },
+    "ok": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "U redu"
+          }
+        }
+      }
+    },
+    "profiles.pinRequired": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This profile needs its PIN."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ovaj profil traži PIN."
+          }
+        }
+      }
+    },
+    "profiles.locked": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Too many wrong PINs. Try again in a few minutes."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Previše pogrešnih PIN-ova. Pokušajte ponovno za nekoliko minuta."
+          }
+        }
+      }
+    },
+    "profiles.wrongPassword": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wrong account password."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pogrešna lozinka računa."
+          }
+        }
+      }
+    },
+    "profiles.notFound": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This profile no longer exists."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ovaj profil više ne postoji."
+          }
+        }
+      }
     }
   }
 }
