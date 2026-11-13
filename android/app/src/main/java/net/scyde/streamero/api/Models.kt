@@ -98,7 +98,7 @@ import kotlinx.serialization.json.JsonElement
     /** Burn [subtitleIndex] in even when it is a text track. */
     val burnSubtitle: Boolean? = null,
 )
-/** A text subtitle track, offered as WebVTT at [url] (signed, already aligned with the stream's start). */
+/** A text subtitle track, offered as WebVTT at [url] (signed; times of the file, see Subtitles.url for HLS). */
 @Serializable data class PlaybackSubtitle(val index: Int, val language: String? = null, val forced: Boolean = false, val external: Boolean = false, val url: String)
 @Serializable data class PlaybackBitmapSubtitle(val index: Int, val codec: String, val language: String? = null, val forced: Boolean = false)
 @Serializable data class MediaSegment(val kind: String, val startMs: Long, val endMs: Long)

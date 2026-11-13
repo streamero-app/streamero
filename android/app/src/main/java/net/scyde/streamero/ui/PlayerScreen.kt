@@ -180,10 +180,10 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
                 subtitle = if (first) Subtitles.initial(pi, subRequest) else Subtitles.afterReload(pi, subtitle)
                 firstStart = false
                 // Every text track is side-loaded, so switching between them needs no reload. The
-                // URLs are used as the server gives them (already aligned with where the stream starts).
+                // An HLS stream that starts mid-file asks for cues shifted by its start (recomputed on every reload).
                 val subs = pi.subtitles.map { s ->
                     val key = Subtitles.trackId(s.index)
-                    MediaItem.SubtitleConfiguration.Builder(Uri.parse(api.resolve(s.url))).setId(key).setLabel(key).setMimeType(MimeTypes.TEXT_VTT)
+                    MediaItem.SubtitleConfiguration.Builder(Uri.parse(api.resolve(Subtitles.url(s.url, pi)))).setId(key).setLabel(key).setMimeType(MimeTypes.TEXT_VTT)
                         .setLanguage(s.language).setSelectionFlags(if (s.forced) C.SELECTION_FLAG_FORCED else 0).build()
                 }
                 val item = MediaItem.Builder().setUri(api.resolve(pi.url)).setSubtitleConfigurations(subs)

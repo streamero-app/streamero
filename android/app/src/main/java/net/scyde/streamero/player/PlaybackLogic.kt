@@ -48,6 +48,17 @@ object Subtitles {
     /** The subtitleIndex to ask for when the stream restarts: the burned track stays, otherwise none (text tracks are side-loaded). */
     fun requestIndex(choice: SubtitleChoice): Int = (choice as? SubtitleChoice.Burned)?.index ?: -1
 
+    /**
+     * The WebVTT URL for one text track of [pi]. An HLS stream (remux, transcode) that starts at
+     * startMs has its time 0 there, so the cues are asked for that much earlier (`offsetMs`, not
+     * part of the signature; older servers ignore it). Direct play keeps the file's own times.
+     */
+    fun url(trackUrl: String, pi: PlaybackInfo): String {
+        if (pi.method == "direct" || pi.startMs <= 0) return trackUrl
+        val base = trackUrl.substringBefore('#')
+        return base + (if ('?' in base) "&" else "?") + "offsetMs=" + pi.startMs
+    }
+
     /** The id given to a side-loaded text track, so it can be selected without a reload. */
     fun trackId(index: Int) = "streamero-sub-$index"
 }

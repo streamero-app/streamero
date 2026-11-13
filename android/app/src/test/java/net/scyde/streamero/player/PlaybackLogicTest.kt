@@ -47,6 +47,15 @@ class PlaybackLogicTest {
         assertEquals(-1, Subtitles.requestIndex(SubtitleChoice.Text(0)))
     }
 
+    @Test fun hlsStreamsStartingMidFileShiftTheirSubtitles() {
+        val url = "/stream/sub/f/2.vtt?exp=1&sig=abc"
+        assertEquals(url, Subtitles.url(url, pi.copy(startMs = 90_000)))
+        assertEquals(url, Subtitles.url(url, pi.copy(method = "transcode", startMs = 0)))
+        assertEquals("$url&offsetMs=90000", Subtitles.url(url, pi.copy(method = "transcode", startMs = 90_000)))
+        assertEquals("$url&offsetMs=1500", Subtitles.url(url, pi.copy(method = "remux", startMs = 1_500)))
+        assertEquals("/s.vtt?offsetMs=5", Subtitles.url("/s.vtt", pi.copy(method = "remux", startMs = 5)))
+    }
+
     @Test fun firstErrorFallsBackSecondFails() {
         val r = ErrorRecovery()
         assertFalse(r.safe)
