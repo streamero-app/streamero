@@ -25,12 +25,16 @@ final class MusicPlayer {
     private let client: MediaClient
     private let player = AVPlayer()
     private var loadTask: Task<Void, Never>?
-    private var endObserver: (any NSObjectProtocol)?
-    private var timeObserver: Any?
+    /// Observer tokens; removed when the player goes away (AppState is built once per sign-in).
+    private let observers: PlayerObservers
+    private var artwork: MPMediaItemArtwork?
+    /// A video player owns the lock screen while it is open.
+    private var remoteSuspended = false
 
     init(client: MediaClient) {
         self.client = client
-        timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.5, preferredTimescale: 600), queue: .main) { [weak self] _ in
+        observers = PlayerObservers(player: player)
+        observers.time = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.5, preferredTimescale: 600), queue: .main) { [weak self] _ in
             Task { @MainActor in self?.syncFromPlayer() }
         }
     }
@@ -163,6 +167,7 @@ final class MusicPlayer {
         guard let track = current else { return }
         setupRemoteIfNeeded()
         activateAudio()
+        artwork = nil
         loadTask?.cancel()
         position = 0
         duration = track.durationMs ?? 0
@@ -171,8 +176,8 @@ final class MusicPlayer {
             guard let info = try? await client.startPlayback(item: track.id, profile: MediaClient.audioProfile),
                   let url = client.absolute(info.url), !Task.isCancelled, current?.id == track.id else { return }
             let item = AVPlayerItem(url: url)
-            if let endObserver { NotificationCenter.default.removeObserver(endObserver) }
-            endObserver = NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: item, queue: .main) { [weak self] _ in
+            if let end = observers.end { NotificationCenter.default.removeObserver(end) }
+            observers.end = NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: item, queue: .main) { [weak self] _ in
                 Task { @MainActor in self?.advance(userInitiated: false) }
             }
             player.replaceCurrentItem(with: item)
@@ -187,7 +192,8 @@ final class MusicPlayer {
         guard let url = client.imageURL(item: id, type: "poster"),
               let image = await ImageCache.shared.image(url: url, token: client.token),
               current?.id == track.id else { return }
-        updateNowPlaying(track, artwork: Self.artwork(from: image))
+        artwork = Self.artwork(from: image)
+        updateNowPlaying(track, artwork: artwork)
     }
 
     /// Nonisolated: the system calls the handler on a background queue.
@@ -198,6 +204,7 @@ final class MusicPlayer {
     // MARK: Now playing
 
     private func updateNowPlaying(_ track: ItemSummary, artwork: MPMediaItemArtwork?) {
+        guard !remoteSuspended else { return }
         var info: [String: Any] = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
         info[MPMediaItemPropertyTitle] = track.title
         info[MPMediaItemPropertyArtist] = track.artist ?? ""
@@ -210,52 +217,94 @@ final class MusicPlayer {
     }
 
     private func updateElapsed() {
-        guard var info = MPNowPlayingInfoCenter.default().nowPlayingInfo else { return }
+        guard !remoteSuspended, var info = MPNowPlayingInfoCenter.default().nowPlayingInfo else { return }
         info[MPMediaItemPropertyPlaybackDuration] = Double(duration) / 1000
         info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = Double(position) / 1000
         info[MPNowPlayingInfoPropertyPlaybackRate] = playing ? 1.0 : 0.0
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
     }
 
-    /// The player the lock-screen commands act on; the handlers stay registered for the app's lifetime.
+    /// The player the lock-screen commands act on; the handlers are registered while music owns
+    /// the lock screen and removed while a video plays.
     private static weak var active: MusicPlayer?
-    private static var remoteRegistered = false
+    private static var remoteTargets: [Any] = []
 
     private func setupRemoteIfNeeded() {
         Self.active = self
-        guard !Self.remoteRegistered else { return }
-        Self.remoteRegistered = true
-        Self.registerRemoteCommands()
+        guard !remoteSuspended, Self.remoteTargets.isEmpty else { return }
+        Self.remoteTargets = Self.registerRemoteCommands()
+    }
+
+    /// A video opened: music's lock-screen controls and Now Playing step aside so the remote
+    /// buttons cannot start the music under the film.
+    func suspendRemote() {
+        remoteSuspended = true
+        Self.unregisterRemoteCommands(Self.remoteTargets)
+        Self.remoteTargets = []
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+    }
+
+    /// The video closed: music gets its controls and Now Playing back (when there is music).
+    func resumeRemote() {
+        guard remoteSuspended else { return }
+        remoteSuspended = false
+        guard let track = current else { return }
+        setupRemoteIfNeeded()
+        updateNowPlaying(track, artwork: artwork)
     }
 
     /// Nonisolated: command handlers must not capture main-actor isolation.
-    nonisolated private static func registerRemoteCommands() {
+    nonisolated private static func registerRemoteCommands() -> [Any] {
         let center = MPRemoteCommandCenter.shared()
-        _ = center.playCommand.addTarget { _ in
+        var targets: [Any] = []
+        targets.append(center.playCommand.addTarget { _ in
             Task { @MainActor in if active?.playing == false { active?.toggle() } }
             return .success
-        }
-        _ = center.pauseCommand.addTarget { _ in
+        })
+        targets.append(center.pauseCommand.addTarget { _ in
             Task { @MainActor in active?.pause() }
             return .success
-        }
-        _ = center.togglePlayPauseCommand.addTarget { _ in
+        })
+        targets.append(center.togglePlayPauseCommand.addTarget { _ in
             Task { @MainActor in active?.toggle() }
             return .success
-        }
-        _ = center.nextTrackCommand.addTarget { _ in
+        })
+        targets.append(center.nextTrackCommand.addTarget { _ in
             Task { @MainActor in active?.next() }
             return .success
-        }
-        _ = center.previousTrackCommand.addTarget { _ in
+        })
+        targets.append(center.previousTrackCommand.addTarget { _ in
             Task { @MainActor in active?.prev() }
             return .success
-        }
-        _ = center.changePlaybackPositionCommand.addTarget { event in
+        })
+        targets.append(center.changePlaybackPositionCommand.addTarget { event in
             guard let event = event as? MPChangePlaybackPositionCommandEvent else { return .commandFailed }
             let ms = Int64(event.positionTime * 1000)
             Task { @MainActor in active?.seek(ms) }
             return .success
+        })
+        return targets
+    }
+
+    nonisolated private static func unregisterRemoteCommands(_ targets: [Any]) {
+        let center = MPRemoteCommandCenter.shared()
+        for command in [center.playCommand, center.pauseCommand, center.togglePlayPauseCommand,
+                        center.nextTrackCommand, center.previousTrackCommand, center.changePlaybackPositionCommand] {
+            for target in targets { command.removeTarget(target) }
         }
+    }
+}
+
+/// Owns the music player's observer tokens and removes them when it is released.
+private final class PlayerObservers: @unchecked Sendable {
+    let player: AVPlayer
+    var time: Any?
+    var end: (any NSObjectProtocol)?
+
+    init(player: AVPlayer) { self.player = player }
+
+    deinit {
+        if let time { player.removeTimeObserver(time) }
+        if let end { NotificationCenter.default.removeObserver(end) }
     }
 }
