@@ -160,7 +160,21 @@ func (s *Server) subtitle(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	s.ServeSubtitle(w, r, id, index, format)
+	// offsetMs (not part of the signature) shifts WebVTT cues for a transcoded
+	// stream that starts mid-way: its time 0 is the file's offsetMs.
+	var offset int64
+	if v := r.URL.Query().Get("offsetMs"); v != "" && format == "vtt" {
+		offset, err = strconv.ParseInt(v, 10, 64)
+		if err != nil || offset < 0 {
+			http.Error(w, "invalid offsetMs", http.StatusBadRequest)
+			return
+		}
+		var duration int64
+		if s.Pool.QueryRow(r.Context(), `SELECT COALESCE(duration_ms, 0) FROM media_files WHERE id = $1`, id).Scan(&duration) == nil && duration > 0 {
+			offset = min(offset, duration)
+		}
+	}
+	s.serveSubtitle(w, r, id, index, format, offset)
 }
 
 // original sends a media file as an attachment ("Download original" on the web, D-040);
@@ -197,6 +211,11 @@ var subtitleFormats = map[string][2]string{
 // ServeSubtitle converts subtitle track index (position in the file's subtitle
 // list) to format (vtt, srt or ass). The caller has authorised the request.
 func (s *Server) ServeSubtitle(w http.ResponseWriter, r *http.Request, id uuid.UUID, index int, format string) {
+	s.serveSubtitle(w, r, id, index, format, 0)
+}
+
+// serveSubtitle is ServeSubtitle with WebVTT cues moved offsetMs earlier (see ShiftVTT).
+func (s *Server) serveSubtitle(w http.ResponseWriter, r *http.Request, id uuid.UUID, index int, format string, offsetMs int64) {
 	muxer, ok := subtitleFormats[strings.ToLower(format)]
 	if !ok || index < 0 {
 		http.NotFound(w, r)
@@ -237,6 +256,9 @@ func (s *Server) ServeSubtitle(w http.ResponseWriter, r *http.Request, id uuid.U
 	if err != nil {
 		http.Error(w, "subtitle conversion failed", http.StatusUnprocessableEntity)
 		return
+	}
+	if muxer[0] == "webvtt" {
+		out = ShiftVTT(out, offsetMs)
 	}
 	w.Header().Set("Content-Type", muxer[1])
 	w.Header().Set("Cache-Control", "private, max-age=3600")

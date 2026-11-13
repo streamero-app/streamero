@@ -8,6 +8,7 @@ import { Badge, Button, Card, ErrorText, Select, Spinner, SuccessText, TextField
 import { useMe } from "@/features/auth/useAuth";
 import { SettingRow, Toggle } from "./SettingRow";
 import { useDateTime } from "./SettingsLayout";
+import { useConfirm } from "@/components/Dialog";
 
 type Tuner = components["schemas"]["LiveTvTuner"];
 type TunerInput = components["schemas"]["LiveTvTunerInput"];
@@ -113,6 +114,7 @@ function TunerForm({ tuner, preset, onDone }: { tuner?: Tuner; preset?: Partial<
 }
 
 function TunersCard() {
+  const confirmDialog = useConfirm();
   const { t } = useTranslation();
   const qc = useQueryClient();
   const when = useDateTime();
@@ -184,7 +186,7 @@ function TunersCard() {
                   disabled={refresh.isPending} onClick={() => refresh.mutate(tu.id)}><RefreshCw className="size-4" aria-hidden /></Button>
                 <Button variant="secondary" onClick={() => setEditing(tu)}>{t("common.edit")}</Button>
                 <Button variant="ghost" aria-label={t("common.delete")} title={t("common.delete")}
-                  onClick={() => { if (window.confirm(t("livetvAdmin.deleteTunerConfirm", { name: tu.name }))) remove.mutate(tu.id); }}>
+                  onClick={() => { void confirmDialog({ message: t("livetvAdmin.deleteTunerConfirm", { name: tu.name }), danger: true }).then((ok) => { if (ok) remove.mutate(tu.id); }); }}>
                   <Trash2 className="size-4" aria-hidden />
                 </Button>
               </div>
@@ -251,6 +253,7 @@ function GuideForm({ guide, onDone }: { guide?: GuideSource; onDone: () => void 
 }
 
 function GuidesCard() {
+  const confirmDialog = useConfirm();
   const { t } = useTranslation();
   const qc = useQueryClient();
   const when = useDateTime();
@@ -291,7 +294,7 @@ function GuidesCard() {
                   disabled={refresh.isPending} onClick={() => refresh.mutate(g.id)}><RefreshCw className="size-4" aria-hidden /></Button>
                 <Button variant="secondary" onClick={() => setEditing(g)}>{t("common.edit")}</Button>
                 <Button variant="ghost" aria-label={t("common.delete")} title={t("common.delete")}
-                  onClick={() => { if (window.confirm(t("livetvAdmin.deleteGuideConfirm", { name: g.name }))) remove.mutate(g.id); }}>
+                  onClick={() => { void confirmDialog({ message: t("livetvAdmin.deleteGuideConfirm", { name: g.name }), danger: true }).then((ok) => { if (ok) remove.mutate(g.id); }); }}>
                   <Trash2 className="size-4" aria-hidden />
                 </Button>
               </div>

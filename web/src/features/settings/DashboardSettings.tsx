@@ -8,6 +8,7 @@ import type { components } from "@/api/schema.gen";
 import { Badge, Button, Card, ErrorText, Spinner } from "@/components/ui";
 import { formatSize } from "@/features/library/format";
 import { useDateTime } from "./SettingsLayout";
+import { useConfirm } from "@/components/Dialog";
 
 type Task = components["schemas"]["Task"];
 
@@ -149,6 +150,7 @@ export function TasksSettings() {
 
 /** Send a message to a playing client, or stop its playback. */
 function SessionActions({ sessionKey }: { sessionKey: string }) {
+  const confirmDialog = useConfirm();
   const { t } = useTranslation();
   const qc = useQueryClient();
   const [writing, setWriting] = useState(false);
@@ -175,7 +177,7 @@ function SessionActions({ sessionKey }: { sessionKey: string }) {
         <>
           <Button variant="secondary" onClick={() => setWriting(true)}><MessageSquare className="size-4" aria-hidden />{t("dashboard.message")}</Button>
           <Button variant="danger" disabled={send.isPending}
-            onClick={() => window.confirm(t("dashboard.stopConfirm")) && send.mutate({ kind: "stop", text: t("dashboard.stoppedByAdmin") })}>
+            onClick={() => void confirmDialog({ message: t("dashboard.stopConfirm"), danger: true }).then((ok) => ok && send.mutate({ kind: "stop", text: t("dashboard.stoppedByAdmin") }))}>
             <Square className="size-3.5 fill-current" aria-hidden />{t("dashboard.stop")}
           </Button>
         </>

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEnhancements } from "@/features/enhancements/useEnhancements";
-import { DiscoverCard } from "@/features/discover/DiscoverPage";
+import { DiscoverCard } from "@/features/discover/DiscoverCard";
 import { useTranslation } from "react-i18next";
 import { Search } from "lucide-react";
 import { api, unwrap } from "@/api/client";

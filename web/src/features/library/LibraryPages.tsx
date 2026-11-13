@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
+import { Fragment, lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { OnNowRow } from "@/features/livetv/OnNowRow";
 import { HOME_SECTIONS, type HomeSection } from "@/features/settings/usePreferences";
 import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -6,15 +6,19 @@ import { Link, useParams } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Check, Info, LayoutGrid, List, Play, Plus, RotateCcw, Shuffle, Volume2, VolumeX, X } from "lucide-react";
 import { useEnhancements, useSurprise } from "@/features/enhancements/useEnhancements";
-import { AlbumView, ArtistView, MusicLibrary } from "@/features/music/MusicPages";
+// Music views load on demand (their own chunk); most visitors never open a music library.
+const MusicLibrary = lazy(() => import("@/features/music/MusicPages").then((m) => ({ default: m.MusicLibrary })));
+const AlbumView = lazy(() => import("@/features/music/MusicPages").then((m) => ({ default: m.AlbumView })));
+const ArtistView = lazy(() => import("@/features/music/MusicPages").then((m) => ({ default: m.ArtistView })));
+const musicFallback = <div className="flex h-64 items-center justify-center"><Spinner /></div>;
 import { SubtitleFinder } from "./SubtitleFinder";
 import { DownloadOriginalButton } from "@/features/downloads/DownloadOriginal";
 import { api, unwrap } from "@/api/client";
 import type { components } from "@/api/schema.gen";
 import { Art, Badge, Button, ErrorText, IconButton, Select, Spinner, buttonVariants, pressable } from "@/components/ui";
-import { useMe } from "@/features/auth/useAuth";
+import { canAdminister, useMe } from "@/features/auth/useAuth";
 import { channelsLabel, formatDuration, formatSize, imageUrl, placeholderHue, resolutionLabel, type ItemSummary, type Library } from "./format";
-import { AddToMenu, CollectionCard, useCollections } from "./CollectionsPages";
+import { AddToMenu, CollectionCard, useCollections } from "./collections";
 import { MetadataMenu } from "./MetadataEditor";
 import { ArtFallback, ItemCard, PortraitArt, ProgressBar, RankCard, Row, RowSkeleton, TitleArt, TitleCard, isPlayable, posterCard, progressOf, rowCard } from "./cards";
 import { WatchTogetherButton } from "@/features/syncplay/WatchTogether";
@@ -362,7 +366,7 @@ export function HomeContent() {
   return (
     <div className="flex flex-col gap-12 pb-8 sm:gap-14" data-testid="home-page">
       <h1 className="sr-only">{t("home.welcome", { name })}</h1>
-      {me?.isAdmin && <MetadataNudge />}
+      {canAdminister(me) && <MetadataNudge />}
       <Billboard pool={latest.data} label={t("home.latest")} />
       {latest.isPending && <><RowSkeleton /><RowSkeleton /></>}
       <OnNowRow />
@@ -392,8 +396,8 @@ export function LibraryShelf({ asPage = false }: { asPage?: boolean }) {
     return (
       <section className={`flex flex-col items-start gap-3 ${gutter} ${asPage ? "pt-24" : ""}`}>
         <h2 className="font-head text-xl">{t("home.librariesTitle")}</h2>
-        <p className="max-w-prose text-sm text-muted">{me?.isAdmin ? t("home.noLibrariesAdmin") : t("home.noLibraries")}</p>
-        {me?.isAdmin && <Link to="/settings/libraries" className={`${pressable} ${buttonVariants.primary} h-10 rounded-[6px] px-5 text-sm font-semibold`}>{t("libraries.add")}</Link>}
+        <p className="max-w-prose text-sm text-muted">{canAdminister(me) ? t("home.noLibrariesAdmin") : t("home.noLibraries")}</p>
+        {canAdminister(me) && <Link to="/settings/libraries" className={`${pressable} ${buttonVariants.primary} h-10 rounded-[6px] px-5 text-sm font-semibold`}>{t("libraries.add")}</Link>}
       </section>
     );
   }
@@ -595,7 +599,7 @@ export function LibraryPage() {
   const tabClass = "relative h-11 shrink-0 px-1 text-[15px] font-medium text-text/60 transition-colors hover:text-text after:absolute after:inset-x-0 after:bottom-0 after:h-[2px] after:scale-x-0 after:bg-[var(--amb-a)] after:transition-transform aria-selected:text-text aria-selected:after:scale-x-100";
   const decades = [2020, 2010, 2000, 1990, 1980, 1970, 1960, 1950];
 
-  if (isMusic && lib) return <MusicLibrary library={lib} />;
+  if (isMusic && lib) return <Suspense fallback={musicFallback}><MusicLibrary library={lib} /></Suspense>;
   return (
     <div className="flex flex-col gap-6">
       <Billboard pool={pool} />
@@ -872,7 +876,7 @@ function Chapters({ d }: { d: ItemDetail }) {
 function ExternalLinks({ d }: { d: ItemDetail }) {
   const ids = d.providerIds ?? {};
   const enh = useEnhancements();
-  const isAdmin = !!useMe().data?.isAdmin;
+  const isAdmin = canAdminister(useMe().data);
   const arr = useQuery({
     queryKey: ["arr-link", d.item.id],
     enabled: enh.arrLinks && isAdmin && (d.item.kind === "movie" || d.item.kind === "series"),
@@ -960,7 +964,7 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
 
 export function ItemPage() {
   const { t, i18n } = useTranslation();
-  const isAdmin = !!useMe().data?.isAdmin;
+  const isAdmin = canAdminister(useMe().data);
   const { itemId } = useParams({ from: "/app/item/$itemId" });
   const detail = useItemDetail(itemId);
   const d = detail.data;
@@ -977,8 +981,8 @@ export function ItemPage() {
   useAmbientLight(detail.data?.item.colors);
   if (detail.error) return <div className={`pt-24 ${gutter}`}><ErrorText error={detail.error} /></div>;
   if (!d) return <div role="status" className="flex min-h-[70vh] items-center justify-center"><Spinner /></div>;
-  if (d.item.kind === "album") return <AlbumView d={d} />;
-  if (d.item.kind === "artist") return <ArtistView d={d} />;
+  if (d.item.kind === "album") return <Suspense fallback={musicFallback}><AlbumView d={d} /></Suspense>;
+  if (d.item.kind === "artist") return <Suspense fallback={musicFallback}><ArtistView d={d} /></Suspense>;
   const it = { ...d.item, hasBackdrop: d.hasBackdrop };
   const isEpisode = it.kind === "episode";
   const directors = d.crew.filter((p) => p.role === "Director").map((p) => p.name);
