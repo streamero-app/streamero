@@ -50,6 +50,10 @@ Player na AVPlayerViewControlleru (PiP, auto PiP, vlastite kontrole nestaju s AV
 ## Sigurnosno ojačanje (branch `fix/security-hardening`, 2026-11-13)
 Limit tijela zahtjeva na API-ju (1 MiB, slike 16 MiB → 413), CSP i HSTS za web, gzip za web i JSON, ograničenja ffmpeg sesija (novi stream uređaja gasi prethodni, 3 po računu, zadano max(4, CPU) na serveru; D-044), dječji profil bez admin prava u compat API-ju i bez Live TV-a, brisanje profila odjavljuje njegove uređaje, rate limit odobravanja Quick Connecta, ključ za potpisivanje streamova ne ide u backup i potpisi ne vrijede dulje od 48 h, Gotify token u headeru, tajne integracija se ne šalju novom hostu, DLNA i discovery port zadano na `127.0.0.1` (D-045). Uz to: HEVC kopija s `hvc1` tagom, `EXT-X-START` za filmove, softverski fallback kad hardverski encoder padne, `-readrate 2` za VOD, čišćenje `/transcode` pri startu i gašenju, write deadline za DLNA.
 
+## v0.11.0 (2026-11-13)
+Knjige, stripovi, audioknjige i fotografije (#58, migracija 00033). Pregled cijele aplikacije i popravci: sigurnost (limit tijela zahtjeva, dječji profil bez admin prava kroz compat, limiti ffmpeg sesija, CSP/HSTS, gzip, ključ potpisa izvan backupa; #66), pouzdanost biblioteke (skeniranje ne briše nedostupne mape, ID-jevi preživljavaju rescan, nove epizode dobivaju metapodatke, TMDb ponovni pokušaji, brži Next Up; #68, migracija 00032), web player (napredak sljedeće epizode, play/pauza kroz promjenu zvuka i titla, `offsetMs` za titlove, poruka umjesto crnog ekrana, manji bundle; #65), iOS (#64, #69) i Android (#67, #70): ispravni i bitmap titlovi, PiP, odjava na 401, upravljanje profilima, pozivnice, 2FA, moji uređaji, admin stranice za obavijesti, backup, Live TV i SSO.
+- Nadogradnja: `DLNA_HTTP_PORT` i `DISCOVERY_PORT` sada zadano slušaju samo na `127.0.0.1`; za TV na LAN-u postavi `<lan-ip>:8788` / `<lan-ip>:7359` u `.env`. Android versionCode je sada izveden iz verzije (v0.11.0 → 1100).
+
 ## v0.10.1 (2026-11-11)
 Reprodukcija preskače verzije koje više nisu na disku (npr. epizodu koju je Sonarr premjestio iz `downloads`); kad nijedne nema, javlja `file_missing` i ponovno skenira biblioteku (#62).
 
