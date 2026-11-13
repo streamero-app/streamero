@@ -39,10 +39,12 @@ private val USER_PAGES = listOf(
     Entry("playback", R.string.playback, Icons.Outlined.Movie),
     Entry("subtitles", R.string.subtitles, Icons.Outlined.ClosedCaption),
     Entry("home", R.string.home_screen, Icons.Outlined.Home),
+    Entry("profiles", R.string.profiles, Icons.Outlined.People),
+    Entry("devices", R.string.devices, Icons.Outlined.Devices),
     Entry("quickconnect", R.string.quick_connect, Icons.Outlined.Tv),
 )
 /** Pages that work with a remote; administration needs typing and stays on phone and web. */
-private val TV_PAGES = setOf("account", "playback", "subtitles", "home")
+private val TV_PAGES = setOf("account", "playback", "subtitles", "home", "profiles", "devices")
 private val ADMIN_PAGES = listOf(
     Entry("dashboard", R.string.dashboard, Icons.Outlined.Dashboard),
     Entry("libraries", R.string.libraries, Icons.Outlined.FolderOpen),
@@ -54,11 +56,14 @@ private val ADMIN_PAGES = listOf(
     Entry("tasks", R.string.tasks, Icons.Outlined.Checklist),
     Entry("activity", R.string.activity, Icons.Outlined.History),
     Entry("logs", R.string.logs, Icons.Outlined.Article),
-    Entry("devices", R.string.devices, Icons.Outlined.Devices),
     Entry("invites", R.string.invites, Icons.Outlined.Mail),
     Entry("apikeys", R.string.api_keys, Icons.Outlined.Key),
     Entry("server", R.string.server, Icons.Outlined.Dns),
     Entry("branding", R.string.branding, Icons.Outlined.Palette),
+    Entry("livetvadmin", R.string.livetv, Icons.Outlined.Sensors),
+    Entry("sso", R.string.sso_title, Icons.Outlined.VerifiedUser),
+    Entry("notifications", R.string.notifications, Icons.Outlined.Notifications),
+    Entry("backups", R.string.backups, Icons.Outlined.Backup),
 )
 
 @Composable
@@ -109,7 +114,7 @@ fun MeScreen(state: AppState, nav: NavHostController, onSignedOut: () -> Unit, o
 
 /** A label for a value the server sends as a code; unknown codes are shown as they are. */
 @Composable
-private fun label(res: Int?, raw: String): String = if (res == null) raw else stringResource(res)
+internal fun label(res: Int?, raw: String): String = if (res == null) raw else stringResource(res)
 
 fun taskLabelRes(key: String): Int? = when (key) {
     "scan_all" -> R.string.task_scan
@@ -235,7 +240,12 @@ fun SettingsPage(state: AppState, nav: NavHostController, page: String) {
             "tasks" -> TasksPage(state)
             "activity" -> ActivityPage(state)
             "logs" -> LogsPage(state)
+            "profiles" -> ProfilesPage(state)
             "devices" -> DevicesPage(state)
+            "notifications" -> NotificationsPage(state)
+            "backups" -> BackupsPage(state)
+            "livetvadmin" -> LiveTvAdminPage(state)
+            "sso" -> SsoPage(state)
             "invites" -> InvitesPage(state)
             "apikeys" -> ApiKeysPage(state)
             "server" -> ServerPage(state)
@@ -246,7 +256,7 @@ fun SettingsPage(state: AppState, nav: NavHostController, page: String) {
 
 /** Load-edit-save for one settings document, with a status line. */
 @Composable
-private fun <T> SettingsDoc(load: suspend () -> T, save: suspend (T) -> T, content: @Composable (T, (T) -> Unit) -> Unit) {
+internal fun <T> SettingsDoc(load: suspend () -> T, save: suspend (T) -> T, content: @Composable (T, (T) -> Unit) -> Unit) {
     var value by remember { mutableStateOf<T?>(null) }
     var error by remember { mutableStateOf<Throwable?>(null) }
     var saved by remember { mutableStateOf(false) }
@@ -260,7 +270,7 @@ private fun <T> SettingsDoc(load: suspend () -> T, save: suspend (T) -> T, conte
 }
 
 @Composable
-private fun Toggle(label: String, hint: String?, checked: Boolean, onChange: (Boolean) -> Unit) {
+internal fun Toggle(label: String, hint: String?, checked: Boolean, onChange: (Boolean) -> Unit) {
     // The whole row toggles, so the remote has one target per setting.
     val (src, focused) = rememberFocusSource()
     Row(Modifier.fillMaxWidth().focusRing(focused, scale = 1.02f, width = 2.dp).clip(CardShape)
@@ -275,8 +285,9 @@ private fun Toggle(label: String, hint: String?, checked: Boolean, onChange: (Bo
 }
 
 @Composable
-private fun Field(label: String, value: String, onChange: (String) -> Unit, secret: Boolean = false, hint: String? = null) {
-    OutlinedTextField(value, onChange, label = { Text(label) }, supportingText = hint?.let { { Text(it) } }, singleLine = true,
+internal fun Field(label: String, value: String, onChange: (String) -> Unit, secret: Boolean = false, hint: String? = null, placeholder: String? = null, enabled: Boolean = true) {
+    OutlinedTextField(value, onChange, label = { Text(label) }, supportingText = hint?.let { { Text(it) } }, singleLine = true, enabled = enabled,
+        placeholder = placeholder?.let { { Text(it, color = Kino.faint) } },
         visualTransformation = if (secret) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
         modifier = Modifier.fillMaxWidth().dpadExit(), shape = CardShape)
 }
@@ -325,6 +336,7 @@ private fun AccountPage(state: AppState) {
         pwMsg?.let { Text(it, color = Kino.success) }
         ErrorLine(pwError)
     }
+    TwoFactorCard(state)
 }
 
 @Composable
@@ -640,6 +652,7 @@ private fun LogsPage(state: AppState) {
     }
 }
 
+/** Signed-in devices: the user's own, or every user's for an administrator (the server decides). */
 @Composable
 private fun DevicesPage(state: AppState) {
     val api = state.api ?: return
@@ -648,16 +661,36 @@ private fun DevicesPage(state: AppState) {
     val scope = rememberCoroutineScope()
     var err by remember { mutableStateOf<Throwable?>(null) }
     var revoking by remember { mutableStateOf<SessionInfo?>(null) }
+    var renaming by remember { mutableStateOf<Pair<String, String>?>(null) }
+    val unknown = stringResource(R.string.device_unknown)
+    Text(stringResource(if (state.isAdmin) R.string.devices_intro_admin else R.string.devices_intro), color = Kino.muted, fontSize = 14.sp)
     ErrorLine(error ?: err)
     revoking?.let { s ->
-        ConfirmDialog(stringResource(R.string.revoke_session_confirm, s.deviceName, s.username), stringResource(R.string.sign_out), { revoking = null }) {
+        ConfirmDialog(stringResource(R.string.device_sign_out_confirm, s.deviceName.ifBlank { unknown }), stringResource(R.string.sign_out), { revoking = null }) {
             scope.launch { runCatching { api.revokeSession(s.id) }.onFailure { err = it }; tick++ }
         }
     }
     sessions?.forEach { s ->
-        Card(s.deviceName) {
-            Text("${s.username} · ${s.client} · ${s.lastSeenAt.take(16).replace('T', ' ')}", color = Kino.muted, fontSize = 13.sp)
-            if (!s.current) TextButton(onClick = { revoking = s }) { Text(stringResource(R.string.sign_out), color = Kino.danger) }
+        Card(null) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(s.deviceName.ifBlank { unknown }, color = Kino.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f, fill = false))
+                if (s.current) Pill(stringResource(R.string.device_current), Kino.success)
+            }
+            Text(listOfNotNull(s.username.takeIf { state.isAdmin }, s.client, stringResource(R.string.device_last_seen, shortDateTime(s.lastSeenAt))).joinToString(" · "),
+                color = Kino.muted, fontSize = 13.sp)
+            val r = renaming
+            if (r != null && r.first == s.id) {
+                Field(stringResource(R.string.device_name), r.second, { renaming = s.id to it.take(100) })
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PrimaryButton(stringResource(R.string.save), { scope.launch { runCatching { api.renameSession(s.id, r.second.trim()) }.onSuccess { renaming = null; tick++ }.onFailure { err = it } } },
+                        enabled = r.second.isNotBlank())
+                    GlassButton(stringResource(R.string.cancel), { renaming = null })
+                }
+            } else Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                TextButton(onClick = { renaming = s.id to s.deviceName }) { Text(stringResource(R.string.rename), color = Kino.text) }
+                // This device signs out from the account screen (Sign out), which also clears it here.
+                if (!s.current) TextButton(onClick = { revoking = s }) { Text(stringResource(R.string.sign_out), color = Kino.danger) }
+            }
         }
     }
 }

@@ -23,6 +23,7 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge(statusBarStyle = bars, navigationBarStyle = bars)
         val state = (application as StreameroApp).state
         SsoBroker.deliver(intent?.data)
+        net.scyde.streamero.ui.InviteBroker.deliver(intent?.data)
         setContent { StreameroRoot(state) }
     }
 
@@ -35,6 +36,7 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         SsoBroker.deliver(intent.data)
+        net.scyde.streamero.ui.InviteBroker.deliver(intent.data)
     }
 }
 
