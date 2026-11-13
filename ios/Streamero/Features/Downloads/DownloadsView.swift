@@ -120,7 +120,7 @@ struct DownloadsView: View {
             Button(role: .destructive) { downloads.deleteAll() } label: { Text("downloads.deleteAll") }
         }
         .fullScreenCover(item: $playing) { entry in
-            OfflinePlayerView(entry: entry)
+            OfflinePlayerView(entry: entry, music: app?.music)
         }
     }
 
@@ -202,7 +202,6 @@ struct DownloadsView: View {
     private func row(_ entry: OfflineEntry) -> some View {
         Button {
             if entry.state == .done {
-                app?.music.pause()
                 playing = entry
             }
         } label: {

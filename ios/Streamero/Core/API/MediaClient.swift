@@ -151,9 +151,11 @@ struct MediaClient: Sendable {
         audioCodecs: ["mp3", "flac", "aac", "alac"],
         hls: true)
 
-    func startPlayback(item id: String, startMs: Int64? = nil, audioIndex: Int? = nil,
+    /// `subtitleIndex` is an index into the file's subtitle tracks (-1 = none, nil = automatic).
+    func startPlayback(item id: String, startMs: Int64? = nil, audioIndex: Int? = nil, subtitleIndex: Int? = nil,
                        fileId: String? = nil, profile: DeviceProfile = MediaClient.device) async throws -> PlaybackInfo {
-        try await post("items/\(id)/playback", PlaybackRequest(device: profile, fileId: fileId, audioIndex: audioIndex, startMs: startMs))
+        try await post("items/\(id)/playback", PlaybackRequest(device: profile, fileId: fileId, audioIndex: audioIndex,
+                                                               startMs: startMs, subtitleIndex: subtitleIndex))
     }
 
     func reportProgress(item id: String, positionMs: Int64, durationMs: Int64?) async {

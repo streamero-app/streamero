@@ -6929,6 +6929,22 @@
           }
         }
       }
+    },
+    "player.burnIn": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "burned in"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "utisnuto u sliku"
+          }
+        }
+      }
     }
   }
 }
