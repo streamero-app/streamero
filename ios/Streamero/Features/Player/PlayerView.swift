@@ -2,8 +2,8 @@ import AVFoundation
 import AVKit
 import SwiftUI
 
-/// Everything the video player does besides drawing: stream setup, progress every 10 s,
-/// session commands every 4 s, skip intro, next episode, audio and subtitle tracks.
+/// Everything the video player does besides drawing: stream setup, progress (every 10 s and on
+/// pause or seek), session commands every 4 s, skip intro, next episode, audio and subtitle tracks.
 /// Inside a watch-together group (D-036) the player follows the group instead of its own controls.
 @MainActor
 @Observable
@@ -23,6 +23,7 @@ final class PlayerModel {
     private(set) var notice: String?
     /// Set when an administrator stopped playback; the view closes itself.
     private(set) var stopped = false
+    /// The file subtitle track shown (text drawn by the app, or bitmap burned in); -1 = none.
     private(set) var subtitleIndex = -1
     private(set) var audioIndex: Int?
     private(set) var cues: [SubtitleCue] = []
@@ -31,7 +32,10 @@ final class PlayerModel {
     private(set) var skippedSegment: Int64?
 
     private var offset: Int64 = 0
+    /// Film position where the loaded WebVTT file's clock starts (0 unless the server shifted it).
+    private var cueClockStart: Int64 = 0
     private var ticks = 0
+    private var progress = ProgressTrigger()
     private var noticeUntil: Date?
     private var counting = false
     private var creditsHandled = false
@@ -109,20 +113,21 @@ final class PlayerModel {
             // The version picked on the item page only applies to that item.
             let file = current == target.id ? target.file : nil
             let pi = try await client.startPlayback(item: current, startMs: startMs.map { max(0, $0) },
-                                                    audioIndex: audio, fileId: file, profile: profile)
+                                                    audioIndex: audio, subtitleIndex: sub, fileId: file, profile: profile)
             guard let url = client.absolute(pi.url) else { throw APIError(status: 0, code: "bad_url") }
             player?.pause()
             info = pi
             audioIndex = audio ?? pi.audioIndex
             offset = pi.method == "direct" ? 0 : pi.startMs
-            let chosen = sub ?? pi.subtitleDefault ?? -1
-            subtitleIndex = chosen
-            await loadCues(index: chosen)
+            // The server resolves the choice (or the profile's preference) and says what it shows.
+            subtitleIndex = SubtitleTracks.current(in: pi)
+            await loadCues(index: subtitleIndex)
             let p = AVPlayer(url: url)
             // Rate changes (group speed, drift correction) keep the pitch.
             p.currentItem?.audioTimePitchAlgorithm = .spectral
             if pi.method == "direct" && pi.startMs > 0 {
-                await p.seek(to: CMTime(value: pi.startMs, timescale: 1000))
+                // Seeking before the item is ready can land on the wrong spot or be dropped.
+                await p.seekWhenReady(toMs: pi.startMs)
             }
             player = p
             if inGroup || together.group != nil {
@@ -140,8 +145,12 @@ final class PlayerModel {
     private func loadCues(index: Int) async {
         cues = []
         cue = nil
-        guard let subs = info?.subtitles, subs.indices.contains(index), let url = client.absolute(subs[index].url) else { return }
-        if let text = try? await client.text(from: url) { cues = WebVTT.parse(text) }
+        cueClockStart = 0
+        guard let info, info.burnedSubtitle != index, let track = SubtitleTracks.text(index, in: info),
+              let url = client.absolute(track.url) else { return }
+        guard let text = try? await client.text(from: url), subtitleIndex == index else { return }
+        cueClockStart = WebVTT.clockStart(of: url)
+        cues = WebVTT.parse(text)
     }
 
     // MARK: Tracks
@@ -150,10 +159,19 @@ final class PlayerModel {
         await load(startMs: absolutePosition(), audio: index, sub: subtitleIndex)
     }
 
+    /// `index` is a file subtitle track (-1 = none). Text tracks switch in place; a bitmap track
+    /// (or leaving a burned-in one) restarts the stream at the same position, like the web player.
     func selectSubtitle(_ index: Int) async {
+        guard let info else { return }
+        if SubtitleTracks.needsReload(choosing: index, in: info) {
+            await load(startMs: absolutePosition(), audio: audioIndex, sub: index)
+            return
+        }
         subtitleIndex = index
         await loadCues(index: index)
     }
+
+    var isPlaying: Bool { player?.timeControlStatus == .playing }
 
     private func absolutePosition() -> Int64 {
         guard let player else { return position }
@@ -166,10 +184,10 @@ final class PlayerModel {
     func tick() async {
         guard let player, info != nil else { return }
         position = absolutePosition()
-        cue = WebVTT.cue(in: cues, at: position)
+        cue = WebVTT.cue(in: cues, at: position - cueClockStart)
         if let item = player.currentItem, item.duration.isNumeric, player.currentTime() >= item.duration { ended = true }
         ticks += 1
-        if ticks % 10 == 0 && player.timeControlStatus == .playing { await report() }
+        if progress.tick(playing: player.timeControlStatus == .playing, positionMs: position) { await report() }
         if ticks % 4 == 0 { await pollCommands() }
         if let until = noticeUntil, Date() >= until { notice = nil; noticeUntil = nil }
         await handleSegments()
@@ -271,7 +289,11 @@ final class PlayerModel {
         await load(startMs: 0, audio: nil, sub: nil)
     }
 
+    /// Saves the position now (the app is going to the background).
+    func reportNow() async { await report() }
+
     private func report() async {
+        guard info != nil else { return }
         let pos = absolutePosition()
         if pos > 0 { await client.reportProgress(item: current, positionMs: pos, durationMs: info?.durationMs) }
     }
@@ -440,13 +462,17 @@ final class PlayerModel {
     }
 }
 
-/// Full-screen player over AVKit's controls.
+/// Full-screen player: AVKit's controls (with Picture in Picture), the app's chrome fading with
+/// them, sideloaded subtitles, skip and next-episode overlays.
 struct PlayerView: View {
     let target: PlayTarget
     let client: MediaClient
     let music: MusicPlayer
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(AppState.self) private var app
     @State private var model: PlayerModel
+    @State private var chrome = PlayerChrome()
 
     init(target: PlayTarget, client: MediaClient, music: MusicPlayer, together: SyncSession) {
         self.target = target
@@ -456,6 +482,8 @@ struct PlayerView: View {
     }
 
     private var subtitleStyle: SubtitleStyle { SubtitleStyle(prefs: model.prefs) }
+    /// In a group the app draws every control itself, so its chrome stays.
+    private var chromeVisible: Bool { model.inGroup || chrome.visible }
 
     var body: some View {
         ZStack {
@@ -465,7 +493,10 @@ struct PlayerView: View {
                     // The group's own controls replace AVKit's, so every action goes to the group.
                     PlayerLayerView(player: player).ignoresSafeArea()
                 } else {
-                    VideoPlayer(player: player).ignoresSafeArea()
+                    SystemVideoPlayer(player: player, autoPip: app.enhancements.autoPip) { point, size in
+                        chrome.tap(at: point, in: size)
+                    }
+                    .ignoresSafeArea()
                 }
             } else if model.error {
                 Text("player.error").foregroundStyle(.white).padding()
@@ -473,13 +504,19 @@ struct PlayerView: View {
                 ProgressView().tint(.white).frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             if let cue = model.cue {
+                // Above AVKit's transport bar while it shows, low in the picture when it hides.
                 subtitleStyle.view(cue.text)
-                    .padding(.horizontal, 24).padding(.bottom, 56)
+                    .padding(.horizontal, 24).padding(.bottom, chromeVisible && !model.inGroup ? 112 : 36)
                     .frame(maxHeight: .infinity, alignment: .bottom)
                     .allowsHitTesting(false)
+                    .animation(.easeOut(duration: 0.25), value: chromeVisible)
             }
             VStack {
                 topBar
+                    // Below AVKit's own top row (Picture in Picture, volume).
+                    .padding(.top, model.inGroup ? 0 : 40)
+                    .opacity(chromeVisible ? 1 : 0)
+                    .allowsHitTesting(chromeVisible)
                 if let notice = model.notice {
                     Text(verbatim: notice).font(.callout).foregroundStyle(.white).multilineTextAlignment(.center)
                         .padding(14).background(.black.opacity(0.85), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
@@ -496,21 +533,27 @@ struct PlayerView: View {
                         .buttonStyle(MutedButtonStyle())
                     }
                 }
-                .padding(.horizontal, 24).padding(.bottom, model.inGroup ? 150 : 90)
+                .padding(.horizontal, 24)
+                .padding(.bottom, model.inGroup ? 150 : (chromeVisible ? 96 : 32))
+                .animation(.easeOut(duration: 0.25), value: chromeVisible)
             }
             if model.inGroup, let group = model.together.group {
                 TogetherOverlay(model: model, group: group)
             }
         }
+        .videoAudioFocus(music)
         .task {
             UIApplication.shared.isIdleTimerDisabled = true
-            music.pause()
             await model.begin()
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
                 await model.tick()
+                chrome.sync(playing: model.isPlaying)
                 if model.stopped { dismiss(); return }
             }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .background { Task { await model.reportNow() } }
         }
         .onDisappear {
             UIApplication.shared.isIdleTimerDisabled = false
@@ -525,6 +568,7 @@ struct PlayerView: View {
             }
             .accessibilityLabel(Text("player.back"))
             Text(verbatim: model.titleLine).font(.subheadline.weight(.semibold)).foregroundStyle(.white).lineLimit(1)
+                .shadow(color: .black.opacity(0.6), radius: 4)
             Spacer()
             if model.inGroup {
                 Button { Task { await model.leaveGroup() } } label: {
@@ -534,29 +578,53 @@ struct PlayerView: View {
             }
             if let info = model.info, info.audio.count > 1 {
                 Menu {
-                    ForEach(Array(info.audio.enumerated()), id: \.offset) { idx, a in
-                        Button { Task { await model.selectAudio(idx) } } label: {
+                    Picker(selection: Binding(get: { model.audioIndex ?? 0 },
+                                              set: { idx in Task { await model.selectAudio(idx) } })) {
+                        ForEach(Array(info.audio.enumerated()), id: \.offset) { idx, a in
                             Text(verbatim: [a.language?.uppercased() ?? "#\(idx + 1)", a.codec.uppercased(), a.title].compactMap { $0 }.joined(separator: " "))
+                                .tag(idx)
                         }
-                    }
+                    } label: { EmptyView() }
                 } label: {
                     Image(systemName: "speaker.wave.2.circle.fill").font(.title).foregroundStyle(.white.opacity(0.8)).padding()
                 }
                 .accessibilityLabel(Text("player.audio"))
             }
-            if let info = model.info, !info.subtitles.isEmpty {
+            if let info = model.info, !info.subtitles.isEmpty || !(info.bitmapSubtitles ?? []).isEmpty {
                 Menu {
-                    Button { Task { await model.selectSubtitle(-1) } } label: { Text("off") }
-                    ForEach(Array(info.subtitles.enumerated()), id: \.offset) { idx, s in
-                        Button { Task { await model.selectSubtitle(idx) } } label: {
-                            Text(verbatim: [s.language?.uppercased() ?? "?", s.forced == true ? Loc.string("forced") : nil].compactMap { $0 }.joined(separator: " · "))
+                    Picker(selection: Binding(get: { model.subtitleIndex },
+                                              set: { idx in Task { await model.selectSubtitle(idx) } })) {
+                        Text("off").tag(-1)
+                        ForEach(info.subtitles, id: \.index) { s in
+                            Text(verbatim: subtitleLabel(language: s.language, codec: nil, forced: s.forced == true, burned: false))
+                                .tag(s.index)
                         }
-                    }
+                        // Picture subtitles: the server draws them into the video.
+                        ForEach(info.bitmapSubtitles ?? [], id: \.index) { s in
+                            Text(verbatim: subtitleLabel(language: s.language, codec: s.codec, forced: s.forced == true, burned: true))
+                                .tag(s.index)
+                        }
+                    } label: { EmptyView() }
                 } label: {
                     Image(systemName: "captions.bubble.fill").font(.title).foregroundStyle(.white.opacity(0.8)).padding()
                 }
                 .accessibilityLabel(Text("subtitles"))
             }
+        }
+    }
+
+    private func subtitleLabel(language: String?, codec: String?, forced: Bool, burned: Bool) -> String {
+        let parts: [String?] = [language?.uppercased() ?? "?", codec.map { bitmapCodec($0) }, forced ? Loc.string("forced") : nil,
+                                burned ? Loc.string("player.burnIn") : nil]
+        return parts.compactMap { $0 }.joined(separator: " · ")
+    }
+
+    private func bitmapCodec(_ codec: String) -> String {
+        switch codec.lowercased() {
+        case "hdmv_pgs_subtitle", "pgssub": "PGS"
+        case "dvd_subtitle", "vobsub": "VobSub"
+        case "dvb_subtitle": "DVB"
+        default: codec.uppercased()
         }
     }
 

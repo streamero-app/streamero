@@ -123,7 +123,7 @@ struct ItemView: View {
                     PosterPlaceholder(title: "")
                 }
             }
-            .frame(height: 480).frame(maxWidth: .infinity).clipped()
+            .frame(maxWidth: .infinity, maxHeight: .infinity).clipped()
             .mask(LinearGradient(colors: [.black, .black, .black.opacity(0.6), .clear], startPoint: .top, endPoint: .bottom))
             LinearGradient(colors: [.black.opacity(0.45), .clear, .black.opacity(0.25), .black.opacity(0.45)],
                            startPoint: .top, endPoint: .bottom)
@@ -138,11 +138,11 @@ struct ItemView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     if let series = it.seriesTitle, let seriesId = it.seriesId {
                         NavigationLink(value: Route.item(seriesId)) {
-                            Text(verbatim: series).font(Theme.head(15)).textCase(.uppercase).foregroundStyle(Theme.textMuted)
+                            Text(verbatim: series).headFont(15).textCase(.uppercase).foregroundStyle(Theme.textMuted)
                         }
                     }
                     if isEpisode {
-                        Text(verbatim: episodeTitle(it)).font(Theme.display(30)).foregroundStyle(Theme.text).lineLimit(3).minimumScaleFactor(0.5)
+                        Text(verbatim: episodeTitle(it)).displayFont(30).foregroundStyle(Theme.text).lineLimit(3).minimumScaleFactor(0.5)
                     } else {
                         TitleArt(id: it.id, title: it.title, hasLogo: d.hasLogo == true, client: client, size: 34, maxHeight: 90)
                     }
@@ -156,7 +156,7 @@ struct ItemView: View {
             }
             .padding(.horizontal, 20)
         }
-        .frame(height: 480)
+        .heroFrame(maximum: 480)
     }
 
     private func factsLine(_ d: ItemDetail) -> [String] {
@@ -386,7 +386,7 @@ struct ItemView: View {
             Shelf(title: "cast") {
                 ForEach(Array(d.cast.prefix(20).enumerated()), id: \.offset) { _, p in
                     VStack(spacing: 6) {
-                        Text(verbatim: initials(p.name)).font(Theme.display(24)).foregroundStyle(Theme.text.opacity(0.7))
+                        Text(verbatim: initials(p.name)).displayFont(24).foregroundStyle(Theme.text.opacity(0.7))
                             .frame(width: 72, height: 72)
                             .overlay {
                                 if let url = p.imageUrl.flatMap(client.absolute) {

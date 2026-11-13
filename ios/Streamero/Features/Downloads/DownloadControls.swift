@@ -20,7 +20,6 @@ struct DownloadItemControl: View {
         VStack(alignment: .leading, spacing: 8) {
             if let entry {
                 DownloadStatusCard(entry: entry, play: {
-                    app.music.pause()
                     playing = entry
                 })
             } else {
@@ -42,7 +41,7 @@ struct DownloadItemControl: View {
             }
             .environment(\.locale, app.locale ?? Locale.current)
         }
-        .fullScreenCover(item: $playing) { entry in OfflinePlayerView(entry: entry) }
+        .fullScreenCover(item: $playing) { entry in OfflinePlayerView(entry: entry, music: app.music) }
     }
 
     private var originalPlayable: Bool {
