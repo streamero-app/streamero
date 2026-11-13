@@ -5,11 +5,13 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -165,5 +167,21 @@ func TestCleanStaleRemovesOnlySessionDirectories(t *testing.T) {
 	}
 	if _, err := os.Stat(other); err != nil {
 		t.Fatal("unrelated directory removed")
+	}
+}
+
+func TestSignerRefusesFarFutureExpiry(t *testing.T) {
+	now := time.Unix(1_000_000, 0)
+	s := Signer{Key: []byte("k"), Now: func() time.Time { return now }}
+	ok, _ := url.ParseQuery(s.Query("/stream/file/x/", 48*time.Hour))
+	if !s.Valid("/stream/file/x/", ok) {
+		t.Fatal("the longest TTL the server issues was refused")
+	}
+	forever, _ := url.ParseQuery(s.Query("/stream/file/x/", 10*365*24*time.Hour))
+	if s.Valid("/stream/file/x/", forever) {
+		t.Fatal("a signature valid for years was accepted")
+	}
+	if s.ValidToken("/stream/file/x/", s.Token("/stream/file/x/", 1000*time.Hour)) {
+		t.Fatal("a far-future token was accepted")
 	}
 }
