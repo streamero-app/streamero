@@ -149,8 +149,8 @@ struct LoginView: View {
                 using: url, callbackURLScheme: SingleSignOn.callbackScheme) // default: shared browser session
             switch SingleSignOn.parseCallback(callback) {
             case .code(let code):
-                let (token, user) = try await AuthClient(baseURL: server.url).exchangeOIDC(code: code, verifier: verifier)
-                session.signedIn(server: server, token: token, user: user)
+                let (token, _) = try await AuthClient(baseURL: server.url).exchangeOIDC(code: code, verifier: verifier)
+                session.signedIn(server: server, token: token)
             case .failed(let code):
                 error = LoginMessage.key(for: code)
             case nil:
@@ -170,9 +170,9 @@ struct LoginView: View {
         error = nil
         defer { busy = false }
         do {
-            let (token, user) = try await AuthClient(baseURL: server.url)
+            let (token, _) = try await AuthClient(baseURL: server.url)
                 .login(username: username, password: password, totpCode: needsCode ? totpCode : nil)
-            session.signedIn(server: server, token: token, user: user)
+            session.signedIn(server: server, token: token)
         } catch let apiError as APIError where apiError.code == "totp_required" {
             needsCode = true
         } catch let apiError as APIError {
@@ -227,8 +227,8 @@ struct QuickConnectView: View {
             code = start.code
             while !Task.isCancelled {
                 try await Task.sleep(for: .seconds(3))
-                if case .signedIn(let token, let user) = try await client.pollQuickConnect(secret: start.secret) {
-                    session.signedIn(server: server, token: token, user: user)
+                if case .signedIn(let token, _) = try await client.pollQuickConnect(secret: start.secret) {
+                    session.signedIn(server: server, token: token)
                     return
                 }
             }
