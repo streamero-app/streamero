@@ -55,10 +55,10 @@ func TestCleanPathRejectsEscapes(t *testing.T) {
 
 func TestCleanPathAllowedPrefixes(t *testing.T) {
 	ok := map[string][]string{
-		"radarr":   {"api/v3/movie", "api/v3/movie/12", "api/v3/movie/", "MediaCover/12/poster.jpg", "mediacover/1/fanart-360.jpg", "api/v3/mediacover/12/poster.jpg", "api/v3/movie/lookup/name%20with%20space"},
+		"radarr":   {"api/v3/movie", "api/v3/movie/12", "api/v3/movie/", "MediaCover/12/poster.jpg", "mediacover/1/fanart-360.jpg", "api/v3/mediacover/12/poster.jpg", "api/v3/movie/lookup/name%20with%20space", "backup/manual/radarr_backup_v5.14_2026.11.16.zip"},
 		"sonarr":   {"api/v3/series", "MediaCover/3/banner.jpg"},
 		"lidarr":   {"api/v1/artist", "MediaCover/Artists/1/poster.jpg", "api/v1/mediacover/artist/1/poster.jpg"},
-		"prowlarr": {"api/v1/indexer", "api/v1/search"},
+		"prowlarr": {"api/v1/indexer", "api/v1/search", "backup/scheduled/prowlarr_backup.zip"},
 		"bazarr":   {"api/system/status", "api/movies"},
 		"seerr":    {"api/v1/request", "imageproxy/tmdb/t/p/w300/x.jpg"},
 	}
@@ -67,6 +67,12 @@ func TestCleanPathAllowedPrefixes(t *testing.T) {
 			if got, err := CleanPath(svc(t, id), p); err != nil || got != p {
 				t.Errorf("%s: CleanPath(%q) = %q, %v", id, p, got, err)
 			}
+		}
+	}
+	// Backup downloads only for the Servarr apps.
+	for _, id := range []string{"bazarr", "seerr"} {
+		if _, err := CleanPath(svc(t, id), "backup/x.zip"); err == nil {
+			t.Errorf("%s: backup path allowed", id)
 		}
 	}
 	// Artwork paths only for the apps that serve them.

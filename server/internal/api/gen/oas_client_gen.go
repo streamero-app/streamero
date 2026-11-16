@@ -632,12 +632,13 @@ type Invoker interface {
 	// (GET, POST, PUT, DELETE; PATCH for seerr). It is served outside this specification, like /stream
 	// (D-015, D-048): same session auth, administrators only (not kids profiles); the server adds the
 	// stored API key (`X-Api-Key`, `X-API-KEY` for bazarr) and never returns it. Paths must stay under
-	// `api/` (plus `MediaCover/` for radarr, sonarr and lidarr and `imageproxy/` for seerr); dot segments,
-	// `//`, backslashes, control characters and encoded `/`, `\`, `.`, `%` are refused. Errors use the
-	// usual body with codes `unauthenticated` (401), `forbidden` (403), `invalid_path` (400),
-	// `method_not_allowed` (405), `arr_not_configured` (409), `request_too_large` (413, bodies over 16
-	// MiB), `rate_limited` (429) and `arr_unreachable` (502). Actions through the proxy act as the API
-	// key's owner (for Seerr: its administrator).
+	// `api/` (plus `MediaCover/` for radarr, sonarr and lidarr, `backup/` downloads for radarr, sonarr,
+	// lidarr and prowlarr, and `imageproxy/` for seerr); dot segments, `//`, backslashes, control
+	// characters and encoded `/`, `\`, `.`, `%` are refused. Errors use the usual body with codes
+	// `unauthenticated` (401), `forbidden` (403), `invalid_path` (400), `method_not_allowed` (405),
+	// `arr_not_configured` (409), `request_too_large` (413, bodies over 16 MiB), `rate_limited` (429) and
+	// `arr_unreachable` (502). Actions through the proxy act as the API key's owner (for Seerr: its
+	// administrator).
 	//
 	// GET /arr/services
 	ListArrServices(ctx context.Context) (*ArrServiceList, error)
@@ -13318,12 +13319,13 @@ func (c *Client) sendListAPIKeys(ctx context.Context) (res []ApiKey, err error) 
 // (GET, POST, PUT, DELETE; PATCH for seerr). It is served outside this specification, like /stream
 // (D-015, D-048): same session auth, administrators only (not kids profiles); the server adds the
 // stored API key (`X-Api-Key`, `X-API-KEY` for bazarr) and never returns it. Paths must stay under
-// `api/` (plus `MediaCover/` for radarr, sonarr and lidarr and `imageproxy/` for seerr); dot segments,
-// `//`, backslashes, control characters and encoded `/`, `\`, `.`, `%` are refused. Errors use the
-// usual body with codes `unauthenticated` (401), `forbidden` (403), `invalid_path` (400),
-// `method_not_allowed` (405), `arr_not_configured` (409), `request_too_large` (413, bodies over 16
-// MiB), `rate_limited` (429) and `arr_unreachable` (502). Actions through the proxy act as the API
-// key's owner (for Seerr: its administrator).
+// `api/` (plus `MediaCover/` for radarr, sonarr and lidarr, `backup/` downloads for radarr, sonarr,
+// lidarr and prowlarr, and `imageproxy/` for seerr); dot segments, `//`, backslashes, control
+// characters and encoded `/`, `\`, `.`, `%` are refused. Errors use the usual body with codes
+// `unauthenticated` (401), `forbidden` (403), `invalid_path` (400), `method_not_allowed` (405),
+// `arr_not_configured` (409), `request_too_large` (413, bodies over 16 MiB), `rate_limited` (429) and
+// `arr_unreachable` (502). Actions through the proxy act as the API key's owner (for Seerr: its
+// administrator).
 //
 // GET /arr/services
 func (c *Client) ListArrServices(ctx context.Context) (*ArrServiceList, error) {

@@ -25,21 +25,21 @@ type Service struct {
 	StatusPath string
 	// KeyHeader carries the API key.
 	KeyHeader string
-	// Extra lists path prefixes (lower case, besides "api/") the proxy allows:
-	// artwork the apps serve outside their API.
-	Extra []string
+	// Images lists path prefixes (lower case, besides "api/") of artwork the app
+	// serves outside its API; Files lists other such prefixes (backup downloads).
+	Images, Files []string
 	// Patch reports whether the app's API uses PATCH.
 	Patch bool
 }
 
 // Services are all connectable apps, in the order the API lists them.
 var Services = []Service{
-	{ID: "radarr", Name: "Radarr", APIBase: "api/v3", StatusPath: "api/v3/system/status", KeyHeader: "X-Api-Key", Extra: []string{"mediacover/"}},
-	{ID: "sonarr", Name: "Sonarr", APIBase: "api/v3", StatusPath: "api/v3/system/status", KeyHeader: "X-Api-Key", Extra: []string{"mediacover/"}},
-	{ID: "lidarr", Name: "Lidarr", APIBase: "api/v1", StatusPath: "api/v1/system/status", KeyHeader: "X-Api-Key", Extra: []string{"mediacover/"}},
-	{ID: "prowlarr", Name: "Prowlarr", APIBase: "api/v1", StatusPath: "api/v1/system/status", KeyHeader: "X-Api-Key"},
+	{ID: "radarr", Name: "Radarr", APIBase: "api/v3", StatusPath: "api/v3/system/status", KeyHeader: "X-Api-Key", Images: []string{"mediacover/"}, Files: []string{"backup/"}},
+	{ID: "sonarr", Name: "Sonarr", APIBase: "api/v3", StatusPath: "api/v3/system/status", KeyHeader: "X-Api-Key", Images: []string{"mediacover/"}, Files: []string{"backup/"}},
+	{ID: "lidarr", Name: "Lidarr", APIBase: "api/v1", StatusPath: "api/v1/system/status", KeyHeader: "X-Api-Key", Images: []string{"mediacover/"}, Files: []string{"backup/"}},
+	{ID: "prowlarr", Name: "Prowlarr", APIBase: "api/v1", StatusPath: "api/v1/system/status", KeyHeader: "X-Api-Key", Files: []string{"backup/"}},
 	{ID: "bazarr", Name: "Bazarr", APIBase: "api", StatusPath: "api/system/status", KeyHeader: "X-API-KEY"},
-	{ID: "seerr", Name: "Seerr", APIBase: "api/v1", StatusPath: "api/v1/status", KeyHeader: "X-Api-Key", Extra: []string{"imageproxy/"}, Patch: true},
+	{ID: "seerr", Name: "Seerr", APIBase: "api/v1", StatusPath: "api/v1/status", KeyHeader: "X-Api-Key", Images: []string{"imageproxy/"}, Patch: true},
 }
 
 // Lookup finds a service by id.
@@ -85,7 +85,7 @@ func (s Service) AllowsMethod(m string) bool {
 // isImagePath reports whether a (validated) path is artwork rather than API data.
 func (s Service) isImagePath(path string) bool {
 	p := strings.ToLower(path)
-	for _, e := range s.Extra {
+	for _, e := range s.Images {
 		if strings.HasPrefix(p, e) {
 			return true
 		}

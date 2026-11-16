@@ -51,7 +51,7 @@ func CleanPath(s Service, escaped string) (string, error) {
 	if strings.HasPrefix(lower, "api/") {
 		return escaped, nil
 	}
-	for _, e := range s.Extra {
+	for _, e := range append(append([]string(nil), s.Images...), s.Files...) {
 		if strings.HasPrefix(lower, e) {
 			return escaped, nil
 		}
