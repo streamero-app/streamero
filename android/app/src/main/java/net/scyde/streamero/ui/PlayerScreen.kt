@@ -223,6 +223,9 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
             // The device could not play what it said it could (10-bit video, an audio format...):
             // once, restart from here with a stream every device plays; after that, say so.
             override fun onPlayerError(e: PlaybackException) {
+                // While the next stream is being asked for, the server has already ended this one
+                // (one stream per device): its 404s are not a playback failure.
+                if (loadJob?.isActive == true) return
                 when (recovery.onError()) {
                     ErrorAction.Fallback -> { notice = ctx.getString(R.string.player_fallback); reload(autoplay = true) }
                     ErrorAction.Fail -> error = e

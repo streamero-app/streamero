@@ -7,7 +7,7 @@ import { ArrowLeft, Maximize, Minimize, Pause, Play, RotateCcw, RotateCw, Volume
 import { api, unwrap } from "@/api/client";
 import { Button, ErrorText, Spinner } from "@/components/ui";
 import { detectDeviceProfile } from "@/features/player/deviceProfile";
-import { isFullscreen, toggleFullscreen as toggleFs, tryPlay } from "@/features/player/playback";
+import { isFullscreen, nativeHls, toggleFullscreen as toggleFs, tryPlay } from "@/features/player/playback";
 import { useMusic } from "@/features/music/MusicPlayer";
 import type { Playback } from "./api";
 import { progress, timeOf } from "./time";
@@ -75,7 +75,7 @@ export function LivePlayer() {
     };
     const fail = () => { if (!cancelled) setFailed(true); };
     video.addEventListener("error", fail);
-    if (video.canPlayType("application/vnd.apple.mpegurl")) {
+    if (nativeHls(video)) {
       video.src = info.url; // Safari plays HLS itself (no MANIFEST_PARSED)
       video.addEventListener("canplay", begin, { once: true });
     } else {
@@ -87,7 +87,7 @@ export function LivePlayer() {
         hls.on(HlsCtor.Events.MANIFEST_PARSED, begin);
         // One reload after a network error and one media recovery, then say so.
         hls.on(HlsCtor.Events.ERROR, (_event, data) => {
-          if (!data.fatal) return;
+          if (!data.fatal || cancelled) return;
           if (data.type === HlsCtor.ErrorTypes.NETWORK_ERROR && !retried) {
             retried = true;
             hls.startLoad();
