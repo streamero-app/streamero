@@ -72,7 +72,7 @@ targets:
     sources:
       - path: Streamero
         # The display name and permission texts are localized per app.
-        excludes: ["Resources/InfoPlist.xcstrings"]
+        excludes: ["Resources/InfoPlist.xcstrings", "Resources/Info.plist"]
       - path: StreameroManage
     dependencies:
       - package: OpenAPIRuntime
