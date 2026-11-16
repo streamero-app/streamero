@@ -12,6 +12,28 @@ export function subtitleSrc(url: string, method: string, startMs: number): strin
 }
 
 /**
+ * Whether to hand an HLS stream to the browser itself instead of hls.js. Apple's
+ * WebKit (Safari, every iPhone browser) plays HLS natively and best. Chrome now
+ * also answers "maybe" for HLS, but its own player cannot parse the server's
+ * transcoded streams (DEMUXER_ERROR_COULD_NOT_PARSE), so wherever Media Source
+ * Extensions exist and the browser is not Apple's, hls.js plays the stream.
+ */
+export function prefersNativeHls(env: { canPlayHls: boolean; mediaSource: boolean; vendor: string }): boolean {
+  if (!env.canPlayHls) return false;
+  return !env.mediaSource || /apple/i.test(env.vendor);
+}
+
+/** prefersNativeHls for this browser and video element. */
+export function nativeHls(video: HTMLMediaElement): boolean {
+  const w = typeof window !== "undefined" ? (window as unknown as { MediaSource?: unknown; ManagedMediaSource?: unknown }) : undefined;
+  return prefersNativeHls({
+    canPlayHls: video.canPlayType("application/vnd.apple.mpegurl") !== "",
+    mediaSource: !!w && (typeof w.MediaSource !== "undefined" || typeof w.ManagedMediaSource !== "undefined"),
+    vendor: typeof navigator !== "undefined" ? navigator.vendor ?? "" : "",
+  });
+}
+
+/**
  * Numbers playback requests so that only the latest answer is used: rapid seeks
  * or a seek during an audio switch send several, and they may come back out of order.
  */
