@@ -32,6 +32,8 @@ struct ConfigEditorView: View {
     var hiddenKeys: Set<String> = ["id"]
     /// Naming: live examples from `config/naming/examples`.
     var examplesResource: String? = nil
+    /// Where "Test" posts the current object (Seerr notification agents).
+    var testResource: String? = nil
 
     @State private var state: ObjectFormState?
     @State private var tags: [JSONValue] = []
@@ -40,6 +42,7 @@ struct ConfigEditorView: View {
     @State private var busy = false
     @State private var notice: ManageNotice?
     @State private var examples: JSONValue = .null
+    @State private var testing = false
 
     var body: some View {
         Form {
@@ -71,6 +74,12 @@ struct ConfigEditorView: View {
                         HStack { Text("save"); Spacer(); if busy { ProgressView() } }
                     }
                     .disabled(busy)
+                    if testResource != nil {
+                        Button { Task { await runTest() } } label: {
+                            HStack { Label("manage.test", systemImage: "bolt.horizontal.circle"); Spacer(); if testing { ProgressView() } }
+                        }
+                        .disabled(testing)
+                    }
                 }
             } else if let error {
                 ArrErrorState(error: error) { await load() }
@@ -147,6 +156,20 @@ struct ConfigEditorView: View {
             }
         }
         if let result = try? await client.get(examplesResource, query: query) { examples = result }
+    }
+
+    private func runTest() async {
+        guard let state, let testResource else { return }
+        testing = true
+        defer { testing = false }
+        do {
+            try await client.send("POST", testResource, json: state.fullObject())
+            error = nil
+            notice = ManageNotice(text: "manage.test_ok")
+        } catch {
+            self.error = error
+            notice = ManageNotice(text: "manage.test_failed", failed: true)
+        }
     }
 
     private func save() async {

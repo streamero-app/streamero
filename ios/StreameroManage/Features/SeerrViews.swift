@@ -35,6 +35,9 @@ struct SeerrRequestsView: View {
                             if r["status"].int == 1 {
                                 Button { Task { await act(r, "approve") } } label: { Label("manage.approve", systemImage: "checkmark") }.tint(.green)
                             }
+                            if r["status"].int == 4 {
+                                Button { Task { await act(r, "retry") } } label: { Label("manage.retry", systemImage: "arrow.clockwise") }.tint(Theme.accent)
+                            }
                         }
                         .swipeActions(edge: .trailing) {
                             Button(role: .destructive) { Task { await delete(r) } } label: { Label("manage.delete", systemImage: "trash") }
@@ -66,7 +69,11 @@ struct SeerrRequestsView: View {
     private func act(_ r: JSONValue, _ action: String) async {
         do {
             try await client.send("POST", "request/\(r["id"].text)/\(action)")
-            notice = ManageNotice(text: action == "approve" ? "manage.approved" : "manage.declined")
+            switch action {
+            case "approve": notice = ManageNotice(text: "manage.approved")
+            case "decline": notice = ManageNotice(text: "manage.declined")
+            default: notice = ManageNotice(text: "manage.command_started")
+            }
             await load()
         } catch { self.error = error }
     }
@@ -203,6 +210,7 @@ struct SeerrRequestSheet: View {
     let item: JSONValue
     @State private var details: JSONValue = .null
     @State private var seasons: Set<Int> = []
+    @State private var is4k = false
     @State private var error: Error?
     @State private var busy = false
     @State private var done = false
@@ -242,6 +250,10 @@ struct SeerrRequestSheet: View {
                 } header: { Text("manage.seasons") }
             }
             Section {
+                Toggle(isOn: $is4k) { Text("manage.request_4k") }
+                    .disabled(done)
+            }
+            Section {
                 ArrErrorLine(error: error)
                 if done {
                     Label("manage.requested", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
@@ -265,7 +277,7 @@ struct SeerrRequestSheet: View {
     private func request() async {
         busy = true
         defer { busy = false }
-        var body: JSONValue = ["mediaType": .string(isTV ? "tv" : "movie"), "mediaId": .number(tmdbId)]
+        var body: JSONValue = ["mediaType": .string(isTV ? "tv" : "movie"), "mediaId": .number(tmdbId), "is4k": .bool(is4k)]
         if isTV { body["seasons"] = .ints(seasons.sorted()) }
         do {
             try await client.send("POST", "request", json: body)
@@ -414,23 +426,16 @@ struct SeerrIssueDetail: View {
 struct SeerrUsersView: View {
     let client: ArrClient
     @State private var users: [JSONValue]?
+    @State private var meId: Int?
     @State private var error: Error?
 
     var body: some View {
         List {
             if let error { ArrErrorLine(error: error) }
             ForEach(users ?? [], id: \.rowID) { u in
-                HStack(spacing: 12) {
-                    RemotePoster(url: (u["avatar"].string).flatMap { $0.hasPrefix("http") ? URL(string: $0) : nil }, title: u["displayName"].string ?? "")
-                        .frame(width: 36, height: 36)
-                        .clipShape(Circle())
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(verbatim: u["displayName"].string ?? u["email"].string ?? "").font(.subheadline.weight(.semibold))
-                        Text(verbatim: u["email"].string ?? "").font(.caption).foregroundStyle(Theme.textMuted)
-                    }
-                    Spacer()
-                    Text("manage.request_count \(u["requestCount"].int ?? 0)").font(.caption).foregroundStyle(Theme.textMuted)
-                }
+                NavigationLink {
+                    SeerrUserEditView(client: client, user: u, meId: meId)
+                } label: { userRow(u) }
             }
             if users == nil && error == nil { LoadingView() }
         }
@@ -441,7 +446,27 @@ struct SeerrUsersView: View {
         .refreshable { await load() }
     }
 
+    private func userRow(_ u: JSONValue) -> some View {
+        HStack(spacing: 12) {
+            RemotePoster(url: (u["avatar"].string).flatMap { $0.hasPrefix("http") ? URL(string: $0) : nil }, title: u["displayName"].string ?? "")
+                .frame(width: 36, height: 36)
+                .clipShape(Circle())
+            VStack(alignment: .leading, spacing: 2) {
+                Text(verbatim: u["displayName"].string ?? u["email"].string ?? "").font(.subheadline.weight(.semibold))
+                Text(verbatim: u["email"].string ?? "").font(.caption).foregroundStyle(Theme.textMuted)
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: 3) {
+                if SeerrPermissions.has(u["permissions"].int64 ?? 0, SeerrPermissions.admin) {
+                    TagBadge(text: "manage.perm.admin", tone: .accent)
+                }
+                Text("manage.request_count \(u["requestCount"].int ?? 0)").font(.caption).foregroundStyle(Theme.textMuted)
+            }
+        }
+    }
+
     private func load() async {
+        if meId == nil { meId = (try? await client.get("auth/me"))?["id"].int }
         do {
             users = try await client.get("user", query: [.q("take", 100), .q("skip", 0), .q("sort", "displayname")])["results"].list
             error = nil
@@ -479,6 +504,8 @@ struct SeerrSystemView: View {
                         Spacer()
                         if j["running"].bool == true {
                             ProgressView()
+                            Button { Task { await cancel(j) } } label: { Image(systemName: "stop.circle").font(.title3).foregroundStyle(.red) }
+                                .buttonStyle(.borderless).accessibilityLabel(Text("common.cancel"))
                         } else {
                             Button { Task { await run(j) } } label: { Image(systemName: "play.circle.fill").font(.title3) }
                                 .buttonStyle(.borderless).accessibilityLabel(Text("run_now"))
@@ -503,6 +530,13 @@ struct SeerrSystemView: View {
         } catch { self.error = error }
     }
 
+    private func cancel(_ j: JSONValue) async {
+        do {
+            try await client.send("POST", "settings/jobs/\(j["id"].text)/cancel")
+            await load()
+        } catch { self.error = error }
+    }
+
     private func run(_ j: JSONValue) async {
         do {
             try await client.send("POST", "settings/jobs/\(j["id"].text)/run")
@@ -524,21 +558,26 @@ struct SeerrSettingsMenu: View {
                 NavigationLink {
                     ConfigEditorView(client: client, resource: "settings/main", titleKey: "manage.general", saveMode: .post)
                 } label: { MenuRow(title: "manage.general", icon: "gearshape") }
+                NavigationLink {
+                    ConfigEditorView(client: client, resource: "settings/network", titleKey: "manage.network", saveMode: .post)
+                } label: { MenuRow(title: "manage.network", icon: "network") }
+                NavigationLink {
+                    SeerrMediaServerView(client: client)
+                } label: { MenuRow(title: "manage.media_server", icon: "play.rectangle.on.rectangle") }
             }
             Section {
                 NavigationLink {
-                    ObjectListView(client: client, resource: "settings/radarr", titleKey: "Radarr", titleKeys: ["name", "hostname"],
-                                   subtitleKeys: ["hostname", "activeDirectory"], template: Self.serviceTemplate(port: 7878))
+                    SeerrServersView(client: client, kind: .radarr)
                 } label: { MenuRow(title: LocalizedStringKey("manage.services_radarr"), icon: ArrService.radarr.symbol) }
                 NavigationLink {
-                    ObjectListView(client: client, resource: "settings/sonarr", titleKey: "Sonarr", titleKeys: ["name", "hostname"],
-                                   subtitleKeys: ["hostname", "activeDirectory"], template: Self.serviceTemplate(port: 8989))
+                    SeerrServersView(client: client, kind: .sonarr)
                 } label: { MenuRow(title: LocalizedStringKey("manage.services_sonarr"), icon: ArrService.sonarr.symbol) }
             } header: { Text("manage.services") }
             Section {
                 ForEach(Self.agents, id: \.self) { agent in
                     NavigationLink {
-                        ConfigEditorView(client: client, resource: "settings/notifications/\(agent)", titleKey: "manage.notifications", saveMode: .post)
+                        ConfigEditorView(client: client, resource: "settings/notifications/\(agent)", titleKey: "manage.notifications", saveMode: .post,
+                                         testResource: "settings/notifications/\(agent)/test")
                     } label: {
                         Label { Text(verbatim: agent.humanizedKey) } icon: { Image(systemName: "bell").foregroundStyle(Theme.accent) }
                     }
@@ -548,11 +587,5 @@ struct SeerrSettingsMenu: View {
         .manageBackground()
         .navigationTitle(Text("manage.settings"))
         .navigationBarTitleDisplayMode(.inline)
-    }
-
-    static func serviceTemplate(port: Int) -> JSONValue {
-        ["name": "", "hostname": "", "port": .number(port), "apiKey": "", "useSsl": false, "baseUrl": "",
-         "activeProfileId": 0, "activeProfileName": "", "activeDirectory": "", "is4k": false, "minimumAvailability": "released",
-         "isDefault": false, "externalUrl": "", "syncEnabled": false, "preventSearch": false, "tags": []]
     }
 }
