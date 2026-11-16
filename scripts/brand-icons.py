@@ -48,7 +48,7 @@ big.save(OUT + '/icon-1024.png')
 def save(size, path, img=big):
     img.resize((size, size), Image.LANCZOS).save(path)
 for d, s in {'mdpi': 48, 'hdpi': 72, 'xhdpi': 96, 'xxhdpi': 144, 'xxxhdpi': 192}.items():
-    save(s, fOUT + '/ic_launcher-{d}.png')
+    save(s, f'{OUT}/ic_launcher-{d}.png')
 save(512, OUT + '/AppMark.png')
 save(512, OUT + '/icon-512.png'); save(192, OUT + '/icon-192.png'); save(180, OUT + '/apple-touch-icon.png')
 # Rounded version for in-app marks and the browser tab (transparent corners).
@@ -63,5 +63,5 @@ for name, (bw, bh) in {'banner-xhdpi': (320, 180), 'banner-xxhdpi': (480, 270)}.
     s = int(bh * 0.7)
     m = rounded.resize((s, s), Image.LANCZOS)
     b.paste(m, ((bw - s) // 2, (bh - s) // 2), m)
-    b.save(fOUT + '/{name}.png')
+    b.save(f'{OUT}/{name}.png')
 print('corner colour', corner)
