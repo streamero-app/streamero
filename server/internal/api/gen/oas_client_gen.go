@@ -545,7 +545,7 @@ type Invoker interface {
 	GetReadingProgress(ctx context.Context, params GetReadingProgressParams) (*ReadingProgress, error)
 	// GetRequestSettings invokes getRequestSettings operation.
 	//
-	// Seerr / Radarr / Sonarr connections (admin; keys are never returned).
+	// Seerr and *arr connections (admin; keys are never returned).
 	//
 	// GET /settings/requests
 	GetRequestSettings(ctx context.Context) (*RequestSettings, error)
@@ -622,6 +622,25 @@ type Invoker interface {
 	//
 	// GET /apikeys
 	ListAPIKeys(ctx context.Context) ([]ApiKey, error)
+	// ListArrServices invokes listArrServices operation.
+	//
+	// Always all six services, in this order: radarr, sonarr, lidarr, prowlarr, bazarr, seerr. `reachable`
+	// and `version` come from each service's status endpoint (checked in parallel, 4 s timeout, cached for
+	// 30 s).
+	//
+	// The services themselves are reached through the proxy `/api/v1/arr/{service}/proxy/{apiBase}/...`
+	// (GET, POST, PUT, DELETE; PATCH for seerr). It is served outside this specification, like /stream
+	// (D-015, D-048): same session auth, administrators only (not kids profiles); the server adds the
+	// stored API key (`X-Api-Key`, `X-API-KEY` for bazarr) and never returns it. Paths must stay under
+	// `api/` (plus `MediaCover/` for radarr, sonarr and lidarr and `imageproxy/` for seerr); dot segments,
+	// `//`, backslashes, control characters and encoded `/`, `\`, `.`, `%` are refused. Errors use the
+	// usual body with codes `unauthenticated` (401), `forbidden` (403), `invalid_path` (400),
+	// `method_not_allowed` (405), `arr_not_configured` (409), `request_too_large` (413, bodies over 16
+	// MiB), `rate_limited` (429) and `arr_unreachable` (502). Actions through the proxy act as the API
+	// key's owner (for Seerr: its administrator).
+	//
+	// GET /arr/services
+	ListArrServices(ctx context.Context) (*ArrServiceList, error)
 	// ListBackups invokes listBackups operation.
 	//
 	// Backups in the backup folder, backup settings and the last restore (admin).
@@ -11676,7 +11695,7 @@ func (c *Client) sendGetReadingProgress(ctx context.Context, params GetReadingPr
 
 // GetRequestSettings invokes getRequestSettings operation.
 //
-// Seerr / Radarr / Sonarr connections (admin; keys are never returned).
+// Seerr and *arr connections (admin; keys are never returned).
 //
 // GET /settings/requests
 func (c *Client) GetRequestSettings(ctx context.Context) (*RequestSettings, error) {
@@ -13282,6 +13301,132 @@ func (c *Client) sendListAPIKeys(ctx context.Context) (res []ApiKey, err error) 
 
 	stage = "DecodeResponse"
 	result, err := decodeListAPIKeysResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// ListArrServices invokes listArrServices operation.
+//
+// Always all six services, in this order: radarr, sonarr, lidarr, prowlarr, bazarr, seerr. `reachable`
+// and `version` come from each service's status endpoint (checked in parallel, 4 s timeout, cached for
+// 30 s).
+//
+// The services themselves are reached through the proxy `/api/v1/arr/{service}/proxy/{apiBase}/...`
+// (GET, POST, PUT, DELETE; PATCH for seerr). It is served outside this specification, like /stream
+// (D-015, D-048): same session auth, administrators only (not kids profiles); the server adds the
+// stored API key (`X-Api-Key`, `X-API-KEY` for bazarr) and never returns it. Paths must stay under
+// `api/` (plus `MediaCover/` for radarr, sonarr and lidarr and `imageproxy/` for seerr); dot segments,
+// `//`, backslashes, control characters and encoded `/`, `\`, `.`, `%` are refused. Errors use the
+// usual body with codes `unauthenticated` (401), `forbidden` (403), `invalid_path` (400),
+// `method_not_allowed` (405), `arr_not_configured` (409), `request_too_large` (413, bodies over 16
+// MiB), `rate_limited` (429) and `arr_unreachable` (502). Actions through the proxy act as the API
+// key's owner (for Seerr: its administrator).
+//
+// GET /arr/services
+func (c *Client) ListArrServices(ctx context.Context) (*ArrServiceList, error) {
+	res, err := c.sendListArrServices(ctx)
+	return res, err
+}
+
+func (c *Client) sendListArrServices(ctx context.Context) (res *ArrServiceList, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("listArrServices"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/arr/services"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ListArrServicesOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/arr/services"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:SessionToken"
+			switch err := c.securitySessionToken(ctx, ListArrServicesOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"SessionToken\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeListArrServicesResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
