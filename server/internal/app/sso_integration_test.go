@@ -61,7 +61,7 @@ func (b *browser) follow(u string) (final, callback string) {
 		if status != http.StatusFound {
 			b.t.Fatalf("GET %s: HTTP %d %s", u, status, body)
 		}
-		if strings.HasPrefix(loc, "/") || strings.HasPrefix(loc, "streamero:") {
+		if strings.HasPrefix(loc, "/") || strings.HasPrefix(loc, "streamero:") || strings.HasPrefix(loc, "streamero-manage:") {
 			return loc, callback
 		}
 		u = loc
@@ -185,6 +185,18 @@ func TestOIDCSignInIntegration(t *testing.T) {
 		}
 		if s := app.do("POST", "/auth/oidc/exchange", map[string]any{"code": u.Query().Get("code"), "codeVerifier": verifier}, nil); s != 400 {
 			t.Fatalf("replayed exchange: %d", s)
+		}
+		// The Streamero Manage apps come back through their own scheme.
+		_, challenge2 := pkcePair()
+		manage := authorize + "?" + url.Values{"client": {"app"}, "redirectUri": {"streamero-manage://oidc"}, "codeChallenge": {challenge2}}.Encode()
+		final, _ = newBrowser(t, fp).follow(manage)
+		if mu, err := url.Parse(final); err != nil || mu.Scheme != "streamero-manage" || mu.Host != "oidc" || mu.Query().Get("code") == "" {
+			t.Fatalf("manage app redirect = %q", final)
+		}
+		// An app error goes back to the app that asked (here: a missing PKCE challenge).
+		noPKCE := authorize + "?" + url.Values{"client": {"app"}, "redirectUri": {"streamero-manage://oidc"}}.Encode()
+		if _, loc, _ := newBrowser(t, fp).request("GET", noPKCE, nil); !strings.HasPrefix(loc, "streamero-manage://oidc?error=") {
+			t.Fatalf("manage app error went to %q", loc)
 		}
 		// Unknown app redirect URIs are refused before the provider is contacted.
 		bad2 := authorize + "?" + url.Values{"client": {"app"}, "redirectUri": {"https://evil.example/cb"}, "codeChallenge": {challenge}}.Encode()
