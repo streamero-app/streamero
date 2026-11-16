@@ -559,7 +559,7 @@ struct RequestSettings: Codable, Sendable, Equatable {
     var sonarrConfigured: Bool
     var bazarrUrl: String?
     var bazarrConfigured: Bool?
-    /// Lidarr and Prowlarr connections (shown in Streamero Manage, D-049).
+    /// Lidarr and Prowlarr connections (shown in Streamero Manage, D-048).
     var lidarrUrl: String?
     var lidarrConfigured: Bool?
     var prowlarrUrl: String?

@@ -149,7 +149,7 @@ private struct MainContent: View {
             tab { HomeTab(client: client) }
                 .tabItem { Label("nav_home", systemImage: "house.fill") }
             #if MANAGE
-            // Streamero Manage: the *arr stack, for administrators only (D-049).
+            // Streamero Manage: the *arr stack, for administrators only (D-048).
             if app.isAdmin {
                 tab { ManageTab(client: client) }
                     .tabItem { Label("manage.tab", systemImage: "slider.horizontal.3") }

@@ -16,8 +16,10 @@ import Security
 ///   the sign-in started). ASWebAuthenticationSession also delivers the callback only to
 ///   the app that started it.
 enum SingleSignOn {
-    static let callbackScheme = "streamero"
-    static let redirectURI = "streamero://oidc"
+    /// `streamero`, or `streamero-manage` in Streamero Manage (the server accepts both
+    /// redirects), so the two apps never receive each other's sign-in.
+    static let callbackScheme = AppIdentity.urlScheme
+    static let redirectURI = "\(AppIdentity.urlScheme)://oidc"
 
     /// 32 random bytes, base64url without padding (43 characters).
     static func makeVerifier() -> String {

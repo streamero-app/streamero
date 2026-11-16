@@ -64,7 +64,7 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         CODE_SIGN_STYLE: Manual
         CODE_SIGNING_ALLOWED: "NO"
-  # Streamero Manage: the whole app plus control of the *arr stack (D-049). Same sources,
+  # Streamero Manage: the whole app plus control of the *arr stack (D-048). Same sources,
   # plus StreameroManage/ (compiled only here) and the MANAGE compilation condition.
   StreameroManage:
     type: application
@@ -96,9 +96,8 @@ targets:
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
         UIUserInterfaceStyle: Dark
-        # Own scheme so invite links meant for the standard app do not land here (and the
-        # other way round). Single sign-on still completes through streamero://oidc: the
-        # ASWebAuthenticationSession that started it receives the callback, not the scheme owner.
+        # Own scheme so invite links and the single sign-on redirect (streamero-manage://oidc)
+        # never collide with the standard app.
         CFBundleURLTypes:
           - CFBundleURLName: net.scyde.streamero.manage.links
             CFBundleURLSchemes: [streamero-manage]

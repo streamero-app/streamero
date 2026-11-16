@@ -32,7 +32,7 @@ jobs:
           # Runner images change which simulators they ship; use whichever iPhone is available.
           UDID=$(xcrun simctl list devices available -j | jq -r '[.devices[][] | select(.name | startswith("iPhone"))][0].udid // empty')
           if [ -z "$UDID" ]; then echo "No iPhone simulator on this runner"; xcrun simctl list runtimes; exit 1; fi
-          # Both apps: Streamero and Streamero Manage (D-049).
+          # Both apps: Streamero and Streamero Manage (D-048).
           for SCHEME in Streamero StreameroManage; do
             echo "::group::Test $SCHEME"
             xcodebuild test -project Streamero.xcodeproj -scheme "$SCHEME" \

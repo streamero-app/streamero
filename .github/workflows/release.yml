@@ -39,7 +39,7 @@ jobs:
         run: gh release create "${{ github.ref_name }}" dist/*.ipa dist/*.apk --generate-notes --verify-tag
       - name: Update Feather source
         run: |
-          # Both apps (D-049): Streamero-vX.ipa and Streamero-Manage-vX.ipa.
+          # Both apps (D-048): Streamero-vX.ipa and Streamero-Manage-vX.ipa.
           for SPEC in "net.scyde.streamero:Streamero" "net.scyde.streamero.manage:Streamero-Manage"; do
             IFS=: read -r BUNDLE NAME <<< "$SPEC"
             IPA="dist/$NAME-${{ github.ref_name }}.ipa"

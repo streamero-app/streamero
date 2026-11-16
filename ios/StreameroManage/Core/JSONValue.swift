@@ -1,7 +1,7 @@
 import Foundation
 
 /// Any JSON value. The *arr APIs are large and differ between versions, so Manage screens
-/// read the fields they show and send everything else back untouched (D-049). Decoding
+/// read the fields they show and send everything else back untouched (D-048). Decoding
 /// never fails on an unexpected shape.
 enum JSONValue: Sendable, Hashable, Codable {
     case null

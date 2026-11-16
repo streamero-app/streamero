@@ -205,4 +205,11 @@ final class AppIdentityTests: XCTestCase {
         XCTAssertEqual(InviteLink.parse(url: url)?.token, "abcdefgh1234")
         XCTAssertEqual(InviteLink.parse("streamero://invite?token=abcdefgh1234")?.token, "abcdefgh1234")
     }
+
+    func testSingleSignOnUsesTheManageScheme() {
+        XCTAssertEqual(SingleSignOn.callbackScheme, "streamero-manage")
+        XCTAssertEqual(SingleSignOn.redirectURI, "streamero-manage://oidc")
+        XCTAssertEqual(SingleSignOn.parseCallback(URL(string: "streamero-manage://oidc?code=abc")!), .code("abc"))
+        XCTAssertNil(SingleSignOn.parseCallback(URL(string: "streamero://oidc?code=abc")!))
+    }
 }
