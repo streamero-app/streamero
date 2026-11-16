@@ -1,6 +1,6 @@
 import Foundation
 
-/// The six services Streamero Manage controls through the server's *arr proxy (D-047).
+/// The six services Streamero Manage controls through the server's *arr proxy (D-049).
 enum ArrService: String, CaseIterable, Identifiable, Sendable, Codable, Hashable {
     case radarr, sonarr, lidarr, prowlarr, bazarr, seerr
 

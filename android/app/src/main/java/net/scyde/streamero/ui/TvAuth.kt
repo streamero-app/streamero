@@ -62,7 +62,7 @@ fun TvQuickConnect(state: AppState, serverName: String, onUsePassword: () -> Uni
     Box(Modifier.fillMaxSize().background(Brush.radialGradient(listOf(Kino.accent.copy(alpha = 0.22f), Kino.bg), radius = 1600f))) {
         Row(Modifier.fillMaxSize().padding(horizontal = 64.dp, vertical = 40.dp), horizontalArrangement = Arrangement.spacedBy(56.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Text("STREAMERO", style = Head.copy(fontSize = 18.sp), color = Kino.text)
+                AppMark(64.dp)
                 Text(stringResource(R.string.sign_in), style = Display.copy(fontSize = 44.sp), color = Kino.text, modifier = Modifier.padding(top = 12.dp))
                 if (serverName.isNotBlank()) Text(serverName, color = Kino.muted, fontSize = 16.sp)
                 Text(stringResource(R.string.qc_tv_intro), color = Kino.text.copy(alpha = 0.85f), fontSize = 17.sp, lineHeight = 25.sp, modifier = Modifier.padding(top = 10.dp))

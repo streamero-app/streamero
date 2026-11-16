@@ -64,7 +64,7 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         CODE_SIGN_STYLE: Manual
         CODE_SIGNING_ALLOWED: "NO"
-  # Streamero Manage: the whole app plus control of the *arr stack (D-047). Same sources,
+  # Streamero Manage: the whole app plus control of the *arr stack (D-049). Same sources,
   # plus StreameroManage/ (compiled only here) and the MANAGE compilation condition.
   StreameroManage:
     type: application

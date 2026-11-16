@@ -1,7 +1,21 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { keyBelongsToControl, requestSequence, subtitleSrc, toggleFullscreen, tryPlay } from "./playback";
+import { keyBelongsToControl, prefersNativeHls, requestSequence, subtitleSrc, toggleFullscreen, tryPlay } from "./playback";
 
 afterEach(() => vi.restoreAllMocks());
+
+describe("prefersNativeHls", () => {
+  it("uses Apple's own HLS player in Safari and on iPhone", () => {
+    expect(prefersNativeHls({ canPlayHls: true, mediaSource: true, vendor: "Apple Computer, Inc." })).toBe(true);
+    expect(prefersNativeHls({ canPlayHls: true, mediaSource: false, vendor: "Apple Computer, Inc." })).toBe(true);
+  });
+  it("uses hls.js in Chrome even though Chrome answers maybe for HLS", () => {
+    expect(prefersNativeHls({ canPlayHls: true, mediaSource: true, vendor: "Google Inc." })).toBe(false);
+    expect(prefersNativeHls({ canPlayHls: false, mediaSource: true, vendor: "" })).toBe(false);
+  });
+  it("leaves HLS to the browser where hls.js cannot run", () => {
+    expect(prefersNativeHls({ canPlayHls: true, mediaSource: false, vendor: "Google Inc." })).toBe(true);
+  });
+});
 
 describe("subtitleSrc", () => {
   it("asks the server to shift cues for a transcode that starts mid-way", () => {

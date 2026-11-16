@@ -16,10 +16,10 @@ struct AddServerView: View {
             Spacer()
             VStack(spacing: 8) {
                 Image("AppMark").resizable().frame(width: 76, height: 76)
+                    .accessibilityLabel(Text("app.name"))
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                     .shadow(color: Theme.accent.opacity(0.4), radius: 24, y: 10)
                     .padding(.bottom, 8)
-                Text("app.name").displayFont(36).minimumScaleFactor(0.6)
                 Text("addServer.subtitle").foregroundStyle(Theme.textMuted)
             }
             VStack(alignment: .leading, spacing: 8) {

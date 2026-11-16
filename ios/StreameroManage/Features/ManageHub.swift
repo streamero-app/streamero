@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The Manage tab: every *arr service with its state, and the way into each (D-047).
+/// The Manage tab: every *arr service with its state, and the way into each (D-049).
 struct ManageTab: View {
     let client: MediaClient
     @Environment(AppState.self) private var app

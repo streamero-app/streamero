@@ -1,6 +1,6 @@
 import Foundation
 
-/// Which of the two apps built from these sources is running (D-047). Streamero Manage is
+/// Which of the two apps built from these sources is running (D-049). Streamero Manage is
 /// compiled with the MANAGE condition and adds control of the *arr stack for administrators.
 enum AppIdentity {
     #if MANAGE
