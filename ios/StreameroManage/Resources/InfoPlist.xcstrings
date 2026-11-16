@@ -1,0 +1,22 @@
+{
+  "sourceLanguage": "en",
+  "version": "1.0",
+  "strings": {
+    "CFBundleDisplayName": {
+      "comment": "The app's name on the home screen.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Streamero Manage" } },
+        "hr": { "stringUnit": { "state": "translated", "value": "Streamero Manage" } }
+      }
+    },
+    "NSLocalNetworkUsageDescription": {
+      "comment": "Shown when the app first connects to a server on the local network (iOS asks for any LAN address).",
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Streamero Manage connects to media servers on your local network." } },
+        "hr": { "stringUnit": { "state": "translated", "value": "Streamero Manage se spaja na media servere u tvojoj lokalnoj mreži." } }
+      }
+    }
+  }
+}

@@ -1,0 +1,269 @@
+manage.tab	Manage	Upravljanje
+manage.intro	Your download stack in one place. Everything here goes through your Streamero server.	Tvoj sustav za preuzimanje na jednom mjestu. Sve ide preko tvog Streamero servera.
+manage.activity	Activity	Aktivnost
+manage.add	Add	Dodaj
+manage.add_condition	Add condition	Dodaj uvjet
+manage.add_hint	Search by title, or by an ID such as tmdb:603 or tvdb:81189.	Traži po naslovu ili ID-u, npr. tmdb:603 ili tvdb:81189.
+manage.add_new	Add new	Dodaj novo
+manage.add_root_folder	Add root folder	Dodaj korijensku mapu
+manage.add_value	Add a value	Dodaj vrijednost
+manage.added	Added	Dodano
+manage.added_open	Added. Open it	Dodano. Otvori
+manage.albums	Albums	Albumi
+manage.app_data	App data	Podaci aplikacije
+manage.app_profiles	App profiles	Profili aplikacija
+manage.approve	Approve	Odobri
+manage.approved	Approved	Odobreno
+manage.apps	Apps	Aplikacije
+manage.backup_now	Back up now	Napravi sigurnosnu kopiju
+manage.backups	Backups	Sigurnosne kopije
+manage.backups_hint	Swipe right to download, left to restore or delete.	Povuci udesno za preuzimanje, ulijevo za vraćanje ili brisanje.
+manage.blocklist	Blocklist	Blokirano
+manage.branch	Branch	Grana
+manage.calendar	Calendar	Kalendar
+manage.command_started	Started	Pokrenuto
+manage.comment	Comment	Komentar
+manage.connections	Connections	Veze
+manage.connections_hint	Addresses and API keys of the services are stored on the server; the app never sees the keys.	Adrese i API ključevi servisa spremljeni su na serveru; aplikacija nikad ne vidi ključeve.
+manage.connections_settings	Service connections	Veze sa servisima
+manage.count_items %lld	%lld items	Stavki: %lld
+manage.custom_format_scores	Custom format scores	Bodovi prilagođenih formata
+manage.custom_formats	Custom formats	Prilagođeni formati
+manage.cutoff	Cutoff	Granica
+manage.cutoff_format_score	Upgrade until score	Nadogradi do bodova
+manage.cutoff_unmet	Cutoff unmet	Ispod granice
+manage.decline	Decline	Odbij
+manage.declined	Declined	Odbijeno
+manage.delay_profiles	Delay profiles	Profili odgode
+manage.delete	Delete	Obriši
+manage.delete_confirm	Delete this?	Obrisati ovo?
+manage.delete_file_confirm	Delete this file from disk?	Obrisati ovu datoteku s diska?
+manage.delete_keep_files	Delete, keep files	Obriši, zadrži datoteke
+manage.delete_with_files	Delete with files	Obriši s datotekama
+manage.disabled	Off	Isključeno
+manage.discover	Discover	Otkrij
+manage.disk_space	Disk space	Prostor na disku
+manage.docker	Docker	Docker
+manage.done	Done	Gotovo
+manage.download	Download	Preuzmi
+manage.download_client_options	Download client options	Postavke klijenata za preuzimanje
+manage.download_clients	Download clients	Klijenti za preuzimanje
+manage.downloaded	Downloaded	Preuzeto
+manage.edit	Edit	Uredi
+manage.empty	Nothing here yet	Ovdje još nema ničega
+manage.enabled	On	Uključeno
+manage.episode_count %lld	%lld episodes	Epizoda: %lld
+manage.episodes	Episodes	Epizode
+manage.episodes_missing	Episodes without subtitles	Epizode bez titlova
+manage.error.forbidden	Only administrators can manage services.	Samo administratori mogu upravljati servisima.
+manage.error.http	The service answered with an error	Servis je odgovorio greškom
+manage.error.invalid_path	The server refused this request path.	Server je odbio ovu putanju zahtjeva.
+manage.error.not_configured	This service is not connected yet. Add its address and API key in the service connections.	Ovaj servis još nije povezan. Dodaj njegovu adresu i API ključ u vezama sa servisima.
+manage.error.too_large	The request is too large.	Zahtjev je prevelik.
+manage.error.unauthenticated	Your session has expired. Sign in again.	Sesija je istekla. Prijavi se ponovno.
+manage.error.unreachable	The server cannot reach this service.	Server ne može dohvatiti ovaj servis.
+manage.examples	Examples	Primjeri
+manage.field_unsupported	This setting can only be changed in the service itself.	Ova se postavka može promijeniti samo u samom servisu.
+manage.files	Files	Datoteke
+manage.filter	Filter	Filtar
+manage.filter.all	All	Sve
+manage.filter.complete	Complete	Potpuno
+manage.filter.missing	Missing	Nedostaje
+manage.filter.monitored	Monitored	Praćeno
+manage.filter.unmonitored	Not monitored	Nije praćeno
+manage.forced	forced	prisilni
+manage.general	General	Općenito
+manage.grab	Grab	Preuzmi
+manage.grab_confirm	Send this release to the download client?	Poslati ovo izdanje klijentu za preuzimanje?
+manage.grabbed	Sent to the download client	Poslano klijentu za preuzimanje
+manage.health	Health	Stanje
+manage.health_issues	need attention	traže pažnju
+manage.healthy	All good	Sve u redu
+manage.history	History	Povijest
+manage.import_lists	Import lists	Popisi za uvoz
+manage.in_library	In library	U biblioteci
+manage.include_when_renaming	Include in renaming	Uključi pri preimenovanju
+manage.indexer_options	Indexer options	Postavke indeksera
+manage.indexer_proxies	Indexer proxies	Proxyji indeksera
+manage.indexers	Indexers	Indekseri
+manage.install_update	Install	Instaliraj
+manage.installed	Installed	Instalirano
+manage.issue.audio	Audio	Zvuk
+manage.issue.open	Open	Otvoreno
+manage.issue.other	Other	Ostalo
+manage.issue.resolved	Resolved	Riješeno
+manage.issue.subtitles	Subtitles	Titlovi
+manage.issue.video	Video	Video
+manage.issues	Issues	Prijave problema
+manage.jobs	Jobs	Poslovi
+manage.level	Level	Razina
+manage.library	Library	Biblioteka
+manage.load_more	Load more	Učitaj još
+manage.logs	Logs	Zapisi
+manage.media_management	Media management	Upravljanje medijima
+manage.metadata	Metadata	Metapodaci
+manage.metadata_profile	Metadata profile	Profil metapodataka
+manage.metadata_profiles	Metadata profiles	Profili metapodataka
+manage.min_format_score	Minimum score	Najmanji broj bodova
+manage.min_upgrade_format_score	Minimum upgrade step	Najmanji korak nadogradnje
+manage.minimum_availability	Minimum availability	Najmanja dostupnost
+manage.missing	Missing	Nedostaje
+manage.missing_subtitles	Missing subtitles	Nedostaju titlovi
+manage.monitor	Monitor	Praćenje
+manage.monitor_season	Monitor season	Prati sezonu
+manage.more_info	More info	Više informacija
+manage.movies	Movies	Filmovi
+manage.movies_missing	Movies without subtitles	Filmovi bez titlova
+manage.name	Name	Naziv
+manage.naming	Naming	Imenovanje
+manage.negate	Negate	Obrni
+manage.new_tag	New tag	Nova oznaka
+manage.no_issues	No reported issues	Nema prijavljenih problema
+manage.no_releases	No releases found	Nije pronađeno nijedno izdanje
+manage.no_requests	No requests	Nema zahtjeva
+manage.no_results	No results	Nema rezultata
+manage.not_configured	Not connected	Nije povezano
+manage.not_configured_explain	This service is not connected yet. Add its address and API key and Streamero will talk to it for you.	Ovaj servis još nije povezan. Dodaj njegovu adresu i API ključ i Streamero će razgovarati s njim umjesto tebe.
+manage.nothing_scheduled	Nothing scheduled in this period	U ovom razdoblju ništa nije zakazano
+manage.nothing_wanted	Nothing missing	Ništa ne nedostaje
+manage.notifications	Notifications	Obavijesti
+manage.os	System	Sustav
+manage.other	Other	Ostalo
+manage.path	Path	Putanja
+manage.path_moves_files	Saving moves the files to the new path.	Spremanje premješta datoteke na novu putanju.
+manage.pending_requests	Pending requests	Zahtjevi na čekanju
+manage.primary_types	Primary album types	Primarne vrste albuma
+manage.priority	Priority	Prioritet
+manage.providers	Providers	Pružatelji
+manage.providers_all_good	All providers are working	Svi pružatelji rade
+manage.qualities	Qualities	Kvalitete
+manage.qualities_hint	Higher in the list is preferred. Tap a box to allow a quality.	Više na popisu ima prednost. Dodirni kućicu da dopustiš kvalitetu.
+manage.quality_definitions	Quality definitions	Definicije kvalitete
+manage.quality_definitions_hint	File size limits in MB per minute of runtime.	Ograničenja veličine datoteke u MB po minuti trajanja.
+manage.quality_profile	Quality profile	Profil kvalitete
+manage.quality_profiles	Quality profiles	Profili kvalitete
+manage.queue	Queue	Red
+manage.queue_empty	Nothing is downloading	Ništa se ne preuzima
+manage.refresh	Refresh	Osvježi
+manage.rejected	Rejected	Odbijeno
+manage.release_profiles	Release profiles	Profili izdanja
+manage.release_statuses	Release statuses	Statusi izdanja
+manage.remote_path_mappings	Remote path mappings	Mapiranja udaljenih putanja
+manage.remove	Remove	Ukloni
+manage.remove_and_blocklist	Remove and blocklist	Ukloni i blokiraj
+manage.remove_condition	Remove condition	Ukloni uvjet
+manage.remove_confirm	Remove from the queue?	Ukloniti iz reda?
+manage.remove_from_client	Remove from the download client	Ukloni iz klijenta za preuzimanje
+manage.remove_queue_only	Remove from the queue only	Ukloni samo iz reda
+manage.removed	Removed	Uklonjeno
+manage.rename	Rename	Preimenuj
+manage.reopen	Reopen	Ponovno otvori
+manage.reorder	Reorder	Promijeni redoslijed
+manage.req.approved	Approved	Odobreno
+manage.req.available	Available	Dostupno
+manage.req.completed	Completed	Završeno
+manage.req.declined	Declined	Odbijeno
+manage.req.failed	Failed	Neuspjelo
+manage.req.pending	Pending	Na čekanju
+manage.req.processing	Processing	U obradi
+manage.request	Request	Zatraži
+manage.request_count %lld	%lld requests	Zahtjeva: %lld
+manage.requested	Requested	Zatraženo
+manage.requests	Requests	Zahtjevi
+manage.required	Required	Obavezno
+manage.rescan	Rescan files	Ponovno pregledaj datoteke
+manage.reset_providers	Reset throttled providers	Poništi ograničenja pružatelja
+manage.resolve	Mark resolved	Označi kao riješeno
+manage.restart	Restart	Ponovno pokreni
+manage.restart_confirm	Restart the service?	Ponovno pokrenuti servis?
+manage.restarting	Restarting…	Ponovno pokretanje…
+manage.restore	Restore	Vrati
+manage.restore_confirm	Restore this backup?	Vratiti ovu sigurnosnu kopiju?
+manage.restore_explain	The current settings and database are replaced and the service restarts.	Trenutne postavke i baza bit će zamijenjene, a servis će se ponovno pokrenuti.
+manage.retry	Try again	Pokušaj ponovno
+manage.root_folder	Root folder	Korijenska mapa
+manage.root_folders	Root folders	Korijenske mape
+manage.runtime	Runtime	Okruženje
+manage.save_anyway	Save anyway	Ipak spremi
+manage.search	Search	Pretraživanje
+manage.search_all	Search all	Traži sve
+manage.search_auto	Automatic search	Automatska pretraga
+manage.search_interactive	Interactive search	Ručna pretraga
+manage.search_on_add	Start searching now	Odmah pokreni pretragu
+manage.search_season	Search season	Traži sezonu
+manage.search_type	Type	Vrsta
+manage.search_type.all	Everything	Sve
+manage.search_type.book	Books	Knjige
+manage.search_type.movie	Movies	Filmovi
+manage.search_type.music	Music	Glazba
+manage.search_type.tv	TV	TV
+manage.searching_indexers	Asking the indexers, this can take a minute…	Pitam indeksere, ovo može potrajati minutu…
+manage.searching_providers	Asking the subtitle providers…	Pitam pružatelje titlova…
+manage.season %lld	Season %lld	Sezona %lld
+manage.season_folder	Season folders	Mape sezona
+manage.seasons	Seasons	Sezone
+manage.seasons_list %@	Seasons %@	Sezone %@
+manage.secondary_types	Secondary album types	Sekundarne vrste albuma
+manage.secret_unchanged	Unchanged	Nepromijenjeno
+manage.section.backup	Backup	Sigurnosne kopije
+manage.section.general	General	Općenito
+manage.section.host	Host	Poslužitelj
+manage.section.integrations	Indexers, clients and connections	Indekseri, klijenti i veze
+manage.section.logging	Logging	Zapisivanje
+manage.section.media	Media	Mediji
+manage.section.profiles	Profiles	Profili
+manage.section.proxy	Proxy	Proxy
+manage.section.security	Security	Sigurnost
+manage.section.ssl	SSL	SSL
+manage.section.updates	Updates	Ažuriranja
+manage.select_all	Select all	Odaberi sve
+manage.select_none	Select none	Poništi odabir
+manage.send	Send	Pošalji
+manage.series	Series	Serije
+manage.series_type	Series type	Vrsta serije
+manage.services	Services	Servisi
+manage.services_radarr	Radarr servers	Radarr serveri
+manage.services_sonarr	Sonarr servers	Sonarr serveri
+manage.settings	Settings	Postavke
+manage.show_advanced	Show advanced settings	Prikaži napredne postavke
+manage.show_rejected	Show rejected releases	Prikaži odbijena izdanja
+manage.size_max	Maximum	Najviše
+manage.size_min	Minimum	Najmanje
+manage.size_on_disk	Size on disk	Veličina na disku
+manage.size_preferred	Preferred	Željeno
+manage.sort	Sort	Poredak
+manage.sort.added	Recently added	Nedavno dodano
+manage.sort.age	Newest	Najnovije
+manage.sort.score	Best match	Najbolje podudaranje
+manage.sort.seeders	Seeders	Seederi
+manage.sort.size	Size	Veličina
+manage.sort.title	Title	Naslov
+manage.sort.year	Year	Godina
+manage.specials	Specials	Specijali
+manage.started	Started	Pokrenuto
+manage.stat.failed	Failed	Neuspjelo
+manage.stat.grabs	Grabs	Preuzimanja
+manage.stat.queries	Queries	Upiti
+manage.stats	Statistics	Statistika
+manage.status	Status	Status
+manage.system	System	Sustav
+manage.tags	Tags	Oznake
+manage.tasks	Tasks	Zadaci
+manage.test	Test	Testiraj
+manage.test_all	Test all	Testiraj sve
+manage.test_failed	Test failed	Test nije prošao
+manage.test_ok	Test passed	Test je prošao
+manage.test_some_failed	Some tests failed	Neki testovi nisu prošli
+manage.tracks	Tracks	Pjesme
+manage.type	Type	Vrsta
+manage.ui	Interface	Sučelje
+manage.unreachable	Unreachable	Nedostupno
+manage.unreachable_explain	The server cannot reach this service right now. Check that it is running and that the address is right.	Server trenutno ne može dohvatiti ovaj servis. Provjeri radi li i je li adresa ispravna.
+manage.up_to_date	Up to date	Ažurno
+manage.update_available	Update available	Dostupno ažuriranje
+manage.updates	Updates	Ažuriranja
+manage.upgrade_until	Upgrade until	Nadograđuj do
+manage.upgrades_allowed	Upgrades allowed	Dopuštene nadogradnje
+manage.users	Users	Korisnici
+manage.version	Version	Verzija
+manage.wanted	Wanted	Traženo

@@ -9,6 +9,8 @@ p.add_argument("source")
 p.add_argument("--version", required=True)
 p.add_argument("--url", required=True)
 p.add_argument("--size", type=int, required=True)
+p.add_argument("--bundle-id", default="net.scyde.streamero",
+               help="which app of the source gets the release (Streamero or Streamero Manage)")
 a = p.parse_args()
 
 
@@ -21,7 +23,9 @@ def build_number(version):
 
 with open(a.source, encoding="utf-8") as f:
     src = json.load(f)
-app = src["apps"][0]
+app = next((x for x in src["apps"] if x["bundleIdentifier"] == a.bundle_id), None)
+if app is None:
+    raise SystemExit(f"no app with bundleIdentifier {a.bundle_id} in {a.source}")
 app["versions"] = [v for v in app["versions"] if v["version"] != a.version]
 app["versions"].insert(0, {
     "version": a.version,
@@ -29,7 +33,7 @@ app["versions"].insert(0, {
     "date": datetime.date.today().isoformat(),
     "downloadURL": a.url,
     "size": a.size,
-    "localizedDescription": f"Streamero {a.version}",
+    "localizedDescription": f"{app['name']} {a.version}",
     "minOSVersion": "17.0",
 })
 with open(a.source, "w", encoding="utf-8") as f:

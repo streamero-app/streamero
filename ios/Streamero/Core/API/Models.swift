@@ -559,6 +559,11 @@ struct RequestSettings: Codable, Sendable, Equatable {
     var sonarrConfigured: Bool
     var bazarrUrl: String?
     var bazarrConfigured: Bool?
+    /// Lidarr and Prowlarr connections (shown in Streamero Manage, D-048).
+    var lidarrUrl: String?
+    var lidarrConfigured: Bool?
+    var prowlarrUrl: String?
+    var prowlarrConfigured: Bool?
 }
 
 struct RequestSettingsInput: Codable, Sendable, Equatable {
@@ -571,6 +576,11 @@ struct RequestSettingsInput: Codable, Sendable, Equatable {
     var sonarrApiKey: String?
     var bazarrUrl: String?
     var bazarrApiKey: String?
+    /// Left nil (not sent) by the standard app, which does not show these connections.
+    var lidarrUrl: String? = nil
+    var lidarrApiKey: String? = nil
+    var prowlarrUrl: String? = nil
+    var prowlarrApiKey: String? = nil
 }
 
 struct ConnectionCheck: Codable, Sendable, Equatable {
