@@ -13,6 +13,7 @@ import (
 
 	"github.com/streamero-app/streamero/server/internal/activity"
 	"github.com/streamero-app/streamero/server/internal/api/gen"
+	"github.com/streamero-app/streamero/server/internal/arr"
 	"github.com/streamero-app/streamero/server/internal/auth"
 	"github.com/streamero-app/streamero/server/internal/dlna"
 	"github.com/streamero-app/streamero/server/internal/downloads"
@@ -53,6 +54,8 @@ type Handler struct {
 	Logs *logbuf.Buffer
 	// Requests talks to Seerr, Radarr and Sonarr (nil = default HTTP client).
 	Requests *requests.Client
+	// Arr is the Streamero Manage proxy to the *arr services (nil = a shared default).
+	Arr *arr.Proxy
 	// NewTMDb builds a TMDb client (tests use a fake server).
 	NewTMDb func(key string) *metadata.TMDb
 	// NowPlaying tracks active playback for the dashboard (nil disables it).

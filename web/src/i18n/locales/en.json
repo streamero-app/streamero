@@ -747,7 +747,7 @@
   "playbackPrefs": {
     "title": "Playback",
     "intro": "Applies to this profile on every device.",
-    "any": "File default",
+    "any": "Automatic",
     "audio": "Audio language",
     "subtitles": "Subtitle language",
     "mode": "Subtitles",
@@ -763,8 +763,8 @@
     "mode_none_hint": "No subtitles unless you turn them on.",
     "autoplay": "Play the next episode automatically",
     "languagesTitle": "Language",
-    "audioHint": "Picked when a file has several audio tracks.",
-    "subtitlesHint": "Used together with the subtitle mode below.",
+    "audioHint": "Picked when a file has several audio tracks. Automatic plays English audio.",
+    "subtitlesHint": "Automatic shows English subtitles, or Croatian ones (English if there are none) when your language is Croatian.",
     "controlsTitle": "Controls",
     "skipBack": "Skip back",
     "skipForward": "Skip forward",
@@ -986,7 +986,9 @@
     "test": "Test connections",
     "nothingToTest": "Nothing is set up yet.",
     "connected": "connected, version {{version}}",
-    "bazarrIntro": "Optional. Finds and downloads subtitles from the title page. Bazarr looks titles up through Radarr and Sonarr, so connect those too."
+    "bazarrIntro": "Optional. Finds and downloads subtitles from the title page. Bazarr looks titles up through Radarr and Sonarr, so connect those too.",
+    "manageIntro": "Optional. Used only by the Streamero Manage apps, which control your music library and indexers through this server.",
+    "manageNote": "Streamero Manage (the admin app for Android and iOS) controls every service on this page through this server: the keys stay here, and the services do not have to be reachable from the internet. Docker hostnames such as http://radarr:7878 are fine."
   },
   "enhancements": {
     "title": "Enhancements",

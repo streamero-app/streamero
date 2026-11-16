@@ -747,7 +747,7 @@
   "playbackPrefs": {
     "title": "Reprodukcija",
     "intro": "Vrijedi za ovaj profil na svim uređajima.",
-    "any": "Kako je u datoteci",
+    "any": "Automatski",
     "audio": "Jezik zvuka",
     "subtitles": "Jezik podnaslova",
     "mode": "Podnaslovi",
@@ -763,8 +763,8 @@
     "mode_none_hint": "Bez podnaslova dok ih sam ne uključiš.",
     "autoplay": "Automatski pusti sljedeću epizodu",
     "languagesTitle": "Jezik",
-    "audioHint": "Bira se kad datoteka ima više zvučnih zapisa.",
-    "subtitlesHint": "Koristi se zajedno s načinom titlova ispod.",
+    "audioHint": "Bira se kad datoteka ima više zvučnih zapisa. Automatski pušta engleski zvuk.",
+    "subtitlesHint": "Automatski prikazuje engleske titlove, a hrvatske (ili engleske ako ih nema) kad ti je jezik hrvatski.",
     "controlsTitle": "Kontrole",
     "skipBack": "Skok natrag",
     "skipForward": "Skok naprijed",
@@ -986,7 +986,9 @@
     "test": "Provjeri veze",
     "nothingToTest": "Još ništa nije postavljeno.",
     "connected": "povezano, verzija {{version}}",
-    "bazarrIntro": "Nije obavezno. Traži i preuzima titlove sa stranice naslova. Bazarr naslove pronalazi preko Radarra i Sonarra, pa poveži i njih."
+    "bazarrIntro": "Nije obavezno. Traži i preuzima titlove sa stranice naslova. Bazarr naslove pronalazi preko Radarra i Sonarra, pa poveži i njih.",
+    "manageIntro": "Nije obavezno. Koriste ih samo aplikacije Streamero Manage, koje preko ovog servera upravljaju glazbenom bibliotekom i indekserima.",
+    "manageNote": "Streamero Manage (administratorska aplikacija za Android i iOS) upravlja svim servisima s ove stranice preko ovog servera: ključevi ostaju ovdje, a servisi ne moraju biti dostupni s interneta. Docker imena poput http://radarr:7878 su u redu."
   },
   "enhancements": {
     "title": "Proširenja",

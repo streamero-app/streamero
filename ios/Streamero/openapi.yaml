@@ -16,6 +16,7 @@ tags:
   - name: sessions
   - name: settings
   - name: apikeys
+  - name: arr
   - name: quickconnect
   - name: invites
   - name: profiles
@@ -295,7 +296,7 @@ paths:
             default: web
         - name: redirectUri
           in: query
-          description: App only; must be exactly `streamero://oidc`.
+          description: App only; exactly `streamero://oidc` (Streamero apps) or `streamero-manage://oidc` (Streamero Manage apps).
           schema:
             type: string
             maxLength: 200
@@ -3201,7 +3202,7 @@ paths:
   /settings/requests:
     get:
       operationId: getRequestSettings
-      summary: Seerr / Radarr / Sonarr connections (admin; keys are never returned)
+      summary: Seerr and *arr connections (admin; keys are never returned)
       tags: [settings]
       security:
         - sessionToken: []
@@ -3251,6 +3252,41 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/ConnectionCheck"
+        default:
+          $ref: "#/components/responses/Error"
+  /arr/services:
+    get:
+      operationId: listArrServices
+      summary: The *arr services and Seerr the Streamero Manage apps can control (admin)
+      description: |
+        Always all six services, in this order: radarr, sonarr, lidarr, prowlarr, bazarr, seerr.
+        `reachable` and `version` come from each service's status endpoint (checked in parallel,
+        4 s timeout, cached for 30 s).
+
+        The services themselves are reached through the proxy
+        `/api/v1/arr/{service}/proxy/{apiBase}/...` (GET, POST, PUT, DELETE; PATCH for seerr and bazarr).
+        It is served outside this specification, like /stream (D-015, D-049): same session
+        auth, administrators only (not kids profiles); the server adds the stored API key
+        (`X-Api-Key`, `X-API-KEY` for bazarr) and never returns it. Paths must stay under
+        `api/` (plus `MediaCover/` for radarr, sonarr and lidarr, `backup/` downloads (GET only) for radarr, sonarr,
+        lidarr and prowlarr, and `imageproxy/` for seerr);
+        dot segments, `//`, backslashes, control characters and encoded `/`, `\`, `.`, `%` are
+        refused. Errors use the usual body with codes `unauthenticated` (401), `forbidden` (403),
+        `invalid_path` (400), `method_not_allowed` (405), `arr_not_configured` (409),
+        `request_too_large` (413, bodies over 16 MiB), `rate_limited` (429) and
+        `arr_unreachable` (502). Actions through the proxy act as the API key's owner
+        (for Seerr: its administrator). Request bodies (JSON, form-encoded, multipart) are passed
+        through unchanged with their Content-Type.
+      tags: [arr]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Services
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArrServiceList"
         default:
           $ref: "#/components/responses/Error"
   /discover:
@@ -7179,6 +7215,16 @@ components:
           type: string
         bazarrConfigured:
           type: boolean
+        lidarrUrl:
+          type: string
+        lidarrConfigured:
+          type: boolean
+          description: Lidarr is used only through the Streamero Manage proxy (/arr).
+        prowlarrUrl:
+          type: string
+        prowlarrConfigured:
+          type: boolean
+          description: Prowlarr is used only through the Streamero Manage proxy (/arr).
     RequestSettingsInput:
       type: object
       required: [usersCanRequest]
@@ -7209,11 +7255,52 @@ components:
         bazarrApiKey:
           type: string
           maxLength: 200
+        lidarrUrl:
+          type: string
+          maxLength: 300
+        lidarrApiKey:
+          type: string
+          maxLength: 200
+        prowlarrUrl:
+          type: string
+          maxLength: 300
+        prowlarrApiKey:
+          type: string
+          maxLength: 200
         removeKeys:
           type: array
           items:
             type: string
-            enum: [seerr, radarr, sonarr, bazarr]
+            enum: [seerr, radarr, sonarr, bazarr, lidarr, prowlarr]
+    ArrServiceList:
+      type: object
+      required: [services]
+      properties:
+        services:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArrService"
+    ArrService:
+      type: object
+      required: [id, configured, reachable, apiBase]
+      properties:
+        id:
+          type: string
+          enum: [radarr, sonarr, lidarr, prowlarr, bazarr, seerr]
+        configured:
+          type: boolean
+          description: An address and an API key are stored.
+        reachable:
+          type: boolean
+          description: The status endpoint answered with the stored key.
+        version:
+          type: string
+        error:
+          type: string
+          description: Why the service is not reachable.
+        apiBase:
+          type: string
+          description: Path prefix of the service's API under the proxy (api/v3, api/v1 or api).
     ConnectionCheck:
       type: object
       required: [app, ok]

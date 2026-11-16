@@ -32,6 +32,11 @@ type Settings struct {
 	SonarrKey       string `json:"sonarrKey,omitempty"`
 	BazarrURL       string `json:"bazarrUrl,omitempty"`
 	BazarrKey       string `json:"bazarrKey,omitempty"`
+	// Lidarr and Prowlarr are only used through the Streamero Manage proxy (D-049).
+	LidarrURL   string `json:"lidarrUrl,omitempty"`
+	LidarrKey   string `json:"lidarrKey,omitempty"`
+	ProwlarrURL string `json:"prowlarrUrl,omitempty"`
+	ProwlarrKey string `json:"prowlarrKey,omitempty"`
 }
 
 // SeerrReady reports whether search and requests can work.
@@ -266,11 +271,15 @@ func (c *Client) Request(ctx context.Context, s Settings, mediaType string, tmdb
 	return StatusPending, nil
 }
 
-// Ping checks a connection: Seerr /api/v1/status, Radarr/Sonarr /api/v3/system/status.
+// Ping checks a connection: Seerr /api/v1/status, Radarr/Sonarr /api/v3/system/status,
+// Lidarr/Prowlarr /api/v1/system/status.
 func (c *Client) Ping(ctx context.Context, app, base, key string) (string, error) {
 	path := "/api/v3/system/status"
-	if app == "Seerr" {
+	switch app {
+	case "Seerr":
 		path = "/api/v1/status"
+	case "Lidarr", "Prowlarr":
+		path = "/api/v1/system/status"
 	}
 	var out struct {
 		Version string `json:"version"`

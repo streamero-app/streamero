@@ -294,7 +294,7 @@ func (s *Service) Create(ctx context.Context, p auth.Principal, r Request) ([]Jo
 	if err != nil {
 		return nil, err
 	}
-	prefs, _ := s.Library.GetPrefs(ctx, owner)
+	prefs, _ := s.Library.PlaybackPrefs(ctx, owner)
 	out := []Job{}
 	for _, id := range ids {
 		if id != r.ItemID {

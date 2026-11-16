@@ -103,6 +103,7 @@ const (
 	JoinSyncGroupOperation              OperationName = "JoinSyncGroup"
 	LeaveSyncGroupOperation             OperationName = "LeaveSyncGroup"
 	ListAPIKeysOperation                OperationName = "ListAPIKeys"
+	ListArrServicesOperation            OperationName = "ListArrServices"
 	ListBackupsOperation                OperationName = "ListBackups"
 	ListCollectionsOperation            OperationName = "ListCollections"
 	ListDownloadsOperation              OperationName = "ListDownloads"

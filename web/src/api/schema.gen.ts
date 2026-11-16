@@ -2185,7 +2185,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Seerr / Radarr / Sonarr connections (admin; keys are never returned) */
+        /** Seerr and *arr connections (admin; keys are never returned) */
         get: operations["getRequestSettings"];
         /** Change the connections (admin); an empty key keeps the stored one */
         put: operations["updateRequestSettings"];
@@ -2207,6 +2207,43 @@ export interface paths {
         put?: never;
         /** Check each configured connection (admin) */
         post: operations["testRequestSettings"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/arr/services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The *arr services and Seerr the Streamero Manage apps can control (admin)
+         * @description Always all six services, in this order: radarr, sonarr, lidarr, prowlarr, bazarr, seerr.
+         *     `reachable` and `version` come from each service's status endpoint (checked in parallel,
+         *     4 s timeout, cached for 30 s).
+         *
+         *     The services themselves are reached through the proxy
+         *     `/api/v1/arr/{service}/proxy/{apiBase}/...` (GET, POST, PUT, DELETE; PATCH for seerr and bazarr).
+         *     It is served outside this specification, like /stream (D-015, D-049): same session
+         *     auth, administrators only (not kids profiles); the server adds the stored API key
+         *     (`X-Api-Key`, `X-API-KEY` for bazarr) and never returns it. Paths must stay under
+         *     `api/` (plus `MediaCover/` for radarr, sonarr and lidarr, `backup/` downloads (GET only) for radarr, sonarr,
+         *     lidarr and prowlarr, and `imageproxy/` for seerr);
+         *     dot segments, `//`, backslashes, control characters and encoded `/`, `\`, `.`, `%` are
+         *     refused. Errors use the usual body with codes `unauthenticated` (401), `forbidden` (403),
+         *     `invalid_path` (400), `method_not_allowed` (405), `arr_not_configured` (409),
+         *     `request_too_large` (413, bodies over 16 MiB), `rate_limited` (429) and
+         *     `arr_unreachable` (502). Actions through the proxy act as the API key's owner
+         *     (for Seerr: its administrator). Request bodies (JSON, form-encoded, multipart) are passed
+         *     through unchanged with their Content-Type.
+         */
+        get: operations["listArrServices"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4379,6 +4416,12 @@ export interface components {
             sonarrConfigured: boolean;
             bazarrUrl?: string;
             bazarrConfigured?: boolean;
+            lidarrUrl?: string;
+            /** @description Lidarr is used only through the Streamero Manage proxy (/arr). */
+            lidarrConfigured?: boolean;
+            prowlarrUrl?: string;
+            /** @description Prowlarr is used only through the Streamero Manage proxy (/arr). */
+            prowlarrConfigured?: boolean;
         };
         RequestSettingsInput: {
             seerrUrl?: string;
@@ -4390,7 +4433,27 @@ export interface components {
             sonarrApiKey?: string;
             bazarrUrl?: string;
             bazarrApiKey?: string;
-            removeKeys?: ("seerr" | "radarr" | "sonarr" | "bazarr")[];
+            lidarrUrl?: string;
+            lidarrApiKey?: string;
+            prowlarrUrl?: string;
+            prowlarrApiKey?: string;
+            removeKeys?: ("seerr" | "radarr" | "sonarr" | "bazarr" | "lidarr" | "prowlarr")[];
+        };
+        ArrServiceList: {
+            services: components["schemas"]["ArrService"][];
+        };
+        ArrService: {
+            /** @enum {string} */
+            id: "radarr" | "sonarr" | "lidarr" | "prowlarr" | "bazarr" | "seerr";
+            /** @description An address and an API key are stored. */
+            configured: boolean;
+            /** @description The status endpoint answered with the stored key. */
+            reachable: boolean;
+            version?: string;
+            /** @description Why the service is not reachable. */
+            error?: string;
+            /** @description Path prefix of the service's API under the proxy (api/v3, api/v1 or api). */
+            apiBase: string;
         };
         ConnectionCheck: {
             app: string;
@@ -5292,7 +5355,7 @@ export interface operations {
         parameters: {
             query?: {
                 client?: "web" | "app";
-                /** @description App only; must be exactly `streamero://oidc`. */
+                /** @description App only; exactly `streamero://oidc` (Streamero apps) or `streamero-manage://oidc` (Streamero Manage apps). */
                 redirectUri?: string;
                 /** @description App only; BASE64URL(SHA-256(verifier)), 43 characters. */
                 codeChallenge?: string;
@@ -8549,6 +8612,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ConnectionCheck"][];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listArrServices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Services */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArrServiceList"];
                 };
             };
             default: components["responses"]["Error"];
