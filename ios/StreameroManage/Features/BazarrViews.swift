@@ -412,6 +412,11 @@ struct BazarrSettingsView: View {
     var body: some View {
         List {
             if let error { ArrErrorState(error: error) { await load() } }
+            Section {
+                NavigationLink {
+                    BazarrLanguagesView(client: client)
+                } label: { MenuRow(title: "manage.languages", icon: "character.bubble") }
+            }
             ForEach(sections ?? [], id: \.self) { section in
                 NavigationLink {
                     BazarrSectionEditor(client: client, section: section)
