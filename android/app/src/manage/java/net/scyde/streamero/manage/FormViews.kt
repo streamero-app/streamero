@@ -5,8 +5,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -145,7 +151,9 @@ fun FormErrors(error: Throwable?, fields: Collection<String>) {
 /**
  * A generic editor for a plain JSON settings object (the *arr `config` resources, Bazarr's
  * settings, Seerr's settings): booleans as switches, numbers and text as inputs, secrets
- * write-only, lists of values as comma-separated text and nested objects as sections.
+ * write-only, lists of values as removable chips with an input to add one, nested objects as
+ * sections and lists of objects as sections whose items can be added (shaped like their
+ * siblings), duplicated, moved up/down and removed (asked first) through [JsonTree].
  * [choices] turns known keys into dropdowns; [hide] leaves keys out (ids).
  */
 @Composable
@@ -157,41 +165,66 @@ fun JsonForm(
     choices: Map<String, List<Pair<JsonElement, String>>> = emptyMap(),
     labels: Map<String, String> = emptyMap(),
 ) {
+    var removing by remember { mutableStateOf<Pair<List<Any>, Int>?>(null) }
+    var removingTitle by remember { mutableStateOf("") }
+    val ctx = JsonCtx(value, { onChange(it as JsonObject) }, error as? ArrException, hide, choices, labels) { path, i, title -> removing = path to i; removingTitle = title }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        JsonNodes(value, emptyList(), value, { onChange(it as JsonObject) }, error as? ArrException, hide, choices, labels, 0)
+        JsonNodes(ctx, value, emptyList(), 0)
+    }
+    removing?.let { (path, i) ->
+        ConfirmDialog(stringResource(R.string.m_remove_item_confirm, removingTitle), stringResource(R.string.m_remove), { removing = null }) {
+            onChange(JsonTree.remove(value, path, i) as JsonObject)
+        }
     }
 }
 
+private class JsonCtx(
+    val root: JsonElement,
+    val onRoot: (JsonElement) -> Unit,
+    val err: ArrException?,
+    val hide: Set<String>,
+    val choices: Map<String, List<Pair<JsonElement, String>>>,
+    val labels: Map<String, String>,
+    val askRemove: (path: List<Any>, index: Int, title: String) -> Unit,
+)
+
 @Composable
-private fun JsonNodes(
-    obj: JsonObject, path: List<Any>, root: JsonElement, onRoot: (JsonElement) -> Unit,
-    err: ArrException?, hide: Set<String>, choices: Map<String, List<Pair<JsonElement, String>>>, labels: Map<String, String>, depth: Int,
-) {
+private fun JsonNodes(ctx: JsonCtx, obj: JsonObject, path: List<Any>, depth: Int) {
     // Simple values first, then lists and sections, so a page reads top-down.
-    val keys = obj.keys.filter { it !in hide }.sortedBy { k -> when (obj[k]) { is JsonObject -> 2; is JsonArray -> 1; else -> 0 } }
+    val keys = obj.keys.filter { it !in ctx.hide }.sortedBy { k -> when (obj[k]) { is JsonObject -> 2; is JsonArray -> 1; else -> 0 } }
     keys.forEach { k ->
         val el = obj[k] ?: JsonNull
         val p = path + k
-        val label = labels[k] ?: humanize(k)
-        val fieldErr = err?.messageFor(k)
-        fun set(v: JsonElement) = onRoot(root.setAt(p, v))
-        val ch = choices[k]
+        val label = ctx.labels[k] ?: humanize(k)
+        val fieldErr = ctx.err?.messageFor(k)
+        fun set(v: JsonElement) = ctx.onRoot(ctx.root.setAt(p, v))
+        val ch = ctx.choices[k]
         when {
             ch != null && el is JsonPrimitive && ch.any { same(it.first, el) } -> FieldRow(label, fieldErr) {
                 val idx = ch.indexOfFirst { same(it.first, el) }
                 Picker(idx, ch.mapIndexed { i, c -> i to c.second }, { i -> set(ch[i].first) })
             }
-            el is JsonObject -> if (depth >= 4) Unit else Section(label) { JsonNodes(el, p, root, onRoot, err, hide, choices, labels, depth + 1) }
-            el is JsonArray && el.all { it is JsonObject } && el.isNotEmpty() -> Section("$label (${el.size})") {
+            el is JsonObject -> if (depth >= 4) Unit else Section(label) { JsonNodes(ctx, el, p, depth + 1) }
+            el is JsonArray && JsonTree.isObjectArray(el) -> if (depth >= 4) Unit else Section("$label (${el.size})") {
                 el.forEachIndexed { i, item ->
                     val o = item as JsonObject
                     val title = o.s("name") ?: o.s("label") ?: o.s("title") ?: "#${i + 1}"
-                    Section(title) { JsonNodes(o, p + i, root, onRoot, err, hide, choices, labels, depth + 2) }
+                    Section(title) {
+                        ItemTools(i, el.size,
+                            onUp = { ctx.onRoot(JsonTree.move(ctx.root, p, i, i - 1)) },
+                            onDown = { ctx.onRoot(JsonTree.move(ctx.root, p, i, i + 1)) },
+                            onDuplicate = { ctx.onRoot(JsonTree.duplicate(ctx.root, p, i)) },
+                            onRemove = { ctx.askRemove(p, i, title) })
+                        JsonNodes(ctx, o, p + i, depth + 2)
+                    }
+                }
+                TextButton(onClick = { ctx.onRoot(JsonTree.add(ctx.root, p)) }) {
+                    Icon(Icons.Outlined.Add, null, Modifier.size(18.dp), tint = Kino.text)
+                    Spacer(Modifier.width(6.dp))
+                    Text(stringResource(R.string.m_add_item), color = Kino.text)
                 }
             }
-            el is JsonArray -> FormText(label, el.joinToString(", ") { (it as? JsonPrimitive)?.contentOrNull ?: it.toString() }, { t ->
-                set(JsonArray(t.split(',').map { it.trim() }.filter { it.isNotEmpty() }.map { JsonPrimitive(it) }))
-            }, error = fieldErr, placeholder = stringResource(R.string.m_comma_separated))
+            el is JsonArray -> ValueList(label, el, fieldErr, onChange = { set(it) })
             el is JsonPrimitive && el !is JsonNull && el.booleanOrNull != null && !el.isString ->
                 Toggle(label, fieldErr, el.booleanOrNull == true) { set(JsonPrimitive(it)) }
             else -> {
@@ -201,6 +234,49 @@ private fun JsonNodes(
                 FormText(label, if (secret) typed else text, { t -> typed = t; set(JsonPrimitive(t)) }, error = fieldErr, secret = secret,
                     number = el is JsonPrimitive && !el.isString && el !is JsonNull)
             }
+        }
+    }
+}
+
+/** Move up/down, duplicate and remove for one item of a list of objects. */
+@Composable
+private fun ItemTools(index: Int, size: Int, onUp: () -> Unit, onDown: () -> Unit, onDuplicate: () -> Unit, onRemove: () -> Unit) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+        IconButton(onClick = onUp, enabled = index > 0) { Icon(Icons.Outlined.KeyboardArrowUp, stringResource(R.string.m_move_up), tint = if (index > 0) Kino.muted else Kino.faint) }
+        IconButton(onClick = onDown, enabled = index < size - 1) { Icon(Icons.Outlined.KeyboardArrowDown, stringResource(R.string.m_move_down), tint = if (index < size - 1) Kino.muted else Kino.faint) }
+        IconButton(onClick = onDuplicate) { Icon(Icons.Outlined.ContentCopy, stringResource(R.string.m_duplicate), tint = Kino.muted) }
+        IconButton(onClick = onRemove) { Icon(Icons.Outlined.DeleteOutline, stringResource(R.string.m_remove), tint = Kino.danger) }
+    }
+}
+
+/** A list of plain values (tags, strings, numbers): removable chips and an input to add one. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+private fun ValueList(label: String, values: JsonArray, error: String?, onChange: (JsonArray) -> Unit) {
+    var draft by remember(label) { mutableStateOf("") }
+    val numeric = values.any { it is JsonPrimitive && !it.isString && it !is JsonNull }
+    fun commit() {
+        val parts = draft.split(',').map { it.trim() }.filter { it.isNotEmpty() }
+        if (parts.isEmpty()) return
+        onChange(JsonArray(values + parts.map { JsonTree.primitiveFor(values, it) }))
+        draft = ""
+    }
+    FieldRow(label, error) {
+        if (values.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            values.forEachIndexed { i, v ->
+                InputChip(selected = false, onClick = { onChange(JsonArray(values.filterIndexed { j, _ -> j != i })) },
+                    label = { Text(JsonTree.label(v), color = Kino.text) },
+                    trailingIcon = { Icon(Icons.Outlined.Close, stringResource(R.string.m_remove), Modifier.size(16.dp), tint = Kino.muted) },
+                    colors = InputChipDefaults.inputChipColors(containerColor = Kino.surface2),
+                    border = InputChipDefaults.inputChipBorder(enabled = true, selected = false, borderColor = Kino.border))
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(draft, { draft = it }, modifier = Modifier.weight(1f), singleLine = true, shape = CardShape,
+                placeholder = { Text(stringResource(R.string.m_add_value), color = Kino.faint) },
+                keyboardOptions = KeyboardOptions(keyboardType = if (numeric) KeyboardType.Number else KeyboardType.Text, imeAction = androidx.compose.ui.text.input.ImeAction.Done),
+                keyboardActions = androidx.compose.foundation.text.KeyboardActions(onDone = { commit() }))
+            IconButton(onClick = { commit() }, enabled = draft.isNotBlank()) { Icon(Icons.Outlined.Add, stringResource(R.string.add), tint = Kino.text) }
         }
     }
 }
