@@ -173,6 +173,59 @@ test("playback: player opens the real file; forced transcode serves HLS", async 
   await page.goto("/");
 });
 
+test("player: switching subtitles and audio mid-film keeps playing", async ({ page }) => {
+  test.setTimeout(180_000);
+  await signIn(page, admin);
+  await page.goto("/");
+  await page.getByTestId("library-card").filter({ hasText: "Fixture Movies" }).click();
+  await page.getByTestId("item-card").filter({ hasText: "Bitmap Subtitle Film" }).click();
+  await page.getByTestId("play").click();
+  const method = page.getByTestId("play-method");
+  await expect(method).toHaveText(/Direct play|Direct stream|Transcoding/, { timeout: 45_000 });
+  const video = page.getByTestId("video");
+  const errorPanel = page.getByTestId("playback-error");
+  /** The picture moves on (each restart starts the stream's clock again) and no error is shown. */
+  const keepsPlaying = async () => {
+    await expect.poll(async () => {
+      if (await page.getByTestId("tap-to-play").isVisible()) await page.getByTestId("tap-to-play").click();
+      const before = await video.evaluate((v: HTMLVideoElement) => v.currentTime);
+      await page.waitForTimeout(800);
+      return (await video.evaluate((v: HTMLVideoElement) => v.currentTime)) > before;
+    }, { timeout: 45_000 }).toBe(true);
+    await expect(errorPanel).toHaveCount(0);
+  };
+  await keepsPlaying();
+
+  await page.mouse.move(400, 300);
+  await page.getByRole("button", { name: "Audio and subtitles" }).click();
+  const subtitles = page.getByLabel("Subtitles", { exact: true });
+  // A text track switches in the player.
+  await subtitles.selectOption("t:0");
+  await keepsPlaying();
+  await subtitles.selectOption("off");
+  await keepsPlaying();
+  // A bitmap track restarts the stream with the track burned in…
+  const bitmap = (await subtitles.locator("option[value^='b:']").first().getAttribute("value"))!;
+  await subtitles.selectOption(bitmap);
+  await expect(method).toHaveText("Transcoding", { timeout: 45_000 });
+  await keepsPlaying();
+  await expect(subtitles).toHaveValue(bitmap);
+  // …and leaving it restarts again with a clean picture.
+  await subtitles.selectOption("t:0");
+  await expect(method).not.toHaveText("Transcoding", { timeout: 45_000 });
+  await keepsPlaying();
+  // An audio switch restarts the stream at the same place.
+  const audio = page.getByLabel("Audio", { exact: true });
+  await audio.selectOption("1");
+  await keepsPlaying();
+  await expect(audio).toHaveValue("1");
+  await audio.selectOption("0");
+  await keepsPlaying();
+  await page.waitForTimeout(3000);
+  await expect(errorPanel).toHaveCount(0);
+  await expect(page.getByText("This browser couldn't play the file directly")).toHaveCount(0);
+});
+
 test("books, comics, audiobooks and photos: scan, read, listen and view", async ({ page }) => {
   test.setTimeout(240_000);
   // The readers run under the web client's Content-Security-Policy: nothing may be blocked.

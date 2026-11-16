@@ -14,7 +14,7 @@ import type { components } from "@/api/schema.gen";
 import { Button, ErrorText, Spinner } from "@/components/ui";
 import { imageUrl } from "@/features/library/format";
 import { detectDeviceProfile, SAFE_PROFILE } from "./deviceProfile";
-import { isFullscreen, keyBelongsToControl, requestSequence, subtitleSrc, toggleFullscreen as toggleFs, tryPlay } from "./playback";
+import { isFullscreen, keyBelongsToControl, nativeHls, requestSequence, subtitleSrc, toggleFullscreen as toggleFs, tryPlay } from "./playback";
 import { useGroupPlayback } from "@/features/syncplay/useGroupPlayback";
 import { TogetherError, TogetherPanel, WaitingBanner } from "@/features/syncplay/WatchTogether";
 
@@ -143,6 +143,10 @@ export function PlayerPage() {
   const seq = useRef(requestSequence());
   // Whether the stream being prepared should start playing (a viewer who paused stays paused).
   const resumeRef = useRef(true);
+  // Lets go of the stream in the player: it stops loading and its errors no longer count.
+  // Called as soon as another stream is asked for, because the server ends a device's
+  // previous stream when its next one starts (the old playlist and segments then 404).
+  const supersedeRef = useRef<() => void>(() => undefined);
   const [blocked, setBlocked] = useState(false); // the browser refused to play without a tap
   const [failed, setFailed] = useState(false); // the safe stream failed too
   const lastPos = useRef(0);
@@ -213,6 +217,7 @@ export function PlayerPage() {
   const restart = (v: { audioIndex?: number; startMs?: number; subtitleIndex?: number }) => {
     const video = videoRef.current;
     resumeRef.current = !!video && !video.paused;
+    supersedeRef.current();
     start.mutate(v);
   };
   // Messages and stop requests from an administrator (Settings → Dashboard).
@@ -329,6 +334,15 @@ export function PlayerPage() {
     let cancelled = false;
     hlsRef.current?.destroy();
     hlsRef.current = null;
+    // A newer stream was asked for (restart, fallback, retry): this one stops loading,
+    // and nothing it does any more (errors from its stopped session) reaches the viewer.
+    const supersede = () => {
+      if (cancelled) return;
+      cancelled = true;
+      video.removeEventListener("error", fallback);
+      hlsRef.current?.stopLoad();
+    };
+    supersedeRef.current = supersede;
     // The browser could not decode what it said it could (e.g. 10-bit HEVC or surround audio):
     // restart once at the same position as a stream every browser plays.
     const fallback = () => {
@@ -341,6 +355,7 @@ export function PlayerPage() {
       safeMode.current = true;
       setNotice(t("player.fallback"));
       resumeRef.current = resume || !video.paused;
+      supersede(); // one failure, one fallback: this stream's later errors are the same failure
       start.mutate({ audioIndex, startMs: lastPos.current, subtitleIndex: info.burnedSubtitle ?? -1 });
     };
     // Start only once there is something to play, and only if the viewer was not paused.
@@ -367,7 +382,7 @@ export function PlayerPage() {
       video.addEventListener("loadedmetadata", seek, { once: true });
     } else {
       offsetRef.current = info.startMs;
-      if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      if (nativeHls(video)) {
         video.src = info.url; // Safari / iOS play HLS natively (no MANIFEST_PARSED: wait for canplay)
       } else {
         native = false;
@@ -379,7 +394,7 @@ export function PlayerPage() {
           // play() before the stream is attached is rejected, which left the player paused.
           hls.on(HlsCtor.Events.MANIFEST_PARSED, begin);
           hls.on(HlsCtor.Events.ERROR, (_event, data) => {
-            if (!data.fatal) return;
+            if (!data.fatal || cancelled) return;
             if (data.type === HlsCtor.ErrorTypes.NETWORK_ERROR && !retried) {
               retried = true;
               hls.startLoad();
@@ -401,6 +416,7 @@ export function PlayerPage() {
     resumeRef.current = true;
     return () => {
       cancelled = true;
+      if (supersedeRef.current === supersede) supersedeRef.current = () => undefined;
       video.removeEventListener("error", fallback);
       video.removeEventListener("loadedmetadata", keepSpeed);
       video.removeEventListener("canplay", begin);
@@ -626,6 +642,7 @@ export function PlayerPage() {
   const retry = () => {
     setFailed(false);
     resumeRef.current = true;
+    supersedeRef.current();
     // Before the first stream arrived, retry the original request (resume point, ?start=).
     if (firstStart.current) start.mutate({ startMs: search.start, audioIndex: audioIndex ?? search.audio, subtitleIndex: search.sub });
     else start.mutate({ audioIndex, startMs: lastPos.current, subtitleIndex: burned });
