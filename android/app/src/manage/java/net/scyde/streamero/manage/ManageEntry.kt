@@ -19,7 +19,7 @@ import net.scyde.streamero.R
 import net.scyde.streamero.ui.Kino
 import net.scyde.streamero.ui.Tab
 
-/** Streamero Manage: the Manage tab (admins only) and its routes (D-047). */
+/** Streamero Manage: the Manage tab (admins only) and its routes (D-048). */
 internal object ManageEntry {
     const val ENABLED = true
 

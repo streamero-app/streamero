@@ -7,7 +7,7 @@ import net.scyde.streamero.ui.Tab
 
 /**
  * The standard Streamero app has no Manage section: these hooks do nothing. The
- * "Streamero Manage" flavor has the real ones in src/manage/ (D-047).
+ * "Streamero Manage" flavor has the real ones in src/manage/ (D-048).
  */
 internal object ManageEntry {
     const val ENABLED = false

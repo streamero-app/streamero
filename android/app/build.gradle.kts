@@ -30,7 +30,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    // The same code builds two apps (D-047): "standard" is the normal Streamero app; "manage"
+    // The same code builds two apps (D-048): "standard" is the normal Streamero app; "manage"
     // ("Streamero Manage") is everything in it plus control of the *arr stack for the owner.
     // Manage-only code lives in src/manage/, so the standard app does not ship it.
     flavorDimensions += "app"

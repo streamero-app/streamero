@@ -18,7 +18,7 @@ import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 
 /**
- * The media-management services the server proxies (D-047). Everything goes through the
+ * The media-management services the server proxies (D-048). Everything goes through the
  * Streamero server with the user's own session; the server adds the services' API keys.
  * [apiBase] is the default; the server's `/arr/services` answer wins when it names one.
  */
