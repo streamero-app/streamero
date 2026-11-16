@@ -10,6 +10,11 @@ struct ArrLibraryView: View {
     @State private var query = ""
     @State private var sort: Sort = .title
     @State private var filter: Filter = .all
+    @State private var selecting = false
+    @State private var selected: Set<Int> = []
+    @State private var bulkEditing = false
+    @State private var confirmBulkDelete = false
+    @State private var notice: ManageNotice?
 
     enum Sort: String, CaseIterable, Identifiable {
         case title, added, year, size
@@ -50,12 +55,32 @@ struct ArrLibraryView: View {
                     .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 16)
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 12)], spacing: 16) {
                     ForEach(shown, id: \.rowID) { item in
-                        NavigationLink {
-                            ArrItemDetailView(client: client, id: item["id"].int ?? 0)
-                        } label: {
-                            LibraryCell(client: client, item: item, service: client.service)
+                        let itemId = item["id"].int ?? 0
+                        if selecting {
+                            Button {
+                                if selected.contains(itemId) { selected.remove(itemId) } else { selected.insert(itemId) }
+                            } label: {
+                                LibraryCell(client: client, item: item, service: client.service)
+                                    .overlay(alignment: .topTrailing) {
+                                        Image(systemName: selected.contains(itemId) ? "checkmark.circle.fill" : "circle")
+                                            .font(.title3)
+                                            .foregroundStyle(selected.contains(itemId) ? Theme.accent : Theme.text.opacity(0.8))
+                                            .background(Circle().fill(Theme.background.opacity(0.55)))
+                                            .padding(6)
+                                    }
+                                    .scaleEffect(selected.contains(itemId) ? 0.96 : 1)
+                            }
+                            .buttonStyle(CardPressStyle())
+                            .sensoryFeedback(.selection, trigger: selected.contains(itemId))
+                            .accessibilityAddTraits(selected.contains(itemId) ? .isSelected : [])
+                        } else {
+                            NavigationLink {
+                                ArrItemDetailView(client: client, id: itemId)
+                            } label: {
+                                LibraryCell(client: client, item: item, service: client.service)
+                            }
+                            .buttonStyle(CardPressStyle())
                         }
-                        .buttonStyle(CardPressStyle())
                     }
                 }
                 .padding(.horizontal, 16).padding(.bottom, 24)
@@ -68,7 +93,37 @@ struct ArrLibraryView: View {
         .searchable(text: $query)
         .navigationTitle(Text("manage.library"))
         .navigationBarTitleDisplayMode(.inline)
+        .safeAreaInset(edge: .bottom) {
+            if selecting, let items {
+                let shownIds = visible(items).compactMap { $0["id"].int }
+                ArrSelectionBar(count: selected.count, allSelected: !shownIds.isEmpty && Set(shownIds).isSubset(of: selected),
+                                toggleAll: {
+                                    if Set(shownIds).isSubset(of: selected) { selected.subtract(shownIds) } else { selected.formUnion(shownIds) }
+                                },
+                                edit: { bulkEditing = true },
+                                delete: { confirmBulkDelete = true })
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .sheet(isPresented: $bulkEditing, onDismiss: { Task { await load() } }) {
+            NavigationStack { ArrBulkEditView(client: client, ids: Array(selected).sorted()) }
+        }
+        .confirmationDialog("manage.bulk_delete_confirm \(selected.count)", isPresented: $confirmBulkDelete, titleVisibility: .visible) {
+            Button("manage.delete_keep_files", role: .destructive) { Task { await bulkDelete(files: false) } }
+            Button("manage.delete_with_files", role: .destructive) { Task { await bulkDelete(files: true) } }
+        }
+        .manageNotice($notice)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    withAnimation(.snappy) {
+                        selecting.toggle()
+                        if !selecting { selected = [] }
+                    }
+                } label: {
+                    Text(selecting ? LocalizedStringKey("manage.done") : LocalizedStringKey("manage.select"))
+                }
+            }
             ToolbarItem(placement: .primaryAction) {
                 Menu {
                     Picker(selection: $sort) {
@@ -116,6 +171,20 @@ struct ArrLibraryView: View {
             out.sort { (ArrFlavor.sizeOnDisk($0).int64 ?? 0) > (ArrFlavor.sizeOnDisk($1).int64 ?? 0) }
         }
         return out
+    }
+
+    private func bulkDelete(files: Bool) async {
+        let ids = Array(selected).sorted()
+        do {
+            try await client.send("DELETE", "\(flavor.items)/editor",
+                                  json: ArrBulkEdit.deleteBody(service: client.service, ids: ids, deleteFiles: files, addExclusion: false))
+            withAnimation(.snappy) {
+                selected = []
+                selecting = false
+            }
+            notice = ManageNotice(text: "manage.removed")
+            await load()
+        } catch { self.error = error }
     }
 
     private func load() async {

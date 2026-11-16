@@ -316,13 +316,11 @@ struct FallbackValueEditor: View {
                 TextField(text: Binding(get: { value.text }, set: { value = .string($0) })) { Text(verbatim: title) }
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
             }
-        case .array(let items) where items.allSatisfy({ $0.string != nil }):
+        case .array(let items) where !items.isEmpty && items.allSatisfy({ $0.string != nil }):
             StringListRow(title: title, values: stringArrayBinding($value))
-        default:
-            VStack(alignment: .leading, spacing: 4) {
-                Text(verbatim: title).font(.caption).foregroundStyle(Theme.textMuted)
-                Text(verbatim: value.text).font(.caption.monospaced()).foregroundStyle(Theme.textFaint).lineLimit(4)
-            }
+        case .array, .object:
+            // Nested lists and objects open their own editor (add, remove, reorder elements).
+            JSONTreeRow(title: title, value: $value)
         }
     }
 }
