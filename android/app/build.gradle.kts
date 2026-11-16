@@ -30,6 +30,22 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // The same code builds two apps (D-047): "standard" is the normal Streamero app; "manage"
+    // ("Streamero Manage") is everything in it plus control of the *arr stack for the owner.
+    // Manage-only code lives in src/manage/, so the standard app does not ship it.
+    flavorDimensions += "app"
+    productFlavors {
+        create("standard") {
+            dimension = "app"
+            buildConfigField("boolean", "MANAGE", "false")
+        }
+        create("manage") {
+            dimension = "app"
+            applicationId = "net.scyde.streamero.manage"
+            buildConfigField("boolean", "MANAGE", "true")
+        }
+    }
+
     signingConfigs {
         // Releases are signed with the project key from CI secrets, so a new .apk installs
         // over the old one. Without it (local builds) the debug key is used. A keystore that is
@@ -61,7 +77,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
-    buildFeatures { compose = true }
+    buildFeatures { compose = true; buildConfig = true }
     packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }
 }
 
