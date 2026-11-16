@@ -84,9 +84,27 @@ private object Pending { var schema: JsonObject? = null }
 fun ProviderList(nav: NavHostController, c: ArrClient, resource: String) {
     val list = rememberLoaded("${c.service}/$resource") { c.list(resource) }
     var picking by remember { mutableStateOf(false) }
+    val (act, run) = rememberAction()
+    var failed by remember { mutableStateOf<List<String>?>(null) }
+    val allOk = stringResource(R.string.m_test_all_ok)
     ManagePage(nav, providerTitle(resource), c.service.title, actions = {
+        IconButton(onClick = {
+            run(null) {
+                val r = c.post("$resource/testall") as? JsonArray
+                val names = list.value.orEmpty().associate { (it.i("id") ?: 0) to (it.s("name") ?: "?") }
+                failed = r.orEmpty().filterIsInstance<JsonObject>().filter { it.b("isValid") == false }.map { o ->
+                    val msg = o.objs("validationFailures").mapNotNull { v -> v.s("errorMessage") }.joinToString("; ")
+                    listOf(names[o.i("id") ?: 0] ?: "#${o.i("id")}", msg).filter { it.isNotBlank() }.joinToString(": ")
+                }
+            }
+        }, enabled = !act.busy && list.value?.isNotEmpty() == true) { Icon(Icons.Outlined.FactCheck, stringResource(R.string.m_test_all), tint = Kino.text) }
         IconButton(onClick = { picking = true }) { Icon(Icons.Outlined.Add, stringResource(R.string.add), tint = Kino.text) }
     }) {
+        if (act.busy || act.error != null || failed != null) block {
+            if (act.busy) LinearProgressIndicator(Modifier.fillMaxWidth(), color = Kino.text, trackColor = Kino.surface3)
+            ArrError(act.error)
+            failed?.let { f -> if (f.isEmpty()) Text(allOk, color = Kino.success, fontSize = 14.sp) else f.forEach { Text(it, color = Kino.danger, fontSize = 13.sp) } }
+        }
         loaded(list) { l ->
             if (l.isEmpty()) block { Text(stringResource(R.string.m_nothing_here), color = Kino.muted) }
             items(l) { p ->
@@ -187,13 +205,17 @@ fun ProviderEdit(nav: NavHostController, c: ArrClient, resource: String, id: Str
                 FormErrors(act.error, f.fields.map { it.name } + cur.keys)
                 act.done?.let { Text(it, color = Kino.success, fontSize = 14.sp) }
                 Actions {
-                    PrimaryButton(stringResource(R.string.save), {
+                    fun save(force: Boolean) {
                         val body = f.applyTo(cur)
+                        val q: Map<String, Any?> = if (force) mapOf("forceSave" to true) else emptyMap()
                         run(savedMsg) {
-                            val r = if (isNew) c.post(resource, body) else c.put("$resource/${cur.i("id")}", body)
+                            val r = if (isNew) c.post(resource, body, q) else c.put("$resource/${cur.i("id")}", body, q)
                             if (isNew) { (r as? JsonObject)?.i("id")?.let { nid -> nav.popBackStack(); nav.manage(c.service, "provider", nid.toString(), resource) } }
                         }
-                    }, enabled = !act.busy)
+                    }
+                    PrimaryButton(stringResource(R.string.save), { save(false) }, enabled = !act.busy)
+                    // Only warnings (no errors): the service accepts the resource when asked to.
+                    if (warningsOnly(act.error)) GlassButton(stringResource(R.string.m_save_anyway), { save(true) }, enabled = !act.busy)
                     GlassButton(stringResource(R.string.test), { run(testOk) { c.post("$resource/test", f.applyTo(cur)) } }, enabled = !act.busy)
                     if (!isNew) DangerAction(stringResource(R.string.delete)) { askDelete = true }
                 }
@@ -204,6 +226,9 @@ fun ProviderEdit(nav: NavHostController, c: ArrClient, resource: String, id: Str
         run(null) { c.delete("$resource/$id"); nav.popBackStack() }
     }
 }
+
+/** True when a save failed only on warnings, which the *arr services accept with `forceSave`. */
+fun warningsOnly(e: Throwable?): Boolean = (e as? ArrException)?.validation?.let { v -> v.isNotEmpty() && v.all { it.warning } } == true
 
 @Composable
 private fun AppProfilePicker(c: ArrClient, cur: JsonObject, onChange: (JsonObject) -> Unit) {
