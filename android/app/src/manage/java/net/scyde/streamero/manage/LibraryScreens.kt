@@ -2,6 +2,7 @@ package net.scyde.streamero.manage
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
@@ -26,7 +27,11 @@ import net.scyde.streamero.ui.*
 private enum class LibFilter { All, Monitored, Unmonitored, Missing }
 private enum class LibSort { Title, Added, Year, Size }
 
-/** The library of Radarr, Sonarr or Lidarr: search, sort, filter, posters. */
+/**
+ * The library of Radarr, Sonarr or Lidarr: search, sort, filter, posters. A long press (or the
+ * select button) starts multi-select; the selection is then edited in bulk through the
+ * service's editor endpoint.
+ */
 @Composable
 fun LibraryPage(nav: NavHostController, c: ArrClient) {
     val s = c.service
@@ -34,44 +39,158 @@ fun LibraryPage(nav: NavHostController, c: ArrClient) {
     var q by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf(LibFilter.All) }
     var sort by remember { mutableStateOf(LibSort.Title) }
-    ManagePage(nav, stringResource(R.string.m_library), all.value?.let { itemsCount(it.size) }, actions = {
-        IconButton(onClick = { nav.manage(s, "add") }) { Icon(Icons.Outlined.Add, stringResource(R.string.m_add_new), tint = Kino.text) }
-    }) {
-        item { SearchField(q, { q = it }, stringResource(R.string.m_filter_library), Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) }
-        item {
-            ChipRow(listOf(LibFilter.All to stringResource(R.string.m_all), LibFilter.Monitored to stringResource(R.string.m_monitored),
-                LibFilter.Unmonitored to stringResource(R.string.m_unmonitored), LibFilter.Missing to stringResource(R.string.m_missing)), filter) { filter = it }
-            Spacer(Modifier.height(6.dp))
-            ChipRow(listOf(LibSort.Title to stringResource(R.string.m_sort_title), LibSort.Added to stringResource(R.string.m_sort_added),
-                LibSort.Year to stringResource(R.string.m_sort_year), LibSort.Size to stringResource(R.string.m_sort_size)), sort) { sort = it }
-        }
-        loaded(all) { list ->
-            val shown = list.asSequence()
-                .filter { q.isBlank() || Lib.title(it).contains(q.trim(), ignoreCase = true) }
-                .filter {
-                    when (filter) {
-                        LibFilter.All -> true
-                        LibFilter.Monitored -> it.b("monitored") == true
-                        LibFilter.Unmonitored -> it.b("monitored") != true
-                        LibFilter.Missing -> it.b("monitored") == true && !Lib.complete(s, it)
-                    }
+    var selecting by remember { mutableStateOf(false) }
+    var selected by remember { mutableStateOf(setOf<Int>()) }
+    val shown = remember(all.value, q, filter, sort) {
+        all.value.orEmpty().asSequence()
+            .filter { q.isBlank() || Lib.title(it).contains(q.trim(), ignoreCase = true) }
+            .filter {
+                when (filter) {
+                    LibFilter.All -> true
+                    LibFilter.Monitored -> it.b("monitored") == true
+                    LibFilter.Unmonitored -> it.b("monitored") != true
+                    LibFilter.Missing -> it.b("monitored") == true && !Lib.complete(s, it)
                 }
-                .let { seq ->
-                    when (sort) {
-                        LibSort.Title -> seq.sortedBy { (it.s("sortTitle") ?: it.s("sortName") ?: Lib.title(it)).lowercase() }
-                        LibSort.Added -> seq.sortedByDescending { it.s("added").orEmpty() }
-                        LibSort.Year -> seq.sortedByDescending { it.i("year") ?: 0 }
-                        LibSort.Size -> seq.sortedByDescending { Lib.sizeOnDisk(it) ?: 0 }
-                    }
-                }.toList()
-            if (shown.isEmpty()) block { Text(stringResource(R.string.m_nothing_here), color = Kino.muted) }
-            items(shown, key = { it.i("id") ?: Lib.title(it).hashCode() }) { o ->
-                ListRow(Lib.title(o), librarySubtitle(s, o), image = Lib.poster(c, o), trailing = {
-                    Dot(when { o.b("monitored") != true -> Kino.faint; Lib.complete(s, o) -> Kino.success; else -> Kino.accent })
-                }) { o.i("id")?.let { nav.manage(s, "item", it.toString()) } }
+            }
+            .let { seq ->
+                when (sort) {
+                    LibSort.Title -> seq.sortedBy { (it.s("sortTitle") ?: it.s("sortName") ?: Lib.title(it)).lowercase() }
+                    LibSort.Added -> seq.sortedByDescending { it.s("added").orEmpty() }
+                    LibSort.Year -> seq.sortedByDescending { it.i("year") ?: 0 }
+                    LibSort.Size -> seq.sortedByDescending { Lib.sizeOnDisk(it) ?: 0 }
+                }
+            }.toList()
+    }
+    fun exitSelection() { selecting = false; selected = emptySet() }
+    androidx.activity.compose.BackHandler(enabled = selecting) { exitSelection() }
+    Box(Modifier.fillMaxSize()) {
+        ManagePage(nav, if (selecting) stringResource(R.string.m_selected_n, selected.size) else stringResource(R.string.m_library), all.value?.let { itemsCount(it.size) }, actions = {
+            if (selecting) {
+                val ids = shown.mapNotNull { it.i("id") }.toSet()
+                val allOn = ids.isNotEmpty() && selected.containsAll(ids)
+                TextButton(onClick = { selected = if (allOn) selected - ids else selected + ids }) {
+                    Text(stringResource(if (allOn) R.string.m_select_none else R.string.m_select_all), color = Kino.text, fontSize = 13.sp)
+                }
+                IconButton(onClick = { exitSelection() }) { Icon(Icons.Outlined.Close, stringResource(R.string.cancel), tint = Kino.text) }
+            } else {
+                IconButton(onClick = { selecting = true }) { Icon(Icons.Outlined.Checklist, stringResource(R.string.m_select), tint = Kino.text) }
+                IconButton(onClick = { nav.manage(s, "add") }) { Icon(Icons.Outlined.Add, stringResource(R.string.m_add_new), tint = Kino.text) }
+            }
+        }) {
+            item { SearchField(q, { q = it }, stringResource(R.string.m_filter_library), Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) }
+            item {
+                ChipRow(listOf(LibFilter.All to stringResource(R.string.m_all), LibFilter.Monitored to stringResource(R.string.m_monitored),
+                    LibFilter.Unmonitored to stringResource(R.string.m_unmonitored), LibFilter.Missing to stringResource(R.string.m_missing)), filter) { filter = it }
+                Spacer(Modifier.height(6.dp))
+                ChipRow(listOf(LibSort.Title to stringResource(R.string.m_sort_title), LibSort.Added to stringResource(R.string.m_sort_added),
+                    LibSort.Year to stringResource(R.string.m_sort_year), LibSort.Size to stringResource(R.string.m_sort_size)), sort) { sort = it }
+            }
+            loaded(all) { _ ->
+                if (shown.isEmpty()) block { Text(stringResource(R.string.m_nothing_here), color = Kino.muted) }
+                items(shown, key = { it.i("id") ?: Lib.title(it).hashCode() }) { o ->
+                    val id = o.i("id")
+                    val on = id != null && id in selected
+                    fun toggle() { if (id != null) selected = if (on) selected - id else selected + id }
+                    ListRow(Lib.title(o), librarySubtitle(s, o), image = Lib.poster(c, o),
+                        modifier = if (on) Modifier.background(Kino.surface2) else Modifier,
+                        leading = if (selecting) { { Checkbox(on, { toggle() }, colors = CheckboxDefaults.colors(checkedColor = Kino.text, checkmarkColor = Kino.bg)) } } else null,
+                        trailing = { Dot(when { o.b("monitored") != true -> Kino.faint; Lib.complete(s, o) -> Kino.success; else -> Kino.accent }) },
+                        onLongClick = { if (!selecting) selecting = true; toggle() },
+                    ) { if (selecting) toggle() else id?.let { nav.manage(s, "item", it.toString()) } }
+                }
+                if (selecting) item { Spacer(Modifier.height(150.dp)) }
+            }
+        }
+        if (selecting) BulkBar(c, selected, Modifier.align(Alignment.BottomCenter)) { all.reload(); exitSelection() }
+    }
+}
+
+private enum class BulkDialog { Profile, Root, Tags, Delete }
+
+/** The actions on a multi-selection of the library, each sent to the editor endpoint in one call. */
+@Composable
+private fun BulkBar(c: ArrClient, selected: Set<Int>, modifier: Modifier, onDone: () -> Unit) {
+    val s = c.service
+    val (act, run) = rememberAction()
+    var dialog by remember { mutableStateOf<BulkDialog?>(null) }
+    val doneMsg = stringResource(R.string.m_bulk_done, selected.size)
+    fun edit(e: BulkEdit) = run(doneMsg) { c.put(BulkEditor.resource(s), BulkEditor.editBody(s, selected, e)); onDone() }
+    val enabled = selected.isNotEmpty() && !act.busy
+    Surface(modifier.fillMaxWidth().navigationBarsPadding().padding(12.dp), shape = RoundedCornerShape(12.dp), color = Kino.surface,
+        border = androidx.compose.foundation.BorderStroke(1.dp, Kino.border), shadowElevation = 12.dp) {
+        Column(Modifier.padding(vertical = 8.dp)) {
+            if (act.busy) LinearProgressIndicator(Modifier.fillMaxWidth().padding(horizontal = 12.dp), color = Kino.text, trackColor = Kino.surface3)
+            Row(Modifier.fillMaxWidth().horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = 4.dp)) {
+                BulkButton(Icons.Outlined.Visibility, stringResource(R.string.m_monitor_on), enabled) { edit(BulkEdit(monitored = true)) }
+                BulkButton(Icons.Outlined.VisibilityOff, stringResource(R.string.m_monitor_off), enabled) { edit(BulkEdit(monitored = false)) }
+                BulkButton(Icons.Outlined.HighQuality, stringResource(R.string.m_quality_profile), enabled) { dialog = BulkDialog.Profile }
+                BulkButton(Icons.Outlined.DriveFileMove, stringResource(R.string.m_root_folder), enabled) { dialog = BulkDialog.Root }
+                BulkButton(Icons.Outlined.Label, stringResource(R.string.m_tags), enabled) { dialog = BulkDialog.Tags }
+                BulkButton(Icons.Outlined.DeleteOutline, stringResource(R.string.delete), enabled, danger = true) { dialog = BulkDialog.Delete }
+            }
+            Column(Modifier.padding(horizontal = 14.dp)) {
+                if (selected.isEmpty()) Text(stringResource(R.string.m_select_hint), color = Kino.faint, fontSize = 12.sp)
+                FormErrors(act.error, emptyList())
+                act.done?.let { Text(it, color = Kino.success, fontSize = 13.sp) }
             }
         }
     }
+    when (dialog) {
+        BulkDialog.Profile -> {
+            val profiles = rememberLoaded("bulk/qp/$s") { c.list("qualityprofile") }
+            var pick by remember { mutableStateOf<Int?>(null) }
+            BulkDialogFrame(stringResource(R.string.m_quality_profile), selected.size, pick != null, { dialog = null }, { dialog = null; edit(BulkEdit(qualityProfileId = pick)) }) {
+                val ps = profiles.value
+                if (ps == null) Loading() else Picker(pick, ps.map { it.i("id") to (it.s("name") ?: "?") }, { pick = it })
+            }
+        }
+        BulkDialog.Root -> {
+            val roots = rememberLoaded("bulk/rf/$s") { c.list("rootfolder") }
+            var pick by remember { mutableStateOf<String?>(null) }
+            var move by remember { mutableStateOf(false) }
+            BulkDialogFrame(stringResource(R.string.m_root_folder), selected.size, pick != null, { dialog = null }, { dialog = null; edit(BulkEdit(rootFolderPath = pick, moveFiles = move)) }) {
+                val r = roots.value
+                if (r == null) Loading() else Picker(pick, r.map { it.s("path") to "${it.s("path")} (${bytes(it.l("freeSpace"))})" }, { pick = it })
+                Toggle(stringResource(R.string.m_move_files), stringResource(R.string.m_move_files_hint), move) { move = it }
+            }
+        }
+        BulkDialog.Tags -> {
+            var tags by remember { mutableStateOf(listOf<Int>()) }
+            var mode by remember { mutableStateOf(TagMode.Add) }
+            BulkDialogFrame(stringResource(R.string.m_tags), selected.size, tags.isNotEmpty() || mode == TagMode.Replace, { dialog = null }, { dialog = null; edit(BulkEdit(tags = tags, tagMode = mode)) }) {
+                Picker(mode, listOf(TagMode.Add to stringResource(R.string.m_tags_add), TagMode.Remove to stringResource(R.string.m_tags_remove), TagMode.Replace to stringResource(R.string.m_tags_replace)), { mode = it })
+                TagPicker(c, tags) { tags = it }
+            }
+        }
+        BulkDialog.Delete -> DeleteDialog(onDismiss = { dialog = null }, message = stringResource(R.string.m_bulk_delete_confirm, selected.size)) { files, exclude ->
+            run(doneMsg) { c.request("DELETE", BulkEditor.resource(s), BulkEditor.deleteBody(s, selected, files, exclude), emptyMap()); onDone() }
+        }
+        null -> {}
+    }
+}
+
+@Composable
+private fun BulkButton(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, enabled: Boolean, danger: Boolean = false, onClick: () -> Unit) {
+    val tint = when { !enabled -> Kino.faint; danger -> Kino.danger; else -> Kino.text }
+    Column(Modifier.widthIn(min = 76.dp).clip(RoundedCornerShape(8.dp)).clickable(enabled = enabled, onClick = onClick).padding(horizontal = 8.dp, vertical = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Icon(icon, null, tint = tint)
+        Text(label, color = tint, fontSize = 11.sp, maxLines = 1)
+    }
+}
+
+@Composable
+private fun BulkDialogFrame(title: String, count: Int, canApply: Boolean, onDismiss: () -> Unit, onApply: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+    AlertDialog(onDismissRequest = onDismiss, containerColor = Kino.surface,
+        title = { Text(title, color = Kino.text) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.m_applies_to_n, count), color = Kino.muted, fontSize = 13.sp)
+                content()
+            }
+        },
+        confirmButton = { TextButton(onClick = onApply, enabled = canApply) { Text(stringResource(R.string.m_apply), color = if (canApply) Kino.text else Kino.faint, fontWeight = FontWeight.SemiBold) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel), color = Kino.muted) } })
 }
 
 @Composable
@@ -141,7 +260,11 @@ fun ItemPage(nav: NavHostController, c: ArrClient, id: Int) {
                     }
                     FormText(stringResource(R.string.m_path), cur.s("path").orEmpty(), { edited = cur.with("path", it) }, error = (act.error as? ArrException)?.messageFor("path"))
                     TagPicker(c, cur.ints("tags")) { edited = cur.with("tags", it) }
-                    PrimaryButton(stringResource(R.string.save), { run(savedMsg) { c.put("$res/$id", cur); item.reload() } }, Modifier.fillMaxWidth(), enabled = !act.busy && cur != item.value)
+                    if (cur.s("path") != item.value?.s("path")) Text(stringResource(R.string.m_path_moves_files), color = Kino.faint, fontSize = 12.sp)
+                    PrimaryButton(stringResource(R.string.save), {
+                        val moved = cur.s("path") != item.value?.s("path")
+                        run(savedMsg) { c.put("$res/$id", cur, if (moved) mapOf("moveFiles" to true) else emptyMap()); item.reload() }
+                    }, Modifier.fillMaxWidth(), enabled = !act.busy && cur != item.value)
                 }
             }
             when (s) {
@@ -163,13 +286,14 @@ fun ItemPage(nav: NavHostController, c: ArrClient, id: Int) {
 }
 
 @Composable
-fun DeleteDialog(onDismiss: () -> Unit, onConfirm: (deleteFiles: Boolean, exclude: Boolean) -> Unit) {
+fun DeleteDialog(onDismiss: () -> Unit, message: String? = null, onConfirm: (deleteFiles: Boolean, exclude: Boolean) -> Unit) {
     var files by remember { mutableStateOf(false) }
     var exclude by remember { mutableStateOf(false) }
     AlertDialog(onDismissRequest = onDismiss, containerColor = Kino.surface,
         title = { Text(stringResource(R.string.m_delete_title), color = Kino.text) },
         text = {
             Column {
+                message?.let { Text(it, color = Kino.text, fontSize = 14.sp) }
                 Toggle(stringResource(R.string.m_delete_files), stringResource(R.string.m_delete_files_hint), files) { files = it }
                 Toggle(stringResource(R.string.m_add_exclusion), null, exclude) { exclude = it }
             }
@@ -248,6 +372,7 @@ private fun AlbumsBlock(nav: NavHostController, c: ArrClient, artistId: Int) {
     val albums = rememberLoaded(artistId) { c.list("album", mapOf("artistId" to artistId)) }
     val (act, run) = rememberAction()
     val queued = stringResource(R.string.m_command_queued)
+    var open by remember { mutableStateOf<Int?>(null) }
     Column {
         Heading(stringResource(R.string.albums))
         ActionOutcome(act)
@@ -262,9 +387,27 @@ private fun AlbumsBlock(nav: NavHostController, c: ArrClient, artistId: Int) {
                         Checkbox(a.b("monitored") == true, { m -> run(null) { c.put("album/monitor", jsonOf("albumIds" to listOf(aid), "monitored" to m)); albums.reload() } },
                             colors = CheckboxDefaults.colors(checkedColor = Kino.text, checkmarkColor = Kino.bg))
                     }
-                })
+                }) { open = if (open == aid) null else aid }
+            if (open == aid) AlbumTracks(c, aid)
         }
         if (albums.loading && albums.value == null) Loading()
+    }
+}
+
+/** The tracks of one Lidarr album (`track?albumId=`), with whether each has a file. */
+@Composable
+private fun AlbumTracks(c: ArrClient, albumId: Int) {
+    val tracks = rememberLoaded("tracks/$albumId") { c.list("track", mapOf("albumId" to albumId)) }
+    Column(Modifier.padding(start = 24.dp)) {
+        if (tracks.value == null && tracks.error == null) Loading()
+        ArrError(tracks.error)
+        tracks.value?.sortedWith(compareBy({ it.i("mediumNumber") ?: 0 }, { it.i("absoluteTrackNumber") ?: it.s("trackNumber")?.toIntOrNull() ?: 0 }))?.forEach { t ->
+            val has = t.b("hasFile") == true
+            ListRow(listOfNotNull(t.s("trackNumber"), t.s("title")).joinToString(". "),
+                listOfNotNull(t.l("duration")?.takeIf { it > 0 }?.let { ms -> "%d:%02d".format(ms / 60000, (ms / 1000) % 60) },
+                    stringResource(if (has) R.string.m_downloaded else R.string.m_missing)).joinToString(" · "),
+                trailing = { Dot(if (has) Kino.success else Kino.faint) })
+        }
     }
 }
 
@@ -345,6 +488,7 @@ private fun AddDialog(c: ArrClient, lookup: JsonObject, onDismiss: () -> Unit, o
     var minAvail by remember { mutableStateOf("released") }
     var seriesType by remember { mutableStateOf(lookup.s("seriesType") ?: "standard") }
     var seasonFolder by remember { mutableStateOf(true) }
+    var tags by remember { mutableStateOf(listOf<Int>()) }
     val (act, run) = rememberAction()
     LaunchedEffect(roots.value, profiles.value, metadata.value) {
         if (root == null) root = roots.value?.firstOrNull()?.s("path")
@@ -365,6 +509,7 @@ private fun AddDialog(c: ArrClient, lookup: JsonObject, onDismiss: () -> Unit, o
                     FieldRow(stringResource(R.string.m_series_type)) { Picker(seriesType, listOf("standard", "daily", "anime").map { it to humanize(it) }, { seriesType = it }) }
                     Toggle(stringResource(R.string.m_season_folder), null, seasonFolder) { seasonFolder = it }
                 }
+                TagPicker(c, tags) { tags = it }
                 Toggle(stringResource(R.string.m_search_on_add), null, search) { search = it }
                 FormErrors(act.error, emptyList())
             }
@@ -372,12 +517,12 @@ private fun AddDialog(c: ArrClient, lookup: JsonObject, onDismiss: () -> Unit, o
         confirmButton = {
             TextButton(enabled = !act.busy && root != null && profile != null, onClick = {
                 run(null) {
-                    var body = lookup.with("rootFolderPath", root).with("qualityProfileId", profile).with("monitored", monitor != "none")
+                    var body = lookup.with("rootFolderPath", root).with("qualityProfileId", profile).with("monitored", monitor != "none").with("tags", tags)
                     body = when (s) {
                         ArrService.Radarr -> body.with("minimumAvailability", minAvail).with("addOptions", jsonOf("searchForMovie" to search, "monitor" to monitor))
                         ArrService.Sonarr -> body.with("seriesType", seriesType).with("seasonFolder", seasonFolder).with("languageProfileId", body.i("languageProfileId") ?: 1)
                             .with("addOptions", jsonOf("searchForMissingEpisodes" to search, "monitor" to monitor))
-                        else -> body.with("metadataProfileId", meta).with("addOptions", jsonOf("searchForMissingAlbums" to search, "monitor" to monitor))
+                        else -> body.with("metadataProfileId", meta).with("monitorNewItems", "all").with("addOptions", jsonOf("searchForMissingAlbums" to search, "monitor" to monitor))
                     }
                     val added = c.post(Lib.resource(s), body) as? JsonObject
                     onAdded(added?.i("id") ?: 0)

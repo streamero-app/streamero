@@ -87,6 +87,8 @@ private fun ManageRoute(state: AppState, nav: NavHostController, svc: ArrService
         "media" -> SeerrMedia(nav, c, arg ?: "movie", id!!.toInt())
         "issues" -> SeerrIssues(nav, c)
         "users" -> SeerrUsers(nav, c)
+        "suser" -> SeerrUser(nav, c, id!!.toInt())
+        "sissue" -> SeerrIssue(nav, c, id!!.toInt())
         "sjobs" -> SeerrJobs(nav, c)
         "ssettings" -> SeerrSettings(nav, c, arg)
     }

@@ -43,11 +43,21 @@ fun SystemPage(nav: NavHostController, c: ArrClient) {
     }
     val (act, run) = rememberAction()
     val queued = stringResource(R.string.m_command_queued)
+    val restarting = stringResource(R.string.m_restarting)
+    var askRestart by remember { mutableStateOf(false) }
+    var askUpdate by remember { mutableStateOf<String?>(null) }
+    if (askRestart) ConfirmDialog(stringResource(R.string.m_restart_confirm, s.title), stringResource(R.string.m_restart), { askRestart = false }) {
+        run(restarting) { c.post("system/restart") }
+    }
+    askUpdate?.let { v ->
+        ConfirmDialog(stringResource(R.string.m_install_update_confirm, s.title, v), stringResource(R.string.m_install), { askUpdate = null }) { run(queued) { c.command("ApplicationUpdate") } }
+    }
     ManagePage(nav, stringResource(R.string.m_system), s.title) {
         item {
             Row(Modifier.padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 GlassButton(stringResource(R.string.logs), { nav.manage(s, "logs") }, icon = Icons.Outlined.Article)
                 GlassButton(stringResource(R.string.backups), { nav.manage(s, "backups") }, icon = Icons.Outlined.Backup)
+                GlassButton(stringResource(R.string.m_restart), { askRestart = true }, icon = Icons.Outlined.RestartAlt)
             }
         }
         block { ActionOutcome(act) }
@@ -91,6 +101,9 @@ fun SystemPage(nav: NavHostController, c: ArrClient) {
             }
             if (i.updates.isNotEmpty()) {
                 item { Heading(stringResource(R.string.m_updates)) }
+                i.updates.firstOrNull { it.b("installable") == true && it.b("installed") != true }?.let { u ->
+                    block { PrimaryButton(stringResource(R.string.m_install_update, u.s("version").orEmpty()), { askUpdate = u.s("version").orEmpty() }, Modifier.fillMaxWidth(), enabled = !act.busy, icon = Icons.Outlined.SystemUpdate) }
+                }
                 items(i.updates.take(5)) { u ->
                     val changes = u.o("changes")
                     ListRow(u.s("version") ?: "?", listOfNotNull(
@@ -114,7 +127,7 @@ fun KeyValue(k: String, v: String) {
 @Composable
 fun LogsPage(nav: NavHostController, c: ArrClient) {
     var level by remember { mutableStateOf("all") }
-    val (logs, more, next) = rememberPaged(c.service, 100) { p -> c.obj("log", mapOf("page" to p, "pageSize" to 100, "sortKey" to "time", "sortDirection" to "descending")) }
+    val (logs, more, next) = rememberPaged("${c.service}/$level", 100) { p -> c.obj("log", mapOf("page" to p, "pageSize" to 100, "sortKey" to "time", "sortDirection" to "descending", "level" to level.takeIf { it != "all" })) }
     ManagePage(nav, stringResource(R.string.logs), c.service.title) {
         item { ChipRow(listOf("all" to stringResource(R.string.m_all), "info" to "Info", "warn" to "Warn", "error" to "Error"), level) { level = it } }
         loaded(logs) { list ->

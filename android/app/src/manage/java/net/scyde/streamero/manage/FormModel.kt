@@ -181,15 +181,29 @@ fun mergeGeneric(original: JsonElement?, edited: JsonElement?, secret: Boolean):
 /**
  * Before saving a generic settings object: every leaf goes through [mergeGeneric] against the
  * original (untyped secrets keep their stored value, numbers typed as text become numbers).
+ * Items of arrays of objects are matched to their original by `id` when they carry one, by
+ * position when the array kept its length and has no ids, and otherwise (added, removed or
+ * moved items) against a sibling as a [fresh] shape template: types are taken from it, but no
+ * stored secret is copied into another item.
  */
-fun normalizeGeneric(edited: JsonElement, original: JsonElement?, key: String = ""): JsonElement = when {
-    edited is JsonObject -> JsonObject(edited.mapValues { (k, v) -> normalizeGeneric(v, (original as? JsonObject)?.get(k), k) })
-    edited is JsonArray && original is JsonArray && edited.size == original.size && edited.all { it is JsonObject } ->
-        JsonArray(edited.mapIndexed { i, v -> normalizeGeneric(v, original[i], key) })
+fun normalizeGeneric(edited: JsonElement, original: JsonElement?, key: String = "", fresh: Boolean = false): JsonElement = when {
+    edited is JsonObject -> JsonObject(edited.mapValues { (k, v) -> normalizeGeneric(v, (original as? JsonObject)?.get(k), k, fresh) })
+    edited is JsonArray && original is JsonArray && edited.all { it is JsonObject } && original.isNotEmpty() && original.all { it is JsonObject } -> {
+        val byId = original.filterIsInstance<JsonObject>().filter { it["id"] != null && it["id"] !is JsonNull }.associateBy { it["id"].toString() }
+        val positional = byId.isEmpty() && edited.size == original.size
+        JsonArray(edited.mapIndexed { i, v ->
+            val o = v as JsonObject
+            val match = o["id"]?.takeIf { it !is JsonNull }?.let { byId[it.toString()] } ?: if (positional) original[i] else null
+            if (match != null) normalizeGeneric(o, match, key, fresh) else normalizeGeneric(o, original.first(), key, fresh = true)
+        })
+    }
     edited is JsonArray && original is JsonArray && original.isNotEmpty() && original.all { it is JsonPrimitive && !it.isString } ->
         JsonArray(edited.map { e ->
             val t = (e as? JsonPrimitive)?.takeIf { it.isString }?.content?.trim()
             if (t == null) e else t.toLongOrNull()?.let { JsonPrimitive(it) } ?: t.toDoubleOrNull()?.let { JsonPrimitive(it) } ?: e
         })
-    else -> mergeGeneric(original, edited, isSecretKey(key)) ?: JsonNull
+    edited is JsonArray -> edited
+    // A key the original did not have (added with a new item, or by the user): kept as typed.
+    original == null -> edited
+    else -> mergeGeneric(original, edited, !fresh && isSecretKey(key)) ?: JsonNull
 }

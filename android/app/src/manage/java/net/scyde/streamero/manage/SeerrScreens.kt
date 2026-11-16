@@ -15,6 +15,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import net.scyde.streamero.R
 import net.scyde.streamero.ui.*
@@ -196,6 +199,7 @@ fun SeerrIssues(nav: NavHostController, c: ArrClient) {
                         Actions {
                             if (r.i("status") == 1) TextButton(onClick = { run(null) { c.post("issue/$id/resolved"); tick++ } }) { Text(stringResource(R.string.m_resolve), color = Kino.success) }
                             else TextButton(onClick = { run(null) { c.post("issue/$id/open"); tick++ } }) { Text(stringResource(R.string.m_reopen)) }
+                            TextButton(onClick = { nav.manage(c.service, "sissue", id.toString()) }) { Text(stringResource(R.string.m_comments_n, r.objs("comments").size), color = Kino.text) }
                             TextButton(onClick = { run(null) { c.delete("issue/$id"); tick++ } }) { Text(stringResource(R.string.delete), color = Kino.faint) }
                         }
                     }
@@ -205,36 +209,143 @@ fun SeerrIssues(nav: NavHostController, c: ArrClient) {
     }
 }
 
-/** Seerr's permission bits as its public API documents them. */
-val SEERR_PERMISSIONS: List<Pair<Long, String>> = listOf(
-    2L to "ADMIN", 4L to "MANAGE_SETTINGS", 8L to "MANAGE_USERS", 16L to "MANAGE_REQUESTS", 32L to "REQUEST", 64L to "VOTE",
-    128L to "AUTO_APPROVE", 256L to "AUTO_APPROVE_MOVIE", 512L to "AUTO_APPROVE_TV", 1024L to "REQUEST_4K", 2048L to "REQUEST_4K_MOVIE",
-    4096L to "REQUEST_4K_TV", 8192L to "REQUEST_ADVANCED", 16384L to "REQUEST_VIEW", 32768L to "AUTO_APPROVE_4K", 65536L to "AUTO_APPROVE_4K_MOVIE",
-    131072L to "AUTO_APPROVE_4K_TV", 262144L to "REQUEST_MOVIE", 524288L to "REQUEST_TV", 1048576L to "MANAGE_ISSUES", 2097152L to "VIEW_ISSUES",
-    4194304L to "CREATE_ISSUES", 8388608L to "AUTO_REQUEST", 16777216L to "AUTO_REQUEST_MOVIE", 33554432L to "AUTO_REQUEST_TV",
-    67108864L to "RECENT_VIEW", 134217728L to "WATCHLIST_VIEW",
-)
+/** One Seerr issue: its comment thread, a reply box, resolve/reopen. */
+@Composable
+fun SeerrIssue(nav: NavHostController, c: ArrClient, id: Int) {
+    var tick by remember { mutableIntStateOf(0) }
+    val issue = rememberLoaded("issue/$id/$tick") { c.obj("issue/$id") }
+    var reply by remember { mutableStateOf("") }
+    val (act, run) = rememberAction()
+    val t = issue.value?.o("media")?.let { m -> rememberTitle(c, m.s("mediaType"), m.i("tmdbId")) }
+    ManagePage(nav, t?.s("title") ?: t?.s("name") ?: "#$id", issue.value?.let { issueType(it.i("issueType")) }) {
+        loaded(issue) { o ->
+            block {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Pill(stringResource(if (o.i("status") == 1) R.string.m_open else R.string.m_resolved), if (o.i("status") == 1) Kino.accent else Kino.success)
+                    o.i("problemSeason")?.takeIf { it > 0 }?.let { Pill(stringResource(R.string.m_season_n, it)) }
+                }
+                Actions {
+                    if (o.i("status") == 1) TextButton(onClick = { run(null) { c.post("issue/$id/resolved"); tick++ } }) { Text(stringResource(R.string.m_resolve), color = Kino.success) }
+                    else TextButton(onClick = { run(null) { c.post("issue/$id/open"); tick++ } }) { Text(stringResource(R.string.m_reopen)) }
+                }
+            }
+            item { Heading(stringResource(R.string.m_comments)) }
+            val comments = o.objs("comments")
+            if (comments.isEmpty()) block { Text(stringResource(R.string.m_nothing_here), color = Kino.muted) }
+            items(comments) { cm ->
+                Panel {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(listOfNotNull(cm.o("user")?.let { it.s("displayName") ?: it.s("email") }, cm.s("createdAt")?.let(::when_)).joinToString(" · "), color = Kino.faint, fontSize = 12.sp)
+                        Text(cm.s("message").orEmpty(), color = Kino.text, fontSize = 14.sp)
+                    }
+                }
+            }
+            block {
+                FormText(stringResource(R.string.m_add_comment), reply, { reply = it }, multiline = true)
+                PrimaryButton(stringResource(R.string.m_send), { run(null) { c.post("issue/$id/comment", jsonOf("message" to reply.trim())); reply = ""; tick++ } },
+                    Modifier.fillMaxWidth(), enabled = reply.isNotBlank() && !act.busy, icon = Icons.Outlined.Send)
+                ActionOutcome(act)
+            }
+        }
+    }
+}
 
-fun seerrPermissionNames(bits: Long): List<String> = SEERR_PERMISSIONS.filter { (bit, _) -> bits and bit != 0L }.map { it.second }
+fun seerrPermissionNames(bits: Long): List<String> = SeerrPermissions.names(bits)
 
 @Composable
 fun SeerrUsers(nav: NavHostController, c: ArrClient) {
     val users = rememberLoaded(c.service) { c.obj("user", mapOf("take" to 100, "skip" to 0, "sort" to "displayname")) }
-    var open by remember { mutableStateOf<Int?>(null) }
     ManagePage(nav, stringResource(R.string.users), c.service.title) {
         loaded(users) { p ->
             items(p.objs("results")) { u ->
                 val id = u.i("id") ?: 0
-                ListRow(u.s("displayName") ?: u.s("email") ?: "?", listOfNotNull(u.s("email"), stringResource(R.string.m_requests) + ": " + (u.i("requestCount") ?: 0), when_(u.s("createdAt"))).joinToString(" · ")) {
-                    open = if (open == id) null else id
-                }
-                if (open == id) {
-                    val perms = seerrPermissionNames(u.l("permissions") ?: 0)
-                    Text(if (perms.isEmpty()) stringResource(R.string.none) else perms.joinToString(" · ") { humanize(it.lowercase()) }, color = Kino.muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+                val admin = SeerrPermissions.has(u.l("permissions") ?: 0, SeerrPermissions.ADMIN)
+                ListRow(u.s("displayName") ?: u.s("email") ?: "?", listOfNotNull(u.s("email"), stringResource(R.string.m_requests) + ": " + (u.i("requestCount") ?: 0), when_(u.s("createdAt"))).joinToString(" · "),
+                    trailing = { if (admin) Pill(stringResource(R.string.m_perm_admin), Kino.accent) }, chevron = true) {
+                    nav.manage(c.service, "suser", id.toString())
                 }
             }
         }
     }
+}
+
+private class SeerrUserData(val user: JsonObject, val permissions: Long, val meId: Int?, val quota: JsonObject?, val main: JsonObject?)
+
+private val QUOTA_KEYS = listOf("movieQuotaLimit", "movieQuotaDays", "tvQuotaLimit", "tvQuotaDays")
+
+/** One Seerr user: permission toggles per documented bit, request limits when the API offers them, save. */
+@Composable
+fun SeerrUser(nav: NavHostController, c: ArrClient, id: Int) {
+    var tick by remember { mutableIntStateOf(0) }
+    val data = rememberLoaded("suser/$id/$tick") {
+        coroutineScope {
+            val u = async { c.obj("user/$id") }
+            val perms = async { runCatching { c.obj("user/$id/settings/permissions").l("permissions") }.getOrNull() }
+            val me = async { runCatching { c.obj("auth/me").i("id") }.getOrNull() }
+            val quota = async { runCatching { c.obj("user/$id/quota") }.getOrNull() }
+            val main = async { runCatching { c.obj("user/$id/settings/main") }.getOrNull() }
+            val user = u.await()
+            SeerrUserData(user, perms.await() ?: user.l("permissions") ?: 0, me.await(), quota.await(), main.await())
+        }
+    }
+    var mask by remember(data.value) { mutableStateOf(data.value?.permissions ?: 0L) }
+    var main by remember(data.value) { mutableStateOf(data.value?.main) }
+    var warnAdmin by remember { mutableStateOf(false) }
+    val (act, run) = rememberAction()
+    val savedMsg = stringResource(R.string.saved)
+    val d = data.value
+    fun save() {
+        val dd = d ?: return
+        run(savedMsg) {
+            if (mask != dd.permissions) c.post("user/$id/settings/permissions", jsonOf("permissions" to mask))
+            val m = main
+            if (m != null && dd.main != null && m != dd.main) c.post("user/$id/settings/main", normalizeGeneric(m, dd.main))
+            tick++
+        }
+    }
+    ManagePage(nav, d?.user?.let { it.s("displayName") ?: it.s("email") } ?: stringResource(R.string.users), d?.user?.s("email")) {
+        loaded(data) { dd ->
+            val isSelfOrOwner = id == dd.meId || id == 1
+            item { Heading(stringResource(R.string.m_permissions)) }
+            if (SeerrPermissions.has(mask, SeerrPermissions.ADMIN)) block { Notice(Kino.muted) { Text(stringResource(R.string.m_perm_admin_note), color = Kino.muted, fontSize = 13.sp) } }
+            block {
+                SeerrPermissions.KNOWN.forEach { b ->
+                    Toggle(stringResource(b.label), b.key, SeerrPermissions.has(mask, b.value)) { on -> mask = SeerrPermissions.set(mask, b.value, on) }
+                }
+                SeerrPermissions.otherBits(mask).forEach { bit ->
+                    Toggle(stringResource(R.string.m_perm_other, bit), stringResource(R.string.m_perm_other_hint), true) { on -> mask = SeerrPermissions.set(mask, 1L shl bit, on) }
+                }
+            }
+            val q = dd.quota
+            if (q != null || (main?.keys?.any { it in QUOTA_KEYS } == true)) {
+                item { Heading(stringResource(R.string.m_request_limits)) }
+                block {
+                    q?.let { qq ->
+                        listOf("movie" to R.string.movies, "tv" to R.string.series).forEach { (k, label) ->
+                            qq.o(k)?.let { o ->
+                                KeyValue(stringResource(label), if ((o.i("limit") ?: 0) > 0) stringResource(R.string.m_quota_used, o.i("used") ?: 0, o.i("limit") ?: 0, o.i("days") ?: 0) else stringResource(R.string.m_unlimited))
+                            }
+                        }
+                    }
+                    val m = main
+                    if (m != null) QUOTA_KEYS.filter { m.containsKey(it) }.forEach { k ->
+                        FormText(stringResource(when (k) {
+                            "movieQuotaLimit" -> R.string.m_quota_movie_limit; "movieQuotaDays" -> R.string.m_quota_movie_days
+                            "tvQuotaLimit" -> R.string.m_quota_tv_limit; else -> R.string.m_quota_tv_days
+                        }), m.l(k)?.toString().orEmpty(), { t -> main = m.with(k, t.trim().toLongOrNull()) }, help = stringResource(R.string.m_quota_blank_hint), number = true)
+                    }
+                }
+            }
+            block {
+                PrimaryButton(stringResource(R.string.save), {
+                    if (isSelfOrOwner && SeerrPermissions.losesAdmin(dd.permissions, mask)) warnAdmin = true else save()
+                }, Modifier.fillMaxWidth(), enabled = !act.busy && (mask != dd.permissions || main != dd.main))
+                FormErrors(act.error, QUOTA_KEYS)
+                act.done?.let { Text(it, color = Kino.success) }
+            }
+        }
+    }
+    if (warnAdmin) ConfirmDialog(stringResource(R.string.m_perm_remove_own_admin), stringResource(R.string.m_save_anyway), { warnAdmin = false }) { save() }
 }
 
 @Composable
@@ -258,7 +369,7 @@ fun SeerrJobs(nav: NavHostController, c: ArrClient) {
     }
 }
 
-private val SEERR_AGENTS = listOf("email", "discord", "slack", "telegram", "pushover", "pushbullet", "gotify", "ntfy", "webhook", "webpush")
+private val SEERR_AGENTS = listOf("email", "discord", "slack", "telegram", "pushover", "pushbullet", "gotify", "ntfy", "webhook", "webpush", "lunasea")
 
 /** Seerr settings: main, network, Radarr/Sonarr servers and notification agents. */
 @Composable
@@ -267,6 +378,7 @@ fun SeerrSettings(nav: NavHostController, c: ArrClient, arg: String?) {
         arg == null -> ManagePage(nav, stringResource(R.string.settings), c.service.title) {
             item { ListRow(stringResource(R.string.m_s_general), chevron = true) { nav.manage(c.service, "ssettings", arg = "doc:settings/main") } }
             item { ListRow(stringResource(R.string.m_s_network), chevron = true) { nav.manage(c.service, "ssettings", arg = "doc:settings/network") } }
+            item { ListRow(stringResource(R.string.m_media_server), stringResource(R.string.m_media_server_hint), chevron = true) { nav.manage(c.service, "ssettings", arg = "mediaserver") } }
             item { ListRow("Radarr", chevron = true) { nav.manage(c.service, "ssettings", arg = "servers:radarr") } }
             item { ListRow("Sonarr", chevron = true) { nav.manage(c.service, "ssettings", arg = "servers:sonarr") } }
             item { Heading(stringResource(R.string.notifications)) }
@@ -274,6 +386,7 @@ fun SeerrSettings(nav: NavHostController, c: ArrClient, arg: String?) {
         }
         arg.startsWith("doc:") -> SeerrDoc(nav, c, arg.removePrefix("doc:"))
         arg.startsWith("servers:") -> SeerrServers(nav, c, arg.removePrefix("servers:"))
+        arg == "mediaserver" -> SeerrMediaServer(nav, c)
         arg.startsWith("server:") -> SeerrServer(nav, c, arg.removePrefix("server:").substringBefore('/'), arg.substringAfter('/', "new"))
     }
 }
@@ -350,5 +463,101 @@ private fun SeerrServer(nav: NavHostController, c: ArrClient, kind: String, id: 
     }
     if (askDelete) ConfirmDialog(stringResource(R.string.m_delete_confirm, cur?.s("name").orEmpty()), stringResource(R.string.delete), { askDelete = false }) {
         run(null) { c.delete("settings/$kind/$id"); nav.popBackStack() }
+    }
+}
+
+
+// ---- Media server link (Seerr's own media-server settings) ----
+
+/**
+ * Which media-server settings resource Seerr uses: `settings/plex`, or the alternative one
+ * Seerr's API offers for its other supported servers. `mediaServerType` in `settings/main`
+ * decides when present (1 = the first, 2 and 3 = the alternative); otherwise the alternative
+ * is used when it answers with a configured host.
+ */
+internal object SeerrMediaServerKind {
+    const val PLEX = "plex"
+    const val ALT = "jellyfin"
+
+    fun fromType(type: Int?): String? = when (type) { 1 -> PLEX; 2, 3 -> ALT; else -> null }
+
+    fun fromAltDoc(doc: JsonObject?): String =
+        if (doc != null && listOf("ip", "hostname", "name").any { !doc.s(it).isNullOrBlank() }) ALT else PLEX
+
+    /** The `enable` query of `settings/{kind}/library`: the ids to keep enabled, comma-separated. */
+    fun enableQuery(libraries: List<JsonObject>, id: String, on: Boolean): String =
+        libraries.mapNotNull { l -> val lid = l.s("id") ?: return@mapNotNull null; if (lid == id) lid.takeIf { on } else lid.takeIf { l.b("enabled") == true } }.joinToString(",")
+}
+
+private val MS_HIDE = setOf("libraries", "machineId", "serverId", "name")
+
+@Composable
+private fun SeerrMediaServer(nav: NavHostController, c: ArrClient) {
+    val kind = rememberLoaded("ms/kind") {
+        SeerrMediaServerKind.fromType(runCatching { c.obj("settings/main").i("mediaServerType") }.getOrNull())
+            ?: SeerrMediaServerKind.fromAltDoc(runCatching { c.obj("settings/${SeerrMediaServerKind.ALT}") }.getOrNull())
+    }
+    val k = kind.value
+    var tick by remember { mutableIntStateOf(0) }
+    val doc = rememberLoaded("ms/$k/$tick") { if (k == null) JsonObject(emptyMap()) else c.obj("settings/$k") }
+    var cur by remember(doc.value) { mutableStateOf(doc.value) }
+    var libs by remember(doc.value) { mutableStateOf(doc.value?.objs("libraries").orEmpty()) }
+    val scan = rememberLoaded("ms/$k/scan/$tick", pollMs = 4_000) { if (k == null) null else runCatching { c.obj("settings/$k/sync") }.getOrNull() }
+    val (act, run) = rememberAction()
+    val savedMsg = stringResource(R.string.saved)
+    val synced = stringResource(R.string.m_libraries_synced)
+    val labels = mapOf(
+        "ip" to stringResource(R.string.m_ms_host), "hostname" to stringResource(R.string.m_ms_host), "port" to stringResource(R.string.m_ms_port),
+        "useSsl" to stringResource(R.string.m_ms_ssl), "urlBase" to stringResource(R.string.m_ms_url_base),
+        "externalHostname" to stringResource(R.string.m_ms_external_url), "webAppUrl" to stringResource(R.string.m_ms_web_app_url),
+    )
+    ManagePage(nav, stringResource(R.string.m_media_server), doc.value?.s("name")?.ifBlank { null } ?: c.service.title) {
+        if (kind.error != null) block { ArrError(kind.error) }
+        loaded(doc) { original ->
+            val o = cur ?: return@loaded
+            item { Heading(stringResource(R.string.m_connection)) }
+            block {
+                JsonForm(o, { cur = it }, act.error, hide = MS_HIDE, labels = labels)
+                PrimaryButton(stringResource(R.string.save), {
+                    run(savedMsg) { (c.post("settings/$k", normalizeGeneric(o, original)) as? JsonObject)?.let { cur = it } }
+                }, Modifier.fillMaxWidth(), enabled = !act.busy && o != original)
+                FormErrors(act.error, o.keys)
+                act.done?.let { Text(it, color = Kino.success) }
+            }
+            item { Heading(stringResource(R.string.m_libraries)) }
+            block {
+                GlassButton(stringResource(R.string.m_sync_libraries), {
+                    run(synced) { libs = (c.get("settings/$k/library", mapOf("sync" to true)) as? JsonArray)?.filterIsInstance<JsonObject>() ?: libs }
+                }, Modifier.fillMaxWidth(), enabled = !act.busy, icon = Icons.Outlined.Sync)
+                if (libs.isEmpty()) Text(stringResource(R.string.m_no_libraries), color = Kino.muted, fontSize = 13.sp)
+            }
+            items(libs, key = { it.s("id") ?: it.toString() }) { l ->
+                val lid = l.s("id") ?: return@items
+                ListRow(l.s("name") ?: lid, listOfNotNull(l.s("type")?.let(::humanize), l.l("lastScan")?.takeIf { it > 0 }?.let { stringResource(R.string.m_last_run, when_(java.time.Instant.ofEpochMilli(it).toString())) }).joinToString(" · "),
+                    trailing = {
+                        Switch(l.b("enabled") == true, { on ->
+                            run(null) {
+                                val r = c.get("settings/$k/library", mapOf("enable" to SeerrMediaServerKind.enableQuery(libs, lid, on)))
+                                libs = (r as? JsonArray)?.filterIsInstance<JsonObject>() ?: libs.map { if (it.s("id") == lid) it.with("enabled", on) else it }
+                            }
+                        }, enabled = !act.busy, colors = SwitchDefaults.colors(checkedThumbColor = Kino.bg, checkedTrackColor = Kino.text))
+                    })
+            }
+            block {
+                Card(stringResource(R.string.m_library_scan)) {
+                    val sc = scan.value
+                    val running = sc?.b("running") == true
+                    if (running) {
+                        val total = sc?.i("total") ?: 0
+                        val progress = sc?.i("progress") ?: 0
+                        Text(listOfNotNull(sc?.o("currentLibrary")?.s("name"), if (total > 0) "$progress / $total" else null).joinToString(" · "), color = Kino.muted, fontSize = 13.sp)
+                        if (total > 0) Progress(progress.toFloat() / total)
+                    } else Text(stringResource(R.string.m_scan_idle), color = Kino.muted, fontSize = 13.sp)
+                    if (sc == null && scan.value == null && !scan.loading) Text(stringResource(R.string.m_scan_unavailable), color = Kino.faint, fontSize = 12.sp)
+                    if (running) GlassButton(stringResource(R.string.m_cancel_scan), { run(null) { c.post("settings/$k/sync", jsonOf("cancel" to true)); scan.reload() } }, Modifier.fillMaxWidth())
+                    else PrimaryButton(stringResource(R.string.m_start_scan), { run(null) { c.post("settings/$k/sync", jsonOf("start" to true)); scan.reload() } }, Modifier.fillMaxWidth(), enabled = !act.busy && libs.any { it.b("enabled") == true })
+                }
+            }
+        }
     }
 }

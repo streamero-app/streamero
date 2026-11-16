@@ -3,6 +3,7 @@ package net.scyde.streamero.manage
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -164,7 +165,8 @@ fun <T> LazyListScope.loaded(l: Loaded<T>, content: LazyListScope.(T) -> Unit) {
     if (v == null) { if (l.error == null) item { Loading() } } else content(v)
 }
 
-/** A tappable row: optional poster, title, a muted second line and something on the right. */
+/** A tappable (optionally long-pressable) row: optional poster, title, a muted second line and something on the right. */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun ListRow(
     title: String,
@@ -175,9 +177,15 @@ fun ListRow(
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
     chevron: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
     onClick: (() -> Unit)? = null,
 ) {
-    Row(modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier).padding(horizontal = 16.dp, vertical = 10.dp),
+    val tap = when {
+        onLongClick != null -> Modifier.combinedClickable(onClick = { onClick?.invoke() }, onLongClick = onLongClick)
+        onClick != null -> Modifier.clickable(onClick = onClick)
+        else -> Modifier
+    }
+    Row(modifier.fillMaxWidth().then(tap).padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         if (image != null) Box(Modifier.width(imageWidth).aspectRatio(2f / 3f).clip(RoundedCornerShape(4.dp)).background(Kino.surface2)) { ServerImage(image, Modifier.fillMaxSize()) }
         leading?.invoke()
