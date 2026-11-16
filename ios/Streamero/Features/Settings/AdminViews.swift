@@ -328,10 +328,17 @@ struct RequestsPage: View {
         AdminGuarded {
             Form {
                 SettingsDoc(load: { try await client.requestSettings() }, save: { s in
-                    let result = try await client.saveRequestSettings(RequestSettingsInput(
+                    var input = RequestSettingsInput(
                         usersCanRequest: s.usersCanRequest, seerrUrl: s.seerrUrl, seerrApiKey: keys["seerr"],
                         radarrUrl: s.radarrUrl, radarrApiKey: keys["radarr"], sonarrUrl: s.sonarrUrl, sonarrApiKey: keys["sonarr"],
-                        bazarrUrl: s.bazarrUrl, bazarrApiKey: keys["bazarr"]))
+                        bazarrUrl: s.bazarrUrl, bazarrApiKey: keys["bazarr"])
+                    #if MANAGE
+                    input.lidarrUrl = s.lidarrUrl
+                    input.lidarrApiKey = keys["lidarr"]
+                    input.prowlarrUrl = s.prowlarrUrl
+                    input.prowlarrApiKey = keys["prowlarr"]
+                    #endif
+                    let result = try await client.saveRequestSettings(input)
                     keys = [:]
                     return result
                 }) { s in
@@ -350,6 +357,14 @@ struct RequestsPage: View {
                         urlField("address", keptText(s.bazarrUrl))
                         keyField("bazarr", configured: s.wrappedValue.bazarrConfigured == true)
                     } header: { Text(verbatim: "Bazarr") }
+                    #if MANAGE
+                    Section {
+                        urlFieldVerbatim("Lidarr", keptText(s.lidarrUrl))
+                        keyField("lidarr", configured: s.wrappedValue.lidarrConfigured == true, app: "Lidarr")
+                        urlFieldVerbatim("Prowlarr", keptText(s.prowlarrUrl))
+                        keyField("prowlarr", configured: s.wrappedValue.prowlarrConfigured == true, app: "Prowlarr")
+                    } header: { Text(verbatim: "Lidarr / Prowlarr") }
+                    #endif
                     Section {
                         Button("test_connections") { Task { checks = (try? await client.testRequestSettings()) ?? [] } }
                         ForEach(checks, id: \.app) { c in

@@ -150,6 +150,17 @@
           "minOSVersion": "17.0"
         }
       ]
+    },
+    {
+      "name": "Streamero Manage",
+      "bundleIdentifier": "net.scyde.streamero.manage",
+      "developerName": "SCYDE",
+      "subtitle": "Streamero plus full control of your *arr stack.",
+      "localizedDescription": "Everything in Streamero, plus management of Radarr, Sonarr, Lidarr, Prowlarr, Bazarr and Seerr for server administrators.",
+      "iconURL": "https://streamero.net/icon.png",
+      "tintColor": "#E5484D",
+      "category": "utilities",
+      "versions": []
     }
   ],
   "news": []

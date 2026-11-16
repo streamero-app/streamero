@@ -64,6 +64,67 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         CODE_SIGN_STYLE: Manual
         CODE_SIGNING_ALLOWED: "NO"
+  # Streamero Manage: the whole app plus control of the *arr stack (D-047). Same sources,
+  # plus StreameroManage/ (compiled only here) and the MANAGE compilation condition.
+  StreameroManage:
+    type: application
+    platform: iOS
+    sources:
+      - path: Streamero
+        # The display name and permission texts are localized per app.
+        excludes: ["Resources/InfoPlist.xcstrings"]
+      - path: StreameroManage
+    dependencies:
+      - package: OpenAPIRuntime
+      - package: OpenAPIURLSession
+      - package: HTTPTypes
+    buildToolPlugins:
+      - plugin: OpenAPIGenerator
+        package: OpenAPIGenerator
+    info:
+      path: StreameroManage/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: Streamero Manage
+        CFBundleDevelopmentRegion: en
+        CFBundleLocalizations: [en, hr]
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        UIBackgroundModes: [audio, fetch]
+        NSLocalNetworkUsageDescription: Streamero Manage connects to media servers on your local network.
+        NSBonjourServices: [_streamero._tcp]
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+        UIUserInterfaceStyle: Dark
+        # Own scheme so invite links meant for the standard app do not land here (and the
+        # other way round). Single sign-on still completes through streamero://oidc: the
+        # ASWebAuthenticationSession that started it receives the callback, not the scheme owner.
+        CFBundleURLTypes:
+          - CFBundleURLName: net.scyde.streamero.manage.links
+            CFBundleURLSchemes: [streamero-manage]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: net.scyde.streamero.manage
+        PRODUCT_NAME: StreameroManage
+        ASSETCATALOG_COMPILER_APPICON_NAME: ManageAppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGNING_ALLOWED: "NO"
+      configs:
+        Debug:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG MANAGE"
+        Release:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: MANAGE
+  StreameroManageTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [StreameroManageTests]
+    dependencies:
+      - target: StreameroManage
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: "YES"
+        CODE_SIGNING_ALLOWED: "NO"
   StreameroTests:
     type: bundle.unit-test
     platform: iOS
@@ -81,3 +142,9 @@ schemes:
         Streamero: all
     test:
       targets: [StreameroTests]
+  StreameroManage:
+    build:
+      targets:
+        StreameroManage: all
+    test:
+      targets: [StreameroManageTests]

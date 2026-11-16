@@ -10,12 +10,14 @@ enum InviteLink {
     }
 
     static let scheme = "streamero"
+    /// Schemes this app reads invite links from: the standard one, plus its own (Streamero Manage).
+    static let schemes: Set<String> = [scheme, AppIdentity.urlScheme]
 
     /// Reads whatever the user pasted; nil when it is neither a link nor a plausible token.
     static func parse(_ input: String) -> Parsed? {
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return nil }
-        if text.lowercased().hasPrefix("\(scheme)://") {
+        if schemes.contains(where: { text.lowercased().hasPrefix("\($0)://") }) {
             return URL(string: text).flatMap(parse(url:))
         }
         if text.contains("/") {
@@ -37,7 +39,7 @@ enum InviteLink {
 
     /// `streamero://invite?server=…&token=…` (nil for other app links such as `streamero://oidc`).
     static func parse(url: URL) -> Parsed? {
-        guard url.scheme?.lowercased() == scheme, url.host()?.lowercased() == "invite",
+        guard let urlScheme = url.scheme?.lowercased(), schemes.contains(urlScheme), url.host()?.lowercased() == "invite",
               let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems,
               let token = items.first(where: { $0.name == "token" })?.value, isToken(token) else { return nil }
         let server = items.first(where: { $0.name == "server" })?.value.flatMap(ServerURL.normalize)
