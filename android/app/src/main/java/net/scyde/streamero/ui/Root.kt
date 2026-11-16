@@ -43,6 +43,7 @@ import net.scyde.streamero.AppState
 import net.scyde.streamero.Connection
 import net.scyde.streamero.R
 import net.scyde.streamero.applyLanguage
+import net.scyde.streamero.manage.ManageEntry
 import kotlinx.coroutines.launch
 
 private enum class Gate { Loading, Server, Login, Invite, Profiles, Ready, Offline }
@@ -131,16 +132,18 @@ private fun OfflineMain(state: AppState, retrying: Boolean, onRetry: () -> Unit)
     }
 }
 
-private data class Tab(val route: String, val label: Int, val icon: ImageVector)
+internal data class Tab(val route: String, val label: Int, val icon: ImageVector)
 
 @Composable
 private fun Main(state: AppState, onSignedOut: () -> Unit, onSwitchProfile: () -> Unit) {
     val nav = rememberNavController()
-    val tabs = listOf(
+    val tabs = listOfNotNull(
         Tab("home", R.string.nav_home, Icons.Outlined.Home),
         Tab("search", R.string.nav_search, Icons.Outlined.Search),
         Tab("discover", R.string.nav_discover, Icons.Outlined.Explore),
         Tab("libraries", R.string.nav_libraries, Icons.Outlined.VideoLibrary),
+        // Streamero Manage only (admins): control of the media services; null in the standard app.
+        ManageEntry.tab(state),
         Tab("me", R.string.nav_me, Icons.Outlined.AccountCircle),
     )
     val entry by nav.currentBackStackEntryAsState()
@@ -213,6 +216,7 @@ private fun Routes(state: AppState, nav: NavHostController, onSignedOut: () -> U
         composable("livetv/channel/{id}") { LiveChannelScreen(state, nav, it.arguments?.getString("id")!!) }
         // "watch…" routes hide the bottom bar and the mini player.
         composable("watchlive/{id}") { LivePlayerScreen(state, nav, it.arguments?.getString("id")!!) }
+        ManageEntry.routes(this, state, nav)
     }
 }
 

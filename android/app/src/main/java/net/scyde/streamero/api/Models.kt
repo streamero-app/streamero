@@ -210,11 +210,13 @@ import kotlinx.serialization.json.JsonElement
     val seerrUrl: String? = null, val seerrConfigured: Boolean = false, val usersCanRequest: Boolean = true,
     val radarrUrl: String? = null, val radarrConfigured: Boolean = false, val sonarrUrl: String? = null, val sonarrConfigured: Boolean = false,
     val bazarrUrl: String? = null, val bazarrConfigured: Boolean = false,
+    val lidarrUrl: String? = null, val lidarrConfigured: Boolean = false, val prowlarrUrl: String? = null, val prowlarrConfigured: Boolean = false,
 )
 @Serializable data class RequestSettingsInput(
     val usersCanRequest: Boolean, val seerrUrl: String? = null, val seerrApiKey: String? = null,
     val radarrUrl: String? = null, val radarrApiKey: String? = null, val sonarrUrl: String? = null, val sonarrApiKey: String? = null,
     val bazarrUrl: String? = null, val bazarrApiKey: String? = null,
+    val lidarrUrl: String? = null, val lidarrApiKey: String? = null, val prowlarrUrl: String? = null, val prowlarrApiKey: String? = null,
 )
 @Serializable data class SubtitleOffer(
     val provider: String, val language: String, val forced: Boolean = false, val hearingImpaired: Boolean = false, val score: Double = 0.0,

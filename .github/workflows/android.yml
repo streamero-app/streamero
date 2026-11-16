@@ -49,8 +49,9 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: gradle/actions/setup-gradle@v4
+      # Two apps from the same code (D-064): "standard" (Streamero) and "manage" (Streamero Manage).
       - name: Unit tests
-        run: ./gradlew --no-daemon :app:testDebugUnitTest
+        run: ./gradlew --no-daemon :app:testStandardDebugUnitTest :app:testManageDebugUnitTest
       - name: Restore signing key
         env:
           KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -67,8 +68,10 @@ jobs:
           # A tagged release must be signed with the project key (the build fails otherwise).
           REQUIRE_RELEASE_SIGNING: ${{ inputs.version && 'true' || 'false' }}
         run: |
-          ./gradlew --no-daemon :app:assembleRelease
-          mkdir -p dist && cp app/build/outputs/apk/release/app-release.apk "dist/Streamero-$TAG.apk"
+          ./gradlew --no-daemon :app:assembleStandardRelease :app:assembleManageRelease
+          mkdir -p dist
+          cp app/build/outputs/apk/standard/release/app-standard-release.apk "dist/Streamero-$TAG.apk"
+          cp app/build/outputs/apk/manage/release/app-manage-release.apk "dist/Streamero-Manage-$TAG.apk"
       - uses: actions/upload-artifact@v4
         with:
           name: streamero-apk
