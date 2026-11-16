@@ -40,7 +40,9 @@ func toRequestSettings(s requests.Settings) *gen.RequestSettings {
 	return &gen.RequestSettings{SeerrUrl: optString(s.SeerrURL), SeerrConfigured: s.SeerrReady(), UsersCanRequest: s.UsersCanRequest,
 		RadarrUrl: optString(s.RadarrURL), RadarrConfigured: s.RadarrURL != "" && s.RadarrKey != "",
 		SonarrUrl: optString(s.SonarrURL), SonarrConfigured: s.SonarrURL != "" && s.SonarrKey != "",
-		BazarrUrl: optString(s.BazarrURL), BazarrConfigured: gen.NewOptBool(s.BazarrReady())}
+		BazarrUrl: optString(s.BazarrURL), BazarrConfigured: gen.NewOptBool(s.BazarrReady()),
+		LidarrUrl: optString(s.LidarrURL), LidarrConfigured: gen.NewOptBool(s.LidarrURL != "" && s.LidarrKey != ""),
+		ProwlarrUrl: optString(s.ProwlarrURL), ProwlarrConfigured: gen.NewOptBool(s.ProwlarrURL != "" && s.ProwlarrKey != "")}
 }
 
 // GetRequestSettings implements GET /settings/requests.
@@ -90,6 +92,12 @@ func (h *Handler) UpdateRequestSettings(ctx context.Context, req *gen.RequestSet
 	if err := set(&s.BazarrURL, &s.BazarrKey, req.BazarrUrl, req.BazarrApiKey); err != nil {
 		return nil, err
 	}
+	if err := set(&s.LidarrURL, &s.LidarrKey, req.LidarrUrl, req.LidarrApiKey); err != nil {
+		return nil, err
+	}
+	if err := set(&s.ProwlarrURL, &s.ProwlarrKey, req.ProwlarrUrl, req.ProwlarrApiKey); err != nil {
+		return nil, err
+	}
 	for _, k := range req.RemoveKeys {
 		switch k {
 		case gen.RequestSettingsInputRemoveKeysItemSeerr:
@@ -100,6 +108,10 @@ func (h *Handler) UpdateRequestSettings(ctx context.Context, req *gen.RequestSet
 			s.SonarrKey = ""
 		case gen.RequestSettingsInputRemoveKeysItemBazarr:
 			s.BazarrKey = ""
+		case gen.RequestSettingsInputRemoveKeysItemLidarr:
+			s.LidarrKey = ""
+		case gen.RequestSettingsInputRemoveKeysItemProwlarr:
+			s.ProwlarrKey = ""
 		}
 	}
 	s.UsersCanRequest = req.UsersCanRequest
@@ -117,7 +129,8 @@ func (h *Handler) TestRequestSettings(ctx context.Context) ([]gen.ConnectionChec
 	}
 	s := h.requestSettings(ctx)
 	out := []gen.ConnectionCheck{}
-	for _, c := range []struct{ app, url, key string }{{"Seerr", s.SeerrURL, s.SeerrKey}, {"Radarr", s.RadarrURL, s.RadarrKey}, {"Sonarr", s.SonarrURL, s.SonarrKey}, {"Bazarr", s.BazarrURL, s.BazarrKey}} {
+	for _, c := range []struct{ app, url, key string }{{"Seerr", s.SeerrURL, s.SeerrKey}, {"Radarr", s.RadarrURL, s.RadarrKey}, {"Sonarr", s.SonarrURL, s.SonarrKey}, {"Bazarr", s.BazarrURL, s.BazarrKey},
+		{"Lidarr", s.LidarrURL, s.LidarrKey}, {"Prowlarr", s.ProwlarrURL, s.ProwlarrKey}} {
 		if c.url == "" {
 			continue
 		}

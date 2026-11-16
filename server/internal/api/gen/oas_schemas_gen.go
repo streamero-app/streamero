@@ -307,6 +307,164 @@ func (s *ArrLinkApp) UnmarshalText(data []byte) error {
 	}
 }
 
+// Ref: #/components/schemas/ArrService
+type ArrService struct {
+	ID ArrServiceID `json:"id"`
+	// An address and an API key are stored.
+	Configured bool `json:"configured"`
+	// The status endpoint answered with the stored key.
+	Reachable bool      `json:"reachable"`
+	Version   OptString `json:"version"`
+	// Why the service is not reachable.
+	Error OptString `json:"error"`
+	// Path prefix of the service's API under the proxy (api/v3, api/v1 or api).
+	ApiBase string `json:"apiBase"`
+}
+
+// GetID returns the value of ID.
+func (s *ArrService) GetID() ArrServiceID {
+	return s.ID
+}
+
+// GetConfigured returns the value of Configured.
+func (s *ArrService) GetConfigured() bool {
+	return s.Configured
+}
+
+// GetReachable returns the value of Reachable.
+func (s *ArrService) GetReachable() bool {
+	return s.Reachable
+}
+
+// GetVersion returns the value of Version.
+func (s *ArrService) GetVersion() OptString {
+	return s.Version
+}
+
+// GetError returns the value of Error.
+func (s *ArrService) GetError() OptString {
+	return s.Error
+}
+
+// GetApiBase returns the value of ApiBase.
+func (s *ArrService) GetApiBase() string {
+	return s.ApiBase
+}
+
+// SetID sets the value of ID.
+func (s *ArrService) SetID(val ArrServiceID) {
+	s.ID = val
+}
+
+// SetConfigured sets the value of Configured.
+func (s *ArrService) SetConfigured(val bool) {
+	s.Configured = val
+}
+
+// SetReachable sets the value of Reachable.
+func (s *ArrService) SetReachable(val bool) {
+	s.Reachable = val
+}
+
+// SetVersion sets the value of Version.
+func (s *ArrService) SetVersion(val OptString) {
+	s.Version = val
+}
+
+// SetError sets the value of Error.
+func (s *ArrService) SetError(val OptString) {
+	s.Error = val
+}
+
+// SetApiBase sets the value of ApiBase.
+func (s *ArrService) SetApiBase(val string) {
+	s.ApiBase = val
+}
+
+type ArrServiceID string
+
+const (
+	ArrServiceIDRadarr   ArrServiceID = "radarr"
+	ArrServiceIDSonarr   ArrServiceID = "sonarr"
+	ArrServiceIDLidarr   ArrServiceID = "lidarr"
+	ArrServiceIDProwlarr ArrServiceID = "prowlarr"
+	ArrServiceIDBazarr   ArrServiceID = "bazarr"
+	ArrServiceIDSeerr    ArrServiceID = "seerr"
+)
+
+// AllValues returns all ArrServiceID values.
+func (ArrServiceID) AllValues() []ArrServiceID {
+	return []ArrServiceID{
+		ArrServiceIDRadarr,
+		ArrServiceIDSonarr,
+		ArrServiceIDLidarr,
+		ArrServiceIDProwlarr,
+		ArrServiceIDBazarr,
+		ArrServiceIDSeerr,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ArrServiceID) MarshalText() ([]byte, error) {
+	switch s {
+	case ArrServiceIDRadarr:
+		return []byte(s), nil
+	case ArrServiceIDSonarr:
+		return []byte(s), nil
+	case ArrServiceIDLidarr:
+		return []byte(s), nil
+	case ArrServiceIDProwlarr:
+		return []byte(s), nil
+	case ArrServiceIDBazarr:
+		return []byte(s), nil
+	case ArrServiceIDSeerr:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ArrServiceID) UnmarshalText(data []byte) error {
+	switch ArrServiceID(data) {
+	case ArrServiceIDRadarr:
+		*s = ArrServiceIDRadarr
+		return nil
+	case ArrServiceIDSonarr:
+		*s = ArrServiceIDSonarr
+		return nil
+	case ArrServiceIDLidarr:
+		*s = ArrServiceIDLidarr
+		return nil
+	case ArrServiceIDProwlarr:
+		*s = ArrServiceIDProwlarr
+		return nil
+	case ArrServiceIDBazarr:
+		*s = ArrServiceIDBazarr
+		return nil
+	case ArrServiceIDSeerr:
+		*s = ArrServiceIDSeerr
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/ArrServiceList
+type ArrServiceList struct {
+	Services []ArrService `json:"services"`
+}
+
+// GetServices returns the value of Services.
+func (s *ArrServiceList) GetServices() []ArrService {
+	return s.Services
+}
+
+// SetServices sets the value of Services.
+func (s *ArrServiceList) SetServices(val []ArrService) {
+	s.Services = val
+}
+
 // Ref: #/components/schemas/AudioStream
 type AudioStream struct {
 	Codec    string    `json:"codec"`
@@ -14914,6 +15072,12 @@ type RequestSettings struct {
 	SonarrConfigured bool      `json:"sonarrConfigured"`
 	BazarrUrl        OptString `json:"bazarrUrl"`
 	BazarrConfigured OptBool   `json:"bazarrConfigured"`
+	LidarrUrl        OptString `json:"lidarrUrl"`
+	// Lidarr is used only through the Streamero Manage proxy (/arr).
+	LidarrConfigured OptBool   `json:"lidarrConfigured"`
+	ProwlarrUrl      OptString `json:"prowlarrUrl"`
+	// Prowlarr is used only through the Streamero Manage proxy (/arr).
+	ProwlarrConfigured OptBool `json:"prowlarrConfigured"`
 }
 
 // GetSeerrUrl returns the value of SeerrUrl.
@@ -14961,6 +15125,26 @@ func (s *RequestSettings) GetBazarrConfigured() OptBool {
 	return s.BazarrConfigured
 }
 
+// GetLidarrUrl returns the value of LidarrUrl.
+func (s *RequestSettings) GetLidarrUrl() OptString {
+	return s.LidarrUrl
+}
+
+// GetLidarrConfigured returns the value of LidarrConfigured.
+func (s *RequestSettings) GetLidarrConfigured() OptBool {
+	return s.LidarrConfigured
+}
+
+// GetProwlarrUrl returns the value of ProwlarrUrl.
+func (s *RequestSettings) GetProwlarrUrl() OptString {
+	return s.ProwlarrUrl
+}
+
+// GetProwlarrConfigured returns the value of ProwlarrConfigured.
+func (s *RequestSettings) GetProwlarrConfigured() OptBool {
+	return s.ProwlarrConfigured
+}
+
 // SetSeerrUrl sets the value of SeerrUrl.
 func (s *RequestSettings) SetSeerrUrl(val OptString) {
 	s.SeerrUrl = val
@@ -15006,6 +15190,26 @@ func (s *RequestSettings) SetBazarrConfigured(val OptBool) {
 	s.BazarrConfigured = val
 }
 
+// SetLidarrUrl sets the value of LidarrUrl.
+func (s *RequestSettings) SetLidarrUrl(val OptString) {
+	s.LidarrUrl = val
+}
+
+// SetLidarrConfigured sets the value of LidarrConfigured.
+func (s *RequestSettings) SetLidarrConfigured(val OptBool) {
+	s.LidarrConfigured = val
+}
+
+// SetProwlarrUrl sets the value of ProwlarrUrl.
+func (s *RequestSettings) SetProwlarrUrl(val OptString) {
+	s.ProwlarrUrl = val
+}
+
+// SetProwlarrConfigured sets the value of ProwlarrConfigured.
+func (s *RequestSettings) SetProwlarrConfigured(val OptBool) {
+	s.ProwlarrConfigured = val
+}
+
 // Ref: #/components/schemas/RequestSettingsInput
 type RequestSettingsInput struct {
 	SeerrUrl        OptString                            `json:"seerrUrl"`
@@ -15017,6 +15221,10 @@ type RequestSettingsInput struct {
 	SonarrApiKey    OptString                            `json:"sonarrApiKey"`
 	BazarrUrl       OptString                            `json:"bazarrUrl"`
 	BazarrApiKey    OptString                            `json:"bazarrApiKey"`
+	LidarrUrl       OptString                            `json:"lidarrUrl"`
+	LidarrApiKey    OptString                            `json:"lidarrApiKey"`
+	ProwlarrUrl     OptString                            `json:"prowlarrUrl"`
+	ProwlarrApiKey  OptString                            `json:"prowlarrApiKey"`
 	RemoveKeys      []RequestSettingsInputRemoveKeysItem `json:"removeKeys"`
 }
 
@@ -15063,6 +15271,26 @@ func (s *RequestSettingsInput) GetBazarrUrl() OptString {
 // GetBazarrApiKey returns the value of BazarrApiKey.
 func (s *RequestSettingsInput) GetBazarrApiKey() OptString {
 	return s.BazarrApiKey
+}
+
+// GetLidarrUrl returns the value of LidarrUrl.
+func (s *RequestSettingsInput) GetLidarrUrl() OptString {
+	return s.LidarrUrl
+}
+
+// GetLidarrApiKey returns the value of LidarrApiKey.
+func (s *RequestSettingsInput) GetLidarrApiKey() OptString {
+	return s.LidarrApiKey
+}
+
+// GetProwlarrUrl returns the value of ProwlarrUrl.
+func (s *RequestSettingsInput) GetProwlarrUrl() OptString {
+	return s.ProwlarrUrl
+}
+
+// GetProwlarrApiKey returns the value of ProwlarrApiKey.
+func (s *RequestSettingsInput) GetProwlarrApiKey() OptString {
+	return s.ProwlarrApiKey
 }
 
 // GetRemoveKeys returns the value of RemoveKeys.
@@ -15115,6 +15343,26 @@ func (s *RequestSettingsInput) SetBazarrApiKey(val OptString) {
 	s.BazarrApiKey = val
 }
 
+// SetLidarrUrl sets the value of LidarrUrl.
+func (s *RequestSettingsInput) SetLidarrUrl(val OptString) {
+	s.LidarrUrl = val
+}
+
+// SetLidarrApiKey sets the value of LidarrApiKey.
+func (s *RequestSettingsInput) SetLidarrApiKey(val OptString) {
+	s.LidarrApiKey = val
+}
+
+// SetProwlarrUrl sets the value of ProwlarrUrl.
+func (s *RequestSettingsInput) SetProwlarrUrl(val OptString) {
+	s.ProwlarrUrl = val
+}
+
+// SetProwlarrApiKey sets the value of ProwlarrApiKey.
+func (s *RequestSettingsInput) SetProwlarrApiKey(val OptString) {
+	s.ProwlarrApiKey = val
+}
+
 // SetRemoveKeys sets the value of RemoveKeys.
 func (s *RequestSettingsInput) SetRemoveKeys(val []RequestSettingsInputRemoveKeysItem) {
 	s.RemoveKeys = val
@@ -15123,10 +15371,12 @@ func (s *RequestSettingsInput) SetRemoveKeys(val []RequestSettingsInputRemoveKey
 type RequestSettingsInputRemoveKeysItem string
 
 const (
-	RequestSettingsInputRemoveKeysItemSeerr  RequestSettingsInputRemoveKeysItem = "seerr"
-	RequestSettingsInputRemoveKeysItemRadarr RequestSettingsInputRemoveKeysItem = "radarr"
-	RequestSettingsInputRemoveKeysItemSonarr RequestSettingsInputRemoveKeysItem = "sonarr"
-	RequestSettingsInputRemoveKeysItemBazarr RequestSettingsInputRemoveKeysItem = "bazarr"
+	RequestSettingsInputRemoveKeysItemSeerr    RequestSettingsInputRemoveKeysItem = "seerr"
+	RequestSettingsInputRemoveKeysItemRadarr   RequestSettingsInputRemoveKeysItem = "radarr"
+	RequestSettingsInputRemoveKeysItemSonarr   RequestSettingsInputRemoveKeysItem = "sonarr"
+	RequestSettingsInputRemoveKeysItemBazarr   RequestSettingsInputRemoveKeysItem = "bazarr"
+	RequestSettingsInputRemoveKeysItemLidarr   RequestSettingsInputRemoveKeysItem = "lidarr"
+	RequestSettingsInputRemoveKeysItemProwlarr RequestSettingsInputRemoveKeysItem = "prowlarr"
 )
 
 // AllValues returns all RequestSettingsInputRemoveKeysItem values.
@@ -15136,6 +15386,8 @@ func (RequestSettingsInputRemoveKeysItem) AllValues() []RequestSettingsInputRemo
 		RequestSettingsInputRemoveKeysItemRadarr,
 		RequestSettingsInputRemoveKeysItemSonarr,
 		RequestSettingsInputRemoveKeysItemBazarr,
+		RequestSettingsInputRemoveKeysItemLidarr,
+		RequestSettingsInputRemoveKeysItemProwlarr,
 	}
 }
 
@@ -15149,6 +15401,10 @@ func (s RequestSettingsInputRemoveKeysItem) MarshalText() ([]byte, error) {
 	case RequestSettingsInputRemoveKeysItemSonarr:
 		return []byte(s), nil
 	case RequestSettingsInputRemoveKeysItemBazarr:
+		return []byte(s), nil
+	case RequestSettingsInputRemoveKeysItemLidarr:
+		return []byte(s), nil
+	case RequestSettingsInputRemoveKeysItemProwlarr:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -15169,6 +15425,12 @@ func (s *RequestSettingsInputRemoveKeysItem) UnmarshalText(data []byte) error {
 		return nil
 	case RequestSettingsInputRemoveKeysItemBazarr:
 		*s = RequestSettingsInputRemoveKeysItemBazarr
+		return nil
+	case RequestSettingsInputRemoveKeysItemLidarr:
+		*s = RequestSettingsInputRemoveKeysItemLidarr
+		return nil
+	case RequestSettingsInputRemoveKeysItemProwlarr:
+		*s = RequestSettingsInputRemoveKeysItemProwlarr
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)

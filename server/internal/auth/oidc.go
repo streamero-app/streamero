@@ -26,10 +26,18 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// AppRedirectURI is the only redirect URI apps may ask for (custom URL scheme of the
-// iOS and Android apps, D-037). The provider never sees it: it redirects to the
-// server, which hands the app a one-time code bound to the app's PKCE challenge.
-const AppRedirectURI = "streamero://oidc"
+// AppRedirectURI and ManageAppRedirectURI are the only redirect URIs apps may ask
+// for (custom URL schemes of the iOS and Android apps, D-037, and of the Streamero
+// Manage apps, D-049, so a phone with both apps does not show a chooser). The
+// provider never sees them: it redirects to the server, which hands the app a
+// one-time code bound to the app's PKCE challenge.
+const (
+	AppRedirectURI       = "streamero://oidc"
+	ManageAppRedirectURI = "streamero-manage://oidc"
+)
+
+// IsAppRedirect reports whether an app may ask for this redirect URI.
+func IsAppRedirect(uri string) bool { return uri == AppRedirectURI || uri == ManageAppRedirectURI }
 
 // Lifetimes of pending sign-ins and of app hand-off codes.
 const (
@@ -432,7 +440,7 @@ func (s *Service) OIDCAuthorize(ctx context.Context, r AuthorizeRequest) (authUR
 			return "", "", ErrUnauthenticated
 		}
 	case "app":
-		if r.AppRedirect != AppRedirectURI {
+		if !IsAppRedirect(r.AppRedirect) {
 			return "", "", invalid("unknown app redirect URI")
 		}
 		if !challengeRe.MatchString(r.AppChallenge) {

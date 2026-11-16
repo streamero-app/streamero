@@ -986,7 +986,9 @@
     "test": "Provjeri veze",
     "nothingToTest": "Još ništa nije postavljeno.",
     "connected": "povezano, verzija {{version}}",
-    "bazarrIntro": "Nije obavezno. Traži i preuzima titlove sa stranice naslova. Bazarr naslove pronalazi preko Radarra i Sonarra, pa poveži i njih."
+    "bazarrIntro": "Nije obavezno. Traži i preuzima titlove sa stranice naslova. Bazarr naslove pronalazi preko Radarra i Sonarra, pa poveži i njih.",
+    "manageIntro": "Nije obavezno. Koriste ih samo aplikacije Streamero Manage, koje preko ovog servera upravljaju glazbenom bibliotekom i indekserima.",
+    "manageNote": "Streamero Manage (administratorska aplikacija za Android i iOS) upravlja svim servisima s ove stranice preko ovog servera: ključevi ostaju ovdje, a servisi ne moraju biti dostupni s interneta. Docker imena poput http://radarr:7878 su u redu."
   },
   "enhancements": {
     "title": "Proširenja",

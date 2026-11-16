@@ -128,6 +128,7 @@ var operationRolesSessionToken = map[string][]string{
 	JoinSyncGroupOperation:              []string{},
 	LeaveSyncGroupOperation:             []string{},
 	ListAPIKeysOperation:                []string{},
+	ListArrServicesOperation:            []string{},
 	ListBackupsOperation:                []string{},
 	ListCollectionsOperation:            []string{},
 	ListDownloadsOperation:              []string{},

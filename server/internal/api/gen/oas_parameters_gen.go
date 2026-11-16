@@ -5896,7 +5896,8 @@ func decodeNextEpisodeParams(args [1]string, argsEscaped bool, r *http.Request) 
 type OidcAuthorizeParams struct {
 	ProviderId string
 	Client     OptOidcAuthorizeClient `json:",omitempty,omitzero"`
-	// App only; must be exactly `streamero://oidc`.
+	// App only; exactly `streamero://oidc` (Streamero apps) or `streamero-manage://oidc` (Streamero Manage
+	// apps).
 	RedirectUri OptString `json:",omitempty,omitzero"`
 	// App only; BASE64URL(SHA-256(verifier)), 43 characters.
 	CodeChallenge OptString `json:",omitempty,omitzero"`

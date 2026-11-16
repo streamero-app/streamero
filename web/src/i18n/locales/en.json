@@ -986,7 +986,9 @@
     "test": "Test connections",
     "nothingToTest": "Nothing is set up yet.",
     "connected": "connected, version {{version}}",
-    "bazarrIntro": "Optional. Finds and downloads subtitles from the title page. Bazarr looks titles up through Radarr and Sonarr, so connect those too."
+    "bazarrIntro": "Optional. Finds and downloads subtitles from the title page. Bazarr looks titles up through Radarr and Sonarr, so connect those too.",
+    "manageIntro": "Optional. Used only by the Streamero Manage apps, which control your music library and indexers through this server.",
+    "manageNote": "Streamero Manage (the admin app for Android and iOS) controls every service on this page through this server: the keys stay here, and the services do not have to be reachable from the internet. Docker hostnames such as http://radarr:7878 are fine."
   },
   "enhancements": {
     "title": "Enhancements",
