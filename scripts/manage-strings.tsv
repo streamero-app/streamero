@@ -267,3 +267,106 @@ manage.upgrades_allowed	Upgrades allowed	Dopuštene nadogradnje
 manage.users	Users	Korisnici
 manage.version	Version	Verzija
 manage.wanted	Wanted	Traženo
+manage.add_item	Add item	Dodaj stavku
+manage.add_language	Add language	Dodaj jezik
+manage.add_profile	Add profile	Dodaj profil
+manage.anime	Anime	Anime
+manage.audio_exclude	Skip when the audio is already in this language	Preskoči kad je zvuk već na ovom jeziku
+manage.audio_only_include	Only when the audio is in this language	Samo kad je zvuk na ovom jeziku
+manage.bulk_delete_confirm %lld	Delete %lld selected items?	Izbrisati odabrane stavke (%lld)?
+manage.bulk_edit	Edit selected	Uredi odabrano
+manage.bulk_selected %lld	%lld selected	Odabrano: %lld
+manage.cancel_scan	Stop scan	Zaustavi skeniranje
+manage.change_tags	Change tags	Promijeni oznake
+manage.connection	Connection	Veza
+manage.cutoff_none	None	Bez granice
+manage.default	Default	Zadano
+manage.defaults	Defaults	Zadane postavke
+manage.json_items %lld	%lld items	Stavki: %lld
+manage.json_keys %lld	%lld fields	Polja: %lld
+manage.language_profile	Language profile	Jezični profil
+manage.language_profiles	Language profiles	Jezični profili
+manage.languages	Languages	Jezici
+manage.languages_all	All languages	Svi jezici
+manage.languages_enabled	Enabled languages	Uključeni jezici
+manage.languages_enabled_hint	Only enabled languages can be used in language profiles.	U jezičnim profilima mogu se koristiti samo uključeni jezici.
+manage.languages_need_one	Enable at least one language.	Uključi barem jedan jezik.
+manage.libraries	Libraries	Biblioteke
+manage.manual_entry	Enter values by hand	Upiši vrijednosti ručno
+manage.media_server	Media server	Medijski poslužitelj
+manage.media_server_hint	The server Seerr signs users in with and checks availability on.	Poslužitelj preko kojeg se korisnici prijavljuju u Seerr i na kojem Seerr provjerava dostupnost.
+manage.media_server_none	Seerr has no media server set up yet. Finish its setup first.	Seerr još nema postavljen medijski poslužitelj. Najprije dovrši njegovo postavljanje.
+manage.monitoring	Monitoring	Praćenje
+manage.move_files	Move files to the new folder	Premjesti datoteke u novu mapu
+manage.must_contain	Must contain	Mora sadržavati
+manage.must_not_contain	Must not contain	Ne smije sadržavati
+manage.network	Network	Mreža
+manage.new_profile	New profile	Novi profil
+manage.no	No	Ne
+manage.no_change	No change	Bez promjene
+manage.original_format	Keep the original format	Zadrži izvorni format
+manage.perm.admin	Administrator	Administrator
+manage.perm.admin_hint	Administrators have every permission.	Administratori imaju sva dopuštenja.
+manage.perm.auto_approve	Auto-approve	Automatski odobri
+manage.perm.auto_approve_4k	Auto-approve 4K	Automatski odobri 4K
+manage.perm.auto_approve_4k_movie	Auto-approve 4K movies	Automatski odobri 4K filmove
+manage.perm.auto_approve_4k_tv	Auto-approve 4K series	Automatski odobri 4K serije
+manage.perm.auto_approve_movie	Auto-approve movies	Automatski odobri filmove
+manage.perm.auto_approve_tv	Auto-approve series	Automatski odobri serije
+manage.perm.auto_request	Auto-request	Automatski zatraži
+manage.perm.auto_request_movie	Auto-request movies	Automatski zatraži filmove
+manage.perm.auto_request_tv	Auto-request series	Automatski zatraži serije
+manage.perm.create_issues	Report issues	Prijavi probleme
+manage.perm.group.admin	Administration	Administracija
+manage.perm.group.auto_approve	Auto-approve	Automatsko odobravanje
+manage.perm.group.auto_request	Auto-request from watchlists	Automatski zahtjevi s popisa za gledanje
+manage.perm.group.other	Other	Ostalo
+manage.perm.group.request	Requests	Zahtjevi
+manage.perm.group.request_4k	4K requests	4K zahtjevi
+manage.perm.group.unknown	Other permissions	Ostala dopuštenja
+manage.perm.manage_issues	Manage issues	Upravljanje problemima
+manage.perm.manage_requests	Manage requests	Upravljanje zahtjevima
+manage.perm.manage_settings	Manage settings	Upravljanje postavkama
+manage.perm.manage_users	Manage users	Upravljanje korisnicima
+manage.perm.other_bit %lld	Other (bit %lld)	Ostalo (bit %lld)
+manage.perm.recent_view	View recently added	Pregled nedavno dodanog
+manage.perm.remove_anyway	Remove	Ukloni
+manage.perm.remove_own_admin	Remove your own administrator rights?	Ukloniti vlastita administratorska prava?
+manage.perm.remove_own_admin_hint	This is the account Streamero uses for Seerr. Without administrator rights it can no longer manage Seerr from this app.	Ovo je račun preko kojeg Streamero koristi Seerr. Bez administratorskih prava više neće moći upravljati Seerrom iz ove aplikacije.
+manage.perm.request	Request	Slanje zahtjeva
+manage.perm.request_4k	Request 4K	4K zahtjevi
+manage.perm.request_4k_movie	Request 4K movies	4K zahtjevi za filmove
+manage.perm.request_4k_tv	Request 4K series	4K zahtjevi za serije
+manage.perm.request_advanced	Advanced requests	Napredni zahtjevi
+manage.perm.request_movie	Request movies	Zahtjevi za filmove
+manage.perm.request_tv	Request series	Zahtjevi za serije
+manage.perm.request_view	View requests	Pregled zahtjeva
+manage.perm.unknown_hint	Permissions this app does not know yet. They are kept as they are unless you switch them off.	Dopuštenja koja ova aplikacija još ne poznaje. Ostaju kakva jesu osim ako ih isključiš.
+manage.perm.view_issues	View issues	Pregled problema
+manage.perm.vote	Vote	Glasanje
+manage.perm.watchlist_view	View watchlists	Pregled popisa za gledanje
+manage.permissions	Permissions	Dopuštenja
+manage.profile_languages	Languages in order of preference	Jezici po redoslijedu prednosti
+manage.profile_languages_hint	Swipe to remove, use Edit to reorder.	Povuci za uklanjanje, Uredi za promjenu redoslijeda.
+manage.profile_tag	Tag	Oznaka
+manage.quota	Request limits	Ograničenja zahtjeva
+manage.quota.movie_days	Movie limit period (days)	Razdoblje za filmove (dana)
+manage.quota.movie_limit	Movie requests	Zahtjevi za filmove
+manage.quota.tv_days	Series limit period (days)	Razdoblje za serije (dana)
+manage.quota.tv_limit	Season requests	Zahtjevi za sezone
+manage.quota_hint	Leave empty to use Seerr's global limits.	Ostavi prazno za Seerrova opća ograničenja.
+manage.release_filters	Release filters	Filtri izdanja
+manage.request_4k	Request in 4K	Zatraži u 4K
+manage.scan_libraries	Scan libraries	Skeniraj biblioteke
+manage.scan_libraries_hint	Seerr reads the enabled libraries to know what is already available.	Seerr čita uključene biblioteke da zna što je već dostupno.
+manage.select	Select	Odaberi
+manage.server_test_hint	Test the connection to choose profiles, folders and tags from the server.	Testiraj vezu za odabir profila, mapa i oznaka s poslužitelja.
+manage.server_test_loaded	Profiles, folders and tags are loaded from the server.	Profili, mape i oznake učitani su s poslužitelja.
+manage.subs.forced	Forced	Prisilni
+manage.subs.hi	Hearing impaired	Za osobe oštećena sluha
+manage.subs.normal	Normal	Obični
+manage.tags_add	Add	Dodaj
+manage.tags_remove	Remove	Ukloni
+manage.tags_replace	Replace	Zamijeni
+manage.yes	Yes	Da
+manage.you	You	Ti
