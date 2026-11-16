@@ -299,6 +299,11 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [ ] `[+]` Import iz Jellyfina: korisnički računi i kolekcije (P13)
 - [ ] `[+]` Compat API sloj (`/compat`, osnova iz P4b) proširen da Infuse, Swiftfin, Findroid itd. rade sa Streamerom (P14) — *pregledavanje, reprodukcija (direct + HLS), napredak, user data, titlovi i Quick Connect (i za 2FA) gotovi (D-031); provjereno sa službenom Android TV aplikacijom 0.19.10 u emulatoru; Infuse, Swiftfin, Kodi i Samsung/LG još nisu isprobani; od D-032 i na korijenskoj adresi (bez `/compat`), s CORS-om, `/socket` (keepalive, poruka/stop) i UDP 7359 otkrivanjem (D-033); LG webOS ne radi jer učitava web klijent sa servera (D-034)*
 
+### Streamero Manage (D-048)
+- [x] `[+]` Server: proxy prema Radarr/Sonarr/Lidarr/Prowlarr/Bazarr/Seerr (`/api/v1/arr/{service}/proxy/...`, samo admin, ključevi ostaju na serveru), `GET /arr/services`, Lidarr i Prowlarr u postavkama (web HR/EN)
+- [ ] `[+]` Streamero Manage za Android (product flavor): sve iz obične aplikacije + upravljanje *arr servisima
+- [ ] `[+]` Streamero Manage za iOS (drugi target): sve iz obične aplikacije + upravljanje *arr servisima
+
 ## 15. API
 
 - [ ] `[JF]` REST API + OpenAPI specifikacija (kod nas OpenAPI 3.1 je izvor istine) (P0)

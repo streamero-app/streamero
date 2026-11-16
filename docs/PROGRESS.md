@@ -229,6 +229,9 @@ Nativna Kotlin/Compose aplikacija u `android/`; CI `android.yml`, `.apk` ide u r
 - API ključevi (`sk_…`, Bearer; rade s pravima admina koji ih je napravio, gase se ako izgubi admin prava), preimenovanje uređaja; migracija 00003.
 - Testovi: Go unit + integracijski protiv Postgresa (setup, cookie/bearer, revoke, lockout, zadnji admin, promjena lozinke), Vitest 18, Playwright 9 (setup, korisnici, uređaji, Quick Connect, pozivnice, lockout, odjava — na svježem stacku).
 
+## Streamero Manage: *arr proxy na serveru (branch `feat/arr-proxy`, 2026-11-16)
+Server strana nove admin aplikacije Streamero Manage (D-048): `GET /api/v1/arr/services` (svih šest servisa, dostupnost i verzija, paralelno, keš 30 s) i proxy `/api/v1/arr/{service}/proxy/...` (samo admin, ne dječji profil; ključ dodaje server; validacija putanja; tijelo do 16 MiB; bez timeouta na tijelo odgovora; 20 req/s po korisniku). Lidarr i Prowlarr u Postavke → Zahtjevi (HR/EN). Testovi: Go unit (putanje, headeri, ključevi, URL base, limiter, status), integracijski s lažnim Radarrom (ključ i putanja, 401/403/409/502, `Set-Cookie`, redirect na drugi host, 10 vs 20 MiB), Vitest. Sljedeće: Android/iOS Manage aplikacije (rade drugi agenti).
+
 ## Sljedeći koraci
 1. Redoslijed (dogovoren s korisnikom): iOS player (P7) → ostatak P2/P3/P5 → P6 → P8–P14. P2 ostatak: watch status kroz preimenovanje (inode/hash), golden testovi do 300+, `seed-big-library.sh` + 50k benchmark, provider ID na sezonama/epizodama, verzije epizoda.
 2. Instalirati `streamero-ipa` (artefakt iOS CI-ja) kroz Feather, spojiti se na https://demo.streamero.net i prijaviti (lozinka / Quick Connect).

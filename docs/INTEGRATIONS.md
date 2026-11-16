@@ -43,6 +43,41 @@ Nothing to configure: Bazarr saves subtitles next to the video
 
 ## Prowlarr
 Prowlarr only talks to the *arr apps (indexers); it has no media-server connection.
+It can still be connected to Streamero for the Streamero Manage apps (below).
+
+## Streamero Manage (control the *arr stack from your phone)
+Streamero Manage is the administrator edition of the Streamero apps (Android and
+iOS): everything the normal app does, plus full control of Radarr, Sonarr,
+Lidarr, Prowlarr, Bazarr and Seerr, so you never need their web UIs (D-048).
+
+The apps never talk to those services directly. Every call goes through your
+Streamero server, which adds the stored API key, so:
+- the API keys never leave the server, and
+- the *arr apps do not have to be reachable from the internet; only the Streamero
+  server has to reach them. Their addresses are usually internal Docker
+  hostnames such as `http://radarr:7878`, `http://sonarr:8989`,
+  `http://lidarr:8686`, `http://prowlarr:9696`, `http://bazarr:6767` or
+  `http://seerr:5055`. A URL base is kept (`http://host:8080/radarr`).
+
+Set it up in **Settings → Requests** (admin): an address and API key per service
+(found in each app under Settings → General), then *Test connections*. Lidarr
+and Prowlarr are used only by Manage. Changing a service's host drops its stored
+key, so enter the key again.
+
+Only administrators (not on a kids profile) can use it. Manage can do whatever
+the services' public APIs offer: browse and add movies, series and artists,
+search and grab releases, queue, history, calendar, wanted/missing, indexers,
+subtitles, Seerr requests (approve/decline), system status, logs and backups.
+Actions through Seerr act as Seerr's administrator (the owner of its API key),
+not as the person using the app. Live updates (SignalR) are not proxied; the
+apps poll.
+
+For app developers: `GET /api/v1/arr/services` lists all six services with
+`configured`, `reachable`, `version`, `error` and `apiBase`; the proxy is
+`/api/v1/arr/{service}/proxy/{apiBase}/...` (e.g.
+`/api/v1/arr/radarr/proxy/api/v3/movie`), with the same sign-in as the rest of
+the API. Rules and error codes: the `listArrServices` description in
+`api/openapi.yaml`.
 
 ## Connecting Infuse / Swiftfin / Kodi / TV apps
 Media clients that speak the Jellyfin client API can browse and play from
