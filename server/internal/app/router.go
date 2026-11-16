@@ -118,7 +118,7 @@ func NewRouter(state *State, h *api.Handler, opts ...RouterOptions) (http.Handle
 	// Watch-together socket: a WebSocket, so outside the generated router (D-036).
 	r.Get("/api/v1/syncplay/socket", h.SyncPlaySocket)
 	// Streamero Manage: administrator access to the *arr services through this
-	// server; arbitrary sub-paths and streamed bodies, so outside OpenAPI (D-048).
+	// server; arbitrary sub-paths and streamed bodies, so outside OpenAPI (D-049).
 	// It has its own 16 MiB body limit instead of the 1 MiB one of /api/v1.
 	compress := compressor()
 	r.Handle(api.ArrProxyPrefix+"{service}/proxy/*", compress(http.HandlerFunc(h.ArrProxy)))

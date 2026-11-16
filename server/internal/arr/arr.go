@@ -1,6 +1,6 @@
 // Package arr is the administrator-only gateway to the *arr stack (Radarr,
 // Sonarr, Lidarr, Prowlarr, Bazarr) and Seerr for the Streamero Manage apps
-// (D-048). The apps never talk to those services directly: every call goes
+// (D-049). The apps never talk to those services directly: every call goes
 // through this server, which adds the stored API key, so the keys never leave
 // the server and the services need not be reachable from the internet.
 //
@@ -26,9 +26,11 @@ type Service struct {
 	// KeyHeader carries the API key.
 	KeyHeader string
 	// Images lists path prefixes (lower case, besides "api/") of artwork the app
-	// serves outside its API; Files lists other such prefixes (backup downloads).
+	// serves outside its API; Files lists other such prefixes (backup downloads,
+	// GET only).
 	Images, Files []string
-	// Patch reports whether the app's API uses PATCH.
+	// Patch reports whether the app's API uses PATCH (Seerr; Bazarr for subtitle
+	// searches and backup restore).
 	Patch bool
 }
 
@@ -38,7 +40,7 @@ var Services = []Service{
 	{ID: "sonarr", Name: "Sonarr", APIBase: "api/v3", StatusPath: "api/v3/system/status", KeyHeader: "X-Api-Key", Images: []string{"mediacover/"}, Files: []string{"backup/"}},
 	{ID: "lidarr", Name: "Lidarr", APIBase: "api/v1", StatusPath: "api/v1/system/status", KeyHeader: "X-Api-Key", Images: []string{"mediacover/"}, Files: []string{"backup/"}},
 	{ID: "prowlarr", Name: "Prowlarr", APIBase: "api/v1", StatusPath: "api/v1/system/status", KeyHeader: "X-Api-Key", Files: []string{"backup/"}},
-	{ID: "bazarr", Name: "Bazarr", APIBase: "api", StatusPath: "api/system/status", KeyHeader: "X-API-KEY"},
+	{ID: "bazarr", Name: "Bazarr", APIBase: "api", StatusPath: "api/system/status", KeyHeader: "X-API-KEY", Patch: true},
 	{ID: "seerr", Name: "Seerr", APIBase: "api/v1", StatusPath: "api/v1/status", KeyHeader: "X-Api-Key", Images: []string{"imageproxy/"}, Patch: true},
 }
 
@@ -78,6 +80,17 @@ func (s Service) AllowsMethod(m string) bool {
 		return true
 	case http.MethodPatch:
 		return s.Patch
+	}
+	return false
+}
+
+// isFilePath reports whether a (validated) path is a file download outside the API.
+func (s Service) isFilePath(path string) bool {
+	p := strings.ToLower(path)
+	for _, e := range s.Files {
+		if strings.HasPrefix(p, e) {
+			return true
+		}
 	}
 	return false
 }

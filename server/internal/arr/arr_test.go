@@ -83,6 +83,50 @@ func TestCleanPathAllowedPrefixes(t *testing.T) {
 	}
 }
 
+func TestMethods(t *testing.T) {
+	for _, s := range Services {
+		for _, m := range []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete} {
+			if !s.AllowsMethod(m) {
+				t.Errorf("%s: %s refused", s.ID, m)
+			}
+		}
+		if want := s.ID == "seerr" || s.ID == "bazarr"; s.AllowsMethod(http.MethodPatch) != want {
+			t.Errorf("%s: PATCH allowed = %v", s.ID, !want)
+		}
+		if s.AllowsMethod(http.MethodHead) || s.AllowsMethod("TRACE") || s.AllowsMethod(http.MethodOptions) {
+			t.Errorf("%s: other methods allowed", s.ID)
+		}
+	}
+}
+
+// Form-encoded and multipart bodies (Bazarr settings, backup uploads) reach the
+// service unchanged, with their Content-Type; PATCH reaches Bazarr.
+func TestServeForwardsFormBodies(t *testing.T) {
+	type seen struct{ method, path, ctype, key, body string }
+	got := make(chan seen, 1)
+	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		got <- seen{r.Method, r.URL.Path, r.Header.Get("Content-Type"), r.Header.Get("X-Api-Key"), string(b)}
+		w.WriteHeader(204)
+	}))
+	defer up.Close()
+	p := &Proxy{}
+	for _, c := range []struct{ method, ctype, body string }{
+		{http.MethodPost, "application/x-www-form-urlencoded", "settings-general-ip=0.0.0.0&languages-enabled=hr&languages-enabled=en"},
+		{http.MethodPost, "multipart/form-data; boundary=xyz", "--xyz\r\nContent-Disposition: form-data; name=\"file\"; filename=\"b.zip\"\r\n\r\nPK\x03\x04\r\n--xyz--\r\n"},
+		{http.MethodPatch, "application/x-www-form-urlencoded", "action=search-missing"},
+	} {
+		req := httptest.NewRequest(c.method, "/x", strings.NewReader(c.body))
+		req.Header.Set("Content-Type", c.ctype)
+		w := httptest.NewRecorder()
+		p.Serve(w, req, uuid.New(), svc(t, "bazarr"), up.URL, "bk", "api/system/settings")
+		s := <-got
+		if w.Code != 204 || s.method != c.method || s.path != "/api/system/settings" || s.ctype != c.ctype || s.key != "bk" || s.body != c.body {
+			t.Errorf("%s %s: %d, upstream saw %+v", c.method, c.ctype, w.Code, s)
+		}
+	}
+}
+
 func TestFilterQuery(t *testing.T) {
 	cases := map[string]string{
 		"":                                      "",
@@ -219,6 +263,11 @@ func TestServeRefusesEarly(t *testing.T) {
 	}
 	if w := call(http.MethodPatch, "api/v3/movie", "http://x", "k", nil); w.Code != 405 {
 		t.Errorf("PATCH on radarr: %d", w.Code)
+	}
+	for _, m := range []string{http.MethodPost, http.MethodPut, http.MethodDelete} {
+		if w := call(m, "backup/manual/radarr_backup.zip", "http://x", "k", nil); w.Code != 405 {
+			t.Errorf("%s on a backup file: %d", m, w.Code)
+		}
 	}
 	if w := call(http.MethodGet, "api/../x", "http://x", "k", nil); w.Code != 400 || !strings.Contains(w.Body.String(), "invalid_path") {
 		t.Errorf("traversal: %d %s", w.Code, w.Body)

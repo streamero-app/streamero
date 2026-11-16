@@ -32,7 +32,7 @@ type Settings struct {
 	SonarrKey       string `json:"sonarrKey,omitempty"`
 	BazarrURL       string `json:"bazarrUrl,omitempty"`
 	BazarrKey       string `json:"bazarrKey,omitempty"`
-	// Lidarr and Prowlarr are only used through the Streamero Manage proxy (D-048).
+	// Lidarr and Prowlarr are only used through the Streamero Manage proxy (D-049).
 	LidarrURL   string `json:"lidarrUrl,omitempty"`
 	LidarrKey   string `json:"lidarrKey,omitempty"`
 	ProwlarrURL string `json:"prowlarrUrl,omitempty"`

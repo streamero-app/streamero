@@ -129,6 +129,11 @@ func (p *Proxy) Serve(w http.ResponseWriter, r *http.Request, user uuid.UUID, s 
 		fail(http.StatusBadRequest, "invalid_path", "this path is not allowed")
 		return
 	}
+	if s.isFilePath(path) && r.Method != http.MethodGet {
+		w.Header().Set("Allow", http.MethodGet)
+		fail(http.StatusMethodNotAllowed, "method_not_allowed", "files can only be downloaded")
+		return
+	}
 	if base == "" || key == "" {
 		fail(http.StatusConflict, "arr_not_configured", s.Name+" is not set up")
 		return

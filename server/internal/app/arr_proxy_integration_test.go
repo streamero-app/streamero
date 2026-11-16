@@ -49,6 +49,10 @@ func (f *fakeArr) handler(other string) http.Handler {
 		case "/radarr/MediaCover/1/poster.jpg":
 			w.Header().Set("Content-Type", "image/jpeg")
 			_, _ = w.Write([]byte{0xff, 0xd8, 0xff})
+		case "/radarr/backup/manual/radarr_backup_v5.14.zip":
+			w.Header().Set("Content-Type", "application/zip")
+			w.Header().Set("Content-Disposition", `attachment; filename="radarr_backup_v5.14.zip"`)
+			_, _ = w.Write(make([]byte, 3<<20))
 		case "/radarr/api/v3/elsewhere":
 			http.Redirect(w, r, other+"/steal", http.StatusFound)
 		default:
@@ -155,6 +159,15 @@ func TestArrProxyIntegration(t *testing.T) {
 	resp, body = call(c.token, "GET", "radarr/proxy/MediaCover/1/poster.jpg", nil, nil)
 	if resp.StatusCode != 200 || len(body) != 3 || resp.Header.Get("Cache-Control") != "private, max-age=86400" {
 		t.Errorf("poster: %d %q %v", resp.StatusCode, body, resp.Header)
+	}
+
+	// Backup downloads (outside the API prefix), streamed with their file name; GET only.
+	resp, body = call(c.token, "GET", "radarr/proxy/backup/manual/radarr_backup_v5.14.zip", nil, nil)
+	if resp.StatusCode != 200 || len(body) != 3<<20 || resp.Header.Get("Content-Disposition") != `attachment; filename="radarr_backup_v5.14.zip"` {
+		t.Errorf("backup: %d %d bytes %v", resp.StatusCode, len(body), resp.Header)
+	}
+	if resp, _ := call(c.token, "DELETE", "radarr/proxy/backup/manual/radarr_backup_v5.14.zip", nil, nil); resp.StatusCode != 405 {
+		t.Errorf("DELETE backup file: %d", resp.StatusCode)
 	}
 
 	// Path safety.

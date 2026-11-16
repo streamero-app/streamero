@@ -38,7 +38,7 @@ func (h *Handler) ListArrServices(ctx context.Context) (*gen.ArrServiceList, err
 }
 
 // ArrProxyPrefix is where the proxy is mounted (outside the generated router,
-// like /stream: arbitrary sub-paths and streamed bodies; D-048).
+// like /stream: arbitrary sub-paths and streamed bodies; D-049).
 const ArrProxyPrefix = "/api/v1/arr/"
 
 // ArrProxy serves /api/v1/arr/{service}/proxy/* for administrators (not kids profiles).

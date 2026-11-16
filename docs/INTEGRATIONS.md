@@ -48,7 +48,7 @@ It can still be connected to Streamero for the Streamero Manage apps (below).
 ## Streamero Manage (control the *arr stack from your phone)
 Streamero Manage is the administrator edition of the Streamero apps (Android and
 iOS): everything the normal app does, plus full control of Radarr, Sonarr,
-Lidarr, Prowlarr, Bazarr and Seerr, so you never need their web UIs (D-048).
+Lidarr, Prowlarr, Bazarr and Seerr, so you never need their web UIs (D-049).
 
 The apps never talk to those services directly. Every call goes through your
 Streamero server, which adds the stored API key, so:
