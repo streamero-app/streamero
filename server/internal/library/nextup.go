@@ -30,6 +30,48 @@ type Prefs struct {
 	SubtitleBackground string   `json:"subtitleBackground,omitempty"`
 	SubtitlePosition   int      `json:"subtitlePosition,omitempty"`
 	HomeSections       []string `json:"homeSections,omitempty"`
+	// SubtitleFallback is tried when no track in SubtitleLanguage exists (set by
+	// WithLanguageDefaults, never stored).
+	SubtitleFallback string `json:"-"`
+}
+
+// WithLanguageDefaults fills in the language choices a viewer never made (D-049):
+// English audio, and subtitles always on in English, or in Croatian (falling back
+// to English) when the account's language is Croatian. Anything the viewer chose
+// in the playback settings is kept.
+func WithLanguageDefaults(p Prefs, accountLanguage string) Prefs {
+	if p.AudioLanguage != "" || p.SubtitleLanguage != "" {
+		return p
+	}
+	p.AudioLanguage = "en"
+	p.SubtitleLanguage = "en"
+	if SameLanguage(accountLanguage, "hr") {
+		p.SubtitleLanguage, p.SubtitleFallback = "hr", "en"
+	}
+	if p.Mode() == "default" {
+		p.SubtitleMode = "always"
+	}
+	return p
+}
+
+// PlaybackPrefs returns owner's preferences with the language defaults applied;
+// owner is a profile or a user, and the account language is that user's.
+func (s *Service) PlaybackPrefs(ctx context.Context, owner uuid.UUID) (Prefs, error) {
+	p, err := s.GetPrefs(ctx, owner)
+	if err != nil {
+		return p, err
+	}
+	var lang *string
+	err = s.Pool.QueryRow(ctx, `SELECT u.language FROM users u
+		WHERE u.id = $1 OR u.id = (SELECT user_id FROM profiles WHERE id = $1) LIMIT 1`, owner).Scan(&lang)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return p, err
+	}
+	l := ""
+	if lang != nil {
+		l = *lang
+	}
+	return WithLanguageDefaults(p, l), nil
 }
 
 // Autoplay reports whether the next episode starts on its own (default on).
@@ -151,13 +193,18 @@ func PickSubtitle(subs []SubtitleChoice, audioLang string, p Prefs) int {
 	case "forced":
 		return forcedForAudio()
 	case "always":
-		if p.SubtitleLanguage == "" {
-			return -1
+		for _, lang := range []string{p.SubtitleLanguage, p.SubtitleFallback} {
+			if lang == "" {
+				continue
+			}
+			if i := find(lang, false); i >= 0 {
+				return i
+			}
+			if i := find(lang, true); i >= 0 {
+				return i
+			}
 		}
-		if i := find(p.SubtitleLanguage, false); i >= 0 {
-			return i
-		}
-		return find(p.SubtitleLanguage, true)
+		return -1
 	case "smart":
 		if foreignAudio {
 			return find(p.SubtitleLanguage, false)

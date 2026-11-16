@@ -7,23 +7,23 @@ import { Button, Card, ErrorText, Spinner, SuccessText } from "@/components/ui";
 import { SettingRow, Toggle } from "./SettingRow";
 
 const field = "h-10 w-full rounded-[6px] border border-border bg-black/30 px-3 text-[15px] text-text placeholder:text-faint hover:border-border-strong focus:border-accent/70";
-type App = "seerr" | "radarr" | "sonarr" | "bazarr";
+type App = "seerr" | "radarr" | "sonarr" | "bazarr" | "lidarr" | "prowlarr";
 
-/** Connections for Discover: Seerr for search and requests, Radarr/Sonarr for the release calendar. */
+/** Connections: Seerr for search and requests, Radarr/Sonarr for the release calendar, Bazarr for subtitles, and all of them (plus Lidarr and Prowlarr) for the Streamero Manage apps. */
 export function RequestsSettings() {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const cur = useQuery({ queryKey: ["settings", "requests"], queryFn: async () => unwrap(await api.GET("/settings/requests")) });
-  const [form, setForm] = useState({ seerrUrl: "", seerrApiKey: "", radarrUrl: "", radarrApiKey: "", sonarrUrl: "", sonarrApiKey: "", bazarrUrl: "", bazarrApiKey: "", usersCanRequest: true });
+  const [form, setForm] = useState({ seerrUrl: "", seerrApiKey: "", radarrUrl: "", radarrApiKey: "", sonarrUrl: "", sonarrApiKey: "", bazarrUrl: "", bazarrApiKey: "", lidarrUrl: "", lidarrApiKey: "", prowlarrUrl: "", prowlarrApiKey: "", usersCanRequest: true });
   const [remove, setRemove] = useState<App[]>([]);
   useEffect(() => {
-    if (cur.data) setForm((f) => ({ ...f, seerrUrl: cur.data.seerrUrl ?? "", radarrUrl: cur.data.radarrUrl ?? "", sonarrUrl: cur.data.sonarrUrl ?? "", bazarrUrl: cur.data.bazarrUrl ?? "", usersCanRequest: cur.data.usersCanRequest }));
+    if (cur.data) setForm((f) => ({ ...f, seerrUrl: cur.data.seerrUrl ?? "", radarrUrl: cur.data.radarrUrl ?? "", sonarrUrl: cur.data.sonarrUrl ?? "", bazarrUrl: cur.data.bazarrUrl ?? "", lidarrUrl: cur.data.lidarrUrl ?? "", prowlarrUrl: cur.data.prowlarrUrl ?? "", usersCanRequest: cur.data.usersCanRequest }));
   }, [cur.data]);
   const save = useMutation({
     mutationFn: async () => unwrap(await api.PUT("/settings/requests", { body: { ...form, removeKeys: remove } })),
     onSuccess: (d) => {
       qc.setQueryData(["settings", "requests"], d);
-      setForm((f) => ({ ...f, seerrApiKey: "", radarrApiKey: "", sonarrApiKey: "", bazarrApiKey: "" }));
+      setForm((f) => ({ ...f, seerrApiKey: "", radarrApiKey: "", sonarrApiKey: "", bazarrApiKey: "", lidarrApiKey: "", prowlarrApiKey: "" }));
       setRemove([]);
       void qc.invalidateQueries({ queryKey: ["discover"] });
     },
@@ -69,6 +69,12 @@ export function RequestsSettings() {
         <p className="mb-4 text-sm text-muted">{t("requests.bazarrIntro")}</p>
         {app("bazarr", "Bazarr", "http://bazarr:6767", d?.bazarrConfigured)}
       </Card>
+      <Card title="Lidarr / Prowlarr">
+        <p className="mb-4 text-sm text-muted">{t("requests.manageIntro")}</p>
+        {app("lidarr", "Lidarr", "http://lidarr:8686", d?.lidarrConfigured)}
+        {app("prowlarr", "Prowlarr", "http://prowlarr:9696", d?.prowlarrConfigured)}
+      </Card>
+      <p className="text-sm text-muted">{t("requests.manageNote")}</p>
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" disabled={save.isPending}>{t("common.save")}</Button>
         <Button type="button" variant="secondary" disabled={test.isPending} onClick={() => test.mutate()}>

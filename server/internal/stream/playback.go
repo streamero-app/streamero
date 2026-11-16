@@ -198,7 +198,7 @@ func (s *Server) Start(ctx context.Context, lib *library.Service, p auth.Princip
 	if err != nil {
 		return Info{}, err
 	}
-	prefs, _ := lib.GetPrefs(ctx, Owner(p))
+	prefs, _ := lib.PlaybackPrefs(ctx, Owner(p))
 	audio := library.PickAudio(f.Audio, prefs.AudioLanguage)
 	if req.AudioIndex != nil && *req.AudioIndex >= 0 && *req.AudioIndex < len(f.Audio) {
 		audio = *req.AudioIndex

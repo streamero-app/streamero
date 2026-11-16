@@ -65,7 +65,11 @@ responsible for MFA.
 ### Apps
 The iOS and Android apps show the same buttons. They open the provider in the system
 browser sheet (iOS `ASWebAuthenticationSession`, Android Custom Tabs) and come back
-through `streamero://oidc`. Nothing has to be registered at the provider for the apps.
+through `streamero://oidc`. The Streamero Manage apps use their own scheme,
+`streamero-manage://oidc` (D-049), so a phone with both apps installed does not ask which
+app should open the sign-in; the server accepts exactly these two app redirects. Nothing
+has to be registered at the provider for the apps (the provider only ever redirects to
+the server).
 Third-party apps (Infuse, TV apps…) cannot use single sign-on: use Quick Connect.
 
 ## 3. LDAP / Active Directory

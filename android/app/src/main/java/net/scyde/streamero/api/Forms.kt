@@ -22,7 +22,7 @@ private val TOKEN = Regex("^[A-Za-z0-9_-]{16,128}$")
 fun parseInviteLink(input: String): InviteLink? {
     val s = input.trim()
     if (s.isEmpty()) return null
-    if (s.startsWith("streamero:", ignoreCase = true)) return parseInviteDeepLink(s)
+    if (isInviteScheme(s.substringBefore(':'))) return parseInviteDeepLink(s)
     if (TOKEN.matches(s)) return InviteLink(null, s)
     val withScheme = if (s.startsWith("http://", true) || s.startsWith("https://", true)) s else "https://$s"
     val url = withScheme.toHttpUrlOrNull() ?: return null
@@ -37,10 +37,16 @@ fun parseInviteLink(input: String): InviteLink? {
     return InviteLink(server, token)
 }
 
+/**
+ * Invite links: this app's own scheme, and `streamero://` too (the form the web shares), so a
+ * pasted link works in Streamero Manage as well.
+ */
+fun isInviteScheme(scheme: String?): Boolean = scheme.equals("streamero", true) || scheme.equals(APP_SCHEME, true)
+
 /** `streamero://invite?server=https%3A%2F%2Fmedia.example.com&token=…`; null if it is not one. */
 fun parseInviteDeepLink(link: String): InviteLink? {
     val uri = runCatching { URI(link.trim()) }.getOrNull() ?: return null
-    if (!uri.scheme.equals("streamero", true) || !uri.host.equals("invite", true)) return null
+    if (!isInviteScheme(uri.scheme) || !uri.host.equals("invite", true)) return null
     val q = queryParams(uri.rawQuery)
     val token = q["token"]?.takeIf { TOKEN.matches(it) } ?: return null
     val server = q["server"]?.trim()?.trimEnd('/')?.takeIf { it.toHttpUrlOrNull() != null }

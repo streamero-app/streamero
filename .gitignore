@@ -19,3 +19,4 @@ ios/*.xcodeproj
 
 # personal Claude Code settings
 .claude/settings.local.json
+docs/brand/out/

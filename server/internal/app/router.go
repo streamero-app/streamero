@@ -93,7 +93,9 @@ func NewRouter(state *State, h *api.Handler, opts ...RouterOptions) (http.Handle
 	// Client IP resolution behind reverse proxies is handled later by a trusted-proxy
 	// setting; chi's RealIP trusts spoofable headers and is deliberately not used.
 	r.Use(middleware.RequestID, middleware.Recoverer)
-	r.Use(middleware.Timeout(60 * time.Second))
+	// The *arr proxy bounds only the wait for response headers itself: its bodies
+	// (logs, backups) may stream longer.
+	r.Use(timeoutExcept(60*time.Second, isArrProxy))
 	r.Use(securityHeaders, netx.Middleware(o.TrustedProxies), sessionFromCookie(!o.NoCompatAtRoot))
 	if o.AuthLimiter != nil {
 		r.Use(netx.Limit(o.AuthLimiter, rateLimited))
@@ -115,7 +117,11 @@ func NewRouter(state *State, h *api.Handler, opts ...RouterOptions) (http.Handle
 
 	// Watch-together socket: a WebSocket, so outside the generated router (D-036).
 	r.Get("/api/v1/syncplay/socket", h.SyncPlaySocket)
+	// Streamero Manage: administrator access to the *arr services through this
+	// server; arbitrary sub-paths and streamed bodies, so outside OpenAPI (D-049).
+	// It has its own 16 MiB body limit instead of the 1 MiB one of /api/v1.
 	compress := compressor()
+	r.Handle(api.ArrProxyPrefix+"{service}/proxy/*", compress(http.HandlerFunc(h.ArrProxy)))
 	r.Mount("/api/v1", compress(limitBody(startingGuard(state, apiServer))))
 	// Compatibility API for request managers and *arr notifications (D-016).
 	serveCompat := func(w http.ResponseWriter, req *http.Request) {
@@ -158,6 +164,31 @@ func NewRouter(state *State, h *api.Handler, opts ...RouterOptions) (http.Handle
 		spa.ServeHTTP(w, req)
 	}))
 	return r, nil
+}
+
+// isArrProxy reports a request for the *arr proxy (/api/v1/arr/{service}/proxy/...).
+func isArrProxy(r *http.Request) bool {
+	rest, ok := strings.CutPrefix(r.URL.Path, api.ArrProxyPrefix)
+	if !ok {
+		return false
+	}
+	_, after, ok := strings.Cut(rest, "/")
+	return ok && strings.HasPrefix(after, "proxy/")
+}
+
+// timeoutExcept is middleware.Timeout for every request except those skip matches.
+func timeoutExcept(d time.Duration, skip func(*http.Request) bool) func(http.Handler) http.Handler {
+	timeout := middleware.Timeout(d)
+	return func(next http.Handler) http.Handler {
+		limited := timeout(next)
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if skip(r) {
+				next.ServeHTTP(w, r)
+				return
+			}
+			limited.ServeHTTP(w, r)
+		})
+	}
 }
 
 // startingGuard answers 503 + Retry-After for every API call (except public

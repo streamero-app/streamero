@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Generate the Streamero Manage app icon: the standard Streamero icon with a small
-"controls" badge (a ringed disc with three sliders) in the top-right corner.
+"""Generate the Streamero Manage app icon: the brand icon (docs/brand/icon-1024.png) with a
+small "controls" badge (a ringed disc with three sliders) in the free bottom-right corner,
+inside the iOS corner mask. Icon only, no text.
 
 Pure Python (zlib + struct), so it runs anywhere without image libraries:
 
-    python3 scripts/gen-manage-icon.py \
-        ios/Streamero/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png \
+    python3 scripts/gen-manage-icon.py docs/brand/icon-1024.png \
         ios/StreameroManage/Resources/ManageAssets.xcassets/ManageAppIcon.appiconset/AppIcon-1024.png
 """
 import math
@@ -96,16 +96,17 @@ def main():
     src, dst = sys.argv[1], sys.argv[2]
     width, height, rows = read_png(src)
     s = width / 1024.0
-    cx, cy, radius = 800 * s, 232 * s, 128 * s
-    ring = 16 * s
-    gap = 14 * s  # dark halo between the badge and the mark behind it
-    ink = (11, 9, 7)
-    ring_top, ring_bottom = (255, 214, 140), (241, 135, 55)
-    paper = (244, 239, 233)
-    sliders = [(-46, -0.45), (0, 0.35), (46, -0.1)]  # (y offset, knob position -1…1)
-    track_half = 62 * s
-    track_w = 7 * s
-    knob_r = 15 * s
+    cx, cy, radius = 852 * s, 852 * s, 104 * s
+    ring = 13 * s
+    gap = 12 * s  # dark halo between the badge and the mark behind it
+    ink = (10, 10, 10)
+    # The brand mark's gold, light at the top.
+    ring_top, ring_bottom = (246, 222, 166), (196, 150, 72)
+    paper = (244, 239, 228)
+    sliders = [(-38, -0.45), (0, 0.35), (38, -0.1)]  # (y offset, knob position -1…1)
+    track_half = 50 * s
+    track_w = 6 * s
+    knob_r = 12 * s
 
     x0, x1 = int(cx - radius - gap - 2), int(cx + radius + gap + 2)
     y0, y1 = int(cy - radius - gap - 2), int(cy + radius + gap + 2)

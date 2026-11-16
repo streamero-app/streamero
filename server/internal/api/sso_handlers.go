@@ -81,8 +81,8 @@ func (h *Handler) OidcAuthorize(ctx context.Context, params gen.OidcAuthorizePar
 	authURL, binding, err := h.Auth().OIDCAuthorize(ctx, req)
 	if err != nil {
 		slog.InfoContext(ctx, "oidc: sign-in not started", "provider", params.ProviderId, "err", err)
-		if req.Client == "app" && req.AppRedirect == auth.AppRedirectURI {
-			return &gen.OidcRedirect{Location: withQuery(auth.AppRedirectURI, "error", ssoErrorCode(err))}, nil
+		if req.Client == "app" && auth.IsAppRedirect(req.AppRedirect) {
+			return &gen.OidcRedirect{Location: withQuery(req.AppRedirect, "error", ssoErrorCode(err))}, nil
 		}
 		return &gen.OidcRedirect{Location: withQuery("/login", "sso_error", ssoErrorCode(err))}, nil
 	}
