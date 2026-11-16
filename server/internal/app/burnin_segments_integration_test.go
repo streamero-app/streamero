@@ -158,7 +158,12 @@ func TestSubtitleBurnInAndSegmentsIntegration(t *testing.T) {
 		t.Fatalf("srt choice: %+v", info)
 	}
 
-	// A forced PGS track is burned in by default; "none" turns it off.
+	// A forced PGS track is burned in by default; "none" turns it off. (With no
+	// languages chosen, D-050 shows full English subtitles instead, so pick the
+	// "default" subtitle mode with an explicit audio language here.)
+	if s := adminC.do("PUT", "/me/preferences", map[string]any{"audioLanguage": "en", "subtitleMode": "default", "autoplayNext": true}, nil); s != 200 {
+		t.Fatalf("preferences: HTTP %d", s)
+	}
 	if _, err := testPool.Exec(context.Background(), `UPDATE media_files SET subtitles = jsonb_set(subtitles, ARRAY[$2::text, 'forced'], 'true')
 		WHERE library_id = $1`, libID, strconv.Itoa(pgs)); err != nil {
 		t.Fatal(err)
