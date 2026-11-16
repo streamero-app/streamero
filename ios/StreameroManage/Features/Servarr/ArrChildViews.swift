@@ -32,7 +32,7 @@ struct SonarrSeasonView: View {
             if let episodes {
                 Section {
                     ForEach(episodes, id: \.rowID) { ep in
-                        EpisodeRow(episode: ep) { on in Task { await monitor(ep, on) } }
+                        ArrEpisodeRow(episode: ep) { on in Task { await monitor(ep, on) } }
                             .swipeActions(edge: .trailing) {
                                 Button {
                                     Task { await run("EpisodeSearch", ["episodeIds": .ints([ep["id"].int ?? 0])]) }
@@ -100,7 +100,7 @@ struct SonarrSeasonView: View {
     }
 }
 
-private struct EpisodeRow: View {
+private struct ArrEpisodeRow: View {
     let episode: JSONValue
     let setMonitored: (Bool) -> Void
 
