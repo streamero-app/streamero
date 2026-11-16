@@ -559,7 +559,8 @@ private fun RequestsPage(state: AppState) {
     var testError by remember { mutableStateOf<Throwable?>(null) }
     val scope = rememberCoroutineScope()
     SettingsDoc(load = { api.requestSettings() }, save = { s ->
-        api.saveRequestSettings(RequestSettingsInput(s.usersCanRequest, s.seerrUrl, keys["seerr"], s.radarrUrl, keys["radarr"], s.sonarrUrl, keys["sonarr"], s.bazarrUrl, keys["bazarr"])).also { keys = emptyMap() }
+        api.saveRequestSettings(RequestSettingsInput(s.usersCanRequest, s.seerrUrl, keys["seerr"], s.radarrUrl, keys["radarr"], s.sonarrUrl, keys["sonarr"], s.bazarrUrl, keys["bazarr"],
+            s.lidarrUrl, keys["lidarr"], s.prowlarrUrl, keys["prowlarr"])).also { keys = emptyMap() }
     }) { s, set ->
         Card(stringResource(R.string.requests_seerr)) {
             Field(stringResource(R.string.address), s.seerrUrl.orEmpty(), { set(s.copy(seerrUrl = it)) })
@@ -571,6 +572,12 @@ private fun RequestsPage(state: AppState) {
             Field("Radarr " + stringResource(R.string.api_key) + if (s.radarrConfigured) " ✓" else "", keys["radarr"].orEmpty(), { keys = keys + ("radarr" to it) }, secret = true)
             Field("Sonarr", s.sonarrUrl.orEmpty(), { set(s.copy(sonarrUrl = it)) })
             Field("Sonarr " + stringResource(R.string.api_key) + if (s.sonarrConfigured) " ✓" else "", keys["sonarr"].orEmpty(), { keys = keys + ("sonarr" to it) }, secret = true)
+        }
+        Card("Lidarr / Prowlarr") {
+            Field("Lidarr", s.lidarrUrl.orEmpty(), { set(s.copy(lidarrUrl = it)) })
+            Field("Lidarr " + stringResource(R.string.api_key) + if (s.lidarrConfigured) " ✓" else "", keys["lidarr"].orEmpty(), { keys = keys + ("lidarr" to it) }, secret = true)
+            Field("Prowlarr", s.prowlarrUrl.orEmpty(), { set(s.copy(prowlarrUrl = it)) })
+            Field("Prowlarr " + stringResource(R.string.api_key) + if (s.prowlarrConfigured) " ✓" else "", keys["prowlarr"].orEmpty(), { keys = keys + ("prowlarr" to it) }, secret = true)
         }
         Card("Bazarr") {
             Field(stringResource(R.string.address), s.bazarrUrl.orEmpty(), { set(s.copy(bazarrUrl = it)) })
