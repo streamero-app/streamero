@@ -38,11 +38,16 @@ android {
         create("standard") {
             dimension = "app"
             buildConfigField("boolean", "MANAGE", "false")
+            buildConfigField("String", "APP_SCHEME", "\"streamero\"")
+            manifestPlaceholders["appScheme"] = "streamero"
         }
         create("manage") {
             dimension = "app"
             applicationId = "net.scyde.streamero.manage"
             buildConfigField("boolean", "MANAGE", "true")
+            // Its own deep-link scheme (SSO redirect, invites), so the two apps never share a link.
+            buildConfigField("String", "APP_SCHEME", "\"streamero-manage\"")
+            manifestPlaceholders["appScheme"] = "streamero-manage"
         }
     }
 

@@ -21,7 +21,7 @@ import net.scyde.streamero.api.*
 object InviteBroker {
     val pending = MutableStateFlow<InviteLink?>(null)
     fun deliver(uri: android.net.Uri?) {
-        if (uri?.scheme.equals("streamero", true) && uri?.host.equals("invite", true)) parseInviteDeepLink(uri.toString())?.let { pending.value = it }
+        if (isInviteScheme(uri?.scheme) && uri?.host.equals("invite", true)) parseInviteDeepLink(uri.toString())?.let { pending.value = it }
     }
 }
 

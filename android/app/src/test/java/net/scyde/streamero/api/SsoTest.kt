@@ -33,16 +33,16 @@ class SsoTest {
     }
 
     @Test fun authorizeUrlAsksForTheAppFlow() {
-        assertEquals("https://m.example/api/v1/auth/oidc/kc/authorize?client=app&redirectUri=streamero%3A%2F%2Foidc&codeChallenge=abc",
+        assertEquals("https://m.example/api/v1/auth/oidc/kc/authorize?client=app&redirectUri=$APP_SCHEME%3A%2F%2Foidc&codeChallenge=abc",
             ssoAuthorizeUrl("https://m.example/api/v1/auth/oidc/kc/authorize", "abc"))
     }
 
     @Test fun parsesTheRedirect() {
-        assertEquals(SsoResult.Code("c1"), parseSsoRedirect("streamero", "oidc", "c1", null))
-        assertEquals(SsoResult.Failed("no_account"), parseSsoRedirect("streamero", "oidc", null, "no_account"))
-        assertEquals(SsoResult.Failed("internal"), parseSsoRedirect("streamero", "oidc", null, null))
+        assertEquals(SsoResult.Code("c1"), parseSsoRedirect(APP_SCHEME, "oidc", "c1", null))
+        assertEquals(SsoResult.Failed("no_account"), parseSsoRedirect(APP_SCHEME, "oidc", null, "no_account"))
+        assertEquals(SsoResult.Failed("internal"), parseSsoRedirect(APP_SCHEME, "oidc", null, null))
         assertNull(parseSsoRedirect("https", "oidc", "c1", null))
-        assertNull(parseSsoRedirect("streamero", "other", "c1", null))
+        assertNull(parseSsoRedirect(APP_SCHEME, "other", "c1", null))
     }
 
     @Test fun readsProviders() = runTest {

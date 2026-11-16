@@ -33,9 +33,15 @@ object Pkce {
         b64.encodeToString(MessageDigest.getInstance("SHA-256").digest(verifier.toByteArray(Charsets.US_ASCII)))
 }
 
-/** The only redirect URI the server accepts from apps. */
-const val SSO_REDIRECT = "streamero://oidc"
-private const val SSO_REDIRECT_ENCODED = "streamero%3A%2F%2Foidc"
+/**
+ * This app's own deep-link scheme: `streamero`, or `streamero-manage` in Streamero Manage, so
+ * the two apps installed side by side never both claim a sign-in redirect or an invite link.
+ */
+val APP_SCHEME: String = net.scyde.streamero.BuildConfig.APP_SCHEME
+
+/** The redirect URI the server accepts from this app. */
+val SSO_REDIRECT: String = "$APP_SCHEME://oidc"
+private val SSO_REDIRECT_ENCODED: String = java.net.URLEncoder.encode(SSO_REDIRECT, "UTF-8")
 
 /** URL to open in the browser to sign in with a provider. */
 fun ssoAuthorizeUrl(authorizeUrl: String, challenge: String): String {
@@ -49,9 +55,9 @@ sealed interface SsoResult {
     data class Failed(val error: String) : SsoResult
 }
 
-/** Parses a `streamero://oidc?code=…` / `?error=…` redirect (null if it is not one). */
+/** Parses a `streamero://oidc?code=…` / `?error=…` redirect to this app's scheme (null if it is not one). */
 fun parseSsoRedirect(scheme: String?, host: String?, code: String?, error: String?): SsoResult? {
-    if (!scheme.equals("streamero", ignoreCase = true) || !host.equals("oidc", ignoreCase = true)) return null
+    if (!scheme.equals(APP_SCHEME, ignoreCase = true) || !host.equals("oidc", ignoreCase = true)) return null
     return when {
         !code.isNullOrBlank() -> SsoResult.Code(code)
         else -> SsoResult.Failed(error?.takeIf { it.isNotBlank() } ?: "internal")
