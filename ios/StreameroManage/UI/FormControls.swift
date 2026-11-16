@@ -276,7 +276,7 @@ struct SchemaFieldRow: View {
                         .lineLimit(3...8)
                         .textInputAutocapitalization(.never).autocorrectionDisabled()
                 }
-            case .textbox, .path, .filePath, .url:
+            case .textbox, .password, .path, .filePath, .url:
                 textField
             case .keyValueList, .playlist, .unknown:
                 FallbackValueEditor(title: title, value: binding)

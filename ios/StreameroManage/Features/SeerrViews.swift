@@ -120,7 +120,7 @@ struct SeerrRequestRow: View {
     }
 
     @ViewBuilder private var statusBadge: some View {
-        switch request["status"].int {
+        switch request["status"].int ?? 0 {
         case 1: TagBadge(text: "manage.req.pending", tone: .accent)
         case 2: TagBadge(text: "manage.req.approved", tone: .success)
         case 3: TagBadge(text: "manage.req.declined", tone: .danger)
@@ -177,7 +177,7 @@ struct SeerrDiscoverView: View {
     }
 
     @ViewBuilder private func availabilityDot(_ item: JSONValue) -> some View {
-        switch item["mediaInfo"]["status"].int {
+        switch item["mediaInfo"]["status"].int ?? 0 {
         case 5: Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).padding(5)
         case 2, 3, 4: Image(systemName: "clock.fill").foregroundStyle(Theme.accent).padding(5)
         default: EmptyView()
@@ -321,7 +321,7 @@ struct SeerrIssuesView: View {
     }
 
     private func issueType(_ t: Int?) -> String {
-        switch t {
+        switch t ?? 0 {
         case 1: Loc.string("manage.issue.video")
         case 2: Loc.string("manage.issue.audio")
         case 3: Loc.string("manage.issue.subtitles")

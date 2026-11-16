@@ -48,10 +48,11 @@ struct ArrErrorState: View {
     }
 
     private var icon: String {
-        switch error as? ArrError {
-        case .notConfigured: "wrench.and.screwdriver"
-        case .unreachable, .network: "wifi.exclamationmark"
-        default: "exclamationmark.triangle"
+        guard let arr = error as? ArrError else { return "exclamationmark.triangle" }
+        switch arr {
+        case .notConfigured: return "wrench.and.screwdriver"
+        case .unreachable, .network: return "wifi.exclamationmark"
+        default: return "exclamationmark.triangle"
         }
     }
 }
