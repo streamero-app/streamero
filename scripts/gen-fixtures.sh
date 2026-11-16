@@ -66,6 +66,32 @@ make "$M/Multi Audio Film (2019)/Multi Audio Film (2019).mkv" "${SRC_V[@]}" "${S
   -metadata:s:a:1 language=hrv -metadata:s:a:1 title="5.1" -metadata:s:s:0 language=eng
 rm -f "$SUB_TMP"
 
+# Track switching (e2e): two audio tracks, a text and a bitmap (PGS) subtitle; the player
+# burns the PGS track in. ffmpeg has no PGS encoder, so the .sup (a white box from 1 s to
+# 2.5 s) is written here, then muxed in. At least 60 s long, so switches happen mid-film.
+BMP="$M/Bitmap Subtitle Film (2017)/Bitmap Subtitle Film (2017).mkv"
+BMP_DUR=$((DUR > 60 ? DUR : 60))
+if [[ ! -f "$BMP" ]]; then
+  SUP_TMP="$(mktemp --suffix=.sup)"; SRT_TMP="$(mktemp --suffix=.srt)"
+  printf '1\n00:00:01,000 --> 00:00:02,500\nText subtitle\n' > "$SRT_TMP"
+  perl -e 'my ($W, $H, $x, $y, $w, $h) = (1280, 720, 440, 560, 400, 60);
+    sub be16 { pack("n", $_[0]) } sub seg { "PG" . pack("NN", $_[1], 0) . chr($_[0]) . pack("n", length $_[2]) . $_[2] }
+    sub pcs { my ($n, $st, $obj) = @_; my $b = be16($W) . be16($H) . chr(0x10) . be16($n) . chr($st) . "\0\0";
+      $obj ? $b . chr(1) . be16(0) . "\0\0" . be16($x) . be16($y) : $b . "\0" }
+    my $win = "\1\0" . be16($x) . be16($y) . be16($w) . be16($h);
+    my $rle = ("\0" . chr(0xC0 | ($w >> 8 & 0x3F)) . chr($w & 255) . "\1\0\0") x $h; my $n = length($rle) + 4;
+    my $ods = be16(0) . "\0" . chr(0xC0) . chr($n >> 16 & 255) . chr($n >> 8 & 255) . chr($n & 255) . be16($w) . be16($h) . $rle;
+    my ($s, $e) = (1000 * 90, 2500 * 90); binmode STDOUT;
+    print seg(0x16, $s, pcs(0, 0x80, 1)), seg(0x17, $s, $win), seg(0x14, $s, "\0\0\1" . chr(235) . chr(128) . chr(128) . chr(255)),
+      seg(0x15, $s, $ods), seg(0x80, $s, ""), seg(0x16, $e, pcs(1, 0, 0)), seg(0x17, $e, $win), seg(0x80, $e, "")' > "$SUP_TMP"
+  make "$BMP" -f lavfi -i "testsrc2=size=1280x720:rate=24:duration=${BMP_DUR}" \
+    -f lavfi -i "sine=frequency=440:sample_rate=48000:duration=${BMP_DUR}" -f lavfi -i "sine=frequency=550:sample_rate=48000:duration=${BMP_DUR}" \
+    -i "$SRT_TMP" -i "$SUP_TMP" -map 0:v -map 1:a -map 2:a -map 3:s -map 4:s \
+    -c:v libx264 -preset veryfast -crf 28 -c:a aac -c:s:0 srt -c:s:1 copy \
+    -metadata:s:a:0 language=eng -metadata:s:a:1 language=hrv -metadata:s:s:0 language=eng -metadata:s:s:1 language=hrv
+  rm -f "$SUP_TMP" "$SRT_TMP"
+fi
+
 ASS_DIR="$M/Anime Style Movie (2020)"; mkdir -p "$ASS_DIR"; ass "$ASS_DIR/Anime Style Movie (2020).en.ass"
 make "$ASS_DIR/Anime Style Movie (2020).mp4" "${SRC_V[@]}" "${SRC_A[@]}" \
   -c:v libx264 -preset veryfast -crf 28 -c:a aac -movflags +faststart

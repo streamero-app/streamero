@@ -3,6 +3,7 @@ import type Hls from "hls.js";
 import { api, unwrap } from "@/api/client";
 import { imageUrl, type ItemSummary } from "@/features/library/format";
 import { detectAudioProfile } from "@/features/player/deviceProfile";
+import { nativeHls } from "@/features/player/playback";
 import { sleepDue, type SleepTimer } from "@/features/books/logic";
 
 /**
@@ -114,7 +115,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
         }));
         if (cancelled) return;
         setDuration(info.durationMs ?? current.durationMs ?? 0);
-        if (info.method === "direct" || el.canPlayType("application/vnd.apple.mpegurl")) {
+        if (info.method === "direct" || nativeHls(el)) {
           el.src = info.url;
         } else {
           const { default: HlsCtor } = await import("hls.js");
