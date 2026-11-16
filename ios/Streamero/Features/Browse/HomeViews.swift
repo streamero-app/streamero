@@ -355,10 +355,8 @@ struct HomeTab: View {
         .background(AmbientBackground(colors: featured?.colors))
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                HStack(spacing: 8) {
-                    Image("AppMark").resizable().frame(width: 26, height: 26).clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-                    Text(verbatim: app.server.name).font(.headline)
-                }
+                Image("AppMark").resizable().frame(width: 30, height: 30).clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .accessibilityLabel(Text(verbatim: app.server.name))
             }
         }
         .toolbarBackground(.hidden, for: .navigationBar)

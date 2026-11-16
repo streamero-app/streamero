@@ -45,7 +45,7 @@ internal fun AuthFrame(title: String, subtitle: String?, content: @Composable Co
             .then(if (tv) Modifier.padding(horizontal = 64.dp, vertical = 8.dp) else Modifier.padding(24.dp)),
             verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Spacer(Modifier.height(if (tv) 24.dp else 40.dp))
-            Text("STREAMERO", style = Head.copy(fontSize = 18.sp), color = Kino.text)
+            AppMark(if (tv) 64.dp else 56.dp)
             Spacer(Modifier.height(20.dp))
             Text(title, style = Display.copy(fontSize = 36.sp), color = Kino.text)
             if (subtitle != null) Text(subtitle, color = Kino.muted, fontSize = 15.sp)
