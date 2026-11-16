@@ -59,6 +59,9 @@ Limit tijela zahtjeva na API-ju (1 MiB, slike 16 MiB → 413), CSP i HSTS za web
 ## Greška pri promjeni titla u web playeru (branch `fix/subtitle-switch-error`, 2026-11-16)
 Chrome više ne dobiva HLS na ugrađeni player (ne parsira transkodirane streamove), nego hls.js; restart (titl, zvuk, premotavanje) prvo otpušta stari stream pa njegove 404 (server ga gasi, D-044) više ne vode u siguran profil i poruku o grešci (D-047). Isto za Live TV i glazbu; Android ignorira greške playera dok traje zahtjev za novi stream. Nova fikstura „Bitmap Subtitle Film" (2 zvuka, SRT, PGS) i e2e test promjene titla i zvuka. Otvoreno: iOS nema redoslijed zahtjeva kod brzih uzastopnih restartova.
 
+## v0.11.2 (2026-11-16)
+Streamero Manage za iOS (#75): druga aplikacija `net.scyde.streamero.manage` u Feather sourceu, s upravljanjem Radarr/Sonarr/Lidarr/Prowlarr/Bazarr/Seerr; Bazarr jezici i Seerr dozvole korisnika još nisu u iOS verziji.
+
 ## v0.11.1 (2026-11-16)
 Web player: promjena titla ili zvuka više ne javlja „This video can't be played" (Chrome sada koristi hls.js, zamijenjeni stream se ne broji kao greška; #73). Zadani jezici: engleski zvuk i titlovi, hrvatski titlovi za hrvatske račune (#78, D-050). Nova ikona i logo „S" s filmskom trakom (#77), logo u aplikacijama bez teksta (#72). Prvi dio Streamero Manage: proxy prema Radarr/Sonarr/Lidarr/Prowlarr/Bazarr/Seerr na serveru, veze za Lidarr i Prowlarr (#74, D-049) i Android aplikacija `Streamero-Manage` (#76, D-048); iOS Manage slijedi.
 
