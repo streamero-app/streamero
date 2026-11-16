@@ -91,7 +91,7 @@ func isSPA(rec *httptest.ResponseRecorder) bool {
 // files and Streamero's own endpoints: none may reach the compat API.
 func TestCompatAtRootDoesNotTakeWebRoutes(t *testing.T) {
 	h := newTestRouter(t, readyState(nil)) // compat not installed: a compat hit would answer 503
-	paths := append(spaRoutes(t), "/", "/assets/index-abc123.js", "/assets/index.css", "/favicon.svg",
+	paths := append(spaRoutes(t), "/", "/assets/index-abc123.js", "/assets/index.css", "/favicon.png", "/mark.png",
 		"/favicon.ico", "/manifest.webmanifest", "/sw.js", "/robots.txt", "/icons/icon-192.png")
 	for _, p := range paths {
 		for _, m := range []string{http.MethodGet, http.MethodHead, http.MethodPost, http.MethodOptions} {

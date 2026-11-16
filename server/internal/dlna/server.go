@@ -123,7 +123,7 @@ func (s *Server) viewer(ctx context.Context, st Settings) (*Viewer, error) {
 		return nil, err
 	}
 	v := &Viewer{Principal: p, Owner: stream.Owner(p), Blocked: map[string]bool{}, Lang: st.Language}
-	v.Prefs, _ = s.Library.GetPrefs(ctx, v.Owner)
+	v.Prefs, _ = s.Library.PlaybackPrefs(ctx, v.Owner)
 	if p.Profile != nil && p.Profile.MaxRating != nil {
 		rows, err := s.Pool.Query(ctx, `SELECT DISTINCT official_rating FROM items WHERE official_rating IS NOT NULL`)
 		if err != nil {
