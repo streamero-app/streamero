@@ -1,8 +1,8 @@
 import { useTranslation } from "react-i18next";
 
-/** The split-play mark (same art as the app icon). */
+/** The brand mark (same art as the app icon). */
 export function Mark({ size = 32, className = "" }: { size?: number; className?: string }) {
-  return <img src="/favicon.svg" alt="" width={size} height={size} className={`shrink-0 ${className}`} draggable={false} />;
+  return <img src="/mark.png" alt="" width={size} height={size} className={`shrink-0 rounded-[22%] ${className}`} draggable={false} />;
 }
 
 export function Logo({ className = "", size = 30 }: { className?: string; size?: number }) {
