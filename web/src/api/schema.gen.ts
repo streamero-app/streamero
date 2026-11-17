@@ -41,6 +41,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/system/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Numbers for a monitoring dashboard (admin)
+         * @description Library counts, storage, playback and background work in one cheap call (the
+         *     result is cached for about 15 seconds). Also served, with the same body, at
+         *     `/api/stats` on the server address, where a dashboard sends its key as
+         *     `X-Api-Key: <key>` (a read-only API key is enough).
+         */
+        get: operations["getSystemStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/setup": {
         parameters: {
             query?: never;
@@ -654,7 +677,9 @@ export interface paths {
         /**
          * Create an API key (admin)
          * @description The key acts with the rights of the admin who created it and is deleted with that
-         *     user. Send it as `Authorization: Bearer <key>`. The secret is returned only once.
+         *     user. Send it as `Authorization: Bearer <key>` or `X-Api-Key: <key>`. The secret is
+         *     returned only once. A read-only key is refused (403 `read_only_key`) for every
+         *     request that is not GET, HEAD or OPTIONS, and for sockets.
          */
         post: operations["createAPIKey"];
         delete?: never;
@@ -4293,10 +4318,17 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             lastUsedAt?: string;
+            /** @description The key can read but never change anything (for dashboards). */
+            readOnly?: boolean;
         };
         CreateApiKeyRequest: {
             /** @description e.g. "Jellyseerr" */
             name: string;
+            /**
+             * @description Make a key that can only read (GET), e.g. for a monitoring dashboard.
+             * @default false
+             */
+            readOnly: boolean;
         };
         CreatedApiKey: {
             /** @description The secret. Shown only once. */
@@ -4549,6 +4581,84 @@ export interface components {
             /** @description Bazarr (and Radarr/Sonarr for the lookup) are connected. */
             configured: boolean;
             offers: components["schemas"]["SubtitleOffer"][];
+        };
+        SystemStats: {
+            version: string;
+            commit: string;
+            /** Format: int64 */
+            movies: number;
+            /** Format: int64 */
+            series: number;
+            /** Format: int64 */
+            episodes: number;
+            /** Format: int64 */
+            albums: number;
+            /** Format: int64 */
+            tracks: number;
+            /** Format: int64 */
+            books: number;
+            /** Format: int64 */
+            audiobooks: number;
+            /** Format: int64 */
+            photos: number;
+            /**
+             * Format: int64
+             * @description Movies, episodes and the videos of photo libraries together.
+             */
+            videos: number;
+            /** Format: int64 */
+            libraries: number;
+            /** Format: int64 */
+            users: number;
+            /**
+             * Format: int64
+             * @description Size of all media files the libraries know.
+             */
+            usageBytes: number;
+            /** @description Playback sessions active now (the dashboard's "now playing"). */
+            activeStreams: number;
+            /** @description Running transcodes. */
+            transcodes: number;
+            /**
+             * Format: int64
+             * @description Movies and series still waiting for their metadata (0 when no metadata
+             *     provider key is set, since nothing is waiting then).
+             */
+            processing: number;
+            /**
+             * Format: int64
+             * @description Items whose metadata lookup failed plus files that could not be read.
+             */
+            failed: number;
+            /**
+             * Format: int64
+             * @description Size of the media storage (every distinct filesystem under the media roots).
+             */
+            diskTotalBytes: number;
+            /** Format: int64 */
+            diskFreeBytes: number;
+            /**
+             * Format: date-time
+             * @description When the newest item was added. Absent while the libraries are empty.
+             */
+            lastAddedAt?: string;
+            /** @description Background work, one entry per queue. */
+            jobs: components["schemas"]["JobQueueStats"][];
+        };
+        JobQueueStats: {
+            queue: string;
+            /**
+             * Format: int64
+             * @description Waiting to run (including those waiting for a retry).
+             */
+            queued: number;
+            /** Format: int64 */
+            running: number;
+            /**
+             * Format: int64
+             * @description Gave up after the last attempt (kept for a week).
+             */
+            failed: number;
         };
         SystemInfo: {
             /**
@@ -5111,6 +5221,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Pong"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getSystemStats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Statistics */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemStats"];
                 };
             };
             default: components["responses"]["Error"];

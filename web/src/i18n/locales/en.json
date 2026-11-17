@@ -250,6 +250,9 @@
   "apikeys": {
     "intro": "API keys let integrations such as Jellyseerr, Radarr or your own scripts use Streamero. A key has the rights of the administrator who created it and stops working if that account is disabled or loses admin rights.",
     "name": "Name",
+    "readOnly": "Read-only (for dashboards)",
+    "readOnlyHint": "The key can read information, such as the numbers a monitoring dashboard shows from /api/stats, but cannot change anything.",
+    "readOnlyBadge": "Read-only",
     "create": "Create API key",
     "copyNow": "Copy the key now — it will not be shown again.",
     "copy": "Copy",

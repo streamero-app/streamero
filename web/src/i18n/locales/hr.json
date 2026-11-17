@@ -250,6 +250,9 @@
   "apikeys": {
     "intro": "API ključevi omogućuju integracijama poput Jellyseerra, Radarra ili vlastitih skripti da koriste Streamero. Ključ ima prava administratora koji ga je napravio i prestaje raditi ako je taj račun onemogućen ili izgubi administratorska prava.",
     "name": "Naziv",
+    "readOnly": "Samo za čitanje (za nadzorne ploče)",
+    "readOnlyHint": "Ključ može čitati podatke, primjerice brojke koje nadzorna ploča prikazuje s /api/stats, ali ne može ništa mijenjati.",
+    "readOnlyBadge": "Samo čitanje",
     "create": "Napravi API ključ",
     "copyNow": "Kopirajte ključ sada — više se neće prikazati.",
     "copy": "Kopiraj",
