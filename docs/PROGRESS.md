@@ -68,6 +68,9 @@ Chrome više ne dobiva HLS na ugrađeni player (ne parsira transkodirane streamo
 ## Obrana od botova (branch `fix/hardening-bots`, 2026-11-17)
 Pregled demo hosta (bez znakova provale; skeneri i SSH pogađanje lozinki). Server: zabrana adrese nakon 15 neuspjelih prijava u 10 min, 404 za putanje skenera, `robots.txt`, kontejneri bez capabilityja. Host: `scripts/harden-host.sh` + `docs/SECURITY.md` (D-051).
 
+## v0.11.4 (2026-11-17)
+`/api/stats` za nadzorne ploče i API ključevi samo za čitanje (#85, migracija 00034, D-052). Obrana od botova (#84, D-051): zabrana adrese nakon 15 neuspjelih prijava u 10 min, 404 za putanje skenera, `robots.txt`, kontejneri bez capabilityja, `scripts/harden-host.sh` i `docs/SECURITY.md`.
+
 ## v0.11.3 (2026-11-16)
 Streamero Manage dovršen na obje platforme (#81, #82): grupno uređivanje biblioteke u Radarr/Sonarr/Lidarr, dodavanje/brisanje/premještanje stavki u listama postavki, Seerr media server (veza, biblioteke, scan), dozvole i limiti korisnika u Seerru, Seerr Radarr/Sonarr server s testom i odabirom profila/mapa, Bazarr jezici i jezični profili, komentari na prijave, „Spremi svejedno", restart i ažuriranje servisa. Seerrova ruta `settings/jellyfin` pojavljuje se u kodu samo kao put vanjskog API-ja (kao iznimka za ffmpeg paket, D-023); u sučelju piše samo „Media server".
 
