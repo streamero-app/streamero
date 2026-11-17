@@ -227,6 +227,42 @@ and sorting, Search, `SUBSCRIBE`, Range requests, converted streams with time
 seeking (checked with ffprobe), subtitles and the Samsung bookmark, using each TV's
 `User-Agent`. No real TV has been tried yet.
 
+## Dashboard / monitoring
+A dashboard that watches your services can read the numbers from `/api/stats`:
+
+1. Sign in as an administrator, open Settings → API keys and make a key with
+   **Read-only (for dashboards)**.
+2. In the dashboard set the address of Streamero, the header `X-Api-Key` with that
+   key, and the path `/api/stats`.
+
+The answer is JSON (also at `/api/v1/system/stats`; `Authorization: Bearer <key>`
+works too). The numbers are at most 15 seconds old, so polling every few seconds is
+fine. Only administrators and their keys may read it: without a key the answer is
+401, for other accounts 403, always as JSON `{"code": ..., "message": ...}`.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `version`, `commit` | text | Server version and build commit |
+| `movies`, `series`, `episodes` | number | Films, series and episodes |
+| `albums`, `tracks` | number | Music albums and tracks |
+| `books`, `audiobooks` | number | Books (including comics) and audiobooks |
+| `photos` | number | Photos in photo libraries |
+| `videos` | number | Everything that is a video: movies + episodes + videos in photo libraries |
+| `libraries`, `users` | number | Libraries and user accounts |
+| `usageBytes` | number | Size of all media files the libraries know |
+| `activeStreams` | number | Playback sessions active now (the admin dashboard's "now playing") |
+| `transcodes` | number | Running transcodes |
+| `processing` | number | Movies and series still waiting for their metadata (0 when no TMDb key is set) |
+| `failed` | number | Items whose metadata lookup failed + files that could not be read |
+| `diskTotalBytes`, `diskFreeBytes` | number | Size and free space of the media storage (each filesystem counted once) |
+| `lastAddedAt` | date-time | When the newest item was added; absent while the libraries are empty |
+| `jobs` | list | Background work, one entry per queue: `{queue, queued, running, failed}` (`failed` = gave up in the last week) |
+
+A read-only key can read everything an administrator can (`GET`), on the native API
+(`/api/v1/...`, also with `X-Api-Key`), the compat API and the *arr proxy, but every
+request that would change something is refused with 403 `read_only_key`, and it
+cannot open the watch-together or client sockets.
+
 ## Others
 Tools that support "Jellyfin" as a media server may work against `/compat` with an
 API key; only the endpoints listed in `server/internal/compat` exist — anything else
