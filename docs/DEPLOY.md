@@ -132,3 +132,6 @@ same `.env` (`DB_PASSWORD`), run `docker compose up -d db valkey`, then restore 
 ## Health
 - `GET /healthz` — process is alive
 - `GET /readyz` — database, cache and migrations ready (503 + `Retry-After` while starting)
+
+## Security
+See [SECURITY.md](SECURITY.md) for what the server protects against on its own and for `scripts/harden-host.sh`, which hardens nginx, SSH and adds fail2ban on the host.

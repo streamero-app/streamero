@@ -30,6 +30,7 @@ func NewLimiter(perMinute, burst int) *Limiter {
 
 // Allow takes a token for ip; when empty it returns false and the wait until the next token.
 func (l *Limiter) Allow(ip netip.Addr) (bool, time.Duration) {
+	ip = Key(ip) // IPv6 clients share a bucket per /64
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	now := l.now()

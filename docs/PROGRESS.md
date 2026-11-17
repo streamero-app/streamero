@@ -62,6 +62,9 @@ Limit tijela zahtjeva na API-ju (1 MiB, slike 16 MiB → 413), CSP i HSTS za web
 ## Greška pri promjeni titla u web playeru (branch `fix/subtitle-switch-error`, 2026-11-16)
 Chrome više ne dobiva HLS na ugrađeni player (ne parsira transkodirane streamove), nego hls.js; restart (titl, zvuk, premotavanje) prvo otpušta stari stream pa njegove 404 (server ga gasi, D-044) više ne vode u siguran profil i poruku o grešci (D-047). Isto za Live TV i glazbu; Android ignorira greške playera dok traje zahtjev za novi stream. Nova fikstura „Bitmap Subtitle Film" (2 zvuka, SRT, PGS) i e2e test promjene titla i zvuka. Otvoreno: iOS nema redoslijed zahtjeva kod brzih uzastopnih restartova.
 
+## Obrana od botova (branch `fix/hardening-bots`, 2026-11-17)
+Pregled demo hosta (bez znakova provale; skeneri i SSH pogađanje lozinki). Server: zabrana adrese nakon 15 neuspjelih prijava u 10 min, 404 za putanje skenera, `robots.txt`, kontejneri bez capabilityja. Host: `scripts/harden-host.sh` + `docs/SECURITY.md` (D-051).
+
 ## v0.11.3 (2026-11-16)
 Streamero Manage dovršen na obje platforme (#81, #82): grupno uređivanje biblioteke u Radarr/Sonarr/Lidarr, dodavanje/brisanje/premještanje stavki u listama postavki, Seerr media server (veza, biblioteke, scan), dozvole i limiti korisnika u Seerru, Seerr Radarr/Sonarr server s testom i odabirom profila/mapa, Bazarr jezici i jezični profili, komentari na prijave, „Spremi svejedno", restart i ažuriranje servisa. Seerrova ruta `settings/jellyfin` pojavljuje se u kodu samo kao put vanjskog API-ja (kao iznimka za ffmpeg paket, D-023); u sučelju piše samo „Media server".
 

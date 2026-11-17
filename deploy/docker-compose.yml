@@ -3,6 +3,10 @@ name: streamero
 x-common: &common
   image: ghcr.io/${GH_OWNER:-streamero-app}/streamero:${STREAMERO_VERSION:-latest}
   restart: unless-stopped
+  # The server runs as an unprivileged user and needs no Linux capabilities: a
+  # process that is broken into cannot gain privileges inside the container.
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: ["ALL"]
   env_file: .env
   environment:
     TZ: ${TZ:-Europe/Zagreb}
@@ -111,6 +115,7 @@ services:
   db:
     image: pgvector/pgvector:pg17
     restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
     environment:
       POSTGRES_USER: streamero
       POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
@@ -126,6 +131,7 @@ services:
   valkey:
     image: valkey/valkey:8-alpine
     restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
     command: ["valkey-server", "--save", "", "--appendonly", "no"]
     healthcheck:
       test: ["CMD", "valkey-cli", "ping"]

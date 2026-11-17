@@ -352,3 +352,12 @@ Restore: arhiva se najprije cijela provjeri (checksumi, nazivi unosa); kopija s 
 **Kontekst:** bez spremljenih postavki server je birao prvi zvučni zapis i titlove samo za forsirane dijelove ili strani zvuk; vlasnik želi uvijek engleski zvuk i titlove, hrvatske kad je jezik računa hrvatski.
 **Odluka:** kad gledatelj u postavkama reprodukcije nije odabrao jezik zvuka ni titlova, server (`library.WithLanguageDefaults`, `PlaybackPrefs`) uzima engleski zvuk i titlove „uvijek" na engleskom; ako je jezik računa hrvatski, titlovi su hrvatski, a bez hrvatskog zapisa engleski. Vrijedi za reprodukciju u svim aplikacijama, compat klijente, DLNA i preuzimanja; postavke koje je gledatelj sam odabrao (jezik ili način titlova) imaju prednost i ne mijenjaju se u bazi.
 **Posljedice:** titlovi se biraju samo među tekstualnim zapisima; slikovni (PGS/VobSub) se ne utiskuju automatski osim forsiranih, jer bi to značilo transkodiranje svakog filma. Jezik računa mijenja zadane titlove odmah, bez spremanja postavki.
+
+## D-051 Obrana od botova: zabrana nakon neuspjelih prijava, 404 za skenere, skripta za host (2026-11-17)
+**Kontekst:** pregled demo hosta: na Streamero prijavu nije bilo napada, ali ~35 % svih zahtjeva na hostu su skeneri (`.env`, `.git`, `*.php`, `boaform`), SSH je imao 12 500 neuspjelih prijava u 14 dana uz uključenu prijavu lozinkom i bez fail2bana, a web klijent je na putanje skenera odgovarao 200 (SPA fallback), što server označava kao „pogodak".
+**Odluka:**
+- Server: `netx.Banlist` + `Guard` — 15 neuspjelih pokušaja (401/403) na krajnjim točkama prijave u 10 minuta blokira adresu na sat vremena (429 `rate_limited`); IPv6 se broji po /64 (i u postojećem limiteru), privatne i loopback adrese se ne blokiraju jer iza proxyja bez `STREAMERO_TRUSTED_PROXIES` svi dijele adresu proxyja.
+- Web handler: dot-datoteke (osim `/.well-known/`) i tipovi koje skeneri traže dobivaju 404; `/robots.txt` zabranjuje sve.
+- Compose: `no-new-privileges` za sve servise, `cap_drop: ALL` za server i worker.
+- Host: `scripts/harden-host.sh` (nginx limiti i 444 samo za zadani site, log bez query stringa, fail2ban za SSH i skenere, sshd bez roota, logrotate; `--ssh-keys-only` i `--firewall` po izboru), opisano u `docs/SECURITY.md`.
+**Posljedice:** skripta mijenja host samo kad je vlasnik pokrene sa sudo; gašenje prijave lozinkom traži da ključ već postoji. Zabrana je u memoriji procesa (restart je briše), što je prihvatljivo uz fail2ban na hostu.
