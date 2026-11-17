@@ -23,6 +23,8 @@ type RouterOptions struct {
 	TrustedProxies []netip.Prefix
 	// AuthLimiter limits sign-in style endpoints per client IP (nil = no limit).
 	AuthLimiter *netx.Limiter
+	// AuthBans blocks a client that keeps failing those endpoints (nil = never).
+	AuthBans *netx.Banlist
 	// NoCompatAtRoot turns off serving the compat API at Jellyfin-style root
 	// paths (it stays under /compat). Default: served at the root too (D-032).
 	NoCompatAtRoot bool
@@ -99,6 +101,9 @@ func NewRouter(state *State, h *api.Handler, opts ...RouterOptions) (http.Handle
 	r.Use(securityHeaders, netx.Middleware(o.TrustedProxies), sessionFromCookie(!o.NoCompatAtRoot))
 	if o.AuthLimiter != nil {
 		r.Use(netx.Limit(o.AuthLimiter, rateLimited))
+	}
+	if o.AuthBans != nil {
+		r.Use(netx.Guard(o.AuthBans, rateLimited))
 	}
 
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {

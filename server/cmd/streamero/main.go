@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/netip"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -145,6 +146,11 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	opts := app.RouterOptions{TrustedProxies: proxies, NoCompatAtRoot: !cfg.CompatAtRoot}
 	if cfg.AuthRatePerMin > 0 {
 		opts.AuthLimiter = netx.NewLimiter(cfg.AuthRatePerMin, cfg.AuthRateBurst)
+		// Fifteen wrong passwords, codes or PINs within ten minutes: no more tries for an hour.
+		opts.AuthBans = netx.NewBanlist(15, 10*time.Minute, time.Hour)
+		opts.AuthBans.OnBan = func(ip netip.Addr, until time.Time) {
+			log.Warn("client banned from sign-in after repeated failures", "ip", ip.String(), "until", until.UTC().Format(time.RFC3339))
+		}
 	}
 	router, err := app.NewRouter(state, h, opts)
 	if err != nil {

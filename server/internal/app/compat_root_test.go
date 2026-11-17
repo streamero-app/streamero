@@ -92,7 +92,7 @@ func isSPA(rec *httptest.ResponseRecorder) bool {
 func TestCompatAtRootDoesNotTakeWebRoutes(t *testing.T) {
 	h := newTestRouter(t, readyState(nil)) // compat not installed: a compat hit would answer 503
 	paths := append(spaRoutes(t), "/", "/assets/index-abc123.js", "/assets/index.css", "/favicon.png", "/mark.png",
-		"/favicon.ico", "/manifest.webmanifest", "/sw.js", "/robots.txt", "/icons/icon-192.png")
+		"/favicon.ico", "/manifest.webmanifest", "/sw.js", "/icons/icon-192.png")
 	for _, p := range paths {
 		for _, m := range []string{http.MethodGet, http.MethodHead, http.MethodPost, http.MethodOptions} {
 			if compat.Matches(m, p) {
@@ -101,6 +101,18 @@ func TestCompatAtRootDoesNotTakeWebRoutes(t *testing.T) {
 		}
 		if rec := do(h, p); !isSPA(rec) {
 			t.Errorf("GET %s: %d %q, want the web client", p, rec.Code, rec.Header().Get("Content-Type"))
+		}
+	}
+	// Crawlers are told to stay out, and what scanners probe for is not a page.
+	if rec := do(h, "/robots.txt"); rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "Disallow: /") {
+		t.Errorf("robots.txt: %d %q", rec.Code, rec.Body.String())
+	}
+	for _, p := range []string{"/.env", "/.git/config", "/wp-login.php", "/api/.env", "/backup.zip", "/config.yml", "/admin/.htpasswd"} {
+		if compat.Matches(http.MethodGet, p) {
+			t.Errorf("%s matches a compat route", p)
+		}
+		if rec := do(h, p); rec.Code != http.StatusNotFound {
+			t.Errorf("GET %s: %d, want 404", p, rec.Code)
 		}
 	}
 	// Streamero's own routes keep their handlers.
