@@ -90,6 +90,7 @@ type Principal struct {
 	User      User
 	SessionID uuid.UUID // zero for API keys
 	APIKeyID  uuid.UUID // zero for sessions
+	ReadOnly  bool      // a read-only API key (only ever seen on read requests)
 	Profile   *Profile  // nil = main profile (the account itself)
 }
 

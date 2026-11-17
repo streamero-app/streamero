@@ -100,7 +100,9 @@ type Invoker interface {
 	// CreateAPIKey invokes createAPIKey operation.
 	//
 	// The key acts with the rights of the admin who created it and is deleted with that user. Send it as
-	// `Authorization: Bearer <key>`. The secret is returned only once.
+	// `Authorization: Bearer <key>` or `X-Api-Key: <key>`. The secret is returned only once. A read-only
+	// key is refused (403 `read_only_key`) for every request that is not GET, HEAD or OPTIONS, and for
+	// sockets.
 	//
 	// POST /apikeys
 	CreateAPIKey(ctx context.Context, request *CreateApiKeyRequest) (*CreatedApiKey, error)
@@ -579,6 +581,14 @@ type Invoker interface {
 	//
 	// GET /system/info
 	GetSystemInfo(ctx context.Context) (GetSystemInfoRes, error)
+	// GetSystemStats invokes getSystemStats operation.
+	//
+	// Library counts, storage, playback and background work in one cheap call (the result is cached for
+	// about 15 seconds). Also served, with the same body, at `/api/stats` on the server address, where a
+	// dashboard sends its key as `X-Api-Key: <key>` (a read-only API key is enough).
+	//
+	// GET /system/stats
+	GetSystemStats(ctx context.Context) (*SystemStats, error)
 	// GetTrickplaySheet invokes getTrickplaySheet operation.
 	//
 	// One sheet of seek-bar thumbnails (JPEG grid).
@@ -2602,7 +2612,9 @@ func (c *Client) sendContinueWatching(ctx context.Context) (res []ItemSummary, e
 // CreateAPIKey invokes createAPIKey operation.
 //
 // The key acts with the rights of the admin who created it and is deleted with that user. Send it as
-// `Authorization: Bearer <key>`. The secret is returned only once.
+// `Authorization: Bearer <key>` or `X-Api-Key: <key>`. The secret is returned only once. A read-only
+// key is refused (403 `read_only_key`) for every request that is not GET, HEAD or OPTIONS, and for
+// sockets.
 //
 // POST /apikeys
 func (c *Client) CreateAPIKey(ctx context.Context, request *CreateApiKeyRequest) (*CreatedApiKey, error) {
@@ -12406,6 +12418,121 @@ func (c *Client) sendGetSystemInfo(ctx context.Context) (res GetSystemInfoRes, e
 
 	stage = "DecodeResponse"
 	result, err := decodeGetSystemInfoResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// GetSystemStats invokes getSystemStats operation.
+//
+// Library counts, storage, playback and background work in one cheap call (the result is cached for
+// about 15 seconds). Also served, with the same body, at `/api/stats` on the server address, where a
+// dashboard sends its key as `X-Api-Key: <key>` (a read-only API key is enough).
+//
+// GET /system/stats
+func (c *Client) GetSystemStats(ctx context.Context) (*SystemStats, error) {
+	res, err := c.sendGetSystemStats(ctx)
+	return res, err
+}
+
+func (c *Client) sendGetSystemStats(ctx context.Context) (res *SystemStats, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("getSystemStats"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/system/stats"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, GetSystemStatsOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/system/stats"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:SessionToken"
+			switch err := c.securitySessionToken(ctx, GetSystemStatsOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"SessionToken\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeGetSystemStatsResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

@@ -50,6 +50,10 @@ func (h *Handler) ArrProxy(w http.ResponseWriter, r *http.Request) {
 	}
 	token, _ := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
 	p, err := h.Auth().Authenticate(r.Context(), strings.TrimSpace(token))
+	if errors.Is(err, auth.ErrReadOnlyKey) {
+		auth.WriteReadOnlyKey(w)
+		return
+	}
 	if err != nil {
 		if !errors.Is(err, auth.ErrUnauthenticated) {
 			arr.WriteError(w, http.StatusInternalServerError, "internal", "internal server error")

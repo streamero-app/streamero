@@ -96,6 +96,7 @@ const (
 	GetServerSettingsOperation          OperationName = "GetServerSettings"
 	GetSyncGroupOperation               OperationName = "GetSyncGroup"
 	GetSystemInfoOperation              OperationName = "GetSystemInfo"
+	GetSystemStatsOperation             OperationName = "GetSystemStats"
 	GetTrickplaySheetOperation          OperationName = "GetTrickplaySheet"
 	IdentifyApplyOperation              OperationName = "IdentifyApply"
 	IdentifySearchOperation             OperationName = "IdentifySearch"

@@ -122,6 +122,7 @@ var operationRolesSessionToken = map[string][]string{
 	GetServerLogsOperation:              []string{},
 	GetServerSettingsOperation:          []string{},
 	GetSyncGroupOperation:               []string{},
+	GetSystemStatsOperation:             []string{},
 	GetTrickplaySheetOperation:          []string{},
 	IdentifyApplyOperation:              []string{},
 	IdentifySearchOperation:             []string{},

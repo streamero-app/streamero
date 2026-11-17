@@ -3,6 +3,14 @@
 package gen
 
 // setDefaults set default value of fields.
+func (s *CreateApiKeyRequest) setDefaults() {
+	{
+		val := bool(false)
+		s.ReadOnly.SetTo(val)
+	}
+}
+
+// setDefaults set default value of fields.
 func (s *ImportRequest) setDefaults() {
 	{
 		val := bool(true)

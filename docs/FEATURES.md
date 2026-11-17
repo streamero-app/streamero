@@ -36,6 +36,7 @@ Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djel
 - [x] `[JF]` Quick Connect — prijava na novom uređaju 6-znamenkastim kodom odobrenim s prijavljenog uređaja (P1)
 - [ ] `[JF]` Reset lozinke (admin + PIN/file flow kao JF; kod nas email ili admin link) (P1)
 - [x] `[JF]` API ključevi (za integracije) (P1)
+- [x] `[+]` API ključevi samo za čitanje i statistika za nadzorne ploče (`GET /api/stats` s `X-Api-Key`; D-052)
 - [x] `[JF]` Uređaji: lista, preimenovanje, opoziv pristupa (odmah gasi postojeće sesije) (P1)
 - [ ] `[JF]` Ograničenje pristupa po uređaju (P1)
 - [ ] `[JF]` Dozvole po korisniku: pristup bibliotekama, Live TV, upravljanje Live TV, brisanje medija, download, transkodiranje (audio/video/remux zasebno), SyncPlay, upravljanje kolekcijama, uređivanje podnaslova, remote control drugih korisnika, dijeljeni uređaji (P1) — *model, API i UI gotovi (P1); provedba stiže sa značajkom (biblioteke P2, reprodukcija P5, Live TV P11)*

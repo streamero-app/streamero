@@ -401,7 +401,7 @@ func (h *Handler) CreateAPIKey(ctx context.Context, req *gen.CreateApiKeyRequest
 	if err != nil {
 		return nil, err
 	}
-	k, secret, err := h.Auth().CreateAPIKey(ctx, p, req.Name)
+	k, secret, err := h.Auth().CreateAPIKey(ctx, p, req.Name, req.ReadOnly.Or(false))
 	if err != nil {
 		return nil, err
 	}
@@ -418,7 +418,7 @@ func (h *Handler) DeleteAPIKey(ctx context.Context, params gen.DeleteAPIKeyParam
 }
 
 func toAPIKey(k auth.APIKey) gen.ApiKey {
-	out := gen.ApiKey{ID: k.ID, Name: k.Name, Prefix: k.Prefix, CreatedBy: k.CreatedBy, CreatedAt: k.CreatedAt}
+	out := gen.ApiKey{ID: k.ID, Name: k.Name, Prefix: k.Prefix, CreatedBy: k.CreatedBy, CreatedAt: k.CreatedAt, ReadOnly: gen.NewOptBool(k.ReadOnly)}
 	if k.LastUsedAt != nil {
 		out.LastUsedAt = gen.NewOptDateTime(*k.LastUsedAt)
 	}
@@ -504,6 +504,10 @@ func mapError(err error) *StatusError {
 	var decParams *ogenerrors.DecodeParamsError
 	var tooLarge *http.MaxBytesError
 	switch {
+	// Before the security error below: the generated server wraps what the
+	// security handler returns, and this refusal is not "not signed in".
+	case errors.Is(err, auth.ErrReadOnlyKey):
+		return &StatusError{Status: http.StatusForbidden, Code: "read_only_key", Message: auth.ErrReadOnlyKey.Error()}
 	case errors.As(err, &tooLarge):
 		return &StatusError{Status: http.StatusRequestEntityTooLarge, Code: "request_too_large", Message: "request body too large"}
 	case errors.As(err, &secErr):

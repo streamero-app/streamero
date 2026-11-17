@@ -148,7 +148,7 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 	state.Library().Resume = h.LoadResume
 	h.Stream().HLS.Encoding = h.LoadEncoding
 	state.Compat().OnPlayback, state.Compat().OnProgress = h.TrackPlayback, h.TrackProgress
-	testNowPlaying = h.NowPlaying
+	testNowPlaying, testHandler = h.NowPlaying, h
 	testEnqueued = nil
 	testDownloads = &downloads.Service{Pool: deps.Pool, Library: state.Library(), Roots: library.Roots{mediaRoot},
 		Signer: state.Stream().Signer, Dir: t.TempDir(), Settings: state.Settings(),
@@ -179,6 +179,9 @@ var testBackups *backup.Service
 
 // testNowPlaying is the "now playing" registry of the most recent test server.
 var testNowPlaying *activity.Registry
+
+// testHandler is the API handler of the most recent test server.
+var testHandler *api.Handler
 
 // fakeTMDbURL points the API's TMDb client at a test server when set.
 var fakeTMDbURL string

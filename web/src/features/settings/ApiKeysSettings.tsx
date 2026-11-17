@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { api, unwrap } from "@/api/client";
-import { Button, Card, ErrorText, TextField } from "@/components/ui";
+import { Badge, Button, Card, ErrorText, TextField } from "@/components/ui";
 import { useDateTime } from "./SettingsLayout";
 import { useConfirm } from "@/components/Dialog";
 
@@ -13,14 +13,16 @@ export function ApiKeysSettings() {
   const fmt = useDateTime();
   const keys = useQuery({ queryKey: ["apikeys"], queryFn: async () => unwrap(await api.GET("/apikeys")) });
   const [name, setName] = useState("");
+  const [readOnly, setReadOnly] = useState(false);
   const [secret, setSecret] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const create = useMutation({
-    mutationFn: async () => unwrap(await api.POST("/apikeys", { body: { name } })),
+    mutationFn: async () => unwrap(await api.POST("/apikeys", { body: { name, readOnly } })),
     onSuccess: (res) => {
       setSecret(res.key);
       setCopied(false);
       setName("");
+      setReadOnly(false);
       void qc.invalidateQueries({ queryKey: ["apikeys"] });
     },
   });
@@ -53,6 +55,14 @@ export function ApiKeysSettings() {
               value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <Button type="submit" disabled={create.isPending}>{t("apikeys.create")}</Button>
+          <div className="basis-full">
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" className="accent-[var(--color-accent)]" checked={readOnly}
+                aria-describedby="apikey-readonly-hint" onChange={(e) => setReadOnly(e.target.checked)} />
+              {t("apikeys.readOnly")}
+            </label>
+            <p id="apikey-readonly-hint" className="mt-1 text-xs text-muted">{t("apikeys.readOnlyHint")}</p>
+          </div>
         </form>
         <ErrorText error={create.error} />
         {secret && (
@@ -74,7 +84,10 @@ export function ApiKeysSettings() {
           {keys.data?.map((k) => (
             <li key={k.id} className="flex flex-wrap items-center gap-3 py-3" data-testid="api-key-row">
               <div className="min-w-0 flex-1">
-                <p className="font-medium">{k.name} <code className="ml-1 text-xs text-muted">{k.prefix}…</code></p>
+                <p className="flex flex-wrap items-center gap-2 font-medium">
+                  <span>{k.name} <code className="ml-1 text-xs text-muted">{k.prefix}…</code></span>
+                  {k.readOnly && <Badge>{t("apikeys.readOnlyBadge")}</Badge>}
+                </p>
                 <p className="text-xs text-muted">
                   {t("apikeys.meta", { user: k.createdBy, created: fmt(k.createdAt), used: k.lastUsedAt ? fmt(k.lastUsedAt) : t("apikeys.never") })}
                 </p>

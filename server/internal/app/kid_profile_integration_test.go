@@ -69,7 +69,7 @@ func TestKidProfileOnAdminAccountIntegration(t *testing.T) {
 	if err != nil || !p.IsKid() {
 		t.Fatalf("principal: %+v %v", p, err)
 	}
-	if _, _, err := testState.Auth().CreateAPIKey(context.Background(), p, "x"); !errors.Is(err, auth.ErrKidProfile) {
+	if _, _, err := testState.Auth().CreateAPIKey(context.Background(), p, "x", false); !errors.Is(err, auth.ErrKidProfile) {
 		t.Fatalf("CreateAPIKey from a kids profile: %v", err)
 	}
 
