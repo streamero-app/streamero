@@ -1251,6 +1251,19 @@ func encodeGetSystemInfoResponse(response GetSystemInfoRes, w http.ResponseWrite
 	}
 }
 
+func encodeGetSystemStatsResponse(response *SystemStats, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
 func encodeGetTrickplaySheetResponse(response *GetTrickplaySheetOKHeaders, w http.ResponseWriter, span trace.Span) error {
 	w.Header().Set("Content-Type", "image/jpeg")
 	// Encoding response headers.

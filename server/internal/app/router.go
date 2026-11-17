@@ -13,6 +13,7 @@ import (
 
 	"github.com/streamero-app/streamero/server/internal/api"
 	"github.com/streamero-app/streamero/server/internal/api/gen"
+	"github.com/streamero-app/streamero/server/internal/auth"
 	"github.com/streamero-app/streamero/server/internal/compat"
 	"github.com/streamero-app/streamero/server/internal/netx"
 	"github.com/streamero-app/streamero/server/internal/webui"
@@ -127,7 +128,17 @@ func NewRouter(state *State, h *api.Handler, opts ...RouterOptions) (http.Handle
 	// It has its own 16 MiB body limit instead of the 1 MiB one of /api/v1.
 	compress := compressor()
 	r.Handle(api.ArrProxyPrefix+"{service}/proxy/*", compress(http.HandlerFunc(h.ArrProxy)))
-	r.Mount("/api/v1", compress(limitBody(startingGuard(state, apiServer))))
+	nativeAPI := compress(limitBody(startingGuard(state, apiServer)))
+	r.Mount("/api/v1", nativeAPI)
+	// Monitoring dashboards read /api/stats with an X-Api-Key header (D-052). It is
+	// GET /api/v1/system/stats under the address those dashboards expect, so it is
+	// answered by the same handler, with the same sign-in and JSON errors, and
+	// never by the web client below.
+	r.Handle(api.StatsPath, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		alias := req.Clone(req.Context())
+		alias.URL.Path, alias.URL.RawPath = "/api/v1/system/stats", ""
+		nativeAPI.ServeHTTP(w, alias)
+	}))
 	// Compatibility API for request managers and *arr notifications (D-016).
 	serveCompat := func(w http.ResponseWriter, req *http.Request) {
 		c := state.Compat()
@@ -213,7 +224,13 @@ func startingGuard(state *State, next http.Handler) http.Handler {
 // cookie: it becomes a bearer token unless the request already carries one.
 // Compat API requests never use the cookie: its clients send tokens, and its
 // responses allow any origin (CORS for TV web apps).
-// It also records whether the client connection is HTTPS (for the Secure flag).
+// It also records whether the client connection is HTTPS (for the Secure flag)
+// and what a read-only API key needs to know about the request.
+//
+// On the native API (and /api/stats) an API key may also come as X-Api-Key,
+// the header monitoring dashboards send. Only an API key (sk_...) is taken from
+// it, never a session token, and it is used instead of the cookie, so the
+// header cannot change what a cookie or a session is allowed to do.
 func sessionFromCookie(compatAtRoot bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler { return sessionCookieHandler(next, compatAtRoot) }
 }
@@ -221,12 +238,20 @@ func sessionFromCookie(compatAtRoot bool) func(http.Handler) http.Handler {
 func sessionCookieHandler(next http.Handler, compatAtRoot bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") == "" && !compat.IsCompatPath(r.Method, r.URL.Path, compatAtRoot) {
-			if c, err := r.Cookie(api.SessionCookie); err == nil && c.Value != "" {
+			if key := strings.TrimSpace(r.Header.Get("X-Api-Key")); nativeAPIPath(r.URL.Path) && strings.HasPrefix(key, auth.APIKeyPrefix) {
+				r.Header.Set("Authorization", "Bearer "+key)
+			} else if c, err := r.Cookie(api.SessionCookie); err == nil && c.Value != "" {
 				r.Header.Set("Authorization", "Bearer "+c.Value)
 			}
 		}
-		next.ServeHTTP(w, r.WithContext(api.WithSecure(r.Context(), isHTTPS(r))))
+		ctx := auth.WithRequest(api.WithSecure(r.Context(), isHTTPS(r)), r)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+// nativeAPIPath reports a path of the native API, including its /api/stats alias.
+func nativeAPIPath(p string) bool {
+	return p == api.StatsPath || strings.HasPrefix(p, "/api/v1/")
 }
 
 // isHTTPS reports whether the client connection is HTTPS. X-Forwarded-Proto

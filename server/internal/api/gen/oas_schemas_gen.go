@@ -178,6 +178,8 @@ type ApiKey struct {
 	CreatedBy  string      `json:"createdBy"`
 	CreatedAt  time.Time   `json:"createdAt"`
 	LastUsedAt OptDateTime `json:"lastUsedAt"`
+	// The key can read but never change anything (for dashboards).
+	ReadOnly OptBool `json:"readOnly"`
 }
 
 // GetID returns the value of ID.
@@ -210,6 +212,11 @@ func (s *ApiKey) GetLastUsedAt() OptDateTime {
 	return s.LastUsedAt
 }
 
+// GetReadOnly returns the value of ReadOnly.
+func (s *ApiKey) GetReadOnly() OptBool {
+	return s.ReadOnly
+}
+
 // SetID sets the value of ID.
 func (s *ApiKey) SetID(val uuid.UUID) {
 	s.ID = val
@@ -238,6 +245,11 @@ func (s *ApiKey) SetCreatedAt(val time.Time) {
 // SetLastUsedAt sets the value of LastUsedAt.
 func (s *ApiKey) SetLastUsedAt(val OptDateTime) {
 	s.LastUsedAt = val
+}
+
+// SetReadOnly sets the value of ReadOnly.
+func (s *ApiKey) SetReadOnly(val OptBool) {
+	s.ReadOnly = val
 }
 
 // Ref: #/components/schemas/ArrLink
@@ -1562,6 +1574,8 @@ func (s *ConnectionCheck) SetError(val OptString) {
 type CreateApiKeyRequest struct {
 	// E.g. "Jellyseerr".
 	Name string `json:"name"`
+	// Make a key that can only read (GET), e.g. for a monitoring dashboard.
+	ReadOnly OptBool `json:"readOnly"`
 }
 
 // GetName returns the value of Name.
@@ -1569,9 +1583,19 @@ func (s *CreateApiKeyRequest) GetName() string {
 	return s.Name
 }
 
+// GetReadOnly returns the value of ReadOnly.
+func (s *CreateApiKeyRequest) GetReadOnly() OptBool {
+	return s.ReadOnly
+}
+
 // SetName sets the value of Name.
 func (s *CreateApiKeyRequest) SetName(val string) {
 	s.Name = val
+}
+
+// SetReadOnly sets the value of ReadOnly.
+func (s *CreateApiKeyRequest) SetReadOnly(val OptBool) {
+	s.ReadOnly = val
 }
 
 // Ref: #/components/schemas/CreateInviteRequest
@@ -5977,6 +6001,56 @@ func (s *ItemSummary) SetHeight(val OptInt) {
 // SetChildCount sets the value of ChildCount.
 func (s *ItemSummary) SetChildCount(val OptInt) {
 	s.ChildCount = val
+}
+
+// Ref: #/components/schemas/JobQueueStats
+type JobQueueStats struct {
+	Queue string `json:"queue"`
+	// Waiting to run (including those waiting for a retry).
+	Queued  int64 `json:"queued"`
+	Running int64 `json:"running"`
+	// Gave up after the last attempt (kept for a week).
+	Failed int64 `json:"failed"`
+}
+
+// GetQueue returns the value of Queue.
+func (s *JobQueueStats) GetQueue() string {
+	return s.Queue
+}
+
+// GetQueued returns the value of Queued.
+func (s *JobQueueStats) GetQueued() int64 {
+	return s.Queued
+}
+
+// GetRunning returns the value of Running.
+func (s *JobQueueStats) GetRunning() int64 {
+	return s.Running
+}
+
+// GetFailed returns the value of Failed.
+func (s *JobQueueStats) GetFailed() int64 {
+	return s.Failed
+}
+
+// SetQueue sets the value of Queue.
+func (s *JobQueueStats) SetQueue(val string) {
+	s.Queue = val
+}
+
+// SetQueued sets the value of Queued.
+func (s *JobQueueStats) SetQueued(val int64) {
+	s.Queued = val
+}
+
+// SetRunning sets the value of Running.
+func (s *JobQueueStats) SetRunning(val int64) {
+	s.Running = val
+}
+
+// SetFailed sets the value of Failed.
+func (s *JobQueueStats) SetFailed(val int64) {
+	s.Failed = val
 }
 
 // Ref: #/components/schemas/LdapSettings
@@ -16888,6 +16962,262 @@ func (s *SystemInfo) SetCustomCss(val OptString) {
 }
 
 func (*SystemInfo) getSystemInfoRes() {}
+
+// Ref: #/components/schemas/SystemStats
+type SystemStats struct {
+	Version    string `json:"version"`
+	Commit     string `json:"commit"`
+	Movies     int64  `json:"movies"`
+	Series     int64  `json:"series"`
+	Episodes   int64  `json:"episodes"`
+	Albums     int64  `json:"albums"`
+	Tracks     int64  `json:"tracks"`
+	Books      int64  `json:"books"`
+	Audiobooks int64  `json:"audiobooks"`
+	Photos     int64  `json:"photos"`
+	// Movies, episodes and the videos of photo libraries together.
+	Videos    int64 `json:"videos"`
+	Libraries int64 `json:"libraries"`
+	Users     int64 `json:"users"`
+	// Size of all media files the libraries know.
+	UsageBytes int64 `json:"usageBytes"`
+	// Playback sessions active now (the dashboard's "now playing").
+	ActiveStreams int `json:"activeStreams"`
+	// Running transcodes.
+	Transcodes int `json:"transcodes"`
+	// Movies and series still waiting for their metadata (0 when no metadata provider key is set, since
+	// nothing is waiting then).
+	Processing int64 `json:"processing"`
+	// Items whose metadata lookup failed plus files that could not be read.
+	Failed int64 `json:"failed"`
+	// Size of the media storage (every distinct filesystem under the media roots).
+	DiskTotalBytes int64 `json:"diskTotalBytes"`
+	DiskFreeBytes  int64 `json:"diskFreeBytes"`
+	// When the newest item was added. Absent while the libraries are empty.
+	LastAddedAt OptDateTime `json:"lastAddedAt"`
+	// Background work, one entry per queue.
+	Jobs []JobQueueStats `json:"jobs"`
+}
+
+// GetVersion returns the value of Version.
+func (s *SystemStats) GetVersion() string {
+	return s.Version
+}
+
+// GetCommit returns the value of Commit.
+func (s *SystemStats) GetCommit() string {
+	return s.Commit
+}
+
+// GetMovies returns the value of Movies.
+func (s *SystemStats) GetMovies() int64 {
+	return s.Movies
+}
+
+// GetSeries returns the value of Series.
+func (s *SystemStats) GetSeries() int64 {
+	return s.Series
+}
+
+// GetEpisodes returns the value of Episodes.
+func (s *SystemStats) GetEpisodes() int64 {
+	return s.Episodes
+}
+
+// GetAlbums returns the value of Albums.
+func (s *SystemStats) GetAlbums() int64 {
+	return s.Albums
+}
+
+// GetTracks returns the value of Tracks.
+func (s *SystemStats) GetTracks() int64 {
+	return s.Tracks
+}
+
+// GetBooks returns the value of Books.
+func (s *SystemStats) GetBooks() int64 {
+	return s.Books
+}
+
+// GetAudiobooks returns the value of Audiobooks.
+func (s *SystemStats) GetAudiobooks() int64 {
+	return s.Audiobooks
+}
+
+// GetPhotos returns the value of Photos.
+func (s *SystemStats) GetPhotos() int64 {
+	return s.Photos
+}
+
+// GetVideos returns the value of Videos.
+func (s *SystemStats) GetVideos() int64 {
+	return s.Videos
+}
+
+// GetLibraries returns the value of Libraries.
+func (s *SystemStats) GetLibraries() int64 {
+	return s.Libraries
+}
+
+// GetUsers returns the value of Users.
+func (s *SystemStats) GetUsers() int64 {
+	return s.Users
+}
+
+// GetUsageBytes returns the value of UsageBytes.
+func (s *SystemStats) GetUsageBytes() int64 {
+	return s.UsageBytes
+}
+
+// GetActiveStreams returns the value of ActiveStreams.
+func (s *SystemStats) GetActiveStreams() int {
+	return s.ActiveStreams
+}
+
+// GetTranscodes returns the value of Transcodes.
+func (s *SystemStats) GetTranscodes() int {
+	return s.Transcodes
+}
+
+// GetProcessing returns the value of Processing.
+func (s *SystemStats) GetProcessing() int64 {
+	return s.Processing
+}
+
+// GetFailed returns the value of Failed.
+func (s *SystemStats) GetFailed() int64 {
+	return s.Failed
+}
+
+// GetDiskTotalBytes returns the value of DiskTotalBytes.
+func (s *SystemStats) GetDiskTotalBytes() int64 {
+	return s.DiskTotalBytes
+}
+
+// GetDiskFreeBytes returns the value of DiskFreeBytes.
+func (s *SystemStats) GetDiskFreeBytes() int64 {
+	return s.DiskFreeBytes
+}
+
+// GetLastAddedAt returns the value of LastAddedAt.
+func (s *SystemStats) GetLastAddedAt() OptDateTime {
+	return s.LastAddedAt
+}
+
+// GetJobs returns the value of Jobs.
+func (s *SystemStats) GetJobs() []JobQueueStats {
+	return s.Jobs
+}
+
+// SetVersion sets the value of Version.
+func (s *SystemStats) SetVersion(val string) {
+	s.Version = val
+}
+
+// SetCommit sets the value of Commit.
+func (s *SystemStats) SetCommit(val string) {
+	s.Commit = val
+}
+
+// SetMovies sets the value of Movies.
+func (s *SystemStats) SetMovies(val int64) {
+	s.Movies = val
+}
+
+// SetSeries sets the value of Series.
+func (s *SystemStats) SetSeries(val int64) {
+	s.Series = val
+}
+
+// SetEpisodes sets the value of Episodes.
+func (s *SystemStats) SetEpisodes(val int64) {
+	s.Episodes = val
+}
+
+// SetAlbums sets the value of Albums.
+func (s *SystemStats) SetAlbums(val int64) {
+	s.Albums = val
+}
+
+// SetTracks sets the value of Tracks.
+func (s *SystemStats) SetTracks(val int64) {
+	s.Tracks = val
+}
+
+// SetBooks sets the value of Books.
+func (s *SystemStats) SetBooks(val int64) {
+	s.Books = val
+}
+
+// SetAudiobooks sets the value of Audiobooks.
+func (s *SystemStats) SetAudiobooks(val int64) {
+	s.Audiobooks = val
+}
+
+// SetPhotos sets the value of Photos.
+func (s *SystemStats) SetPhotos(val int64) {
+	s.Photos = val
+}
+
+// SetVideos sets the value of Videos.
+func (s *SystemStats) SetVideos(val int64) {
+	s.Videos = val
+}
+
+// SetLibraries sets the value of Libraries.
+func (s *SystemStats) SetLibraries(val int64) {
+	s.Libraries = val
+}
+
+// SetUsers sets the value of Users.
+func (s *SystemStats) SetUsers(val int64) {
+	s.Users = val
+}
+
+// SetUsageBytes sets the value of UsageBytes.
+func (s *SystemStats) SetUsageBytes(val int64) {
+	s.UsageBytes = val
+}
+
+// SetActiveStreams sets the value of ActiveStreams.
+func (s *SystemStats) SetActiveStreams(val int) {
+	s.ActiveStreams = val
+}
+
+// SetTranscodes sets the value of Transcodes.
+func (s *SystemStats) SetTranscodes(val int) {
+	s.Transcodes = val
+}
+
+// SetProcessing sets the value of Processing.
+func (s *SystemStats) SetProcessing(val int64) {
+	s.Processing = val
+}
+
+// SetFailed sets the value of Failed.
+func (s *SystemStats) SetFailed(val int64) {
+	s.Failed = val
+}
+
+// SetDiskTotalBytes sets the value of DiskTotalBytes.
+func (s *SystemStats) SetDiskTotalBytes(val int64) {
+	s.DiskTotalBytes = val
+}
+
+// SetDiskFreeBytes sets the value of DiskFreeBytes.
+func (s *SystemStats) SetDiskFreeBytes(val int64) {
+	s.DiskFreeBytes = val
+}
+
+// SetLastAddedAt sets the value of LastAddedAt.
+func (s *SystemStats) SetLastAddedAt(val OptDateTime) {
+	s.LastAddedAt = val
+}
+
+// SetJobs sets the value of Jobs.
+func (s *SystemStats) SetJobs(val []JobQueueStats) {
+	s.Jobs = val
+}
 
 // Ref: #/components/schemas/TOTPCodeRequest
 type TOTPCodeRequest struct {

@@ -117,7 +117,9 @@ func (UnimplementedHandler) ContinueWatching(ctx context.Context) (r []ItemSumma
 // CreateAPIKey implements createAPIKey operation.
 //
 // The key acts with the rights of the admin who created it and is deleted with that user. Send it as
-// `Authorization: Bearer <key>`. The secret is returned only once.
+// `Authorization: Bearer <key>` or `X-Api-Key: <key>`. The secret is returned only once. A read-only
+// key is refused (403 `read_only_key`) for every request that is not GET, HEAD or OPTIONS, and for
+// sockets.
 //
 // POST /apikeys
 func (UnimplementedHandler) CreateAPIKey(ctx context.Context, req *CreateApiKeyRequest) (r *CreatedApiKey, _ error) {
@@ -830,6 +832,17 @@ func (UnimplementedHandler) GetSyncGroup(ctx context.Context, params GetSyncGrou
 //
 // GET /system/info
 func (UnimplementedHandler) GetSystemInfo(ctx context.Context) (r GetSystemInfoRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetSystemStats implements getSystemStats operation.
+//
+// Library counts, storage, playback and background work in one cheap call (the result is cached for
+// about 15 seconds). Also served, with the same body, at `/api/stats` on the server address, where a
+// dashboard sends its key as `X-Api-Key: <key>` (a read-only API key is enough).
+//
+// GET /system/stats
+func (UnimplementedHandler) GetSystemStats(ctx context.Context) (r *SystemStats, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

@@ -238,6 +238,10 @@ func (h *Handler) SyncPlaySocket(w http.ResponseWriter, r *http.Request) {
 	}
 	token, _ := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
 	p, err := h.Auth().Authenticate(r.Context(), token)
+	if errors.Is(err, auth.ErrReadOnlyKey) {
+		auth.WriteReadOnlyKey(w)
+		return
+	}
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return

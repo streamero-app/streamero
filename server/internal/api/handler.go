@@ -77,6 +77,8 @@ type Handler struct {
 	// Downloads serves offline downloads (nil until ready).
 	Downloads atomic.Pointer[downloads.Service]
 	restoring atomic.Bool
+	// stats caches the database part of GET /system/stats.
+	stats statsCache
 }
 
 var _ gen.Handler = (*Handler)(nil)

@@ -3,6 +3,7 @@ package compat
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -57,6 +58,10 @@ func sessionKey(p auth.Principal) string {
 // Remote control beyond that and live library events are not offered.
 func (s *Server) socket(w http.ResponseWriter, r *http.Request) {
 	p, err := s.Auth.Authenticate(r.Context(), socketToken(r))
+	if errors.Is(err, auth.ErrReadOnlyKey) {
+		auth.WriteReadOnlyKey(w)
+		return
+	}
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return

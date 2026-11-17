@@ -401,6 +401,10 @@ func clientInfo(r *http.Request) client {
 func (s *Server) requireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p, err := s.Auth.Authenticate(r.Context(), clientInfo(r).token)
+		if errors.Is(err, auth.ErrReadOnlyKey) {
+			auth.WriteReadOnlyKey(w)
+			return
+		}
 		if err != nil {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
@@ -880,7 +884,7 @@ func (s *Server) createKey(w http.ResponseWriter, r *http.Request) {
 	if app == "" {
 		app = "Integration"
 	}
-	_, secret, err := s.Auth.CreateAPIKey(r.Context(), p, app)
+	_, secret, err := s.Auth.CreateAPIKey(r.Context(), p, app, false)
 	if err != nil {
 		http.Error(w, "error", http.StatusInternalServerError)
 		return

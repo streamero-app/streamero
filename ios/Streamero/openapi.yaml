@@ -77,6 +77,27 @@ paths:
                 $ref: "#/components/schemas/Pong"
         default:
           $ref: "#/components/responses/Error"
+  /system/stats:
+    get:
+      operationId: getSystemStats
+      summary: Numbers for a monitoring dashboard (admin)
+      description: |
+        Library counts, storage, playback and background work in one cheap call (the
+        result is cached for about 15 seconds). Also served, with the same body, at
+        `/api/stats` on the server address, where a dashboard sends its key as
+        `X-Api-Key: <key>` (a read-only API key is enough).
+      tags: [system]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemStats"
+        default:
+          $ref: "#/components/responses/Error"
   /setup:
     post:
       operationId: completeSetup
@@ -922,7 +943,9 @@ paths:
       summary: Create an API key (admin)
       description: |
         The key acts with the rights of the admin who created it and is deleted with that
-        user. Send it as `Authorization: Bearer <key>`. The secret is returned only once.
+        user. Send it as `Authorization: Bearer <key>` or `X-Api-Key: <key>`. The secret is
+        returned only once. A read-only key is refused (403 `read_only_key`) for every
+        request that is not GET, HEAD or OPTIONS, and for sockets.
       tags: [apikeys]
       security:
         - sessionToken: []
@@ -6985,6 +7008,9 @@ components:
         lastUsedAt:
           type: string
           format: date-time
+        readOnly:
+          type: boolean
+          description: The key can read but never change anything (for dashboards).
     CreateApiKeyRequest:
       type: object
       required: [name]
@@ -6994,6 +7020,10 @@ components:
           minLength: 1
           maxLength: 100
           description: e.g. "Jellyseerr"
+        readOnly:
+          type: boolean
+          default: false
+          description: Make a key that can only read (GET), e.g. for a monitoring dashboard.
     CreatedApiKey:
       type: object
       required: [key, apiKey]
@@ -7476,6 +7506,102 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/SubtitleOffer"
+    SystemStats:
+      type: object
+      required: [version, commit, movies, series, episodes, albums, tracks, books, audiobooks, photos, videos,
+        libraries, users, usageBytes, activeStreams, transcodes, processing, failed, diskTotalBytes, diskFreeBytes, jobs]
+      properties:
+        version:
+          type: string
+        commit:
+          type: string
+        movies:
+          type: integer
+          format: int64
+        series:
+          type: integer
+          format: int64
+        episodes:
+          type: integer
+          format: int64
+        albums:
+          type: integer
+          format: int64
+        tracks:
+          type: integer
+          format: int64
+        books:
+          type: integer
+          format: int64
+        audiobooks:
+          type: integer
+          format: int64
+        photos:
+          type: integer
+          format: int64
+        videos:
+          type: integer
+          format: int64
+          description: Movies, episodes and the videos of photo libraries together.
+        libraries:
+          type: integer
+          format: int64
+        users:
+          type: integer
+          format: int64
+        usageBytes:
+          type: integer
+          format: int64
+          description: Size of all media files the libraries know.
+        activeStreams:
+          type: integer
+          description: Playback sessions active now (the dashboard's "now playing").
+        transcodes:
+          type: integer
+          description: Running transcodes.
+        processing:
+          type: integer
+          format: int64
+          description: |
+            Movies and series still waiting for their metadata (0 when no metadata
+            provider key is set, since nothing is waiting then).
+        failed:
+          type: integer
+          format: int64
+          description: Items whose metadata lookup failed plus files that could not be read.
+        diskTotalBytes:
+          type: integer
+          format: int64
+          description: Size of the media storage (every distinct filesystem under the media roots).
+        diskFreeBytes:
+          type: integer
+          format: int64
+        lastAddedAt:
+          type: string
+          format: date-time
+          description: When the newest item was added. Absent while the libraries are empty.
+        jobs:
+          type: array
+          description: Background work, one entry per queue.
+          items:
+            $ref: "#/components/schemas/JobQueueStats"
+    JobQueueStats:
+      type: object
+      required: [queue, queued, running, failed]
+      properties:
+        queue:
+          type: string
+        queued:
+          type: integer
+          format: int64
+          description: Waiting to run (including those waiting for a retry).
+        running:
+          type: integer
+          format: int64
+        failed:
+          type: integer
+          format: int64
+          description: Gave up after the last attempt (kept for a week).
     SystemInfo:
       type: object
       required: [id, name, product, version, apiVersion, setupCompleted, startedAt]
