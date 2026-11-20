@@ -173,6 +173,12 @@ final class PresentationTests: XCTestCase {
         XCTAssertEqual(Set(titles.map { "\($0)" }).count, keys.count)
     }
 
+    func testProfileColoursHaveSpokenNames() {
+        XCTAssertEqual(ProfileForm.colorName("#E5484D"), "colour.red")
+        XCTAssertEqual(ProfileForm.colors.map(ProfileForm.colorName).count, Set(ProfileForm.colors.map(ProfileForm.colorName)).count)
+        XCTAssertEqual(ProfileForm.colorName("#123456"), "colour")
+    }
+
     func testSeasonEpisodeConvention() {
         XCTAssertEqual(seasonEpisode(season: 1, episode: 2), "S01E02")
         XCTAssertEqual(seasonEpisode(season: nil, episode: 12), "S00E12")
