@@ -1,7 +1,6 @@
 package net.scyde.streamero.books
 
 import android.app.Application
-import android.content.ComponentName
 import android.net.Uri
 import android.os.SystemClock
 import androidx.compose.runtime.getValue
@@ -13,21 +12,32 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
-import androidx.media3.session.SessionToken
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import net.scyde.streamero.api.Api
 import net.scyde.streamero.api.ItemSummary
 import net.scyde.streamero.api.PlaybackRequest
 import net.scyde.streamero.api.ProgressReport
 import net.scyde.streamero.music.AUDIO_PROFILE
-import net.scyde.streamero.music.MusicService
+import net.scyde.streamero.music.Shared
+import net.scyde.streamero.music.connectToMusicService
+import net.scyde.streamero.music.playerScope
 
 private const val REPORT_EVERY_MS = 15_000L
+
+/**
+ * Whether the sleep timer is due: [sleep] is the chosen minutes ([SLEEP_END_OF_CHAPTER] for the
+ * end of the chapter at [sleepAtMs]), null when off; [deadline] is the real time a timer in
+ * minutes runs out.
+ */
+fun sleepDue(sleep: Int?, positionMs: Long, sleepAtMs: Long, now: Long, deadline: Long): Boolean = when (sleep) {
+    null -> false
+    SLEEP_END_OF_CHAPTER -> positionMs >= sleepAtMs
+    else -> now >= deadline
+}
 
 /**
  * Audiobook playback. Uses the same background service as music (lock screen, headphones,
@@ -62,26 +72,37 @@ class AudiobookController(private val app: Application) {
     val duration: Long get() = timeline?.durationMs ?: 0L
     val chapter: Int get() = timeline?.chapterAt(position) ?: -1
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-    private var controller: MediaController? = null
+    private val scope = playerScope("AudiobookController")
     private var ticker: Job? = null
     private var lastReport = 0L
 
-    private suspend fun controller(): MediaController {
-        controller?.let { return it }
-        val token = SessionToken(app, ComponentName(app, MusicService::class.java))
-        val future = MediaController.Builder(app, token).buildAsync()
-        while (!future.isDone) delay(20)
-        return future.get().also { c ->
-            controller = c
-            c.addListener(object : Player.Listener {
-                override fun onIsPlayingChanged(isPlaying: Boolean) {
-                    if (book == null) return
-                    playing = isPlaying
-                    if (!isPlaying) report()
-                }
-            })
+    // The service's player is shared with music: events while no book is open are not ours.
+    private val listener = object : Player.Listener {
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            if (book == null) return
+            playing = isPlaying
+            refreshPosition()
+            if (isPlaying) {
+                // A timer that ran out while the book was paused is over; it does not stop the listener at once.
+                if (sleep != null && sleep != SLEEP_END_OF_CHAPTER && sleepDue(sleep, position, sleepAt, SystemClock.elapsedRealtime(), sleepDeadline)) cancelSleep()
+                startTicker()
+            } else {
+                ticker?.cancel()
+                report()
+            }
         }
+    }
+
+    private val shared: Shared<MediaController> = Shared(valid = { it.isConnected }) {
+        connectToMusicService(app) { c -> shared.forget(c); ticker?.cancel(); playing = false }.also { it.addListener(listener) }
+    }
+
+    private suspend fun controller(): MediaController = shared.get()
+
+    private fun refreshPosition() {
+        val c = shared.current ?: return
+        val t = timeline ?: return
+        if (book != null && c.mediaItemCount > 0) position = t.global(c.currentMediaItemIndex, c.currentPosition)
     }
 
     private fun cover(b: ItemSummary): Uri? = api?.takeIf { b.hasPoster }?.let { Uri.parse(it.imageUrl(b.id, "poster")) }
@@ -103,7 +124,7 @@ class AudiobookController(private val app: Application) {
         speed = 1f
         cancelSleep()
         scope.launch {
-            runCatching {
+            try {
                 val m = a.listen(b.id)
                 val t = AudiobookTimeline(m.parts, m.chapters, m.durationMs)
                 // Each file has its own signed stream URL; the player moves through them as a queue.
@@ -117,33 +138,35 @@ class AudiobookController(private val app: Application) {
                 val start = startMs ?: m.positionMs.takeIf { it < t.durationMs - 5_000 } ?: 0L
                 val (i, local) = t.locate(start)
                 val c = controller()
+                // Another book (or music) was started while this one loaded.
+                if (book?.id != b.id) return@launch
                 timeline = t
                 position = start
                 c.setMediaItems(items, i, local)
                 c.setPlaybackSpeed(1f)
                 c.prepare()
                 c.play()
-                startTicker()
-            }.onFailure { error = it; book = null }
-            loading = false
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                if (book?.id == b.id) { error = e; book = null }
+            } finally {
+                loading = false
+            }
         }
     }
 
+    /** While the book plays: the position, the sleep timer and a report every 15 s. Stops on pause. */
     private fun startTicker() {
         ticker?.cancel()
         ticker = scope.launch {
-            while (true) {
-                val c = controller
-                val t = timeline
-                if (c != null && t != null && book != null) {
-                    position = t.global(c.currentMediaItemIndex, c.currentPosition)
-                    val now = SystemClock.elapsedRealtime()
-                    when {
-                        sleep == SLEEP_END_OF_CHAPTER && position >= sleepAt -> { c.pause(); cancelSleep() }
-                        sleep != null && sleep != SLEEP_END_OF_CHAPTER && now >= sleepDeadline -> { c.pause(); cancelSleep() }
-                    }
-                    if (c.isPlaying && now - lastReport >= REPORT_EVERY_MS) report()
-                }
+            while (isActive) {
+                val c = shared.current ?: break
+                if (book == null || timeline == null) break
+                refreshPosition()
+                val now = SystemClock.elapsedRealtime()
+                if (sleepDue(sleep, position, sleepAt, now, sleepDeadline)) { c.pause(); cancelSleep() }
+                if (c.isPlaying && now - lastReport >= REPORT_EVERY_MS) report()
                 delay(500)
             }
         }
@@ -160,7 +183,7 @@ class AudiobookController(private val app: Application) {
     }
 
     fun toggle() = scope.launch { val c = controller(); if (c.isPlaying) c.pause() else c.play() }
-    fun pause() = scope.launch { controller?.pause() }
+    fun pause() = scope.launch { if (book != null) shared.current?.pause() }
 
     fun seekTo(ms: Long) {
         val t = timeline ?: return
@@ -202,10 +225,12 @@ class AudiobookController(private val app: Application) {
     /** Saves the position and lets go of the player (music took over or the user stopped). */
     fun release(stopPlayer: Boolean) {
         if (book == null) return
+        refreshPosition()
         report()
         ticker?.cancel()
-        if (stopPlayer) controller?.run { stop(); clearMediaItems() }
-        controller?.setPlaybackSpeed(1f)
+        val c = shared.current
+        if (stopPlayer) c?.run { stop(); clearMediaItems() }
+        c?.setPlaybackSpeed(1f)
         book = null; timeline = null; playing = false; position = 0; cancelSleep()
     }
 }

@@ -31,9 +31,9 @@ internal object ManageEntry {
             navArgument("id") { type = NavType.StringType; nullable = true },
             navArgument("arg") { type = NavType.StringType; nullable = true },
         )) {
-            val a = it.arguments!!
+            val a = it.arguments ?: return@composable
             val svc = ArrService.of(a.getString("svc")) ?: return@composable
-            ManageRoute(state, nav, svc, a.getString("page")!!, a.getString("id"), a.getString("arg"))
+            ManageRoute(state, nav, svc, a.getString("page") ?: return@composable, a.getString("id"), a.getString("arg"))
         }
     }
 }
@@ -43,13 +43,17 @@ private fun ManageRoute(state: AppState, nav: NavHostController, svc: ArrService
     // Kid profiles and non-admins never reach these (no tab), but a stale back stack might.
     if (!state.isAdmin) { Text(stringResource(R.string.err_forbidden), color = Kino.danger, modifier = Modifier.statusBarsPadding().padding(20.dp)); return }
     val c = rememberArr(state, svc) ?: return
+    if (!ManageRoutes.valid(page, id, arg)) { BadRoute(nav); return }
+    val num = id?.toIntOrNull() ?: 0
+    val a = arg.orEmpty()
+    val i = id.orEmpty()
     when (page) {
         "home" -> ServiceHome(nav, c)
         // Radarr, Sonarr, Lidarr
         "library" -> LibraryPage(nav, c)
-        "item" -> ItemPage(nav, c, id!!.toInt())
+        "item" -> ItemPage(nav, c, num)
         "add" -> AddPage(nav, c)
-        "releases" -> ReleasesPage(nav, c, id!!.toInt(), arg)
+        "releases" -> ReleasesPage(nav, c, num, arg)
         "calendar" -> CalendarPage(nav, c)
         "queue" -> QueuePage(nav, c)
         "history" -> HistoryPage(nav, c)
@@ -60,23 +64,23 @@ private fun ManageRoute(state: AppState, nav: NavHostController, svc: ArrService
         "logs" -> LogsPage(nav, c)
         "backups" -> BackupsPage(nav, c)
         "settings" -> SettingsIndex(nav, c)
-        "providers" -> ProviderList(nav, c, arg!!)
-        "provider" -> ProviderEdit(nav, c, arg!!, id)
-        "config" -> ConfigPage(nav, c, arg!!)
+        "providers" -> ProviderList(nav, c, a)
+        "provider" -> ProviderEdit(nav, c, a, id)
+        "config" -> ConfigPage(nav, c, a)
         "qualityprofiles" -> QualityProfileList(nav, c)
         "qualityprofile" -> QualityProfileEdit(nav, c, id)
         "qualitydefinitions" -> QualityDefinitionsPage(nav, c)
         "customformat" -> CustomFormatEdit(nav, c, id)
         "rootfolders" -> RootFoldersPage(nav, c)
         "tags" -> TagsPage(nav, c)
-        "crud" -> CrudList(nav, c, arg!!)
-        "crudedit" -> CrudEdit(nav, c, arg!!, id)
+        "crud" -> CrudList(nav, c, a)
+        "crudedit" -> CrudEdit(nav, c, a, id)
         // Prowlarr
         "search" -> ProwlarrSearch(nav, c)
         "stats" -> IndexerStats(nav, c)
         // Bazarr
         "bwanted" -> BazarrWanted(nav, c, arg ?: "movies")
-        "bsubs" -> BazarrSubtitles(nav, c, arg ?: "movies", id!!)
+        "bsubs" -> BazarrSubtitles(nav, c, arg ?: "movies", i)
         "bhistory" -> BazarrHistory(nav, c, arg ?: "movies")
         "bproviders" -> BazarrProviders(nav, c)
         "bsystem" -> BazarrSystem(nav, c)
@@ -84,11 +88,11 @@ private fun ManageRoute(state: AppState, nav: NavHostController, svc: ArrService
         // Seerr
         "requests" -> SeerrRequests(nav, c)
         "discover" -> SeerrDiscover(nav, c)
-        "media" -> SeerrMedia(nav, c, arg ?: "movie", id!!.toInt())
+        "media" -> SeerrMedia(nav, c, arg ?: "movie", num)
         "issues" -> SeerrIssues(nav, c)
         "users" -> SeerrUsers(nav, c)
-        "suser" -> SeerrUser(nav, c, id!!.toInt())
-        "sissue" -> SeerrIssue(nav, c, id!!.toInt())
+        "suser" -> SeerrUser(nav, c, num)
+        "sissue" -> SeerrIssue(nav, c, num)
         "sjobs" -> SeerrJobs(nav, c)
         "ssettings" -> SeerrSettings(nav, c, arg)
     }

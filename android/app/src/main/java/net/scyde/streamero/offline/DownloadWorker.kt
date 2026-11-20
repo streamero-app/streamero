@@ -133,15 +133,19 @@ class DownloadWorker(context: Context, params: WorkerParameters) : CoroutineWork
             val req = Request.Builder().url(api.resolve(url)).apply { if (have > 0) header("Range", "bytes=$have-") }.build()
             val outcome = withContext(Dispatchers.IO) {
                 client.newCall(req).execute().use { resp ->
-                    when {
-                        resp.code == 416 && have > 0 && (job.sizeBytes == null || have >= job.sizeBytes!!) -> true
+                    when (rangeOutcome(resp.code, have, job.sizeBytes)) {
+                        RangeOutcome.Complete -> true
+                        // The kept part does not fit the file any more (it changed on the server):
+                        // start over instead of asking for the same impossible range forever.
+                        RangeOutcome.Restart -> { part.delete(); throw IOException("partial file does not match, restarting") }
+                        RangeOutcome.Continue -> when {
                         // Signed links expire: fetch the job again for a fresh one.
                         resp.code == 401 || resp.code == 403 || resp.code == 410 -> false
                         !resp.isSuccessful -> throw IOException("HTTP ${resp.code}")
                         else -> {
                             val body = resp.body ?: throw IOException("empty body")
                             val append = resp.code == 206 && have > 0
-                            val total = if (append) have + body.contentLength() else body.contentLength().takeIf { it >= 0 } ?: (job.sizeBytes ?: 0)
+                            val total = downloadTotal(append, have, body.contentLength(), job.sizeBytes)
                             var done = if (append) have else 0L
                             var last = 0L
                             FileOutputStream(part, append).use { out ->
@@ -165,6 +169,7 @@ class DownloadWorker(context: Context, params: WorkerParameters) : CoroutineWork
                             if (total > 0 && done < total) throw IOException("short read $done/$total")
                             true
                         }
+                        }
                     }
                 }
             }
@@ -180,14 +185,21 @@ class DownloadWorker(context: Context, params: WorkerParameters) : CoroutineWork
 
     /** A small file (subtitle, image); false when it could not be fetched. */
     private suspend fun fetch(api: Api, url: String, to: File): Boolean = withContext(Dispatchers.IO) {
-        runCatching {
+        val tmp = File(to.path + ".tmp")
+        try {
             api.http.newCall(Request.Builder().url(url).build()).execute().use { resp ->
-                if (!resp.isSuccessful) return@use false
-                val tmp = File(to.path + ".tmp")
-                resp.body!!.byteStream().use { input -> FileOutputStream(tmp).use { input.copyTo(it) } }
+                val body = resp.body
+                if (!resp.isSuccessful || body == null) return@use false
+                body.byteStream().use { input -> FileOutputStream(tmp).use { input.copyTo(it) } }
                 tmp.renameTo(to)
             }
-        }.getOrDefault(false)
+        } catch (e: IOException) {
+            false
+        } catch (e: IllegalArgumentException) {
+            false // a link from the server that is not a URL
+        } finally {
+            tmp.delete()
+        }
     }
 
     private suspend fun image(api: Api, id: String, kind: String, name: String): String? =
@@ -197,7 +209,7 @@ class DownloadWorker(context: Context, params: WorkerParameters) : CoroutineWork
 
     private fun channel() {
         val nm = applicationContext.getSystemService(NotificationManager::class.java)
-        if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(CHANNEL) == null) {
+        if (nm.getNotificationChannel(CHANNEL) == null) {
             nm.createNotificationChannel(NotificationChannel(CHANNEL, applicationContext.getString(R.string.download_channel), NotificationManager.IMPORTANCE_LOW))
         }
     }
@@ -238,4 +250,24 @@ class DownloadWorker(context: Context, params: WorkerParameters) : CoroutineWork
         const val CHANNEL = "downloads"
         private const val POLL_MS = 3000L
     }
+}
+
+/** What a ranged request's status means for the kept `.part` file. */
+enum class RangeOutcome { Continue, Complete, Restart }
+
+/**
+ * 416 means the requested range starts at or past the end: the part is complete when it has
+ * exactly the job's size (or the size is unknown); otherwise it no longer matches the file.
+ */
+fun rangeOutcome(status: Int, have: Long, sizeBytes: Long?): RangeOutcome = when {
+    status != 416 || have <= 0 -> RangeOutcome.Continue
+    sizeBytes == null || have == sizeBytes -> RangeOutcome.Complete
+    else -> RangeOutcome.Restart
+}
+
+/** The whole file's size for progress and the short-read check; 0 when nothing says. */
+fun downloadTotal(append: Boolean, have: Long, contentLength: Long, sizeBytes: Long?): Long = when {
+    contentLength < 0 -> sizeBytes ?: 0
+    append -> have + contentLength
+    else -> contentLength
 }

@@ -15,6 +15,7 @@ import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -295,5 +296,16 @@ fun Section(title: String, initiallyOpen: Boolean = false, content: @Composable 
     }
 }
 
+/**
+ * A whole-number input. The typed text is kept as typed (empty, or a lone "-" on the way to a
+ * negative number) and [onValue] only gets real numbers, so the field never jumps to 0.
+ */
 @Composable
-private fun <T> rememberSaveable(key: String, init: () -> MutableState<T>): MutableState<T> = remember(key) { init() }
+fun IntField(label: String, value: Int?, onValue: (Int) -> Unit, error: String? = null) {
+    var text by rememberSaveable(label) { mutableStateOf(value?.toString().orEmpty()) }
+    // A new value from outside (reloaded after a save) replaces the text, unless it already says that.
+    LaunchedEffect(value) { if (text.trim().toIntOrNull() != value) text = value?.toString().orEmpty() }
+    FormText(label, text, { t ->
+        if (isIntInput(t)) { text = t; t.trim().toIntOrNull()?.let(onValue) }
+    }, error = error, number = true)
+}

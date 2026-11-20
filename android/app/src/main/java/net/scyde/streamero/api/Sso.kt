@@ -55,12 +55,17 @@ sealed interface SsoResult {
     data class Failed(val error: String) : SsoResult
 }
 
+private val TOKEN_SHAPE = Regex("^[A-Za-z0-9._~-]{1,512}$")
+private val ERROR_SHAPE = Regex("^[a-z0-9_]{1,64}$")
+
 /** Parses a `streamero://oidc?code=…` / `?error=…` redirect to this app's scheme (null if it is not one). */
 fun parseSsoRedirect(scheme: String?, host: String?, code: String?, error: String?): SsoResult? {
     if (!scheme.equals(APP_SCHEME, ignoreCase = true) || !host.equals("oidc", ignoreCase = true)) return null
+    // Any app or web page can open this scheme: only a code and an error code of the shape the
+    // server sends get through; anything else is reported as a failed sign-in, never passed on.
     return when {
-        !code.isNullOrBlank() -> SsoResult.Code(code)
-        else -> SsoResult.Failed(error?.takeIf { it.isNotBlank() } ?: "internal")
+        !code.isNullOrBlank() -> if (TOKEN_SHAPE.matches(code)) SsoResult.Code(code) else SsoResult.Failed("invalid_request")
+        else -> SsoResult.Failed(error?.takeIf { ERROR_SHAPE.matches(it) } ?: "internal")
     }
 }
 

@@ -231,6 +231,8 @@ class OfflineManager(private val context: Context, private val apiProvider: susp
                 val req = OfflineSync.request(before)
                 val resp = try { api.syncOffline(req) } catch (e: ApiException) {
                     Log.w(TAG, "offline sync refused: ${e.code}"); return false
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
                 } catch (e: Exception) { return false }
                 var revoked = emptySet<String>()
                 store.update { d ->
@@ -243,8 +245,13 @@ class OfflineManager(private val context: Context, private val apiProvider: susp
             for (sub in store.data.value.subscriptions) {
                 val plan = AutoDownloads.plan(store.data.value.entries, sub)
                 delete(plan.delete)
-                runCatching { request(api, DownloadRequest(sub.seriesId, sub.quality, nextEpisodes = sub.count, skipItemIds = plan.skip.ifEmpty { null })) }
-                    .onFailure { Log.w(TAG, "automatic downloads of ${sub.seriesId}: $it") }
+                try {
+                    request(api, DownloadRequest(sub.seriesId, sub.quality, nextEpisodes = sub.count, skipItemIds = plan.skip.ifEmpty { null }))
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.w(TAG, "automatic downloads of ${sub.seriesId}: ${e.javaClass.simpleName}")
+                }
             }
             resumePending()
             return true

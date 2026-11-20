@@ -49,7 +49,7 @@ fun CalendarPage(nav: NavHostController, c: ArrClient) {
 
 private fun calendarDate(s: ArrService, o: JsonObject, today: LocalDate): LocalDate? {
     fun parse(v: String?): LocalDate? = v?.let {
-        runCatching { OffsetDateTime.parse(it).atZoneSameInstant(ZoneId.systemDefault()).toLocalDate() }.getOrNull() ?: runCatching { LocalDate.parse(it.take(10)) }.getOrNull()
+        attempt { OffsetDateTime.parse(it).atZoneSameInstant(ZoneId.systemDefault()).toLocalDate() }.getOrNull() ?: attempt { LocalDate.parse(it.take(10)) }.getOrNull()
     }
     return when (s) {
         ArrService.Sonarr -> parse(o.s("airDateUtc")) ?: parse(o.s("airDate"))
@@ -72,7 +72,7 @@ fun QueuePage(nav: NavHostController, c: ArrClient) {
         loaded(q) { page ->
             val list = page.objs("records")
             if (list.isEmpty()) block { Text(stringResource(R.string.m_queue_empty), color = Kino.muted) }
-            items(list, key = { it.i("id") ?: it.hashCode() }) { r ->
+            keyedItems(list, { it.i("id") }, "queue") { r ->
                 val size = r.d("size") ?: 0.0
                 val left = r.d("sizeleft") ?: 0.0
                 Panel {
@@ -85,8 +85,8 @@ fun QueuePage(nav: NavHostController, c: ArrClient) {
                             color = Kino.muted, fontSize = 12.sp)
                         r.objs("statusMessages").flatMap { it.strs("messages") }.take(3).forEach { Text("• $it", color = Kino.accent, fontSize = 12.sp) }
                         r.s("errorMessage")?.let { Text(it, color = Kino.danger, fontSize = 12.sp) }
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.End) {
-                            TextButton(onClick = { removing = r }) { Text(stringResource(R.string.m_remove), color = Kino.danger) }
+                        if (r.i("id") != null) Row(Modifier.fillMaxWidth(), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.End) {
+                            TextButton(onClick = { removing = r }, enabled = !act.busy) { Text(stringResource(R.string.m_remove), color = Kino.danger) }
                         }
                     }
                 }
@@ -108,7 +108,7 @@ fun QueuePage(nav: NavHostController, c: ArrClient) {
             confirmButton = {
                 TextButton(onClick = {
                     removing = null
-                    run(null) { c.delete("queue/${r.i("id")}", mapOf("removeFromClient" to fromClient, "blocklist" to blocklist)); q.reload() }
+                    r.i("id")?.let { qid -> run(null) { c.delete("queue/$qid", mapOf("removeFromClient" to fromClient, "blocklist" to blocklist)); q.reload() } }
                 }) { Text(stringResource(R.string.m_remove), color = Kino.danger) }
             },
             dismissButton = { TextButton(onClick = { removing = null }) { Text(stringResource(R.string.cancel), color = Kino.muted) } })
@@ -123,8 +123,12 @@ fun rememberPaged(key: Any?, pageSize: Int = 50, load: suspend (page: Int) -> Js
     val l = rememberLoaded("$key/$pages") {
         (1..pages).flatMap { p -> load(p).also { total = it.l("totalRecords") ?: 0 }.objs("records") }
     }
-    val more = (l.value?.size ?: 0) < total
-    return Triple(l, more) { pages++ }
+    // While the next page loads, the rows already shown stay (no jump back to a spinner).
+    var last by remember(key) { mutableStateOf<List<JsonObject>?>(null) }
+    LaunchedEffect(l.value) { l.value?.let { last = it } }
+    val shown = Loaded(l.value ?: last, l.error, l.loading, l.reload)
+    val more = (shown.value?.size ?: 0) < total
+    return Triple(shown, more) { if (!l.loading) pages++ }
 }
 
 @Composable
@@ -136,7 +140,7 @@ fun HistoryPage(nav: NavHostController, c: ArrClient) {
     ManagePage(nav, stringResource(R.string.m_history), s.title) {
         loaded(h) { list ->
             if (list.isEmpty()) block { Text(stringResource(R.string.m_nothing_here), color = Kino.muted) }
-            items(list) { r ->
+            keyedItems(list, { it.i("id") }, "history") { r ->
                 val title = if (s == ArrService.Prowlarr) (r.o("data")?.s("query")?.ifBlank { null } ?: r.o("data")?.s("grabTitle") ?: r.s("eventType") ?: "?") else Lib.recordTitle(s, r)
                 ListRow(title, listOfNotNull(r.s("eventType")?.let(::humanize),
                     if (s == ArrService.Prowlarr) r.o("data")?.s("source") else r.s("sourceTitle"),
@@ -153,15 +157,21 @@ fun BlocklistPage(nav: NavHostController, c: ArrClient) {
     var tick by remember { mutableIntStateOf(0) }
     val (b, more, next) = rememberPaged("$s/$tick") { p -> c.obj("blocklist", mapOf("page" to p, "pageSize" to 50, "sortKey" to "date", "sortDirection" to "descending") + Lib.include(s)) }
     val (act, run) = rememberAction()
+    var confirm by remember { mutableStateOf<JsonObject?>(null) }
     ManagePage(nav, stringResource(R.string.m_blocklist), s.title) {
         block { ActionOutcome(act) }
         loaded(b) { list ->
             if (list.isEmpty()) block { Text(stringResource(R.string.m_nothing_here), color = Kino.muted) }
-            items(list) { r ->
+            keyedItems(list, { it.i("id") }, "blocklist") { r ->
                 ListRow(r.s("sourceTitle") ?: "?", listOfNotNull(Lib.recordTitle(s, r).takeIf { it != r.s("sourceTitle") }, r.s("indexer"), r.s("message"), when_(r.s("date"))).joinToString(" · "),
-                    trailing = { IconButton(onClick = { run(null) { c.delete("blocklist/${r.i("id")}"); tick++ } }) { Icon(Icons.Outlined.DeleteOutline, stringResource(R.string.m_remove), tint = Kino.danger) } })
+                    trailing = { if (r.i("id") != null) IconButton(onClick = { confirm = r }, enabled = !act.busy) { Icon(Icons.Outlined.DeleteOutline, stringResource(R.string.m_remove), tint = Kino.danger) } })
             }
             if (more) block { GlassButton(stringResource(R.string.m_load_more), next, Modifier.fillMaxWidth()) }
+        }
+    }
+    confirm?.let { r ->
+        ConfirmDialog(stringResource(R.string.m_blocklist_remove_confirm, r.s("sourceTitle") ?: "?"), stringResource(R.string.m_remove), { confirm = null }) {
+            r.i("id")?.let { bid -> run(null) { c.delete("blocklist/$bid"); tick++ } }
         }
     }
 }
@@ -184,8 +194,8 @@ fun WantedPage(nav: NavHostController, c: ArrClient, cutoff: Boolean) {
         }
         loaded(w) { list ->
             if (list.isEmpty()) block { Text(stringResource(R.string.m_nothing_here), color = Kino.muted) }
-            items(list) { r ->
-                val id = r.i("id") ?: return@items
+            keyedItems(list, { it.i("id") }, "wanted") { r ->
+                val id = r.i("id") ?: return@keyedItems
                 val mainId = when (s) { ArrService.Radarr -> id; ArrService.Sonarr -> r.i("seriesId"); else -> r.i("artistId") }
                 ListRow(Lib.recordTitle(s, r), listOfNotNull(r.s("airDate") ?: r.s("releaseDate")?.take(10) ?: r.i("year")?.toString(),
                     r.o("movieFile")?.o("quality")?.o("quality")?.s("name")).joinToString(" · "),

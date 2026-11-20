@@ -102,6 +102,8 @@ class SyncSession {
                 val receivedAt = now()
                 scope.launch { if (gen == generation) handle(m, receivedAt) }
             }
+            // The server closing: answer it, so the socket ends now and onClosed reconnects.
+            override fun onClosing(webSocket: WebSocket, code: Int, reason: String) { webSocket.close(1000, null) }
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) { scope.launch { if (gen == generation) dropped() } }
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) { scope.launch { if (gen == generation) dropped() } }
         })

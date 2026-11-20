@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -61,6 +62,11 @@ fun NavHostController.manage(service: ArrService, page: String, id: String? = nu
 /** A loaded value that can be reloaded, optionally polled while the screen is shown. */
 class Loaded<T>(val value: T?, val error: Throwable?, val loading: Boolean, val reload: () -> Unit)
 
+/**
+ * Loads a value for [key]. With [pollMs] it is loaded again after each answer, but only while
+ * the screen is visible (not in the background, not behind another screen); calls never
+ * overlap, and after failures the wait grows ([pollDelay]).
+ */
 @Composable
 fun <T> rememberLoaded(key: Any?, pollMs: Long = 0, load: suspend () -> T): Loaded<T> {
     var value by remember(key) { mutableStateOf<T?>(null) }
@@ -68,14 +74,23 @@ fun <T> rememberLoaded(key: Any?, pollMs: Long = 0, load: suspend () -> T): Load
     var loading by remember(key) { mutableStateOf(true) }
     var tick by remember(key) { mutableIntStateOf(0) }
     val owner = LocalLifecycleOwner.current
+    val currentLoad by rememberUpdatedState(load)
     LaunchedEffect(key, tick) {
+        var failures = 0
         suspend fun once() {
             loading = true
-            try { value = load(); error = null } catch (e: CancellationException) { throw e } catch (e: Throwable) { error = e }
-            loading = false
+            try {
+                value = currentLoad(); error = null; failures = 0
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                error = e; failures++
+            } finally {
+                loading = false
+            }
         }
         if (pollMs <= 0) once()
-        else owner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) { while (true) { once(); delay(pollMs) } }
+        else owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { while (true) { once(); delay(pollDelay(pollMs, failures)) } }
     }
     return Loaded(value, error, loading) { tick++ }
 }
@@ -85,6 +100,16 @@ class ActionState {
     var busy by mutableStateOf(false)
     var error by mutableStateOf<Throwable?>(null)
     var done by mutableStateOf<String?>(null)
+
+    /**
+     * Claims the action for one run; false while another one runs. Called on the main thread
+     * by the click itself, so a double tap cannot start the same call twice.
+     */
+    fun tryStart(): Boolean {
+        if (busy) return false
+        busy = true; error = null; done = null
+        return true
+    }
 }
 
 @Composable
@@ -92,10 +117,8 @@ fun rememberAction(): Pair<ActionState, (String?, suspend () -> Unit) -> Unit> {
     val s = remember { ActionState() }
     val scope = rememberCoroutineScope()
     return s to { msg, block ->
-        if (!s.busy) scope.launch {
-            s.busy = true; s.error = null; s.done = null
-            try { block(); s.done = msg } catch (e: CancellationException) { throw e } catch (e: Throwable) { s.error = e }
-            s.busy = false
+        if (s.tryStart()) scope.launch {
+            try { block(); s.done = msg } catch (e: CancellationException) { throw e } catch (e: Throwable) { s.error = e } finally { s.busy = false }
         }
     }
 }
@@ -106,18 +129,30 @@ fun ActionOutcome(s: ActionState) {
     ArrError(s.error)
 }
 
-/** A translated message for a failed call; the services' own messages are shown as they are. */
+/** A count in a sentence, with the plural forms of the current language ([args] default to the count). */
+@Composable
+fun plural(id: Int, n: Int, vararg args: Any): String {
+    val res = LocalContext.current.resources
+    return if (args.isEmpty()) res.getQuantityString(id, n, n) else res.getQuantityString(id, n, *args)
+}
+
+/**
+ * A translated, actionable message for a failed call: the proxy's codes (D-049, D-052) each
+ * have their own; the services' own messages are shown as they are.
+ */
 @Composable
 fun arrErrorText(e: Throwable?): String? {
     if (e == null) return null
-    if (e is ArrException) return when (e.code) {
-        "arr_not_configured" -> stringResource(R.string.m_err_not_configured)
-        "arr_unreachable" -> stringResource(R.string.m_err_unreachable)
-        "forbidden" -> stringResource(R.string.err_forbidden)
-        "unauthenticated" -> stringResource(R.string.m_err_signed_out)
-        "invalid_path" -> stringResource(R.string.m_err_invalid_path)
-        "too_large" -> stringResource(R.string.m_err_too_large)
-        else -> stringResource(R.string.m_err_service, e.message.orEmpty())
+    if (e is PartialFailure) {
+        val head = plural(R.plurals.m_partial_failure, e.failed.size, e.failed.size, e.total)
+        val lines = e.failed.map { (name, err) -> name + ": " + (arrErrorText(err) ?: err.message.orEmpty()) }
+        return (listOf(head) + lines).joinToString("\n")
+    }
+    if (e is InvalidNumber) return stringResource(R.string.m_err_not_a_number, e.fields.joinToString(", "))
+    if (e is ArrException) {
+        arrErrorRes(e.code)?.let { return stringResource(it) }
+        val detail = e.detail ?: e.message?.takeIf { e.code == "validation" }
+        return if (!detail.isNullOrBlank()) stringResource(R.string.m_err_service, detail) else stringResource(R.string.m_err_service_http, e.status)
     }
     return errorText(e)
 }
@@ -137,10 +172,12 @@ fun ManagePage(
     actions: @Composable RowScope.() -> Unit = {},
     content: LazyListScope.() -> Unit,
 ) {
+    // The arrow goes through the system back dispatcher, so an UnsavedChangesGuard on the page can ask first.
+    val dispatcher = androidx.activity.compose.LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     LazyColumn(Modifier.fillMaxSize().background(Kino.bg), contentPadding = PaddingValues(bottom = 32.dp)) {
         item {
             Row(Modifier.statusBarsPadding().padding(start = 4.dp, end = 12.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { nav.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back), tint = Kino.text) }
+                IconButton(onClick = { if (dispatcher != null) dispatcher.onBackPressed() else nav.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back), tint = Kino.text) }
                 Column(Modifier.weight(1f)) {
                     Text(title, style = Display.copy(fontSize = 26.sp), color = Kino.text, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     if (subtitle != null) Text(subtitle, color = Kino.muted, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -149,6 +186,28 @@ fun ManagePage(
             }
         }
         content()
+    }
+}
+
+/** While [dirty], back (the arrow or the system gesture) asks before the edits are thrown away. */
+@Composable
+fun UnsavedChangesGuard(nav: NavHostController, dirty: Boolean) {
+    var ask by remember { mutableStateOf(false) }
+    androidx.activity.compose.BackHandler(enabled = dirty) { ask = true }
+    if (ask) ConfirmDialog(stringResource(R.string.m_discard_changes), stringResource(R.string.m_discard), { ask = false }) { nav.popBackStack() }
+}
+
+/** Items with keys that never collide ([uniqueKeys]), so a repeated or missing id cannot crash the list. */
+fun <T> LazyListScope.keyedItems(list: List<T>, id: (T) -> Any?, contentType: Any? = null, content: @Composable (T) -> Unit) {
+    val keys = uniqueKeys(list.map(id))
+    items(list.size, key = { keys[it] }, contentType = { contentType }) { i -> content(list[i]) }
+}
+
+/** A page link that lacks what the page needs (an old or broken link). */
+@Composable
+fun BadRoute(nav: NavHostController) {
+    ManagePage(nav, stringResource(R.string.nav_manage)) {
+        block { Text(stringResource(R.string.m_bad_link), color = Kino.danger, fontSize = 14.sp) }
     }
 }
 

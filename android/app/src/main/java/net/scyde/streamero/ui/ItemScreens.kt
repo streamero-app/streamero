@@ -21,6 +21,9 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -68,12 +71,15 @@ fun ItemScreen(state: AppState, nav: NavHostController, id: String) {
     val accent = hexColor(it.colors?.firstOrNull())
     val scope = rememberCoroutineScope()
     val ctx = LocalContext.current
-    var file by remember { mutableIntStateOf(0) }
-    var audio by remember { mutableStateOf<Int?>(null) }
-    var sub by remember { mutableStateOf<Int?>(null) }
-    val seasons = d.children.filter { c -> c.kind == "season" }
-    var season by remember(seasons.size) { mutableStateOf(seasons.firstOrNull { s -> s.seasonNumber == 1 }?.id ?: seasons.firstOrNull()?.id) }
-    val episodes = d.children.filter { c -> c.kind == "episode" }
+    var file by rememberSaveable(id) { mutableIntStateOf(0) }
+    var audio by rememberSaveable(id) { mutableStateOf<Int?>(null) }
+    var sub by rememberSaveable(id) { mutableStateOf<Int?>(null) }
+    val seasons = d.children.filter { c -> c.kind == "season" }.distinctBy { s -> s.id }
+    var chosenSeason by rememberSaveable(id) { mutableStateOf<String?>(null) }
+    // The chosen season while it still exists, else season 1 (or the first, e.g. only specials).
+    val season = chosenSeason?.takeIf { sid -> seasons.any { s -> s.id == sid } }
+        ?: seasons.firstOrNull { s -> s.seasonNumber == 1 }?.id ?: seasons.firstOrNull()?.id
+    val episodes = d.children.filter { c -> c.kind == "episode" }.distinctBy { e -> e.id }
     val tv = LocalTv.current
     val mem = rememberFocusMemory()
     val f = d.files.getOrNull(file)?.id?.takeIf { d.files.size > 1 }
@@ -82,25 +88,27 @@ fun ItemScreen(state: AppState, nav: NavHostController, id: String) {
     var actionError by remember { mutableStateOf<Throwable?>(null) }
     fun userData(u: UserDataUpdate) {
         actionError = null
-        scope.launch { runCatching { api.setUserData(it.id, u) }.onSuccess { reload++ }.onFailure { e -> actionError = e } }
+        scope.launch { attempt { api.setUserData(it.id, u) }.onSuccess { reload++ }.onFailure { e -> actionError = e } }
     }
     // Play, resume, my list, watched: under the hero on a phone, inside it on a TV.
     val actions: @Composable () -> Unit = {
         if (d.files.isNotEmpty()) {
             PrimaryButton(if (it.positionMs > 0) stringResource(R.string.resume_from, clock(it.positionMs)) else stringResource(R.string.play),
-                { nav.watch(it.id, file = f, audio = audio, sub = sub) }, if (tv) Modifier.rememberFocus(mem, "play", default = true) else Modifier.fillMaxWidth(), icon = Icons.Default.PlayArrow)
-            if (it.positionMs > 0) GlassButton(stringResource(R.string.from_start), { nav.watch(it.id, 0, f, audio, sub) }, if (tv) Modifier.rememberFocus(mem, "start") else Modifier.fillMaxWidth(), icon = Icons.Default.Replay)
+                { nav.play(it.id, file = f, audio = audio, sub = sub) }, if (tv) Modifier.rememberFocus(mem, "play", default = true) else Modifier.fillMaxWidth(), icon = Icons.Default.PlayArrow)
+            if (it.positionMs > 0) GlassButton(stringResource(R.string.from_start), { nav.play(it.id, 0, f, audio, sub) }, if (tv) Modifier.rememberFocus(mem, "start") else Modifier.fillMaxWidth(), icon = Icons.Default.Replay)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             GlassButton(null, { userData(UserDataUpdate(favorite = !it.favorite)) }, Modifier.rememberFocus(mem, "fav", default = d.files.isEmpty()).width(52.dp),
-                icon = if (it.favorite) Icons.Default.Check else Icons.Default.Add, active = it.favorite)
+                icon = if (it.favorite) Icons.Default.Check else Icons.Default.Add, active = it.favorite,
+                description = stringResource(if (it.favorite) R.string.remove_from_my_list else R.string.add_to_my_list))
             GlassButton(stringResource(if (it.played) R.string.watched else R.string.mark_watched), { userData(UserDataUpdate(played = !it.played)) },
                 Modifier.rememberFocus(mem, "played"), icon = Icons.Default.Check, active = it.played)
         }
         ErrorLine(actionError)
         if (d.files.isNotEmpty() && canWatchTogether(state)) {
             GlassButton(stringResource(R.string.watch_together), {
-                scope.launch { runCatching { state.sync.create(it.id, it.positionMs) }.onSuccess { g -> invite = g.id }.onFailure { e -> togetherError = e } }
+                togetherError = null
+                scope.launch { attempt { state.sync.create(it.id, it.positionMs) }.onSuccess { g -> invite = g.id }.onFailure { e -> togetherError = e } }
             }, if (tv) Modifier.rememberFocus(mem, "together") else Modifier.fillMaxWidth(), icon = Icons.Default.Groups)
             if (!tv) ErrorLine(togetherError)
         }
@@ -108,19 +116,20 @@ fun ItemScreen(state: AppState, nav: NavHostController, id: String) {
         if (!tv) ItemDownloads(state, nav, d, season, seasons.firstOrNull { s -> s.id == season }?.seasonNumber, d.files.getOrNull(file)?.id)
     }
     invite?.let { gid ->
-        InviteDialog(api.inviteLink(gid), it.title, onDismiss = { invite = null }, onStart = { invite = null; nav.watch(it.id) })
+        InviteDialog(api.inviteLink(gid), it.title, onDismiss = { invite = null }, onStart = { invite = null; nav.play(it.id) })
     }
     CompositionLocalProvider(LocalAccent provides accent) {
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 30.dp), verticalArrangement = Arrangement.spacedBy(22.dp)) {
             item {
-                Box(Modifier.fillMaxWidth().height(if (tv) 500.dp else 520.dp)) {
-                    ServerImage(when { d.hasBackdrop -> api.imageUrl(it.id, "backdrop"); it.kind == "episode" && it.hasPoster -> api.imageUrl(it.id, "still"); else -> null }, Modifier.fillMaxSize())
-                    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Kino.bg.copy(alpha = 0.5f), Color.Transparent, Kino.bg.copy(alpha = 0.8f), Kino.bg))))
-                    if (tv) Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Kino.bg.copy(alpha = 0.9f), Color.Transparent), endX = 1500f)))
-                    Column(Modifier.align(Alignment.BottomStart).padding(horizontal = Dims.edge).then(if (tv) Modifier.fillMaxWidth(0.62f) else Modifier), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        it.seriesTitle?.let { s -> Text(s.uppercase(), style = Head, color = Kino.muted, modifier = Modifier.focusClickable(scale = 1.02f) { it.seriesId?.let { sid -> nav.navigate("item/$sid") } }.padding(horizontal = if (tv) 4.dp else 0.dp)) }
+                // A minimum, not a fixed height: a long title at a large font size grows the hero instead of being cut off.
+                Box(Modifier.fillMaxWidth().heightIn(min = if (tv) 500.dp else 520.dp)) {
+                    ServerImage(when { d.hasBackdrop -> api.imageUrl(it.id, "backdrop"); it.kind == "episode" && it.hasPoster -> api.imageUrl(it.id, "still"); else -> null }, Modifier.matchParentSize())
+                    Box(Modifier.matchParentSize().background(Brush.verticalGradient(listOf(Kino.bg.copy(alpha = 0.5f), Color.Transparent, Kino.bg.copy(alpha = 0.8f), Kino.bg))))
+                    if (tv) Box(Modifier.matchParentSize().background(Brush.horizontalGradient(listOf(Kino.bg.copy(alpha = 0.9f), Color.Transparent), endX = 1500f)))
+                    Column(Modifier.align(Alignment.BottomStart).statusBarsPadding().padding(top = 80.dp).padding(horizontal = Dims.edge).then(if (tv) Modifier.fillMaxWidth(0.62f) else Modifier), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        it.seriesTitle?.let { s -> Text(s.uppercase(), style = Head, color = Kino.muted, modifier = Modifier.focusClickable(scale = 1.02f) { it.seriesId?.let { sid -> nav.open("item/$sid") } }.padding(horizontal = if (tv) 4.dp else 0.dp)) }
                         val title = if (it.kind == "episode") stringResource(R.string.episode_title, it.episodeNumber ?: 0, it.title) else it.title
-                        Text(title, style = Display.copy(fontSize = 40.sp), color = Kino.text)
+                        Text(title, style = Display.copy(fontSize = 40.sp), color = Kino.text, modifier = Modifier.semantics { heading() })
                         Text(listOfNotNull(it.rating?.let { r -> stringResource(R.string.rating_value, r) }, it.year?.toString(), it.durationMs?.let { ms -> stringResource(R.string.minutes_short, ms / 60000) },
                             d.genres.take(2).joinToString(", ").ifBlank { null }, d.officialRating, qualityTags(it.videoHeight, it.hdr).joinToString(" ").ifBlank { null }).joinToString("  ·  "), color = Kino.muted, fontSize = 14.sp)
                         d.tagline?.let { t -> Text(t, color = Kino.text.copy(alpha = 0.8f), fontSize = 16.sp) }
@@ -155,8 +164,9 @@ fun ItemScreen(state: AppState, nav: NavHostController, id: String) {
                     if (d.collections.isNotEmpty()) Fact(stringResource(R.string.collection), d.collections.joinToString { c -> c.name })
                     // A TV has no browser for these links.
                     if (!tv) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        d.providerIds["imdb"]?.let { imdb -> TextButton(onClick = { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.imdb.com/title/$imdb/"))) }) { Text("IMDb", color = Kino.muted) } }
-                        d.providerIds["tmdb"]?.let { tmdb -> TextButton(onClick = { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.themoviedb.org/${if (it.kind == "series") "tv" else "movie"}/$tmdb"))) }) { Text("TMDb", color = Kino.muted) } }
+                        // No browser installed (or a locked-down profile): the tap does nothing instead of crashing.
+                        imdbUrl(d.providerIds["imdb"])?.let { u -> TextButton(onClick = { runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(u))) } }) { Text("IMDb", color = Kino.muted) } }
+                        tmdbUrl(d.providerIds["tmdb"], it.kind)?.let { u -> TextButton(onClick = { runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(u))) } }) { Text("TMDb", color = Kino.muted) } }
                     }
                 }
             }
@@ -164,7 +174,7 @@ fun ItemScreen(state: AppState, nav: NavHostController, id: String) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     SectionTitle(stringResource(R.string.episodes))
                     LazyRow(contentPadding = Dims.rowPad, horizontalArrangement = Arrangement.spacedBy(if (tv) 12.dp else 8.dp)) {
-                        items(seasons) { s -> GlassButton(if (s.seasonNumber == 0) stringResource(R.string.specials) else stringResource(R.string.season_n, s.seasonNumber ?: 0), { season = s.id },
+                        items(seasons, key = { s -> s.id }) { s -> GlassButton(if (s.seasonNumber == 0) stringResource(R.string.specials) else stringResource(R.string.season_n, s.seasonNumber ?: 0), { chosenSeason = s.id },
                             Modifier.rememberFocus(mem, "s" + s.id), active = s.id == season) }
                     }
                     season?.let { sid -> SeasonEpisodes(state, nav, sid, mem) }
@@ -173,7 +183,7 @@ fun ItemScreen(state: AppState, nav: NavHostController, id: String) {
             if (episodes.isNotEmpty()) item { Column { episodes.forEach { e -> EpisodeRow(state, nav, e, mem) } } }
             if (d.chapters.size > 1) item {
                 Shelf(stringResource(R.string.chapters), d.chapters) { c ->
-                    Column(Modifier.width(200.dp).focusClickable { nav.watch(it.id, c.startMs) }) {
+                    Column(Modifier.width(200.dp).focusClickable { nav.play(it.id, c.startMs.coerceAtLeast(0)) }) {
                         Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(CardShape).background(Kino.surface2)) {
                             d.trickplay?.let { tp -> TrickFrame(api, tp, c.startMs + 20_000, Modifier.fillMaxSize()) }
                             Box(Modifier.align(Alignment.BottomStart).padding(6.dp)) { Tag(clock(c.startMs)) }
@@ -253,7 +263,7 @@ private fun EpisodeRow(state: AppState, nav: NavHostController, e: ItemSummary, 
     val (src, focused) = rememberFocusSource()
     Row(Modifier.fillMaxWidth().padding(horizontal = if (tv) 28.dp else 0.dp).rememberFocus(mem, "e" + e.id)
         .clip(CardShape).background(if (focused) Kino.surface3 else Color.Transparent)
-        .clickable(interactionSource = src, indication = tapIndication()) { nav.watch(e.id) }.padding(horizontal = if (tv) 12.dp else 20.dp, vertical = 10.dp),
+        .clickable(interactionSource = src, indication = tapIndication()) { nav.play(e.id) }.padding(horizontal = if (tv) 12.dp else 20.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(if (tv) 18.dp else 12.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.width(if (tv) 176.dp else 140.dp).focusRing(focused, scale = 1.04f).aspectRatio(16f / 9f).clip(CardShape).background(Kino.surface2)) {
             if (e.hasPoster) ServerImage(api.imageUrl(e.id, "still"), Modifier.fillMaxSize())
@@ -270,12 +280,10 @@ private fun EpisodeRow(state: AppState, nav: NavHostController, e: ItemSummary, 
 /** One frame from the trickplay sheets (seek-bar thumbnails) as a chapter picture. */
 @Composable
 fun TrickFrame(api: Api, tp: TrickplayInfo, ms: Long, modifier: Modifier) {
-    val idx = (ms / tp.intervalMs).toInt().coerceIn(0, tp.count - 1)
-    val per = tp.columns * tp.rows
-    val sheet = tp.sheetUrls.getOrNull(idx / per) ?: return
-    val local = idx % per
-    val col = local % tp.columns
-    val row = local / tp.columns
+    val cell = trickCell(tp, ms) ?: return
+    val sheet = tp.sheetUrls.getOrNull(cell.sheet) ?: return
+    val col = cell.column
+    val row = cell.row
     BoxWithConstraints(modifier.clip(CardShape)) {
         val w = maxWidth * tp.columns
         val h = maxHeight * tp.rows
@@ -289,17 +297,18 @@ fun TrickFrame(api: Api, tp: TrickplayInfo, ms: Long, modifier: Modifier) {
 fun CollectionsScreen(state: AppState, nav: NavHostController) {
     val api = state.api ?: return
     val (cols, loading, error) = rememberLoad(Unit) { api.collections() }
-    val (pls) = rememberLoad(Unit) { runCatching { api.playlists() }.getOrDefault(emptyList()) }
+    val (pls) = rememberLoad(Unit) { attempt { api.playlists() }.getOrDefault(emptyList()) }
     LazyVerticalGrid(GridCells.Adaptive(Dims.gridCell), Modifier.fillMaxSize(), contentPadding = gridPadding(),
         horizontalArrangement = Arrangement.spacedBy(gridGap()), verticalArrangement = Arrangement.spacedBy(18.dp)) {
         item(span = { GridItemSpan(maxLineSpan) }) { Text(stringResource(R.string.collections), style = Display.copy(fontSize = 34.sp), color = Kino.text, modifier = Modifier.statusBarsPadding().padding(top = 12.dp)) }
         if (loading) item(span = { GridItemSpan(maxLineSpan) }) { Loading() }
         item(span = { GridItemSpan(maxLineSpan) }) { ErrorLine(error) }
-        items(cols.orEmpty(), key = { it.id }) { c -> CollectionTile(api, c, Dims.gridCell, Modifier.initialFocus(c.id == cols?.firstOrNull()?.id)) { nav.navigate("collection/${c.id}") } }
-        if (!pls.isNullOrEmpty()) {
+        items(cols.orEmpty().distinctBy { it.id }, key = { it.id }, contentType = { "collection" }) { c -> CollectionTile(api, c, Dims.gridCell, Modifier.initialFocus(c.id == cols?.firstOrNull()?.id)) { nav.open("collection/${c.id}") } }
+        val playlists = pls.orEmpty().distinctBy { it.id }
+        if (playlists.isNotEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) { Text(stringResource(R.string.playlists).uppercase(), style = Head, color = Kino.text, modifier = Modifier.padding(top = 16.dp)) }
-            items(pls!!, key = { "p" + it.id }) { p ->
-                Column(Modifier.focusClickable { nav.navigate("playlist/${p.id}") }) {
+            items(playlists, key = { "p" + it.id }, contentType = { "playlist" }) { p ->
+                Column(Modifier.focusClickable { nav.open("playlist/${p.id}") }) {
                     Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(CardShape).background(Kino.surface2)) {
                         p.coverItemIds.firstOrNull()?.let { cid -> ServerImage(api.imageUrl(cid, "poster"), Modifier.fillMaxSize()) }
                     }
@@ -322,7 +331,7 @@ fun CollectionScreen(state: AppState, nav: NavHostController, id: String) {
 fun PlaylistScreen(state: AppState, nav: NavHostController, id: String) {
     val api = state.api ?: return
     val (d, loading, error) = rememberLoad(id) { api.playlist(id) }
-    ItemGridPage(state, nav, d?.playlist?.name.orEmpty(), null, d?.items.orEmpty(), loading, error, playAll = d?.items?.firstOrNull()?.let { first -> { nav.watch(first.id) } })
+    ItemGridPage(state, nav, d?.playlist?.name.orEmpty(), null, d?.items.orEmpty(), loading, error, playAll = d?.items?.firstOrNull()?.let { first -> { nav.play(first.id) } })
 }
 
 @Composable
@@ -339,6 +348,8 @@ private fun ItemGridPage(state: AppState, nav: NavHostController, title: String,
             }
         }
         if (loading) item(span = { GridItemSpan(maxLineSpan) }) { Loading() }
-        items(items, key = { it.id }) { PosterCard(it, api::imageUrl, Dims.gridCell, state.enhancements.qualityTags, Modifier.initialFocus(it.id == items.firstOrNull()?.id)) { nav.navigate("item/${it.id}") } }
+        // A collection or playlist can hold the same title twice; a grid key may appear only once.
+        val shown = items.distinctBy { it.id }
+        items(shown, key = { it.id }, contentType = { "poster" }) { PosterCard(it, api::imageUrl, Dims.gridCell, state.enhancements.qualityTags, Modifier.initialFocus(it.id == shown.firstOrNull()?.id)) { nav.open("item/${it.id}") } }
     }
 }

@@ -45,13 +45,15 @@ fun AudiobookPlayerScreen(state: AppState, nav: NavHostController, id: String) {
     val p = state.book
     val b = p.book
     // Opened from a link or after the process restarted: start the book first.
-    val (detail) = rememberLoad(id) { if (p.book?.id == id) null else api.item(id) }
+    val (detail, _, loadError) = rememberLoad(id) { if (p.book?.id == id) null else api.item(id) }
     LaunchedEffect(detail) { detail?.let { if (p.book?.id != id) p.play(it.item) } }
-    if (b == null || b.id != id || p.timeline == null) {
-        Box(Modifier.fillMaxSize().statusBarsPadding().padding(20.dp)) { if (p.error != null) ErrorLine(p.error) else Loading(Modifier.fillMaxSize()) }
+    val t = p.timeline
+    if (b == null || b.id != id || t == null) {
+        // A book that could not be found or opened says so instead of loading for ever.
+        val failure = p.error ?: loadError
+        Box(Modifier.fillMaxSize().statusBarsPadding().padding(20.dp)) { if (failure != null) ErrorLine(failure) else Loading(Modifier.fillMaxSize()) }
         return
     }
-    val t = p.timeline!!
     val accent = hexColor(b.colors?.firstOrNull())
     var speedOpen by remember { mutableStateOf(false) }
     var sleepOpen by remember { mutableStateOf(false) }
@@ -153,7 +155,7 @@ fun AudiobookMiniBar(state: AppState, nav: NavHostController) {
                 Text(p.timeline?.chapters?.getOrNull(p.chapter)?.title ?: b.authors?.joinToString(", ").orEmpty(), color = Kino.faint, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             IconButton(onClick = { p.skip(-15_000) }) { Icon(Icons.Default.Replay, stringResource(R.string.back_15), tint = Kino.text) }
-            IconButton(onClick = { p.toggle() }) { Icon(if (p.playing) Icons.Default.Pause else Icons.Default.PlayArrow, stringResource(R.string.play), tint = Kino.text) }
+            IconButton(onClick = { p.toggle() }) { Icon(if (p.playing) Icons.Default.Pause else Icons.Default.PlayArrow, stringResource(if (p.playing) R.string.pause else R.string.play), tint = Kino.text) }
         }
     }
 }

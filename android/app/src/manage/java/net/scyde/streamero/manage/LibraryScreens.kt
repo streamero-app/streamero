@@ -8,9 +8,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ManageSearch
+import androidx.compose.material.icons.automirrored.outlined.Label
+import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,9 +40,9 @@ private enum class LibSort { Title, Added, Year, Size }
 fun LibraryPage(nav: NavHostController, c: ArrClient) {
     val s = c.service
     val all = rememberLoaded(s) { c.list(Lib.resource(s)) }
-    var q by remember { mutableStateOf("") }
-    var filter by remember { mutableStateOf(LibFilter.All) }
-    var sort by remember { mutableStateOf(LibSort.Title) }
+    var q by rememberSaveable { mutableStateOf("") }
+    var filter by rememberSaveable { mutableStateOf(LibFilter.All) }
+    var sort by rememberSaveable { mutableStateOf(LibSort.Title) }
     var selecting by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf(setOf<Int>()) }
     val shown = remember(all.value, q, filter, sort) {
@@ -64,7 +68,7 @@ fun LibraryPage(nav: NavHostController, c: ArrClient) {
     fun exitSelection() { selecting = false; selected = emptySet() }
     androidx.activity.compose.BackHandler(enabled = selecting) { exitSelection() }
     Box(Modifier.fillMaxSize()) {
-        ManagePage(nav, if (selecting) stringResource(R.string.m_selected_n, selected.size) else stringResource(R.string.m_library), all.value?.let { itemsCount(it.size) }, actions = {
+        ManagePage(nav, if (selecting) plural(R.plurals.m_selected_n, selected.size) else stringResource(R.string.m_library), all.value?.let { itemsCount(it.size) }, actions = {
             if (selecting) {
                 val ids = shown.mapNotNull { it.i("id") }.toSet()
                 val allOn = ids.isNotEmpty() && selected.containsAll(ids)
@@ -87,7 +91,7 @@ fun LibraryPage(nav: NavHostController, c: ArrClient) {
             }
             loaded(all) { _ ->
                 if (shown.isEmpty()) block { Text(stringResource(R.string.m_nothing_here), color = Kino.muted) }
-                items(shown, key = { it.i("id") ?: Lib.title(it).hashCode() }) { o ->
+                keyedItems(shown, { it.i("id") }, "library") { o ->
                     val id = o.i("id")
                     val on = id != null && id in selected
                     fun toggle() { if (id != null) selected = if (on) selected - id else selected + id }
@@ -113,7 +117,7 @@ private fun BulkBar(c: ArrClient, selected: Set<Int>, modifier: Modifier, onDone
     val s = c.service
     val (act, run) = rememberAction()
     var dialog by remember { mutableStateOf<BulkDialog?>(null) }
-    val doneMsg = stringResource(R.string.m_bulk_done, selected.size)
+    val doneMsg = plural(R.plurals.m_bulk_done, selected.size)
     fun edit(e: BulkEdit) = run(doneMsg) { c.put(BulkEditor.resource(s), BulkEditor.editBody(s, selected, e)); onDone() }
     val enabled = selected.isNotEmpty() && !act.busy
     Surface(modifier.fillMaxWidth().navigationBarsPadding().padding(12.dp), shape = RoundedCornerShape(12.dp), color = Kino.surface,
@@ -124,8 +128,8 @@ private fun BulkBar(c: ArrClient, selected: Set<Int>, modifier: Modifier, onDone
                 BulkButton(Icons.Outlined.Visibility, stringResource(R.string.m_monitor_on), enabled) { edit(BulkEdit(monitored = true)) }
                 BulkButton(Icons.Outlined.VisibilityOff, stringResource(R.string.m_monitor_off), enabled) { edit(BulkEdit(monitored = false)) }
                 BulkButton(Icons.Outlined.HighQuality, stringResource(R.string.m_quality_profile), enabled) { dialog = BulkDialog.Profile }
-                BulkButton(Icons.Outlined.DriveFileMove, stringResource(R.string.m_root_folder), enabled) { dialog = BulkDialog.Root }
-                BulkButton(Icons.Outlined.Label, stringResource(R.string.m_tags), enabled) { dialog = BulkDialog.Tags }
+                BulkButton(Icons.AutoMirrored.Outlined.DriveFileMove, stringResource(R.string.m_root_folder), enabled) { dialog = BulkDialog.Root }
+                BulkButton(Icons.AutoMirrored.Outlined.Label, stringResource(R.string.m_tags), enabled) { dialog = BulkDialog.Tags }
                 BulkButton(Icons.Outlined.DeleteOutline, stringResource(R.string.delete), enabled, danger = true) { dialog = BulkDialog.Delete }
             }
             Column(Modifier.padding(horizontal = 14.dp)) {
@@ -162,7 +166,7 @@ private fun BulkBar(c: ArrClient, selected: Set<Int>, modifier: Modifier, onDone
                 TagPicker(c, tags) { tags = it }
             }
         }
-        BulkDialog.Delete -> DeleteDialog(onDismiss = { dialog = null }, message = stringResource(R.string.m_bulk_delete_confirm, selected.size)) { files, exclude ->
+        BulkDialog.Delete -> DeleteDialog(onDismiss = { dialog = null }, message = plural(R.plurals.m_bulk_delete_confirm, selected.size)) { files, exclude ->
             run(doneMsg) { c.request("DELETE", BulkEditor.resource(s), BulkEditor.deleteBody(s, selected, files, exclude), emptyMap()); onDone() }
         }
         null -> {}
@@ -185,7 +189,7 @@ private fun BulkDialogFrame(title: String, count: Int, canApply: Boolean, onDism
         title = { Text(title, color = Kino.text) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(R.string.m_applies_to_n, count), color = Kino.muted, fontSize = 13.sp)
+                Text(plural(R.plurals.m_applies_to_n, count), color = Kino.muted, fontSize = 13.sp)
                 content()
             }
         },
@@ -216,7 +220,10 @@ fun ItemPage(nav: NavHostController, c: ArrClient, id: Int) {
     var edited by remember(item.value) { mutableStateOf(item.value) }
     val queued = stringResource(R.string.m_command_queued)
     val savedMsg = stringResource(R.string.saved)
+    // The series as the service has it, with the season switches that were saved right away.
+    var stored by remember(item.value) { mutableStateOf(item.value) }
     val o = edited
+    UnsavedChangesGuard(nav, o != null && stored != null && o != stored)
     ManagePage(nav, o?.let(Lib::title) ?: s.title, o?.let { listOfNotNull(it.i("year")?.takeIf { y -> y > 0 }?.toString(), it.s("status")?.let(::humanize), it.s("network") ?: it.s("studio")).joinToString(" · ") }) {
         loaded(item) { _ ->
             val cur = o ?: return@loaded
@@ -232,7 +239,7 @@ fun ItemPage(nav: NavHostController, c: ArrClient, id: Int) {
             block {
                 Actions {
                     GlassButton(stringResource(R.string.m_auto_search), { val (n, a) = Lib.search(s, id); run(queued) { c.command(n, *a) } }, icon = Icons.Outlined.Search)
-                    GlassButton(stringResource(R.string.m_interactive_search), { nav.manage(s, "releases", id.toString()) }, icon = Icons.Outlined.ManageSearch)
+                    GlassButton(stringResource(R.string.m_interactive_search), { nav.manage(s, "releases", id.toString()) }, icon = Icons.AutoMirrored.Outlined.ManageSearch)
                     GlassButton(stringResource(R.string.m_refresh), { val (n, a) = Lib.refresh(s, id); run(queued) { c.command(n, *a) } }, icon = Icons.Outlined.Refresh)
                     Lib.rescan(s, id)?.let { (n, a) -> GlassButton(stringResource(R.string.m_rescan), { run(queued) { c.command(n, *a) } }, icon = Icons.Outlined.FolderOpen) }
                 }
@@ -264,11 +271,18 @@ fun ItemPage(nav: NavHostController, c: ArrClient, id: Int) {
                     PrimaryButton(stringResource(R.string.save), {
                         val moved = cur.s("path") != item.value?.s("path")
                         run(savedMsg) { c.put("$res/$id", cur, if (moved) mapOf("moveFiles" to true) else emptyMap()); item.reload() }
-                    }, Modifier.fillMaxWidth(), enabled = !act.busy && cur != item.value)
+                    }, Modifier.fillMaxWidth(), enabled = !act.busy && cur != stored)
                 }
             }
             when (s) {
-                ArrService.Sonarr -> item { SeasonsBlock(nav, c, id, cur) { edited = it } }
+                ArrService.Sonarr -> item {
+                    // A season switch saves at once: it is applied to the series as the service has
+                    // it (not to unsaved edits of the form, like a new path) and to the form.
+                    SeasonsBlock(nav, c, id, cur) { n, on ->
+                        edited = Lib.withSeasonMonitored(cur, n, on)
+                        stored?.let { Lib.withSeasonMonitored(it, n, on) }?.also { stored = it }
+                    }
+                }
                 ArrService.Lidarr -> item { AlbumsBlock(nav, c, id) }
                 else -> {}
             }
@@ -322,7 +336,7 @@ fun TagPicker(c: ArrClient, selected: List<Int>, onChange: (List<Int>) -> Unit) 
 }
 
 @Composable
-private fun SeasonsBlock(nav: NavHostController, c: ArrClient, seriesId: Int, series: JsonObject, onSeries: (JsonObject) -> Unit) {
+private fun SeasonsBlock(nav: NavHostController, c: ArrClient, seriesId: Int, series: JsonObject, onSeason: (season: Int, on: Boolean) -> JsonObject?) {
     val episodes = rememberLoaded(seriesId) { c.list("episode", mapOf("seriesId" to seriesId)) }
     val (act, run) = rememberAction()
     val queued = stringResource(R.string.m_command_queued)
@@ -338,10 +352,8 @@ private fun SeasonsBlock(nav: NavHostController, c: ArrClient, seriesId: Int, se
                     st?.let { "${it.i("episodeFileCount") ?: 0}/${it.i("episodeCount") ?: 0} · ${bytes(it.l("sizeOnDisk"))}" },
                     trailing = {
                         Switch(season.b("monitored") == true, { m ->
-                            val updated = series.with("seasons", JsonArray(series.objs("seasons").map { if (it.i("seasonNumber") == n) it.with("monitored", m) else it }))
-                            onSeries(updated)
-                            run(null) { c.put("series/$seriesId", updated) }
-                        }, colors = SwitchDefaults.colors(checkedThumbColor = Kino.bg, checkedTrackColor = Kino.text))
+                            if (!act.busy) onSeason(n, m)?.let { stored -> run(null) { c.put("series/$seriesId", stored) } }
+                        }, enabled = !act.busy, colors =SwitchDefaults.colors(checkedThumbColor = Kino.bg, checkedTrackColor = Kino.text))
                     }) { open = if (open == n) null else n }
                 if (open == n) {
                     Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -350,12 +362,12 @@ private fun SeasonsBlock(nav: NavHostController, c: ArrClient, seriesId: Int, se
                     }
                     episodes.value?.filter { it.i("seasonNumber") == n }?.sortedByDescending { it.i("episodeNumber") ?: 0 }?.forEach { e ->
                         val eid = e.i("id") ?: return@forEach
-                        ListRow("${e.i("episodeNumber")}. ${e.s("title").orEmpty()}",
+                        ListRow(listOfNotNull(e.i("episodeNumber")?.toString(), e.s("title")).joinToString(". ").ifEmpty { "?" },
                             listOfNotNull(e.s("airDate"), if (e.b("hasFile") == true) stringResource(R.string.m_downloaded) else stringResource(R.string.m_missing)).joinToString(" · "),
                             trailing = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     IconButton(onClick = { run(queued) { c.command("EpisodeSearch", "episodeIds" to listOf(eid)) } }) { Icon(Icons.Outlined.Search, stringResource(R.string.m_auto_search), tint = Kino.muted) }
-                                    IconButton(onClick = { nav.manage(c.service, "releases", seriesId.toString(), "episode:$eid") }) { Icon(Icons.Outlined.ManageSearch, stringResource(R.string.m_interactive_search), tint = Kino.muted) }
+                                    IconButton(onClick = { nav.manage(c.service, "releases", seriesId.toString(), "episode:$eid") }) { Icon(Icons.AutoMirrored.Outlined.ManageSearch, stringResource(R.string.m_interactive_search), tint = Kino.muted) }
                                     Checkbox(e.b("monitored") == true, { m -> run(null) { c.put("episode/monitor", jsonOf("episodeIds" to listOf(eid), "monitored" to m)); episodes.reload() } },
                                         colors = CheckboxDefaults.colors(checkedColor = Kino.text, checkmarkColor = Kino.bg))
                                 }
@@ -383,7 +395,7 @@ private fun AlbumsBlock(nav: NavHostController, c: ArrClient, artistId: Int) {
                 image = Lib.poster(c, a), trailing = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = { run(queued) { c.command("AlbumSearch", "albumIds" to listOf(aid)) } }) { Icon(Icons.Outlined.Search, stringResource(R.string.m_auto_search), tint = Kino.muted) }
-                        IconButton(onClick = { nav.manage(c.service, "releases", artistId.toString(), "album:$aid") }) { Icon(Icons.Outlined.ManageSearch, stringResource(R.string.m_interactive_search), tint = Kino.muted) }
+                        IconButton(onClick = { nav.manage(c.service, "releases", artistId.toString(), "album:$aid") }) { Icon(Icons.AutoMirrored.Outlined.ManageSearch, stringResource(R.string.m_interactive_search), tint = Kino.muted) }
                         Checkbox(a.b("monitored") == true, { m -> run(null) { c.put("album/monitor", jsonOf("albumIds" to listOf(aid), "monitored" to m)); albums.reload() } },
                             colors = CheckboxDefaults.colors(checkedColor = Kino.text, checkmarkColor = Kino.bg))
                     }
@@ -453,8 +465,8 @@ private fun ItemHistoryBlock(c: ArrClient, id: Int) {
 @Composable
 fun AddPage(nav: NavHostController, c: ArrClient) {
     val s = c.service
-    var term by remember { mutableStateOf("") }
-    var submitted by remember { mutableStateOf("") }
+    var term by rememberSaveable { mutableStateOf("") }
+    var submitted by rememberSaveable { mutableStateOf("") }
     val results = rememberLoaded(submitted) { if (submitted.isBlank()) emptyList() else c.list("${Lib.resource(s)}/lookup", mapOf("term" to submitted)) }
     var chosen by remember { mutableStateOf<JsonObject?>(null) }
     ManagePage(nav, stringResource(R.string.m_add_new), s.title) {
@@ -462,7 +474,7 @@ fun AddPage(nav: NavHostController, c: ArrClient) {
         block { GlassButton(stringResource(R.string.search), { submitted = term.trim() }, Modifier.fillMaxWidth(), icon = Icons.Outlined.Search) }
         if (submitted.isNotBlank()) loaded(results) { list ->
             if (list.isEmpty()) block { Text(stringResource(R.string.m_nothing_found), color = Kino.muted) }
-            items(list) { o ->
+            keyedItems(list, { it.i("tmdbId") ?: it.i("tvdbId") ?: it.s("foreignArtistId") ?: it.i("id") }, "lookup") { o ->
                 val inLib = (o.i("id") ?: 0) > 0
                 ListRow(Lib.title(o), listOfNotNull(o.i("year")?.takeIf { it > 0 }?.toString(), o.s("network") ?: o.s("studio") ?: o.s("artistType"), o.s("overview")?.take(140)).joinToString(" · "),
                     image = Lib.poster(c, o), trailing = { if (inLib) Pill(stringResource(R.string.m_in_library), Kino.success) }) {
@@ -471,7 +483,7 @@ fun AddPage(nav: NavHostController, c: ArrClient) {
             }
         }
     }
-    chosen?.let { o -> AddDialog(c, o, onDismiss = { chosen = null }) { id -> chosen = null; nav.popBackStack(); nav.manage(s, "item", id.toString()) } }
+    chosen?.let { o -> AddDialog(c, o, onDismiss = { chosen = null }) { id -> chosen = null; nav.popBackStack(); if (id > 0) nav.manage(s, "item", id.toString()) } }
 }
 
 @Composable
@@ -549,7 +561,7 @@ fun ReleasesPage(nav: NavHostController, c: ArrClient, id: Int, scope: String?) 
 /** Rows of releases (Radarr/Sonarr/Lidarr interactive search, Prowlarr search) with a grab button. */
 fun androidx.compose.foundation.lazy.LazyListScope.releaseRows(list: List<JsonObject>, onGrab: (JsonObject) -> Unit) {
     if (list.isEmpty()) block { Text(stringResource(R.string.m_nothing_found), color = Kino.muted) }
-    items(list) { r ->
+    keyedItems(list, { it.s("guid") }, "release") { r ->
         val rejected = r.b("rejected") == true
         Panel {
             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {

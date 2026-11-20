@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -35,6 +36,9 @@ import net.scyde.streamero.api.SsoResult
 import net.scyde.streamero.api.ssoAuthorizeUrl
 import net.scyde.streamero.api.DeviceInfo
 import net.scyde.streamero.api.Profile
+import net.scyde.streamero.api.cleanTotpCode
+import net.scyde.streamero.api.isCleartextRemote
+import net.scyde.streamero.api.normalizeServerUrl
 
 @Composable
 internal fun AuthFrame(title: String, subtitle: String?, content: @Composable ColumnScope.() -> Unit) {
@@ -56,17 +60,19 @@ internal fun AuthFrame(title: String, subtitle: String?, content: @Composable Co
 
 @Composable
 fun ServerScreen(state: AppState, onInvite: () -> Unit = {}, onConnected: () -> Unit) {
-    var url by remember { mutableStateOf("https://") }
+    var url by rememberSaveable { mutableStateOf("https://") }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<Throwable?>(null) }
     val scope = rememberCoroutineScope()
+    // "https://" alone (the prefilled start) is not an address yet.
+    val clean = normalizeServerUrl(url)?.takeIf { url.trim().trimEnd('/') !in listOf("https:", "http:") }
     val connect: () -> Unit = connect@{
-        if (busy || url.length <= 8) return@connect
+        val target = clean
+        if (busy || target == null) return@connect
         busy = true; error = null
         scope.launch {
-            val clean = url.trimEnd('/').let { if (it.startsWith("http")) it else "https://$it" }
-            runCatching {
-                val api = state.session.setServer(clean)
+            attempt {
+                val api = state.session.setServer(target)
                 api.info() // proves it is a Streamero server
                 state.attach(api)
             }.onSuccess { onConnected() }.onFailure { error = it }
@@ -75,9 +81,12 @@ fun ServerScreen(state: AppState, onInvite: () -> Unit = {}, onConnected: () -> 
     }
     AuthFrame(stringResource(R.string.server_title), stringResource(R.string.server_intro)) {
         OutlinedTextField(url, { url = it.trim() }, label = { Text(stringResource(R.string.server_address)) }, singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Go), keyboardActions = KeyboardActions(onGo = { connect() }), modifier = Modifier.fillMaxWidth().initialFocus().dpadExit(), shape = CardShape)
+            isError = clean == null && url.length > 8,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Go, autoCorrectEnabled = false), keyboardActions = KeyboardActions(onGo = { connect() }), modifier = Modifier.fillMaxWidth().initialFocus().dpadExit(), shape = CardShape)
+        if (clean == null && url.length > 8) Text(stringResource(R.string.err_invalid_url), color = Kino.danger, fontSize = 14.sp)
+        if (isCleartextRemote(clean)) Notice(Kino.danger) { Text(stringResource(R.string.cleartext_warning), color = Kino.text, fontSize = 14.sp) }
         ErrorLine(error)
-        PrimaryButton(stringResource(R.string.connect), enabled = !busy && url.length > 8, modifier = Modifier.fillMaxWidth(), onClick = connect)
+        PrimaryButton(stringResource(R.string.connect), enabled = !busy && clean != null, modifier = Modifier.fillMaxWidth(), onClick = connect)
         // An invite link names its server, so it can be used before choosing one.
         if (!LocalTv.current) TextButton(onClick = onInvite) { Text(stringResource(R.string.invite_have), color = Kino.muted) }
     }
@@ -85,7 +94,7 @@ fun ServerScreen(state: AppState, onInvite: () -> Unit = {}, onConnected: () -> 
 
 @Composable
 fun LoginScreen(state: AppState, onChangeServer: () -> Unit, onInvite: () -> Unit = {}, onSignedIn: () -> Unit) {
-    var user by remember { mutableStateOf("") }
+    var user by rememberSaveable { mutableStateOf("") }
     var pass by remember { mutableStateOf("") }
     var totp by remember { mutableStateOf("") }
     var needTotp by remember { mutableStateOf(false) }
@@ -101,8 +110,9 @@ fun LoginScreen(state: AppState, onChangeServer: () -> Unit, onInvite: () -> Uni
     var providers by remember { mutableStateOf<AuthProviders?>(null) }
     val context = LocalContext.current
     LaunchedEffect(state.api) {
-        runCatching { state.api!!.info() }.onSuccess { serverName = it.name; disclaimer = it.loginDisclaimer }
-        providers = runCatching { state.api!!.authProviders() }.getOrNull() // older servers: password only
+        val api = state.api ?: return@LaunchedEffect
+        attempt { api.info() }.onSuccess { serverName = it.name; disclaimer = it.loginDisclaimer }
+        providers = attempt { api.authProviders() }.getOrNull() // older servers: password only
     }
     val device = DeviceInfo(Build.MODEL ?: "Android", if (tv) TV_CLIENT else "Streamero Android")
     // The browser came back through streamero://oidc (MainActivity → SsoBroker).
@@ -116,7 +126,7 @@ fun LoginScreen(state: AppState, onChangeServer: () -> Unit, onInvite: () -> Uni
             is SsoResult.Code -> {
                 if (verifier == null) { error = ApiException(400, "invalid_state", "invalid_state"); return@LaunchedEffect }
                 busy = true
-                runCatching {
+                attempt {
                     val res = api.oidcExchange(result.code, verifier, device)
                     state.session.setToken(res.token)
                     state.refreshMe()
@@ -139,17 +149,22 @@ fun LoginScreen(state: AppState, onChangeServer: () -> Unit, onInvite: () -> Uni
         if (providers?.passwordLogin == false) {
             ErrorLine(error)
         } else {
-        OutlinedTextField(user, { user = it }, label = { Text(stringResource(R.string.username)) }, singleLine = true, modifier = Modifier.fillMaxWidth().initialFocus().dpadExit(), shape = CardShape)
+        OutlinedTextField(user, { user = it }, label = { Text(stringResource(R.string.username)) }, singleLine = true,
+            keyboardOptions = KeyboardOptions(autoCorrectEnabled = false, capitalization = KeyboardCapitalization.None), modifier = Modifier.fillMaxWidth().initialFocus().dpadExit(), shape = CardShape)
         OutlinedTextField(pass, { pass = it }, label = { Text(stringResource(R.string.password)) }, singleLine = true, visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), modifier = Modifier.fillMaxWidth().dpadExit(), shape = CardShape)
-        if (needTotp) OutlinedTextField(totp, { totp = it }, label = { Text(stringResource(R.string.totp_code)) }, singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword), modifier = Modifier.fillMaxWidth().dpadExit(), shape = CardShape)
+            keyboardOptions = PasswordKeyboard, modifier = Modifier.fillMaxWidth().dpadExit(), shape = CardShape)
+        // A recovery code has letters and dashes, so the field is not numbers only.
+        if (needTotp) OutlinedTextField(totp, { totp = cleanTotpCode(it) }, label = { Text(stringResource(R.string.totp_code)) }, singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false), modifier = Modifier.fillMaxWidth().dpadExit(), shape = CardShape)
+        if (isCleartextRemote(state.api?.base?.toString())) Notice(Kino.danger) { Text(stringResource(R.string.cleartext_warning), color = Kino.text, fontSize = 14.sp) }
         ErrorLine(error)
         PrimaryButton(stringResource(R.string.sign_in), enabled = !busy && user.isNotBlank() && pass.isNotBlank(), modifier = Modifier.fillMaxWidth(), onClick = {
+            if (busy) return@PrimaryButton
             busy = true; error = null
             scope.launch {
-                runCatching {
-                    val res = state.api!!.login(user.trim(), pass, totp, device)
+                attempt {
+                    val api = state.api ?: throw ApiException(0, "invalid_url", "no server")
+                    val res = api.login(user.trim(), pass, totp, device)
                     state.session.setToken(res.token)
                     state.refreshMe()
                 }.onSuccess { onSignedIn() }.onFailure {
@@ -160,7 +175,7 @@ fun LoginScreen(state: AppState, onChangeServer: () -> Unit, onInvite: () -> Uni
         })
         }
         if (tv) GlassButton(stringResource(R.string.qc_use), { usePassword = false }, Modifier.fillMaxWidth())
-        val changeServer: () -> Unit = { scope.launch { state.session.forgetServer(); state.attach(null); onChangeServer() } }
+        val changeServer: () -> Unit = { scope.launch { attempt { state.session.forgetServer() }; state.attach(null); onChangeServer() } }
         if (!tv) TextButton(onClick = onInvite) { Text(stringResource(R.string.invite_have), color = Kino.muted) }
         if (tv) GlassButton(stringResource(R.string.change_server), changeServer, Modifier.fillMaxWidth())
         else TextButton(onClick = changeServer) { Text(stringResource(R.string.change_server), color = Kino.muted) }
@@ -178,15 +193,22 @@ fun ProfileGate(state: AppState, onDone: () -> Unit) {
     var secret by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<Throwable?>(null) }
     val scope = rememberCoroutineScope()
-    LaunchedEffect(Unit) { profiles = runCatching { api.profiles() }.getOrDefault(emptyList()) }
-    fun choose(p: Profile?) = scope.launch {
+    var busy by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { attempt { api.profiles() }.onSuccess { profiles = it }.onFailure { error = it } }
+    suspend fun select(p: Profile?) {
         error = null
-        runCatching {
+        attempt {
             if (p == null) {
-                if (me.currentProfile != null) { if (!mainTarget) { mainTarget = true; return@launch }; api.selectMain(secret) }
-            } else if (p.hasPin && target?.id != p.id) { target = p; return@launch } else api.selectProfile(p.id, secret.ifBlank { null })
+                if (me.currentProfile != null) { if (!mainTarget) { target = null; secret = ""; mainTarget = true; return }; api.selectMain(secret) }
+            } else if (p.hasPin && target?.id != p.id) { target = p; mainTarget = false; secret = ""; return } else api.selectProfile(p.id, secret.ifBlank { null })
             state.refreshMe()
         }.onSuccess { onDone() }.onFailure { error = it }
+    }
+    // One choice at a time: a double tap does not select twice.
+    fun choose(p: Profile?) {
+        if (busy) return
+        busy = true
+        scope.launch { try { select(p) } finally { busy = false } }
     }
     AuthFrame(stringResource(R.string.who_is_watching), null) {
         val all: List<Profile?> = listOf(null) + profiles
@@ -203,12 +225,14 @@ fun ProfileGate(state: AppState, onDone: () -> Unit) {
             }
         }
         if (target != null || mainTarget) {
-            OutlinedTextField(secret, { secret = it }, label = { Text(stringResource(if (mainTarget) R.string.password else R.string.pin)) }, singleLine = true,
-                visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth().dpadExit(), shape = CardShape)
-            PrimaryButton(stringResource(R.string.open), onClick = { choose(target) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(secret, { v -> secret = if (mainTarget) v else v.filter { it in '0'..'9' }.take(6) }, label = { Text(stringResource(if (mainTarget) R.string.password else R.string.pin)) }, singleLine = true,
+                visualTransformation = PasswordVisualTransformation(), keyboardOptions = if (mainTarget) PasswordKeyboard else KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                modifier = Modifier.fillMaxWidth().dpadExit(), shape = CardShape)
+            PrimaryButton(stringResource(R.string.open), enabled = !busy, onClick = { choose(if (mainTarget) null else target) }, modifier = Modifier.fillMaxWidth())
         }
         ErrorLine(error)
     }
 }
 
-@Suppress("unused") private val unusedShape = RoundedCornerShape(0.dp)
+/** Password fields: the password keyboard, no suggestions or autocorrect learning what is typed. */
+internal val PasswordKeyboard = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false)

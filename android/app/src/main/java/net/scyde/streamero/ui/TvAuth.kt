@@ -37,17 +37,17 @@ val TV_CLIENT = "Streamero Android TV"
 @Composable
 fun TvQuickConnect(state: AppState, serverName: String, onUsePassword: () -> Unit, onChangeServer: () -> Unit, onSignedIn: () -> Unit) {
     val api = state.api ?: return
-    var attempt by remember { mutableIntStateOf(0) }
+    var round by remember { mutableIntStateOf(0) }
     var current by remember { mutableStateOf<QuickConnectState?>(null) }
     var signInError by remember { mutableStateOf<Throwable?>(null) }
     val scope = rememberCoroutineScope()
-    LaunchedEffect(attempt) {
+    LaunchedEffect(round) {
         current = null
         try {
             quickConnectFlow(api.quickConnect(DeviceInfo(Build.MODEL ?: "Android TV", TV_CLIENT))).collect { s ->
                 current = s
                 if (s is QuickConnectState.Approved) {
-                    runCatching {
+                    attempt {
                         state.session.setToken(s.auth.token)
                         state.refreshMe() ?: error("no user")
                     }.onSuccess { onSignedIn() }.onFailure { signInError = it }
@@ -68,9 +68,9 @@ fun TvQuickConnect(state: AppState, serverName: String, onUsePassword: () -> Uni
                 Text(stringResource(R.string.qc_tv_intro), color = Kino.text.copy(alpha = 0.85f), fontSize = 17.sp, lineHeight = 25.sp, modifier = Modifier.padding(top = 10.dp))
                 Column(Modifier.padding(top = 18.dp).width(IntrinsicSize.Max), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     val expired = current is QuickConnectState.Expired || current is QuickConnectState.Failed
-                    if (expired) PrimaryButton(stringResource(R.string.qc_new_code), { attempt++ }, Modifier.fillMaxWidth().initialFocus(), icon = Icons.Outlined.Refresh)
+                    if (expired) PrimaryButton(stringResource(R.string.qc_new_code), { round++ }, Modifier.fillMaxWidth().initialFocus(), icon = Icons.Outlined.Refresh)
                     GlassButton(stringResource(R.string.qc_use_password), onUsePassword, Modifier.fillMaxWidth().initialFocus(!expired), icon = Icons.Outlined.Password)
-                    GlassButton(stringResource(R.string.change_server), { scope.launch { state.session.forgetServer(); state.attach(null); onChangeServer() } }, Modifier.fillMaxWidth(), icon = Icons.Outlined.Dns)
+                    GlassButton(stringResource(R.string.change_server), { scope.launch { attempt { state.session.forgetServer() }; state.attach(null); onChangeServer() } }, Modifier.fillMaxWidth(), icon = Icons.Outlined.Dns)
                 }
             }
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(18.dp)) {

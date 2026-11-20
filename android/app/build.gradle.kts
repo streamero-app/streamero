@@ -28,6 +28,9 @@ android {
         versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: versionCodeOf(appVersionName)
         versionName = appVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // The app speaks English and Croatian: the other languages that libraries bring along
+        // would only make the download bigger.
+        resourceConfigurations += listOf("en", "hr")
     }
 
     // The same code builds two apps (D-048): "standard" is the normal Streamero app; "manage"
@@ -84,6 +87,18 @@ android {
     kotlinOptions { jvmTarget = "17" }
     buildFeatures { compose = true; buildConfig = true }
     packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }
+    lint {
+        // CI runs lint on both apps; any error fails the build (there is no baseline to hide behind).
+        abortOnError = true
+        checkReleaseBuilds = true
+        // Dependency updates are their own changes, tried on devices first; "a newer version
+        // exists" is not a defect of this code.
+        disable += setOf("GradleDependency", "NewerVersionAvailable", "AndroidGradlePluginVersion")
+        // The TV banner exists only at the densities televisions use.
+        disable += "IconMissingDensityFolder"
+        // Strings and translations must stay complete in both languages.
+        error += setOf("MissingTranslation", "ExtraTranslation", "MissingQuantity", "StringFormatInvalid", "StringFormatCount")
+    }
 }
 
 dependencies {

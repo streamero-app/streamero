@@ -1,6 +1,5 @@
 package net.scyde.streamero.ui
 
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -16,10 +15,15 @@ import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -35,10 +39,7 @@ import net.scyde.streamero.books.formatIndex
 import net.scyde.streamero.books.readableInApp
 
 /** Opens the titles of one author or series of a library. */
-fun NavHostController.shelf(libraryId: String, author: String? = null, series: String? = null) {
-    val q = listOfNotNull(author?.let { "author=" + Uri.encode(it) }, series?.let { "series=" + Uri.encode(it) }).joinToString("&")
-    navigate("shelf/$libraryId?$q")
-}
+fun NavHostController.shelf(libraryId: String, author: String? = null, series: String? = null) = open(shelfRoute(libraryId, author, series))
 
 private fun seriesLine(name: String?, index: Double?): String? = name?.let { n -> if (index != null) "$n #${formatIndex(index)}" else n }
 
@@ -99,19 +100,12 @@ private fun BooksHeader(title: String, tab: String, onTab: (String) -> Unit) {
 fun BookGrid(state: AppState, nav: NavHostController, lib: Library, author: String?, series: String?, header: @Composable () -> Unit) {
     val api = state.api ?: return
     val kind = if (lib.kind == "audiobooks") "audiobook" else "book"
-    var sort by remember { mutableStateOf(if (series != null) "series" else "title") }
-    var items by remember { mutableStateOf<List<ItemSummary>>(emptyList()) }
-    var total by remember { mutableIntStateOf(-1) }
-    var loading by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf<Throwable?>(null) }
-    suspend fun load(reset: Boolean) {
-        loading = true
-        runCatching {
-            api.items(lib.id, mapOf("kind" to kind, "sort" to sort, "author" to author, "series" to series, "limit" to 60, "offset" to if (reset) 0 else items.size))
-        }.onSuccess { p -> items = if (reset) p.items else items + p.items; total = p.total; error = null }.onFailure { error = it }
-        loading = false
+    var sort by rememberSaveable { mutableStateOf(if (series != null) "series" else "title") }
+    val paged = rememberPaged(listOf(lib.id, kind, sort, author, series)) { offset ->
+        api.items(lib.id, mapOf("kind" to kind, "sort" to sort, "author" to author, "series" to series, "limit" to PAGE_SIZE, "offset" to offset))
     }
-    LaunchedEffect(sort) { load(true) }
+    val items = paged.list.items
+    val total = paged.list.total
     val cell = if (kind == "audiobook") 140.dp else Dims.gridCell
     LazyVerticalGrid(GridCells.Adaptive(cell), Modifier.fillMaxSize(), contentPadding = gridPadding(),
         horizontalArrangement = Arrangement.spacedBy(gridGap()), verticalArrangement = Arrangement.spacedBy(18.dp)) {
@@ -121,15 +115,11 @@ fun BookGrid(state: AppState, nav: NavHostController, lib: Library, author: Stri
                 if (total >= 0) Text(itemsCount(total), color = Kino.muted, fontSize = 13.sp)
                 Picker(sort, listOf("title" to stringResource(R.string.sort_title), "added" to stringResource(R.string.sort_added),
                     "series" to stringResource(R.string.sort_series)), { sort = it })
-                ErrorLine(error)
+                if (items.isEmpty()) ErrorLine(paged.error)
             }
         }
-        items(items, key = { it.id }) { BookCard(api, it) { nav.navigate("item/${it.id}") } }
-        if (total > items.size) item(span = { GridItemSpan(maxLineSpan) }) {
-            LaunchedEffect(items.size) { if (!loading) load(false) }
-            Loading()
-        }
-        if (total == 0) item(span = { GridItemSpan(maxLineSpan) }) { Text(stringResource(R.string.nothing_here), color = Kino.muted) }
+        items(items, key = { it.id }, contentType = { "book" }) { BookCard(api, it) { nav.open("item/${it.id}") } }
+        pagingFooter(paged)
     }
 }
 
@@ -143,9 +133,10 @@ private fun NameGrid(state: AppState, nav: NavHostController, lib: Library, whic
         horizontalArrangement = Arrangement.spacedBy(gridGap()), verticalArrangement = Arrangement.spacedBy(18.dp)) {
         item(span = { GridItemSpan(maxLineSpan) }) { Column(verticalArrangement = Arrangement.spacedBy(10.dp)) { header(); ErrorLine(error) } }
         if (loading) item(span = { GridItemSpan(maxLineSpan) }) { Loading() }
-        items(names.orEmpty(), key = { it.name }) { n ->
+        // The key must be unique: a name the server lists twice is shown once.
+        items(names.orEmpty().distinctBy { it.name }, key = { it.name }, contentType = { "name" }) { n ->
             val stub = ItemSummary(id = n.itemId ?: n.name, kind = if (square) "audiobook" else "book", title = n.name, hasPoster = n.itemId != null)
-            Column(Modifier.clickable { if (which == "authors") nav.shelf(lib.id, author = n.name) else nav.shelf(lib.id, series = n.name) }) {
+            Column(Modifier.focusClickable { if (which == "authors") nav.shelf(lib.id, author = n.name) else nav.shelf(lib.id, series = n.name) }) {
                 BookCover(api, stub, Modifier.fillMaxWidth())
                 Spacer(Modifier.height(8.dp))
                 Text(n.name, color = Kino.text, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -171,6 +162,7 @@ fun ShelfScreen(state: AppState, nav: NavHostController, libraryId: String, auth
 }
 
 /** A book, comic or audiobook: cover, who wrote it, where it is in its series, and read or listen. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun BookScreen(state: AppState, nav: NavHostController, d: ItemDetail) {
     val api = state.api ?: return
@@ -192,14 +184,14 @@ fun BookScreen(state: AppState, nav: NavHostController, d: ItemDetail) {
                     BookCover(api, it, Modifier.fillMaxWidth(if (audio) 0.7f else 0.55f).align(Alignment.CenterHorizontally))
                     Spacer(Modifier.height(6.dp))
                     Text(stringResource(when { audio -> R.string.audiobook; format in COMIC_FORMATS -> R.string.comic; else -> R.string.book }).uppercase(), style = Label, color = Kino.faint)
-                    Text(it.title, style = Display.copy(fontSize = 32.sp), color = Kino.text)
-                    if (authors.isNotEmpty()) Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        authors.forEach { a -> Text(a, color = Kino.text, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { nav.shelf(d.libraryId, author = a) }) }
+                    Text(it.title, style = Display.copy(fontSize = 32.sp), color = Kino.text, modifier = Modifier.semantics { heading() })
+                    if (authors.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        authors.forEach { a -> Text(a, color = Kino.text, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable(role = Role.Button) { nav.shelf(d.libraryId, author = a) }.minimumInteractiveComponentSize()) }
                     }
                     seriesLine(seriesName, seriesIndex)?.let { s ->
-                        Text(s, color = LocalAccent.current, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { nav.shelf(d.libraryId, series = seriesName) })
+                        Text(s, color = LocalAccent.current, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable(role = Role.Button) { nav.shelf(d.libraryId, series = seriesName) }.minimumInteractiveComponentSize())
                     }
-                    val facts = listOfNotNull(format?.uppercase(), b?.pageCount?.let { n -> stringResource(R.string.pages_count, n) },
+                    val facts = listOfNotNull(format?.uppercase(), b?.pageCount?.let { n -> pluralStringResource(R.plurals.pages_count, n, n) },
                         it.durationMs?.takeIf { audio }?.let { ms -> clock(ms) }, b?.published?.take(4), it.year?.toString()?.takeIf { b?.published == null })
                     if (facts.isNotEmpty()) Text(facts.joinToString("  ·  "), color = Kino.muted, fontSize = 14.sp)
                 }
@@ -213,11 +205,11 @@ fun BookScreen(state: AppState, nav: NavHostController, d: ItemDetail) {
                     when {
                         audio -> {
                             val label = if (it.positionMs > 0) stringResource(R.string.resume_from, clock(it.positionMs)) else stringResource(R.string.listen)
-                            PrimaryButton(label, { state.book.play(it); nav.navigate("listen/${it.id}") }, Modifier.fillMaxWidth(), icon = Icons.Default.Headphones)
+                            PrimaryButton(label, { state.book.play(it); nav.open("listen/${it.id}") }, Modifier.fillMaxWidth(), icon = Icons.Default.Headphones)
                         }
                         readableInApp(format) -> {
                             val label = if (pct in 1..99) stringResource(R.string.continue_reading_at, pct) else stringResource(R.string.read)
-                            PrimaryButton(label, { nav.navigate("read/${it.id}") }, Modifier.fillMaxWidth(), icon = Icons.AutoMirrored.Filled.MenuBook)
+                            PrimaryButton(label, { nav.open("read/${it.id}") }, Modifier.fillMaxWidth(), icon = Icons.AutoMirrored.Filled.MenuBook)
                         }
                         else -> Text(stringResource(R.string.read_in_web), color = Kino.muted, fontSize = 14.sp,
                             modifier = Modifier.fillMaxWidth().clip(CardShape).background(Kino.surface2).padding(14.dp))
@@ -240,8 +232,8 @@ fun BookScreen(state: AppState, nav: NavHostController, d: ItemDetail) {
             val chapters = listen?.chapters.orEmpty()
             if (chapters.size > 1) {
                 item { Text(stringResource(R.string.chapters).uppercase(), style = Head, color = Kino.text, modifier = Modifier.padding(top = 6.dp)) }
-                itemsIndexed(chapters) { i, c ->
-                    Row(Modifier.fillMaxWidth().clickable { state.book.play(it, c.startMs); nav.navigate("listen/${it.id}") }.padding(vertical = 10.dp),
+                itemsIndexed(chapters, contentType = { _, _ -> "chapter" }) { i, c ->
+                    Row(Modifier.fillMaxWidth().clickable { state.book.play(it, c.startMs); nav.open("listen/${it.id}") }.padding(vertical = 10.dp),
                         horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text("${i + 1}", color = Kino.faint, fontSize = 14.sp, modifier = Modifier.width(26.dp))
                         Text(c.title, color = Kino.text, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)

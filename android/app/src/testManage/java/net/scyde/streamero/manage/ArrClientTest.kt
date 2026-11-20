@@ -98,7 +98,7 @@ class ArrClientTest {
         server.enqueue(MockResponse().setResponseCode(400).setBody("""{"code":"invalid_path","message":"bad"}"""))
         assertEquals("invalid_path", failure { c.get("../x") }.code)
         server.enqueue(MockResponse().setResponseCode(413).setBody(""))
-        assertEquals("too_large", failure { c.get("x") }.code)
+        assertEquals("request_too_large", failure { c.get("x") }.code)
         server.enqueue(MockResponse().setResponseCode(502).setBody("<html>Bad gateway</html>"))
         assertEquals("arr_unreachable", failure { c.get("x") }.code)
     }

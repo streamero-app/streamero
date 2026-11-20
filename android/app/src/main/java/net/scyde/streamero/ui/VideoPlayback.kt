@@ -1,14 +1,13 @@
 package net.scyde.streamero.ui
 
-import android.app.Activity
 import android.app.PictureInPictureParams
 import android.content.Context
-import android.content.ContextWrapper
 import android.content.pm.PackageManager
 import android.media.MediaCodecInfo.CodecProfileLevel
 import android.media.MediaCodecList
 import android.os.Build
 import android.util.Rational
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
@@ -31,10 +30,12 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.audio.AudioCapabilities
 import androidx.media3.ui.CaptionStyleCompat
 import androidx.media3.ui.PlayerView
 import androidx.media3.ui.SubtitleView
@@ -44,8 +45,12 @@ import kotlinx.coroutines.withContext
 import net.scyde.streamero.R
 import net.scyde.streamero.api.DeviceProfile
 import net.scyde.streamero.api.Preferences
+import net.scyde.streamero.player.ErrorKind
 import net.scyde.streamero.player.VideoDecoder
+import net.scyde.streamero.player.audioCodecs
 import net.scyde.streamero.player.captionLook
+import net.scyde.streamero.player.errorKind
+import net.scyde.streamero.player.keepsScreenOn
 import net.scyde.streamero.player.videoCodecs
 
 /**
@@ -61,9 +66,12 @@ fun videoPlayer(ctx: Context): ExoPlayer = ExoPlayer.Builder(ctx)
 private class Codecs(val video: List<String>, val ac3: Boolean, val eac3: Boolean)
 @Volatile private var codecs: Codecs? = null
 
-/** Reads the decoders once (it takes a while on some devices), off the main thread. */
+/**
+ * Reads the decoders once (it takes a while on some devices), off the main thread. A device whose
+ * codec list cannot be read reports nothing beyond H.264, so the server converts the rest.
+ */
 private suspend fun codecs(): Codecs = codecs ?: withContext(Dispatchers.Default) {
-    val infos = MediaCodecList(MediaCodecList.REGULAR_CODECS).codecInfos.filter { !it.isEncoder }
+    val infos = runCatching { MediaCodecList(MediaCodecList.REGULAR_CODECS).codecInfos.filter { !it.isEncoder } }.getOrDefault(emptyList())
     val decoders = infos.flatMap { info ->
         val hardware = if (Build.VERSION.SDK_INT >= 29) info.isHardwareAccelerated
             else !info.name.lowercase().let { it.startsWith("omx.google.") || it.startsWith("c2.android.") }
@@ -81,14 +89,17 @@ private suspend fun codecs(): Codecs = codecs ?: withContext(Dispatchers.Default
     Codecs(videoCodecs(decoders), "audio/ac3" in types, "audio/eac3" in types).also { codecs = it }
 }
 
-/** What this device decodes (the server converts the rest). */
-suspend fun androidDeviceProfile(prefs: Preferences?): DeviceProfile {
+/**
+ * What this device plays (the server converts the rest). The decoders are read once; what the
+ * connected receiver or TV takes as passthrough is read on every start, as it changes with the
+ * HDMI or audio device in use.
+ */
+@OptIn(UnstableApi::class)
+@Suppress("DEPRECATION")
+suspend fun androidDeviceProfile(ctx: Context, prefs: Preferences?): DeviceProfile {
     val c = codecs()
-    val audio = buildList {
-        addAll(listOf("aac", "mp3", "opus", "flac", "vorbis"))
-        if (c.ac3) add("ac3")
-        if (c.eac3) add("eac3")
-    }
+    val sink = runCatching { AudioCapabilities.getCapabilities(ctx) }.getOrNull()
+    val audio = audioCodecs(c.ac3, c.eac3, sink?.supportsEncoding(C.ENCODING_AC3) == true, sink?.supportsEncoding(C.ENCODING_E_AC3) == true)
     return DeviceProfile(listOf("mp4", "m4v", "mov", "mkv", "webm", "ts"), c.video, audio, hls = true,
         maxHeight = prefs?.maxHeight, maxBitrate = prefs?.maxBitrateKbps?.let { it * 1000 })
 }
@@ -105,11 +116,12 @@ fun PlayerView.applyCaptionLook(prefs: Preferences?) {
     }
 }
 
-fun Context.findActivity(): Activity? {
-    var c: Context? = this
-    while (c is ContextWrapper) { if (c is Activity) return c; c = c.baseContext }
-    return null
-}
+/**
+ * What to show for a player failure: a stream that could not be read is a connection problem,
+ * not "this device cannot play the video".
+ */
+fun shownPlayerError(e: PlaybackException): Throwable =
+    if (errorKind(e.errorCode) == ErrorKind.Source) java.io.IOException(e.errorCodeName) else e
 
 private fun pipParams(size: VideoSize, autoEnter: Boolean): PictureInPictureParams {
     // Android refuses ratios outside 1:2.39 … 2.39:1.
@@ -117,13 +129,16 @@ private fun pipParams(size: VideoSize, autoEnter: Boolean): PictureInPicturePara
         val r = size.width * size.pixelWidthHeightRatio / size.height
         when { r > 2.39f -> Rational(239, 100); r < 1 / 2.39f -> Rational(100, 239); else -> Rational((size.width * size.pixelWidthHeightRatio).toInt(), size.height) }
     } else Rational(16, 9)
-    return PictureInPictureParams.Builder().setAspectRatio(ratio).apply { if (Build.VERSION.SDK_INT >= 31) setAutoEnterEnabled(autoEnter) }.build()
+    // Video is cropped while the window resizes, not stretched (Android 12+).
+    return PictureInPictureParams.Builder().setAspectRatio(ratio)
+        .apply { if (Build.VERSION.SDK_INT >= 31) { setAutoEnterEnabled(autoEnter); setSeamlessResizeEnabled(false) } }.build()
 }
 
 /**
- * The player's life with the app: playback pauses when the app goes to the background, and with
- * the "picture in picture" enhancement on (phones only) leaving the app while a video plays keeps
- * it in a small window instead. Returns whether the video is in that window now (hide the controls).
+ * The player's life with the app: playback pauses when the app goes to the background, the
+ * screen is kept on while the video runs (not while it sits paused), and with the "picture in
+ * picture" enhancement on (phones only) leaving the app while a video plays keeps it in a small
+ * window instead. Returns whether the video is in that window now (hide the controls).
  */
 @Composable
 fun videoLifecycle(player: Player, autoPip: Boolean): Boolean {
@@ -139,6 +154,24 @@ fun videoLifecycle(player: Player, autoPip: Boolean): Boolean {
         val obs = LifecycleEventObserver { _, e -> if (e == Lifecycle.Event.ON_STOP) player.pause() }
         lifecycle.addObserver(obs)
         onDispose { lifecycle.removeObserver(obs) }
+    }
+    DisposableEffect(act, player) {
+        val window = act?.window ?: return@DisposableEffect onDispose { }
+        fun update() {
+            val state = player.playbackState
+            if (keepsScreenOn(player.playWhenReady, state == Player.STATE_BUFFERING, state == Player.STATE_READY)) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        val l = object : Player.Listener {
+            override fun onPlaybackStateChanged(playbackState: Int) = update()
+            override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) = update()
+        }
+        player.addListener(l)
+        update()
+        onDispose {
+            player.removeListener(l)
+            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
     }
     DisposableEffect(act, player, canPip) {
         if (act == null) return@DisposableEffect onDispose { }

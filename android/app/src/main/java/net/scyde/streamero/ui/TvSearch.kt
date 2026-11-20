@@ -56,7 +56,7 @@ fun TvSearchScreen(state: AppState, nav: NavHostController) {
     LaunchedEffect(q) {
         if (q.isBlank()) { results = null; return@LaunchedEffect }
         delay(350)
-        results = runCatching { api.search(q.trim()) }.getOrDefault(emptyList())
+        attempt { api.search(q.trim()) }.onSuccess { results = it.distinctBy { r -> r.id } }.onFailure { results = emptyList() }
     }
     val mem = rememberFocusMemory()
     Row(Modifier.fillMaxSize().padding(start = 28.dp, top = 28.dp)) {
@@ -89,7 +89,7 @@ fun TvSearchScreen(state: AppState, nav: NavHostController) {
                     Text(stringResource(R.string.tv_search_intro), color = Kino.muted, fontSize = 16.sp, modifier = Modifier.padding(top = 12.dp))
                 }
                 r.isEmpty() -> item(span = { GridItemSpan(maxLineSpan) }) { Text(stringResource(R.string.nothing_found), color = Kino.muted, modifier = Modifier.padding(top = 12.dp)) }
-                else -> items(r, key = { it.id }) { PosterCard(it, api::imageUrl, Dims.gridCell, state.enhancements.qualityTags, Modifier.rememberFocus(mem, it.id)) { nav.navigate("item/${it.id}") } }
+                else -> items(r, key = { it.id }) { PosterCard(it, api::imageUrl, Dims.gridCell, state.enhancements.qualityTags, Modifier.rememberFocus(mem, it.id)) { nav.open("item/${it.id}") } }
             }
         }
     }

@@ -1,8 +1,10 @@
 package net.scyde.streamero.ui
 
-import android.app.Activity
+import android.os.SystemClock
 import android.net.Uri
-import android.view.WindowManager
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -40,6 +42,7 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import net.scyde.streamero.player.ErrorAction
 import net.scyde.streamero.player.ErrorRecovery
+import net.scyde.streamero.player.errorKind
 import net.scyde.streamero.player.SAFE_PROFILE
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
@@ -55,11 +58,22 @@ import net.scyde.streamero.api.LiveTvProgram
 import net.scyde.streamero.livetv.*
 import java.time.Instant
 
-/** Ticks once a minute so now/next and progress bars move on. */
+/**
+ * Ticks every 30 seconds so now/next and progress bars move on; only while the app is in front
+ * (the channel list refreshes on every tick), with a fresh tick on coming back.
+ */
 @Composable
 private fun rememberNow(): Instant {
     var now by remember { mutableStateOf(Instant.now()) }
-    LaunchedEffect(Unit) { while (true) { delay(30_000); now = Instant.now() } }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(lifecycle) {
+        var first = true
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            if (!first) now = Instant.now()
+            first = false
+            while (true) { delay(30_000); now = Instant.now() }
+        }
+    }
     return now
 }
 
@@ -75,7 +89,7 @@ fun LiveTvScreen(state: AppState, nav: NavHostController) {
     var error by remember { mutableStateOf<Throwable?>(null) }
     val now = rememberNow()
     LaunchedEffect(reload, now) {
-        runCatching { api.liveChannels() }.onSuccess { channels = it; error = null }.onFailure { error = it }
+        attempt { api.liveChannels() }.onSuccess { channels = it; error = null }.onFailure { error = it }
     }
     val shown = channels?.filter { !onlyFavorites || it.favorite }
     LazyColumn(Modifier.fillMaxSize().statusBarsPadding(), contentPadding = PaddingValues(Dims.edge, 8.dp, Dims.edge, 30.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -104,7 +118,7 @@ fun LiveTvScreen(state: AppState, nav: NavHostController) {
                     onFavorite = {
                         val fav = !c.favorite
                         channels = channels?.let { withFavorite(it, c.id, fav) }
-                        scope.launch { runCatching { api.setLiveFavorite(c.id, fav) }.onFailure { e -> error = e; reload++ } }
+                        scope.launch { attempt { api.setLiveFavorite(c.id, fav) }.onFailure { e -> error = e; reload++ } }
                     })
             }
         }
@@ -186,7 +200,7 @@ fun LiveChannelScreen(state: AppState, nav: NavHostController, channelId: String
     fun act(p: LiveTvProgram, series: Boolean) {
         busy = p.id; actionError = null; notice = null
         scope.launch {
-            runCatching { if (series) api.recordSeries(p.id, channelId) else api.recordProgram(p.id, channelId) }
+            attempt { if (series) api.recordSeries(p.id, channelId) else api.recordProgram(p.id, channelId) }
                 .onSuccess { notice = ctx.getString(if (series) R.string.livetv_series_scheduled else R.string.livetv_recording_scheduled); reload++ }
                 .onFailure { actionError = it }
             busy = null
@@ -268,39 +282,42 @@ fun LivePlayerScreen(state: AppState, nav: NavHostController, channelId: String)
     var channel by remember { mutableStateOf<LiveTvChannel?>(null) }
     var error by remember { mutableStateOf<Throwable?>(null) }
     var notice by remember { mutableStateOf<String?>(null) }
-    var attempt by remember { mutableIntStateOf(0) }
+    var tries by remember { mutableIntStateOf(0) }
     val recovery = remember { ErrorRecovery() }
 
     DisposableEffect(Unit) {
         val act = ctx.findActivity()
         state.music.pause()
-        act?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        state.book.pause()
         val ctl = act?.let { WindowCompat.getInsetsController(it.window, it.window.decorView) }
         ctl?.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         ctl?.hide(WindowInsetsCompat.Type.systemBars())
-        // A stream the device cannot play: once more as plain H.264/AAC, then say so.
         val l = object : Player.Listener {
             override fun onPlayerError(e: PlaybackException) {
-                when (recovery.onError()) {
-                    ErrorAction.Fallback -> { notice = ctx.getString(R.string.player_fallback); attempt++ }
-                    ErrorAction.Fail -> error = e
+                when (recovery.onError(errorKind(e.errorCode), SystemClock.elapsedRealtime())) {
+                    // Paused past the time-shift window: carry on from the live edge.
+                    ErrorAction.Resync -> { player.seekToDefaultPosition(); player.prepare() }
+                    // The connection dropped or the server ended the stream: ask for the channel again.
+                    ErrorAction.Retry -> tries++
+                    // A stream the device cannot play: once more as plain H.264/AAC, then say so.
+                    ErrorAction.Fallback -> { notice = ctx.getString(R.string.player_fallback); tries++ }
+                    ErrorAction.Fail -> error = shownPlayerError(e)
                 }
             }
         }
         player.addListener(l)
         onDispose {
             ctl?.show(WindowInsetsCompat.Type.systemBars())
-            act?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             player.removeListener(l)
             player.release()
         }
     }
     val inPip = videoLifecycle(player, state.enhancements.autoPip)
-    LaunchedEffect(channelId, attempt) {
-        if (channel == null) channel = runCatching { api.liveChannels() }.getOrNull()?.firstOrNull { it.id == channelId }
-        val prefs = runCatching { api.preferences() }.getOrNull()
+    LaunchedEffect(channelId, tries) {
+        if (channel == null) channel = attempt { api.liveChannels() }.getOrNull()?.firstOrNull { it.id == channelId }
+        val prefs = attempt { api.preferences() }.getOrNull()
         try {
-            val device = if (recovery.safe) SAFE_PROFILE.copy(maxHeight = prefs?.maxHeight, maxBitrate = prefs?.maxBitrateKbps?.let { it * 1000 }) else androidDeviceProfile(prefs)
+            val device = if (recovery.safe) SAFE_PROFILE.copy(maxHeight = prefs?.maxHeight, maxBitrate = prefs?.maxBitrateKbps?.let { it * 1000 }) else androidDeviceProfile(ctx, prefs)
             val pb = api.playChannel(channelId, device)
             playback = pb
             error = null
@@ -328,6 +345,6 @@ fun LivePlayerScreen(state: AppState, nav: NavHostController, channelId: String)
         }
         if (playback == null && error == null) CircularProgressIndicator(Modifier.align(Alignment.Center), color = Color.White)
         notice?.let { Text(it, color = Color.White, fontSize = 15.sp, modifier = Modifier.align(Alignment.TopCenter).padding(top = 64.dp).background(Color.Black.copy(alpha = 0.85f), CardShape).padding(14.dp)) }
-        error?.let { PlayerErrorBox(it, { error = null; playback = null; attempt++ }, { nav.popBackStack() }) }
+        error?.let { PlayerErrorBox(it, { error = null; playback = null; tries++ }, { nav.popBackStack() }) }
     }
 }

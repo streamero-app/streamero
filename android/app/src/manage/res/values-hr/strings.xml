@@ -10,12 +10,11 @@
     <string name="m_unreachable">Nedostupan</string>
     <string name="m_not_configured">Nije postavljen</string>
     <string name="m_not_configured_hint">Dodaj adresu i API ključ za %1$s u postavkama veze.</string>
-    <string name="m_more_warnings">Još upozorenja: %1$d</string>
-    <string name="m_err_not_configured">Ovaj servis nije postavljen na serveru.</string>
-    <string name="m_err_unreachable">Server ne može doći do ovog servisa.</string>
-    <string name="m_err_signed_out">Odjavljen si.</string>
-    <string name="m_err_invalid_path">Server je odbio ovu adresu.</string>
-    <string name="m_err_too_large">Odgovor je prevelik.</string>
+    <string name="m_err_not_configured">Ovaj servis nije postavljen na serveru. Dodaj njegovu adresu i API ključ u postavkama veze.</string>
+    <string name="m_err_unreachable">Server ne može doći do ovog servisa. Provjeri radi li i je li mu adresa u postavkama veze ispravna.</string>
+    <string name="m_err_signed_out">Sesija je istekla. Prijavi se ponovno.</string>
+    <string name="m_err_invalid_path">Server je odbio ovu adresu servisa. Ažuriraj Streamero Manage; ako se ponavlja, prijavi problem.</string>
+    <string name="m_err_too_large">Ovo je preveliko za server (granica je 16 MB).</string>
     <string name="m_err_service">Servis je odgovorio: %1$s</string>
     <string name="m_queue">Red</string>
     <string name="m_missing">Nedostaje</string>
@@ -101,7 +100,6 @@
     <string name="m_health_ok">Nema pronađenih problema.</string>
     <string name="m_disk_space">Prostor na disku</string>
     <string name="m_free_of">Slobodno %1$s od %2$s</string>
-    <string name="m_every_minutes">svakih %1$d min</string>
     <string name="m_last_run">zadnje %1$s</string>
     <string name="m_next_run">sljedeće %1$s</string>
     <string name="m_updates">Ažuriranja</string>
@@ -160,10 +158,8 @@
     <string name="m_conditions">Uvjeti</string>
     <string name="m_add_condition">Dodaj uvjet</string>
     <string name="m_free">Slobodno %1$s</string>
-    <string name="m_unmapped">Nepovezanih mapa: %1$d</string>
     <string name="m_inaccessible">Nije dostupno</string>
     <string name="m_new_tag">Nova oznaka</string>
-    <string name="m_used_by">Korišteno %1$d puta</string>
     <string name="m_search_indexers">Pretraži sve indeksere</string>
     <string name="m_all_indexers_hint">Ako nijedan nije odabran, pretražuju se svi.</string>
     <string name="m_queries">Upiti</string>
@@ -207,7 +203,6 @@
     <string name="m_select">Odaberi</string>
     <string name="m_select_all">Odaberi sve</string>
     <string name="m_select_none">Poništi odabir</string>
-    <string name="m_selected_n">Odabrano: %1$d</string>
     <string name="m_select_hint">Dodirni stavke da ih odabereš.</string>
     <string name="m_monitor_on">Prati</string>
     <string name="m_monitor_off">Ne prati</string>
@@ -216,10 +211,7 @@
     <string name="m_tags_add">Dodaj ove oznake</string>
     <string name="m_tags_remove">Ukloni ove oznake</string>
     <string name="m_tags_replace">Zamijeni sve oznake ovima</string>
-    <string name="m_applies_to_n">Odnosi se na odabrane stavke (%1$d).</string>
     <string name="m_apply">Primijeni</string>
-    <string name="m_bulk_done">Ažurirano stavki: %1$d.</string>
-    <string name="m_bulk_delete_confirm">Izbrisati odabrane stavke iz biblioteke (%1$d)?</string>
     <string name="m_path_moves_files">Spremanje s novom putanjom premješta datoteke onamo.</string>
     <!-- System -->
     <string name="m_restart">Ponovno pokreni</string>
@@ -269,7 +261,6 @@
     <string name="m_perm_recent_view">Pregled nedavno dodanog</string>
     <string name="m_perm_watchlist_view">Pregled popisa za gledanje</string>
     <string name="m_request_limits">Ograničenja zahtjeva</string>
-    <string name="m_quota_used">Iskorišteno %1$d od %2$d (svakih %3$d dana)</string>
     <string name="m_unlimited">Neograničeno</string>
     <string name="m_quota_movie_limit">Ograničenje zahtjeva za filmove</string>
     <string name="m_quota_movie_days">Razdoblje za filmove (dani)</string>
@@ -295,4 +286,33 @@
     <string name="m_scan_unavailable">Stanje skeniranja nije dostupno.</string>
     <string name="m_start_scan">Pokreni potpuno skeniranje</string>
     <string name="m_cancel_scan">Prekini skeniranje</string>
+    <string name="m_err_forbidden">Medijskim servisima mogu upravljati samo administratori. Prijavi se administratorskim računom.</string>
+    <string name="m_err_read_only">Ovaj API ključ služi samo za čitanje. Za promjene se prijavi svojim računom.</string>
+    <string name="m_err_method">Server ne dopušta ovu radnju na ovom servisu. Ažuriraj Streamero Manage i server.</string>
+    <string name="m_err_rate_limited">Previše zahtjeva u kratkom vremenu. Pričekaj trenutak i pokušaj ponovno.</string>
+    <string name="m_err_arr_auth">Servis je odbio API ključ spremljen na serveru. Ponovno kopiraj njegov API ključ u postavke veze.</string>
+    <string name="m_err_not_found">Servis ovo više nema. Možda je obrisano.</string>
+    <string name="m_err_service_http">Servis to nije uspio napraviti (HTTP %1$d). Razlog piše u njegovim zapisima.</string>
+    <string name="m_err_not_a_number">Upiši broj u: %1$s</string>
+    <string name="m_discard_changes">Odbaciti promjene?</string>
+    <string name="m_discard">Odbaci</string>
+    <string name="m_bad_link">Ova se stranica ne može otvoriti. Vrati se i pokušaj ponovno.</string>
+    <string name="m_decline_confirm">Odbiti ovaj zahtjev?</string>
+    <string name="m_delete_issue_confirm">Obrisati ovu prijavu problema i njezine komentare?</string>
+    <string name="m_blocklist_remove_confirm">Ukloniti %1$s s popisa blokiranih? Moći će se ponovno preuzeti.</string>
+    <string name="m_log_info">Informacije</string>
+    <string name="m_log_warn">Upozorenja</string>
+    <string name="m_log_error">Greške</string>
+    <string name="m_forced">prisilni</string>
+    <!-- Counts -->
+    <plurals name="m_more_warnings"><item quantity="one">Još %1$d upozorenje</item><item quantity="few">Još %1$d upozorenja</item><item quantity="other">Još %1$d upozorenja</item></plurals>
+    <plurals name="m_every_minutes"><item quantity="one">svaku %1$d minutu</item><item quantity="few">svake %1$d minute</item><item quantity="other">svakih %1$d minuta</item></plurals>
+    <plurals name="m_unmapped"><item quantity="one">%1$d nepovezana mapa</item><item quantity="few">%1$d nepovezane mape</item><item quantity="other">%1$d nepovezanih mapa</item></plurals>
+    <plurals name="m_used_by"><item quantity="one">Korišteno %1$d put</item><item quantity="few">Korišteno %1$d puta</item><item quantity="other">Korišteno %1$d puta</item></plurals>
+    <plurals name="m_selected_n"><item quantity="one">Odabrana %1$d stavka</item><item quantity="few">Odabrane %1$d stavke</item><item quantity="other">Odabrano %1$d stavki</item></plurals>
+    <plurals name="m_applies_to_n"><item quantity="one">Odnosi se na %1$d odabranu stavku.</item><item quantity="few">Odnosi se na %1$d odabrane stavke.</item><item quantity="other">Odnosi se na %1$d odabranih stavki.</item></plurals>
+    <plurals name="m_bulk_done"><item quantity="one">Ažurirana je %1$d stavka.</item><item quantity="few">Ažurirane su %1$d stavke.</item><item quantity="other">Ažurirano je %1$d stavki.</item></plurals>
+    <plurals name="m_bulk_delete_confirm"><item quantity="one">Izbrisati %1$d stavku iz biblioteke?</item><item quantity="few">Izbrisati %1$d stavke iz biblioteke?</item><item quantity="other">Izbrisati %1$d stavki iz biblioteke?</item></plurals>
+    <plurals name="m_quota_used"><item quantity="one">Iskorišteno %1$d od %2$d (svaki %3$d dan)</item><item quantity="few">Iskorišteno %1$d od %2$d (svaka %3$d dana)</item><item quantity="other">Iskorišteno %1$d od %2$d (svakih %3$d dana)</item></plurals>
+    <plurals name="m_partial_failure"><item quantity="one">Nije uspjelo: %1$d od %2$d</item><item quantity="few">Nije uspjelo: %1$d od %2$d</item><item quantity="other">Nije uspjelo: %1$d od %2$d</item></plurals>
 </resources>

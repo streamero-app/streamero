@@ -30,7 +30,7 @@ fun LiveTvAdminPage(state: AppState) {
     Card(stringResource(R.string.livetv_mapping)) {
         Intro(stringResource(R.string.livetv_mapping_on_web))
         GlassButton(stringResource(R.string.open_on_web), {
-            runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(api.base.resolve("/settings/livetv").toString()))) }
+            runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(webLink(api.base.toString(), "settings", "livetv")))) }
         }, Modifier.fillMaxWidth())
     }
 }
@@ -361,7 +361,7 @@ private fun OidcForm(api: Api, existing: OidcProvider?, onDone: () -> Unit, onCa
         Toggle(stringResource(R.string.sso_trust_email), stringResource(R.string.sso_trust_email_hint), f.trustEmail) { f = f.copy(trustEmail = it) }
         Toggle(stringResource(R.string.enabled), stringResource(R.string.sso_enabled_hint), f.enabled) { f = f.copy(enabled = it) }
         test?.let { t ->
-            Text(stringResource(R.string.sso_test_ok, t.signingKeys) + if (!t.pkceS256) " " + stringResource(R.string.sso_test_no_pkce) else "", color = Kino.success, fontSize = 14.sp)
+            Text(pluralStringResource(R.plurals.sso_test_ok, t.signingKeys, t.signingKeys) + if (!t.pkceS256) " " + stringResource(R.string.sso_test_no_pkce) else "", color = Kino.success, fontSize = 14.sp)
         }
         ErrorLine(error)
         Actions {

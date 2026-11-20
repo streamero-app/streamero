@@ -19,6 +19,8 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -76,42 +78,29 @@ fun PhotoAlbumScreen(state: AppState, nav: NavHostController, d: ItemDetail) {
 @Composable
 private fun PhotoGrid(state: AppState, nav: NavHostController, libraryId: String, query: Map<String, Any?>, header: @Composable () -> Unit) {
     val api = state.api ?: return
-    var items by remember(query) { mutableStateOf<List<ItemSummary>>(emptyList()) }
-    var total by remember(query) { mutableIntStateOf(-1) }
-    var loading by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf<Throwable?>(null) }
-    suspend fun load(reset: Boolean) {
-        loading = true
-        runCatching { api.items(libraryId, query + mapOf("limit" to 100, "offset" to if (reset) 0 else items.size)) }
-            .onSuccess { p -> items = if (reset) p.items else items + p.items; total = p.total; error = null }.onFailure { error = it }
-        loading = false
-    }
-    LaunchedEffect(query) { load(true) }
-    val albums = items.filter { it.kind == "photoalbum" }
-    val media = items.filter { it.kind != "photoalbum" }
+    val paged = rememberPaged(libraryId to query) { offset -> api.items(libraryId, query + mapOf("limit" to 100, "offset" to offset)) }
+    val items = paged.list.items
+    val albums = remember(items) { items.filter { it.kind == "photoalbum" } }
+    val media = remember(items) { items.filter { it.kind != "photoalbum" } }
     fun open(it: ItemSummary) {
         when (it.kind) {
-            "photoalbum" -> nav.navigate("item/${it.id}")
-            "video" -> nav.watch(it.id)
-            else -> { state.photoStrip = media.filter { m -> m.kind == "photo" }; nav.navigate("photo/${it.id}") }
+            "photoalbum" -> nav.open("item/${it.id}")
+            "video" -> nav.play(it.id)
+            else -> { state.photoStrip = media.filter { m -> m.kind == "photo" }; nav.open("photo/${it.id}") }
         }
     }
     LazyVerticalGrid(GridCells.Adaptive(110.dp), Modifier.fillMaxSize(), contentPadding = gridPadding(),
         horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        item(span = { GridItemSpan(maxLineSpan) }) { Column(Modifier.padding(bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { header(); ErrorLine(error) } }
-        items(albums, key = { it.id }, span = { GridItemSpan(if (maxLineSpan >= 2) 2 else 1) }) { a -> AlbumTile(api, a) { open(a) } }
-        items(media, key = { it.id }) { m -> PhotoThumb(api, m) { open(m) } }
-        if (total > items.size) item(span = { GridItemSpan(maxLineSpan) }) {
-            LaunchedEffect(items.size) { if (!loading) load(false) }
-            Loading()
-        }
-        if (total == 0) item(span = { GridItemSpan(maxLineSpan) }) { Text(stringResource(R.string.nothing_here), color = Kino.muted) }
+        item(span = { GridItemSpan(maxLineSpan) }) { Column(Modifier.padding(bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { header(); if (items.isEmpty()) ErrorLine(paged.error) } }
+        items(albums, key = { it.id }, span = { GridItemSpan(if (maxLineSpan >= 2) 2 else 1) }, contentType = { "album" }) { a -> AlbumTile(api, a) { open(a) } }
+        items(media, key = { it.id }, contentType = { "thumb" }) { m -> PhotoThumb(api, m) { open(m) } }
+        pagingFooter(paged)
     }
 }
 
 @Composable
 private fun AlbumTile(api: Api, a: ItemSummary, onClick: () -> Unit) {
-    Column(Modifier.padding(bottom = 10.dp, end = 4.dp).clickable(onClick = onClick)) {
+    Column(Modifier.padding(bottom = 10.dp, end = 4.dp).focusClickable(onClick = onClick)) {
         Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(CardShape).background(Kino.surface2), contentAlignment = Alignment.Center) {
             Icon(Icons.Default.Folder, null, tint = Kino.faint, modifier = Modifier.size(36.dp))
             if (a.hasPoster) ServerImage(api.imageUrl(a.id, "poster"), Modifier.fillMaxSize())
@@ -124,7 +113,8 @@ private fun AlbumTile(api: Api, a: ItemSummary, onClick: () -> Unit) {
 
 @Composable
 private fun PhotoThumb(api: Api, m: ItemSummary, onClick: () -> Unit) {
-    Box(Modifier.aspectRatio(1f).clip(androidx.compose.foundation.shape.RoundedCornerShape(2.dp)).background(Kino.surface2).clickable(onClick = onClick)) {
+    Box(Modifier.aspectRatio(1f).clip(androidx.compose.foundation.shape.RoundedCornerShape(2.dp)).background(Kino.surface2).focusClickable(androidx.compose.foundation.shape.RoundedCornerShape(2.dp), onClick = onClick)
+        .semantics { contentDescription = m.title }) {
         if (m.hasPoster) ServerImage(api.imageUrl(m.id, "poster"), Modifier.fillMaxSize())
         if (m.kind == "video") Row(Modifier.align(Alignment.BottomStart).padding(5.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.PlayArrow, null, tint = Color.White, modifier = Modifier.size(16.dp))
@@ -155,7 +145,7 @@ fun PhotoViewerScreen(state: AppState, nav: NavHostController, id: String) {
                 if (p.hasPoster) ServerImage(api.imageUrl(p.id, "poster"), Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
                 val (view) = rememberLoad(p.id) { if (p.kind == "photo") api.photo(p.id) else null }
                 view?.let { v -> ServerImage(api.resolve(v.url), Modifier.fillMaxSize(), contentScale = ContentScale.Fit) }
-                if (p.kind == "video") FilledIconButton(onClick = { nav.watch(p.id) }, Modifier.size(72.dp),
+                if (p.kind == "video") FilledIconButton(onClick = { nav.play(p.id) }, Modifier.size(72.dp),
                     colors = IconButtonDefaults.filledIconButtonColors(containerColor = Kino.text, contentColor = Kino.bg)) {
                     Icon(Icons.Default.PlayArrow, stringResource(R.string.play), Modifier.size(38.dp))
                 }

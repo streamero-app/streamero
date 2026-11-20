@@ -57,15 +57,20 @@ data class ArrServices(val services: List<ArrServiceStatus> = emptyList())
 data class ArrValidation(val property: String, val message: String, val warning: Boolean = false)
 
 /**
- * A failed call: [code] is the Streamero server's error code (`arr_not_configured`,
- * `arr_unreachable`, `invalid_path`, `forbidden`, `unauthenticated`, `too_large`) or
- * `upstream` when the service itself refused; [validation] lists field errors to show inline.
+ * A failed call. [code] is the Streamero server's own error code when the proxy refused the
+ * call (`unauthenticated`, `forbidden`, `read_only_key`, `invalid_path`, `method_not_allowed`,
+ * `arr_not_configured`, `request_too_large`, `rate_limited`, `arr_unreachable`; D-049, D-052).
+ * When the service itself answered, it is `validation` (field errors in [validation]),
+ * `arr_auth` (the service refused the stored API key), `request_too_large`, `rate_limited`,
+ * `arr_unreachable` (a gateway error without a body) or `upstream`. [detail] is the service's
+ * own message, when it sent a readable one.
  */
 class ArrException(
     val status: Int,
     val code: String,
     message: String,
     val validation: List<ArrValidation> = emptyList(),
+    val detail: String? = null,
 ) : Exception(message) {
     /** The validation message for a form field (matched on the last segment of the property name). */
     fun messageFor(field: String): String? = validation.firstOrNull { matches(it.property, field) }?.message
@@ -79,41 +84,74 @@ class ArrException(
             return last.equals(field, ignoreCase = true) || property.equals(field, ignoreCase = true)
         }
 
-        /** Builds the error for a non-2xx answer from its status and body (any of the shapes the services use). */
+        /** The codes the Streamero server itself answers with (its `{code, message}` body). */
+        val SERVER_CODES = setOf(
+            "unauthenticated", "forbidden", "read_only_key", "invalid_path", "method_not_allowed", "arr_not_configured",
+            "request_too_large", "rate_limited", "arr_unreachable", "not_found", "generic", "internal", "bad_request",
+        )
+
+        /** The code for an answer of the service itself (no Streamero code in the body). */
+        private fun upstreamCode(status: Int, hasMessage: Boolean): String = when {
+            status == 401 -> "arr_auth"
+            status == 413 -> "request_too_large"
+            status == 429 -> "rate_limited"
+            !hasMessage && (status == 502 || status == 503 || status == 504) -> "arr_unreachable"
+            !hasMessage && status == 404 -> "not_found"
+            else -> "upstream"
+        }
+
+        private fun texts(e: JsonElement?): List<String> = when (e) {
+            is JsonArray -> e.flatMap { texts(it) }
+            is JsonObject -> listOfNotNull(e.s("errorMessage") ?: e.s("message") ?: e.s("msg"))
+            is JsonPrimitive -> listOfNotNull(e.contentOrNull?.takeIf { it.isNotBlank() })
+            else -> emptyList()
+        }
+
+        /**
+         * Builds the error for a non-2xx answer from its status and body: the server's
+         * `{code, message}`, the services' `[{propertyName, errorMessage}]`, `{message}`,
+         * `{error}`, `{title, errors: {field: [..]}}`, a JSON string, or anything else (HTML, an
+         * empty body), which never shows up as markup.
+         */
         fun parse(status: Int, body: String): ArrException {
-            val el = runCatching { json.parseToJsonElement(body) }.getOrNull()
+            val trimmed = body.trim()
+            val el = if (trimmed.startsWith("{") || trimmed.startsWith("[") || trimmed.startsWith("\"")) {
+                try { json.parseToJsonElement(trimmed) } catch (e: Exception) { null }
+            } else null
             if (el is JsonArray) {
                 val v = el.mapNotNull { e ->
                     val o = e as? JsonObject ?: return@mapNotNull null
                     val msg = o.s("errorMessage") ?: o.s("message") ?: return@mapNotNull null
                     ArrValidation(o.s("propertyName").orEmpty(), msg, o.s("severity").equals("warning", true) || o.b("isWarning") == true)
                 }
-                if (v.isNotEmpty()) return ArrException(status, "validation", v.joinToString("\n") { it.message }, v)
+                if (v.isNotEmpty()) return ArrException(status, "validation", v.joinToString("\n") { it.message }, v, v.joinToString("\n") { it.message })
+                val t = texts(el)
+                if (t.isNotEmpty()) return upstream(status, t.joinToString("\n"))
             }
             if (el is JsonObject) {
                 val code = el.s("code")
-                val message = el.s("message") ?: el.s("error") ?: el.s("errorMessage")
+                val message = (el.s("message") ?: el.s("error") ?: el.s("errorMessage") ?: el.o("error")?.s("message") ?: el.s("title"))?.takeIf { it.isNotBlank() }
                 // The Streamero server's own errors carry a code; the services' errors only a message.
-                if (code != null && message != null && SERVER_CODES.contains(code)) return ArrException(status, code, message)
-                if (status == 413) return ArrException(status, "too_large", message ?: "HTTP 413")
+                if (code != null && code in SERVER_CODES) return ArrException(status, code, message ?: code)
+                // ASP.NET style: {"title": "...", "errors": {"Path": ["..."]}}
+                val fieldErrors = el.o("errors")?.flatMap { (k, v) -> texts(v).map { ArrValidation(k, it) } }.orEmpty()
+                if (fieldErrors.isNotEmpty()) return ArrException(status, "validation", fieldErrors.joinToString("\n") { it.message }, fieldErrors, fieldErrors.joinToString("\n") { it.message })
+                val listed = texts(el.a("errors"))
                 if (message != null) {
                     val detail = el.s("description")?.takeIf { it.isNotBlank() && it != message }
-                    return ArrException(status, "upstream", if (detail != null) "$message — $detail" else message)
+                    val full = listOfNotNull(if (detail != null) "$message — $detail" else message, listed.joinToString("; ").ifBlank { null }).joinToString("\n")
+                    return upstream(status, full)
                 }
+                if (listed.isNotEmpty()) return upstream(status, listed.joinToString("\n"))
             }
-            val fallback = when (status) {
-                401 -> "unauthenticated"
-                403 -> "forbidden"
-                409 -> "arr_not_configured"
-                413 -> "too_large"
-                502, 504 -> "arr_unreachable"
-                else -> "upstream"
-            }
-            val text = body.trim().take(300).ifBlank { "HTTP $status" }
-            return ArrException(status, fallback, if (el is JsonPrimitive) el.contentOrNull ?: text else text)
+            if (el is JsonPrimitive) el.contentOrNull?.takeIf { it.isNotBlank() }?.let { return upstream(status, it.take(300)) }
+            // Plain text is shown (short); HTML and empty bodies are not.
+            val plain = trimmed.takeIf { el == null && it.isNotEmpty() && !it.startsWith("<") && !it.startsWith("{") && !it.startsWith("[") }?.take(300)
+            if (plain != null) return upstream(status, plain)
+            return ArrException(status, upstreamCode(status, false), "HTTP $status")
         }
 
-        private val SERVER_CODES = setOf("unauthenticated", "forbidden", "arr_not_configured", "arr_unreachable", "invalid_path", "too_large", "generic", "internal", "bad_request")
+        private fun upstream(status: Int, message: String) = ArrException(status, upstreamCode(status, true), message, detail = message)
     }
 }
 

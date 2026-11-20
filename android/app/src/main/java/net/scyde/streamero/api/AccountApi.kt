@@ -21,7 +21,7 @@ suspend fun Api.createProfile(p: ProfileInput): Profile = post("profiles", p)
 suspend fun Api.updateProfile(id: String, p: ProfileInput): Profile = put("profiles/$id", p)
 suspend fun Api.deleteProfile(id: String) = send("DELETE", "profiles/$id")
 
-suspend fun Api.totpSetup(): TotpSetup = call("POST", "auth/totp/setup", Api.EMPTY, emptyMap(), TotpSetup.serializer())!!
+suspend fun Api.totpSetup(): TotpSetup = call("POST", "auth/totp/setup", Api.EMPTY, emptyMap(), TotpSetup.serializer()) ?: throw Api.emptyAnswer()
 suspend fun Api.enableTotp(code: String): RecoveryCodes = post("auth/totp/enable", TotpCode(code))
 suspend fun Api.disableTotp(password: String) = send("POST", "auth/totp/disable", PasswordConfirm(password))
 

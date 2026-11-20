@@ -48,7 +48,7 @@ fun SubtitleFinder(state: AppState, itemId: String) {
     var notice by remember { mutableStateOf<Int?>(null) }
     var busy by remember { mutableStateOf<SubtitleOffer?>(null) }
     var lang by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(itemId) { runCatching { api.searchSubtitles(itemId) }.onSuccess { result = it }.onFailure { error = it } }
+    LaunchedEffect(itemId) { attempt { api.searchSubtitles(itemId) }.onSuccess { result = it }.onFailure { error = it } }
 
     ModalBottomSheet(onDismissRequest = { open = false }, containerColor = Kino.bg) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -63,7 +63,7 @@ fun SubtitleFinder(state: AppState, itemId: String) {
                 r != null && !r.configured -> Text(stringResource(R.string.subs_not_configured), color = Kino.muted, fontSize = 15.sp)
                 r != null -> {
                     GlassButton(stringResource(R.string.subs_auto), {
-                        scope.launch { runCatching { api.searchMissingSubtitles(itemId) }.onSuccess { notice = R.string.subs_auto_started }.onFailure { error = it } }
+                        scope.launch { attempt { api.searchMissingSubtitles(itemId) }.onSuccess { notice = R.string.subs_auto_started }.onFailure { error = it } }
                     }, Modifier.fillMaxWidth(), icon = Icons.Default.AutoAwesome)
                     notice?.let { Text(stringResource(it), color = Kino.success, fontSize = 14.sp) }
                     val langs = r.offers.map { it.language }.distinct()
@@ -86,7 +86,7 @@ fun SubtitleFinder(state: AppState, itemId: String) {
                                 IconButton(enabled = busy == null, onClick = {
                                     busy = o
                                     scope.launch {
-                                        runCatching { api.downloadSubtitle(itemId, o) }.onSuccess { notice = R.string.subs_downloaded }.onFailure { error = it }
+                                        attempt { api.downloadSubtitle(itemId, o) }.onSuccess { notice = R.string.subs_downloaded }.onFailure { error = it }
                                         busy = null
                                     }
                                 }) {

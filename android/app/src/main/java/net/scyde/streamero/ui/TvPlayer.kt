@@ -37,6 +37,12 @@ fun seekTarget(fromMs: Long, deltaMs: Long, durationMs: Long): Long {
     return if (durationMs > 0) t.coerceAtMost(durationMs) else t
 }
 
+/**
+ * Whether the arrows and centre key seek and open the controls. Not while the controls, the
+ * track panel or an error (with its Retry and Back buttons) is on screen: there they move focus.
+ */
+fun screenTakesArrows(panel: Boolean, controls: Boolean, failed: Boolean): Boolean = !panel && !controls && !failed
+
 /** The remote's media keys mapped to what the player does. */
 enum class RemoteAction { Toggle, Play, Pause, Forward, Rewind, Next, Stop }
 

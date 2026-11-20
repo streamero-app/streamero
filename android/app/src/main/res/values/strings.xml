@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="activity">Activity</string>
     <string name="add_library">Add library</string>
     <string name="add_user">Add user</string>
@@ -8,12 +8,11 @@
     <string name="administrator">Administrator</string>
     <string name="album">Album</string>
     <string name="albums">Albums</string>
-    <string name="albums_count">%1$d albums</string>
     <string name="all_genres">All genres</string>
     <string name="any">As in the file</string>
     <string name="api_key">API key</string>
     <string name="api_keys">API keys</string>
-    <string name="app_name">Streamero</string>
+    <string name="app_name" translatable="false">Streamero</string>
     <string name="artists">Artists</string>
     <string name="audio">Audio</string>
     <string name="audio_and_subtitles">Audio and subtitles</string>
@@ -125,6 +124,7 @@
     <string name="newer">Newer</string>
     <string name="next">Next</string>
     <string name="next_episode">Next episode</string>
+    <string name="next_episode_named">Next episode: %1$s</string>
     <string name="next_up">Next up</string>
     <string name="no_limit">No limit</string>
     <string name="nobody_watching">Nobody is watching right now.</string>
@@ -196,7 +196,6 @@
     <string name="skip_recap">Skip recap</string>
     <string name="small">Small</string>
     <string name="songs">Songs</string>
-    <string name="songs_count">%1$d songs</string>
     <string name="sort_added">Recently added</string>
     <string name="sort_random">Random</string>
     <string name="sort_rating">Rating</string>
@@ -232,7 +231,6 @@
     <string name="tmdb_steps">Create a free account at themoviedb.org, request an API key under Settings → API, and paste the Read Access Token here.</string>
     <string name="tone_mapping">HDR to SDR</string>
     <string name="totp_code">Two-factor code</string>
-    <string name="transcodes_now">%1$d transcodes running</string>
     <string name="transcoding">Transcoding</string>
     <string name="trending">Trending now</string>
     <string name="username">Username</string>
@@ -296,7 +294,6 @@
     <string name="together_invalid_link">That is not a valid invite link.</string>
     <string name="together_open_groups">Open groups</string>
     <string name="together_none">No groups right now. Start one from a film or an episode.</string>
-    <string name="together_watching">%1$d watching</string>
     <string name="together_nothing_queued">Nothing is playing in this group yet.</string>
     <string name="together_invite_title">Invite others</string>
     <string name="together_invite_text">Send this link to the people you want to watch with. They need an account on this server.</string>
@@ -406,7 +403,6 @@
     <string name="minutes_count">%1$d min</string>
     <string name="narrated_by">Narrated by</string>
     <string name="page_of">Page %1$d of %2$d</string>
-    <string name="pages_count">%1$d pages</string>
     <string name="photo_album">Album</string>
     <string name="photo_albums">Albums</string>
     <string name="photo_camera">Camera</string>
@@ -435,8 +431,8 @@
     <string name="minutes_short">%1$d min</string>
     <string name="rating_value">★ %1$.1f</string>
     <string name="seconds_short">%1$d s</string>
-    <string name="mbit_s">%1$d Mbit/s</string>
-    <string name="kbit_s">%1$d kbit/s</string>
+    <string name="mbit_s" tools:ignore="PluralsCandidate">%1$d Mbit/s</string>
+    <string name="kbit_s" tools:ignore="PluralsCandidate">%1$d kbit/s</string>
     <string name="hw_vaapi">VAAPI (Intel, AMD)</string>
     <string name="hw_qsv">Intel Quick Sync</string>
     <string name="hw_nvenc">NVIDIA NVENC</string>
@@ -446,7 +442,6 @@
     <string name="stop_playback_confirm">Stop this playback?</string>
     <string name="delete_library_confirm">Delete the library “%1$s”? The files stay on disk; titles, progress and artwork of this library are removed from the server.</string>
     <string name="delete_user_confirm">Delete the user @%1$s? Their profiles, progress and sessions are removed.</string>
-    <string name="revoke_session_confirm">Sign out %1$s (%2$s)?</string>
     <string name="delete_invite_confirm">Delete this invite? Its link stops working.</string>
     <string name="delete_api_key_confirm">Delete the API key “%1$s”? Apps using it lose access.</string>
     <string name="enh_pause_hint">Title and synopsis over the picture a few seconds into a pause.</string>
@@ -744,7 +739,6 @@
     <string name="sso_trust_email_hint">For providers that do not send email_verified (e.g. Microsoft). Only for a provider you control.</string>
     <string name="sso_enabled_hint">Shown on the sign-in page.</string>
     <string name="sso_test_connection">Test connection</string>
-    <string name="sso_test_ok">The provider answered correctly (%1$d signing keys).</string>
     <string name="sso_test_no_pkce">It does not advertise PKCE (S256); Streamero sends it anyway.</string>
     <string name="sso_ldap_title">LDAP / Active Directory</string>
     <string name="sso_ldap_intro">Directory users sign in with their username and password in the normal fields, on the web, in the apps and in third-party apps. Their password is never stored.</string>
@@ -779,4 +773,15 @@
     <plurals name="livetv_programs"><item quantity="one">%1$d programme</item><item quantity="other">%1$d programmes</item></plurals>
     <plurals name="livetv_tuners_n"><item quantity="one">%1$d tuner</item><item quantity="other">%1$d tuners</item></plurals>
     <plurals name="livetv_every_hours"><item quantity="one">every %1$d hour</item><item quantity="other">every %1$d hours</item></plurals>
+    <string name="random_title">Random title</string>
+    <string name="add_to_my_list">Add to My list</string>
+    <string name="remove_from_my_list">Remove from My list</string>
+    <string name="invite_server_is">Server: %1$s</string>
+    <string name="cleartext_warning">This address is not on your home network and uses http, so your password and sign-in are sent unencrypted. Use https if the server is reachable from the internet.</string>
+    <plurals name="albums_count"><item quantity="one">%1$d album</item><item quantity="other">%1$d albums</item></plurals>
+    <plurals name="songs_count"><item quantity="one">%1$d song</item><item quantity="other">%1$d songs</item></plurals>
+    <plurals name="transcodes_now"><item quantity="one">%1$d transcode running</item><item quantity="other">%1$d transcodes running</item></plurals>
+    <plurals name="together_watching"><item quantity="one">%1$d watching</item><item quantity="other">%1$d watching</item></plurals>
+    <plurals name="pages_count"><item quantity="one">%1$d page</item><item quantity="other">%1$d pages</item></plurals>
+    <plurals name="sso_test_ok"><item quantity="one">The provider answered correctly (%1$d signing key).</item><item quantity="other">The provider answered correctly (%1$d signing keys).</item></plurals>
 </resources>

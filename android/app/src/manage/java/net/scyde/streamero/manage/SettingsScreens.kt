@@ -4,9 +4,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.FactCheck
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -97,7 +99,7 @@ fun ProviderList(nav: NavHostController, c: ArrClient, resource: String) {
                     listOf(names[o.i("id") ?: 0] ?: "#${o.i("id")}", msg).filter { it.isNotBlank() }.joinToString(": ")
                 }
             }
-        }, enabled = !act.busy && list.value?.isNotEmpty() == true) { Icon(Icons.Outlined.FactCheck, stringResource(R.string.m_test_all), tint = Kino.text) }
+        }, enabled = !act.busy && list.value?.isNotEmpty() == true) { Icon(Icons.AutoMirrored.Outlined.FactCheck, stringResource(R.string.m_test_all), tint = Kino.text) }
         IconButton(onClick = { picking = true }) { Icon(Icons.Outlined.Add, stringResource(R.string.add), tint = Kino.text) }
     }) {
         if (act.busy || act.error != null || failed != null) block {
@@ -148,10 +150,10 @@ private fun SchemaPicker(c: ArrClient, resource: String, onDismiss: () -> Unit, 
                 ArrError(schemas.error)
                 if (schemas.value == null && schemas.error == null) Loading()
                 // Presets (e.g. a specific Newznab indexer) come as nested schemas.
-                val all = schemas.value.orEmpty().flatMap { s -> listOf(s) + s.objs("presets").map { p -> s.with("name", p.s("name")).with("fields", p.a("fields") ?: s.a("fields")) } }
-                val shown = all.filter { q.isBlank() || (it.s("name") + " " + it.s("implementationName")).contains(q, true) }
+                val all = remember(schemas.value) { schemas.value.orEmpty().flatMap { s -> listOf(s) + s.objs("presets").map { p -> s.with("name", p.s("name")).with("fields", p.a("fields") ?: s.a("fields")) } } }
+                val shown = remember(all, q) { all.filter { q.isBlank() || (it.s("name").orEmpty() + " " + it.s("implementationName").orEmpty()).contains(q.trim(), true) } }
                 androidx.compose.foundation.lazy.LazyColumn {
-                    items(shown) { s ->
+                    keyedItems(shown, { (it.s("implementation") ?: "") + "/" + (it.s("name") ?: "") }) { s ->
                         ListRow(s.s("implementationName") ?: s.s("implementation") ?: "?", listOfNotNull(s.s("name")?.takeIf { n -> n != s.s("implementationName") }, s.s("protocol")?.let(::humanize), s.s("privacy")?.let(::humanize)).joinToString(" · ")) { onPick(s) }
                     }
                 }
@@ -184,6 +186,9 @@ fun ProviderEdit(nav: NavHostController, c: ArrClient, resource: String, id: Str
     val (act, run) = rememberAction()
     val savedMsg = stringResource(R.string.saved)
     val testOk = stringResource(R.string.m_test_ok)
+    // Passwords and keys are typed here: keep the screen out of screenshots and recents.
+    if (form?.fields?.any { it.secret } == true) SecureScreen()
+    UnsavedChangesGuard(nav, loaded.value != null && (p != loaded.value || form?.changed == true))
     ManagePage(nav, p?.s("name")?.ifBlank { null } ?: providerTitle(resource), p?.s("implementationName"), actions = {
         TextButton(onClick = { advanced = !advanced }) { Text(stringResource(if (advanced) R.string.m_hide_advanced else R.string.m_show_advanced), color = Kino.muted, fontSize = 13.sp) }
     }) {
@@ -194,7 +199,7 @@ fun ProviderEdit(nav: NavHostController, c: ArrClient, resource: String, id: Str
                 p?.s("infoLink")?.let { Text(it, color = Kino.faint, fontSize = 12.sp) }
                 FormText(stringResource(R.string.m_name), cur.s("name").orEmpty(), { p = cur.with("name", it) }, error = (act.error as? ArrException)?.messageFor("name"))
                 providerSwitches(cur).forEach { k -> Toggle(humanize(k), (act.error as? ArrException)?.messageFor(k), cur.b(k) == true) { p = cur.with(k, it) } }
-                if (cur.containsKey("priority")) FormText(stringResource(R.string.m_priority), cur.i("priority")?.toString().orEmpty(), { t -> p = cur.with("priority", t.toIntOrNull() ?: 0) }, number = true)
+                if (cur.containsKey("priority")) IntField(stringResource(R.string.m_priority), cur.i("priority"), { v -> p = cur.with("priority", v) }, (act.error as? ArrException)?.messageFor("priority"))
                 if (cur.containsKey("syncLevel")) FieldRow(humanize("syncLevel")) {
                     Picker(cur.s("syncLevel"), listOf("disabled", "addOnly", "fullSync").map { it to humanize(it) }, { p = cur.with("syncLevel", it) })
                 }
@@ -206,17 +211,21 @@ fun ProviderEdit(nav: NavHostController, c: ArrClient, resource: String, id: Str
                 act.done?.let { Text(it, color = Kino.success, fontSize = 14.sp) }
                 Actions {
                     fun save(force: Boolean) {
-                        val body = f.applyTo(cur)
                         val q: Map<String, Any?> = if (force) mapOf("forceSave" to true) else emptyMap()
                         run(savedMsg) {
+                            val body = f.applyChecked(cur)
                             val r = if (isNew) c.post(resource, body, q) else c.put("$resource/${cur.i("id")}", body, q)
-                            if (isNew) { (r as? JsonObject)?.i("id")?.let { nid -> nav.popBackStack(); nav.manage(c.service, "provider", nid.toString(), resource) } }
+                            if (isNew) {
+                                // Saved: leave the "new" page either way, so a second tap cannot add it twice.
+                                nav.popBackStack()
+                                (r as? JsonObject)?.i("id")?.let { nid -> nav.manage(c.service, "provider", nid.toString(), resource) }
+                            } else loaded.reload()
                         }
                     }
                     PrimaryButton(stringResource(R.string.save), { save(false) }, enabled = !act.busy)
                     // Only warnings (no errors): the service accepts the resource when asked to.
                     if (warningsOnly(act.error)) GlassButton(stringResource(R.string.m_save_anyway), { save(true) }, enabled = !act.busy)
-                    GlassButton(stringResource(R.string.test), { run(testOk) { c.post("$resource/test", f.applyTo(cur)) } }, enabled = !act.busy)
+                    GlassButton(stringResource(R.string.test), { run(testOk) { c.post("$resource/test", f.applyChecked(cur)) } }, enabled = !act.busy)
                     if (!isNew) DangerAction(stringResource(R.string.delete)) { askDelete = true }
                 }
             }
@@ -265,6 +274,8 @@ fun ConfigPage(nav: NavHostController, c: ArrClient, resource: String) {
     var edited by remember(doc.value) { mutableStateOf(doc.value) }
     val (act, run) = rememberAction()
     val savedMsg = stringResource(R.string.saved)
+    if (hasSecrets(doc.value)) SecureScreen()
+    UnsavedChangesGuard(nav, edited != null && doc.value != null && edited != doc.value)
     ManagePage(nav, configTitle(resource), c.service.title) {
         loaded(doc) { original ->
             val cur = edited ?: return@loaded
@@ -274,9 +285,9 @@ fun ConfigPage(nav: NavHostController, c: ArrClient, resource: String) {
                 FormErrors(act.error, cur.keys)
                 PrimaryButton(stringResource(R.string.save), {
                     run(savedMsg) {
-                        val body = normalizeGeneric(cur, original) as JsonObject
-                        val r = c.put(resource + (original.i("id")?.let { "/$it" } ?: ""), body) as? JsonObject
-                        if (r != null) edited = r
+                        val body = normalizeForSave(cur, original) as JsonObject
+                        c.put(resource + (original.i("id")?.let { "/$it" } ?: ""), body)
+                        doc.reload()
                     }
                 }, Modifier.fillMaxWidth(), enabled = !act.busy && cur != original)
                 act.done?.let { Text(it, color = Kino.success) }
@@ -346,6 +357,7 @@ fun QualityProfileEdit(nav: NavHostController, c: ArrClient, id: String?) {
     val (act, run) = rememberAction()
     val savedMsg = stringResource(R.string.saved)
     val err = act.error as? ArrException
+    UnsavedChangesGuard(nav, p != null && doc.value != null && p != doc.value)
     ManagePage(nav, p?.s("name")?.ifBlank { null } ?: stringResource(R.string.m_quality_profiles), c.service.title) {
         loaded(doc) { _ ->
             val cur = p ?: return@loaded
@@ -356,7 +368,8 @@ fun QualityProfileEdit(nav: NavHostController, c: ArrClient, id: String?) {
                     Picker(cur.i("cutoff"), QualityProfiles.cutoffChoices(cur), { p = cur.with("cutoff", it) })
                 }
                 listOf("minFormatScore", "cutoffFormatScore", "minUpgradeFormatScore").filter { cur.containsKey(it) }.forEach { k ->
-                    FormText(humanize(k), cur.i(k)?.toString().orEmpty(), { t -> p = cur.with(k, t.toIntOrNull() ?: 0) }, number = true, error = err?.messageFor(k))
+                    // Scores can be negative: the text is kept while "-" is being typed.
+                    IntField(humanize(k), cur.i(k), { v -> p = cur.with(k, v) }, err?.messageFor(k))
                 }
             }
             item { Heading(stringResource(R.string.m_qualities_order)) }
@@ -389,7 +402,7 @@ fun QualityProfileEdit(nav: NavHostController, c: ArrClient, id: String?) {
             block {
                 FormErrors(act.error, listOf("name", "cutoff", "minFormatScore", "cutoffFormatScore"))
                 Actions {
-                    PrimaryButton(stringResource(R.string.save), { run(savedMsg) { if (isNew) { c.post("qualityprofile", cur); nav.popBackStack() } else c.put("qualityprofile/$id", cur) } }, enabled = !act.busy)
+                    PrimaryButton(stringResource(R.string.save), { run(savedMsg) { if (isNew) { c.post("qualityprofile", cur); nav.popBackStack() } else { c.put("qualityprofile/$id", cur); doc.reload() } } }, enabled = !act.busy)
                     if (!isNew) DangerAction(stringResource(R.string.delete)) { askDelete = true }
                 }
                 act.done?.let { Text(it, color = Kino.success) }
@@ -414,7 +427,10 @@ fun QualityDefinitionsPage(nav: NavHostController, c: ArrClient) {
             PrimaryButton(stringResource(R.string.save), {
                 run(savedMsg) {
                     val original = defs.value.orEmpty().associateBy { it.i("id") ?: 0 }
-                    edited.values.filter { it != original[it.i("id") ?: 0] }.forEach { d -> c.put("qualitydefinition/${d.i("id")}", d) }
+                    val changed = edited.values.filter { it.i("id") != null && it != original[it.i("id") ?: 0] }
+                    // Each size is its own call: one refused row does not stop the others, and the error
+                    // names the rows that failed (their edits stay on screen; saving again resends them).
+                    runEach(changed, { d -> d.s("title") ?: d.o("quality")?.s("name") ?: "#${d.i("id")}" }) { d -> c.put("qualitydefinition/${d.i("id")}", d) }
                     defs.reload()
                 }
             }, Modifier.fillMaxWidth(), enabled = !act.busy)
@@ -462,7 +478,8 @@ fun CustomFormatEdit(nav: NavHostController, c: ArrClient, id: String?) {
     var askDelete by remember { mutableStateOf(false) }
     val (act, run) = rememberAction()
     val savedMsg = stringResource(R.string.saved)
-    fun body(cur: JsonObject) = cur.with("specifications", JsonArray(cur.objs("specifications").mapIndexed { i, s -> forms.getOrNull(i)?.applyTo(s) ?: s }))
+    fun body(cur: JsonObject) = cur.with("specifications", JsonArray(cur.objs("specifications").mapIndexed { i, s -> forms.getOrNull(i)?.applyChecked(s) ?: s }))
+    UnsavedChangesGuard(nav, doc.value != null && (cf != doc.value || forms.any { it.changed }))
     ManagePage(nav, cf?.s("name")?.ifBlank { null } ?: stringResource(R.string.m_custom_formats), c.service.title) {
         loaded(doc) { _ ->
             val cur = cf ?: return@loaded
@@ -489,7 +506,7 @@ fun CustomFormatEdit(nav: NavHostController, c: ArrClient, id: String?) {
                 GlassButton(stringResource(R.string.m_add_condition), { adding = true }, Modifier.fillMaxWidth(), icon = Icons.Outlined.Add)
                 FormErrors(act.error, listOf("name"))
                 Actions {
-                    PrimaryButton(stringResource(R.string.save), { run(savedMsg) { if (isNew) { c.post("customformat", body(cur)); nav.popBackStack() } else c.put("customformat/$id", body(cur)) } }, enabled = !act.busy)
+                    PrimaryButton(stringResource(R.string.save), { run(savedMsg) { if (isNew) { c.post("customformat", body(cur)); nav.popBackStack() } else { c.put("customformat/$id", body(cur)); doc.reload() } } }, enabled = !act.busy)
                     if (!isNew) DangerAction(stringResource(R.string.delete)) { askDelete = true }
                 }
                 act.done?.let { Text(it, color = Kino.success) }
@@ -513,7 +530,7 @@ fun CustomFormatEdit(nav: NavHostController, c: ArrClient, id: String?) {
 fun RootFoldersPage(nav: NavHostController, c: ArrClient) {
     var tick by remember { mutableIntStateOf(0) }
     val list = rememberLoaded("${c.service}/rf/$tick") { c.list("rootfolder") }
-    var path by remember { mutableStateOf("") }
+    var path by rememberSaveable { mutableStateOf("") }
     var confirm by remember { mutableStateOf<JsonObject?>(null) }
     val (act, run) = rememberAction()
     ManagePage(nav, stringResource(R.string.m_root_folders), c.service.title) {
@@ -536,7 +553,7 @@ fun RootFoldersPage(nav: NavHostController, c: ArrClient) {
         }
         loaded(list) { l ->
             items(l) { r ->
-                ListRow(r.s("path") ?: "?", listOfNotNull(stringResource(R.string.m_free, bytes(r.l("freeSpace"))), r.objs("unmappedFolders").size.takeIf { it > 0 }?.let { stringResource(R.string.m_unmapped, it) },
+                ListRow(r.s("path") ?: "?", listOfNotNull(stringResource(R.string.m_free, bytes(r.l("freeSpace"))), r.objs("unmappedFolders").size.takeIf { it > 0 }?.let { plural(R.plurals.m_unmapped, it) },
                     if (r.b("accessible") == false) stringResource(R.string.m_inaccessible) else null).joinToString(" · "),
                     trailing = { IconButton(onClick = { confirm = r }) { Icon(Icons.Outlined.DeleteOutline, stringResource(R.string.delete), tint = Kino.danger) } })
             }
@@ -548,10 +565,16 @@ fun RootFoldersPage(nav: NavHostController, c: ArrClient) {
 @Composable
 fun TagsPage(nav: NavHostController, c: ArrClient) {
     var tick by remember { mutableIntStateOf(0) }
-    val list = rememberLoaded("${c.service}/tags/$tick") { runCatching { c.list("tag/detail") }.getOrElse { c.list("tag") } }
-    var label by remember { mutableStateOf("") }
+    val list = rememberLoaded("${c.service}/tags/$tick") { attempt { c.list("tag/detail") }.getOrElse { c.list("tag") } }
+    var label by rememberSaveable { mutableStateOf("") }
     var renaming by remember { mutableStateOf<JsonObject?>(null) }
+    var deleting by remember { mutableStateOf<JsonObject?>(null) }
     val (act, run) = rememberAction()
+    deleting?.let { t ->
+        ConfirmDialog(stringResource(R.string.m_delete_confirm, t.s("label") ?: "?"), stringResource(R.string.delete), { deleting = null }) {
+            t.i("id")?.let { tid -> run(null) { c.delete("tag/$tid"); tick++ } }
+        }
+    }
     ManagePage(nav, stringResource(R.string.m_tags), c.service.title) {
         block {
             FormText(stringResource(R.string.m_new_tag), label, { label = it.lowercase() })
@@ -562,10 +585,10 @@ fun TagsPage(nav: NavHostController, c: ArrClient) {
             items(l) { t ->
                 val uses = listOf("movieIds", "seriesIds", "artistIds", "indexerIds", "downloadClientIds", "notificationIds", "importListIds", "delayProfileIds", "releaseProfileIds", "applicationIds")
                     .sumOf { t.ints(it).size }
-                ListRow(t.s("label") ?: "?", if (t.containsKey("delayProfileIds") || t.containsKey("indexerIds")) stringResource(R.string.m_used_by, uses) else null, trailing = {
+                ListRow(t.s("label") ?: "?", if (t.containsKey("delayProfileIds") || t.containsKey("indexerIds")) plural(R.plurals.m_used_by, uses) else null, trailing = {
                     Row {
                         IconButton(onClick = { renaming = t }) { Icon(Icons.Outlined.Edit, stringResource(R.string.edit), tint = Kino.muted) }
-                        IconButton(onClick = { run(null) { c.delete("tag/${t.i("id")}"); tick++ } }) { Icon(Icons.Outlined.DeleteOutline, stringResource(R.string.delete), tint = Kino.danger) }
+                        IconButton(onClick = { deleting = t }, enabled = !act.busy) { Icon(Icons.Outlined.DeleteOutline, stringResource(R.string.delete), tint = Kino.danger) }
                     }
                 })
             }
@@ -634,6 +657,7 @@ fun CrudEdit(nav: NavHostController, c: ArrClient, resource: String, id: String?
     var askDelete by remember { mutableStateOf(false) }
     val (act, run) = rememberAction()
     val savedMsg = stringResource(R.string.saved)
+    UnsavedChangesGuard(nav, cur != null && doc.value != null && cur != doc.value)
     ManagePage(nav, cur?.let(::crudName) ?: stringResource(crudTitleRes(resource)), stringResource(crudTitleRes(resource))) {
         loaded(doc) { original ->
             val o = cur ?: return@loaded
@@ -644,8 +668,8 @@ fun CrudEdit(nav: NavHostController, c: ArrClient, resource: String, id: String?
                 Actions {
                     PrimaryButton(stringResource(R.string.save), {
                         run(savedMsg) {
-                            val body = normalizeGeneric(o, original) as JsonObject
-                            if (isNew) { c.post(resource, body); nav.popBackStack() } else c.put("$resource/$id", body)
+                            val body = normalizeForSave(o, original) as JsonObject
+                            if (isNew) { c.post(resource, body); nav.popBackStack() } else { c.put("$resource/$id", body); doc.reload() }
                         }
                     }, enabled = !act.busy)
                     if (!isNew) DangerAction(stringResource(R.string.delete)) { askDelete = true }

@@ -8,7 +8,6 @@
     <string name="administrator">Administrator</string>
     <string name="album">Album</string>
     <string name="albums">Albumi</string>
-    <string name="albums_count">Albuma: %1$d</string>
     <string name="all_genres">Svi žanrovi</string>
     <string name="any">Kako je u datoteci</string>
     <string name="api_key">API ključ</string>
@@ -124,6 +123,7 @@
     <string name="newer">Novije</string>
     <string name="next">Sljedeća</string>
     <string name="next_episode">Sljedeća epizoda</string>
+    <string name="next_episode_named">Sljedeća epizoda: %1$s</string>
     <string name="next_up">Sljedeće epizode</string>
     <string name="no_limit">Bez ograničenja</string>
     <string name="nobody_watching">Trenutno nitko ne gleda.</string>
@@ -195,7 +195,6 @@
     <string name="skip_recap">Preskoči sažetak</string>
     <string name="small">Mala</string>
     <string name="songs">Pjesme</string>
-    <string name="songs_count">Pjesama: %1$d</string>
     <string name="sort_added">Nedavno dodano</string>
     <string name="sort_random">Nasumično</string>
     <string name="sort_rating">Ocjena</string>
@@ -231,7 +230,6 @@
     <string name="tmdb_steps">Napravi besplatan račun na themoviedb.org, zatraži API ključ pod Settings → API i ovdje zalijepi Read Access Token.</string>
     <string name="tone_mapping">HDR u SDR</string>
     <string name="totp_code">Dvofaktorski kôd</string>
-    <string name="transcodes_now">Transkodiranja u tijeku: %1$d</string>
     <string name="transcoding">Transkodiranje</string>
     <string name="trending">Popularno sada</string>
     <string name="username">Korisničko ime</string>
@@ -295,7 +293,6 @@
     <string name="together_invalid_link">To nije ispravan pozivni link.</string>
     <string name="together_open_groups">Otvorene grupe</string>
     <string name="together_none">Trenutno nema grupa. Pokrenite je s filma ili epizode.</string>
-    <string name="together_watching">Gledatelja: %1$d</string>
     <string name="together_nothing_queued">U ovoj grupi još se ništa ne reproducira.</string>
     <string name="together_invite_title">Pozovite druge</string>
     <string name="together_invite_text">Pošaljite ovaj link osobama s kojima želite gledati. Trebaju imati račun na ovom poslužitelju.</string>
@@ -405,7 +402,6 @@
     <string name="minutes_count">%1$d min</string>
     <string name="narrated_by">Čita</string>
     <string name="page_of">Stranica %1$d od %2$d</string>
-    <string name="pages_count">%1$d str.</string>
     <string name="photo_album">Album</string>
     <string name="photo_albums">Albumi</string>
     <string name="photo_camera">Fotoaparat</string>
@@ -445,7 +441,6 @@
     <string name="stop_playback_confirm">Zaustaviti ovu reprodukciju?</string>
     <string name="delete_library_confirm">Obrisati biblioteku „%1$s”? Datoteke ostaju na disku; naslovi, napredak i slike te biblioteke uklanjaju se sa servera.</string>
     <string name="delete_user_confirm">Obrisati korisnika @%1$s? Uklanjaju se njegovi profili, napredak i sesije.</string>
-    <string name="revoke_session_confirm">Odjaviti %1$s (%2$s)?</string>
     <string name="delete_invite_confirm">Obrisati ovu pozivnicu? Njezina poveznica prestaje raditi.</string>
     <string name="delete_api_key_confirm">Obrisati API ključ „%1$s”? Aplikacije koje ga koriste gube pristup.</string>
     <string name="enh_pause_hint">Naslov i opis preko slike nekoliko sekundi nakon pauze.</string>
@@ -743,7 +738,6 @@
     <string name="sso_trust_email_hint">Za pružatelje koji ne šalju email_verified (npr. Microsoft). Samo za pružatelja kojim upravljaš.</string>
     <string name="sso_enabled_hint">Prikazuje se na stranici prijave.</string>
     <string name="sso_test_connection">Provjeri vezu</string>
-    <string name="sso_test_ok">Pružatelj je ispravno odgovorio (%1$d ključeva za potpis).</string>
     <string name="sso_test_no_pkce">Ne najavljuje PKCE (S256); Streamero ga svejedno šalje.</string>
     <string name="sso_ldap_title">LDAP / Active Directory</string>
     <string name="sso_ldap_intro">Korisnici imenika se prijavljuju korisničkim imenom i lozinkom u uobičajenim poljima, na webu, u aplikacijama i u aplikacijama trećih strana. Lozinka se nikad ne sprema.</string>
@@ -777,5 +771,16 @@
     <plurals name="livetv_channels"><item quantity="one">%1$d kanal</item><item quantity="few">%1$d kanala</item><item quantity="other">%1$d kanala</item></plurals>
     <plurals name="livetv_programs"><item quantity="one">%1$d emisija</item><item quantity="few">%1$d emisije</item><item quantity="other">%1$d emisija</item></plurals>
     <plurals name="livetv_tuners_n"><item quantity="one">%1$d tuner</item><item quantity="few">%1$d tunera</item><item quantity="other">%1$d tunera</item></plurals>
-    <plurals name="livetv_every_hours"><item quantity="one">svakih %1$d sat</item><item quantity="few">svaka %1$d sata</item><item quantity="other">svakih %1$d sati</item></plurals>
+    <plurals name="livetv_every_hours"><item quantity="one">svaki %1$d sat</item><item quantity="few">svaka %1$d sata</item><item quantity="other">svakih %1$d sati</item></plurals>
+    <string name="random_title">Nasumični naslov</string>
+    <string name="add_to_my_list">Dodaj na Moju listu</string>
+    <string name="remove_from_my_list">Ukloni s Moje liste</string>
+    <string name="invite_server_is">Server: %1$s</string>
+    <string name="cleartext_warning">Ova adresa nije u tvojoj kućnoj mreži i koristi http, pa se lozinka i prijava šalju nešifrirano. Ako je server dostupan s interneta, koristi https.</string>
+    <plurals name="albums_count"><item quantity="one">%1$d album</item><item quantity="few">%1$d albuma</item><item quantity="other">%1$d albuma</item></plurals>
+    <plurals name="songs_count"><item quantity="one">%1$d pjesma</item><item quantity="few">%1$d pjesme</item><item quantity="other">%1$d pjesama</item></plurals>
+    <plurals name="transcodes_now"><item quantity="one">%1$d transkodiranje u tijeku</item><item quantity="few">%1$d transkodiranja u tijeku</item><item quantity="other">%1$d transkodiranja u tijeku</item></plurals>
+    <plurals name="together_watching"><item quantity="one">%1$d gledatelj</item><item quantity="few">%1$d gledatelja</item><item quantity="other">%1$d gledatelja</item></plurals>
+    <plurals name="pages_count"><item quantity="one">%1$d stranica</item><item quantity="few">%1$d stranice</item><item quantity="other">%1$d stranica</item></plurals>
+    <plurals name="sso_test_ok"><item quantity="one">Pružatelj je ispravno odgovorio (%1$d ključ za potpisivanje).</item><item quantity="few">Pružatelj je ispravno odgovorio (%1$d ključa za potpisivanje).</item><item quantity="other">Pružatelj je ispravno odgovorio (%1$d ključeva za potpisivanje).</item></plurals>
 </resources>

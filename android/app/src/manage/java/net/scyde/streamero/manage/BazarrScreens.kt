@@ -28,7 +28,7 @@ import net.scyde.streamero.ui.*
 private suspend fun ArrClient.data(resource: String, query: Map<String, Any?> = emptyMap()): List<JsonObject> = list(resource, query)
 
 /** A Bazarr missing-subtitle entry as a short language label ("en", "hr forced", "de HI"). */
-private fun langLabel(l: JsonObject): String = listOfNotNull(l.s("code2") ?: l.s("name"), if (l.b("forced") == true) "forced" else null, if (l.b("hi") == true) "HI" else null).joinToString(" ")
+private fun langLabel(l: JsonObject, forced: String): String = listOfNotNull(l.s("code2") ?: l.s("name"), if (l.b("forced") == true) forced else null, if (l.b("hi") == true) "HI" else null).joinToString(" ")
 
 /** Movies or episodes with missing subtitles: search the best one per language, or pick manually. */
 @Composable
@@ -63,12 +63,12 @@ fun BazarrWanted(nav: NavHostController, c: ArrClient, kind: String) {
                                         c.patch(if (movies) "movies/subtitles" else "episodes/subtitles", query = q)
                                         tick++
                                     }
-                                }, label = { Text(langLabel(l)) }, leadingIcon = { Icon(Icons.Outlined.Search, null, Modifier.size(16.dp)) })
+                                }, label = { Text(langLabel(l, stringResource(R.string.m_forced))) }, leadingIcon = { Icon(Icons.Outlined.Search, null, Modifier.size(16.dp)) })
                             }
-                            TextButton(onClick = {
-                                val id = if (movies) r.i("radarrId") else r.i("sonarrEpisodeId")
-                                val arg = if (movies) "movies" else "episodes:${r.i("sonarrSeriesId")}"
-                                nav.manage(c.service, "bsubs", id.toString(), arg)
+                            val subsId = if (movies) r.i("radarrId") else r.i("sonarrEpisodeId")
+                            if (subsId != null) TextButton(onClick = {
+                                val arg = if (movies) "movies" else "episodes:${r.i("sonarrSeriesId") ?: ""}"
+                                nav.manage(c.service, "bsubs", subsId.toString(), arg)
                             }) { Text(stringResource(R.string.m_manual_search)) }
                         }
                     }
@@ -94,7 +94,7 @@ fun BazarrSubtitles(nav: NavHostController, c: ArrClient, kindArg: String, id: S
             items(list.sortedByDescending { it.d("score") ?: 0.0 }) { o ->
                 ListRow(o.strs("release_info").firstOrNull() ?: o.s("subtitle")?.take(60) ?: "?",
                     listOfNotNull(o.s("provider"), o.s("language"), o.d("score")?.let { "${it.toInt()}%" }, if (o.b("hearing_impaired") == true || o.s("hearing_impaired") == "True") "HI" else null,
-                        if (o.b("forced") == true || o.s("forced") == "True") "forced" else null, o.s("uploader")).joinToString(" · "),
+                        if (o.b("forced") == true || o.s("forced") == "True") stringResource(R.string.m_forced) else null, o.s("uploader")).joinToString(" · "),
                     trailing = {
                         IconButton(onClick = {
                             run(done) {
@@ -151,17 +151,18 @@ fun BazarrSystem(nav: NavHostController, c: ArrClient) {
     var tick by remember { mutableIntStateOf(0) }
     val sys = rememberLoaded(tick, pollMs = 15_000) {
         coroutineScope {
-            val st = async { runCatching { c.obj("system/status").o("data") }.getOrNull() }
-            val h = async { runCatching { c.data("system/health") }.getOrDefault(emptyList()) }
-            val t = async { runCatching { c.data("system/tasks") }.getOrDefault(emptyList()) }
-            val l = async { runCatching { c.data("system/logs") }.getOrDefault(emptyList()) }
-            val b = async { runCatching { c.data("system/backups") }.getOrDefault(emptyList()) }
+            val st = async { attempt { c.obj("system/status").o("data") }.getOrNull() }
+            val h = async { attempt { c.data("system/health") }.getOrDefault(emptyList()) }
+            val t = async { attempt { c.data("system/tasks") }.getOrDefault(emptyList()) }
+            val l = async { attempt { c.data("system/logs") }.getOrDefault(emptyList()) }
+            val b = async { attempt { c.data("system/backups") }.getOrDefault(emptyList()) }
             BazarrSys(st.await(), h.await(), t.await(), l.await(), b.await())
         }
     }
     val (act, run) = rememberAction()
     val queued = stringResource(R.string.m_command_queued)
     var restore by remember { mutableStateOf<String?>(null) }
+    var deleting by remember { mutableStateOf<String?>(null) }
     val restoringMsg = stringResource(R.string.m_restore_started)
     ManagePage(nav, stringResource(R.string.m_system), c.service.title) {
         block { ActionOutcome(act) }
@@ -186,7 +187,7 @@ fun BazarrSystem(nav: NavHostController, c: ArrClient) {
                 ListRow(b.s("filename") ?: "?", listOfNotNull(b.s("size"), b.s("date")).joinToString(" · "), trailing = {
                     Row {
                         IconButton(onClick = { restore = b.s("filename") }) { Icon(Icons.Outlined.Restore, stringResource(R.string.m_restore), tint = Kino.muted) }
-                        IconButton(onClick = { run(null) { c.delete("system/backups", mapOf("filename" to b.s("filename"))); tick++ } }) { Icon(Icons.Outlined.DeleteOutline, stringResource(R.string.delete), tint = Kino.danger) }
+                        IconButton(onClick = { deleting = b.s("filename") }, enabled = !act.busy) { Icon(Icons.Outlined.DeleteOutline, stringResource(R.string.delete), tint = Kino.danger) }
                     }
                 })
             }
@@ -197,6 +198,11 @@ fun BazarrSystem(nav: NavHostController, c: ArrClient) {
                     Text(l.s("message").orEmpty(), color = Kino.text, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
                 }
             }
+        }
+    }
+    deleting?.let { f ->
+        ConfirmDialog(stringResource(R.string.m_delete_confirm, f), stringResource(R.string.delete), { deleting = null }) {
+            run(null) { c.delete("system/backups", mapOf("filename" to f)); tick++ }
         }
     }
     restore?.let { f -> ConfirmDialog(stringResource(R.string.m_restore_confirm, f), stringResource(R.string.m_restore), { restore = null }) { run(restoringMsg) { c.patch("system/backups", query = mapOf("filename" to f)) } } }
@@ -234,8 +240,8 @@ fun BazarrSettings(nav: NavHostController, c: ArrClient) {
     val doc = rememberLoaded(tick) {
         coroutineScope {
             val s = async { c.obj("system/settings") }
-            val langs = async { runCatching { c.list("system/languages") }.getOrDefault(emptyList()) }
-            val profiles = async { runCatching { c.list("system/languages/profiles") }.getOrDefault(emptyList()) }
+            val langs = async { attempt { c.list("system/languages") }.getOrDefault(emptyList()) }
+            val profiles = async { attempt { c.list("system/languages/profiles") }.getOrDefault(emptyList()) }
             Triple(s.await(), langs.await(), profiles.await())
         }
     }
@@ -245,6 +251,11 @@ fun BazarrSettings(nav: NavHostController, c: ArrClient) {
     var section by remember { mutableStateOf("languages") }
     val (act, run) = rememberAction()
     val savedMsg = stringResource(R.string.saved)
+    val d = doc.value
+    if (hasSecrets(d?.first)) SecureScreen()
+    UnsavedChangesGuard(nav, d != null && (edited != d.first ||
+        enabled.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }.toSet() != d.second.filter { it.b("enabled") == true }.mapNotNull { it.s("code2") }.toSet() ||
+        profiles?.a("profiles") != JsonArray(d.third)))
     ManagePage(nav, stringResource(R.string.settings), c.service.title) {
         loaded(doc) { (original, langs, origProfiles) ->
             val cur = edited ?: return@loaded
@@ -258,11 +269,14 @@ fun BazarrSettings(nav: NavHostController, c: ArrClient) {
                 }
                 PrimaryButton(stringResource(R.string.save), {
                     run(savedMsg) {
+                        val badNumbers = (invalidNumbers(cur, original) + (profiles?.let { invalidNumbers(it, JsonObject(mapOf("profiles" to JsonArray(origProfiles)))) } ?: emptyList())).distinct()
+                        if (badNumbers.isNotEmpty()) throw InvalidNumber(badNumbers)
                         val fields = bazarrSettingsForm(original, cur).toMutableList()
                         val origEnabled = langs.filter { it.b("enabled") == true }.mapNotNull { it.s("code2") }.toSet()
                         val nowEnabled = enabled.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
                         if (nowEnabled.toSet() != origEnabled) nowEnabled.forEach { fields += "languages-enabled" to it }
-                        val p = profiles?.a("profiles")
+                        // Numbers typed into a profile become numbers again (as everywhere else in the editor).
+                        val p = profiles?.a("profiles")?.let { normalizeGeneric(it, JsonArray(origProfiles), "profiles") }
                         if (p != null && p != JsonArray(origProfiles)) fields += "languages-profiles" to json.encodeToString(JsonElement.serializer(), p)
                         if (fields.isNotEmpty()) c.postForm("system/settings", fields)
                         tick++

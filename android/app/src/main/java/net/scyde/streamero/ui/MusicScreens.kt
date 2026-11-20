@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -30,9 +31,10 @@ import kotlinx.coroutines.launch
 import net.scyde.streamero.AppState
 import net.scyde.streamero.R
 import net.scyde.streamero.api.*
+import net.scyde.streamero.music.randomStart
 
 @Composable
-private fun SquareCover(api: Api, item: ItemSummary, round: Boolean = false, modifier: Modifier = Modifier) {
+private fun SquareCover(api: Api, item: ItemSummary, modifier: Modifier = Modifier, round: Boolean = false) {
     Box(modifier.aspectRatio(1f).clip(if (round) CircleShape else CardShape).background(Kino.surface2), contentAlignment = Alignment.Center) {
         Icon(if (round) Icons.Default.Person else Icons.Default.Album, null, tint = Kino.faint, modifier = Modifier.size(36.dp))
         if (item.hasPoster) ServerImage(api.imageUrl(item.id, "poster"), Modifier.fillMaxSize())
@@ -56,7 +58,7 @@ fun MusicLibraryScreen(state: AppState, nav: NavHostController, lib: Library) {
                     }
                 }
                 PrimaryButton(stringResource(R.string.shuffle_all), {
-                    scope.launch { runCatching { api.items(lib.id, mapOf("kind" to "track", "sort" to "random", "limit" to 200)) }.onSuccess { state.music.play(it.items) } }
+                    scope.launch { attempt { api.items(lib.id, mapOf("kind" to "track", "sort" to "random", "limit" to 200)) }.onSuccess { state.music.play(it.items) } }
                 }, icon = Icons.Default.Shuffle)
                 ErrorLine(error)
             }
@@ -64,7 +66,7 @@ fun MusicLibraryScreen(state: AppState, nav: NavHostController, lib: Library) {
         if (loading) item(span = { GridItemSpan(maxLineSpan) }) { Loading() }
         val items = page?.items.orEmpty()
         if (tab == "track") {
-            items(items.size, span = { GridItemSpan(maxLineSpan) }) { i -> TrackRow(state, items, i, showAlbum = true) }
+            items(items.size, key = { items[it].id }, span = { GridItemSpan(maxLineSpan) }) { i -> TrackRow(state, items, i, showAlbum = true) }
         } else items(items, key = { it.id }) { it ->
             Column(Modifier.clickable { nav.navigate("item/${it.id}") }, horizontalAlignment = if (tab == "artist") Alignment.CenterHorizontally else Alignment.Start) {
                 SquareCover(api, it, round = tab == "artist", modifier = Modifier.fillMaxWidth())
@@ -104,16 +106,19 @@ fun AlbumScreen(state: AppState, nav: NavHostController, d: ItemDetail) {
                     SquareCover(api, d.item, modifier = Modifier.fillMaxWidth(0.75f).align(Alignment.CenterHorizontally))
                     Text(stringResource(R.string.album).uppercase(), style = Label, color = Kino.faint)
                     Text(d.item.title, style = Display.copy(fontSize = 32.sp), color = Kino.text)
-                    Text(listOfNotNull(d.item.artist, d.item.year?.toString(), d.genres.firstOrNull(), stringResource(R.string.songs_count, tracks.size)).joinToString(" · "),
+                    Text(listOfNotNull(d.item.artist, d.item.year?.toString(), d.genres.firstOrNull(), pluralStringResource(R.plurals.songs_count, tracks.size, tracks.size)).joinToString(" · "),
                         color = Kino.muted, modifier = Modifier.clickable { d.parentId?.let { nav.navigate("item/$it") } })
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         PrimaryButton(stringResource(R.string.play), { state.music.play(tracks, 0) }, icon = Icons.Default.PlayArrow)
-                        GlassButton(stringResource(R.string.shuffle), { state.music.shuffle = true; state.music.play(tracks, tracks.indices.random()) }, icon = Icons.Default.Shuffle)
+                        // An album without playable tracks has nothing to pick from (random() on an empty range throws).
+                        GlassButton(stringResource(R.string.shuffle), {
+                            randomStart(tracks.size)?.let { state.music.shuffle = true; state.music.play(tracks, it) }
+                        }, icon = Icons.Default.Shuffle)
                     }
                     Spacer(Modifier.height(8.dp))
                 }
             }
-            itemsIndexed(tracks) { i, _ -> TrackRow(state, tracks, i) }
+            itemsIndexed(tracks, key = { _, t -> t.id }) { i, _ -> TrackRow(state, tracks, i) }
         }
     }
 }
@@ -129,10 +134,11 @@ fun ArtistScreen(state: AppState, nav: NavHostController, d: ItemDetail) {
             Column(Modifier.statusBarsPadding().padding(top = 12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 SquareCover(api, d.item, round = true, modifier = Modifier.size(180.dp))
                 Text(d.item.title, style = Display.copy(fontSize = 32.sp), color = Kino.text)
-                Text(stringResource(R.string.albums_count, albums.size), color = Kino.muted)
+                Text(pluralStringResource(R.plurals.albums_count, albums.size, albums.size), color = Kino.muted)
                 PrimaryButton(stringResource(R.string.play_all), {
                     scope.launch {
-                        val all = albums.flatMap { a -> runCatching { api.item(a.id).children.filter { it.kind == "track" } }.getOrDefault(emptyList()) }
+                        // Leaving the screen cancels this instead of starting a half-fetched list.
+                        val all = albums.flatMap { a -> attempt { api.item(a.id).children.filter { it.kind == "track" } }.getOrDefault(emptyList()) }
                         state.music.play(all)
                     }
                 }, icon = Icons.Default.PlayArrow)
@@ -168,7 +174,7 @@ fun MiniPlayer(state: AppState, nav: NavHostController) {
                 Text(listOfNotNull(c.artist, c.album).joinToString(" · "), color = Kino.faint, fontSize = 12.sp, maxLines = 1)
             }
             IconButton(onClick = { m.prev() }) { Icon(Icons.Default.SkipPrevious, stringResource(R.string.previous), tint = Kino.text) }
-            IconButton(onClick = { m.toggle() }) { Icon(if (m.playing) Icons.Default.Pause else Icons.Default.PlayArrow, stringResource(R.string.play), tint = Kino.text) }
+            IconButton(onClick = { m.toggle() }) { Icon(if (m.playing) Icons.Default.Pause else Icons.Default.PlayArrow, stringResource(if (m.playing) R.string.pause else R.string.play), tint = Kino.text) }
             IconButton(onClick = { m.next() }) { Icon(Icons.Default.SkipNext, stringResource(R.string.next), tint = Kino.text) }
         }
     }
@@ -185,16 +191,19 @@ private fun ModalBottomSheetQueue(state: AppState, onClose: () -> Unit) {
                 Text(c.title, style = Display.copy(fontSize = 26.sp), color = Kino.text)
                 Text(listOfNotNull(c.artist, c.album).joinToString(" · "), color = Kino.muted)
             }
-            Slider(value = m.position.toFloat(), onValueChange = { m.seek(it.toLong()) }, valueRange = 0f..(m.duration.coerceAtLeast(1)).toFloat(),
+            // The seek happens when the thumb is let go, not on every frame of the drag.
+            var drag by remember { mutableStateOf<Float?>(null) }
+            Slider(value = drag ?: m.position.toFloat(), onValueChange = { drag = it }, onValueChangeFinished = { drag?.let { m.seek(it.toLong()) }; drag = null },
+                valueRange = 0f..(m.duration.coerceAtLeast(1)).toFloat(),
                 colors = SliderDefaults.colors(thumbColor = Kino.text, activeTrackColor = LocalAccent.current))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(clock(m.position), color = Kino.faint, fontSize = 12.sp)
+                Text(clock(drag?.toLong() ?: m.position), color = Kino.faint, fontSize = 12.sp)
                 IconButton(onClick = { m.toggleShuffle() }) { Icon(Icons.Default.Shuffle, stringResource(R.string.shuffle), tint = if (m.shuffle) LocalAccent.current else Kino.muted) }
-                IconButton(onClick = { m.prev() }) { Icon(Icons.Default.SkipPrevious, null, tint = Kino.text, modifier = Modifier.size(32.dp)) }
+                IconButton(onClick = { m.prev() }) { Icon(Icons.Default.SkipPrevious, stringResource(R.string.previous), tint = Kino.text, modifier = Modifier.size(32.dp)) }
                 FilledIconButton(onClick = { m.toggle() }, colors = IconButtonDefaults.filledIconButtonColors(containerColor = Kino.text, contentColor = Kino.bg), modifier = Modifier.size(56.dp)) {
-                    Icon(if (m.playing) Icons.Default.Pause else Icons.Default.PlayArrow, null, modifier = Modifier.size(30.dp))
+                    Icon(if (m.playing) Icons.Default.Pause else Icons.Default.PlayArrow, stringResource(if (m.playing) R.string.pause else R.string.play), modifier = Modifier.size(30.dp))
                 }
-                IconButton(onClick = { m.next() }) { Icon(Icons.Default.SkipNext, null, tint = Kino.text, modifier = Modifier.size(32.dp)) }
+                IconButton(onClick = { m.next() }) { Icon(Icons.Default.SkipNext, stringResource(R.string.next), tint = Kino.text, modifier = Modifier.size(32.dp)) }
                 IconButton(onClick = { m.cycleRepeat() }) {
                     Icon(if (m.repeat == Player.REPEAT_MODE_ONE) Icons.Default.RepeatOne else Icons.Default.Repeat, stringResource(R.string.repeat), tint = if (m.repeat != Player.REPEAT_MODE_OFF) LocalAccent.current else Kino.muted)
                 }

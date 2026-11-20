@@ -37,8 +37,17 @@ object JsonTree {
      */
     fun newItem(array: JsonArray): JsonElement = array.firstOrNull()?.let(::blankLike) ?: JsonPrimitive("")
 
-    /** A copy of an item for "duplicate": everything kept except its identity. */
-    fun copyOf(item: JsonElement): JsonElement = if (item is JsonObject) JsonObject(item.filterKeys { it !in IDENTITY }) else item
+    /**
+     * A copy of an item for "duplicate": everything kept except its identity and its stored
+     * secrets (passwords, keys; often only the service's mask), which the copy must get anew.
+     */
+    fun copyOf(item: JsonElement): JsonElement = if (item is JsonObject) withoutSecrets(JsonObject(item.filterKeys { it !in IDENTITY })) else item
+
+    private fun withoutSecrets(e: JsonElement): JsonElement = when (e) {
+        is JsonObject -> JsonObject(e.mapValues { (k, v) -> if (v is JsonPrimitive && v.isString && isSecretKey(k)) JsonPrimitive("") else withoutSecrets(v) })
+        is JsonArray -> JsonArray(e.map { withoutSecrets(it) })
+        else -> e
+    }
 
     /** True when [array] holds objects (edited as sub-sections) rather than plain values. */
     fun isObjectArray(array: JsonArray): Boolean = array.isNotEmpty() && array.all { it is JsonObject }
