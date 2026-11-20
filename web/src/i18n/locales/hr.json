@@ -204,7 +204,7 @@
     "tmdb_unreachable": "Server ne može doći do TMDb-a. Pokušajte kasnije.",
     "transcode_not_allowed": "Ova datoteka treba transkodiranje, koje vaš račun ne smije koristiti.",
     "transcode_failed": "Server nije mogao pripremiti ovu datoteku za reprodukciju.",
-    "transcoder_busy": "Server trenutno pretvara previše streamova. Zaustavi reprodukciju na drugom uređaju ili pokušaj za minutu.",
+    "transcoder_busy": "Server trenutno pretvara previše streamova. Zaustavite reprodukciju na drugom uređaju ili pokušajte ponovno za minutu.",
     "request_too_large": "To je preveliko za slanje na server.",
     "not_playable": "Ova stavka nema datoteku za reprodukciju.",
     "invalid_notification_target": "Provjeri servis i URL (http ili https; Gotify treba app token).",
@@ -241,14 +241,14 @@
     "provider_unreachable": "Pružatelj nije dostupan ili je odgovorio neispravno.",
     "tuners_busy": "Svi tuneri su trenutno zauzeti. Pokušaj kad završi snimanje ili drugi gledatelj.",
     "channel_unavailable": "Kanal se trenutno ne može uključiti.",
-    "file_missing": "Datoteka više nije tamo gdje ju je server očekivao. Biblioteka se ponovno skenira; pokušaj ponovno za minutu.",
+    "file_missing": "Datoteka više nije tamo gdje ju je server očekivao. Biblioteka se ponovno skenira; pokušajte ponovno za minutu.",
     "pageTitle": "Nešto je pošlo po zlu",
     "pageFailed": "Ova se stranica nije mogla prikazati.",
     "newVersion": "Spremna je nova verzija Streamera.",
     "reload": "Učitaj ponovno",
     "tryAgain": "Pokušaj ponovno",
-    "network": "Poslužitelj nije dostupan. Provjeri vezu i pokušaj ponovno.",
-    "permission": "Tvoj račun to ne smije."
+    "network": "Server nije dostupan. Provjerite vezu i pokušajte ponovno.",
+    "permission": "Vaš račun nema dopuštenje za ovo."
   },
   "notFound": {
     "title": "Stranica nije pronađena",
@@ -400,8 +400,7 @@
     "held_few": "Zadržane su {{count}} datoteke kojih nema: mapa biblioteke izgleda nedostupno ili gotovo prazno. Ako ste ih namjerno obrisali, uklonite ih iz biblioteke.",
     "held_other": "Zadržano je {{count}} datoteka kojih nema: mapa biblioteke izgleda nedostupno ili gotovo prazno. Ako ste ih namjerno obrisali, uklonite ih iz biblioteke.",
     "removeMissing": "Ukloni datoteke kojih nema",
-    "confirmRemoveMissing": "Ukloniti {{count}} datoteka kojih nema iz biblioteke {{name}}? Povijest gledanja tih naslova se gubi. Datoteke na disku ostaju netaknute.",
-    "meta": "{{count}} stavki · {{files}} datoteka · skenirano {{when}}",
+    "meta": "Stavke: {{count}} · datoteke: {{files}} · skenirano {{when}}",
     "items_one": "{{count}} stavka",
     "items_other": "{{count}} stavki",
     "refreshMetadata": "Osvježi metapodatke",
@@ -409,7 +408,10 @@
     "items_few": "{{count}} stavke",
     "kind_books": "Knjige i stripovi",
     "kind_audiobooks": "Audioknjige",
-    "kind_photos": "Fotografije i kućni video"
+    "kind_photos": "Fotografije i kućni video",
+    "confirmRemoveMissing_one": "Ukloniti {{count}} datoteku koje više nema iz biblioteke {{name}}? Povijest gledanja tog naslova se gubi. Datoteke na disku ostaju netaknute.",
+    "confirmRemoveMissing_few": "Ukloniti {{count}} datoteke kojih više nema iz biblioteke {{name}}? Povijest gledanja tih naslova se gubi. Datoteke na disku ostaju netaknute.",
+    "confirmRemoveMissing_other": "Ukloniti {{count}} datoteka kojih više nema iz biblioteke {{name}}? Povijest gledanja tih naslova se gubi. Datoteke na disku ostaju netaknute."
   },
   "library": {
     "sort": "Poredaj",

@@ -1,4 +1,4 @@
-import { channelsLabel, formatDuration, formatSize, resolutionLabel } from "./format";
+import { channelsLabel, formatDuration, formatRating, formatSize, resolutionLabel } from "./format";
 
 describe("library formatting", () => {
   it("labels resolutions including scope formats", () => {
@@ -16,5 +16,11 @@ describe("library formatting", () => {
     expect(formatSize(5 * 1024 ** 3)).toBe("5.0 GB");
     expect(channelsLabel(6)).toBe("5.1");
     expect(channelsLabel(2)).toBe("stereo");
+  });
+  it("writes decimals the UI language's way", () => {
+    expect(formatSize(1536, "hr")).toBe("1,5 KB");
+    expect(formatSize(1536, "en")).toBe("1.5 KB");
+    expect(formatRating(7.44, "hr")).toBe("7,4");
+    expect(formatRating(7, "en")).toBe("7.0");
   });
 });

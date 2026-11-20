@@ -9,7 +9,7 @@ import { qualityTags, useEnhancements } from "@/features/enhancements/useEnhance
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, unwrap } from "@/api/client";
 import { invalidateUserData } from "./userData";
-import { imageUrl, placeholderHue, type ItemSummary } from "./format";
+import { formatRating, imageUrl, placeholderHue, type ItemSummary } from "./format";
 
 export function progressOf(it: ItemSummary): number {
   return it.positionMs && it.durationMs ? Math.min(100, (it.positionMs / it.durationMs) * 100) : 0;
@@ -180,7 +180,7 @@ export function ItemCard({ item, className = "" }: { item: ItemSummary; classNam
       <div className="min-w-0">
         <p className="truncate text-[14px] font-semibold text-text/90 group-hover:text-text">{item.title}</p>
         <p className="text-[13px] text-text/50 tabular">
-          {item.year}{item.rating ? <>{item.year && " · "}★ {item.rating.toFixed(1)}</> : null}
+          {item.year}{item.rating ? <>{item.year && " · "}★ {formatRating(item.rating)}</> : null}
         </p>
       </div>
     </Link>

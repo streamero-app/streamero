@@ -133,8 +133,9 @@ export function LibrariesSettings() {
                 </Button>
                 {(l.scan.heldRemovals ?? 0) > 0 && (
                   <Button variant="danger" disabled={busyStates.has(l.scan.state) || scan.isPending}
-                    onClick={() => window.confirm(t("libraries.confirmRemoveMissing", { count: l.scan.heldRemovals, name: l.name })) &&
-                      scan.mutate({ id: l.id, confirmRemoval: true })}>
+                    onClick={() => void confirmDialog({ message: t("libraries.confirmRemoveMissing", { count: l.scan.heldRemovals, name: l.name }),
+                      confirmLabel: t("libraries.removeMissing"), danger: true })
+                      .then((ok) => { if (ok) scan.mutate({ id: l.id, confirmRemoval: true }); })}>
                     {t("libraries.removeMissing")}
                   </Button>
                 )}

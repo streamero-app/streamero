@@ -28,7 +28,7 @@ import { api, unwrap } from "@/api/client";
 import type { components } from "@/api/schema.gen";
 import { Art, Badge, Button, ErrorText, IconButton, Select, Spinner, buttonVariants, pressable } from "@/components/ui";
 import { canAdminister, useMe } from "@/features/auth/useAuth";
-import { channelsLabel, formatDuration, formatSize, imageUrl, placeholderHue, resolutionLabel, type ItemSummary, type Library } from "./format";
+import { channelsLabel, formatDuration, formatRating, formatSize, imageUrl, placeholderHue, resolutionLabel, type ItemSummary, type Library } from "./format";
 import { AddToMenu, CollectionCard, useCollections } from "./collections";
 import { invalidateUserData } from "./userData";
 import { itemDetailQuery } from "./itemQuery";
@@ -175,7 +175,7 @@ function Facts({ item, detail, className = "" }: { item: ItemSummary; detail?: I
   const file = detail?.files?.[0];
   const res = resolutionLabel(file?.width, file?.height);
   const parts: ReactNode[] = [];
-  if (item.rating) parts.push(<span key="r" className="font-semibold text-text">★ {item.rating.toFixed(1)}</span>);
+  if (item.rating) parts.push(<span key="r" className="font-semibold text-text">★ {formatRating(item.rating)}</span>);
   if (item.year) parts.push(<span key="y">{item.year}</span>);
   parts.push(<span key="d">{item.durationMs ? formatDuration(item.durationMs) : t(`library.kind_${item.kind}`)}</span>);
   if (detail?.genres?.[0]) parts.push(<span key="g">{detail.genres.slice(0, 2).join(", ")}</span>);
@@ -570,7 +570,7 @@ function ListRow({ it }: { it: ItemSummary }) {
         <div className="min-w-0 flex-1">
           <p className="truncate text-[15px] font-semibold">{it.title}</p>
           <p className="mt-0.5 truncate text-[13px] text-text/55 tabular">
-            {[it.year, it.durationMs ? formatDuration(it.durationMs) : null, it.rating ? `★ ${it.rating.toFixed(1)}` : null].filter(Boolean).join(" · ")}
+            {[it.year, it.durationMs ? formatDuration(it.durationMs) : null, it.rating ? `★ ${formatRating(it.rating)}` : null].filter(Boolean).join(" · ")}
           </p>
         </div>
         {it.played && <span className="hidden text-[13px] text-text/55 sm:block">{t("library.watched")}</span>}

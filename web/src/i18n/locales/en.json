@@ -400,8 +400,7 @@
     "held_few": "{{count}} missing files were kept: a library folder looks offline or mostly empty. If you deleted them on purpose, remove them from the library.",
     "held_other": "{{count}} missing files were kept: a library folder looks offline or mostly empty. If you deleted them on purpose, remove them from the library.",
     "removeMissing": "Remove missing files",
-    "confirmRemoveMissing": "Remove {{count}} missing files from {{name}}? Watch history of those titles is lost. Files on disk are not touched.",
-    "meta": "{{count}} items · {{files}} files · scanned {{when}}",
+    "meta": "Items: {{count}} · files: {{files}} · scanned {{when}}",
     "items_one": "{{count}} item",
     "items_other": "{{count}} items",
     "refreshMetadata": "Refresh metadata",
@@ -409,7 +408,10 @@
     "items_few": "{{count}} items",
     "kind_books": "Books and comics",
     "kind_audiobooks": "Audiobooks",
-    "kind_photos": "Photos and home videos"
+    "kind_photos": "Photos and home videos",
+    "confirmRemoveMissing_one": "Remove {{count}} missing file from {{name}}? Watch history of that title is lost. Files on disk are not touched.",
+    "confirmRemoveMissing_few": "Remove {{count}} missing files from {{name}}? Watch history of those titles is lost. Files on disk are not touched.",
+    "confirmRemoveMissing_other": "Remove {{count}} missing files from {{name}}? Watch history of those titles is lost. Files on disk are not touched."
   },
   "library": {
     "sort": "Sort",

@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Check, Clock, Download, Play } from "lucide-react";
 import { api, unwrap } from "@/api/client";
 import type { components } from "@/api/schema.gen";
+import { formatRating } from "@/features/library/format";
 import { ErrorText, Spinner, pressable } from "@/components/ui";
 
 export type Title = components["schemas"]["DiscoverTitle"];
@@ -56,7 +57,7 @@ export function DiscoverCard({ title, canRequest }: { title: Title; canRequest: 
       <div className="min-w-0">
         <p className="truncate text-[14px] font-semibold">{title.title}</p>
         <p className="text-[13px] text-text/50 tabular">
-          {[title.year, t(title.mediaType === "tv" ? "discover.series" : "discover.movie"), title.rating ? `★ ${title.rating.toFixed(1)}` : null].filter(Boolean).join(" · ")}
+          {[title.year, t(title.mediaType === "tv" ? "discover.series" : "discover.movie"), title.rating ? `★ ${formatRating(title.rating)}` : null].filter(Boolean).join(" · ")}
         </p>
       </div>
     </div>
