@@ -228,6 +228,7 @@ struct SettingsDoc<T: Equatable, Content: View>: View {
     @State private var value: T?
     @State private var lastSaved: T?
     @State private var saved = false
+    @State private var saving = false
     @State private var error: Error?
 
     var body: some View {
@@ -236,6 +237,7 @@ struct SettingsDoc<T: Equatable, Content: View>: View {
                 content(binding)
                 Section {
                     Button { Task { await commit() } } label: { Text("save").frame(maxWidth: .infinity) }
+                        .disabled(saving)
                     if saved { Text("saved").foregroundStyle(.green) }
                     ErrorLine(error: error)
                 }
@@ -254,18 +256,21 @@ struct SettingsDoc<T: Equatable, Content: View>: View {
         do {
             value = try await load()
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func commit() async {
-        guard let v = value else { return }
+        // A second tap while the first save runs would send the same document twice.
+        guard let v = value, !saving else { return }
+        saving = true
+        defer { saving = false }
         do {
             let result = try await save(v)
             lastSaved = result
             value = result
             saved = true
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -333,19 +338,23 @@ private struct AccountPage: View {
 
     private func upload(_ item: PhotosPickerItem) async {
         do {
-            guard let data = try await item.loadTransferable(type: Data.self), let jpeg = AvatarImage.jpeg(from: data) else { return }
+            guard let data = try await item.loadTransferable(type: Data.self), let jpeg = AvatarImage.jpeg(from: data) else {
+                error = APIError(status: 400, code: "invalid_image")
+                return
+            }
             try await client.uploadAvatar(jpeg)
             await app.refreshMe()
             avatarVersion += 1
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func removeAvatar() async {
         do {
             try await client.removeAvatar()
             await app.refreshMe()
-        } catch { self.error = error }
+            error = nil
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func changePassword() async {
@@ -355,7 +364,8 @@ private struct AccountPage: View {
             passwordMessage = true
             current = ""
             new = ""
-        } catch { self.error = error }
+            error = nil
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -438,20 +448,28 @@ private struct SubtitleLookPage: View {
     }
 }
 
-private struct HomeSectionsPage: View {
+struct HomeSectionsPage: View {
     let client: MediaClient
-    private let all = ["continue", "nextUp", "latest", "favorites", "collections", "libraries"]
+    /// Every section the server knows (same list as the web client); saving a list without
+    /// one of them would hide it on every device.
+    static let all = ["continue", "nextUp", "latest", "favorites", "collections", "top", "genres", "libraries"]
+    private var all: [String] { Self.all }
 
-    private func title(_ section: String) -> LocalizedStringKey {
+    static func title(_ section: String) -> LocalizedStringKey {
         switch section {
         case "continue": "continue_watching"
         case "nextUp": "next_up"
         case "latest": "recently_added"
         case "favorites": "my_list"
         case "collections": "collections"
-        default: "libraries"
+        case "top": "home.top"
+        case "genres": "home.genres"
+        case "libraries": "libraries"
+        default: LocalizedStringKey(section)
         }
     }
+
+    private func title(_ section: String) -> LocalizedStringKey { Self.title(section) }
 
     var body: some View {
         Form {

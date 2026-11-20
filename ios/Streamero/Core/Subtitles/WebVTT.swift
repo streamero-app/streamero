@@ -14,7 +14,8 @@ enum WebVTT {
         let parts = s.split(separator: ":").map(String.init)
         guard parts.count == 2 || parts.count == 3 else { return nil }
         let secParts = parts[parts.count - 1].split(separator: ".").map(String.init)
-        guard let sec = Int64(secParts[0]) else { return nil }
+        // "00:." or "00:01:" would otherwise index an empty list.
+        guard let first = secParts.first, let sec = Int64(first) else { return nil }
         var ms: Int64 = 0
         if secParts.count > 1, let fraction = Int64(secParts[1].padding(toLength: 3, withPad: "0", startingAt: 0)) { ms = fraction }
         guard let min = Int64(parts[parts.count - 2]) else { return nil }

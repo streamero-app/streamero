@@ -166,6 +166,17 @@ final class SyncEngineTests: XCTestCase {
         XCTAssertFalse(sent(e.reconcile(end, now: now + 300)).contains { $0.type == "next" })
     }
 
+    func testEndedDeviceFollowsARewindWithinTheSameEntry() {
+        var e = engine(group(state: "playing", positionMs: 5_990_000, anchorAt: now))
+        var end = local(at: 6_000_000, playing: false)
+        end.ended = true
+        _ = e.reconcile(end, now: now)
+        XCTAssertEqual(e.reconcile(end, now: now + 300), [], "near the end it waits for the group to move on")
+        e.apply(group(state: "playing", positionMs: 1_000_000, anchorAt: now + 400, version: 2))
+        let actions = e.reconcile(end, now: now + 400)
+        XCTAssertTrue(actions.contains { if case .seek = $0 { return true } else { return false } }, "a rewind is followed")
+    }
+
     func testOlderVersionsAreIgnored() {
         var e = engine(group(state: "playing", version: 5))
         e.apply(group(state: "paused", version: 4))

@@ -83,6 +83,13 @@ enum ArrError: Error, Equatable, Sendable {
     case unreachable(String?)
     case invalidPath
     case tooLarge
+    /// Signed in with a read-only API key: changes are refused.
+    case readOnlyKey
+    /// Too many requests; the server asks to slow down.
+    case rateLimited
+    case methodNotAllowed
+    /// A success answer that is not JSON (a proxy's HTML page, a truncated body).
+    case badResponse
     /// The service rejected the input; field errors are shown next to the fields.
     case validation([ArrValidationFailure])
     /// Any other status, with the service's own (English) message when it gave one.
@@ -101,10 +108,14 @@ enum ArrError: Error, Equatable, Sendable {
             case "arr_unreachable": return .unreachable(json?["message"].string)
             case "invalid_path": return .invalidPath
             case "request_too_large": return .tooLarge
+            case "read_only_key": return .readOnlyKey
+            case "rate_limited": return .rateLimited
+            case "method_not_allowed": return .methodNotAllowed
             default: break
             }
         }
         if status == 413 { return .tooLarge }
+        if status == 429 { return .rateLimited }
         if let list = json?.array, !list.isEmpty {
             let failures = list.compactMap { item -> ArrValidationFailure? in
                 guard let message = item["errorMessage"].string ?? item["message"].string else { return nil }
@@ -208,7 +219,10 @@ struct ArrClient: Sendable {
         req.httpBody = body
         let data: Data, response: URLResponse
         do {
-            (data, response) = try await URLSession.shared.data(for: req)
+            (data, response) = try await HTTP.data(for: req)
+        } catch is CancellationError {
+            // A superseded request (the view went away, a new search) is not a network error.
+            throw CancellationError()
         } catch {
             throw ArrError.network
         }
@@ -222,11 +236,21 @@ struct ArrClient: Sendable {
     }
 
     func get(_ resource: String, query: [URLQueryItem] = [], timeout: TimeInterval = 60) async throws -> JSONValue {
-        try JSONValue.parse(try await data("GET", url: url(resource, query: query), timeout: timeout))
+        let body = try await data("GET", url: url(resource, query: query), timeout: timeout)
+        do {
+            return try JSONValue.parse(body)
+        } catch {
+            throw ArrError.badResponse
+        }
     }
 
     func get<T: Decodable>(_ type: T.Type, _ resource: String, query: [URLQueryItem] = []) async throws -> T {
-        try JSONDecoder().decode(T.self, from: try await data("GET", url: url(resource, query: query)))
+        let body = try await data("GET", url: url(resource, query: query))
+        do {
+            return try JSONDecoder().decode(T.self, from: body)
+        } catch {
+            throw ArrError.badResponse
+        }
     }
 
     /// POST/PUT/PATCH/DELETE with an optional JSON body; answers the response (null when empty).
@@ -267,6 +291,22 @@ struct ArrClient: Sendable {
         return try await send("POST", "command", json: .object(body))
     }
 
+    /// Where downloaded files wait for the share sheet.
+    static var downloads: URL {
+        FileManager.default.temporaryDirectory.appending(path: "arr-files", directoryHint: .isDirectory)
+    }
+
+    /// Deletes downloaded files once shared: a backup holds the service's API key and database.
+    static func removeDownloads() {
+        do {
+            try FileManager.default.removeItem(at: downloads)
+        } catch CocoaError.fileNoSuchFile {
+            // Nothing to remove.
+        } catch {
+            // tmp is cleared by the system as well.
+        }
+    }
+
     /// Downloads a file (a backup) to a temporary file with the given name, for the share sheet.
     func download(_ url: URL, fileName: String) async throws -> URL {
         var req = URLRequest(url: url)
@@ -274,7 +314,9 @@ struct ArrClient: Sendable {
         req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         let file: URL, response: URLResponse
         do {
-            (file, response) = try await URLSession.shared.download(for: req)
+            (file, response) = try await HTTP.download(for: req)
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
             throw ArrError.network
         }
@@ -283,7 +325,7 @@ struct ArrClient: Sendable {
             try? FileManager.default.removeItem(at: file)
             throw ArrError.http(status, nil)
         }
-        let dir = FileManager.default.temporaryDirectory.appending(path: "arr-files", directoryHint: .isDirectory)
+        let dir = Self.downloads
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let target = dir.appending(path: (fileName as NSString).lastPathComponent)
         try? FileManager.default.removeItem(at: target)

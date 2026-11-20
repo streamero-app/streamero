@@ -118,8 +118,14 @@ struct MusicLibraryView: View {
     }
 
     private func shuffleAll() async {
-        guard let result = try? await client.items(library: library.id, query: ["kind": "track", "sort": "random", "limit": "200"]) else { return }
-        app.music.play(result.items)
+        do {
+            let result = try await client.items(library: library.id, query: ["kind": "track", "sort": "random", "limit": "200"])
+            app.music.play(result.items)
+        } catch is CancellationError {
+            return
+        } catch {
+            self.error = error
+        }
     }
 }
 
@@ -203,6 +209,8 @@ struct ArtistView: View {
     let detail: ItemDetail
     let client: MediaClient
     @Environment(AppState.self) private var app
+    @State private var busy = false
+    @State private var error: Error?
 
     private var albums: [ItemSummary] {
         detail.children.filter { $0.kind == "album" }.sorted { ($0.year ?? 0) > ($1.year ?? 0) }
@@ -214,7 +222,12 @@ struct ArtistView: View {
                 SquareCover(item: detail.item, client: client, round: true).frame(width: 180, height: 180)
                 Text(verbatim: detail.item.title).displayFont(32).foregroundStyle(Theme.text).multilineTextAlignment(.center)
                 Text("albums_count \(albums.count)").foregroundStyle(Theme.textMuted)
-                Button { Task { await playAll() } } label: { Label("play_all", systemImage: "play.fill") }.buttonStyle(PrimaryButtonStyle())
+                Button { Task { await playAll() } } label: {
+                    if busy { ProgressView() } else { Label("play_all", systemImage: "play.fill") }
+                }
+                .buttonStyle(PrimaryButtonStyle())
+                .disabled(busy)
+                ErrorLine(error: error)
                 LazyVGrid(columns: coverColumns, spacing: 18) {
                     ForEach(albums) { a in
                         NavigationLink(value: Route.item(a.id)) {
@@ -234,12 +247,28 @@ struct ArtistView: View {
         .background(Theme.background)
     }
 
+    /// Every album's tracks, fetched side by side and played in album order. An album that
+    /// cannot load is left out; when none loads, the error is shown.
     private func playAll() async {
-        var all: [ItemSummary] = []
-        for album in albums {
-            if let d = try? await client.item(album.id) { all += d.children.filter { $0.kind == "track" } }
+        busy = true
+        defer { busy = false }
+        let client = client
+        let ids = albums.map(\.id)
+        let parts = await withTaskGroup(of: (Int, [ItemSummary]?).self) { group in
+            for (i, id) in ids.enumerated() {
+                group.addTask { (i, try? await client.item(id).children.filter { $0.kind == "track" }) }
+            }
+            var out: [(Int, [ItemSummary]?)] = []
+            for await part in group { out.append(part) }
+            return out.sorted { $0.0 < $1.0 }
         }
-        app.music.play(all)
+        let tracks = parts.compactMap(\.1).flatMap { $0 }
+        guard !tracks.isEmpty else {
+            if !ids.isEmpty { error = APIError(status: 0, code: "bad_response") }
+            return
+        }
+        error = nil
+        app.music.play(tracks)
     }
 }
 
@@ -274,7 +303,8 @@ struct MiniPlayerBar: View {
                     }
                     .buttonStyle(.plain)
                     Button { m.prev() } label: { Image(systemName: "backward.fill") }.accessibilityLabel(Text("previous"))
-                    Button { m.toggle() } label: { Image(systemName: m.playing ? "pause.fill" : "play.fill") }.accessibilityLabel(Text("player.play"))
+                    Button { m.toggle() } label: { Image(systemName: m.playing ? "pause.fill" : "play.fill") }
+                        .accessibilityLabel(m.playing ? Text("player.pause") : Text("player.play"))
                     Button { m.next() } label: { Image(systemName: "forward.fill") }.accessibilityLabel(Text("next"))
                 }
                 .padding(.horizontal, 12).padding(.vertical, 8)
@@ -294,6 +324,8 @@ struct QueueSheet: View {
     let client: MediaClient
     @Environment(AppState.self) private var app
     @Environment(\.dismiss) private var dismiss
+    /// The scrubber's value while dragging; the seek happens once, on release.
+    @State private var scrubbing: Double?
 
     var body: some View {
         let m = app.music
@@ -302,9 +334,17 @@ struct QueueSheet: View {
                 Text(verbatim: c.title).displayFont(26).foregroundStyle(Theme.text).lineLimit(2)
                 Text(verbatim: [c.artist, c.album].compactMap { $0 }.joined(separator: " · ")).foregroundStyle(Theme.textMuted).lineLimit(1)
             }
-            Slider(value: Binding(get: { Double(m.position) }, set: { m.seek(Int64($0)) }), in: 0...max(1, Double(m.duration))).tint(Theme.accent)
+            Slider(value: Binding(get: { scrubbing ?? Double(m.position) }, set: { scrubbing = $0 }),
+                   in: 0...max(1, Double(m.duration)), onEditingChanged: { editing in
+                       if !editing, let value = scrubbing {
+                           m.seek(Int64(value))
+                           scrubbing = nil
+                       }
+                   })
+                .tint(Theme.accent)
+                .accessibilityLabel(Text("player.position"))
             HStack {
-                Text(verbatim: clock(m.position)).font(.caption).foregroundStyle(Theme.textFaint)
+                Text(verbatim: clock(scrubbing.map { Int64($0) } ?? m.position)).font(.caption).foregroundStyle(Theme.textFaint)
                 Spacer()
                 Button { m.toggleShuffle() } label: { Image(systemName: "shuffle").foregroundStyle(m.shuffle ? Theme.accent : Theme.textMuted) }
                     .accessibilityLabel(Text("shuffle"))
@@ -315,7 +355,7 @@ struct QueueSheet: View {
                     Image(systemName: m.playing ? "pause.fill" : "play.fill").font(.title).foregroundStyle(Theme.background)
                         .frame(width: 56, height: 56).background(Theme.text, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
                 }
-                .accessibilityLabel(Text("player.play"))
+                .accessibilityLabel(m.playing ? Text("player.pause") : Text("player.play"))
                 Spacer()
                 Button { m.next() } label: { Image(systemName: "forward.fill").font(.title2) }.accessibilityLabel(Text("next"))
                 Spacer()

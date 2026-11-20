@@ -49,8 +49,12 @@ targets:
         UIBackgroundModes: [audio, fetch]
         NSLocalNetworkUsageDescription: Streamero connects to media servers on your local network.
         NSBonjourServices: [_streamero._tcp]
+        # Plain http stays possible (D-057): home servers on the LAN rarely have certificates, and
+        # ATS cannot be relaxed per user at run time. NSAllowsLocalNetworking is deliberately not
+        # set: on iOS 10+ any such key makes iOS ignore NSAllowsArbitraryLoads. The app asks before
+        # it adds a plain-http address outside the local network (ServerURL.isPlainHTTPOverInternet).
         NSAppTransportSecurity:
-          NSAllowsArbitraryLoads: true   # self-hosted servers on LAN often use plain HTTP
+          NSAllowsArbitraryLoads: true
         UIUserInterfaceStyle: Dark
         # Single sign-on returns through streamero://oidc (D-037). A URL scheme needs no
         # entitlement, so it survives Feather re-signing (associated domains would not).
@@ -64,6 +68,11 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         CODE_SIGN_STYLE: Manual
         CODE_SIGNING_ALLOWED: "NO"
+      configs:
+        # Warnings (Swift 6 concurrency included) fail the Debug build that CI tests with;
+        # Release stays buildable if a newer SDK adds a deprecation warning.
+        Debug:
+          SWIFT_TREAT_WARNINGS_AS_ERRORS: "YES"
   # Streamero Manage: the whole app plus control of the *arr stack (D-048). Same sources,
   # plus StreameroManage/ (compiled only here) and the MANAGE compilation condition.
   StreameroManage:
@@ -93,6 +102,7 @@ targets:
         UIBackgroundModes: [audio, fetch]
         NSLocalNetworkUsageDescription: Streamero Manage connects to media servers on your local network.
         NSBonjourServices: [_streamero._tcp]
+        # Same transport rules as the standard app (D-057).
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
         UIUserInterfaceStyle: Dark
@@ -112,6 +122,7 @@ targets:
       configs:
         Debug:
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG MANAGE"
+          SWIFT_TREAT_WARNINGS_AS_ERRORS: "YES"
         Release:
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: MANAGE
   StreameroManageTests:

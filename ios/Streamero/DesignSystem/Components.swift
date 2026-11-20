@@ -8,9 +8,10 @@ func clock(_ ms: Int64) -> String {
     return String(format: "%d:%02d", s / 60, s % 60)
 }
 
-/// "2024-05-01 12:30" from a server timestamp.
+/// A server timestamp in the device's time zone and the account's language (date only when
+/// `length` asks for 10 characters, as callers did before).
 func shortTime(_ s: String, length: Int = 16) -> String {
-    String(s.prefix(length)).replacingOccurrences(of: "T", with: " ")
+    ServerDate.short(s, time: length > 10, seconds: length > 16)
 }
 
 /// A translated message for an API error.
@@ -180,4 +181,31 @@ func zeroAsNil(_ binding: Binding<Int?>) -> Binding<Int> {
 @MainActor
 func keptText(_ binding: Binding<String?>) -> Binding<String> {
     Binding(get: { binding.wrappedValue ?? "" }, set: { binding.wrappedValue = $0 })
+}
+
+/// Reloads a screen periodically while the app is in front. `.task` alone keeps running in the
+/// background when audio plays (background mode `audio`), so a polling loop would go on calling
+/// the server with the screen unseen; this one stops when the scene leaves `.active` and
+/// starts again (with an immediate load) when it returns.
+struct PollWhileActive: ViewModifier {
+    let interval: @MainActor @Sendable () -> Duration
+    let action: @MainActor @Sendable () async -> Void
+    @Environment(\.scenePhase) private var phase
+
+    func body(content: Content) -> some View {
+        content.task(id: phase == .active) {
+            guard phase == .active else { return }
+            while !Task.isCancelled {
+                await action()
+                try? await Task.sleep(for: interval())
+            }
+        }
+    }
+}
+
+extension View {
+    func poll(every interval: @escaping @MainActor @Sendable () -> Duration,
+              _ action: @escaping @MainActor @Sendable () async -> Void) -> some View {
+        modifier(PollWhileActive(interval: interval, action: action))
+    }
 }

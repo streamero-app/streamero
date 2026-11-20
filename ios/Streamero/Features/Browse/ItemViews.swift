@@ -16,6 +16,8 @@ struct ItemView: View {
     @State private var togetherPlay: PlayTarget?
     @State private var togetherError: Error?
     @State private var togetherBusy = false
+    /// A favourite / watched change the server refused (offline, no permission).
+    @State private var actionError: Error?
 
     var body: some View {
         Group {
@@ -199,12 +201,15 @@ struct ItemView: View {
                 Button { Task { await toggle(favorite: it) } } label: { Image(systemName: it.favorite == true ? "checkmark" : "plus") }
                     .buttonStyle(CircleButtonStyle(active: it.favorite == true))
                     .accessibilityLabel(Text("library.addToList"))
+                    .accessibilityAddTraits(it.favorite == true ? .isSelected : [])
                 Button { Task { await toggle(played: it) } } label: {
                     Label(it.played == true ? "watched" : "mark_watched", systemImage: "checkmark")
                 }
                 .buttonStyle(ToggleCapsuleStyle(active: it.played == true))
                 .accessibilityLabel(Text("library.watched"))
+                .accessibilityAddTraits(it.played == true ? .isSelected : [])
             }
+            ErrorLine(error: actionError)
             if let p = progress(it) { ProgressStrip(value: p).frame(maxWidth: 240) }
             playOptions(d)
             if !d.files.isEmpty && app.canWatchTogether {
@@ -235,13 +240,23 @@ struct ItemView: View {
     }
 
     private func toggle(favorite it: ItemSummary) async {
-        try? await client.setUserData(item: it.id, favorite: !(it.favorite ?? false))
-        await reload()
+        await change { try await client.setUserData(item: it.id, favorite: !(it.favorite ?? false)) }
     }
 
     private func toggle(played it: ItemSummary) async {
-        try? await client.setUserData(item: it.id, played: !(it.played ?? false))
-        await reload()
+        await change { try await client.setUserData(item: it.id, played: !(it.played ?? false)) }
+    }
+
+    private func change(_ work: () async throws -> Void) async {
+        do {
+            try await work()
+            actionError = nil
+            await reload()
+        } catch is CancellationError {
+            return
+        } catch {
+            actionError = error
+        }
     }
 
     @ViewBuilder private func playOptions(_ d: ItemDetail) -> some View {
@@ -279,7 +294,7 @@ struct ItemView: View {
             .pickerStyle(.menu)
             .tint(Theme.text)
         }
-        .padding(.horizontal, 12).frame(height: 44)
+        .padding(.horizontal, 12).frame(minHeight: 44)
         .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
     }
 
@@ -302,7 +317,7 @@ struct ItemView: View {
             fact("starring", starring)
             fact("written_by", writers)
             fact("studio", (d.studios ?? []).joined(separator: ", "))
-            fact("released", d.premiereDate ?? "")
+            fact("released", d.premiereDate.map { ServerDate.short($0, time: false) } ?? "")
             fact("collection", collections)
             HStack(spacing: 14) {
                 if let imdb = d.providerIds["imdb"], let url = URL(string: "https://www.imdb.com/title/\(imdb)/") {
@@ -392,7 +407,7 @@ struct ItemView: View {
                         Text(verbatim: initials(p.name)).displayFont(24).foregroundStyle(Theme.text.opacity(0.7))
                             .frame(width: 72, height: 72)
                             .overlay {
-                                if let url = p.imageUrl.flatMap(client.absolute) {
+                                if let url = p.imageUrl.flatMap(client.ownURL) {
                                     AuthImage(url: url, token: client.token).clipShape(Circle())
                                 }
                             }
@@ -464,6 +479,9 @@ struct SeasonEpisodes: View {
     let client: MediaClient
     @Environment(AppState.self) private var app
     @State private var episodes: [ItemSummary]?
+    /// The season the list shows; a refresh of the same season keeps the list on screen.
+    @State private var loaded: String?
+    @State private var error: Error?
 
     var body: some View {
         Group {
@@ -471,14 +489,31 @@ struct SeasonEpisodes: View {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(episodes) { e in EpisodeButton(episode: e, client: client) }
                 }
+            } else if let error {
+                VStack(alignment: .leading, spacing: 8) {
+                    ErrorLine(error: error)
+                    Button("downloads.retry") { Task { await load() } }
+                }
             } else {
                 LoadingView()
             }
         }
-        .task(id: "\(seasonID)-\(app.reloadTick)") {
-            episodes = nil
-            let d = try? await client.item(seasonID)
-            episodes = (d?.children ?? []).filter { $0.kind == "episode" }
+        .task(id: "\(seasonID)-\(app.reloadTick)") { await load() }
+    }
+
+    private func load() async {
+        if loaded != seasonID { episodes = nil }
+        error = nil
+        do {
+            let d = try await client.item(seasonID)
+            guard !Task.isCancelled else { return }
+            episodes = d.children.filter { $0.kind == "episode" }
+            loaded = seasonID
+        } catch is CancellationError {
+            return
+        } catch {
+            guard !Task.isCancelled else { return }
+            if loaded != seasonID { self.error = error }
         }
     }
 }
@@ -508,7 +543,7 @@ struct TrickFrame: View {
         let local = index % perSheet
         let col = local % max(1, info.columns)
         let row = local / max(1, info.columns)
-        if info.sheetUrls.indices.contains(sheet), let url = client.absolute(info.sheetUrls[sheet]) {
+        if info.sheetUrls.indices.contains(sheet), let url = client.ownURL(info.sheetUrls[sheet]) {
             GeometryReader { geo in
                 AuthImage(url: url, token: client.token)
                     .frame(width: geo.size.width * CGFloat(info.columns), height: geo.size.height * CGFloat(info.rows))

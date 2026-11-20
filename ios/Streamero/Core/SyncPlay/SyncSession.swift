@@ -23,6 +23,9 @@ final class SyncSession {
     @ObservationIgnored private var engine = SyncEngine()
     @ObservationIgnored private var runner: Task<Void, Never>?
     @ObservationIgnored private var socket: URLSessionWebSocketTask?
+    /// Bumped whenever the membership changes, so a slow `refresh()` that started earlier
+    /// cannot bring back a group the user just left (or drop one just joined).
+    @ObservationIgnored private var epoch = 0
     /// The attached player; nil while no player follows the group.
     @ObservationIgnored var listener: (@MainActor (SyncEvent) -> Void)?
 
@@ -52,8 +55,10 @@ final class SyncSession {
 
     /// Picks up the group this session is in (after a restart or reconnect).
     func refresh() async {
+        let started = epoch
         do {
             let g = try await client.mySyncGroup()
+            guard started == epoch else { return }
             if g == nil, group != nil {
                 apply(nil)
                 listener?(.ended(reason: "closed"))
@@ -64,7 +69,15 @@ final class SyncSession {
     }
 
     func leave() async {
+        apply(nil)
+        // Best effort: the server also drops a member whose socket closed.
         try? await client.leaveSyncGroup()
+    }
+
+    /// Sign-out or an expired session: stop following the group and close the socket without
+    /// calling the server (the token may already be revoked).
+    func shutdown() {
+        listener = nil
         apply(nil)
     }
 
@@ -109,6 +122,7 @@ final class SyncSession {
     func correcting() -> Bool { engine.correcting(now: Self.nowMs()) }
 
     private func apply(_ g: SyncGroup?) {
+        epoch += 1
         engine.apply(g)
         group = engine.group
         if group != nil {
@@ -133,39 +147,53 @@ final class SyncSession {
         return comps.url
     }
 
+    /// Connects, reads until the socket closes and reconnects with backoff while in a group.
+    /// The loop holds the session only weakly between messages, so a signed-out session is
+    /// released and its loop ends.
     private func startSocket() {
         runner?.cancel()
         runner = Task { [weak self] in
             var attempt = 0
             while !Task.isCancelled {
-                guard let self, self.group != nil, let url = self.socketURL else { return }
-                var req = URLRequest(url: url)
-                req.setValue("Bearer \(self.client.token)", forHTTPHeaderField: "Authorization")
-                let task = URLSession.shared.webSocketTask(with: req)
-                self.socket = task
-                task.resume()
+                guard let task = self?.openSocket() else { return }
                 let pinger = Task { [weak self] in
                     while !Task.isCancelled {
                         self?.send(.ping(clientTime: SyncSession.nowMs()))
                         try? await Task.sleep(for: .seconds(5))
                     }
                 }
-                while !Task.isCancelled {
-                    guard let text = await SyncSession.receiveText(task) else { break }
+                while !Task.isCancelled, let text = await SyncSession.receiveText(task) {
+                    guard let self else { break }
                     if !self.connected { self.connected = true }
                     attempt = 0
                     self.handle(text)
                 }
                 pinger.cancel()
                 task.cancel(with: .goingAway, reason: nil)
-                if self.socket === task { self.socket = nil }
-                self.connected = false
-                if Task.isCancelled || self.group == nil { return }
+                guard !Task.isCancelled, self?.socketClosed(task) == true else { return }
                 attempt += 1
                 let delay = min(30.0, pow(2.0, Double(min(attempt, 5))))
                 try? await Task.sleep(for: .seconds(delay))
             }
         }
+    }
+
+    private func openSocket() -> URLSessionWebSocketTask? {
+        guard group != nil, let url = socketURL else { return nil }
+        var req = URLRequest(url: url)
+        // The token goes in a header, never in the URL (proxies log URLs).
+        req.setValue("Bearer \(client.token)", forHTTPHeaderField: "Authorization")
+        let task = HTTP.session.webSocketTask(with: req)
+        socket = task
+        task.resume()
+        return task
+    }
+
+    /// Clean-up after a closed socket; true when the session should reconnect.
+    private func socketClosed(_ task: URLSessionWebSocketTask) -> Bool {
+        if socket === task { socket = nil }
+        connected = false
+        return group != nil
     }
 
     private func stopSocket() {
@@ -190,6 +218,7 @@ final class SyncSession {
             }
         case "state":
             if let g = msg.group {
+                epoch += 1
                 engine.apply(g)
                 group = engine.group
                 listener?(.state)

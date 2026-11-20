@@ -132,7 +132,7 @@ struct SeerrUserEditView: View {
             quota = SeerrQuota(main)
             originalQuota = quota
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func save() async {
@@ -148,7 +148,7 @@ struct SeerrUserEditView: View {
             }
             notice = ManageNotice(text: "saved")
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -238,14 +238,14 @@ struct SeerrServersView: View {
         do {
             servers = try await client.get(resource).list
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func delete(_ server: JSONValue) async {
         do {
             try await client.send("DELETE", "\(resource)/\(server["id"].text)")
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -384,7 +384,7 @@ struct SeerrServerEditor: View {
             dismiss()
         } catch let e as ArrError where !e.failures.isEmpty {
             failures = e.failures
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -404,7 +404,7 @@ private struct SeerrServerFieldRow: View {
         } else if key.hasSuffix("Id"), value.isNull || value.isNumber {
             // Profile ids typed by hand (no test answer yet).
             LabeledContent {
-                JSONNumberField(value: binding)
+                JSONNumberField(value: binding, allowsNull: true)
             } label: { Text(verbatim: key.humanizedKey) }
         } else if key == "tags" || key == "animeTags" {
             // Without a test there are no tag names; keep the ids as they are.
@@ -463,7 +463,7 @@ struct SeerrMediaServerView: View {
             default: noServer = true
             }
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -538,7 +538,7 @@ struct SeerrLibrariesView: View {
             apply(try await client.get("\(resource)/library", query: [.q("sync", "true")]).list)
             sync = (try? await client.get("\(resource)/sync")) ?? .null
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func save() async {
@@ -549,7 +549,7 @@ struct SeerrLibrariesView: View {
             apply(try await client.get("\(resource)/library", query: [.q("enable", ids.joined(separator: ","))]).list)
             notice = ManageNotice(text: "saved")
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func scan(cancel: Bool) async {
@@ -558,6 +558,6 @@ struct SeerrLibrariesView: View {
             sync = try await client.send("POST", "\(resource)/sync", json: body)
             if !cancel { notice = ManageNotice(text: "manage.command_started") }
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }

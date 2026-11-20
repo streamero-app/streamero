@@ -116,7 +116,7 @@ struct BazarrLanguagesView: View {
             originalProfiles = profs
             loaded = true
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func save() async {
@@ -134,7 +134,7 @@ struct BazarrLanguagesView: View {
             try await client.sendForm("POST", "system/settings", fields: fields)
             notice = ManageNotice(text: "saved")
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 

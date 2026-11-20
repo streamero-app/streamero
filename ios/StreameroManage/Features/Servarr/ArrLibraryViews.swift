@@ -184,14 +184,24 @@ struct ArrLibraryView: View {
             }
             notice = ManageNotice(text: "manage.removed")
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {
+            return
+        } catch {
+            // Some items may be gone already: reload, keep only the selection that still
+            // exists, and say that it failed even though the reload itself works.
+            notice = ManageNotice(text: "manage.bulk_failed", failed: true)
+            await load()
+            let left = Set((items ?? []).compactMap { $0["id"].int })
+            selected.formIntersection(left)
+            self.error = error
+        }
     }
 
     private func load() async {
         do {
             items = try await client.get(flavor.items, timeout: 120).list
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -475,21 +485,21 @@ struct ArrItemDetailView: View {
         do {
             item = try await client.send("PUT", "\(flavor.items)/\(id)", json: body)
             if item?.isNull == true { item = body }
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func delete(files: Bool) async {
         do {
             try await client.send("DELETE", "\(flavor.items)/\(id)", query: [.q("deleteFiles", files), .q(flavor.exclusionParam, false)])
             dismiss()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func deleteFile(_ f: JSONValue) async {
         do {
             try await client.send("DELETE", "\(flavor.files)/\(f["id"].text)")
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -619,6 +629,6 @@ struct ArrItemEditView: View {
         do {
             try await client.send("PUT", "\(flavor.items)/\(item["id"].text)", query: moved ? [.q("moveFiles", true)] : [], json: item)
             dismiss()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }

@@ -98,7 +98,7 @@ struct ArrSystemView: View {
         do {
             try await client.send("POST", "system/restart")
             notice = ManageNotice(text: "manage.restarting")
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -140,19 +140,20 @@ struct ArrTasksView: View {
         do {
             tasks = try await client.get("system/task").list
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func run(_ t: JSONValue) async {
         do {
             try await client.command(t["taskName"].string ?? t["name"].string ?? "")
             notice = ManageNotice(text: "manage.command_started")
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
 /// Backups: list, create, download (share sheet), restore, delete.
 struct ArrBackupsView: View {
+    @State private var pendingDelete: JSONValue?
     let client: ArrClient
     @State private var backups: [JSONValue]?
     @State private var error: Error?
@@ -176,7 +177,7 @@ struct ArrBackupsView: View {
                             .font(.caption2).foregroundStyle(Theme.textFaint)
                     }
                     .swipeActions(edge: .trailing) {
-                        Button(role: .destructive) { Task { await delete(b) } } label: { Label("manage.delete", systemImage: "trash") }
+                        Button(role: .destructive) { pendingDelete = b } label: { Label("manage.delete", systemImage: "trash") }
                         Button { pendingRestore = b } label: { Label("manage.restore", systemImage: "arrow.counterclockwise") }.tint(.orange)
                     }
                     .swipeActions(edge: .leading) {
@@ -188,12 +189,13 @@ struct ArrBackupsView: View {
             } footer: { Text("manage.backups_hint") }
         }
         .manageBackground()
+        .confirmDelete($pendingDelete, detail: { $0["name"].text }) { b in Task { await delete(b) } }
         .navigationTitle(Text("manage.backups"))
         .navigationBarTitleDisplayMode(.inline)
         .overlay { if busy { ProgressView().padding(20).background(Theme.surface2, in: RoundedRectangle(cornerRadius: 12)) } }
         .task { await load() }
         .refreshable { await load() }
-        .sheet(item: $shared) { file in ShareSheet(items: [file.url]) }
+        .sheet(item: $shared, onDismiss: { ArrClient.removeDownloads() }) { file in ShareSheet(items: [file.url]) }
         .confirmationDialog("manage.restore_confirm", isPresented: Binding(get: { pendingRestore != nil }, set: { if !$0 { pendingRestore = nil } }), titleVisibility: .visible) {
             Button("manage.restore", role: .destructive) { if let b = pendingRestore { Task { await restore(b) } } }
         } message: { Text("manage.restore_explain") }
@@ -204,7 +206,7 @@ struct ArrBackupsView: View {
         do {
             backups = try await client.get("system/backup").list.sorted { ($0["time"].string ?? "") > ($1["time"].string ?? "") }
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func create() async {
@@ -213,7 +215,7 @@ struct ArrBackupsView: View {
             notice = ManageNotice(text: "manage.command_started")
             try? await Task.sleep(for: .seconds(3))
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func download(_ b: JSONValue) async {
@@ -225,21 +227,21 @@ struct ArrBackupsView: View {
             let relative = path.range(of: "backup/").map { String(path[$0.lowerBound...]) } ?? path
             let file = try await client.download(client.rawURL(relative), fileName: b["name"].string ?? "backup.zip")
             shared = SharedFile(url: file)
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func restore(_ b: JSONValue) async {
         do {
             try await client.send("POST", "system/backup/restore/\(b["id"].text)")
             notice = ManageNotice(text: "manage.restarting")
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func delete(_ b: JSONValue) async {
         do {
             try await client.send("DELETE", "system/backup/\(b["id"].text)")
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -298,12 +300,13 @@ struct ArrLogsView: View {
             if level != "all" { query.append(.q("level", level)) }
             records = try await client.get("log", query: query)["records"].list
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
 /// Available updates and their changes; install the newest.
 struct ArrUpdatesView: View {
+    @State private var confirmInstall = false
     let client: ArrClient
     @State private var updates: [JSONValue]?
     @State private var error: Error?
@@ -314,7 +317,7 @@ struct ArrUpdatesView: View {
             if let error { ArrErrorLine(error: error) }
             if let latest = updates?.first(where: { $0["installable"].bool == true && $0["installed"].bool != true }) {
                 Section {
-                    Button { Task { await install() } } label: {
+                    Button { confirmInstall = true } label: {
                         Label { Text("manage.install_update") + Text(verbatim: " " + latest["version"].text) } icon: { Image(systemName: "arrow.down.app.fill") }
                     }
                 }
@@ -336,6 +339,9 @@ struct ArrUpdatesView: View {
             if updates == nil && error == nil { LoadingView() }
         }
         .manageBackground()
+        .confirmationDialog("manage.install_confirm", isPresented: $confirmInstall, titleVisibility: .visible) {
+            Button("manage.install_update") { Task { await install() } }
+        }
         .navigationTitle(Text("manage.updates"))
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
@@ -346,13 +352,13 @@ struct ArrUpdatesView: View {
         do {
             updates = try await client.get("update").list
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func install() async {
         do {
             try await client.command("ApplicationUpdate")
             notice = ManageNotice(text: "manage.command_started")
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }

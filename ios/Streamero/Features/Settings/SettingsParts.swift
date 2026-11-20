@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 
 /// A small status pill ("On", "Kids", "This device").
 struct TagBadge: View {
@@ -43,14 +44,16 @@ struct FieldHint: View {
     }
 }
 
-/// Copies text to the clipboard and confirms it briefly.
+/// Copies text to the clipboard and confirms it briefly. A secret (recovery codes, a TOTP
+/// key, a new API key) stays on this device (no Universal Clipboard) and expires after two minutes.
 struct CopyButton: View {
     let text: String
+    var sensitive = false
     @State private var copied = false
 
     var body: some View {
         Button {
-            UIPasteboard.general.string = text
+            SecretPasteboard.copy(text, sensitive: sensitive)
             copied = true
             Task {
                 try? await Task.sleep(for: .seconds(2))
@@ -61,6 +64,46 @@ struct CopyButton: View {
         }
         .sensoryFeedback(.success, trigger: copied) { _, now in now }
     }
+}
+
+/// Pasteboard writes; secrets are local-only and expire.
+enum SecretPasteboard {
+    static let lifetime: TimeInterval = 120
+
+    static func options(sensitive: Bool, now: Date = Date()) -> [UIPasteboard.OptionsKey: Any] {
+        guard sensitive else { return [:] }
+        return [.localOnly: true, .expirationDate: now.addingTimeInterval(lifetime)]
+    }
+
+    @MainActor
+    static func copy(_ text: String, sensitive: Bool) {
+        let item: [String: Any] = [UTType.utf8PlainText.identifier: text]
+        UIPasteboard.general.setItems([item], options: options(sensitive: sensitive))
+    }
+}
+
+/// Covers a screen that shows a secret while the app is not active, so the app switcher's
+/// snapshot (and anyone looking over a shoulder at it) never shows the secret.
+struct HiddenInAppSwitcher: ViewModifier {
+    var active = true
+    @Environment(\.scenePhase) private var phase
+
+    func body(content: Content) -> some View {
+        content.overlay {
+            if active && phase != .active {
+                ZStack {
+                    Theme.background
+                    Image(systemName: "lock.fill").font(.largeTitle).foregroundStyle(Theme.textMuted)
+                }
+                .ignoresSafeArea()
+                .accessibilityHidden(true)
+            }
+        }
+    }
+}
+
+extension View {
+    func hiddenInAppSwitcher(_ active: Bool = true) -> some View { modifier(HiddenInAppSwitcher(active: active)) }
 }
 
 /// The system share sheet for a file (a downloaded backup).

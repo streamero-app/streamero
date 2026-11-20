@@ -16,6 +16,7 @@ struct BookDetailView: View {
     @State private var manifest: AudiobookManifest?
     @State private var playerOpen = false
     @State private var favorite: Bool?
+    @State private var favoriteError: Error?
 
     private var it: ItemSummary { detail.item }
     private var isAudiobook: Bool { it.kind == "audiobook" }
@@ -91,7 +92,7 @@ struct BookDetailView: View {
             let d = manifest?.durationMs ?? it.durationMs ?? 0
             if d > 0 { parts.append(clock(d)) }
         } else if let pages = detail.book?.pageCount, pages > 0 {
-            parts.append(String(localized: "books.pages \(pages)"))
+            parts.append(String.localizedStringWithFormat(Loc.string("books.pages %lld"), pages))
         }
         if let published = detail.book?.published { parts.append(String(published.prefix(4))) } else if let y = it.year { parts.append(String(y)) }
         return parts.joined(separator: " · ")
@@ -137,13 +138,15 @@ struct BookDetailView: View {
                 Button { Task { await toggleFavorite(fav) } } label: { Image(systemName: fav ? "checkmark" : "plus") }
                     .buttonStyle(CircleButtonStyle(active: fav))
                     .accessibilityLabel(Text("library.addToList"))
+                    .accessibilityAddTraits(fav ? .isSelected : [])
                 if let p = progressValue {
                     VStack(alignment: .leading, spacing: 4) {
                         ProgressStrip(value: p).frame(maxWidth: 200).clipShape(Capsule())
-                        Text(verbatim: p.formatted(.percent.precision(.fractionLength(0)))).font(.caption.monospacedDigit()).foregroundStyle(Theme.textMuted)
+                        Text(verbatim: p.formatted(.percent.precision(.fractionLength(0)).locale(Loc.locale))).font(.caption.monospacedDigit()).foregroundStyle(Theme.textMuted)
                     }
                 }
             }
+            ErrorLine(error: favoriteError)
         }
     }
 
@@ -151,14 +154,19 @@ struct BookDetailView: View {
         do {
             try await client.setUserData(item: it.id, favorite: !current)
             favorite = !current
-        } catch {}
+            favoriteError = nil
+        } catch is CancellationError {
+            return
+        } catch {
+            favoriteError = error
+        }
     }
 
     @ViewBuilder private var facts: some View {
         let b = detail.book
         VStack(alignment: .leading, spacing: 10) {
             fact("books.publisher", b?.publisher)
-            fact("released", b?.published ?? detail.premiereDate)
+            fact("released", (b?.published ?? detail.premiereDate).map { ServerDate.short($0, time: false) })
             fact("language", b?.language.map { $0.languageName })
             fact("books.isbn", b?.isbn)
             if !detail.genres.isEmpty { fact("books.genres", detail.genres.joined(separator: ", ")) }

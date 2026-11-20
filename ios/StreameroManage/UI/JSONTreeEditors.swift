@@ -84,7 +84,17 @@ struct JSONObjectEditor: View {
         Form {
             Section {
                 ForEach((value.object ?? [:]).keys.sorted(), id: \.self) { key in
-                    JSONTreeRow(title: key.humanizedKey, value: Binding(get: { value[key] }, set: { value[key] = $0 }))
+                    let field = Binding(get: { value[key] }, set: { value[key] = $0 })
+                    if ObjectFormState.isSecretKey(key), field.wrappedValue.isNull || field.wrappedValue.string != nil {
+                        // Secrets inside lists are never shown in clear.
+                        LabeledContent {
+                            SecureField(text: Binding(get: { field.wrappedValue.string ?? "" },
+                                                      set: { field.wrappedValue = .string($0) })) { EmptyView() }
+                                .multilineTextAlignment(.trailing)
+                        } label: { Text(verbatim: key.humanizedKey) }
+                    } else {
+                        JSONTreeRow(title: key.humanizedKey, value: field)
+                    }
                 }
                 if (value.object ?? [:]).isEmpty { EmptyRow(text: "manage.empty") }
             }

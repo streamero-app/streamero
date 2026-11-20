@@ -177,8 +177,12 @@ struct ObjectFormState: Equatable, Sendable {
     static func isSecretKey(_ path: String) -> Bool {
         let key = (path.split(separator: ".").last.map(String.init) ?? path).lowercased()
         if key.hasSuffix("confirmation") { return true }
+        if key.hasSuffix("bypass") { return false }
         return key.contains("password") || key.contains("apikey") || key == "api_key" || key.contains("secret")
             || key.hasSuffix("token") || key.hasSuffix("_key") || key == "passkey"
+            // Seerr notification settings: SMTP password (authPass), PGP key, bot tokens, auth headers, webhooks.
+            || key.hasSuffix("pass") || key.contains("privatekey") || key == "botapi" || key == "authheader"
+            || key == "webhookurl" || key.hasSuffix("accesstoken")
     }
 
     func value(_ path: String) -> JSONValue { current.value(at: path) }

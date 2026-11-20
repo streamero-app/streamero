@@ -90,7 +90,7 @@ struct AudiobookPlayerView: View {
                 .frame(width: 68, height: 68)
                 .background(Theme.text, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
-            .accessibilityLabel(Text("player.play"))
+            .accessibilityLabel(p.playing ? Text("player.pause") : Text("player.play"))
             Spacer()
             Button { p.skip(seconds: 30) } label: { Image(systemName: "goforward.30").font(.title) }
                 .accessibilityLabel(Text("skip_forward"))
@@ -230,7 +230,7 @@ struct AudiobookMiniBar: View {
                     .buttonStyle(.plain)
                     Button { p.skip(seconds: -15) } label: { Image(systemName: "gobackward.15") }.accessibilityLabel(Text("skip_back"))
                     Button { p.toggle() } label: { Image(systemName: p.playing ? "pause.fill" : "play.fill") }
-                        .frame(width: 36).accessibilityLabel(Text("player.play"))
+                        .frame(width: 36).accessibilityLabel(p.playing ? Text("player.pause") : Text("player.play"))
                     Button { p.stop() } label: { Image(systemName: "xmark") }.accessibilityLabel(Text("stop"))
                 }
                 .padding(.horizontal, 12).padding(.vertical, 8)

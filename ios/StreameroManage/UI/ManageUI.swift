@@ -13,6 +13,10 @@ func arrErrorText(_ error: Error) -> Text {
         return Text("manage.error.unreachable")
     case .invalidPath: return Text("manage.error.invalid_path")
     case .tooLarge: return Text("manage.error.too_large")
+    case .readOnlyKey: return Text("manage.error.read_only_key")
+    case .rateLimited: return Text("manage.error.rate_limited")
+    case .methodNotAllowed: return Text("manage.error.method_not_allowed")
+    case .badResponse: return Text("manage.error.bad_response")
     case .validation(let failures):
         let lines = failures.map { f in f.propertyName.isEmpty ? f.message : "\(f.propertyName): \(f.message)" }
         return Text(verbatim: lines.joined(separator: "\n"))
@@ -246,7 +250,8 @@ enum ArrDate {
 }
 
 func byteText(_ value: JSONValue) -> String {
-    guard let n = value.int64 ?? value.double.map({ Int64($0) }) else { return "" }
+    // Int64(exactly:) instead of Int64(_:): a huge or fractional double from a service must not trap.
+    guard let n = value.int64 ?? value.double.flatMap({ Int64(exactly: $0.rounded()) }) else { return "" }
     return byteSize(n)
 }
 
@@ -289,5 +294,56 @@ struct EmptyRow: View {
     let text: LocalizedStringKey
     var body: some View {
         Text(text).font(.subheadline).foregroundStyle(Theme.textFaint).frame(maxWidth: .infinity, alignment: .center).padding(.vertical, 18)
+    }
+}
+
+/// Asks before a destructive action on a row: the swipe or button only sets `item`; the
+/// action runs from the dialog. `detail` names what is affected (a title, a file name).
+struct ConfirmItemAction: ViewModifier {
+    let title: LocalizedStringKey
+    let button: LocalizedStringKey
+    @Binding var item: JSONValue?
+    let detail: (JSONValue) -> String
+    let perform: (JSONValue) -> Void
+
+    func body(content: Content) -> some View {
+        content.confirmationDialog(title, isPresented: Binding(get: { item != nil }, set: { if !$0 { item = nil } }),
+                                   titleVisibility: .visible, presenting: item) { value in
+            Button(button, role: .destructive) {
+                item = nil
+                perform(value)
+            }
+        } message: { value in
+            let text = detail(value)
+            if !text.isEmpty { Text(verbatim: text) }
+        }
+    }
+}
+
+extension View {
+    func confirmDelete(_ item: Binding<JSONValue?>, detail: @escaping (JSONValue) -> String = { _ in "" },
+                       perform: @escaping (JSONValue) -> Void) -> some View {
+        modifier(ConfirmItemAction(title: "manage.delete_confirm", button: "manage.delete", item: item, detail: detail, perform: perform))
+    }
+
+    func confirmItemAction(_ title: LocalizedStringKey, button: LocalizedStringKey, item: Binding<JSONValue?>,
+                           detail: @escaping (JSONValue) -> String = { _ in "" },
+                           perform: @escaping (JSONValue) -> Void) -> some View {
+        modifier(ConfirmItemAction(title: title, button: button, item: item, detail: detail, perform: perform))
+    }
+}
+
+/// A delete (or other destructive) button that asks first.
+struct ConfirmDeleteButton: View {
+    var title: LocalizedStringKey = "manage.delete"
+    var question: LocalizedStringKey = "manage.delete_confirm"
+    let action: () -> Void
+    @State private var asking = false
+
+    var body: some View {
+        Button(title, role: .destructive) { asking = true }
+            .confirmationDialog(question, isPresented: $asking, titleVisibility: .visible) {
+                Button(title, role: .destructive, action: action)
+            }
     }
 }

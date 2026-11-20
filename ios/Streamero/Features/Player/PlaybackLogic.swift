@@ -76,3 +76,22 @@ enum ControlsTap {
         return center.contains(point) ? .keep : .toggle
     }
 }
+
+/// What the player does when the stream fails: the first failure restarts once from the same
+/// position with the safe profile (H.264 and AAC, which every device decodes; the server
+/// transcodes to it), a second one is shown with a Retry button. Same rule as the web and
+/// Android players.
+struct PlaybackRecovery: Equatable {
+    enum Action: Equatable { case fallback, fail }
+
+    private(set) var safe = false
+
+    mutating func onError() -> Action {
+        if safe { return .fail }
+        safe = true
+        return .fallback
+    }
+
+    /// Retry after a shown error: the safe profile stays (it is the one most likely to work).
+    mutating func retry() { safe = true }
+}

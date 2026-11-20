@@ -50,7 +50,11 @@ struct BackupsPage: View {
                 }
                 if schedule != nil { scheduleSection }
             }
-            .sheet(item: $shared) { file in ShareSheet(items: [file.url]).presentationDetents([.medium, .large]) }
+            // The archive holds the whole database (password hashes, keys): once shared it is
+            // deleted from the device again.
+            .sheet(item: $shared, onDismiss: { BackupFiles.removeAll() }) { file in
+                ShareSheet(items: [file.url]).presentationDetents([.medium, .large])
+            }
             .sheet(item: $restoring) { b in
                 RestoreSheet(backup: b, client: client) { Task { await load() } }
                     .environment(\.locale, app.locale ?? Locale.current)
@@ -63,18 +67,13 @@ struct BackupsPage: View {
                         do {
                             try await client.deleteBackup(b.name)
                             await load()
-                        } catch { self.error = error }
+                        } catch is CancellationError {} catch { self.error = error }
                     }
                 }
             }
             .refreshable { await load() }
-            .task {
-                // Poll while a backup is written or a restore runs (as the web page does).
-                while !Task.isCancelled {
-                    await load()
-                    try? await Task.sleep(for: .seconds(overview?.isBusy == true ? 3 : 30))
-                }
-            }
+            // Poll faster while a backup is written or a restore runs (as the web page does).
+            .poll(every: { .seconds(overview?.isBusy == true ? 3 : 30) }) { await load() }
         }
     }
 
@@ -189,7 +188,7 @@ struct BackupsPage: View {
         do {
             queuedDuringScan = try await client.createBackup().scanRunning
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func download(_ b: Backup) async {
@@ -198,7 +197,7 @@ struct BackupsPage: View {
         do {
             shared = SharedFile(url: try await client.downloadBackup(b.name))
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func saveSchedule() async {
@@ -207,7 +206,7 @@ struct BackupsPage: View {
             self.schedule = try await client.saveBackupSettings(schedule)
             scheduleSaved = true
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -263,6 +262,23 @@ private struct RestoreSheet: View {
             try await client.restoreBackup(backup.name, confirm: typed)
             onStarted()
             dismiss()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
+    }
+}
+
+/// Downloaded backup archives waiting for the share sheet (`tmp/backups`).
+enum BackupFiles {
+    static var directory: URL {
+        FileManager.default.temporaryDirectory.appending(path: "backups", directoryHint: .isDirectory)
+    }
+
+    static func removeAll() {
+        do {
+            try FileManager.default.removeItem(at: directory)
+        } catch CocoaError.fileNoSuchFile {
+            // Nothing left to remove.
+        } catch {
+            // The system clears tmp on its own; nothing to show the user here.
+        }
     }
 }

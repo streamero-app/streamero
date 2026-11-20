@@ -458,6 +458,8 @@ struct ApiKey: Codable, Sendable, Equatable, Identifiable {
     var createdBy: String
     var createdAt: String
     var lastUsedAt: String?
+    /// Read-only keys may only read (GET); anything else answers 403 `read_only_key`.
+    var readOnly: Bool?
 }
 
 struct CreatedApiKey: Codable, Sendable, Equatable {
@@ -467,6 +469,7 @@ struct CreatedApiKey: Codable, Sendable, Equatable {
 
 struct CreateApiKey: Codable, Sendable, Equatable {
     var name: String
+    var readOnly: Bool?
 }
 
 struct CreateInvite: Codable, Sendable, Equatable {
@@ -689,9 +692,11 @@ struct OfflineSyncResponse: Codable, Sendable, Equatable {
     var applied: Int
 }
 
+/// The server's error body `{code, message}`; `message` is optional so a body with only a code
+/// (or a proxy that adds fields) still yields the stable code.
 struct APIErrorBody: Codable, Sendable {
     var code: String
-    var message: String
+    var message: String?
 }
 
 /// Who may see administration and who may fetch subtitles; pure so it can be tested.

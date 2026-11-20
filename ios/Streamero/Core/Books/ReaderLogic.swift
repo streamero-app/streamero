@@ -89,13 +89,44 @@ struct ComicPaging: Equatable, Sendable {
 
 /// Server timestamps ("2024-05-01T12:30:00Z", with or without fractions).
 enum ServerDate {
+    private static let formatters = ISODates()
+
+    /// A server timestamp (RFC 3339, with or without fractions); also a plain "2024-05-01".
     static func parse(_ text: String?) -> Date? {
         guard let text, !text.isEmpty else { return nil }
-        let precise = ISO8601DateFormatter()
-        precise.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = precise.date(from: text) { return date }
-        let plain = ISO8601DateFormatter()
-        plain.formatOptions = [.withInternetDateTime]
-        return plain.date(from: text)
+        return formatters.parse(text)
+    }
+
+    /// Date (and time when the server sent one) in the device's time zone and the account's
+    /// language; the raw text when it cannot be read.
+    static func short(_ text: String, time: Bool = true, seconds: Bool = false, locale: Locale = Loc.locale) -> String {
+        guard let date = parse(text) else { return String(text.prefix(time ? (seconds ? 19 : 16) : 10)).replacingOccurrences(of: "T", with: " ") }
+        let dateOnly = text.count <= 10
+        let clock: Date.FormatStyle.TimeStyle = time && !dateOnly ? (seconds ? .standard : .shortened) : .omitted
+        var style = Date.FormatStyle(date: .abbreviated, time: clock).locale(locale)
+        if dateOnly { style.timeZone = TimeZone(identifier: "UTC") ?? .current }
+        return date.formatted(style)
+    }
+
+    /// Formatters are expensive to build; these are made once and used under a lock.
+    private final class ISODates: @unchecked Sendable {
+        // @unchecked: the formatters are only used under the lock.
+        private let lock = NSLock()
+        private let precise: ISO8601DateFormatter
+        private let plain: ISO8601DateFormatter
+        private let day: ISO8601DateFormatter
+
+        init() {
+            precise = ISO8601DateFormatter()
+            precise.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            plain = ISO8601DateFormatter()
+            plain.formatOptions = [.withInternetDateTime]
+            day = ISO8601DateFormatter()
+            day.formatOptions = [.withFullDate]
+        }
+
+        func parse(_ text: String) -> Date? {
+            lock.withLock { precise.date(from: text) ?? plain.date(from: text) ?? day.date(from: text) }
+        }
     }
 }

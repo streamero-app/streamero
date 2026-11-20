@@ -10,6 +10,9 @@ final class OfflinePlayerModel {
     let entry: OfflineEntry
     private(set) var player: AVPlayer?
     private(set) var missing = false
+    /// The file is there but cannot be played (damaged or an unsupported format).
+    private(set) var failed = false
+    private var itemWatch: PlayerItemWatch?
     private(set) var subtitleIndex = -1
     private(set) var cue: SubtitleCue?
     private var cues: [SubtitleCue] = []
@@ -32,7 +35,9 @@ final class OfflinePlayerModel {
         do {
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
             try AVAudioSession.sharedInstance().setActive(true)
-        } catch {}
+        } catch {
+            // Playback still works without the category (it only stops in silent mode).
+        }
         let manager = DownloadManager.shared
         // The latest state (a sync may have moved the position since the list was drawn).
         let current = manager.entry(entry.itemId) ?? entry
@@ -43,7 +48,17 @@ final class OfflinePlayerModel {
         let p = AVPlayer(url: url)
         // Seeking before the item is ready can land on the wrong spot or be dropped.
         await p.seekWhenReady(toMs: current.resumeMs)
+        // Closed while the file was opening: never start sound without a screen.
+        guard !closed else { return }
         player = p
+        itemWatch = p.currentItem.map { item in
+            PlayerItemWatch(item: item) { [weak self] in
+                Task { @MainActor in
+                    self?.player?.pause()
+                    self?.failed = true
+                }
+            }
+        }
         p.play()
         // Forced subtitles (foreign dialogue) start on by themselves.
         if let forced = current.subtitles.firstIndex(where: { $0.forced }) {
@@ -98,6 +113,7 @@ final class OfflinePlayerModel {
     func close() async {
         guard !closed else { return }
         closed = true
+        itemWatch = nil
         await record()
         player?.pause()
         player = nil
@@ -125,9 +141,13 @@ struct OfflinePlayerView: View {
             if let player = model.player {
                 SystemVideoPlayer(player: player) { point, size in chrome.tap(at: point, in: size) }
                     .ignoresSafeArea()
-            } else if model.missing {
+            }
+            if model.failed {
+                Text("player.error").foregroundStyle(.white).multilineTextAlignment(.center).padding()
+                    .background(.black.opacity(0.75), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            } else if model.player == nil, model.missing {
                 Text("downloads.missing").foregroundStyle(.white).multilineTextAlignment(.center).padding()
-            } else {
+            } else if model.player == nil {
                 ProgressView().tint(.white).frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             if let cue = model.cue {

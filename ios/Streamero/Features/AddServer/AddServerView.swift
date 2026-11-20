@@ -10,6 +10,8 @@ struct AddServerView: View {
     @State private var error: LocalizedStringKey?
     @State private var showInvite = false
     @State private var serverBefore: String?
+    /// A plain-http address on the internet waiting for the user's go-ahead.
+    @State private var unencrypted: URL?
 
     var body: some View {
         VStack(spacing: 24) {
@@ -65,6 +67,16 @@ struct AddServerView: View {
             InviteView(fallbackServer: ServerURL.normalize(address))
                 .onAppear { serverBefore = store.currentID }
         }
+        .alert(Text("server.plainHttp.title"), isPresented: Binding(get: { unencrypted != nil }, set: { if !$0 { unencrypted = nil } })) {
+            Button("server.plainHttp.connect", role: .destructive) {
+                let url = unencrypted
+                unencrypted = nil
+                if let url { Task { await connect(to: url) } }
+            }
+            Button("common.cancel", role: .cancel) { unencrypted = nil }
+        } message: {
+            Text("server.plainHttp.message")
+        }
         .frame(maxWidth: 480)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
@@ -81,6 +93,14 @@ struct AddServerView: View {
             error = "addServer.error.invalid"
             return
         }
+        if ServerURL.isPlainHTTPOverInternet(url) {
+            unencrypted = url
+            return
+        }
+        await connect(to: url)
+    }
+
+    private func connect(to url: URL) async {
         checking = true
         error = nil
         defer { checking = false }

@@ -48,7 +48,7 @@ struct NotificationsPage: View {
                     Task {
                         do {
                             try await store((targets ?? []).filter { $0.id != t.id })
-                        } catch { self.error = error }
+                        } catch is CancellationError {} catch { self.error = error }
                     }
                 }
             }
@@ -215,7 +215,7 @@ private struct NotificationEditor: View {
             try await client.testNotification(target.forSaving)
             tested = true
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func save() async {
@@ -224,6 +224,6 @@ private struct NotificationEditor: View {
         do {
             try await onSave(target)
             dismiss()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }

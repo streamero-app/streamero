@@ -57,7 +57,8 @@ struct InviteView: View {
                 } else {
                     link = initial.token
                 }
-                await check()
+                // A link from outside names any server: the app contacts it only after the user
+                // has seen the address and tapped Continue.
             }
         }
     }
@@ -158,7 +159,13 @@ struct InviteView: View {
     private func signUp(_ invite: CheckedInvite) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("invites.joinTitle \(invite.serverName)").displayFont(26).lineLimit(3).minimumScaleFactor(0.6)
-            Text(verbatim: invite.server.url.host() ?? invite.server.url.absoluteString).font(.footnote).foregroundStyle(Theme.textFaint)
+            Label { Text(verbatim: invite.server.url.host() ?? invite.server.url.absoluteString) } icon: {
+                Image(systemName: invite.server.url.scheme == "https" ? "lock.fill" : "lock.open.fill")
+            }
+            .font(.subheadline.weight(.semibold)).foregroundStyle(Theme.textMuted)
+            if ServerURL.isPlainHTTPOverInternet(invite.server.url) {
+                Text("server.plainHttp.message").font(.footnote).foregroundStyle(.orange)
+            }
             Text("invites.joinIntro").foregroundStyle(Theme.textMuted)
             TextField("login.username", text: $form.username)
                 .textContentType(.username)
@@ -211,7 +218,7 @@ struct InviteView: View {
         signUpError = nil
         defer { busy = false }
         do {
-            let (token, _) = try await AuthClient(baseURL: invite.server.url)
+            let token = try await AuthClient(baseURL: invite.server.url)
                 .acceptInvite(token: invite.token, username: form.username.trimmingCharacters(in: .whitespaces), password: form.password)
             // Store the session first, then switch to the server: the root view restores it.
             session.signedIn(server: invite.server, token: token)

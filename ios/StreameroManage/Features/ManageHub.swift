@@ -55,13 +55,8 @@ struct ManageTab: View {
         }
         .manageBackground()
         .navigationBarTitleDisplayMode(.inline)
-        .task {
-            // Refresh while the hub is visible: queue counts move.
-            while !Task.isCancelled {
-                await load()
-                try? await Task.sleep(for: .seconds(15))
-            }
-        }
+        // Refresh while the hub is visible: queue counts move. Slower after an error (429).
+        .poll(every: { .seconds(error == nil ? 15 : 60) }) { await load() }
         .refreshable { await load() }
     }
 
@@ -78,6 +73,8 @@ struct ManageTab: View {
                 }
                 for await (service, summary) in group { summaries[service] = summary }
             }
+        } catch is CancellationError {
+            return
         } catch {
             self.error = error
         }
@@ -88,6 +85,8 @@ struct ManageTab: View {
 struct ServiceSummary: Sendable, Equatable {
     var warnings = 0
     var errors = 0
+    /// False when the health check itself failed: then nothing is claimed about the health.
+    var healthKnown = true
     /// Downloads in the queue (Radarr/Sonarr/Lidarr), pending requests (Seerr), missing
     /// subtitles (Bazarr), indexers (Prowlarr).
     var count: Int?
@@ -96,9 +95,12 @@ struct ServiceSummary: Sendable, Equatable {
         var s = ServiceSummary()
         switch arr.service {
         case .radarr, .sonarr, .lidarr, .prowlarr:
-            let health = (try? await arr.get("health").list) ?? []
-            s.errors = health.filter { $0["type"].string?.lowercased() == "error" }.count
-            s.warnings = health.count - s.errors
+            if let health = try? await arr.get("health").list {
+                s.errors = health.filter { $0["type"].string?.lowercased() == "error" }.count
+                s.warnings = health.count - s.errors
+            } else {
+                s.healthKnown = false
+            }
             if arr.service == .prowlarr {
                 s.count = (try? await arr.get("indexer").list.count)
             } else {
@@ -107,8 +109,11 @@ struct ServiceSummary: Sendable, Equatable {
         case .bazarr:
             let badges = try? await arr.get("badges")
             s.count = (badges?["movies"].int ?? 0) + (badges?["episodes"].int ?? 0)
-            let health = (try? await arr.get("system/health"))?["data"].list ?? []
-            s.warnings = health.count
+            if let health = try? await arr.get("system/health") {
+                s.warnings = health["data"].list.count
+            } else {
+                s.healthKnown = false
+            }
         case .seerr:
             s.count = (try? await arr.get("request/count"))?["pending"].int
         }
@@ -173,8 +178,10 @@ struct ServiceCard: View {
                 if summary.warnings > 0 { PlainBadge(text: "\(summary.warnings)", tone: .accent) }
                 Text("manage.health_issues").font(.caption).foregroundStyle(Theme.textMuted)
             }
-        } else {
+        } else if summary?.healthKnown != false {
             TagBadge(text: "manage.healthy", tone: .success)
+        } else {
+            TagBadge(text: "manage.health_unknown")
         }
     }
 }

@@ -246,20 +246,25 @@ struct LibraryTile: View {
     var body: some View {
         HStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 6) {
-                Text(library.name).displayFont(26).foregroundStyle(Theme.text)
+                Text(library.name).displayFont(26).foregroundStyle(Theme.text).lineLimit(2).minimumScaleFactor(0.7)
                 Text("home.items \(library.itemCount)").font(.subheadline).foregroundStyle(Theme.textMuted)
             }
             Spacer()
             Image(systemName: icon).font(.title2).foregroundStyle(Theme.accent.opacity(0.8))
         }
         .padding(20)
-        .frame(height: 110)
+        .frame(minHeight: 110)
         .background(
             RadialGradient(colors: [Color(hue: Theme.hue(for: library.name), saturation: 0.25, brightness: 0.16), Theme.surface],
                            center: .bottomLeading, startRadius: 0, endRadius: 360),
             in: RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous).strokeBorder(Theme.border))
     }
+}
+
+/// "S01E02": the numbering convention used the same way in every language.
+func seasonEpisode(season: Int?, episode: Int?) -> String {
+    String(format: "S%02dE%02d", season ?? 0, episode ?? 0)
 }
 
 func episodeTitle(_ it: ItemSummary) -> String {

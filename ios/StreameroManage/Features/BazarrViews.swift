@@ -77,7 +77,7 @@ struct BazarrWantedView: View {
             rows = result["data"].list
             total = result["total"].int ?? rows?.count ?? 0
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func search(_ row: JSONValue, _ lang: JSONValue) async {
@@ -92,7 +92,7 @@ struct BazarrWantedView: View {
             try await client.send("PATCH", movies ? "movies/subtitles" : "episodes/subtitles", query: query)
             notice = ManageNotice(text: "manage.command_started")
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func searchAll() async {
@@ -100,7 +100,7 @@ struct BazarrWantedView: View {
         do {
             try await client.send("POST", "system/tasks", query: [.q("taskid", task)])
             notice = ManageNotice(text: "manage.command_started")
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -157,7 +157,7 @@ struct BazarrManualSearchView: View {
             let query: [URLQueryItem] = movies ? [.q("radarrid", row["radarrId"].text)] : [.q("episodeid", row["sonarrEpisodeId"].text)]
             offers = try await client.get(movies ? "providers/movies" : "providers/episodes", query: query, timeout: 180)["data"].list
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func download(_ o: JSONValue) async {
@@ -169,7 +169,7 @@ struct BazarrManualSearchView: View {
         do {
             try await client.send("POST", movies ? "providers/movies" : "providers/episodes", query: query)
             notice = ManageNotice(text: "manage.downloaded")
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -213,7 +213,7 @@ struct BazarrHistoryView: View {
         do {
             rows = try await client.get(movies ? "history/movies" : "history/episodes", query: [.q("start", 0), .q("length", 100)])["data"].list
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -255,7 +255,7 @@ struct BazarrProvidersView: View {
         do {
             providers = try await client.get("providers")["data"].list
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func reset() async {
@@ -263,12 +263,14 @@ struct BazarrProvidersView: View {
             try await client.send("POST", "providers", query: [.q("action", "reset")])
             notice = ManageNotice(text: "manage.done")
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
 /// Status, health, tasks, backups and logs of Bazarr.
 struct BazarrSystemView: View {
+    @State private var pendingDelete: JSONValue?
+    @State private var pendingRestore: JSONValue?
     let client: ArrClient
     @State private var status: JSONValue?
     @State private var health: [JSONValue] = []
@@ -320,8 +322,8 @@ struct BazarrSystemView: View {
                         Text(verbatim: [b["date"].string, b["size"].string].compactMap { $0 }.joined(separator: " · ")).font(.caption2).foregroundStyle(Theme.textFaint)
                     }
                     .swipeActions {
-                        Button(role: .destructive) { Task { await deleteBackup(b) } } label: { Label("manage.delete", systemImage: "trash") }
-                        Button { Task { await restore(b) } } label: { Label("manage.restore", systemImage: "arrow.counterclockwise") }.tint(.orange)
+                        Button(role: .destructive) { pendingDelete = b } label: { Label("manage.delete", systemImage: "trash") }
+                        Button { pendingRestore = b } label: { Label("manage.restore", systemImage: "arrow.counterclockwise") }.tint(.orange)
                     }
                 }
             } header: { Text("manage.backups") }
@@ -339,6 +341,9 @@ struct BazarrSystemView: View {
             } header: { Text("manage.logs") }
         }
         .manageBackground()
+        .confirmDelete($pendingDelete, detail: { $0["filename"].text }) { b in Task { await deleteBackup(b) } }
+        .confirmItemAction("manage.restore_confirm", button: "manage.restore", item: $pendingRestore,
+                           detail: { _ in Loc.string("manage.restore_explain") }) { b in Task { await restore(b) } }
         .navigationTitle(Text("manage.system"))
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
@@ -365,7 +370,7 @@ struct BazarrSystemView: View {
             try await client.send("POST", "system/tasks", query: [.q("taskid", t["job_id"].text)])
             notice = ManageNotice(text: "manage.command_started")
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func createBackup() async {
@@ -373,21 +378,21 @@ struct BazarrSystemView: View {
             try await client.send("POST", "system/backups")
             notice = ManageNotice(text: "manage.command_started")
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func restore(_ b: JSONValue) async {
         do {
             try await client.send("PATCH", "system/backups", query: [.q("filename", b["filename"].text)])
             notice = ManageNotice(text: "manage.restarting")
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func deleteBackup(_ b: JSONValue) async {
         do {
             try await client.send("DELETE", "system/backups", query: [.q("filename", b["filename"].text)])
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -437,7 +442,7 @@ struct BazarrSettingsView: View {
             let settings = try await client.get("system/settings")
             sections = (settings.object ?? [:]).filter { $0.value.object != nil }.keys.sorted()
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -480,7 +485,7 @@ struct BazarrSectionEditor: View {
             // Keep only this section so unchanged secrets elsewhere are never touched.
             state = ObjectFormState([section: all[section]])
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func save() async {
@@ -491,6 +496,6 @@ struct BazarrSectionEditor: View {
             try await client.sendForm("POST", "system/settings", fields: BazarrSettings.formFields(state.changes()))
             notice = ManageNotice(text: "saved")
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }

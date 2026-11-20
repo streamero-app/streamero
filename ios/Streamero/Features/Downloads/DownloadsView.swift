@@ -38,7 +38,7 @@ struct DownloadsView: View {
 
     var body: some View {
         let library = downloads.library
-        let movies = library.entries.filter { $0.seriesId == nil }.sorted { $0.item.title < $1.item.title }
+        let movies = library.entries.filter { $0.seriesId == nil }.sorted { $0.item.title.localizedStandardCompare($1.item.title) == .orderedAscending }
         let groups = seriesGroups(library.entries)
         List {
             if let offlineRetry { offlineNotice(offlineRetry) }
@@ -147,7 +147,7 @@ struct DownloadsView: View {
             return SeriesGroup(id: id, title: first?.series?.title ?? first?.item.seriesTitle ?? "",
                                poster: episodes.compactMap(\.seriesPosterFile).first, episodes: episodes)
         }
-        .sorted { $0.title < $1.title }
+        .sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
     }
 
     private func offlineNotice(_ retry: @escaping () async -> Void) -> some View {
@@ -240,7 +240,7 @@ struct DownloadRow: View {
                 .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 5, style: .continuous).strokeBorder(Theme.border))
             VStack(alignment: .leading, spacing: 4) {
-                Text(verbatim: isEpisode ? seasonEpisode(entry.item) : entry.item.title)
+                Text(verbatim: isEpisode ? episodeLine(entry.item) : entry.item.title)
                     .font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text).lineLimit(2)
                 DownloadStateLine(entry: entry)
             }
@@ -254,9 +254,9 @@ struct DownloadRow: View {
         .contentShape(Rectangle())
     }
 
-    private func seasonEpisode(_ it: ItemSummary) -> String {
+    private func episodeLine(_ it: ItemSummary) -> String {
         guard let s = it.seasonNumber, let e = it.episodeNumber else { return it.title }
-        return "S\(String(format: "%02d", s))E\(String(format: "%02d", e)) · \(it.title)"
+        return "\(seasonEpisode(season: s, episode: e)) · \(it.title)"
     }
 }
 

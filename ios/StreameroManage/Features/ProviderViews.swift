@@ -84,14 +84,14 @@ struct ProviderListView: View {
         do {
             items = try await client.get(kind.resource).list.sorted { ($0["name"].string ?? "").localizedCaseInsensitiveCompare($1["name"].string ?? "") == .orderedAscending }
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func delete(_ item: JSONValue) async {
         do {
             try await client.send("DELETE", "\(kind.resource)/\(item["id"].text)")
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func testAll() async {
@@ -215,7 +215,7 @@ struct ProviderTemplatePicker: View {
     private func load() async {
         do {
             templates = try await client.get("\(kind.resource)/schema").list
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -334,8 +334,11 @@ struct ProviderEditorView: View {
                 }
             }
             Section {
+                // A failure on a field that is not on screen (advanced while hidden, or hidden by
+                // the schema) is listed here, so Save never fails without a word.
+                let shown = form.fields.filter { $0.isVisible && (showAdvanced || !$0.advanced) }
                 let general = failures.filter { f in
-                    f.propertyName.isEmpty || !(form.fields.contains { f.matches($0.name) } || f.matches("name"))
+                    f.propertyName.isEmpty || !(shown.contains { f.matches($0.name) } || f.matches("name"))
                 }
                 ForEach(general, id: \.self) { f in
                     Text(verbatim: f.message).font(.footnote).foregroundStyle(f.isWarning ? .orange : .red)
@@ -442,6 +445,6 @@ struct ProviderEditorView: View {
         do {
             try await client.send("DELETE", "\(kind.resource)/\(resource["id"].text)")
             dismiss()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }

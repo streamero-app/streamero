@@ -56,7 +56,7 @@ struct LiveTVView: View {
         do {
             channels = try await client.liveChannels()
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
         loaded = true
     }
 
@@ -81,7 +81,7 @@ struct ChannelLogo: View {
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous).fill(Theme.surface2)
-            if let logo = channel.logoUrl, let url = client.absolute(logo) {
+            if let logo = channel.logoUrl, let url = client.ownURL(logo) {
                 AuthImage(url: url, token: client.token, fit: true).padding(6)
             } else {
                 Text(verbatim: channel.number).headFont(15).foregroundStyle(Theme.textMuted)
@@ -251,7 +251,7 @@ struct LiveChannelView: View {
             let guide = try await client.liveGuide(hours: 12)
             programs = guide.rows.first { $0.channel.id == channel.id }?.programs ?? []
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
         loaded = true
     }
 
@@ -265,7 +265,7 @@ struct LiveChannelView: View {
                 _ = try await client.recordProgram(p.id, channel: channel.id)
             }
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 

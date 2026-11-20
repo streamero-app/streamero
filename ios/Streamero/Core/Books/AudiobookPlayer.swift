@@ -33,7 +33,7 @@ final class AudiobookPlayer {
     @ObservationIgnored var onStart: (@MainActor () -> Void)?
 
     private let client: MediaClient
-    private let player = AVPlayer()
+    private let player: AVPlayer
     @ObservationIgnored private var partIndex = -1
     /// Where the current stream starts inside its file (non-zero only for transcoded streams).
     @ObservationIgnored private var streamOffset: Int64 = 0
@@ -42,14 +42,24 @@ final class AudiobookPlayer {
     @ObservationIgnored private var needsReload = false
     @ObservationIgnored private var loadTask: Task<Void, Never>?
     @ObservationIgnored private var endObserver: (any NSObjectProtocol)?
-    @ObservationIgnored private var timeObserver: Any?
+    /// Time and interruption observers, removed when the player goes away (one per sign-in).
+    private let observers: PlayerObservers
+    @ObservationIgnored private var resumeAfterInterruption = false
+    /// A video player owns the lock screen while it is open.
+    @ObservationIgnored private(set) var remoteSuspended = false
     @ObservationIgnored private var lastReport = Date.distantPast
     @ObservationIgnored private var artwork: MPMediaItemArtwork?
 
     init(client: MediaClient) {
         self.client = client
-        timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.5, preferredTimescale: 600), queue: .main) { [weak self] _ in
+        let player = AVPlayer()
+        self.player = player
+        observers = PlayerObservers(player: player)
+        observers.time = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.5, preferredTimescale: 600), queue: .main) { [weak self] _ in
             Task { @MainActor in self?.tick() }
+        }
+        observers.interruption = Interruptions.observe { [weak self] began, shouldResume in
+            Task { @MainActor in self?.interrupted(began: began, shouldResume: shouldResume) }
         }
     }
 
@@ -152,6 +162,30 @@ final class AudiobookPlayer {
         endObserver = NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: playerItem, queue: .main) { [weak self] _ in
             Task { @MainActor in self?.partEnded() }
         }
+    }
+
+    private func interrupted(began: Bool, shouldResume: Bool) {
+        guard item != nil else { return }
+        if began {
+            resumeAfterInterruption = playing
+            if playing {
+                playing = false
+                reportNow()
+                updateElapsed()
+            }
+        } else if shouldResume && resumeAfterInterruption {
+            resumeAfterInterruption = false
+            play()
+        }
+    }
+
+    /// A video opened: the lock-screen buttons must not start the book under the film.
+    func suspendRemote() { remoteSuspended = true }
+
+    func resumeRemote() {
+        guard remoteSuspended else { return }
+        remoteSuspended = false
+        if item != nil { updateNowPlaying() }
     }
 
     // MARK: Controls
@@ -316,14 +350,16 @@ final class AudiobookPlayer {
         do {
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio)
             try AVAudioSession.sharedInstance().setActive(true)
-        } catch {}
+        } catch {
+            // Playback still works without the category (it only stops in silent mode).
+        }
     }
 
     // MARK: Now playing
 
     private func fetchArtwork(for book: ItemSummary) async {
         guard book.hasPoster, let url = client.imageURL(item: book.id, type: "poster"),
-              let image = await ImageCache.shared.image(url: url, token: client.token),
+              let image = await ImageCache.shared.image(url: url, token: client.token, maxPixels: 1024),
               item?.id == book.id else { return }
         artwork = Self.artwork(from: image)
         updateNowPlaying()
@@ -335,7 +371,7 @@ final class AudiobookPlayer {
     }
 
     private func updateNowPlaying() {
-        guard let book = item else { return }
+        guard let book = item, !remoteSuspended else { return }
         var info: [String: Any] = [:]
         info[MPMediaItemPropertyTitle] = book.title
         info[MPMediaItemPropertyArtist] = (book.authors ?? []).joined(separator: ", ")
@@ -346,7 +382,7 @@ final class AudiobookPlayer {
     }
 
     private func updateElapsed() {
-        guard item != nil, var info = MPNowPlayingInfoCenter.default().nowPlayingInfo else { return }
+        guard item != nil, !remoteSuspended, var info = MPNowPlayingInfoCenter.default().nowPlayingInfo else { return }
         info[MPMediaItemPropertyAlbumTitle] = chapterTitle ?? ""
         info[MPMediaItemPropertyPlaybackDuration] = Double(duration) / 1000
         info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = Double(position) / 1000
@@ -386,31 +422,31 @@ final class AudiobookPlayer {
         center.skipBackwardCommand.preferredIntervals = [15]
         _ = center.playCommand.addTarget { _ in
             Task { @MainActor in
-                if let p = active, p.item != nil, !p.playing { p.play() }
+                if let p = active, p.item != nil, !p.remoteSuspended, !p.playing { p.play() }
             }
             return .success
         }
         _ = center.pauseCommand.addTarget { _ in
             Task { @MainActor in
-                if let p = active, p.item != nil { p.pause() }
+                if let p = active, p.item != nil, !p.remoteSuspended { p.pause() }
             }
             return .success
         }
         _ = center.togglePlayPauseCommand.addTarget { _ in
             Task { @MainActor in
-                if let p = active, p.item != nil { p.toggle() }
+                if let p = active, p.item != nil, !p.remoteSuspended { p.toggle() }
             }
             return .success
         }
         _ = center.skipForwardCommand.addTarget { _ in
             Task { @MainActor in
-                if let p = active, p.item != nil { p.skip(seconds: 30) }
+                if let p = active, p.item != nil, !p.remoteSuspended { p.skip(seconds: 30) }
             }
             return .success
         }
         _ = center.skipBackwardCommand.addTarget { _ in
             Task { @MainActor in
-                if let p = active, p.item != nil { p.skip(seconds: -15) }
+                if let p = active, p.item != nil, !p.remoteSuspended { p.skip(seconds: -15) }
             }
             return .success
         }
@@ -418,7 +454,7 @@ final class AudiobookPlayer {
             guard let event = event as? MPChangePlaybackPositionCommandEvent else { return .commandFailed }
             let ms = Int64(event.positionTime * 1000)
             Task { @MainActor in
-                if let p = active, p.item != nil { p.seek(ms) }
+                if let p = active, p.item != nil, !p.remoteSuspended { p.seek(ms) }
             }
             return .success
         }

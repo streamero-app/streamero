@@ -50,6 +50,13 @@ enum TwoFactor {
 /// The add/edit form for a profile (same rules as the web form and the API schema).
 struct ProfileForm: Equatable {
     static let colors = ["#e5484d", "#f76b15", "#ffc53d", "#3dd68c", "#0090ff", "#8e4ec6", "#d6409f", "#6e6e80"]
+
+    /// The string key VoiceOver reads for a colour (not its hex code).
+    static func colorName(_ hex: String) -> String {
+        let names = ["colour.red", "colour.orange", "colour.yellow", "colour.green", "colour.blue", "colour.purple", "colour.pink", "colour.grey"]
+        guard let i = colors.firstIndex(of: hex.lowercased()) else { return "colour" }
+        return names[i]
+    }
     static let ratings = [0, 6, 7, 12, 13, 15, 16, 18]
     /// The server allows six profiles besides the account itself.
     static let maxProfiles = 6

@@ -114,9 +114,15 @@ final class AppState {
     /// Reloads the account and the server's feature switches; returns the account or nil.
     @discardableResult
     func refreshMe() async -> User? {
-        me = try? await client.me()
-        enhancements = (try? await client.enhancements()) ?? Enhancements()
-        Loc.apply(language: me?.language)
+        // A failed call keeps what is known: dropping the account would hide the admin pages
+        // and show two-factor sign-in as off right after it was turned on.
+        let client = client
+        async let enhancements = try? client.enhancements()
+        if let fresh = try? await client.me() {
+            me = fresh
+            Loc.apply(language: fresh.language)
+        }
+        if let fresh = await enhancements { self.enhancements = fresh }
         return me
     }
 
@@ -129,6 +135,7 @@ final class AppState {
 /// Localization for strings built in code; SwiftUI views use the `locale` environment instead.
 enum Loc {
     private static let key = "streamero.language"
+    private static let bundles = BundleCache()
 
     static func apply(language: String?) {
         guard let language else { return }
@@ -137,12 +144,30 @@ enum Loc {
         UserDefaults.standard.set([language], forKey: "AppleLanguages")
     }
 
+    /// The account's language for dates and numbers formatted in code.
+    static var locale: Locale {
+        UserDefaults.standard.string(forKey: key).map(Locale.init(identifier:)) ?? .current
+    }
+
     static func string(_ key: String) -> String {
-        if let language = UserDefaults.standard.string(forKey: Self.key),
-           let path = Bundle.main.path(forResource: language, ofType: "lproj"),
-           let bundle = Bundle(path: path) {
-            return bundle.localizedString(forKey: key, value: nil, table: nil)
+        let language = UserDefaults.standard.string(forKey: Self.key)
+        return bundles.bundle(for: language).localizedString(forKey: key, value: nil, table: nil)
+    }
+
+    /// The `.lproj` bundle per language, opened once (building a Bundle per string is slow).
+    private final class BundleCache: @unchecked Sendable {
+        // @unchecked: the dictionary is only touched under the lock.
+        private let lock = NSLock()
+        private var bundles: [String: Bundle] = [:]
+
+        func bundle(for language: String?) -> Bundle {
+            guard let language else { return .main }
+            return lock.withLock {
+                if let hit = bundles[language] { return hit }
+                let found = Bundle.main.path(forResource: language, ofType: "lproj").flatMap(Bundle.init(path:)) ?? .main
+                bundles[language] = found
+                return found
+            }
         }
-        return Bundle.main.localizedString(forKey: key, value: nil, table: nil)
     }
 }

@@ -42,7 +42,7 @@ struct LibrariesTab: View {
         do {
             libraries = try await client.libraries()
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
         loaded = true
     }
 }
@@ -54,6 +54,7 @@ struct LibraryView: View {
     @State private var items: [ItemSummary] = []
     @State private var total = -1
     @State private var loading = false
+    @State private var generation = 0
     @State private var sort = "added"
     @State private var status = ""
     @State private var genre = ""
@@ -118,19 +119,24 @@ struct LibraryView: View {
             }
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(Theme.text)
-            .padding(.horizontal, 12).frame(height: 40)
+            .padding(.horizontal, 12).frame(minHeight: 40)
             .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
         }
     }
 
     private func load(reset: Bool) async {
         guard reset || !loading else { return }
+        // A new sort or filter starts a new generation; a page still on its way for the old
+        // one (started by a cell that stayed on screen) is then dropped instead of appended.
+        if reset { generation += 1 }
+        let gen = generation
         loading = true
-        defer { loading = false }
+        defer { if gen == generation { loading = false } }
         var query: [String: String?] = ["sort": sort, "genre": genre.isEmpty ? nil : genre, "limit": "60", "offset": String(reset ? 0 : items.count)]
         if !status.isEmpty { query[status] = "true" }
         do {
             let page = try await client.items(library: route.id, query: query)
+            guard gen == generation else { return }
             if reset { items = page.items } else {
                 let known = Set(items.map(\.id))
                 items += page.items.filter { !known.contains($0.id) }
@@ -161,7 +167,7 @@ struct FavoritesView: View {
         do {
             items = try await client.favorites()
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -279,7 +285,7 @@ struct CollectionsView: View {
         do {
             collections = try await client.collections()
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
         playlists = (try? await client.playlists()) ?? []
     }
 }
@@ -293,7 +299,7 @@ struct CollectionView: View {
     var body: some View {
         ItemGridPage(titleText: detail?.collection.name ?? "", overview: detail?.collection.overview, items: detail?.items, error: error, client: client)
             .task(id: id) {
-                do { detail = try await client.collection(id); error = nil } catch { self.error = error }
+                do { detail = try await client.collection(id); error = nil } catch is CancellationError {} catch { self.error = error }
             }
     }
 }
@@ -313,7 +319,7 @@ struct PlaylistView: View {
     var body: some View {
         ItemGridPage(titleText: detail?.playlist.name ?? "", items: detail?.items, error: error, client: client, playAll: playAll)
             .task(id: id) {
-                do { detail = try await client.playlist(id); error = nil } catch { self.error = error }
+                do { detail = try await client.playlist(id); error = nil } catch is CancellationError {} catch { self.error = error }
             }
     }
 }

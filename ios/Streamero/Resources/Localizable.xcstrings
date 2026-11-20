@@ -549,15 +549,45 @@
     "home.items %lld": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld items"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld item"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld items"
+                }
+              }
+            }
           }
         },
         "hr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld stavki"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld stavka"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld stavke"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld stavki"
+                }
+              }
+            }
           }
         }
       }
@@ -1221,15 +1251,45 @@
     "albums_count %lld": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld albums"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld album"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld albums"
+                }
+              }
+            }
           }
         },
         "hr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Albuma: %lld"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld album"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld albuma"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld albuma"
+                }
+              }
+            }
           }
         }
       }
@@ -1917,7 +1977,7 @@
         "hr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Discover"
+            "value": "Otkrij"
           }
         }
       }
@@ -1997,7 +2057,7 @@
         "hr": {
           "stringUnit": {
             "state": "translated",
-            "value": "E-mail"
+            "value": "E-pošta"
           }
         }
       }
@@ -2469,15 +2529,45 @@
     "items_count %lld": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld items"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld item"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld items"
+                }
+              }
+            }
           }
         },
         "hr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Stavki: %lld"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld stavka"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld stavke"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld stavki"
+                }
+              }
+            }
           }
         }
       }
@@ -4213,15 +4303,45 @@
     "songs_count %lld": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld songs"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld song"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld songs"
+                }
+              }
+            }
           }
         },
         "hr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pjesama: %lld"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld pjesma"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld pjesme"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld pjesama"
+                }
+              }
+            }
           }
         }
       }
@@ -4789,15 +4909,45 @@
     "transcodes_now %lld": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld transcodes running"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld transcode running"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld transcodes running"
+                }
+              }
+            }
           }
         },
         "hr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Transkodiranja u tijeku: %lld"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld transkodiranje u tijeku"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld transkodiranja u tijeku"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld transkodiranja u tijeku"
+                }
+              }
+            }
           }
         }
       }
@@ -5213,7 +5363,7 @@
         "hr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Poslužitelj za tebe još nema filmova ni serija."
+            "value": "Server za tebe još nema filmova ni serija."
           }
         }
       }
@@ -8253,7 +8403,7 @@
         "hr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Access token (neobavezno)"
+            "value": "Pristupni token (neobavezno)"
           }
         }
       }
@@ -8445,7 +8595,7 @@
         "hr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Worker jednom dnevno napravi kopiju."
+            "value": "Server jednom dnevno napravi sigurnosnu kopiju."
           }
         }
       }
@@ -9613,7 +9763,7 @@
         "hr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Client ID"
+            "value": "ID klijenta"
           }
         }
       }
@@ -10365,7 +10515,7 @@
         "hr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Scopeovi"
+            "value": "Opsezi (scopes)"
           }
         }
       }
@@ -10901,15 +11051,45 @@
     "sso.testOk %lld": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The provider answered correctly (%lld signing keys)."
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "The provider answered correctly (%lld signing key)."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "The provider answered correctly (%lld signing keys)."
+                }
+              }
+            }
           }
         },
         "hr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pružatelj je ispravno odgovorio (%lld ključeva za potpis)."
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Pružatelj je ispravno odgovorio (%lld ključ za potpis)."
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Pružatelj je ispravno odgovorio (%lld ključa za potpis)."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Pružatelj je ispravno odgovorio (%lld ključeva za potpis)."
+                }
+              }
+            }
           }
         }
       }
@@ -11446,7 +11626,7 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "svakih %lld sat"
+                  "value": "svaki %lld sat"
                 }
               },
               "few": {
@@ -12157,15 +12337,45 @@
     "books.pages %lld": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld pages"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld page"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld pages"
+                }
+              }
+            }
           }
         },
         "hr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Stranica: %lld"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld stranica"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld stranice"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld stranica"
+                }
+              }
+            }
           }
         }
       }
@@ -12221,15 +12431,45 @@
     "books.sleepMinutes %lld": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld minutes"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld minute"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld minutes"
+                }
+              }
+            }
           }
         },
         "hr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Minuta: %lld"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld minuta"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld minute"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld minuta"
+                }
+              }
+            }
           }
         }
       }
@@ -12893,15 +13133,45 @@
     "manage.count_items %lld": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld items"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld item"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld items"
+                }
+              }
+            }
           }
         },
         "hr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Stavki: %lld"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld stavka"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld stavke"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld stavki"
+                }
+              }
+            }
           }
         }
       }
@@ -13309,15 +13579,45 @@
     "manage.episode_count %lld": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld episodes"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld episode"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld episodes"
+                }
+              }
+            }
           }
         },
         "hr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Epizoda: %lld"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld epizoda"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld epizode"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld epizoda"
+                }
+              }
+            }
           }
         }
       }
@@ -15149,15 +15449,45 @@
     "manage.request_count %lld": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld requests"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld request"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld requests"
+                }
+              }
+            }
           }
         },
         "hr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zahtjeva: %lld"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld zahtjev"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld zahtjeva"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld zahtjeva"
+                }
+              }
+            }
           }
         }
       }
@@ -16989,15 +17319,45 @@
     "manage.json_items %lld": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld items"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld item"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld items"
+                }
+              }
+            }
           }
         },
         "hr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Stavki: %lld"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld stavka"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld stavke"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld stavki"
+                }
+              }
+            }
           }
         }
       }
@@ -17005,15 +17365,45 @@
     "manage.json_keys %lld": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld fields"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld field"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld fields"
+                }
+              }
+            }
           }
         },
         "hr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Polja: %lld"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld polje"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld polja"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld polja"
+                }
+              }
+            }
           }
         }
       }
@@ -18390,6 +18780,550 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ti"
+          }
+        }
+      }
+    },
+    "player.pause": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pauza"
+          }
+        }
+      }
+    },
+    "player.fallback": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Playback failed, trying a more compatible stream."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reprodukcija nije uspjela, pokušavam s kompatibilnijim streamom."
+          }
+        }
+      }
+    },
+    "player.position": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Position"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pozicija"
+          }
+        }
+      }
+    },
+    "apikeys.readOnly": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read only"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Samo za čitanje"
+          }
+        }
+      }
+    },
+    "apikeys.readOnlyHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A read-only key can view everything an administrator can, but cannot change anything. Use it for dashboards."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ključ samo za čitanje vidi sve što i administrator, ali ništa ne može promijeniti. Koristi ga za nadzorne ploče."
+          }
+        }
+      }
+    },
+    "apikeys.shownOnce": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The key is shown only now. Copy it to a safe place."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ključ se prikazuje samo sada. Kopiraj ga na sigurno mjesto."
+          }
+        }
+      }
+    },
+    "home.top": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Top rated"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Najbolje ocijenjeno"
+          }
+        }
+      }
+    },
+    "home.genres": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Genres"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Žanrovi"
+          }
+        }
+      }
+    },
+    "task_segments": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Detect intros and credits"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prepoznaj uvode i odjavne špice"
+          }
+        }
+      }
+    },
+    "task_backup": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back up"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sigurnosna kopija"
+          }
+        }
+      }
+    },
+    "task_guide": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refresh TV guide"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Osvježi TV vodič"
+          }
+        }
+      }
+    },
+    "task_state.completed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Completed"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Završeno"
+          }
+        }
+      }
+    },
+    "task_state.failed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Failed"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neuspjelo"
+          }
+        }
+      }
+    },
+    "task_state.cancelled": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelled"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otkazano"
+          }
+        }
+      }
+    },
+    "check.ok": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connected"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Povezano"
+          }
+        }
+      }
+    },
+    "check.failed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not connected"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nije povezano"
+          }
+        }
+      }
+    },
+    "server.plainHttp.title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unencrypted connection"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nešifrirana veza"
+          }
+        }
+      }
+    },
+    "server.plainHttp.message": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This address uses plain http over the internet: your password, your session and what you watch travel unencrypted. Use an https address if the server has one."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ova adresa koristi običan http preko interneta: lozinka, prijava i ono što gledaš putuju nešifrirano. Ako server ima https adresu, koristi nju."
+          }
+        }
+      }
+    },
+    "server.plainHttp.connect": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect anyway"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ipak se poveži"
+          }
+        }
+      }
+    },
+    "manage.error.read_only_key": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This sign-in uses a read-only API key: it cannot change anything."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ova prijava koristi API ključ samo za čitanje: ne može ništa mijenjati."
+          }
+        }
+      }
+    },
+    "manage.error.rate_limited": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Too many requests. Wait a moment and try again."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Previše zahtjeva. Pričekaj trenutak pa pokušaj ponovno."
+          }
+        }
+      }
+    },
+    "manage.error.method_not_allowed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The server does not allow this action for this service."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Server ne dopušta ovu radnju za ovaj servis."
+          }
+        }
+      }
+    },
+    "manage.error.bad_response": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The service sent an answer the app cannot read."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Servis je poslao odgovor koji aplikacija ne može pročitati."
+          }
+        }
+      }
+    },
+    "manage.install_confirm": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Install the update? The service restarts."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Instalirati ažuriranje? Servis će se ponovno pokrenuti."
+          }
+        }
+      }
+    },
+    "manage.health_unknown": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Health unknown"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stanje nepoznato"
+          }
+        }
+      }
+    },
+    "manage.bulk_failed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not every item could be changed. The list shows what is left."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nisu sve stavke promijenjene. Popis prikazuje što je ostalo."
+          }
+        }
+      }
+    },
+    "colour.red": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Red"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crvena"
+          }
+        }
+      }
+    },
+    "colour.orange": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Orange"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Narančasta"
+          }
+        }
+      }
+    },
+    "colour.yellow": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yellow"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Žuta"
+          }
+        }
+      }
+    },
+    "colour.green": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Green"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zelena"
+          }
+        }
+      }
+    },
+    "colour.blue": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blue"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plava"
+          }
+        }
+      }
+    },
+    "colour.purple": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Purple"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ljubičasta"
+          }
+        }
+      }
+    },
+    "colour.pink": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pink"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ružičasta"
+          }
+        }
+      }
+    },
+    "colour.grey": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grey"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Siva"
           }
         }
       }

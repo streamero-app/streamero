@@ -62,7 +62,7 @@ struct ProfilesPage: View {
                     do {
                         try await client.deleteProfile(p.id)
                         await load()
-                    } catch { self.error = error }
+                    } catch is CancellationError {} catch { self.error = error }
                 }
             }
         }
@@ -157,7 +157,8 @@ private struct ProfileEditor: View {
                     }
                     VStack(alignment: .leading, spacing: 10) {
                         Text("profiles.color").font(.caption).foregroundStyle(Theme.textMuted)
-                        HStack(spacing: 10) {
+                        // Wraps on narrow phones and at large text sizes instead of running off the row.
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 36), spacing: 10)], alignment: .leading, spacing: 10) {
                             ForEach(ProfileForm.colors, id: \.self) { c in
                                 Button { form.color = c } label: {
                                     RoundedRectangle(cornerRadius: 6, style: .continuous)
@@ -170,7 +171,7 @@ private struct ProfileEditor: View {
                                         }
                                 }
                                 .buttonStyle(.plain)
-                                .accessibilityLabel(Text(verbatim: c))
+                                .accessibilityLabel(Text(LocalizedStringKey(ProfileForm.colorName(c))))
                                 .accessibilityAddTraits(form.color.lowercased() == c ? .isSelected : [])
                             }
                         }
@@ -240,7 +241,7 @@ private struct ProfileEditor: View {
             }
             onSaved(changedPicture)
             dismiss()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func upload(_ item: PhotosPickerItem) async {
@@ -253,7 +254,7 @@ private struct ProfileEditor: View {
             changedPicture = true
             onSaved(true)
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func removePicture() async {
@@ -264,6 +265,6 @@ private struct ProfileEditor: View {
             changedPicture = true
             onSaved(true)
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }

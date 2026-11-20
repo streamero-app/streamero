@@ -101,6 +101,7 @@ extension View {
 /// The dark around the screen, with the film's light pooling low on the left.
 struct AmbientBackground: View {
     var colors: [String]?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         let a = Color(hex: colors?.first ?? "#d6763f")
@@ -109,7 +110,7 @@ struct AmbientBackground: View {
             RadialGradient(colors: [a.opacity(0.26), .clear], center: UnitPoint(x: 0, y: 0.75), startRadius: 0, endRadius: 460)
         }
         .ignoresSafeArea()
-        .animation(.easeOut(duration: 0.9), value: colors)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.9), value: colors)
     }
 }
 
@@ -138,7 +139,7 @@ struct PrimaryButtonStyle: ButtonStyle {
             .font(.body.weight(.semibold))
             .foregroundStyle(Theme.background)
             .tint(Theme.background)
-            .padding(.horizontal, 22).frame(height: 50)
+            .padding(.horizontal, 22).padding(.vertical, 8).frame(minHeight: 50)
             .background(Theme.text.opacity(configuration.isPressed ? 0.8 : 1), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(.spring(response: 0.25, dampingFraction: 0.8), value: configuration.isPressed)
@@ -174,7 +175,7 @@ struct MutedButtonStyle: ButtonStyle {
         configuration.label
             .font(.body.weight(.semibold))
             .foregroundStyle(Theme.text)
-            .padding(.horizontal, 20).frame(height: 50)
+            .padding(.horizontal, 20).padding(.vertical, 8).frame(minHeight: 50)
             .background(.white.opacity(configuration.isPressed ? 0.22 : 0.12), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(.spring(response: 0.25, dampingFraction: 0.8), value: configuration.isPressed)
