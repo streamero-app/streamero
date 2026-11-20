@@ -1,3 +1,4 @@
+import { scrollBehavior } from "@/lib/motion";
 /**
  * Arrow-key (TV remote / keyboard) navigation: moves focus to the nearest focusable
  * element in the pressed direction. Text fields keep their arrow keys; Backspace
@@ -71,9 +72,9 @@ export function installSpatialNav(onBack: () => void): () => void {
     const target = nextInDirection(active.getBoundingClientRect(), all.map((el) => ({ el, r: el.getBoundingClientRect() })), e.key as Dir);
     if (target) {
       target.focus({ preventScroll: true });
-      target.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
+      target.scrollIntoView({ block: "nearest", inline: "nearest", behavior: scrollBehavior() });
       // Rows near the top bring the whole hero back into view.
-      if (target.getBoundingClientRect().top < 120) window.scrollBy({ top: -140, behavior: "smooth" });
+      if (target.getBoundingClientRect().top < 120) window.scrollBy({ top: -140, behavior: scrollBehavior() });
     }
   };
   window.addEventListener("keydown", handler);

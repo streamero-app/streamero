@@ -1,4 +1,5 @@
 import type { components } from "@/api/schema.gen";
+import i18n from "@/i18n";
 
 export type Library = components["schemas"]["Library"];
 export type ItemSummary = components["schemas"]["ItemSummary"];
@@ -26,7 +27,12 @@ export function formatDuration(ms?: number, clock = false): string {
   return `${Math.floor(min / 60)} h ${min % 60} min`;
 }
 
-export function formatSize(bytes: number): string {
+/** Numbers in the UI language: "7,4" and "1,5 GB" in Croatian, "7.4" and "1.5 GB" in English. */
+function number(v: number, digits: number, lang = i18n.resolvedLanguage ?? "en"): string {
+  return new Intl.NumberFormat(lang, { minimumFractionDigits: digits, maximumFractionDigits: digits, useGrouping: false }).format(v);
+}
+
+export function formatSize(bytes: number, lang?: string): string {
   const units = ["B", "KB", "MB", "GB", "TB"];
   let v = bytes;
   let i = 0;
@@ -34,7 +40,12 @@ export function formatSize(bytes: number): string {
     v /= 1024;
     i++;
   }
-  return `${v.toFixed(v >= 10 || i === 0 ? 0 : 1)} ${units[i]}`;
+  return `${number(v, v >= 10 || i === 0 ? 0 : 1, lang)} ${units[i]}`;
+}
+
+/** A 0–10 rating with one decimal, written the UI language's way. */
+export function formatRating(rating: number, lang?: string): string {
+  return number(rating, 1, lang);
 }
 
 export function channelsLabel(ch?: number): string {

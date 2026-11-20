@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { keyBelongsToControl, prefersNativeHls, requestSequence, subtitleSrc, toggleFullscreen, tryPlay } from "./playback";
+import { keyBelongsToControl, prefersNativeHls, releaseMedia, requestSequence, subtitleSrc, toggleFullscreen, tryPlay } from "./playback";
+import { playSafely, storedNumber } from "@/features/music/MusicPlayer";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -95,5 +96,40 @@ describe("tryPlay", () => {
     expect(await tryPlay(v)).toBe(false);
     vi.spyOn(v, "play").mockResolvedValueOnce(undefined);
     expect(await tryPlay(v)).toBe(false);
+  });
+});
+
+describe("leaving a player", () => {
+  it("empties the media element so the browser stops downloading", () => {
+    const v = document.createElement("video");
+    v.src = "https://example.test/stream.mp4";
+    const pause = vi.spyOn(v, "pause").mockImplementation(() => undefined);
+    const load = vi.spyOn(v, "load").mockImplementation(() => undefined);
+    releaseMedia(v);
+    expect(pause).toHaveBeenCalled();
+    expect(v.hasAttribute("src")).toBe(false);
+    expect(load).toHaveBeenCalled();
+    expect(() => releaseMedia(null)).not.toThrow();
+  });
+});
+
+describe("music player helpers", () => {
+  it("keeps a saved volume of 0 and rejects nonsense", () => {
+    expect(storedNumber("0", 1, 0, 1)).toBe(0);
+    expect(storedNumber("0.4", 1, 0, 1)).toBe(0.4);
+    expect(storedNumber(null, 1, 0, 1)).toBe(1);
+    expect(storedNumber("loud", 1, 0, 1)).toBe(1);
+    expect(storedNumber("7", 1, 0, 1)).toBe(1);
+  });
+
+  it("never leaves a refused play() unhandled", async () => {
+    const a = document.createElement("audio");
+    vi.spyOn(a, "play").mockRejectedValueOnce(Object.assign(new Error("no"), { name: "NotAllowedError" }));
+    const unhandled = vi.fn();
+    process.on("unhandledRejection", unhandled);
+    playSafely(a);
+    await new Promise((r) => setTimeout(r, 10));
+    process.off("unhandledRejection", unhandled);
+    expect(unhandled).not.toHaveBeenCalled();
   });
 });

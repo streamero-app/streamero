@@ -36,7 +36,7 @@ function socketUrl(): string {
  */
 export function SyncPlayProvider({ children }: { children: ReactNode }) {
   const { data: me } = useMe();
-  const allowed = !!me && (me.isAdmin || me.permissions.syncPlay);
+  const allowed = !!me && (me.isAdmin || !!me.permissions?.syncPlay);
   const [group, setGroup] = useState<SyncGroup | null>(null);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -152,7 +152,8 @@ export function SyncPlayProvider({ children }: { children: ReactNode }) {
   const leave = useCallback(async () => {
     disconnect();
     setGroup(null);
-    await api.POST("/syncplay/leave");
+    // The server also drops a member whose socket is gone, so a failed call needs no retry.
+    await api.POST("/syncplay/leave").catch(() => undefined);
   }, [disconnect]);
   const onCorrection = useCallback((fn: CorrectionListener) => {
     listeners.current.add(fn);

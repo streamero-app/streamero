@@ -1,10 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type Hls from "hls.js";
+import { useQueryClient } from "@tanstack/react-query";
 import { api, unwrap } from "@/api/client";
+import { invalidateUserData } from "@/features/library/userData";
 import { imageUrl, type ItemSummary } from "@/features/library/format";
 import { detectAudioProfile } from "@/features/player/deviceProfile";
 import { nativeHls } from "@/features/player/playback";
-import { sleepDue, type SleepTimer } from "@/features/books/logic";
+import { sleepDue, type SleepTimer } from "@/features/books/sleep";
 
 /**
  * One song in the queue (a track item and where its cover comes from). Audiobook
@@ -63,6 +65,21 @@ export function coverUrl(t: QueueTrack): string | null {
   return t.hasPoster ? imageUrl(t.id, "poster") : null;
 }
 
+/**
+ * play() rejects when the browser wants a tap first or a newer load interrupts it;
+ * the element then simply stays paused (its pause event keeps the bar right).
+ */
+export function playSafely(el: HTMLMediaElement | null | undefined): void {
+  void el?.play()?.catch(() => undefined);
+}
+
+/** A stored 0–1 number (volume, speed) or the fallback; 0 is a real value. */
+export function storedNumber(raw: string | null, fallback: number, min: number, max: number): number {
+  if (raw === null || raw.trim() === "") return fallback;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= min && n <= max ? n : fallback;
+}
+
 function shuffled<T>(list: T[], first: number): T[] {
   const rest = list.filter((_, i) => i !== first);
   for (let i = rest.length - 1; i > 0; i--) {
@@ -77,6 +94,7 @@ function shuffled<T>(list: T[], first: number): T[] {
  * the viewer browses, a queue, and lock-screen / media-key controls.
  */
 export function MusicProvider({ children }: { children: ReactNode }) {
+  const qc = useQueryClient();
   const audio = useRef<HTMLAudioElement | null>(null);
   const hls = useRef<Hls | null>(null);
   const [queue, setQueue] = useState<QueueTrack[]>([]);
@@ -85,12 +103,12 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVol] = useState(() => {
-    try { return Number(localStorage.getItem("music-volume") ?? "1") || 1; } catch { return 1; }
+    try { return storedNumber(localStorage.getItem("music-volume"), 1, 0, 1); } catch { return 1; }
   });
   const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState<"off" | "all" | "one">("off");
   const [rate, setRateState] = useState(() => {
-    try { return Number(localStorage.getItem("audio-rate") ?? "1") || 1; } catch { return 1; }
+    try { return storedNumber(localStorage.getItem("audio-rate"), 1, 0.5, 3); } catch { return 1; }
   });
   const [sleep, setSleep] = useState<SleepTimer>({ kind: "off" });
   const current = index >= 0 ? queue[index] : undefined;
@@ -159,7 +177,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   const advance = useCallback((dir: 1 | -1, auto = false) => {
     setIndex((i) => {
       if (auto && repeat === "one") {
-        if (audio.current) { audio.current.currentTime = 0; void audio.current.play(); }
+        if (audio.current) { audio.current.currentTime = 0; playSafely(audio.current); }
         return i;
       }
       const n = i + dir;
@@ -177,7 +195,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     const onPause = () => setPlaying(false);
     const onMeta = () => { if (Number.isFinite(el.duration)) setDuration(el.duration * 1000); };
     const onEnded = () => {
-      if (repeat === "one") { el.currentTime = 0; void el.play(); return; }
+      if (repeat === "one") { el.currentTime = 0; playSafely(el); return; }
       if (index + 1 < queue.length) setIndex(index + 1);
       else if (repeat === "all" && queue.length) setIndex(0);
       else setPlaying(false);
@@ -206,7 +224,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   const toggle = useCallback(() => {
     const el = audio.current;
     if (!el || !current) return;
-    if (el.paused) void el.play(); else el.pause();
+    if (el.paused) playSafely(el); else el.pause();
   }, [current]);
   const seek = useCallback((ms: number) => { if (audio.current) audio.current.currentTime = Math.max(0, Math.round(ms) / 1000); }, []);
 
@@ -217,7 +235,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     const art = coverUrl(current);
     ms.metadata = new MediaMetadata({ title: current.title, artist: current.artist ?? "", album: current.album ?? "",
       artwork: art ? [{ src: art, sizes: "512x512", type: "image/jpeg" }] : [] });
-    ms.setActionHandler("play", () => void audio.current?.play());
+    ms.setActionHandler("play", () => playSafely(audio.current));
     ms.setActionHandler("pause", () => audio.current?.pause());
     ms.setActionHandler("previoustrack", prev);
     ms.setActionHandler("nexttrack", next);
@@ -235,13 +253,16 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     const save = () => {
       const b = bookPos.current;
       if (!b || b.ms <= 0) return;
+      // A failed save is retried by the next one; a pause also refreshes the book's page and rows.
+      const paused = !playing;
       void api.PUT("/items/{itemId}/progress", { params: { path: { itemId: b.itemId } },
-        body: { positionMs: Math.round(b.ms), durationMs: b.total } });
+        body: { positionMs: Math.round(b.ms), durationMs: b.total }, keepalive: paused })
+        .then((res) => { if (paused && res.response.ok) void invalidateUserData(qc, { quiet: true }); }, () => undefined);
     };
     if (!playing) { save(); return; }
     const id = window.setInterval(save, 15000);
     return () => window.clearInterval(id);
-  }, [playing, current?.itemId]);
+  }, [playing, current?.itemId, qc]);
 
   // Sleep timer: pause at a time or at the end of the chapter.
   useEffect(() => {
@@ -269,7 +290,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       if (tracks[start]?.id === current?.id && audio.current) {
         // The same song again: start it over instead of reloading.
         audio.current.currentTime = 0;
-        void audio.current.play();
+        playSafely(audio.current);
       }
       const list = shuffle ? shuffled(tracks, start) : tracks;
       setQueue(list);

@@ -8,6 +8,10 @@ import type { components } from "@/api/schema.gen";
 import { Button, ErrorText, Select, Spinner, buttonVariants, pressable } from "@/components/ui";
 import { imageUrl, type ItemSummary, type Library } from "@/features/library/format";
 import { INTERVALS, byMonth, exposureLine, neighbours, nextIndex } from "./slideshow";
+import { invalidateUserData } from "@/features/library/userData";
+import { useFocusTrap } from "@/components/focusTrap";
+import { onTablistKeyDown } from "@/components/tabs";
+import { safeHref } from "@/lib/safeUrl";
 
 type ItemDetail = components["schemas"]["ItemDetail"];
 const gutter = "px-5 sm:px-10 lg:px-16";
@@ -115,9 +119,9 @@ export function PhotosLibrary({ library }: { library: Library }) {
     <div className="flex flex-col gap-6 pt-24" data-testid="photos-library">
       <header className={`flex flex-col gap-4 border-b border-border ${gutter}`}>
         <h1 className="font-display text-4xl sm:text-6xl">{library.name}</h1>
-        <div role="tablist" className="-mb-px flex gap-6">
+        <div role="tablist" aria-label={library.name} onKeyDown={onTablistKeyDown} className="-mb-px flex gap-6">
           {(["albums", "all"] as const).map((k) => (
-            <button key={k} type="button" role="tab" aria-selected={tab === k} className={tabClass} onClick={() => setTab(k)}>{t(`photos.tab_${k}`)}</button>
+            <button key={k} type="button" role="tab" aria-selected={tab === k} tabIndex={tab === k ? 0 : -1} className={tabClass} onClick={() => setTab(k)}>{t(`photos.tab_${k}`)}</button>
           ))}
         </div>
       </header>
@@ -257,16 +261,24 @@ export function Lightbox({ items, index: initial, onIndex, onClose, autoplay = f
     return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = prev; };
   }, [onClose, step]);
   const touch = useRef<number | null>(null);
+  const layer = useRef<HTMLDivElement>(null);
+  useFocusTrap(layer, "[data-testid=lightbox-close]");
   if (!item) return null;
   const favorite = fav[item.id] ?? !!item.favorite;
-  const toggleFav = async () => {
-    setFav((f) => ({ ...f, [item.id]: !favorite }));
-    await api.PUT("/items/{itemId}/user-data", { params: { path: { itemId: item.id } }, body: { favorite: !favorite } });
+  // Shown at once; put back if the server refuses, and every grid learns of it.
+  const toggleFav = () => {
+    const id = item.id;
+    const next = !favorite;
+    setFav((f) => ({ ...f, [id]: next }));
+    api.PUT("/items/{itemId}/user-data", { params: { path: { itemId: id } }, body: { favorite: next } })
+      .then((res) => { unwrap(res); void invalidateUserData(qc); })
+      .catch(() => setFav((f) => ({ ...f, [id]: !next })));
   };
+  const original = safeHref(view.data?.originalUrl);
   const btn = "tv-focus grid size-11 shrink-0 place-items-center rounded-full bg-black/40 text-white/90 backdrop-blur transition-colors hover:bg-black/60 hover:text-white aria-pressed:bg-white/20";
   const p = detail.data?.photo;
   return (
-    <div role="dialog" aria-modal aria-label={item.title} className="fixed inset-0 z-[70] bg-black" data-testid="lightbox"
+    <div ref={layer} role="dialog" aria-modal aria-label={item.title} className="fixed inset-0 z-[70] bg-black" data-testid="lightbox"
       onTouchStart={(e) => { touch.current = e.touches[0]?.clientX ?? null; }}
       onTouchEnd={(e) => {
         const x0 = touch.current;
@@ -299,10 +311,10 @@ export function Lightbox({ items, index: initial, onIndex, onClose, autoplay = f
               onClick={() => setPlaying(!playing)}>{playing ? <Pause className="size-5" aria-hidden /> : <Play className="size-5" aria-hidden />}</button>
           </>
         )}
-        <button type="button" className={btn} aria-pressed={favorite} aria-label={t("photos.favorite")} onClick={() => void toggleFav()}>
+        <button type="button" className={btn} aria-pressed={favorite} aria-label={t("photos.favorite")} onClick={toggleFav}>
           <Heart className={`size-5 ${favorite ? "fill-current" : ""}`} aria-hidden />
         </button>
-        {view.data?.originalUrl && <a className={btn} href={view.data.originalUrl} download aria-label={t("books.download")}><Download className="size-5" aria-hidden /></a>}
+        {original && <a className={btn} href={original} download aria-label={t("books.download")}><Download className="size-5" aria-hidden /></a>}
         <button type="button" className={btn} aria-pressed={info} aria-label={t("photos.info")} onClick={() => setInfo(!info)}><Info className="size-5" aria-hidden /></button>
       </div>
       {items.length > 1 && (

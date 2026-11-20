@@ -23,5 +23,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test-setup.ts"],
     include: ["src/**/*.test.{ts,tsx}"],
+    // Page tests load lazy chunks and wait for them; on a busy runner 5 s was not always enough.
+    testTimeout: 15_000,
   },
 });

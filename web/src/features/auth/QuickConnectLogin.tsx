@@ -2,9 +2,9 @@ import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { api, ApiError, deviceInfo, unwrap, type User } from "@/api/client";
+import { api, ApiError, deviceInfo, unwrap } from "@/api/client";
 import { Button, ErrorText } from "@/components/ui";
-import { meQueryKey } from "./useAuth";
+import { startSession } from "./useAuth";
 
 const POLL_MS = 3000;
 
@@ -36,7 +36,7 @@ export function QuickConnectLogin({ onCancel }: { onCancel: () => void }) {
   useEffect(() => {
     const user = poll.data?.user;
     if (user) {
-      qc.setQueryData<User | null>(meQueryKey, user);
+      startSession(qc, user);
       void navigate({ to: "/" });
     }
   }, [poll.data, qc, navigate]);

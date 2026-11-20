@@ -88,6 +88,21 @@ export function toggleFullscreen(root: HTMLElement | null, video: HTMLVideoEleme
 }
 
 /**
+ * Stops a media element for good: no more downloading, decoding or buffered
+ * memory (a detached element with a src keeps its connection open until GC).
+ */
+export function releaseMedia(el: HTMLMediaElement | null | undefined): void {
+  if (!el) return;
+  try {
+    el.pause();
+    el.removeAttribute("src");
+    el.load();
+  } catch {
+    /* not implemented in test DOMs */
+  }
+}
+
+/**
  * play() with the outcome the viewer needs to see: true when the browser refused
  * to start without a gesture (show a big play button), false when it played or
  * the attempt was merely interrupted by a newer load.

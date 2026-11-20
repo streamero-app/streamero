@@ -1,9 +1,9 @@
-import { useId, useState, type ButtonHTMLAttributes, type ImgHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
+import { useId, useState, type Ref, type ButtonHTMLAttributes, type ImgHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError } from "@/api/client";
 
 type Variant = "primary" | "secondary" | "danger" | "ghost" | "play" | "muted" | "lit" | "glass";
-type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: "md" | "lg" };
+type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: "md" | "lg"; ref?: Ref<HTMLButtonElement> };
 
 /** Shared look of every pressable thing: steps on hover, presses on click. */
 export const pressable =
@@ -75,14 +75,25 @@ export function Card({ title, children, className = "", actions }: { title?: Rea
   );
 }
 
+/** The translation key for an error: its API code, else what kind of failure it was. */
+export function errorKey(error: unknown, has: (key: string) => boolean): string {
+  if (error instanceof ApiError) {
+    if (has(`errors.${error.code}`)) return `errors.${error.code}`;
+    if (error.status === 403) return "errors.permission";
+    return "errors.generic";
+  }
+  // fetch() rejects with a TypeError when the server cannot be reached at all.
+  if (error instanceof TypeError) return "errors.network";
+  return "errors.generic";
+}
+
 /** Shows a translated message for an API error (falls back to a generic one). */
 export function ErrorText({ error }: { error: unknown }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   if (!error) return null;
-  const code = error instanceof ApiError ? error.code : "generic";
   return (
     <p role="alert" className="text-sm text-danger">
-      {t(`errors.${code}`, { defaultValue: t("errors.generic") })}
+      {t(errorKey(error, (k) => i18n.exists(k)))}
     </p>
   );
 }

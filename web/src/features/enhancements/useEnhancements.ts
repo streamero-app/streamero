@@ -16,13 +16,18 @@ export function useEnhancements(): Enhancements {
 /** Opens a random unwatched title (from one library, or from the first that has one). */
 export function useSurprise() {
   const navigate = useNavigate();
+  // Never rejects: a library that fails to answer is skipped, like an empty one.
   return async (libraryIds: string[]) => {
     for (const id of [...libraryIds].sort(() => Math.random() - 0.5)) {
-      const page = unwrap(await api.GET("/libraries/{libraryId}/items", { params: { path: { libraryId: id }, query: { sort: "random", unplayed: true, limit: 1 } } }));
-      const pick = page.items?.[0];
-      if (pick) {
-        void navigate({ to: "/item/$itemId", params: { itemId: pick.id } });
-        return true;
+      try {
+        const page = unwrap(await api.GET("/libraries/{libraryId}/items", { params: { path: { libraryId: id }, query: { sort: "random", unplayed: true, limit: 1 } } }));
+        const pick = page.items?.[0];
+        if (pick) {
+          void navigate({ to: "/item/$itemId", params: { itemId: pick.id } });
+          return true;
+        }
+      } catch {
+        /* try the next library */
       }
     }
     return false;

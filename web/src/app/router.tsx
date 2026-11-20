@@ -1,5 +1,7 @@
-import type { FunctionComponent } from "react";
+import { useMemo, type FunctionComponent } from "react";
 import { createRootRoute, createRoute, createRouter, lazyRouteComponent, Navigate, Outlet, redirect } from "@tanstack/react-router";
+import { RouteError } from "@/components/RouteError";
+import { sanitizeCustomCss } from "@/lib/customCss";
 import { ServerGate } from "@/features/server/ServerGate";
 import { DialogProvider } from "@/components/Dialog";
 import { AmbientProvider } from "@/features/ambient/Ambient";
@@ -10,7 +12,7 @@ import { HomePage } from "@/routes/HomePage";
 import { LoginPage } from "@/routes/LoginPage";
 import { SetupPage } from "@/routes/SetupPage";
 import { InvitePage } from "@/routes/InvitePage";
-import { ItemPage, LibrariesPage, LibraryPage, MyListPage } from "@/features/library/LibraryPages";
+import { ItemPage, LibrariesPage, LibraryPage, MyListPage, validateLibrarySearch } from "@/features/library/LibraryPages";
 import { ProfileGatePage } from "@/features/profiles/ProfileSwitcher";
 import { SearchPage } from "@/features/library/SearchPage";
 import { NotFoundPage } from "@/routes/NotFoundPage";
@@ -63,10 +65,14 @@ const LivePlayer = lazyRouteComponent(() => import("@/features/livetv/LivePlayer
 const LiveTvSettings = lazyRouteComponent(() => import("@/features/settings/LiveTvSettings"), "LiveTvSettings");
 const ReaderPage = lazyRouteComponent(() => import("@/features/books/ReaderPage"), "ReaderPage");
 
-/** The administrator's extra CSS (Settings → Branding), on every page. */
+/**
+ * The administrator's extra CSS (Settings → Branding), on every page. Anything that
+ * would make the browser contact another host (imports, remote url()) is removed.
+ */
 function CustomCss() {
   const { data } = useSystemInfo();
-  return data?.customCss ? <style data-testid="custom-css">{data.customCss}</style> : null;
+  const css = useMemo(() => sanitizeCustomCss(data?.customCss), [data?.customCss]);
+  return css ? <style data-testid="custom-css">{css}</style> : null;
 }
 
 const rootRoute = createRootRoute({
@@ -91,7 +97,9 @@ const whoRoute = createRoute({ getParentRoute: () => rootRoute, path: "/who", co
 // Everything below requires a signed-in user (AppShell redirects otherwise).
 const appRoute = createRoute({ getParentRoute: () => rootRoute, id: "app", component: AppShell });
 const homeRoute = createRoute({ getParentRoute: () => appRoute, path: "/", component: HomePage });
-const libraryRoute = createRoute({ getParentRoute: () => appRoute, path: "/library/$libraryId", component: LibraryPage });
+const libraryRoute = createRoute({
+  getParentRoute: () => appRoute, path: "/library/$libraryId", component: LibraryPage, validateSearch: validateLibrarySearch,
+});
 const itemRoute = createRoute({ getParentRoute: () => appRoute, path: "/item/$itemId", component: ItemPage });
 const collectionsRoute = createRoute({ getParentRoute: () => appRoute, path: "/collections", component: CollectionsPage });
 const collectionRoute = createRoute({ getParentRoute: () => appRoute, path: "/collection/$collectionId", component: CollectionPage });
@@ -226,7 +234,9 @@ export const routeTree = rootRoute.addChildren([
       subtitleLookRoute, homePrefsRoute, transcodingRoute, logsRoute, activityRoute, brandingRoute, requestsRoute, enhancementsRoute, importRoute, ssoRoute, liveTvSettingsRoute]),
   ]),
 ]);
-export const router = createRouter({ routeTree });
+/** Options shared by the app and the tests: every page fails on its own, never as a blank screen. */
+export const routerOptions = { defaultErrorComponent: RouteError, defaultPreload: "intent" as const, defaultPreloadStaleTime: 0, scrollRestoration: true };
+export const router = createRouter({ routeTree, ...routerOptions });
 
 declare module "@tanstack/react-router" {
   interface Register {

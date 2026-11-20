@@ -23,7 +23,7 @@ function Upcoming() {
         {list.slice(0, 40).map((u, i) => (
           <li key={i} className="flex w-[64vw] shrink-0 gap-3 rounded-[6px] border border-border bg-surface p-3 sm:w-[340px]">
             <div className="relative aspect-[2/3] w-16 shrink-0 overflow-hidden rounded-[4px] bg-surface-2">
-              {u.posterUrl && <img src={u.posterUrl} alt="" loading="lazy" className="absolute inset-0 size-full object-cover" />}
+              {u.posterUrl && <img src={u.posterUrl} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" className="absolute inset-0 size-full object-cover" />}
             </div>
             <div className="min-w-0">
               <p className="text-[12px] font-semibold tracking-wide text-[var(--amb-a)] uppercase">{day.format(new Date(u.date))}</p>
@@ -68,7 +68,7 @@ export function DiscoverPage() {
         <label className="relative flex max-w-3xl items-center">
           <Search className="pointer-events-none absolute left-5 size-5 text-text/50" aria-hidden />
           <input type="search" value={text} onChange={(e) => setText(e.target.value)} autoFocus placeholder={t("discover.placeholder")} aria-label={t("discover.placeholder")}
-            className="h-16 w-full rounded-[8px] border border-border bg-surface pr-5 pl-14 text-xl text-text placeholder:text-text/40 hover:border-border-strong focus:border-text/50" />
+            className="h-16 w-full rounded-[8px] border border-border bg-surface pr-5 pl-14 text-xl text-text placeholder:text-text/55 hover:border-border-strong focus:border-text/50" />
         </label>
       </header>
 

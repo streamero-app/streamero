@@ -1,11 +1,11 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
 import { setLanguage } from "@/i18n";
 import { mockApi, renderApp, testUser } from "@/test-utils";
 
 afterEach(() => vi.unstubAllGlobals());
 
-const lib = { id: "0190a8b0-0000-7000-8000-00000000aaaa", name: "Filmovi", kind: "movies", paths: ["/media/movies"], itemCount: 2,
+const lib = { id: "0190a8b0-0000-7000-8000-00000000aaaa", name: "Filmovi", kind: "movies", paths: ["/media/movies"], itemCount: 1,
   scan: { state: "idle", filesSeen: 3 } };
 const movie = { id: "0190a8b0-0000-7000-8000-00000000bbbb", kind: "movie", title: "Big Test Movie", year: 2021, addedAt: new Date().toISOString(), hasPoster: false };
 
@@ -107,15 +107,20 @@ describe("library pages", () => {
       if (path === "/libraries") return { status: 200, body: [{ ...lib, scan: { state: "idle", filesSeen: 3, heldRemovals: 25 } }] };
       return { status: 200, body: [] };
     });
-    const confirm = vi.fn(() => true);
-    vi.stubGlobal("confirm", confirm);
     renderApp("/settings/libraries", { me: testUser({ isAdmin: true }) });
     expect(await screen.findByTestId("held-removals")).toHaveTextContent("25 missing files were kept");
     fireEvent.click(screen.getByRole("button", { name: "Scan now" }));
     await waitFor(() => expect(scans).toEqual([null]));
+    // The themed confirmation (not the browser's own dialog): cancelling removes nothing.
     fireEvent.click(screen.getByRole("button", { name: "Remove missing files" }));
+    const ask = await screen.findByRole("alertdialog");
+    expect(ask).toHaveTextContent("Remove 25 missing files from Filmovi");
+    fireEvent.click(within(ask).getByRole("button", { name: "Cancel" }));
+    await new Promise((r) => setTimeout(r, 30));
+    expect(scans).toEqual([null]);
+    fireEvent.click(screen.getByRole("button", { name: "Remove missing files" }));
+    fireEvent.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Remove missing files" }));
     await waitFor(() => expect(scans).toEqual([null, "true"]));
-    expect(confirm).toHaveBeenCalledWith(expect.stringContaining("Remove 25 missing files from Filmovi"));
   });
 });
 

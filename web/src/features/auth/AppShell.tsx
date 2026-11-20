@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { useMenu } from "@/components/menu";
+import { rememberReturnTo } from "@/lib/safeUrl";
 import { Link, Navigate, Outlet, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Bookmark, Clapperboard, Compass, Film, House, LogOut, Music, Radio, Search, Settings, Tv, Users, type LucideIcon } from "lucide-react";
+import { Bookmark, Clapperboard, Compass, House, LogOut, Radio, Search, Settings, Users } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Spinner } from "@/components/ui";
@@ -15,8 +17,6 @@ import { MusicProvider } from "@/features/music/MusicPlayer";
 import { NowPlayingBar } from "@/features/music/NowPlayingBar";
 import { SyncPlayProvider } from "@/features/syncplay/SyncPlay";
 import { canWatchLiveTv } from "@/features/livetv/api";
-
-export const libraryIcon: Record<string, LucideIcon> = { movies: Film, shows: Tv, mixed: Clapperboard, music: Music };
 
 const topLink = "relative inline-flex h-10 items-center px-1 text-[15px] font-medium text-text/65 transition-colors duration-200 hover:text-text after:absolute after:inset-x-1 after:bottom-1 after:h-[2px] after:origin-left after:scale-x-0 after:bg-[var(--amb-a)] after:transition-transform after:duration-300 [&.active]:text-text [&.active]:after:scale-x-100";
 
@@ -53,28 +53,21 @@ function AccountMenu() {
   const logout = useLogout();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const close = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
-    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
-    document.addEventListener("mousedown", close);
-    document.addEventListener("keydown", esc);
-    return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", esc); };
-  }, [open]);
+  const button = useRef<HTMLButtonElement>(null);
+  const onMenuKey = useMenu(open, setOpen, ref, button);
   if (!me) return null;
   const current = me.currentProfile;
   const kid = !!current?.isKid;
   const item = "flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-text/85 transition-colors hover:bg-white/[0.07] hover:text-text focus-visible:bg-white/[0.07]";
   return (
     <div className="relative" ref={ref}>
-      <button type="button" aria-haspopup="menu" aria-expanded={open} aria-label={t("nav.profileMenu")} data-testid="account-menu"
+      <button ref={button} type="button" aria-haspopup="menu" aria-expanded={open} aria-label={t("nav.profileMenu")} data-testid="account-menu"
         onClick={() => setOpen(!open)} className="flex items-center gap-2 rounded-md">
         <Avatar name={current?.name ?? me.displayName ?? me.username} color={current?.color ?? MAIN_COLOR} size={32}
           image={current ? (current.hasAvatar ? avatarUrl(current.id) : null) : me.hasAvatar ? avatarUrl(me.id) : null} />
       </button>
       {open && (
-        <div role="menu" className="absolute right-0 z-50 mt-3 w-64 origin-top-right overflow-hidden rounded-[8px] border border-border bg-surface/95 py-2 shadow-2xl backdrop-blur-xl [animation:pop_160ms_var(--ease-out)_both]">
-          <style>{"@keyframes pop{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}"}</style>
+        <div role="menu" aria-label={t("nav.profileMenu")} onKeyDown={onMenuKey} className="absolute right-0 z-50 mt-3 w-64 origin-top-right overflow-hidden rounded-[8px] border border-border bg-surface/95 py-2 shadow-2xl backdrop-blur-xl [animation:pop_160ms_var(--ease-out)_both]">
           <p className="truncate px-4 pt-1 pb-2 text-sm font-semibold">{current?.name ?? me.displayName ?? me.username}</p>
           {(profiles.data?.length ?? 0) > 0 && (
             <Link to="/who" role="menuitem" className={item} onClick={() => { markProfilePicked(false); setOpen(false); }}>
@@ -86,7 +79,7 @@ function AccountMenu() {
               <Radio className="size-4 text-text/55" aria-hidden />{t("livetv.title")}
             </Link>
           )}
-          {(me.isAdmin || me.permissions.syncPlay) && (
+          {(me.isAdmin || !!me.permissions?.syncPlay) && (
             <Link to="/together" role="menuitem" className={item} onClick={() => setOpen(false)} data-testid="together-menu">
               <Users className="size-4 text-text/55" aria-hidden />{t("together.groups")}
             </Link>
@@ -106,6 +99,14 @@ function AccountMenu() {
       )}
     </div>
   );
+}
+
+/** Sends a signed-out visitor to sign-in, remembering the page so sign-in can return to it. */
+function SignInFirst() {
+  const href = useRouterState({ select: (s) => s.location.href });
+  // Written during render (idempotent) so it is in place before the sign-in page reads it.
+  rememberReturnTo(href);
+  return <Navigate to="/login" replace />;
 }
 
 /** Layout for signed-in pages; redirects to setup, sign-in or the profile picker when needed. */
@@ -136,7 +137,7 @@ export function AppShell() {
   if (isPending) {
     return <div role="status" aria-label={t("server.checking")} className="flex h-full items-center justify-center"><Spinner /></div>;
   }
-  if (!me) return <Navigate to="/login" />;
+  if (!me) return <SignInFirst />;
   // Like a streaming service: choose who is watching once per browser session.
   if ((profiles.data?.length ?? 0) > 0 && !me.currentProfile && !profilePicked()) return <Navigate to="/who" />;
 
@@ -147,9 +148,15 @@ export function AppShell() {
     <MusicProvider>
     <SyncPlayProvider>
     <div className="min-h-full">
+      {/* First stop for keyboard users: past the header straight to the page. */}
+      {!watching && (
+        <a href="#main" className="sr-only z-[60] rounded-[6px] bg-text px-4 py-2 text-sm font-semibold text-bg focus:not-sr-only focus:fixed focus:top-3 focus:left-3">
+          {t("nav.skipToContent")}
+        </a>
+      )}
       {!watching && (
         <header data-scrolled={scrolled}
-          className="fixed inset-x-0 top-0 z-40 flex h-16 items-center gap-8 bg-gradient-to-b from-black/75 to-transparent px-5 transition-[background-color] duration-300 data-[scrolled=true]:bg-bg/92 data-[scrolled=true]:backdrop-blur-xl sm:px-10 md:h-[4.5rem] lg:px-16">
+          className="fixed inset-x-0 top-0 z-40 flex h-[calc(4rem+env(safe-area-inset-top))] items-center pt-[env(safe-area-inset-top)] gap-8 bg-gradient-to-b from-black/75 to-transparent px-5 transition-[background-color] duration-300 data-[scrolled=true]:bg-bg/92 data-[scrolled=true]:backdrop-blur-xl sm:px-10 md:h-[calc(4.5rem+env(safe-area-inset-top))] lg:px-16">
           <Link to="/" aria-label={t("nav.home")} className="tv-focus shrink-0 rounded-[4px]">
             <Logo size={26} />
           </Link>
@@ -174,7 +181,7 @@ export function AppShell() {
         </header>
       )}
 
-      <main className={watching ? "" : "pb-24 md:pb-20"}>
+      <main id="main" tabIndex={-1} className={`focus:outline-none ${watching ? "" : "pb-24 md:pb-20"}`}>
         <Outlet />
       </main>
 

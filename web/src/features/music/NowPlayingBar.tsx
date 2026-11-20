@@ -33,14 +33,14 @@ export function NowPlayingBar() {
             {m.queue.map((q, i) => (
               <li key={`${q.id}-${i}`} className={`group flex items-center gap-3 px-4 py-2 ${i === m.index ? "bg-white/[0.06]" : "hover:bg-white/[0.04]"}`}>
                 <button type="button" onClick={() => m.jump(i)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-                  <span className="w-5 text-right text-xs text-text/40 tabular">{i === m.index && m.playing ? "▶" : i + 1}</span>
+                  <span className="w-5 text-right text-xs text-text/55 tabular">{i === m.index && m.playing ? "▶" : i + 1}</span>
                   <span className="min-w-0">
                     <span className={`block truncate text-sm ${i === m.index ? "font-semibold text-text" : "text-text/85"}`}>{q.title}</span>
                     <span className="block truncate text-xs text-text/50">{q.artist}</span>
                   </span>
                 </button>
                 {i !== m.index && (
-                  <button type="button" onClick={() => m.remove(i)} aria-label={t("music.removeFromQueue")} className="grid size-7 place-items-center rounded-[4px] text-text/40 opacity-0 hover:text-text group-hover:opacity-100">
+                  <button type="button" onClick={() => m.remove(i)} aria-label={t("music.removeFromQueue")} className="grid size-7 place-items-center rounded-[4px] text-text/55 opacity-0 hover:text-text group-hover:opacity-100 focus-visible:opacity-100 max-md:opacity-100">
                     <X className="size-3.5" aria-hidden />
                   </button>
                 )}
@@ -59,7 +59,7 @@ export function NowPlayingBar() {
         <div className="flex h-[4.5rem] items-center gap-3 px-3 sm:px-6">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <span className="relative grid size-12 shrink-0 place-items-center overflow-hidden rounded-[4px] bg-surface-2">
-              {cover ? <img src={cover} alt="" className="absolute inset-0 size-full object-cover" /> : <Music className="size-5 text-text/40" aria-hidden />}
+              {cover ? <img src={cover} alt="" className="absolute inset-0 size-full object-cover" /> : <Music className="size-5 text-text/55" aria-hidden />}
             </span>
             <span className="min-w-0">
               {c.parentId

@@ -1,13 +1,16 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { prefetchItem } from "./itemQuery";
+import { scrollBehavior } from "@/lib/motion";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Check, ChevronLeft, ChevronRight, Play, X } from "lucide-react";
 import { Art } from "@/components/ui";
 import { useAmbient } from "@/features/ambient/Ambient";
 import { qualityTags, useEnhancements } from "@/features/enhancements/useEnhancements";
-import { useQueryClient } from "@tanstack/react-query";
-import { api } from "@/api/client";
-import { imageUrl, placeholderHue, type ItemSummary } from "./format";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { api, unwrap } from "@/api/client";
+import { invalidateUserData } from "./userData";
+import { formatRating, imageUrl, placeholderHue, type ItemSummary } from "./format";
 
 export function progressOf(it: ItemSummary): number {
   return it.positionMs && it.durationMs ? Math.min(100, (it.positionMs / it.durationMs) * 100) : 0;
@@ -80,10 +83,21 @@ function landscapeSrc(it: ItemSummary): string | null {
   return null;
 }
 
-/** Hovering or focusing a card brings its colour into the interface. */
+/**
+ * Hovering or focusing a card brings its colour into the interface and starts loading
+ * the title (after a short rest, so sweeping across a row does not fetch every card).
+ */
 function useCardLight(item: ItemSummary) {
   const { lightSoon } = useAmbient();
-  return { onMouseEnter: () => lightSoon(item.colors), onFocus: () => lightSoon(item.colors) };
+  const qc = useQueryClient();
+  const timer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  const intent = () => {
+    lightSoon(item.colors);
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => prefetchItem(qc, item.id), 120);
+  };
+  return { onMouseEnter: intent, onFocus: intent, onMouseLeave: () => window.clearTimeout(timer.current) };
 }
 
 /**
@@ -95,10 +109,10 @@ export function TitleCard({ item, className = "", play = false }: { item: ItemSu
   const enh = useEnhancements();
   const qc = useQueryClient();
   const removable = play && enh.removeFromContinue && progressOf(item) > 0;
-  const forget = async () => {
-    await api.PUT("/items/{itemId}/progress", { params: { path: { itemId: item.id } }, body: { positionMs: 0 } });
-    void qc.invalidateQueries({ queryKey: ["continue"] });
-  };
+  const forget = useMutation({
+    mutationFn: async () => unwrap(await api.PUT("/items/{itemId}/progress", { params: { path: { itemId: item.id } }, body: { positionMs: 0 } })),
+    onSuccess: () => void invalidateUserData(qc),
+  });
   const [broken, setBroken] = useState(false);
   const light = useCardLight(item);
   const src = landscapeSrc(item);
@@ -130,7 +144,7 @@ export function TitleCard({ item, className = "", play = false }: { item: ItemSu
       </div>
     </Link>
     {removable && (
-      <button type="button" onClick={() => void forget()} aria-label={t("home.removeFromContinue", { title: item.seriesTitle ?? item.title })}
+      <button type="button" onClick={() => forget.mutate()} disabled={forget.isPending} aria-label={t("home.removeFromContinue", { title: item.seriesTitle ?? item.title })}
         title={t("home.removeFromContinue", { title: item.seriesTitle ?? item.title })}
         className="tv-focus absolute top-3 left-3 grid size-8 place-items-center rounded-[6px] bg-black/70 text-text opacity-0 backdrop-blur transition-opacity group-hover/card:opacity-100 focus-visible:opacity-100 max-md:opacity-100">
         <X className="size-4" aria-hidden />
@@ -167,7 +181,7 @@ export function ItemCard({ item, className = "" }: { item: ItemSummary; classNam
       <div className="min-w-0">
         <p className="truncate text-[14px] font-semibold text-text/90 group-hover:text-text">{item.title}</p>
         <p className="text-[13px] text-text/50 tabular">
-          {item.year}{item.rating ? <>{item.year && " · "}★ {item.rating.toFixed(1)}</> : null}
+          {item.year}{item.rating ? <>{item.year && " · "}★ {formatRating(item.rating)}</> : null}
         </p>
       </div>
     </Link>
@@ -193,7 +207,7 @@ export function Row({ title, testId, count, children, action }: { title: string;
     return () => ro.disconnect();
   }, [count]);
   if (!count) return null;
-  const page = (dir: 1 | -1) => track.current?.scrollBy({ left: dir * track.current.clientWidth * 0.85, behavior: "smooth" });
+  const page = (dir: 1 | -1) => track.current?.scrollBy({ left: dir * track.current.clientWidth * 0.85, behavior: scrollBehavior() });
   const arrow = "grid size-9 place-items-center rounded-[6px] text-text/80 transition-colors hover:bg-white/10 hover:text-text disabled:opacity-20";
   return (
     <section className="flex flex-col gap-4" data-testid={testId}>

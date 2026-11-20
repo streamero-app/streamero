@@ -1,4 +1,4 @@
-import { chapterAt, locate, pageProgression, previousChapterStart, readerCss, sanitizeSection, sleepDue, spreadOf, spreads, stepFor } from "./logic";
+import { chapterAt, locate, pageProgression, previousChapterStart, readerCss, sanitizeSection, sanitizeSectionText, sleepDue, spreadOf, spreads, stepFor } from "./logic";
 import { byMonth, exposureLine, neighbours, nextIndex } from "@/features/photos/slideshow";
 
 const parts = [
@@ -75,6 +75,24 @@ describe("EPUB reader", () => {
     expect(out).toMatch(/<head><meta http-equiv="Content-Security-Policy" content="[^"]*script-src 'none'/);
     expect(out).toContain("<p>Text</p>");
     expect(sanitizeSection("<html><body>a</body></html>")).toMatch(/^<html><head><meta http-equiv/);
+  });
+
+  it("closes the gaps of text-based cleaning", () => {
+    // No whitespace before the handler, a <head> hidden in a comment, frames and a base URL.
+    const book = `<html xmlns="http://www.w3.org/1999/xhtml"><!-- <head> --><head><base href="https://evil.example/"/></head>
+      <body><img/onerror="steal()" src="x"/><svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>
+      <iframe srcdoc="&lt;script&gt;alert(1)&lt;/script&gt;"></iframe><a href="  java&#9;script:alert(1)">x</a><p>Kept</p></body></html>`;
+    const out = sanitizeSection(book);
+    expect(out).not.toMatch(/onerror|<script|<iframe|srcdoc|<base|javascript/i);
+    expect(out).toMatch(/<head><meta http-equiv="Content-Security-Policy"/);
+    expect(out).toContain("<p>Kept</p>");
+  });
+
+  it("cleans malformed books and HTML sections too", () => {
+    const html = sanitizeSection(`<p>broken<br><img src=x onerror=alert(1)>`, "application/xhtml+xml");
+    expect(html).not.toMatch(/onerror/);
+    expect(html).toMatch(/Content-Security-Policy/);
+    expect(sanitizeSectionText(`<img/onerror=alert(1) src=x><!-- <head> -->`)).not.toMatch(/onerror|<!--/);
   });
 
   it("builds the theme stylesheet with a clamped font size", () => {

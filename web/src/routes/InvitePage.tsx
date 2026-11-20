@@ -2,10 +2,10 @@ import { useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { api, deviceInfo, unwrap, type User } from "@/api/client";
+import { api, deviceInfo, unwrap } from "@/api/client";
 import { Button, ErrorText, TextField } from "@/components/ui";
 import { AuthFrame } from "@/features/auth/AuthFrame";
-import { meQueryKey } from "@/features/auth/useAuth";
+import { startSession } from "@/features/auth/useAuth";
 
 /** Public page behind an invite link: create an account and sign in. */
 export function InvitePage() {
@@ -26,7 +26,7 @@ export function InvitePage() {
       body: { username: form.username, password: form.password, useCookie: true, device: deviceInfo() },
     })),
     onSuccess: (res) => {
-      qc.setQueryData<User | null>(meQueryKey, res.user);
+      startSession(qc, res.user);
       void navigate({ to: "/" });
     },
   });

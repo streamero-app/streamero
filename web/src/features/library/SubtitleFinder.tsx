@@ -29,7 +29,7 @@ export function SubtitleFinder({ itemId }: { itemId: string }) {
     onSuccess: () => window.setTimeout(() => void qc.invalidateQueries({ queryKey: ["item", itemId] }), 4000),
   });
   const auto = useMutation({ mutationFn: async () => unwrap(await api.POST("/items/{itemId}/subtitles/search-missing", { params: { path: { itemId } } })) });
-  if (!me || (!me.isAdmin && !me.permissions.editSubtitles) || me.currentProfile?.isKid) return null;
+  if (!me || (!me.isAdmin && !me.permissions?.editSubtitles) || me.currentProfile?.isKid) return null;
   const names = new Intl.DisplayNames([i18n.resolvedLanguage ?? "en"], { type: "language" });
   const langName = (code: string) => { try { return names.of(code) ?? code; } catch { return code; } };
   const offers = search.data?.offers ?? [];

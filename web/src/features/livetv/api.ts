@@ -16,12 +16,12 @@ export const CATEGORIES: Category[] = ["movies", "sports", "news", "kids"];
 
 /** Watching Live TV: the liveTv permission (administrators may do everything); never in a kids profile. */
 export function canWatchLiveTv(me?: User | null): boolean {
-  return !!me && !me.currentProfile?.isKid && (me.isAdmin || me.permissions.liveTv);
+  return !!me && !me.currentProfile?.isKid && (me.isAdmin || !!me.permissions?.liveTv);
 }
 
 /** Recording, series rules, tuners and guides: the manageLiveTv permission. */
 export function canManageLiveTv(me?: User | null): boolean {
-  return !!me && (me.isAdmin || me.permissions.manageLiveTv);
+  return !!me && (me.isAdmin || !!me.permissions?.manageLiveTv);
 }
 
 export const liveKeys = {
