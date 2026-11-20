@@ -1,4 +1,4 @@
-# Streamero — plan izgradnje za Claude Code
+# Streamero — plan izgradnje
 
 > Self-hosted media server (alternativa Jellyfinu) + web klijent + iOS app (.ipa za Feather).
 > Brand: SCYDE. Deploy: Docker Compose. Kod: GitHub. Build/dev: vlastiti server (kao Mediarr).
@@ -58,7 +58,7 @@
 | Mediji | ffmpeg/ffprobe 8.x, chromaprint (`fpcalc`), libass preko ffmpega | |
 | Web | **React 19 + Vite + TypeScript + TanStack Router/Query + Tailwind v4 + Radix UI** | brzo, tipizirano, generirani API klijent |
 | Web player | **hls.js** + native `<video>` (Safari), Shaka kao opcija za DV/HEVC edge caseove; `libass-wasm` (JASSUB) za ASS | |
-| iOS | **Swift 6, SwiftUI, iOS 17+**, XcodeGen, swift-openapi-generator, Nuke (slike), MPVKit, Google Cast SDK | XcodeGen = projekt kao `project.yml` (Claude Code ga može uređivati na Linuxu, nema `.pbxproj` konflikata) |
+| iOS | **Swift 6, SwiftUI, iOS 17+**, XcodeGen, swift-openapi-generator, Nuke (slike), MPVKit, Google Cast SDK | XcodeGen = projekt kao `project.yml` (uređuje se i na Linuxu, nema `.pbxproj` konflikata) |
 | CI | GitHub Actions | server/web image na GHCR; iOS na `macos-15` (GitHub-hosted) |
 
 > Ako Mediarr već koristi drugačiji backend stack i želiš isti — zamijeni u ovoj tablici prije P0, ostatak plana vrijedi.
@@ -69,7 +69,7 @@
 
 ```
 streamero/
-├── CLAUDE.md                      # upute za Claude Code (pravila, komande)
+├── CONTRIBUTING.md                # pravila rada i komande
 ├── README.md
 ├── THIRD_PARTY.md                 # licence ffmpeg, MPVKit, itd.
 ├── api/
@@ -336,7 +336,7 @@ Artefakt `.ipa` → GitHub Release. Feather ga potpiše tvojim certifikatom.
 
 ## 7. CI/CD i rad na vlastitom serveru
 
-- **Dev na serveru** (Claude Code u remote sessionu, isto kao Mediarr): `docker compose -f deploy/docker-compose.yml -f deploy/compose.dev.yml up --build` — `compose.dev.yml` builda lokalno (`build: ..`) umjesto GHCR imagea i montira test medije iz `scripts/gen-fixtures.sh`.
+- **Dev na serveru** (udaljena sesija, isto kao Mediarr): `docker compose -f deploy/docker-compose.yml -f deploy/compose.dev.yml up --build` — `compose.dev.yml` builda lokalno (`build: ..`) umjesto GHCR imagea i montira test medije iz `scripts/gen-fixtures.sh`.
 - **Branch strategija:** `main` uvijek deployabilan; po fazi branch `phase/P5-playback`; PR → CI zelen → merge.
 - `ci.yml`: `go vet`, `golangci-lint`, `go test ./... -race`, `sqlc diff`, provjera da je generirani API kod svjež, `pnpm lint/typecheck/test`, Playwright smoke protiv compose stacka.
 - `server-image.yml`: na push u main → `ghcr.io/<owner>/streamero:edge`; na tag `v*` → `:X.Y.Z` + `:latest`.
@@ -351,7 +351,7 @@ Artefakt `.ipa` → GitHub Release. Feather ga potpiše tvojim certifikatom.
 Svaka faza = jedan branch, jedan ili više PR-ova. **Kriteriji prihvaćanja moraju proći prije prelaska na sljedeću fazu.** Nakon svake faze: ažuriraj `docs/PROGRESS.md`, označi stavke u `FEATURES.md`, zapiši odluke u `docs/DECISIONS.md`.
 
 ### P0 — Temelji (repo, compose, CI, API pipeline, prazne ljuske)
-- Monorepo struktura iz §2, `CLAUDE.md`, `.env.example`, Dockerfile, compose (+dev override), Postgres + Valkey + River.
+- Monorepo struktura iz §2, `CONTRIBUTING.md`, `.env.example`, Dockerfile, compose (+dev override), Postgres + Valkey + River.
 - `streamero serve|worker|migrate|healthcheck`, `/healthz`, `/readyz`, `GET /api/v1/system/info`, 503 + Retry-After dok se pokreće.
 - OpenAPI pipeline: `api/openapi.yaml` → ogen (Go), openapi-typescript + TanStack Query hookovi (web), swift-openapi-generator (iOS).
 - Web: shell s routingom, i18n (HR/EN), tema, prazan login ekran, embed u Go binarij.
@@ -421,58 +421,7 @@ Security pregled (path traversal fuzz, auth testovi, CSP, dependency audit), per
 
 ---
 
-## 9. Promptovi za Claude Code (copy-paste po fazi)
-
-Opći uvod (za svaku sesiju):
-```
-Radiš na projektu Streamero. Pročitaj CLAUDE.md, docs/PLAN.md, docs/FEATURES.md i docs/PROGRESS.md.
-Danas radimo fazu <PX>. Napravi branch phase/<PX>-<ime>. Prvo mi napiši kratak plan koraka
-za ovu fazu (datoteke, migracije, endpointi, testovi), zatim implementiraj. Poštuj kriterije
-prihvaćanja iz PLAN.md. Na kraju: pokreni sve testove, ažuriraj PROGRESS.md i FEATURES.md,
-otvori PR s opisom.
-```
-
-P0:
-```
-Faza P0. Postavi monorepo točno po PLAN.md §2. Server u Go (chi + ogen, sqlc, goose, River),
-Postgres+pgvector, Valkey, Dockerfile multi-stage s jellyfin-ffmpeg, deploy/docker-compose.yml
-po §3 + compose.dev.yml koji builda lokalno. Web: React+Vite+TS+Tailwind+TanStack, i18n HR/EN,
-embed u Go binarij. iOS: XcodeGen project.yml, SwiftUI app "Streamero" s ekranom za dodavanje
-servera. GitHub Actions: ci.yml, server-image.yml, ios.yml (unsigned .ipa po PLAN.md §6),
-release.yml + feather/source.json. scripts/gen-fixtures.sh. Provjeri da `docker compose up`
-radi na ovom serveru.
-```
-
-P2 (primjer specifičnog):
-```
-Faza P2. Najprije internal/naming s golden testovima u server/testdata/naming (min. 300 stvarnih
-imena: filmovi s godinom i bez, verzije, extras, serije SxxEyy, multi-episode, daily, anime
-apsolutno, specials, provider ID u [], {}, ()). Pravila dokumentiraj u docs/NAMING.md.
-Tek onda scanner: inkrementalni po (path,size,mtime,inode), fsnotify s debounceom, River jobovi
-za probe. Dodaj scripts/seed-big-library.sh i perf test iz kriterija prihvaćanja.
-```
-
-P5:
-```
-Faza P5. Odluka o reprodukciji kao čista funkcija internal/playback.Decide(profile, source, limits)
-s tabličnim testovima za profile: ios-avplayer, ios-mpv, safari, chrome, firefox, chromecast.
-Zatim HLS (fMP4/TS), seek-restart, throttling, cleanup, HW accel builder za vaapi/nvenc/qsv/amf/
-videotoolbox/rkmpp s tonemapom. Web player na hls.js + JASSUB za ASS. Napravi matricu testova
-fixture × browser u Playwrightu.
-```
-
-P7:
-```
-Faza P7. iOS core prema PLAN.md §6. Koristi generirani Swift klijent iz api/openapi.yaml.
-PlayerEngine protokol + AVPlayerEngine. Bonjour preko NWBrowser (_streamero._tcp), NE UDP broadcast.
-Sve stringove u Localizable.xcstrings (HR+EN). Ne koristi APNs. Provjeri da ios.yml producira .ipa.
-```
-
-Za ostale faze koristi opći uvod + naziv faze; detalji su u §8 i FEATURES.md.
-
----
-
-## 10. Otvorena pitanja (odluči prije ili tijekom P0)
+## 9. Otvorena pitanja (odluči prije ili tijekom P0)
 1. Bundle ID (`net.scyde.streamero`?) i GitHub owner/repo (`byscyde/streamero`?).
 2. Dizajn referenca za web i iOS (link, zip ili screenshotovi) — dodaj u `docs/DESIGN.md`.
 3. Hoće li produkcijski server imati GPU (VA-API AMD/Intel ili NVIDIA) — određuje koji HW put se testira prvi.

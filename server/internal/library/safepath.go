@@ -35,7 +35,7 @@ func ParseRoots(s string) (Roots, error) {
 
 // ResolveSafePath cleans p, resolves symlinks and checks that the result lies inside
 // one of the roots. Every API input that names a file or folder must pass through it
-// (CLAUDE.md). It returns the resolved absolute path.
+// (CONTRIBUTING.md). It returns the resolved absolute path.
 func ResolveSafePath(roots Roots, p string) (string, error) {
 	if p == "" || strings.ContainsRune(p, 0) || !filepath.IsAbs(p) {
 		return "", ErrOutsideRoots

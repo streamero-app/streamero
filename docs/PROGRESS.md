@@ -4,7 +4,7 @@
 P4 — Web pregledavanje (u tijeku); izdanja v0.2.0 i **v0.3.0** objavljena. P0 (PR #1) i P1 (PR #4) gotovi; prvi dio P2 (PR #5) mergean i objavljen kao **v0.2.0** (prvo izdanje za stabilni server).
 
 ## Gotovo
-- Monorepo struktura po PLAN.md §2, `.gitignore`, `.claude/settings.json`.
+- Monorepo struktura po PLAN.md §2, `.gitignore`.
 - `api/openapi.yaml` (system/info, system/ping) + `scripts/gen-api.sh` (ogen → Go, openapi-typescript → web, kopija spec za swift-openapi-generator).
 - Go server: `serve | worker | migrate | healthcheck | version`; `/healthz`, `/readyz`, `GET /api/v1/system/info`; 503 + `Retry-After` dok se pokreće; goose + River migracije (embedane); Valkey; stabilan server ID (UUIDv7) u `settings`; `CACHEDIR.TAG` u cache/transcode.
 - Testovi: unit (router, 503, SPA fallback, cachedir) + integracijski protiv stvarnog Postgresa/Valkeya (bootstrap, migracije, start < 5 s). `golangci-lint`: 0 issues.
@@ -273,5 +273,5 @@ iOS Manage: Bazarr jezici (uključeni jezici s pretraživim odabirom, jezični p
 
 ## Poznati problemi / blokeri
 - `server-image.yml` ručno pokrenut s feature brancha nema tagova (samo `main`/`v*`) i pao bi; multi-arch (arm64) image još nije buildan.
-- Claude na serveru nema sudo: nginx/certbot/apt promjene radi korisnik.
+- Nginx/certbot/apt promjene na demo serveru traže sudo i radi ih vlasnik.
 - `scripts/seed-big-library.sh` dolazi u P2 (treba scanner/shemu).
