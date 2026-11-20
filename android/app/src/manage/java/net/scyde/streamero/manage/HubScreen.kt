@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -30,18 +31,18 @@ import net.scyde.streamero.ui.*
 /** What the hub shows under a reachable service: health warnings and work in progress. */
 data class HubStats(val warnings: List<String> = emptyList(), val counts: List<Pair<Int, Long>> = emptyList())
 
-private suspend fun stats(c: ArrClient): HubStats = runCatching {
+private suspend fun stats(c: ArrClient): HubStats = attempt {
     when (c.service) {
         ArrService.Radarr, ArrService.Sonarr, ArrService.Lidarr -> coroutineScope {
-            val health = async { runCatching { c.list("health") }.getOrDefault(emptyList()) }
-            val queue = async { runCatching { c.obj("queue/status") }.getOrNull() }
-            val missing = async { runCatching { c.obj("wanted/missing", mapOf("page" to 1, "pageSize" to 1, "monitored" to true)).l("totalRecords") }.getOrNull() }
+            val health = async { attempt { c.list("health") }.getOrDefault(emptyList()) }
+            val queue = async { attempt { c.obj("queue/status") }.getOrNull() }
+            val missing = async { attempt { c.obj("wanted/missing", mapOf("page" to 1, "pageSize" to 1, "monitored" to true)).l("totalRecords") }.getOrNull() }
             HubStats(health.await().mapNotNull { it.s("message") },
                 listOfNotNull(queue.await()?.l("totalCount")?.let { R.string.m_queue to it }, missing.await()?.let { R.string.m_missing to it }))
         }
         ArrService.Prowlarr -> coroutineScope {
-            val health = async { runCatching { c.list("health") }.getOrDefault(emptyList()) }
-            val idx = async { runCatching { c.list("indexer") }.getOrDefault(emptyList()) }
+            val health = async { attempt { c.list("health") }.getOrDefault(emptyList()) }
+            val idx = async { attempt { c.list("indexer") }.getOrDefault(emptyList()) }
             HubStats(health.await().mapNotNull { it.s("message") }, listOf(R.string.m_indexers to idx.await().size.toLong()))
         }
         ArrService.Bazarr -> {
@@ -123,7 +124,7 @@ private fun ServiceCard(nav: NavHostController, s: ArrServiceStatus, st: HubStat
                             Text(w, color = Kino.muted, fontSize = 13.sp)
                         }
                     }
-                    if (st.warnings.size > 3) Text(stringResource(R.string.m_more_warnings, st.warnings.size - 3), color = Kino.faint, fontSize = 12.sp)
+                    if (st.warnings.size > 3) Text(plural(R.plurals.m_more_warnings, st.warnings.size - 3), color = Kino.faint, fontSize = 12.sp)
                 }
             }
         }
@@ -141,7 +142,7 @@ private fun sections(svc: ArrService): List<Entry> = when (svc) {
         Entry("history", R.string.m_history, Icons.Outlined.History),
         Entry("blocklist", R.string.m_blocklist, Icons.Outlined.Block),
         Entry("wanted", R.string.m_missing, Icons.Outlined.SearchOff),
-        Entry("wanted", R.string.m_cutoff_unmet, Icons.Outlined.TrendingUp, "cutoff"),
+        Entry("wanted", R.string.m_cutoff_unmet, Icons.AutoMirrored.Outlined.TrendingUp, "cutoff"),
         Entry("system", R.string.m_system, Icons.Outlined.MonitorHeart),
         Entry("settings", R.string.settings, Icons.Outlined.Settings),
     )

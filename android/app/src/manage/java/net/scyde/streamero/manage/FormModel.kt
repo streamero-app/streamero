@@ -5,6 +5,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 
 /**
@@ -65,7 +66,9 @@ data class SchemaField(
             return SchemaField(
                 name = name, label = o.s("label")?.ifBlank { null } ?: humanize(name.substringAfterLast('.')), kind = kind, type = type, value = value,
                 options = options, helpText = o.s("helpText")?.ifBlank { null }, helpLink = o.s("helpLink")?.ifBlank { null },
-                advanced = o.b("advanced") == true, secret = kind == FieldKind.Password || secretByPrivacy,
+                advanced = o.b("advanced") == true,
+                // Older versions send no `privacy`: a text field named like a key or password is still one.
+                secret = kind == FieldKind.Password || secretByPrivacy || (kind == FieldKind.Text && isSecretKey(name.substringAfterLast('.'))),
                 unit = o.s("unit")?.ifBlank { null }, placeholder = o.s("placeholder")?.ifBlank { null }, isFloat = o.b("isFloat") == true,
                 order = o.i("order") ?: 0,
             )
@@ -123,6 +126,20 @@ data class SchemaFormState(val fields: List<SchemaField>, val edits: Map<String,
     /** The resource with its fields replaced by the edited ones. */
     fun applyTo(resource: JsonObject): JsonObject = resource.with("fields", toFields(resource.a("fields")))
 
+    /** Labels of number fields whose typed text is not a number. */
+    fun invalidNumbers(): List<String> = fields.filter { f ->
+        if (f.kind != FieldKind.Number || !edits.containsKey(f.name)) return@filter false
+        val out = output(f)
+        out is JsonPrimitive && out.isString && (f.value as? JsonPrimitive)?.isString != true
+    }.map { it.label }
+
+    /** [applyTo], refused with [InvalidNumber] while a number field holds something else. */
+    fun applyChecked(resource: JsonObject): JsonObject {
+        val bad = invalidNumbers()
+        if (bad.isNotEmpty()) throw InvalidNumber(bad)
+        return applyTo(resource)
+    }
+
     companion object {
         fun of(resource: JsonObject) = SchemaFormState(SchemaField.parseAll(resource.a("fields")))
 
@@ -132,6 +149,8 @@ data class SchemaFormState(val fields: List<SchemaField>, val edits: Map<String,
                 FieldKind.Number -> {
                     val t = text.trim()
                     when {
+                        // A number the service sent as text ("5") goes back as text.
+                        (f.value as? JsonPrimitive)?.isString == true -> JsonPrimitive(t)
                         t.isEmpty() -> JsonNull
                         f.isFloat || t.contains('.') -> t.toDoubleOrNull()?.let { JsonPrimitive(it) } ?: v
                         else -> t.toLongOrNull()?.let { JsonPrimitive(it) } ?: v
@@ -206,4 +225,39 @@ fun normalizeGeneric(edited: JsonElement, original: JsonElement?, key: String = 
     // A key the original did not have (added with a new item, or by the user): kept as typed.
     original == null -> edited
     else -> mergeGeneric(original, edited, !fresh && isSecretKey(key)) ?: JsonNull
+}
+
+private fun JsonPrimitive.isNumber(): Boolean = !isString && this !is JsonNull && booleanOrNull == null
+
+/**
+ * Keys (humanized) whose original value is a number but whose edited text is not one, so a
+ * save can be refused with a clear message instead of sending text where the service wants
+ * a number. Items of arrays are checked against the original item at the same position, or
+ * against the first one for added items.
+ */
+fun invalidNumbers(edited: JsonElement, original: JsonElement?, key: String = ""): List<String> = when {
+    edited is JsonObject -> edited.flatMap { (k, v) -> invalidNumbers(v, (original as? JsonObject)?.get(k), k) }
+    edited is JsonArray && original is JsonArray -> edited.flatMapIndexed { i, v ->
+        invalidNumbers(v, original.getOrNull(i) ?: original.firstOrNull(), key)
+    }.distinct()
+    edited is JsonPrimitive && edited.isString && original is JsonPrimitive && original.isNumber() -> {
+        val t = edited.content.trim()
+        if (t.toLongOrNull() == null && t.toDoubleOrNull() == null) listOf(humanize(key)) else emptyList()
+    }
+    else -> emptyList()
+}
+
+/** [normalizeGeneric] for a save: refused with [InvalidNumber] while a number field holds text. */
+fun normalizeForSave(edited: JsonElement, original: JsonElement?): JsonElement {
+    val bad = invalidNumbers(edited, original).distinct()
+    if (bad.isNotEmpty()) throw InvalidNumber(bad)
+    return normalizeGeneric(edited, original)
+}
+
+/** True when a settings document holds a stored secret (an API key, a password), to keep the screen private. */
+fun hasSecrets(e: JsonElement?, key: String = ""): Boolean = when (e) {
+    is JsonObject -> e.any { (k, v) -> hasSecrets(v, k) }
+    is JsonArray -> e.any { hasSecrets(it, key) }
+    is JsonPrimitive -> e.isString && e.content.isNotEmpty() && isSecretKey(key)
+    else -> false
 }

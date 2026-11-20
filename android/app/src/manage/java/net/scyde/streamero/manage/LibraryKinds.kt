@@ -86,6 +86,12 @@ object Lib {
         }
     }
 
+    /** A Sonarr series with season [season] (un)monitored; every other field as it was. */
+    fun withSeasonMonitored(series: JsonObject, season: Int, on: Boolean): JsonObject =
+        series.with("seasons", kotlinx.serialization.json.JsonArray(series.a("seasons")?.map { s ->
+            if (s is JsonObject && s.i("seasonNumber") == season) s.with("monitored", on) else s
+        } ?: emptyList()))
+
     /** The record a queue/history/wanted row is about, as a line of text. */
     fun recordTitle(s: ArrService, r: JsonObject): String {
         val main = r.o("movie") ?: r.o("series") ?: r.o("artist")

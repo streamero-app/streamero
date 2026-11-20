@@ -11,12 +11,11 @@
     <string name="m_unreachable">Unreachable</string>
     <string name="m_not_configured">Not set up</string>
     <string name="m_not_configured_hint">Add the %1$s address and API key in the connection settings.</string>
-    <string name="m_more_warnings">%1$d more warnings</string>
-    <string name="m_err_not_configured">This service is not set up on the server.</string>
-    <string name="m_err_unreachable">The server cannot reach this service.</string>
-    <string name="m_err_signed_out">You were signed out.</string>
-    <string name="m_err_invalid_path">The server refused this address.</string>
-    <string name="m_err_too_large">The answer is too large.</string>
+    <string name="m_err_not_configured">This service is not set up on the server. Add its address and API key in the connection settings.</string>
+    <string name="m_err_unreachable">The server cannot reach this service. Check that it is running and that its address in the connection settings is right.</string>
+    <string name="m_err_signed_out">Your session has ended. Sign in again.</string>
+    <string name="m_err_invalid_path">The server refused this address of the service. Update Streamero Manage; if it keeps happening, report it.</string>
+    <string name="m_err_too_large">This is too large for the server (the limit is 16 MB).</string>
     <string name="m_err_service">The service answered: %1$s</string>
     <string name="m_queue">Queue</string>
     <string name="m_missing">Missing</string>
@@ -102,7 +101,6 @@
     <string name="m_health_ok">No problems found.</string>
     <string name="m_disk_space">Disk space</string>
     <string name="m_free_of">%1$s free of %2$s</string>
-    <string name="m_every_minutes">every %1$d min</string>
     <string name="m_last_run">last %1$s</string>
     <string name="m_next_run">next %1$s</string>
     <string name="m_updates">Updates</string>
@@ -161,10 +159,8 @@
     <string name="m_conditions">Conditions</string>
     <string name="m_add_condition">Add condition</string>
     <string name="m_free">%1$s free</string>
-    <string name="m_unmapped">%1$d unmapped folders</string>
     <string name="m_inaccessible">Not accessible</string>
     <string name="m_new_tag">New tag</string>
-    <string name="m_used_by">Used %1$d times</string>
     <string name="m_search_indexers">Search all indexers</string>
     <string name="m_all_indexers_hint">None chosen searches all of them.</string>
     <string name="m_queries">Queries</string>
@@ -208,7 +204,6 @@
     <string name="m_select">Select</string>
     <string name="m_select_all">Select all</string>
     <string name="m_select_none">Select none</string>
-    <string name="m_selected_n">%1$d selected</string>
     <string name="m_select_hint">Tap items to select them.</string>
     <string name="m_monitor_on">Monitor</string>
     <string name="m_monitor_off">Unmonitor</string>
@@ -217,10 +212,7 @@
     <string name="m_tags_add">Add these tags</string>
     <string name="m_tags_remove">Remove these tags</string>
     <string name="m_tags_replace">Replace all tags with these</string>
-    <string name="m_applies_to_n">Applies to %1$d selected items.</string>
     <string name="m_apply">Apply</string>
-    <string name="m_bulk_done">Updated %1$d items.</string>
-    <string name="m_bulk_delete_confirm">Delete %1$d items from the library?</string>
     <string name="m_path_moves_files">Saving with a new path moves the files there.</string>
     <!-- System -->
     <string name="m_restart">Restart</string>
@@ -270,7 +262,6 @@
     <string name="m_perm_recent_view">View recently added</string>
     <string name="m_perm_watchlist_view">View watchlists</string>
     <string name="m_request_limits">Request limits</string>
-    <string name="m_quota_used">%1$d of %2$d used (every %3$d days)</string>
     <string name="m_unlimited">Unlimited</string>
     <string name="m_quota_movie_limit">Movie request limit</string>
     <string name="m_quota_movie_days">Movie limit period (days)</string>
@@ -296,4 +287,33 @@
     <string name="m_scan_unavailable">Scan status is unavailable.</string>
     <string name="m_start_scan">Start full scan</string>
     <string name="m_cancel_scan">Cancel scan</string>
+    <string name="m_err_forbidden">Only administrators can manage the media services. Sign in with an administrator account.</string>
+    <string name="m_err_read_only">This API key can only read. Sign in with your account to make changes.</string>
+    <string name="m_err_method">The server does not allow this action on this service. Update Streamero Manage and the server.</string>
+    <string name="m_err_rate_limited">Too many requests in a short time. Wait a moment and try again.</string>
+    <string name="m_err_arr_auth">The service refused the API key stored on the server. Copy its API key into the connection settings again.</string>
+    <string name="m_err_not_found">The service no longer has this. It may have been deleted.</string>
+    <string name="m_err_service_http">The service could not do this (HTTP %1$d). Its logs say why.</string>
+    <string name="m_err_not_a_number">Enter a number in: %1$s</string>
+    <string name="m_discard_changes">Discard your changes?</string>
+    <string name="m_discard">Discard</string>
+    <string name="m_bad_link">This page cannot be opened. Go back and try again.</string>
+    <string name="m_decline_confirm">Decline this request?</string>
+    <string name="m_delete_issue_confirm">Delete this issue and its comments?</string>
+    <string name="m_blocklist_remove_confirm">Remove %1$s from the blocklist? It can be grabbed again.</string>
+    <string name="m_log_info">Info</string>
+    <string name="m_log_warn">Warnings</string>
+    <string name="m_log_error">Errors</string>
+    <string name="m_forced">forced</string>
+    <!-- Counts -->
+    <plurals name="m_more_warnings"><item quantity="one">%1$d more warning</item><item quantity="other">%1$d more warnings</item></plurals>
+    <plurals name="m_every_minutes"><item quantity="one">every minute</item><item quantity="other">every %1$d min</item></plurals>
+    <plurals name="m_unmapped"><item quantity="one">%1$d unmapped folder</item><item quantity="other">%1$d unmapped folders</item></plurals>
+    <plurals name="m_used_by"><item quantity="one">Used once</item><item quantity="other">Used %1$d times</item></plurals>
+    <plurals name="m_selected_n"><item quantity="one">%1$d selected</item><item quantity="other">%1$d selected</item></plurals>
+    <plurals name="m_applies_to_n"><item quantity="one">Applies to %1$d selected item.</item><item quantity="other">Applies to %1$d selected items.</item></plurals>
+    <plurals name="m_bulk_done"><item quantity="one">Updated %1$d item.</item><item quantity="other">Updated %1$d items.</item></plurals>
+    <plurals name="m_bulk_delete_confirm"><item quantity="one">Delete %1$d item from the library?</item><item quantity="other">Delete %1$d items from the library?</item></plurals>
+    <plurals name="m_quota_used"><item quantity="one">%1$d of %2$d used (every day)</item><item quantity="other">%1$d of %2$d used (every %3$d days)</item></plurals>
+    <plurals name="m_partial_failure"><item quantity="one">%1$d of %2$d failed:</item><item quantity="other">%1$d of %2$d failed:</item></plurals>
 </resources>

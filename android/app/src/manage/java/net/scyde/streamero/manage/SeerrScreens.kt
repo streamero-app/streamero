@@ -5,9 +5,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
@@ -49,7 +51,7 @@ private fun mediaStatus(code: Int?): String? = when (code) {
 @Composable
 private fun rememberTitle(c: ArrClient, type: String?, tmdbId: Int?): JsonObject? {
     if (tmdbId == null || type == null) return null
-    return rememberLoaded("$type/$tmdbId") { runCatching { c.obj("$type/$tmdbId") }.getOrNull() }.value
+    return rememberLoaded("$type/$tmdbId") { attempt { c.obj("$type/$tmdbId") }.getOrNull() }.value
 }
 
 @Composable
@@ -60,6 +62,7 @@ fun SeerrRequests(nav: NavHostController, c: ArrClient) {
     val page = rememberLoaded("$filter/$tick/$take") { c.obj("request", mapOf("take" to take, "skip" to 0, "filter" to filter, "sort" to "added")) }
     val (act, run) = rememberAction()
     var confirmDelete by remember { mutableStateOf<Int?>(null) }
+    var confirmDecline by remember { mutableStateOf<Int?>(null) }
     ManagePage(nav, stringResource(R.string.m_requests), c.service.title) {
         item {
             ChipRow(listOf("pending" to stringResource(R.string.m_pending), "approved" to stringResource(R.string.m_approved), "processing" to stringResource(R.string.m_processing),
@@ -69,8 +72,8 @@ fun SeerrRequests(nav: NavHostController, c: ArrClient) {
         loaded(page) { p ->
             val list = p.objs("results")
             if (list.isEmpty()) block { Text(stringResource(R.string.m_nothing_here), color = Kino.muted) }
-            items(list, key = { it.i("id") ?: 0 }) { r ->
-                val id = r.i("id") ?: 0
+            keyedItems(list, { it.i("id") }, "request") { r ->
+                val id = r.i("id") ?: return@keyedItems
                 val type = r.s("type") ?: r.o("media")?.s("mediaType")
                 val t = rememberTitle(c, type, r.o("media")?.i("tmdbId"))
                 val (label, color) = requestStatus(r.i("status"))
@@ -88,7 +91,7 @@ fun SeerrRequests(nav: NavHostController, c: ArrClient) {
                             Actions {
                                 if (r.i("status") == 1) {
                                     TextButton(onClick = { run(null) { c.post("request/$id/approve"); tick++ } }) { Text(stringResource(R.string.m_approve), color = Kino.success) }
-                                    TextButton(onClick = { run(null) { c.post("request/$id/decline"); tick++ } }) { Text(stringResource(R.string.m_decline), color = Kino.danger) }
+                                    TextButton(onClick = { confirmDecline = id }, enabled = !act.busy) { Text(stringResource(R.string.m_decline), color = Kino.danger) }
                                 }
                                 if (r.i("status") == 4) TextButton(onClick = { run(null) { c.post("request/$id/retry"); tick++ } }) { Text(stringResource(R.string.retry)) }
                                 TextButton(onClick = { confirmDelete = id }) { Text(stringResource(R.string.delete), color = Kino.faint) }
@@ -101,13 +104,14 @@ fun SeerrRequests(nav: NavHostController, c: ArrClient) {
         }
     }
     confirmDelete?.let { id -> ConfirmDialog(stringResource(R.string.m_delete_request), stringResource(R.string.delete), { confirmDelete = null }) { run(null) { c.delete("request/$id"); tick++ } } }
+    confirmDecline?.let { id -> ConfirmDialog(stringResource(R.string.m_decline_confirm), stringResource(R.string.m_decline), { confirmDecline = null }) { run(null) { c.post("request/$id/decline"); tick++ } } }
 }
 
 /** Discover/search titles through Seerr and open one to request it. */
 @Composable
 fun SeerrDiscover(nav: NavHostController, c: ArrClient) {
-    var q by remember { mutableStateOf("") }
-    var submitted by remember { mutableStateOf("") }
+    var q by rememberSaveable { mutableStateOf("") }
+    var submitted by rememberSaveable { mutableStateOf("") }
     val results = rememberLoaded(submitted) {
         if (submitted.isBlank()) c.list("discover/trending", mapOf("page" to 1)) else c.list("search", mapOf("query" to submitted, "page" to 1))
     }
@@ -115,7 +119,7 @@ fun SeerrDiscover(nav: NavHostController, c: ArrClient) {
         item { SearchField(q, { q = it }, stringResource(R.string.m_search_titles), Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) { submitted = q.trim() } }
         if (submitted.isBlank()) item { Heading(stringResource(R.string.m_trending)) }
         loaded(results) { list ->
-            items(list.filter { it.s("mediaType") == "movie" || it.s("mediaType") == "tv" }) { r ->
+            keyedItems(list.filter { (it.s("mediaType") == "movie" || it.s("mediaType") == "tv") && it.i("id") != null }, { it.s("mediaType") + "/" + it.i("id") }, "title") { r ->
                 ListRow(r.s("title") ?: r.s("name") ?: "?", listOfNotNull((r.s("releaseDate") ?: r.s("firstAirDate"))?.take(4), r.s("mediaType")?.uppercase(),
                     mediaStatus(r.o("mediaInfo")?.i("status"))).joinToString(" · "), image = tmdbImage(r.s("posterPath")), chevron = true) {
                     nav.manage(c.service, "media", r.i("id").toString(), r.s("mediaType"))
@@ -182,14 +186,16 @@ fun SeerrIssues(nav: NavHostController, c: ArrClient) {
     var tick by remember { mutableIntStateOf(0) }
     val page = rememberLoaded("$filter/$tick") { c.obj("issue", mapOf("take" to 50, "skip" to 0, "filter" to filter, "sort" to "added")) }
     val (act, run) = rememberAction()
+    var confirmDelete by remember { mutableStateOf<Int?>(null) }
+    confirmDelete?.let { id -> ConfirmDialog(stringResource(R.string.m_delete_issue_confirm), stringResource(R.string.delete), { confirmDelete = null }) { run(null) { c.delete("issue/$id"); tick++ } } }
     ManagePage(nav, stringResource(R.string.m_issues), c.service.title) {
         item { ChipRow(listOf("open" to stringResource(R.string.m_open), "resolved" to stringResource(R.string.m_resolved), "all" to stringResource(R.string.m_all)), filter) { filter = it } }
         block { ActionOutcome(act) }
         loaded(page) { p ->
             val list = p.objs("results")
             if (list.isEmpty()) block { Text(stringResource(R.string.m_nothing_here), color = Kino.muted) }
-            items(list) { r ->
-                val id = r.i("id") ?: 0
+            keyedItems(list, { it.i("id") }, "issue") { r ->
+                val id = r.i("id") ?: return@keyedItems
                 val t = rememberTitle(c, r.o("media")?.s("mediaType"), r.o("media")?.i("tmdbId"))
                 Panel {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -200,7 +206,7 @@ fun SeerrIssues(nav: NavHostController, c: ArrClient) {
                             if (r.i("status") == 1) TextButton(onClick = { run(null) { c.post("issue/$id/resolved"); tick++ } }) { Text(stringResource(R.string.m_resolve), color = Kino.success) }
                             else TextButton(onClick = { run(null) { c.post("issue/$id/open"); tick++ } }) { Text(stringResource(R.string.m_reopen)) }
                             TextButton(onClick = { nav.manage(c.service, "sissue", id.toString()) }) { Text(stringResource(R.string.m_comments_n, r.objs("comments").size), color = Kino.text) }
-                            TextButton(onClick = { run(null) { c.delete("issue/$id"); tick++ } }) { Text(stringResource(R.string.delete), color = Kino.faint) }
+                            TextButton(onClick = { confirmDelete = id }, enabled = !act.busy) { Text(stringResource(R.string.delete), color = Kino.faint) }
                         }
                     }
                 }
@@ -214,7 +220,7 @@ fun SeerrIssues(nav: NavHostController, c: ArrClient) {
 fun SeerrIssue(nav: NavHostController, c: ArrClient, id: Int) {
     var tick by remember { mutableIntStateOf(0) }
     val issue = rememberLoaded("issue/$id/$tick") { c.obj("issue/$id") }
-    var reply by remember { mutableStateOf("") }
+    var reply by rememberSaveable { mutableStateOf("") }
     val (act, run) = rememberAction()
     val t = issue.value?.o("media")?.let { m -> rememberTitle(c, m.s("mediaType"), m.i("tmdbId")) }
     ManagePage(nav, t?.s("title") ?: t?.s("name") ?: "#$id", issue.value?.let { issueType(it.i("issueType")) }) {
@@ -243,7 +249,7 @@ fun SeerrIssue(nav: NavHostController, c: ArrClient, id: Int) {
             block {
                 FormText(stringResource(R.string.m_add_comment), reply, { reply = it }, multiline = true)
                 PrimaryButton(stringResource(R.string.m_send), { run(null) { c.post("issue/$id/comment", jsonOf("message" to reply.trim())); reply = ""; tick++ } },
-                    Modifier.fillMaxWidth(), enabled = reply.isNotBlank() && !act.busy, icon = Icons.Outlined.Send)
+                    Modifier.fillMaxWidth(), enabled = reply.isNotBlank() && !act.busy, icon = Icons.AutoMirrored.Outlined.Send)
                 ActionOutcome(act)
             }
         }
@@ -280,26 +286,27 @@ fun SeerrUser(nav: NavHostController, c: ArrClient, id: Int) {
     val data = rememberLoaded("suser/$id/$tick") {
         coroutineScope {
             val u = async { c.obj("user/$id") }
-            val perms = async { runCatching { c.obj("user/$id/settings/permissions").l("permissions") }.getOrNull() }
-            val me = async { runCatching { c.obj("auth/me").i("id") }.getOrNull() }
-            val quota = async { runCatching { c.obj("user/$id/quota") }.getOrNull() }
-            val main = async { runCatching { c.obj("user/$id/settings/main") }.getOrNull() }
+            val perms = async { attempt { c.obj("user/$id/settings/permissions").l("permissions") }.getOrNull() }
+            val me = async { attempt { c.obj("auth/me").i("id") }.getOrNull() }
+            val quota = async { attempt { c.obj("user/$id/quota") }.getOrNull() }
+            val main = async { attempt { c.obj("user/$id/settings/main") }.getOrNull() }
             val user = u.await()
             SeerrUserData(user, perms.await() ?: user.l("permissions") ?: 0, me.await(), quota.await(), main.await())
         }
     }
-    var mask by remember(data.value) { mutableStateOf(data.value?.permissions ?: 0L) }
+    var mask by remember(data.value) { mutableLongStateOf(data.value?.permissions ?: 0L) }
     var main by remember(data.value) { mutableStateOf(data.value?.main) }
     var warnAdmin by remember { mutableStateOf(false) }
     val (act, run) = rememberAction()
     val savedMsg = stringResource(R.string.saved)
     val d = data.value
+    UnsavedChangesGuard(nav, d != null && (mask != d.permissions || main != d.main))
     fun save() {
         val dd = d ?: return
         run(savedMsg) {
             if (mask != dd.permissions) c.post("user/$id/settings/permissions", jsonOf("permissions" to mask))
             val m = main
-            if (m != null && dd.main != null && m != dd.main) c.post("user/$id/settings/main", normalizeGeneric(m, dd.main))
+            if (m != null && dd.main != null && m != dd.main) c.post("user/$id/settings/main", normalizeForSave(m, dd.main))
             tick++
         }
     }
@@ -323,7 +330,7 @@ fun SeerrUser(nav: NavHostController, c: ArrClient, id: Int) {
                     q?.let { qq ->
                         listOf("movie" to R.string.movies, "tv" to R.string.series).forEach { (k, label) ->
                             qq.o(k)?.let { o ->
-                                KeyValue(stringResource(label), if ((o.i("limit") ?: 0) > 0) stringResource(R.string.m_quota_used, o.i("used") ?: 0, o.i("limit") ?: 0, o.i("days") ?: 0) else stringResource(R.string.m_unlimited))
+                                KeyValue(stringResource(label), if ((o.i("limit") ?: 0) > 0) plural(R.plurals.m_quota_used, o.i("days") ?: 0, o.i("used") ?: 0, o.i("limit") ?: 0, o.i("days") ?: 0) else stringResource(R.string.m_unlimited))
                             }
                         }
                     }
@@ -399,13 +406,15 @@ private fun SeerrDoc(nav: NavHostController, c: ArrClient, resource: String) {
     val (act, run) = rememberAction()
     val savedMsg = stringResource(R.string.saved)
     val testOk = stringResource(R.string.m_test_ok)
+    if (hasSecrets(doc.value)) SecureScreen()
+    UnsavedChangesGuard(nav, cur != null && doc.value != null && cur != doc.value)
     ManagePage(nav, humanize(resource.substringAfterLast('/')), c.service.title) {
         loaded(doc) { original ->
             val o = cur ?: return@loaded
             block {
                 JsonForm(o, { cur = it }, act.error, hide = emptySet())
-                PrimaryButton(stringResource(R.string.save), { run(savedMsg) { (c.post(resource, normalizeGeneric(o, original)) as? JsonObject)?.let { cur = it } } }, Modifier.fillMaxWidth(), enabled = !act.busy && o != original)
-                if (resource.startsWith("settings/notifications/")) GlassButton(stringResource(R.string.test), { run(testOk) { c.post("$resource/test", normalizeGeneric(o, original)) } }, Modifier.fillMaxWidth())
+                PrimaryButton(stringResource(R.string.save), { run(savedMsg) { c.post(resource, normalizeForSave(o, original)); doc.reload() } }, Modifier.fillMaxWidth(), enabled = !act.busy && o != original)
+                if (resource.startsWith("settings/notifications/")) GlassButton(stringResource(R.string.test), { run(testOk) { c.post("$resource/test", normalizeForSave(o, original)) } }, Modifier.fillMaxWidth())
                 ActionOutcome(act)
             }
         }
@@ -435,13 +444,15 @@ private fun SeerrServer(nav: NavHostController, c: ArrClient, kind: String, id: 
     val doc = rememberLoaded("$kind/$id") {
         if (isNew) jsonOf("name" to "", "hostname" to "", "port" to if (kind == "radarr") 7878 else 8989, "apiKey" to "", "useSsl" to false, "baseUrl" to "",
             "activeProfileId" to 0, "activeProfileName" to "", "activeDirectory" to "", "is4k" to false, "isDefault" to false, "externalUrl" to "", "syncEnabled" to false, "preventSearch" to false)
-        else c.list("settings/$kind").first { it.i("id")?.toString() == id }
+        else c.list("settings/$kind").firstOrNull { it.i("id")?.toString() == id } ?: throw ArrException(404, "not_found", "no $kind server $id")
     }
     var cur by remember(doc.value) { mutableStateOf(doc.value) }
     var askDelete by remember { mutableStateOf(false) }
     val (act, run) = rememberAction()
     val savedMsg = stringResource(R.string.saved)
     val testOk = stringResource(R.string.m_test_ok)
+    if (hasSecrets(doc.value)) SecureScreen()
+    UnsavedChangesGuard(nav, cur != null && doc.value != null && cur != doc.value)
     ManagePage(nav, cur?.s("name")?.ifBlank { null } ?: kind, c.service.title) {
         loaded(doc) { original ->
             val o = cur ?: return@loaded
@@ -450,11 +461,11 @@ private fun SeerrServer(nav: NavHostController, c: ArrClient, kind: String, id: 
                 Actions {
                     PrimaryButton(stringResource(R.string.save), {
                         run(savedMsg) {
-                            val body = normalizeGeneric(o, original)
-                            if (isNew) { c.post("settings/$kind", body); nav.popBackStack() } else c.put("settings/$kind/$id", body)
+                            val body = normalizeForSave(o, original)
+                            if (isNew) { c.post("settings/$kind", body); nav.popBackStack() } else { c.put("settings/$kind/$id", body); doc.reload() }
                         }
                     }, enabled = !act.busy)
-                    GlassButton(stringResource(R.string.test), { run(testOk) { c.post("settings/$kind/test", normalizeGeneric(o, original)) } })
+                    GlassButton(stringResource(R.string.test), { run(testOk) { c.post("settings/$kind/test", normalizeForSave(o, original)) } })
                     if (!isNew) DangerAction(stringResource(R.string.delete)) { askDelete = true }
                 }
                 ActionOutcome(act)
@@ -494,15 +505,15 @@ private val MS_HIDE = setOf("libraries", "machineId", "serverId", "name")
 @Composable
 private fun SeerrMediaServer(nav: NavHostController, c: ArrClient) {
     val kind = rememberLoaded("ms/kind") {
-        SeerrMediaServerKind.fromType(runCatching { c.obj("settings/main").i("mediaServerType") }.getOrNull())
-            ?: SeerrMediaServerKind.fromAltDoc(runCatching { c.obj("settings/${SeerrMediaServerKind.ALT}") }.getOrNull())
+        SeerrMediaServerKind.fromType(attempt { c.obj("settings/main").i("mediaServerType") }.getOrNull())
+            ?: SeerrMediaServerKind.fromAltDoc(attempt { c.obj("settings/${SeerrMediaServerKind.ALT}") }.getOrNull())
     }
     val k = kind.value
     var tick by remember { mutableIntStateOf(0) }
     val doc = rememberLoaded("ms/$k/$tick") { if (k == null) JsonObject(emptyMap()) else c.obj("settings/$k") }
     var cur by remember(doc.value) { mutableStateOf(doc.value) }
     var libs by remember(doc.value) { mutableStateOf(doc.value?.objs("libraries").orEmpty()) }
-    val scan = rememberLoaded("ms/$k/scan/$tick", pollMs = 4_000) { if (k == null) null else runCatching { c.obj("settings/$k/sync") }.getOrNull() }
+    val scan = rememberLoaded("ms/$k/scan/$tick", pollMs = 4_000) { if (k == null) null else attempt { c.obj("settings/$k/sync") }.getOrNull() }
     val (act, run) = rememberAction()
     val savedMsg = stringResource(R.string.saved)
     val synced = stringResource(R.string.m_libraries_synced)
@@ -511,6 +522,8 @@ private fun SeerrMediaServer(nav: NavHostController, c: ArrClient) {
         "useSsl" to stringResource(R.string.m_ms_ssl), "urlBase" to stringResource(R.string.m_ms_url_base),
         "externalHostname" to stringResource(R.string.m_ms_external_url), "webAppUrl" to stringResource(R.string.m_ms_web_app_url),
     )
+    if (hasSecrets(doc.value)) SecureScreen()
+    UnsavedChangesGuard(nav, cur != null && doc.value != null && cur != doc.value)
     ManagePage(nav, stringResource(R.string.m_media_server), doc.value?.s("name")?.ifBlank { null } ?: c.service.title) {
         if (kind.error != null) block { ArrError(kind.error) }
         loaded(doc) { original ->
@@ -519,7 +532,7 @@ private fun SeerrMediaServer(nav: NavHostController, c: ArrClient) {
             block {
                 JsonForm(o, { cur = it }, act.error, hide = MS_HIDE, labels = labels)
                 PrimaryButton(stringResource(R.string.save), {
-                    run(savedMsg) { (c.post("settings/$k", normalizeGeneric(o, original)) as? JsonObject)?.let { cur = it } }
+                    run(savedMsg) { c.post("settings/$k", normalizeForSave(o, original)); tick++ }
                 }, Modifier.fillMaxWidth(), enabled = !act.busy && o != original)
                 FormErrors(act.error, o.keys)
                 act.done?.let { Text(it, color = Kino.success) }
@@ -531,8 +544,8 @@ private fun SeerrMediaServer(nav: NavHostController, c: ArrClient) {
                 }, Modifier.fillMaxWidth(), enabled = !act.busy, icon = Icons.Outlined.Sync)
                 if (libs.isEmpty()) Text(stringResource(R.string.m_no_libraries), color = Kino.muted, fontSize = 13.sp)
             }
-            items(libs, key = { it.s("id") ?: it.toString() }) { l ->
-                val lid = l.s("id") ?: return@items
+            keyedItems(libs, { it.s("id") }, "library") { l ->
+                val lid = l.s("id") ?: return@keyedItems
                 ListRow(l.s("name") ?: lid, listOfNotNull(l.s("type")?.let(::humanize), l.l("lastScan")?.takeIf { it > 0 }?.let { stringResource(R.string.m_last_run, when_(java.time.Instant.ofEpochMilli(it).toString())) }).joinToString(" · "),
                     trailing = {
                         Switch(l.b("enabled") == true, { on ->

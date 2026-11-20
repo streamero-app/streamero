@@ -6,6 +6,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -19,8 +20,8 @@ import net.scyde.streamero.ui.*
 @Composable
 fun ProwlarrSearch(nav: NavHostController, c: ArrClient) {
     val indexers = rememberLoaded(c.service) { c.list("indexer") }
-    var q by remember { mutableStateOf("") }
-    var type by remember { mutableStateOf("search") }
+    var q by rememberSaveable { mutableStateOf("") }
+    var type by rememberSaveable { mutableStateOf("search") }
     var chosen by remember { mutableStateOf<List<JsonElement>>(emptyList()) }
     var submitted by remember { mutableStateOf<Triple<String, String, List<JsonElement>>?>(null) }
     val results = rememberLoaded(submitted) {

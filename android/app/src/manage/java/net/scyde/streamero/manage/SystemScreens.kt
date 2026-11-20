@@ -7,6 +7,7 @@ import android.os.Environment
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -33,11 +34,11 @@ fun SystemPage(nav: NavHostController, c: ArrClient) {
     val s = c.service
     val info = rememberLoaded(s, pollMs = 15_000) {
         coroutineScope {
-            val st = async { runCatching { c.obj("system/status") }.getOrNull() }
-            val h = async { runCatching { c.list("health") }.getOrDefault(emptyList()) }
-            val d = async { if (s == ArrService.Prowlarr) emptyList() else runCatching { c.list("diskspace") }.getOrDefault(emptyList()) }
-            val t = async { runCatching { c.list("system/task") }.getOrDefault(emptyList()) }
-            val u = async { runCatching { c.list("update") }.getOrDefault(emptyList()) }
+            val st = async { attempt { c.obj("system/status") }.getOrNull() }
+            val h = async { attempt { c.list("health") }.getOrDefault(emptyList()) }
+            val d = async { if (s == ArrService.Prowlarr) emptyList() else attempt { c.list("diskspace") }.getOrDefault(emptyList()) }
+            val t = async { attempt { c.list("system/task") }.getOrDefault(emptyList()) }
+            val u = async { attempt { c.list("update") }.getOrDefault(emptyList()) }
             SystemInfo(st.await(), h.await(), d.await(), t.await(), u.await())
         }
     }
@@ -55,7 +56,7 @@ fun SystemPage(nav: NavHostController, c: ArrClient) {
     ManagePage(nav, stringResource(R.string.m_system), s.title) {
         item {
             Row(Modifier.padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                GlassButton(stringResource(R.string.logs), { nav.manage(s, "logs") }, icon = Icons.Outlined.Article)
+                GlassButton(stringResource(R.string.logs), { nav.manage(s, "logs") }, icon = Icons.AutoMirrored.Outlined.Article)
                 GlassButton(stringResource(R.string.backups), { nav.manage(s, "backups") }, icon = Icons.Outlined.Backup)
                 GlassButton(stringResource(R.string.m_restart), { askRestart = true }, icon = Icons.Outlined.RestartAlt)
             }
@@ -94,7 +95,7 @@ fun SystemPage(nav: NavHostController, c: ArrClient) {
             if (i.tasks.isNotEmpty()) {
                 item { Heading(stringResource(R.string.tasks)) }
                 items(i.tasks) { t ->
-                    ListRow(t.s("name") ?: t.s("taskName") ?: "?", listOfNotNull(t.i("interval")?.let { stringResource(R.string.m_every_minutes, it) },
+                    ListRow(t.s("name") ?: t.s("taskName") ?: "?", listOfNotNull(t.i("interval")?.let { plural(R.plurals.m_every_minutes, it) },
                         t.s("lastExecution")?.let { stringResource(R.string.m_last_run, when_(it)) }, t.s("nextExecution")?.let { stringResource(R.string.m_next_run, when_(it)) }).joinToString(" · "),
                         trailing = { IconButton(onClick = { t.s("taskName")?.let { n -> run(queued) { c.command(n) } } }) { Icon(Icons.Outlined.PlayArrow, stringResource(R.string.run_now), tint = Kino.text) } })
                 }
@@ -129,13 +130,13 @@ fun LogsPage(nav: NavHostController, c: ArrClient) {
     var level by remember { mutableStateOf("all") }
     val (logs, more, next) = rememberPaged("${c.service}/$level", 100) { p -> c.obj("log", mapOf("page" to p, "pageSize" to 100, "sortKey" to "time", "sortDirection" to "descending", "level" to level.takeIf { it != "all" })) }
     ManagePage(nav, stringResource(R.string.logs), c.service.title) {
-        item { ChipRow(listOf("all" to stringResource(R.string.m_all), "info" to "Info", "warn" to "Warn", "error" to "Error"), level) { level = it } }
+        item { ChipRow(listOf("all" to stringResource(R.string.m_all), "info" to stringResource(R.string.m_log_info), "warn" to stringResource(R.string.m_log_warn), "error" to stringResource(R.string.m_log_error)), level) { level = it } }
         loaded(logs) { list ->
             val shown = list.filter { r ->
                 val l = r.s("level")?.lowercase().orEmpty()
                 when (level) { "error" -> l == "error" || l == "fatal"; "warn" -> l == "warn" || l == "error" || l == "fatal"; "info" -> l != "debug" && l != "trace"; else -> true }
             }
-            items(shown) { r ->
+            keyedItems(shown, { it.i("id") }, "log") { r ->
                 Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
                     Text("${when_(r.s("time"))} · ${r.s("level").orEmpty()} · ${r.s("logger").orEmpty()}", color = when (r.s("level")?.lowercase()) { "error", "fatal" -> Kino.danger; "warn" -> Kino.accent; else -> Kino.faint }, fontSize = 11.sp)
                     Text(r.s("message").orEmpty(), color = Kino.text, fontSize = 13.sp, fontFamily = FontFamily.Monospace)
@@ -196,10 +197,13 @@ fun BackupsPage(nav: NavHostController, c: ArrClient) {
 private fun downloadBackup(ctx: Context, c: ArrClient, b: JsonObject) {
     val path = b.s("path")?.trimStart('/') ?: return
     val url = c.api.base.toString().trimEnd('/') + "/api/v1/arr/${c.service.id}/proxy/" + path
+    // The name comes from the service: only its last segment, so it cannot point outside Downloads.
+    val name = backupFileName(b.s("name")) ?: "backup.zip"
     val req = DownloadManager.Request(Uri.parse(url))
-        .setTitle(b.s("name") ?: "backup.zip")
+        .setTitle(name)
         .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-        .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, b.s("name") ?: "backup.zip")
+        .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name)
     c.api.token?.let { req.addRequestHeader("Authorization", "Bearer $it") }
-    (ctx.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager).enqueue(req)
+    val dm = ctx.getSystemService(Context.DOWNLOAD_SERVICE) as? DownloadManager ?: return
+    dm.enqueue(req)
 }
