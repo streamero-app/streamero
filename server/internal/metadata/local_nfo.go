@@ -58,6 +58,10 @@ func (r *Refresher) LocalNFO(ctx context.Context, libraryID uuid.UUID) (int, err
 		if src == "" {
 			continue
 		}
+		// The .nfo itself may be a symlink: it must still end inside the media folders.
+		if src, err = r.ResolvePath(src); err != nil {
+			continue
+		}
 		st, err := os.Stat(src)
 		if err != nil || (it.readAt != nil && !st.ModTime().After(*it.readAt)) {
 			continue

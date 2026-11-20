@@ -127,7 +127,9 @@ func TestArgsBurnIn(t *testing.T) {
 	j.Plan.Burn.Path = "/m/film.de.sup"
 	a = Args(j, "/t/s", DefaultEncoding())
 	s := strings.Join(a, " ")
-	if !strings.Contains(s, "-ss 90.500 -readrate 2 -readrate_initial_burst 60 -i /m/film.mkv -itsoffset -90.500 -i /m/film.de.sup") ||
+	// Both inputs are library files: each gets the file-only protocol whitelist.
+	if !strings.Contains(s, "-protocol_whitelist file -readrate 2 -readrate_initial_burst 60 -ss 90.500 -i /m/film.mkv "+
+		"-protocol_whitelist file -itsoffset -90.500 -i /m/film.de.sup") ||
 		!strings.HasPrefix(argAfter(a, "-filter_complex"), "[0:v:0][1:s:0]overlay") {
 		t.Fatalf("external sup: %s", s)
 	}

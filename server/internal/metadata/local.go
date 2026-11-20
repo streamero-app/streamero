@@ -10,6 +10,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+
+	"github.com/streamero-app/streamero/server/internal/library"
 )
 
 // Local artwork: images the user keeps next to their media, by the common naming
@@ -135,6 +138,11 @@ func newer(src, dst string) bool {
 // importImage scales a local image to a sensible size (posters straight from a
 // designer can be 15 MB) and writes it to the cache. Without ffmpeg it copies.
 func (r *Refresher) importImage(ctx context.Context, src, dst string, width int, png bool) bool {
+	// The picture may be a symlink: it must still end inside the media folders.
+	src, err := r.ResolvePath(src)
+	if err != nil {
+		return false
+	}
 	if err := os.MkdirAll(filepath.Dir(dst), 0o750); err != nil {
 		return false
 	}
@@ -152,8 +160,8 @@ func (r *Refresher) importImage(ctx context.Context, src, dst string, width int,
 	}
 	cctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
-	args := append([]string{"-nostdin", "-v", "error", "-y", "-i", src, "-frames:v", "1",
-		"-vf", fmt.Sprintf("scale='min(%d,iw)':-2", width)}, codec...)
+	args := append(append(library.SafeInputArgs(), "-nostdin", "-v", "error", "-y", "-i", src, "-frames:v", "1",
+		"-vf", fmt.Sprintf("scale='min(%d,iw)':-2", width)), codec...)
 	args = append(args, tmp)
 	cmd := exec.CommandContext(cctx, r.FFmpeg, args...) //nolint:gosec // G204: fixed flags, path from ResolvePath
 	if err := cmd.Run(); err != nil {

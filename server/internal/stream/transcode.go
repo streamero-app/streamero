@@ -98,6 +98,7 @@ func ProgressiveArgs(j Job, enc Encoding, format string) []string {
 	enc = enc.Normalize()
 	if j.Plan.AudioOnly {
 		a := []string{"-nostdin", "-hide_banner", "-loglevel", "error"}
+		a = append(a, inputArgs(j)...)
 		if j.StartMS > 0 {
 			a = append(a, "-ss", strconv.FormatFloat(float64(j.StartMS)/1000, 'f', 3, 64))
 		}
@@ -178,12 +179,13 @@ func codecArgs(j Job, dir string, enc Encoding) []string {
 	} else {
 		encode = []string{"-c:v", "copy"}
 	}
+	a = append(a, inputArgs(j)...)
 	if j.StartMS > 0 {
 		a = append(a, "-ss", strconv.FormatFloat(float64(j.StartMS)/1000, 'f', 3, 64))
 	}
-	a = append(a, j.InputArgs...)
 	a = append(a, "-i", j.Input)
 	if burn != nil && burn.External {
+		a = append(a, library.SafeInputArgs()...)
 		// A sidecar is read from its start, moved to the stream's clock: seeking a
 		// .sup would skip the subtitle already on screen at the start position.
 		if j.StartMS > 0 {
@@ -691,4 +693,13 @@ func (l *limitedWriter) Write(p []byte) (int, error) {
 		l.n -= len(chunk)
 	}
 	return len(p), nil
+}
+
+// inputArgs are the options before a job's "-i": the job's own (Live TV sets a
+// whitelist for its URLs), and for a library file the file-only whitelist.
+func inputArgs(j Job) []string {
+	if filepath.IsAbs(j.Input) {
+		return append(library.SafeInputArgs(), j.InputArgs...)
+	}
+	return j.InputArgs
 }

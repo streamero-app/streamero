@@ -9,6 +9,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+
+	"github.com/streamero-app/streamero/server/internal/library"
 )
 
 // GrabFrames gives movies and episodes without artwork a frame from their own
@@ -91,8 +94,9 @@ func (r *Refresher) grab(ctx context.Context, path string, durMS int64, hdr bool
 	cctx, cancel := context.WithTimeout(ctx, 45*time.Second)
 	defer cancel()
 	// Arguments are fixed flags plus a resolved library path; no shell is involved.
-	cmd := exec.CommandContext(cctx, r.FFmpeg, "-nostdin", "-v", "error", "-y", //nolint:gosec // G204: path checked by ResolvePath
+	args := append(library.SafeInputArgs(), "-nostdin", "-v", "error", "-y",
 		"-ss", fmt.Sprintf("%.2f", at), "-i", src, "-frames:v", "1", "-vf", vf, "-q:v", "3", tmp)
+	cmd := exec.CommandContext(cctx, r.FFmpeg, args...) //nolint:gosec // G204: path checked by ResolvePath
 	if err := cmd.Run(); err != nil {
 		_ = os.Remove(tmp)
 		r.Log.Debug("frame grab failed", "path", path, "err", err)

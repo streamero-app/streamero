@@ -240,7 +240,7 @@ func (d *Detector) blackdetect(ctx context.Context, src string, offsetMS int64, 
 	defer cancel()
 	// Mostly-black pictures (credits text covers a few per cent of the frame).
 	// #nosec G204 -- fixed binary and flags; the path was validated by ResolvePath.
-	cmd := exec.CommandContext(cctx, d.FFmpeg, "-nostdin", "-hide_banner", "-loglevel", "info",
+	cmd := exec.CommandContext(cctx, d.FFmpeg, "-protocol_whitelist", "file", "-nostdin", "-hide_banner", "-loglevel", "info",
 		"-ss", fmt.Sprintf("%.3f", float64(offsetMS)/1000), "-t", fmt.Sprintf("%.3f", seconds), "-i", src,
 		"-an", "-sn", "-dn", "-vf", "scale=320:-2,blackdetect=d=1:pic_th=0.90:pix_th=0.10", "-f", "null", "-")
 	var stderr bytes.Buffer
@@ -280,7 +280,7 @@ func fpcalcPrint(ctx context.Context, ffmpeg, fpcalc, src string, start, dur flo
 	cctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 	// #nosec G204 -- fixed binary and flags; the path was validated by ResolvePath.
-	dec := exec.CommandContext(cctx, ffmpeg, "-nostdin", "-v", "error", "-ss", fmt.Sprintf("%.3f", start), "-t", fmt.Sprintf("%.3f", dur),
+	dec := exec.CommandContext(cctx, ffmpeg, "-protocol_whitelist", "file", "-nostdin", "-v", "error", "-ss", fmt.Sprintf("%.3f", start), "-t", fmt.Sprintf("%.3f", dur),
 		"-i", src, "-vn", "-sn", "-dn", "-ac", "1", "-ar", "11025", "-f", "s16le", "-")
 	// #nosec G204 -- fixed binary and flags.
 	fpc := exec.CommandContext(cctx, fpcalc, "-format", "s16le", "-rate", "11025", "-channels", "1", "-raw",
@@ -330,7 +330,7 @@ func muxerPrint(ctx context.Context, ffmpeg, src string, start, dur float64) []u
 	cctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 	// #nosec G204 -- fixed binary and flags; the path was validated by ResolvePath.
-	out, err := exec.CommandContext(cctx, ffmpeg, "-nostdin", "-v", "error", "-ss", fmt.Sprintf("%.2f", start), "-t", fmt.Sprintf("%.2f", dur),
+	out, err := exec.CommandContext(cctx, ffmpeg, "-protocol_whitelist", "file", "-nostdin", "-v", "error", "-ss", fmt.Sprintf("%.2f", start), "-t", fmt.Sprintf("%.2f", dur),
 		"-i", src, "-vn", "-sn", "-ac", "1", "-f", "chromaprint", "-fp_format", "raw", "-").Output()
 	if err != nil || len(out) < 4 {
 		return nil

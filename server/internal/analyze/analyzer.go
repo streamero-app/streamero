@@ -143,7 +143,7 @@ func (a *Analyzer) chapters(ctx context.Context, path string) []Chapter {
 	cctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 	// #nosec G204 -- fixed binary; the path was validated by ResolvePath and is one argument.
-	out, err := exec.CommandContext(cctx, a.FFprobe, "-v", "error", "-print_format", "json", "-show_chapters", "--", src).Output()
+	out, err := exec.CommandContext(cctx, a.FFprobe, "-protocol_whitelist", "file", "-v", "error", "-print_format", "json", "-show_chapters", "--", src).Output()
 	if err != nil {
 		return []Chapter{}
 	}
@@ -183,7 +183,7 @@ func (a *Analyzer) trickplay(ctx context.Context, f *file) *Trickplay {
 	defer cancel()
 	// Keyframes only: a full decode is not needed for 1-in-10-seconds thumbnails.
 	// #nosec G204 -- fixed binary and flags; the path was validated by ResolvePath.
-	cmd := exec.CommandContext(cctx, a.FFmpeg, "-nostdin", "-v", "error", "-skip_frame", "nokey", "-i", src,
+	cmd := exec.CommandContext(cctx, a.FFmpeg, "-protocol_whitelist", "file", "-nostdin", "-v", "error", "-skip_frame", "nokey", "-i", src,
 		"-an", "-sn", "-vf", vf, "-fps_mode", "vfr", "-q:v", "5", "-start_number", "0", filepath.Join(dir, "%d.jpg"))
 	if out, err := cmd.CombinedOutput(); err != nil {
 		if a.Log != nil {
