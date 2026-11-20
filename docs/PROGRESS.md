@@ -20,6 +20,69 @@ P4 — Web pregledavanje (u tijeku); izdanja v0.2.0 i **v0.3.0** objavljena. P0 
 - Branch pushan, PR #1 (`phase/P0-foundations` → `main`) otvoren; `main` je prazan početni commit spojen u P0 (repo je bio prazan). CI zelen: `server`, `web`, `e2e`, iOS `build` (prvi uspješan iOS build, artefakt `streamero-ipa`).
 - `scripts/gen-fixtures.sh`: filmovi (H.264, 4K HEVC 10-bit, HDR10, AV1, multi-audio + poglavlja + embedded/external SRT/ASS, verzije, trailer), serija sa zajedničkim introm (2×4 ep.), multi-episode, specials, daily, anime absolute, glazba (FLAC/MP3), fotke.
 
+## Android: kvaliteta, sigurnost i performanse, drugi krug (branch `fix/android-pass-2`, 2026-11-20)
+Prolaz kroz cijeli `android/` za oba okusa (D-056).
+- **Sigurnost:**
+  - token sesije šifriran Keystore ključem (AES-GCM), uz prelazak postojećih instalacija bez odjave;
+  - token ide samo na isti origin servera;
+  - `network_security_config` (http dopušten zbog kućnih servera, samo sistemski CA), upozorenje na http izvan lokalne mreže;
+  - `FLAG_SECURE` i osjetljivi međuspremnik za kodove za oporavak, TOTP tajnu, API ključ, pozivnice i Manage tajne;
+  - provjera SSO i invite poveznica (pozivnica se više ne šalje sama);
+  - URL servera samo http(s) bez `user:pass@`;
+  - ograničena veličina avatara.
+- **Stabilnost:**
+  - pokretanja bez obrade grešaka više ne ruše aplikaciju (odjava, preuzimanja, navigacija);
+  - prekid (cancellation) se svugdje prosljeđuje;
+  - nema `!!` na podacima sa servera ni u rutama;
+  - straničenje biblioteke bez duplih ključeva i zastoja;
+  - trickplay bez dijeljenja nulom;
+  - kodiranje vrijednosti u rutama;
+  - ponovno stvorena aktivnost ne obrađuje staru poveznicu;
+  - preuzimanja: 416 s neusklađenim dijelom kreće ispočetka, ispravan ukupni broj bajtova, privremene datoteke se brišu.
+- **Playeri:**
+  - mrežni prekid najprije ponovi isti stream (ne pada odmah na sigurni profil);
+  - Live TV se vraća na rub nakon dugog pauziranja;
+  - ekran ostaje upaljen samo dok se reproducira;
+  - pozicija i audio zapis preživljavaju zatvaranje procesa, završni izvještaj o napretku ide i nakon zatvaranja;
+  - AC-3/E-AC-3 passthrough prema `AudioCapabilities`, AV1 samo s hardverskim dekoderom;
+  - TV: zamka fokusa na grešci uklonjena;
+  - jedna veza na glazbeni servis, tickeri samo dok svira;
+  - mjerač za spavanje, ponovni ulazak u watch-together grupu.
+- **Manage:**
+  - 401 servisa više ne odjavljuje korisnika;
+  - svaka greška proxyja (D-049, `read_only_key`) ima svoju poruku, HTML se ne prikazuje;
+  - potvrda za sva brisanja;
+  - upozorenje na nespremljene promjene;
+  - brojevi i tajne ostaju točni pri spremanju;
+  - prekidač sezone šalje samo tu sezonu;
+  - prozivanje samo dok je ekran vidljiv, s odgodom nakon grešaka;
+  - jedinstveni ključevi listi.
+- **Performanse:**
+  - jedan image loader za cijelu aplikaciju;
+  - početna se učitava paralelno;
+  - `derivedStateOf` za poziciju playera;
+  - `key`/`contentType` u listama;
+  - QR i avatar izvan glavne niti;
+  - StrictMode u debug buildu;
+  - APK samo s EN/HR resursima.
+- **Pristupačnost i i18n:**
+  - opisi ikona, ciljevi 48 dp, naslovi za TalkBack;
+  - visine koje ne režu tekst na 200 %;
+  - zrcaljene ikone za RTL;
+  - množine (one/few/other) umjesto „%d …" nizova;
+  - paritet EN/HR provjeren testom.
+- **Lint u CI-ju za oba okusa,** bez baselinea, 0 grešaka.
+
+Unit testovi za svaki popravak (oba okusa zelena).
+
+**Nije provjereno na uređaju:** šifriranje i prelazak tokena, `FLAG_SECURE`, passthrough na AVR-u, PiP, TV fokus, prozivanje u pozadini.
+
+**Sljedeće:**
+- parametar veličine u `getItemImage`, pa manje slike na mobitelu;
+- HDR/Dolby Vision u `DeviceProfile`;
+- adaptivna ikona (lint `IconLauncherShape`);
+- ažuriranje ovisnosti (Media3, AndroidX) u zasebnom PR-u.
+
 ## Statistika za nadzorne ploče i ključevi samo za čitanje (branch `feat/api-stats`, 2026-11-17)
 `GET /api/v1/system/stats` (`getSystemStats`, samo admin) i isti JSON na `GET /api/stats` za nadzorne ploče koje šalju `X-Api-Key` (D-052): brojevi po vrsti stavke, `usageBytes`, aktivne reprodukcije i transkodiranja, `processing`/`failed`, disk medija, `lastAddedAt`, `jobs` po River redu; dio iz baze u memoriji 15 s. `X-Api-Key` (samo `sk_…` ključevi) vrijedi na cijelom `/api/v1`. API ključevi samo za čitanje (migracija 00034, `readOnly` u specifikaciji, kvačica i oznaka u Postavke → API ključevi, HR/EN): provjera na jednom mjestu, u `auth.Service.Authenticate`, pa vrijedi za nativni API, compat API, *arr proxy, sockete i `/api/stats` (403 `read_only_key` za sve osim GET/HEAD/OPTIONS i za sockete). Testovi: integracijski (oba puta, sve vrste prijave, 401/403 kao JSON, brojevi nakon seeda, prazna biblioteka, oblik `jobs`, keš; ključ samo za čitanje na svim površinama naspram običnog ključa), Vitest. Opis u `docs/INTEGRATIONS.md`. Sljedeće: kvačica „samo za čitanje" u Android i iOS ekranima API ključeva (sada rade bez nje; novo polje je neobavezno).
 
