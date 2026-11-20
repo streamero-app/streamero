@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Navigate, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { KeyRound } from "lucide-react";
@@ -9,6 +9,14 @@ import { ssoErrorKey, takeQueryParam, useAuthProviders } from "@/features/auth/u
 import { useSystemInfo } from "@/features/server/useSystemInfo";
 import { ApiError } from "@/api/client";
 import { QuickConnectLogin } from "@/features/auth/QuickConnectLogin";
+import { safeHref, takeReturnTo } from "@/lib/safeUrl";
+
+/** Replaces the address with a path inside the app (already checked by internalPath). */
+function GoTo({ href }: { href: string }) {
+  const navigate = useNavigate();
+  useEffect(() => { void navigate({ href, replace: true }); }, [href, navigate]);
+  return null;
+}
 
 export function LoginPage() {
   const { t } = useTranslation();
@@ -23,16 +31,19 @@ export function LoginPage() {
   const [quick, setQuick] = useState(false);
   // A failed single sign-on comes back as /login?sso_error=<code>.
   const [ssoError] = useState(() => takeQueryParam("sso_error"));
+  // Where the visitor was before their session ran out (same-origin paths only).
+  const [target] = useState(() => takeReturnTo() ?? "/");
   // The server answers totp_required once the password is right; then we ask for the code.
   const needsCode = login.error instanceof ApiError && ["totp_required", "invalid_totp"].includes(login.error.code)
     || totpCode !== "";
 
   if (info && !info.setupCompleted) return <Navigate to="/setup" />;
-  if (me) return <Navigate to="/" />;
+  if (me) return <GoTo href={target} />;
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
-    login.mutate({ username, password, totpCode: totpCode || undefined }, { onSuccess: () => void navigate({ to: "/" }) });
+    if (login.isPending) return;
+    login.mutate({ username, password, totpCode: totpCode || undefined }, { onSuccess: () => void navigate({ href: target, replace: true }) });
   };
 
   if (quick) {
@@ -43,7 +54,11 @@ export function LoginPage() {
     );
   }
 
-  const providers = methods?.oidc ?? [];
+  // Buttons only for providers whose sign-in link is a real web address.
+  const providers = (methods?.oidc ?? []).flatMap((p) => {
+    const href = safeHref(p.authorizeUrl);
+    return href ? [{ ...p, authorizeUrl: href }] : [];
+  });
   const passwordForm = methods?.passwordLogin ?? true;
 
   return (

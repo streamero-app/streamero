@@ -1,5 +1,7 @@
-import type { FunctionComponent } from "react";
+import { useMemo, type FunctionComponent } from "react";
 import { createRootRoute, createRoute, createRouter, lazyRouteComponent, Navigate, Outlet, redirect } from "@tanstack/react-router";
+import { RouteError } from "@/components/RouteError";
+import { sanitizeCustomCss } from "@/lib/customCss";
 import { ServerGate } from "@/features/server/ServerGate";
 import { DialogProvider } from "@/components/Dialog";
 import { AmbientProvider } from "@/features/ambient/Ambient";
@@ -63,10 +65,14 @@ const LivePlayer = lazyRouteComponent(() => import("@/features/livetv/LivePlayer
 const LiveTvSettings = lazyRouteComponent(() => import("@/features/settings/LiveTvSettings"), "LiveTvSettings");
 const ReaderPage = lazyRouteComponent(() => import("@/features/books/ReaderPage"), "ReaderPage");
 
-/** The administrator's extra CSS (Settings → Branding), on every page. */
+/**
+ * The administrator's extra CSS (Settings → Branding), on every page. Anything that
+ * would make the browser contact another host (imports, remote url()) is removed.
+ */
 function CustomCss() {
   const { data } = useSystemInfo();
-  return data?.customCss ? <style data-testid="custom-css">{data.customCss}</style> : null;
+  const css = useMemo(() => sanitizeCustomCss(data?.customCss), [data?.customCss]);
+  return css ? <style data-testid="custom-css">{css}</style> : null;
 }
 
 const rootRoute = createRootRoute({
@@ -226,7 +232,9 @@ export const routeTree = rootRoute.addChildren([
       subtitleLookRoute, homePrefsRoute, transcodingRoute, logsRoute, activityRoute, brandingRoute, requestsRoute, enhancementsRoute, importRoute, ssoRoute, liveTvSettingsRoute]),
   ]),
 ]);
-export const router = createRouter({ routeTree });
+/** Options shared by the app and the tests: every page fails on its own, never as a blank screen. */
+export const routerOptions = { defaultErrorComponent: RouteError, defaultPreload: "intent" as const, defaultPreloadStaleTime: 0, scrollRestoration: true };
+export const router = createRouter({ routeTree, ...routerOptions });
 
 declare module "@tanstack/react-router" {
   interface Register {

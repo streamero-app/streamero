@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { api, deviceInfo, fetchMe, unwrap, type User } from "@/api/client";
+import { forgetReturnTo } from "@/lib/safeUrl";
 
 /**
  * Whether the signed-in account may use administrator actions right now: an
@@ -27,15 +28,22 @@ export function useMe() {
   return useQuery({ queryKey: meQueryKey, queryFn: fetchMe, staleTime: 60_000, retry: false });
 }
 
+/**
+ * A new session began (password, setup, invite, Quick Connect): nothing cached for
+ * whoever used this browser before may show, so the cache starts empty apart from
+ * the public server facts.
+ */
+export function startSession(qc: QueryClient, user: User) {
+  qc.removeQueries({ predicate: (q) => q.queryKey[0] !== "system" });
+  qc.setQueryData<User | null>(meQueryKey, user);
+}
+
 export function useLogin() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (v: { username: string; password: string; totpCode?: string }) =>
       unwrap(await api.POST("/auth/login", { body: { ...v, useCookie: true, device: deviceInfo() } })),
-    onSuccess: (res) => {
-      qc.clear();
-      qc.setQueryData<User | null>(meQueryKey, res.user);
-    },
+    onSuccess: (res) => startSession(qc, res.user),
   });
 }
 
@@ -45,7 +53,7 @@ export function useSetup() {
     mutationFn: async (v: { setupCode: string; serverName: string; username: string; password: string }) =>
       unwrap(await api.POST("/setup", { body: { ...v, useCookie: true, device: deviceInfo() } })),
     onSuccess: async (res) => {
-      qc.setQueryData<User | null>(meQueryKey, res.user);
+      startSession(qc, res.user);
       await qc.invalidateQueries({ queryKey: ["system", "info"] });
     },
   });
@@ -55,8 +63,9 @@ export function useLogout() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async () => unwrap(await api.POST("/auth/logout")),
+    onMutate: () => forgetReturnTo(),
     onSettled: () => {
-      qc.clear();
+      qc.removeQueries({ predicate: (q) => q.queryKey[0] !== "system" });
       qc.setQueryData<User | null>(meQueryKey, null);
     },
   });

@@ -241,7 +241,14 @@
     "provider_unreachable": "The provider could not be reached or answered incorrectly.",
     "tuners_busy": "Every tuner is in use right now. Try again when a recording or another viewer finishes.",
     "channel_unavailable": "The channel can't be tuned right now.",
-    "file_missing": "This file is no longer where the server expected it. The library is being rescanned; try again in a minute."
+    "file_missing": "This file is no longer where the server expected it. The library is being rescanned; try again in a minute.",
+    "pageTitle": "Something broke",
+    "pageFailed": "This page could not be shown.",
+    "newVersion": "A new version of Streamero is ready.",
+    "reload": "Reload",
+    "tryAgain": "Try again",
+    "network": "The server could not be reached. Check your connection and try again.",
+    "permission": "Your account is not allowed to do this."
   },
   "notFound": {
     "title": "Page not found",

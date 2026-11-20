@@ -36,7 +36,7 @@ function socketUrl(): string {
  */
 export function SyncPlayProvider({ children }: { children: ReactNode }) {
   const { data: me } = useMe();
-  const allowed = !!me && (me.isAdmin || me.permissions.syncPlay);
+  const allowed = !!me && (me.isAdmin || !!me.permissions?.syncPlay);
   const [group, setGroup] = useState<SyncGroup | null>(null);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);

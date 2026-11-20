@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { rememberReturnTo } from "@/lib/safeUrl";
 import { Link, Navigate, Outlet, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Bookmark, Clapperboard, Compass, Film, House, LogOut, Music, Radio, Search, Settings, Tv, Users, type LucideIcon } from "lucide-react";
@@ -74,7 +75,6 @@ function AccountMenu() {
       </button>
       {open && (
         <div role="menu" className="absolute right-0 z-50 mt-3 w-64 origin-top-right overflow-hidden rounded-[8px] border border-border bg-surface/95 py-2 shadow-2xl backdrop-blur-xl [animation:pop_160ms_var(--ease-out)_both]">
-          <style>{"@keyframes pop{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}"}</style>
           <p className="truncate px-4 pt-1 pb-2 text-sm font-semibold">{current?.name ?? me.displayName ?? me.username}</p>
           {(profiles.data?.length ?? 0) > 0 && (
             <Link to="/who" role="menuitem" className={item} onClick={() => { markProfilePicked(false); setOpen(false); }}>
@@ -86,7 +86,7 @@ function AccountMenu() {
               <Radio className="size-4 text-text/55" aria-hidden />{t("livetv.title")}
             </Link>
           )}
-          {(me.isAdmin || me.permissions.syncPlay) && (
+          {(me.isAdmin || !!me.permissions?.syncPlay) && (
             <Link to="/together" role="menuitem" className={item} onClick={() => setOpen(false)} data-testid="together-menu">
               <Users className="size-4 text-text/55" aria-hidden />{t("together.groups")}
             </Link>
@@ -106,6 +106,14 @@ function AccountMenu() {
       )}
     </div>
   );
+}
+
+/** Sends a signed-out visitor to sign-in, remembering the page so sign-in can return to it. */
+function SignInFirst() {
+  const href = useRouterState({ select: (s) => s.location.href });
+  // Written during render (idempotent) so it is in place before the sign-in page reads it.
+  rememberReturnTo(href);
+  return <Navigate to="/login" replace />;
 }
 
 /** Layout for signed-in pages; redirects to setup, sign-in or the profile picker when needed. */
@@ -136,7 +144,7 @@ export function AppShell() {
   if (isPending) {
     return <div role="status" aria-label={t("server.checking")} className="flex h-full items-center justify-center"><Spinner /></div>;
   }
-  if (!me) return <Navigate to="/login" />;
+  if (!me) return <SignInFirst />;
   // Like a streaming service: choose who is watching once per browser session.
   if ((profiles.data?.length ?? 0) > 0 && !me.currentProfile && !profilePicked()) return <Navigate to="/who" />;
 

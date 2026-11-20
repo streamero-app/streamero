@@ -1,9 +1,10 @@
 import { render, waitFor } from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { createQueryClient } from "@/app/queryClient";
 import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/react-router";
 import { afterEach, expect, vi } from "vitest";
 import type { SystemInfo, User } from "@/api/client";
-import { routeTree } from "@/app/router";
+import { routeTree, routerOptions } from "@/app/router";
 
 // Pages load lazily: a test that ends mid-navigation (a redirect still fetching its
 // chunk) would let the router update React after the DOM is gone. Let it settle
@@ -46,10 +47,12 @@ export function mockApi(handler: Handler) {
 
 /** Renders the real app router at `path` with the given server info and signed-in user. */
 export function renderApp(path: string, { info = testInfo(), me = null as User | null } = {}) {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
+  // The app's own client (session handling included), without retries or refetching.
+  const qc = createQueryClient();
+  qc.setDefaultOptions({ queries: { retry: false, staleTime: Infinity }, mutations: { retry: false } });
   qc.setQueryData(["system", "info"], info);
   qc.setQueryData(["auth", "me"], me);
-  const router = createRouter({ routeTree, history: createMemoryHistory({ initialEntries: [path] }) });
+  const router = createRouter({ routeTree, defaultErrorComponent: routerOptions.defaultErrorComponent, history: createMemoryHistory({ initialEntries: [path] }) });
   routers.add(router);
   const utils = render(
     <QueryClientProvider client={qc}>
