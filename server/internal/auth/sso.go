@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/streamero-app/streamero/server/internal/netx"
 	"github.com/streamero-app/streamero/server/internal/settings"
 )
 
@@ -54,7 +55,8 @@ func (s *Service) httpClient() *http.Client {
 	if s.HTTPClient != nil {
 		return s.HTTPClient
 	}
-	return &http.Client{Timeout: 15 * time.Second}
+	// Provider addresses are set by administrators; link-local ones (cloud metadata) are refused.
+	return &http.Client{Timeout: 15 * time.Second, Transport: netx.SafeTransport()}
 }
 
 // SignInSettings returns the general sign-in settings.

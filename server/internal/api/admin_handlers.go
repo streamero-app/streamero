@@ -19,6 +19,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/activity"
 	"github.com/streamero-app/streamero/server/internal/api/gen"
 	"github.com/streamero-app/streamero/server/internal/auth"
+	"github.com/streamero-app/streamero/server/internal/netx"
 	"github.com/streamero-app/streamero/server/internal/notify"
 	"github.com/streamero-app/streamero/server/internal/version"
 )
@@ -89,6 +90,9 @@ func (h *Handler) GetDashboard(ctx context.Context) (*gen.Dashboard, error) {
 		return nil, err
 	}
 	out.Activity = act
+	if netx.UntrustedForwarding() {
+		out.Warnings = append(out.Warnings, gen.DashboardWarningsItemUntrustedProxy)
+	}
 	return out, nil
 }
 

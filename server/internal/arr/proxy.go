@@ -53,7 +53,7 @@ func (p *Proxy) init() {
 		}
 		p.limiter = &limiter{rate: rate, burst: burst, users: map[uuid.UUID]*bucket{}, now: time.Now}
 		if p.HTTP == nil {
-			p.HTTP = &http.Client{CheckRedirect: netx.SameHostRedirects}
+			p.HTTP = &http.Client{Transport: netx.SafeTransport(), CheckRedirect: netx.SameHostRedirects}
 		}
 	})
 }

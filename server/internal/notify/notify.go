@@ -182,7 +182,7 @@ func (d *Dispatcher) client() *http.Client {
 	if d.Client != nil {
 		return d.Client
 	}
-	return &http.Client{Timeout: 15 * time.Second, CheckRedirect: netx.SameHostRedirects}
+	return &http.Client{Timeout: 15 * time.Second, Transport: netx.SafeTransport(), CheckRedirect: netx.SameHostRedirects}
 }
 
 // Send delivers one event to one target synchronously (also used by "Send test").
