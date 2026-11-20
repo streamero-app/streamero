@@ -165,7 +165,7 @@ struct LoginView: View {
                 using: url, callbackURLScheme: SingleSignOn.callbackScheme) // default: shared browser session
             switch SingleSignOn.parseCallback(callback) {
             case .code(let code):
-                let (token, _) = try await AuthClient(baseURL: server.url).exchangeOIDC(code: code, verifier: verifier)
+                let token = try await AuthClient(baseURL: server.url).exchangeOIDC(code: code, verifier: verifier)
                 session.signedIn(server: server, token: token)
             case .failed(let code):
                 error = LoginMessage.key(for: code)
@@ -186,7 +186,7 @@ struct LoginView: View {
         error = nil
         defer { busy = false }
         do {
-            let (token, _) = try await AuthClient(baseURL: server.url)
+            let token = try await AuthClient(baseURL: server.url)
                 .login(username: username, password: password, totpCode: needsCode ? totpCode : nil)
             session.signedIn(server: server, token: token)
         } catch let apiError as APIError where apiError.code == "totp_required" {
@@ -223,9 +223,12 @@ struct QuickConnectView: View {
             Text("quickConnect.intro").multilineTextAlignment(.center).foregroundStyle(Theme.textMuted)
             if let code {
                 Text(code)
-                    .font(.system(size: 44, weight: .semibold, design: .monospaced))
+                    .font(.system(.largeTitle, design: .monospaced).weight(.semibold))
                     .tracking(8)
+                    .minimumScaleFactor(0.5).lineLimit(1)
                     .accessibilityLabel(Text("quickConnect.code"))
+                    // Read digit by digit, so it can be typed on the other device.
+                    .accessibilityValue(Text(verbatim: code.map(String.init).joined(separator: " ")))
                 ProgressView("quickConnect.waiting")
             }
             if let error {
@@ -254,7 +257,7 @@ struct QuickConnectView: View {
             code = started.code
             while !Task.isCancelled {
                 try await Task.sleep(for: .seconds(3))
-                if case .signedIn(let token, _) = try await client.pollQuickConnect(secret: started.secret) {
+                if case .signedIn(let token) = try await client.pollQuickConnect(secret: started.secret) {
                     guard !Task.isCancelled else { return }
                     session.signedIn(server: server, token: token)
                     return
@@ -267,6 +270,7 @@ struct QuickConnectView: View {
             code = nil
             error = LoginMessage.key(for: apiError.code)
         } catch {
+            if Task.isCancelled { return }
             code = nil
             self.error = "addServer.error.unreachable"
         }

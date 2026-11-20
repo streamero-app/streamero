@@ -30,11 +30,10 @@ struct MediaClient: Sendable {
         req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         if let contentType { req.setValue(contentType, forHTTPHeaderField: "Content-Type") }
         req.httpBody = body
-        let (data, response) = try await URLSession.shared.data(for: req)
+        let (data, response) = try await HTTP.data(for: req)
         guard let http = response as? HTTPURLResponse else { throw APIError(status: 0, code: "bad_response") }
         guard (200..<300).contains(http.statusCode) else {
-            let err = try? JSONDecoder().decode(APIErrorBody.self, from: data)
-            let error = APIError(status: http.statusCode, code: err?.code ?? "http_\(http.statusCode)", message: err?.message)
+            let error = APIError.from(status: http.statusCode, data: data)
             if Self.sessionExpired(error) { SessionExpiry.notify(token: token) }
             throw error
         }
@@ -162,6 +161,17 @@ struct MediaClient: Sendable {
         return profile
     }
 
+    /// The fallback after a failed stream: plain H.264 and AAC in HLS, which every device decodes.
+    static let safeDevice = DeviceProfile(containers: ["mp4"], videoCodecs: ["h264"], audioCodecs: ["aac"], hls: true)
+
+    /// The safe profile with the profile's streaming-quality limits.
+    static func safeDevice(preferences: Preferences?) -> DeviceProfile {
+        var profile = safeDevice
+        profile.maxHeight = preferences?.maxHeight
+        profile.maxBitrate = preferences?.maxBitrateKbps.map { $0 * 1000 }
+        return profile
+    }
+
     /// What the phone plays for music without help (the server converts anything else).
     static let audioProfile = DeviceProfile(
         containers: ["mp3", "flac", "mp4", "aac", "m4a", "wav"],
@@ -186,7 +196,7 @@ struct MediaClient: Sendable {
 
     /// WebVTT text for an already signed URL.
     func text(from url: URL) async throws -> String {
-        let (data, response) = try await URLSession.shared.data(from: url)
+        let (data, response) = try await HTTP.data(for: URLRequest(url: url))
         guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw APIError(status: 0, code: "bad_subtitles") }
         return String(decoding: data, as: UTF8.self)
     }
@@ -203,7 +213,7 @@ struct MediaClient: Sendable {
         var req = URLRequest(url: url)
         req.timeoutInterval = 30
         req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        let (data, response) = try await URLSession.shared.data(for: req)
+        let (data, response) = try await HTTP.data(for: req)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard status == 200 else { throw APIError(status: status, code: "http_\(status)") }
         return data
@@ -211,7 +221,7 @@ struct MediaClient: Sendable {
 
     /// Raw bytes of an already signed URL (subtitle sidecars).
     func signedData(_ url: URL) async throws -> Data {
-        let (data, response) = try await URLSession.shared.data(from: url)
+        let (data, response) = try await HTTP.data(for: URLRequest(url: url))
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard status == 200 else { throw APIError(status: status, code: "http_\(status)") }
         return data
@@ -279,7 +289,9 @@ struct MediaClient: Sendable {
     func sessions() async throws -> [SessionInfo] { try await get("sessions") }
     func revokeSession(_ id: String) async throws { try await send("DELETE", "sessions/\(id)") }
     func apiKeys() async throws -> [ApiKey] { try await get("apikeys") }
-    func createApiKey(name: String) async throws -> CreatedApiKey { try await post("apikeys", CreateApiKey(name: name)) }
+    func createApiKey(name: String, readOnly: Bool = false) async throws -> CreatedApiKey {
+        try await post("apikeys", CreateApiKey(name: name, readOnly: readOnly ? true : nil))
+    }
     func deleteApiKey(_ id: String) async throws { try await send("DELETE", "apikeys/\(id)") }
     func invites() async throws -> [Invite] { try await get("invites") }
     func createInvite(_ c: CreateInvite) async throws -> CreatedInvite { try await post("invites", c) }
@@ -319,6 +331,27 @@ struct MediaClient: Sendable {
         URL(string: path, relativeTo: baseURL)?.absoluteURL
     }
 
+    /// A server-relative link resolved on this server only. Artwork is fetched with the session
+    /// token, so a link that points at another host (the API only hands out relative ones) is
+    /// refused instead of sending the token there.
+    func ownURL(_ path: String) -> URL? {
+        guard let url = absolute(path), Self.sameOrigin(url, baseURL) else { return nil }
+        return url
+    }
+
+    static func sameOrigin(_ a: URL, _ b: URL) -> Bool {
+        a.scheme?.lowercased() == b.scheme?.lowercased() && a.host()?.lowercased() == b.host()?.lowercased()
+            && (a.port ?? defaultPort(a)) == (b.port ?? defaultPort(b))
+    }
+
+    private static func defaultPort(_ url: URL) -> Int? {
+        switch url.scheme?.lowercased() {
+        case "https": 443
+        case "http": 80
+        default: nil
+        }
+    }
+
     func imageURL(item id: String, type: String) -> URL? {
         absolute("/api/v1/items/\(id)/images/\(type)")
     }
@@ -327,6 +360,29 @@ struct MediaClient: Sendable {
     func collectionImageURL(_ id: String, type: String) -> URL? { absolute("/api/v1/collections/\(id)/images/\(type)") }
     /// Absolute URL of an invite link on this server.
     func inviteLink(token: String) -> URL? { absolute("/invite/\(token)") }
+}
+
+/// The URL session for API calls. Ephemeral: API answers (account details, settings, logs)
+/// are never written to the on-disk URL cache. A cancelled call throws `CancellationError`, so
+/// views that drop a superseded request (`catch is CancellationError`) do not show an error.
+enum HTTP {
+    static let session = URLSession(configuration: .ephemeral)
+
+    static func data(for request: URLRequest) async throws -> (Data, URLResponse) {
+        do {
+            return try await session.data(for: request)
+        } catch let error as URLError where error.code == .cancelled {
+            throw CancellationError()
+        }
+    }
+
+    static func download(for request: URLRequest) async throws -> (URL, URLResponse) {
+        do {
+            return try await session.download(for: request)
+        } catch let error as URLError where error.code == .cancelled {
+            throw CancellationError()
+        }
+    }
 }
 
 /// The shared hook for a session the server rejected mid-session: the signed-in screen
