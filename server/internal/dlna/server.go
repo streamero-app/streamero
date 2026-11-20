@@ -22,6 +22,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/streamero-app/streamero/server/internal/access"
 	"github.com/streamero-app/streamero/server/internal/activity"
 	"github.com/streamero-app/streamero/server/internal/auth"
 	"github.com/streamero-app/streamero/server/internal/library"
@@ -83,9 +84,7 @@ type Viewer struct {
 }
 
 // CanSeeLibraries mirrors the API rule: admins, or users allowed all libraries.
-func (v *Viewer) CanSeeLibraries() bool {
-	return v.Principal.User.IsAdmin || v.Principal.User.Permissions.AllLibraries
-}
+func (v *Viewer) CanSeeLibraries() bool { return access.CanSeeLibraries(v.Principal) }
 
 // UDN is the device id: stable per server, distinct from the server id.
 func (s *Server) UDN() string {
@@ -124,22 +123,12 @@ func (s *Server) viewer(ctx context.Context, st Settings) (*Viewer, error) {
 	}
 	v := &Viewer{Principal: p, Owner: stream.Owner(p), Blocked: map[string]bool{}, Lang: st.Language}
 	v.Prefs, _ = s.Library.PlaybackPrefs(ctx, v.Owner)
-	if p.Profile != nil && p.Profile.MaxRating != nil {
-		rows, err := s.Pool.Query(ctx, `SELECT DISTINCT official_rating FROM items WHERE official_rating IS NOT NULL`)
-		if err != nil {
-			return nil, err
-		}
-		var known []string
-		for rows.Next() {
-			var r string
-			if rows.Scan(&r) == nil {
-				known = append(known, r)
-			}
-		}
-		rows.Close()
-		for _, r := range library.BlockedRatings(known, *p.Profile.MaxRating) {
-			v.Blocked[r] = true
-		}
+	labels, err := access.Labels(ctx, s.Pool, p)
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range labels {
+		v.Blocked[r] = true
 	}
 	return v, nil
 }
@@ -271,7 +260,15 @@ func (s *Server) events(w http.ResponseWriter, r *http.Request) {
 		if sid == "" {
 			sid = "uuid:" + uuid.NewString()
 			if cb := callbackURL(r.Header.Get("CALLBACK")); cb != "" && sameHost(cb, r.RemoteAddr) {
-				go s.initialEvent(cb, sid, r.URL.Path)
+				// A few at a time: a flood of SUBSCRIBEs must not start a request each.
+				select {
+				case eventSlots <- struct{}{}:
+					go func() {
+						defer func() { <-eventSlots }()
+						s.initialEvent(cb, sid, r.URL.Path)
+					}()
+				default:
+				}
 			}
 		}
 		setExact(w.Header(), "SID", sid)
@@ -301,6 +298,14 @@ func callbackURL(h string) string {
 	}
 	return h[start:end]
 }
+
+// eventSlots bounds the initial events being sent at once.
+var eventSlots = make(chan struct{}, 8)
+
+// eventClient sends events; it never follows a redirect, which could send the
+// request on to a host other than the subscriber (D-053).
+var eventClient = &http.Client{Timeout: 5 * time.Second,
+	CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 
 // sameHost: event callbacks only go back to the subscriber itself (no requests
 // to third hosts on its behalf).
@@ -337,7 +342,7 @@ func (s *Server) initialEvent(cb, sid, path string) {
 	req.Header.Set("NTS", "upnp:propchange")
 	req.Header.Set("SID", sid)
 	req.Header.Set("SEQ", "0")
-	resp, err := (&http.Client{Timeout: 5 * time.Second}).Do(req) // #nosec G704 -- callback is the subscriber's own LAN address (sameHost)
+	resp, err := eventClient.Do(req) // #nosec G704 -- callback is the subscriber's own LAN address (sameHost)
 	if err == nil {
 		_ = resp.Body.Close()
 	}

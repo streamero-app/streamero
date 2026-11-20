@@ -20,6 +20,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/streamero-app/streamero/server/internal/access"
 	"github.com/streamero-app/streamero/server/internal/auth"
 	"github.com/streamero-app/streamero/server/internal/library"
 	"github.com/streamero-app/streamero/server/internal/settings"
@@ -31,6 +32,7 @@ var (
 	ErrNoPermission    = errors.New("your account may not download media")
 	ErrNoTranscode     = errors.New("your account may not use transcoded downloads")
 	ErrParental        = errors.New("this title is above the profile's parental limit")
+	ErrQuota           = errors.New("too many transcoded downloads for this account; wait for the queued ones or remove some")
 	ErrNotDownloadable = errors.New("this item has nothing to download")
 	ErrBadQuality      = errors.New("unknown download quality")
 )
@@ -121,43 +123,24 @@ func Owner(p auth.Principal) uuid.UUID { return stream.Owner(p) }
 // Allowed reports why p may not keep itemID offline (nil = allowed): library
 // access, the download permission, the profile's parental limit, a gone item.
 func (s *Service) Allowed(ctx context.Context, p auth.Principal, itemID uuid.UUID) error {
-	if !p.User.IsAdmin && !p.User.Permissions.AllLibraries {
+	if !access.CanSeeLibraries(p) {
 		return library.ErrNotFound
 	}
 	if !p.User.IsAdmin && !p.User.Permissions.Download {
 		return ErrNoPermission
 	}
-	rows, err := s.Pool.Query(ctx, `WITH RECURSIVE anc AS (
-			SELECT id, parent_id, official_rating, 0 AS depth FROM items WHERE id = $1
-			UNION ALL
-			SELECT i.id, i.parent_id, i.official_rating, a.depth + 1 FROM items i JOIN anc a ON i.id = a.parent_id WHERE a.depth < 5)
-		SELECT COALESCE(official_rating, '') FROM anc`, itemID)
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-	found := false
-	var ratings []string
-	for rows.Next() {
-		var r string
-		if err := rows.Scan(&r); err != nil {
-			return err
-		}
-		found = true
-		ratings = append(ratings, r)
-	}
-	if err := rows.Err(); err != nil {
+	var found bool
+	if err := s.Pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM items WHERE id = $1)`, itemID).Scan(&found); err != nil {
 		return err
 	}
 	if !found {
 		return library.ErrNotFound
 	}
-	if p.Profile != nil && p.Profile.MaxRating != nil {
-		for _, r := range ratings {
-			if a, ok := library.RatingAge(r); ok && a > *p.Profile.MaxRating {
-				return ErrParental
-			}
+	if err := access.Item(ctx, s.Pool, p, itemID); err != nil {
+		if errors.Is(err, access.ErrHidden) {
+			return ErrParental
 		}
+		return err
 	}
 	return nil
 }
@@ -296,6 +279,7 @@ func (s *Service) Create(ctx context.Context, p auth.Principal, r Request) ([]Jo
 	}
 	prefs, _ := s.Library.PlaybackPrefs(ctx, owner)
 	out := []Job{}
+	quota := false
 	for _, id := range ids {
 		if id != r.ItemID {
 			// An episode can carry its own rating.
@@ -313,6 +297,14 @@ func (s *Service) Create(ctx context.Context, p auth.Principal, r Request) ([]Jo
 		audio := -1
 		var transcodeID *uuid.UUID
 		if transcoded {
+			ok, err := s.underQuota(ctx, p)
+			if err != nil {
+				return nil, err
+			}
+			if !ok {
+				quota = true
+				break
+			}
 			audio = library.PickAudio(f.Audio, prefs.AudioLanguage)
 			if r.AudioIndex != nil && *r.AudioIndex >= 0 && *r.AudioIndex < len(f.Audio) {
 				audio = *r.AudioIndex
@@ -339,10 +331,35 @@ func (s *Service) Create(ctx context.Context, p auth.Principal, r Request) ([]Jo
 		}
 		out = append(out, j)
 	}
+	if len(out) == 0 && quota {
+		return nil, ErrQuota
+	}
 	if len(out) == 0 && len(ids) > 0 {
 		return nil, ErrParental
 	}
 	return out, nil
+}
+
+// Per-account limits on transcoded downloads (administrators are exempt, D-053):
+// without them one account could queue thousands of transcodes, keep the
+// shared transcoder busy for days and push everyone else's files out of the cache.
+const (
+	MaxQueuedPerUser     = 10  // queued or transcoding
+	MaxTranscodedPerUser = 200 // download jobs backed by a transcode
+)
+
+// underQuota reports whether p may add one more transcoded download.
+func (s *Service) underQuota(ctx context.Context, p auth.Principal) (bool, error) {
+	if p.User.IsAdmin {
+		return true, nil
+	}
+	var queued, total int
+	err := s.Pool.QueryRow(ctx, `SELECT count(*) FILTER (WHERE t.state IN ('queued', 'transcoding')), count(*)
+		FROM downloads d JOIN download_transcodes t ON t.id = d.transcode_id WHERE d.user_id = $1`, p.User.ID).Scan(&queued, &total)
+	if err != nil {
+		return false, err
+	}
+	return queued < MaxQueuedPerUser && total < MaxTranscodedPerUser, nil
 }
 
 // pickFile returns the chosen or best video file of an item.

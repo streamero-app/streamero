@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/streamero-app/streamero/server/internal/access"
 	"github.com/streamero-app/streamero/server/internal/analyze"
 	"github.com/streamero-app/streamero/server/internal/api/gen"
 	"github.com/streamero-app/streamero/server/internal/auth"
@@ -23,7 +24,7 @@ import (
 
 // canSeeLibraries: admins always; others need the allLibraries permission
 // (per-library access lists come with the library picker in invites/users).
-func canSeeLibraries(p auth.Principal) bool { return p.User.IsAdmin || p.User.Permissions.AllLibraries }
+func canSeeLibraries(p auth.Principal) bool { return access.CanSeeLibraries(p) }
 
 var errStarting = &StatusError{Status: http.StatusServiceUnavailable, Code: "starting", Message: "server is starting"}
 
@@ -138,11 +139,15 @@ func (h *Handler) ListLibraryItems(ctx context.Context, params gen.ListLibraryIt
 	if _, err := h.lib().Get(ctx, params.LibraryId); err != nil {
 		return nil, err
 	}
+	hidden, err := h.hiddenLabels(ctx, p)
+	if err != nil {
+		return nil, err
+	}
 	items, total, err := h.lib().ListItems(ctx, params.LibraryId, stream.Owner(p), string(params.Sort.Or(gen.ListLibraryItemsSortTitle)),
 		params.Limit.Or(100), params.Offset.Or(0), library.ItemFilter{Genre: params.Genre.Value, Unplayed: params.Unplayed.Value,
 			Favorite: params.Favorite.Value, Resumable: params.Resumable.Value, YearFrom: params.YearFrom.Value, YearTo: params.YearTo.Value,
 			Letter: params.Letter.Value, Kind: string(params.Kind.Value), Author: params.Author.Value, Series: params.Series.Value,
-			ParentID: optUUIDPtr(params.ParentId)})
+			ParentID: optUUIDPtr(params.ParentId), ExcludeRatings: hidden})
 	if err != nil {
 		return nil, err
 	}
@@ -164,6 +169,9 @@ func (h *Handler) GetItem(ctx context.Context, params gen.GetItemParams) (*gen.I
 	}
 	it, files, children, err := h.lib().GetItem(ctx, params.ItemId, stream.Owner(p))
 	if err != nil {
+		return nil, err
+	}
+	if children, err = h.visibleItems(ctx, p, children); err != nil {
 		return nil, err
 	}
 	out := &gen.ItemDetail{Item: toItemSummary(it), LibraryId: it.LibraryID, ProviderIds: gen.ItemDetailProviderIds(it.ProviderIDs),
@@ -646,6 +654,9 @@ func (h *Handler) ContinueWatching(ctx context.Context) ([]gen.ItemSummary, erro
 		return out, nil
 	}
 	items, err := h.lib().ContinueWatching(ctx, stream.Owner(p), 20)
+	if err == nil {
+		items, err = h.visibleItems(ctx, p, items)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -676,6 +687,9 @@ func (h *Handler) listFor(ctx context.Context, fn func(owner uuid.UUID) ([]libra
 		return []gen.ItemSummary{}, nil
 	}
 	items, err := fn(stream.Owner(p))
+	if err == nil {
+		items, err = h.visibleItems(ctx, p, items)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -743,6 +757,9 @@ func (h *Handler) NextUp(ctx context.Context) ([]gen.ItemSummary, error) {
 		return out, nil
 	}
 	items, err := h.lib().NextUp(ctx, stream.Owner(p), 20)
+	if err == nil {
+		items, err = h.visibleItems(ctx, p, items)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -762,6 +779,9 @@ func (h *Handler) NextEpisode(ctx context.Context, params gen.NextEpisodeParams)
 		return nil, err
 	}
 	it, err := h.lib().NextEpisode(ctx, stream.Owner(p), params.ItemId)
+	if err == nil {
+		err = access.Item(ctx, h.lib().Pool, p, it.ID)
+	}
 	if err != nil {
 		return nil, err
 	}

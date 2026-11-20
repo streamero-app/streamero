@@ -192,7 +192,7 @@ func (h *Handler) Discover(ctx context.Context, params gen.DiscoverParams) (*gen
 		return nil, upstream(err)
 	}
 	out.Page, out.TotalPages = max(res.Page, 1), max(res.TotalPages, 1)
-	local := h.localByTMDb(ctx, res.Titles)
+	local := h.localByTMDb(ctx, p, res.Titles)
 	for _, t := range res.Titles {
 		dt := gen.DiscoverTitle{TmdbId: t.TMDbID, MediaType: gen.DiscoverTitleMediaType(t.MediaType), Title: t.Title,
 			Overview: optString(t.Overview), Status: gen.DiscoverTitleStatus(t.Status)}
@@ -218,7 +218,7 @@ func (h *Handler) Discover(ctx context.Context, params gen.DiscoverParams) (*gen
 }
 
 // localByTMDb finds which results are already in the libraries.
-func (h *Handler) localByTMDb(ctx context.Context, titles []requests.Title) map[string]uuid.UUID {
+func (h *Handler) localByTMDb(ctx context.Context, p auth.Principal, titles []requests.Title) map[string]uuid.UUID {
 	out := map[string]uuid.UUID{}
 	if h.lib() == nil || len(titles) == 0 {
 		return out
@@ -227,8 +227,20 @@ func (h *Handler) localByTMDb(ctx context.Context, titles []requests.Title) map[
 	for _, t := range titles {
 		ids = append(ids, strconv.Itoa(t.TMDbID))
 	}
-	rows, err := h.lib().Pool.Query(ctx, `SELECT id, kind, provider_ids->>'tmdb' FROM items
-		WHERE parent_id IS NULL AND kind IN ('movie', 'series') AND provider_ids->>'tmdb' = ANY($1)`, ids)
+	if !canSeeLibraries(p) {
+		return out
+	}
+	hidden, err := h.hiddenLabels(ctx, p)
+	if err != nil {
+		return out
+	}
+	if hidden == nil {
+		hidden = []string{}
+	}
+	// Titles above the profile's parental limit are not linked (D-053).
+	rows, err := h.lib().Pool.Query(ctx, `SELECT i.id, i.kind, i.provider_ids->>'tmdb' FROM items i
+		WHERE i.parent_id IS NULL AND i.kind IN ('movie', 'series') AND i.provider_ids->>'tmdb' = ANY($1)
+		AND `+library.VisibleSQL("i", "$2"), ids, hidden)
 	if err != nil {
 		return out
 	}
