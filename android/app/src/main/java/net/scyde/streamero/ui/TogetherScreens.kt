@@ -15,11 +15,13 @@ import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -61,7 +63,7 @@ fun TogetherScreen(state: AppState, nav: NavHostController, linkId: String?) {
     fun join(id: String) {
         busy = true; error = null; nothing = false
         scope.launch {
-            runCatching { sync.join(id) }
+            attempt { sync.join(id) }
                 .onSuccess { g -> if (!nav.watchGroup(g)) nothing = true }
                 .onFailure { error = it }
             busy = false
@@ -115,15 +117,21 @@ fun TogetherScreen(state: AppState, nav: NavHostController, linkId: String?) {
             }
         }
     }
-    // A link opened from outside (route together/{id}) joins right away.
-    LaunchedEffect(linkId) { linkId?.let(::parseGroupId)?.takeIf { it != sync.group?.id }?.let(::join) }
+    // A link opened from outside (route together/{id}) joins right away, once: coming back here
+    // from the player (which leaves the group) must not join and open the player again.
+    var linkHandled by rememberSaveable(linkId) { mutableStateOf(false) }
+    LaunchedEffect(linkId) {
+        if (linkHandled) return@LaunchedEffect
+        linkHandled = true
+        linkId?.let(::parseGroupId)?.takeIf { it != sync.group?.id }?.let(::join)
+    }
 }
 
 @Composable
 private fun GroupLine(g: SyncGroup) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(g.name, color = Kino.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(listOfNotNull(g.current?.title, stringResource(R.string.together_watching, g.members.count { it.connected })).joinToString("  ·  "),
+        Text(listOfNotNull(g.current?.title, g.members.count { it.connected }.let { n -> pluralStringResource(R.plurals.together_watching, n, n) }).joinToString("  ·  "),
             color = Kino.muted, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
@@ -171,7 +179,7 @@ fun SyncOverlay(g: SyncGroup, connected: Boolean, onLeave: (() -> Unit)?, modifi
         .animateContentSize().padding(horizontal = 14.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Default.Groups, null, tint = Kino.text, modifier = Modifier.size(18.dp))
-            Text(stringResource(R.string.together_watching, g.members.count { it.connected }), color = Kino.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text(g.members.count { it.connected }.let { n -> pluralStringResource(R.plurals.together_watching, n, n) }, color = Kino.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
         }
         when {
             !connected -> Text(stringResource(R.string.together_reconnecting), color = Kino.muted, fontSize = 13.sp)

@@ -2,7 +2,9 @@ package net.scyde.streamero.music
 
 import android.app.Application
 import android.content.ComponentName
+import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -14,12 +16,18 @@ import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
+import java.util.concurrent.ExecutionException
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import net.scyde.streamero.api.Api
 import net.scyde.streamero.api.DeviceProfile
 import net.scyde.streamero.api.ItemSummary
@@ -30,6 +38,40 @@ val AUDIO_PROFILE = DeviceProfile(
     containers = listOf("mp3", "flac", "mp4", "aac", "ogg", "wav", "webm"),
     videoCodecs = emptyList(), audioCodecs = listOf("mp3", "flac", "aac", "alac", "opus", "vorbis", "pcm_s16le"), hls = true,
 )
+
+/**
+ * Connects to [MusicService] without blocking or polling. [onGone] is told when the
+ * service goes away (stopped, or the system closed it), after which the controller is useless.
+ */
+internal suspend fun connectToMusicService(app: Context, onGone: (MediaController) -> Unit): MediaController {
+    val token = SessionToken(app, ComponentName(app, MusicService::class.java))
+    val future = MediaController.Builder(app, token)
+        .setListener(object : MediaController.Listener {
+            override fun onDisconnected(controller: MediaController) = onGone(controller)
+        })
+        .buildAsync()
+    return suspendCancellableCoroutine { cont ->
+        future.addListener({
+            try {
+                cont.resume(future.get())
+            } catch (e: ExecutionException) {
+                cont.resumeWithException(e.cause ?: e)
+            } catch (e: Exception) {
+                cont.resumeWithException(e)
+            }
+        }, MoreExecutors.directExecutor())
+        // A caller that gave up does not leave a connected controller behind.
+        cont.invokeOnCancellation { MediaController.releaseFuture(future) }
+    }
+}
+
+/**
+ * A scope for player commands from taps: a command that fails (the service could not be
+ * reached) is dropped instead of closing the app. Only the error type is logged, never a URL.
+ */
+internal fun playerScope(tag: String) = CoroutineScope(SupervisorJob() + Dispatchers.Main + CoroutineExceptionHandler { _, e ->
+    Log.w(tag, "player command failed: ${e.javaClass.simpleName}")
+})
 
 /** The app's side of music playback: a queue of tracks and the MediaController of MusicService. */
 class MusicController(private val app: Application) {
@@ -51,25 +93,42 @@ class MusicController(private val app: Application) {
         private set
     val current: ItemSummary? get() = queue.getOrNull(index)
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-    private var controller: MediaController? = null
+    private val scope = playerScope("MusicController")
+    private var ticker: Job? = null
 
-    private suspend fun controller(): MediaController {
-        controller?.let { return it }
-        val token = SessionToken(app, ComponentName(app, MusicService::class.java))
-        val future = MediaController.Builder(app, token).buildAsync()
-        while (!future.isDone) delay(20)
-        return future.get().also { c ->
-            controller = c
-            c.addListener(object : Player.Listener {
-                override fun onIsPlayingChanged(isPlaying: Boolean) { playing = isPlaying }
-                override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                    // By id: while the queue is still being resolved the player holds fewer items than the list shown.
-                    index = queue.indexOfFirst { it.id == mediaItem?.mediaId }.takeIf { it >= 0 } ?: c.currentMediaItemIndex
-                    duration = queue.getOrNull(index)?.durationMs ?: 0L
-                }
-            })
-            scope.launch { while (true) { position = c.currentPosition; if (c.duration > 0) duration = c.duration; delay(500) } }
+    // The service's player is shared with audiobooks: events while no music is queued are not ours.
+    private val listener = object : Player.Listener {
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            if (queue.isEmpty()) return
+            playing = isPlaying
+            if (isPlaying) startTicker() else { ticker?.cancel(); shared.current?.let { position = it.currentPosition } }
+        }
+        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            if (queue.isEmpty()) return
+            val c = shared.current ?: return
+            // By id: while the queue is still being resolved the player holds fewer items than the list shown.
+            index = queue.indexOfFirst { it.id == mediaItem?.mediaId }.takeIf { it >= 0 } ?: c.currentMediaItemIndex
+            duration = queue.getOrNull(index)?.durationMs ?: 0L
+            position = c.currentPosition
+        }
+    }
+
+    private val shared: Shared<MediaController> = Shared(valid = { it.isConnected }) {
+        connectToMusicService(app) { c -> shared.forget(c); ticker?.cancel(); playing = false }.also { it.addListener(listener) }
+    }
+
+    private suspend fun controller(): MediaController = shared.get()
+
+    /** The position line moves only while music plays; a paused player costs nothing. */
+    private fun startTicker() {
+        ticker?.cancel()
+        ticker = scope.launch {
+            while (isActive) {
+                val c = shared.current ?: break
+                position = c.currentPosition
+                if (c.duration > 0) duration = c.duration
+                delay(500)
+            }
         }
     }
 
@@ -109,6 +168,9 @@ class MusicController(private val app: Application) {
             val c = controller()
             if (gen != generation) return@launch
             index = at
+            // The list is already in shuffled order; the player shuffling it again would play
+            // something other than what the queue shows.
+            c.shuffleModeEnabled = false
             c.setMediaItems(listOf(mediaItem(a, head.track, head.stream)), 0, 0)
             c.prepare()
             c.play()
@@ -124,14 +186,14 @@ class MusicController(private val app: Application) {
     fun toggle() = scope.launch { val c = controller(); if (c.isPlaying) c.pause() else c.play() }
     fun next() = scope.launch { controller().seekToNextMediaItem() }
     fun prev() = scope.launch { controller().seekToPrevious() }
-    fun seek(ms: Long) = scope.launch { controller().seekTo(ms) }
+    fun seek(ms: Long) = scope.launch { controller().seekTo(ms); position = ms }
     fun jump(i: Int) = scope.launch {
         val c = controller()
         val id = queue.getOrNull(i)?.id ?: return@launch
         val at = (0 until c.mediaItemCount).firstOrNull { c.getMediaItemAt(it).mediaId == id } ?: return@launch
         c.seekTo(at, 0)
     }
-    fun pause() = scope.launch { controller?.pause() }
+    fun pause() = scope.launch { shared.current?.pause() }
     fun cycleRepeat() = scope.launch {
         repeat = when (repeat) { Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL; Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE; else -> Player.REPEAT_MODE_OFF }
         controller().repeatMode = repeat
@@ -140,9 +202,8 @@ class MusicController(private val app: Application) {
     fun stop() {
         generation++
         resolving?.cancel()
-        controller?.stop(); controller?.clearMediaItems()
-        queue = emptyList(); index = -1; playing = false
+        ticker?.cancel()
+        shared.current?.run { stop(); clearMediaItems() }
+        queue = emptyList(); index = -1; playing = false; position = 0; duration = 0
     }
-
-    init { MoreExecutors.directExecutor() }
 }

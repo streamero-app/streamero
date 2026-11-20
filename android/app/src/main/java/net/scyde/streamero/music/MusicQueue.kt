@@ -6,6 +6,10 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import kotlin.random.Random
+
+/** A random track to start a shuffled list from; null when there is none. */
+fun randomStart(size: Int, random: Random = Random.Default): Int? = if (size <= 0) null else random.nextInt(size)
 
 /**
  * Turning a list of tracks into playable items: the first one is resolved on its own so music

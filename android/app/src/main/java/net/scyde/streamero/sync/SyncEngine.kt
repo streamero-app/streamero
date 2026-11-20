@@ -95,11 +95,14 @@ class SyncEngine(val clock: ClockSync = ClockSync()) {
     private var nextSentFor: String? = null
 
     fun onState(g: SyncGroup?) {
-        group = g
-        if (g == null) {
+        // Leaving, or a different group: versions start again from the beginning there, so
+        // nothing remembered for the old group may hold back a ready or buffering report.
+        if (g == null || g.id != group?.id) {
             alignedVersion = -1; alignedEntry = null; alignedPrepared = false; loadedFor = null
             startAt = null; rateUntil = null; correction = null; stallSince = null
+            readySent = -1; bufferingSent = -1; lastPosition = null; nextSentFor = null
         }
+        group = g
     }
 
     /** A drift correction from the server, [serverTime] being when it was sent. */

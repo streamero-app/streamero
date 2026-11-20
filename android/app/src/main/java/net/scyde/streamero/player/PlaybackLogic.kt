@@ -1,6 +1,7 @@
 package net.scyde.streamero.player
 
 import net.scyde.streamero.api.DeviceProfile
+import net.scyde.streamero.api.MediaSegment
 import net.scyde.streamero.api.PlaybackInfo
 
 // Playback rules without Android types, so they are unit-tested on the JVM.
@@ -63,15 +64,122 @@ object Subtitles {
     fun trackId(index: Int) = "streamero-sub-$index"
 }
 
-/** What to do when the player reports an error. */
-enum class ErrorAction { Fallback, Fail }
+/** What went wrong, as far as recovery cares. */
+enum class ErrorKind {
+    /** The stream could not be read: the network dropped, or the server ended or refused it. */
+    Source,
+    /** A live stream was paused for so long that its position left the playlist. */
+    BehindLive,
+    /** The device could not decode or render what it was given. */
+    Playback,
+}
 
-/** First failure: restart once with [SAFE_PROFILE] from the same position; a second one is shown. */
+/**
+ * Sorts a Media3 `PlaybackException.errorCode`: 1002 is "behind live window", the 2xxx range is
+ * I/O; everything else (container, decoder, audio sink) is the device failing to play.
+ */
+fun errorKind(code: Int): ErrorKind = when (code) {
+    1002 -> ErrorKind.BehindLive
+    in 2000..2999 -> ErrorKind.Source
+    else -> ErrorKind.Playback
+}
+
+/** What to do when the player reports an error. */
+enum class ErrorAction {
+    /** Ask for the same stream again from the current position. */
+    Retry,
+    /** Jump back to the live edge and carry on. */
+    Resync,
+    /** Restart with [SAFE_PROFILE]. */
+    Fallback,
+    Fail,
+}
+
+/**
+ * A failure of the device restarts once with [SAFE_PROFILE] from the same position; a second one
+ * is shown. A stream that could not be read is first asked for again as it was: a network blip
+ * must not leave the rest of the film converted to a lower quality.
+ */
 class ErrorRecovery {
+    companion object {
+        /** A stream that fails again sooner than this after being asked for again is not retried. */
+        const val RETRY_GAP_MS = 60_000L
+    }
+
     var safe = false
         private set
+    private var lastRetryAt: Long? = null
 
-    fun onError(): ErrorAction = if (safe) ErrorAction.Fail else { safe = true; ErrorAction.Fallback }
+    /**
+     * [nowMs] is any monotonic clock. A read failure is retried once per [RETRY_GAP_MS], so a
+     * blip an hour into a film is retried too, but a stream that keeps failing is not retried
+     * forever.
+     */
+    fun onError(kind: ErrorKind = ErrorKind.Playback, nowMs: Long = 0L): ErrorAction {
+        if (kind == ErrorKind.BehindLive) return ErrorAction.Resync
+        val last = lastRetryAt
+        if (kind == ErrorKind.Source && (last == null || nowMs - last >= RETRY_GAP_MS)) {
+            lastRetryAt = nowMs
+            return ErrorAction.Retry
+        }
+        if (safe) return ErrorAction.Fail
+        safe = true
+        return ErrorAction.Fallback
+    }
+}
+
+/**
+ * The progress to send when the player closes, or null when there is nothing worth saving:
+ * nothing was loaded, it never got past the start, or the end was already reported as watched.
+ */
+fun closingProgress(loaded: Boolean, positionMs: Long, durationMs: Long?, ended: Boolean): Pair<Long, Long?>? =
+    if (!loaded || ended || positionMs <= 0) null else positionMs to durationMs
+
+/**
+ * Whether the "next episode" button shows: at the end, in the credits, or in the last 20
+ * seconds. A position of 0 (not started or not known yet) never counts as the end.
+ */
+fun showNextUp(hasNext: Boolean, ended: Boolean, inCredits: Boolean, durationMs: Long, positionMs: Long): Boolean =
+    hasNext && (ended || inCredits || (durationMs > 0 && positionMs > 0 && durationMs - positionMs < 20_000))
+
+/**
+ * The audio formats to report. AC-3 and E-AC-3 are reported when the device decodes them or
+ * can pass them through to the receiver or TV it is connected to; anything else is converted.
+ */
+fun audioCodecs(ac3Decoder: Boolean, eac3Decoder: Boolean, ac3Passthrough: Boolean, eac3Passthrough: Boolean): List<String> = buildList {
+    addAll(listOf("aac", "mp3", "opus", "flac", "vorbis"))
+    if (ac3Decoder || ac3Passthrough) add("ac3")
+    if (eac3Decoder || eac3Passthrough) add("eac3")
+}
+
+/**
+ * The screen is kept on while a film runs or is about to (buffering). A paused or finished one
+ * lets the device go to sleep like any other screen.
+ */
+fun keepsScreenOn(playWhenReady: Boolean, buffering: Boolean, ready: Boolean): Boolean = playWhenReady && (buffering || ready)
+
+/** The intro or recap running at [positionMs] (not in its last second, where skipping is pointless). */
+fun introAt(segments: List<MediaSegment>, positionMs: Long): MediaSegment? =
+    segments.firstOrNull { (it.kind == "intro" || it.kind == "recap") && positionMs >= it.startMs && positionMs < it.endMs - 1000 }
+
+/** Whether the credits have started at [positionMs]. */
+fun inCredits(segments: List<MediaSegment>, positionMs: Long): Boolean = segments.any { it.kind == "credits" && positionMs >= it.startMs }
+
+/**
+ * Where a player that is opened again starts: the place it had reached before the system
+ * closed the app in the background, otherwise where the title page asked for.
+ */
+fun startPosition(savedMs: Long, requestedMs: Long?): Long? = savedMs.takeIf { it > 0 } ?: requestedMs
+
+/**
+ * Whether a player that reported the end is still at it after [playbackState] (Media3's
+ * `Player.STATE_*`: 3 ready, 2 buffering, 4 ended): seeking back from the end starts the film
+ * again, so the end is reported again when it comes.
+ */
+fun stillEnded(ended: Boolean, playbackState: Int): Boolean = when (playbackState) {
+    4 -> true
+    2, 3 -> false
+    else -> ended
 }
 
 /** Whether the next episode starts on its own when this one ends. */
@@ -84,12 +192,14 @@ data class VideoDecoder(val mime: String, val hardware: Boolean, val main10: Boo
  * The video codecs to report. HEVC only with a hardware decoder that does Main 10: most HEVC
  * files (and all HDR ones) are 10-bit, and reporting HEVC without it plays a black screen
  * instead of letting the server convert. 8-bit-only devices get HEVC transcoded to H.264.
+ * AV1 likewise only with a hardware decoder.
  */
 fun videoCodecs(decoders: List<VideoDecoder>): List<String> = buildList {
     add("h264")
     if (decoders.any { it.mime == "video/hevc" && it.hardware && it.main10 }) add("hevc")
     if (decoders.any { it.mime == "video/x-vnd.on2.vp9" }) add("vp9")
-    if (decoders.any { it.mime == "video/av01" }) add("av1")
+    // The software AV1 decoder every recent Android ships cannot keep up with full HD.
+    if (decoders.any { it.mime == "video/av01" && it.hardware }) add("av1")
 }
 
 /** Keeps the earlier playWhenReady across a reload (a paused viewer stays paused). */

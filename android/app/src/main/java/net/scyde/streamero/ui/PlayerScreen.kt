@@ -1,8 +1,7 @@
 package net.scyde.streamero.ui
 
-import android.app.Activity
 import android.net.Uri
-import android.view.WindowManager
+import android.os.SystemClock
 import androidx.annotation.OptIn
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -38,7 +37,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -64,6 +69,13 @@ import net.scyde.streamero.AppState
 import net.scyde.streamero.R
 import net.scyde.streamero.api.*
 import net.scyde.streamero.player.ErrorAction
+import net.scyde.streamero.player.closingProgress
+import net.scyde.streamero.player.errorKind
+import net.scyde.streamero.player.inCredits as creditsAt
+import net.scyde.streamero.player.introAt
+import net.scyde.streamero.player.showNextUp
+import net.scyde.streamero.player.startPosition
+import net.scyde.streamero.player.stillEnded
 import net.scyde.streamero.player.ErrorRecovery
 import net.scyde.streamero.player.SAFE_PROFILE
 import net.scyde.streamero.player.SubtitleChoice
@@ -135,7 +147,9 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
     var prefs by remember { mutableStateOf<Preferences?>(null) }
     var error by remember { mutableStateOf<Throwable?>(null) }
     var subtitle by remember { mutableStateOf<SubtitleChoice>(SubtitleChoice.Off) }
-    var audio by remember { mutableStateOf(audioChoice) }
+    // Survive the system closing the app in the background: the track and the place reached.
+    var audio by rememberSaveable { mutableStateOf(audioChoice) }
+    var savedPosition by rememberSaveable { mutableLongStateOf(0L) }
     var position by remember { mutableLongStateOf(0L) }
     var notice by remember { mutableStateOf<String?>(null) }
     var next by remember { mutableStateOf<ItemSummary?>(null) }
@@ -173,14 +187,14 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
         loadJob?.cancel()
         loadJob = scope.launch {
             try {
-                val device = if (safe) SAFE_PROFILE.copy(maxHeight = prefs?.maxHeight, maxBitrate = prefs?.maxBitrateKbps?.let { it * 1000 }) else androidDeviceProfile(prefs)
+                val device = if (safe) SAFE_PROFILE.copy(maxHeight = prefs?.maxHeight, maxBitrate = prefs?.maxBitrateKbps?.let { it * 1000 }) else androidDeviceProfile(ctx, prefs)
                 val pi = api.playback(id, PlaybackRequest(device, if (id == itemId) file else null, audioIndex, startMs?.coerceAtLeast(0), subtitleIndex = subRequest))
                 info = pi
                 error = null
                 subtitle = if (first) Subtitles.initial(pi, subRequest) else Subtitles.afterReload(pi, subtitle)
                 firstStart = false
-                // Every text track is side-loaded, so switching between them needs no reload. The
-                // An HLS stream that starts mid-file asks for cues shifted by its start (recomputed on every reload).
+                // Every text track is side-loaded, so switching between them needs no reload. An HLS
+                // stream that starts mid-file asks for cues shifted by its start (recomputed on every reload).
                 val subs = pi.subtitles.map { s ->
                     val key = Subtitles.trackId(s.index)
                     MediaItem.SubtitleConfiguration.Builder(Uri.parse(api.resolve(Subtitles.url(s.url, pi)))).setId(key).setLabel(key).setMimeType(MimeTypes.TEXT_VTT)
@@ -205,19 +219,25 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
         if (autoplay == null) load(startMs, audio, Subtitles.requestIndex(subtitle)) else load(startMs, audio, Subtitles.requestIndex(subtitle), autoplay)
     }
 
-    // Full screen, landscape-friendly, screen kept on.
+    /** Sends where the viewer is on the app's scope, so it arrives even when this screen is gone. */
+    fun sendProgress() {
+        val id = current
+        val (pos, dur) = closingProgress(info != null, abs(), info?.durationMs, ended) ?: return
+        state.appScope.launch { attempt { api.progress(id, ProgressReport(pos, dur)) } }
+    }
+
+    // Full screen, landscape-friendly (videoLifecycle keeps the screen on while it plays).
     DisposableEffect(Unit) {
         val act = ctx.findActivity()
         state.music.pause()
         state.book.pause()
-        act?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         val ctl = act?.let { WindowCompat.getInsetsController(it.window, it.window.decorView) }
         ctl?.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         ctl?.hide(WindowInsetsCompat.Type.systemBars())
         val listener = object : Player.Listener {
             override fun onPlaybackStateChanged(s: Int) {
                 if (s == Player.STATE_READY) prepared = true
-                if (s == Player.STATE_ENDED) ended = true
+                ended = stillEnded(ended, s)
             }
             override fun onTracksChanged(tracks: Tracks) { if (subtitle is SubtitleChoice.Text) applySubtitle(player, info, subtitle) }
             // The device could not play what it said it could (10-bit video, an audio format...):
@@ -226,22 +246,19 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
                 // While the next stream is being asked for, the server has already ended this one
                 // (one stream per device): its 404s are not a playback failure.
                 if (loadJob?.isActive == true) return
-                when (recovery.onError()) {
+                when (recovery.onError(errorKind(e.errorCode), SystemClock.elapsedRealtime())) {
+                    // The connection dropped or the server lost the stream: ask for it again from here.
+                    ErrorAction.Retry, ErrorAction.Resync -> reload(autoplay = true)
                     ErrorAction.Fallback -> { notice = ctx.getString(R.string.player_fallback); reload(autoplay = true) }
-                    ErrorAction.Fail -> error = e
+                    ErrorAction.Fail -> error = shownPlayerError(e)
                 }
             }
         }
         player.addListener(listener)
         onDispose {
-            // The last position is read before the player goes and sent on the app's scope,
-            // so it arrives even though this screen is already gone.
-            val id = current
-            val pos = abs()
-            val dur = info?.durationMs
-            if (info != null && pos > 0 && !ended) state.appScope.launch { runCatching { api.progress(id, ProgressReport(pos, dur)) } }
+            // The last position is read before the player goes.
+            sendProgress()
             ctl?.show(WindowInsetsCompat.Type.systemBars())
-            act?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             player.removeListener(listener)
             player.release()
             // Closing the player leaves the group, so nobody waits for a screen that is gone.
@@ -249,12 +266,21 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
         }
     }
     val inPip = videoLifecycle(player, state.enhancements.autoPip)
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    // Leaving the app: the place reached is kept and sent (the system may close the app in the background).
+    DisposableEffect(lifecycle) {
+        val obs = LifecycleEventObserver { _, e ->
+            if (e == Lifecycle.Event.ON_STOP && info != null) { savedPosition = abs(); sendProgress() }
+        }
+        lifecycle.addObserver(obs)
+        onDispose { lifecycle.removeObserver(obs) }
+    }
 
     LaunchedEffect(current) {
-        if (prefs == null) prefs = runCatching { api.preferences() }.getOrNull()
-        detail = runCatching { api.item(current) }.getOrNull()
-        next = api.nextEpisode(current)
-        if (sync.group == null) load(start, audioChoice, subChoice, autoplay = true)
+        if (prefs == null) prefs = attempt { api.preferences() }.getOrNull()
+        detail = attempt { api.item(current) }.getOrNull()
+        next = attempt { api.nextEpisode(current) }.getOrNull()
+        if (sync.group == null) load(startPosition(savedPosition, start), audio, subChoice, autoplay = true)
     }
     // In a group, the engine drives the player a few times a second and reports back.
     LaunchedEffect(grouped) {
@@ -288,32 +314,39 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
     fun seekAbs(ms: Long) {
         if (sync.group != null) sync.send(sync.engine.seek(ms)) else seekTo(player, info, offset, ms) { s -> reload(s) }
     }
-    // Progress every 10 s; messages and stop requests from an administrator every 4 s.
-    LaunchedEffect(info) {
-        var tick = 0
-        while (info != null) {
-            delay(1000)
-            position = abs()
-            if (++tick % 10 == 0 && player.isPlaying) runCatching { api.progress(current, ProgressReport(position, info?.durationMs)) }
-            if (tick % 4 == 0) runCatching { api.commands() }.getOrNull()?.forEach { c ->
-                if (c.kind == "stop") { player.pause(); notice = c.text ?: ctx.getString(R.string.stopped_by_admin); delay(4000); nav.popBackStack(); return@LaunchedEffect }
-                notice = c.text
+    // Progress every 10 s; messages and stop requests from an administrator every 4 s. Only while
+    // the player can be seen (a picture-in-picture window counts), never in the background.
+    LaunchedEffect(info, lifecycle) {
+        if (info == null) return@LaunchedEffect
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            var tick = 0
+            while (isActive) {
+                delay(1000)
+                position = abs()
+                if (player.isPlaying) savedPosition = position
+                if (++tick % 10 == 0 && player.isPlaying) attempt { api.progress(current, ProgressReport(position, info?.durationMs)) }
+                if (tick % 4 == 0) attempt { api.commands() }.getOrNull()?.forEach { c ->
+                    if (c.kind == "stop") { player.pause(); notice = c.text ?: ctx.getString(R.string.stopped_by_admin); delay(4000); nav.popBackStack(); return@repeatOnLifecycle }
+                    notice = c.text
+                }
             }
         }
     }
     LaunchedEffect(notice) { if (notice != null) { delay(10_000); notice = null } }
 
     val dur = info?.durationMs ?: detail?.item?.durationMs ?: 0L
-    val intro = info?.segments?.firstOrNull { (it.kind == "intro" || it.kind == "recap") && position in it.startMs until it.endMs - 1000 }
+    // Derived from the position, so the screen recomposes when these change, not on every tick.
+    val intro by remember { derivedStateOf { introAt(info?.segments.orEmpty(), position) } }
     val introMode = prefs?.skipIntro ?: "button"
     LaunchedEffect(intro?.startMs) {
         // In a group every member would skip at once: there it is the button only.
-        if (intro != null && introMode == "auto" && !grouped && skipped != intro.startMs) { skipped = intro.startMs; seekAbs(intro.endMs) }
+        val i = intro
+        if (i != null && introMode == "auto" && !grouped && skipped != i.startMs) { skipped = i.startMs; seekAbs(i.endMs) }
     }
-    val inCredits = info?.segments?.any { it.kind == "credits" && position >= it.startMs } == true
+    val inCredits by remember { derivedStateOf { creditsAt(info?.segments.orEmpty(), position) } }
     // The group's queue decides what comes next, not this device.
     val nextUp = next.takeIf { !grouped }
-    val showNext = nextUp != null && (ended || inCredits || (dur > 0 && dur - position < 20_000 && position > 0))
+    val showNext by remember(nextUp, dur) { derivedStateOf { showNextUp(nextUp != null, ended, inCredits, dur, position) } }
     val autoplayNext = prefs?.autoplayNext ?: true
     val tv = LocalTv.current
     val leave: () -> Unit = { nav.popBackStack() }
@@ -337,7 +370,7 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
         if (Subtitles.needsReload(from, x)) reload() else applySubtitle(player, info, x)
     }
     fun chooseAudio(a: Int) { audio = a; panel = false; reload() }
-    val retry: () -> Unit = { error = null; if (info == null) load(start, audioChoice, subChoice, autoplay = true) else reload(autoplay = true) }
+    val retry: () -> Unit = { error = null; if (info == null) load(startPosition(savedPosition, start), audio, subChoice, autoplay = true) else reload(autoplay = true) }
     val it0 = detail?.item
     val pauseTitle = it0?.let { if (it.kind == "episode") stringResource(R.string.episode_title, it.episodeNumber ?: 0, it.title) else it.title }
 
@@ -373,13 +406,14 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
             Spacer(Modifier.weight(1f))
             info?.let { pi -> if (pi.subtitles.isNotEmpty() || pi.bitmapSubtitles.isNotEmpty() || pi.audio.size > 1) IconButton(onClick = { panel = true }) { Icon(Icons.Default.ClosedCaption, stringResource(R.string.subtitles), tint = Color.White) } }
         }
-        if (intro != null && introMode == "button" && skipped != intro.startMs) Button(onClick = { skipped = intro.startMs; seekAbs(intro.endMs) },
+        val shownIntro = intro
+        if (shownIntro != null && introMode == "button" && skipped != shownIntro.startMs) Button(onClick = { skipped = shownIntro.startMs; seekAbs(shownIntro.endMs) },
             Modifier.align(Alignment.BottomEnd).padding(24.dp, 96.dp), shape = CardShape, colors = ButtonDefaults.buttonColors(containerColor = Color.Black.copy(alpha = 0.7f), contentColor = Color.White)) {
-            Icon(Icons.Default.SkipNext, null); Spacer(Modifier.width(6.dp)); Text(stringResource(if (intro.kind == "recap") R.string.skip_recap else R.string.skip_intro))
+            Icon(Icons.Default.SkipNext, null); Spacer(Modifier.width(6.dp)); Text(stringResource(if (shownIntro.kind == "recap") R.string.skip_recap else R.string.skip_intro))
         }
-        if (showNext && (prefs?.skipCredits ?: "button") != "off") Button(onClick = playNext,
+        if (showNext && nextUp != null && (prefs?.skipCredits ?: "button") != "off") Button(onClick = playNext,
             Modifier.align(Alignment.BottomEnd).padding(24.dp, 96.dp), shape = CardShape, colors = ButtonDefaults.buttonColors(containerColor = Kino.text, contentColor = Kino.bg)) {
-            Text(stringResource(R.string.next_episode) + ": " + nextUp!!.title, maxLines = 1)
+            Text(stringResource(R.string.next_episode_named, nextUp.title), maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         notice?.let { Text(it, color = Color.White, fontSize = 16.sp, modifier = Modifier.align(Alignment.TopCenter).padding(top = 64.dp).background(Color.Black.copy(alpha = 0.85f), CardShape).padding(14.dp)) }
         error?.let { PlayerErrorBox(it, retry, leave) }
@@ -472,8 +506,9 @@ private fun TvPlayerChrome(
     // Hide the controls a few seconds after the last key while the film plays.
     LaunchedEffect(controls, touched, playing) { if (controls && playing) { delay(5000); controls = false } }
     // Nothing else holds the focus: the screen itself takes the keys.
-    LaunchedEffect(controls, panel, skipIntro, nextButton) {
-        if (!controls && !panel && !skipIntro && !nextButton) { delay(50); runCatching { root.requestFocus() } }
+    val failed = error != null
+    LaunchedEffect(controls, panel, skipIntro, nextButton, failed) {
+        if (!controls && !panel && !skipIntro && !nextButton && !failed) { delay(50); runCatching { root.requestFocus() } }
     }
 
     fun nudge(delta: Long) {
@@ -512,7 +547,8 @@ private fun TvPlayerChrome(
                 RemoteAction.Stop -> { onLeave(); return@onPreviewKeyEvent true }
                 null -> {}
             }
-            if (panel || controls) return@onPreviewKeyEvent false
+            // An open panel, the controls or the error box move focus with the arrows themselves.
+            if (!screenTakesArrows(panel, controls, failed)) return@onPreviewKeyEvent false
             when (e.key) {
                 Key.DirectionLeft -> { nudge(-back); true }
                 Key.DirectionRight -> { nudge(fwd); true }
@@ -562,9 +598,9 @@ private fun TvPlayerChrome(
         }
 
         if (!controls && !panel) {
-            if (skipIntro) TvPlayerButton(Icons.Default.SkipNext, stringResource(if (intro!!.kind == "recap") R.string.skip_recap else R.string.skip_intro),
+            if (skipIntro && intro != null) TvPlayerButton(Icons.Default.SkipNext, stringResource(if (intro.kind == "recap") R.string.skip_recap else R.string.skip_intro),
                 Modifier.align(Alignment.BottomEnd).padding(48.dp, 56.dp).initialFocus(), wide = true) { onSkipIntro(intro) }
-            else if (nextButton) TvPlayerButton(Icons.Default.SkipNext, stringResource(R.string.next_episode) + ": " + next!!.title,
+            else if (nextButton && next != null) TvPlayerButton(Icons.Default.SkipNext, stringResource(R.string.next_episode_named, next.title),
                 Modifier.align(Alignment.BottomEnd).padding(48.dp, 56.dp).initialFocus(), wide = true) { onNext() }
         }
         if (panel && info != null) TvTracksPanel(info, audio, subtitle, onAudio, onSubtitle, Modifier.align(Alignment.CenterEnd))
