@@ -82,6 +82,7 @@ struct ComicReaderView: View {
     @State private var savedPage: Int?
     @State private var rightToLeft = false
     @State private var chrome = true
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var started = false
 
     private var count: Int { manifest.pages.count }
@@ -150,7 +151,7 @@ struct ComicReaderView: View {
     private func tap(x: CGFloat, width: CGFloat) {
         let zone = ComicPaging.zone(x: Double(x), width: Double(width))
         if let next = paging.page(after: zone, from: page) {
-            withAnimation(.easeOut(duration: 0.25)) { page = next }
+            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.25)) { page = next }
         } else if zone == .center {
             withAnimation(.easeOut(duration: 0.2)) { chrome.toggle() }
         }

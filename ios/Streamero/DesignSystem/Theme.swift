@@ -101,6 +101,7 @@ extension View {
 /// The dark around the screen, with the film's light pooling low on the left.
 struct AmbientBackground: View {
     var colors: [String]?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         let a = Color(hex: colors?.first ?? "#d6763f")
@@ -109,7 +110,7 @@ struct AmbientBackground: View {
             RadialGradient(colors: [a.opacity(0.26), .clear], center: UnitPoint(x: 0, y: 0.75), startRadius: 0, endRadius: 460)
         }
         .ignoresSafeArea()
-        .animation(.easeOut(duration: 0.9), value: colors)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.9), value: colors)
     }
 }
 
