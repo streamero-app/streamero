@@ -547,6 +547,8 @@ struct ArrBlocklistView: View {
 
 /// Missing and cutoff-unmet items with search.
 struct ArrWantedView: View {
+    @State private var page = 1
+    @State private var loadingMore = false
     let client: ArrClient
     @State private var cutoff = false
     @State private var records: [JSONValue]?
@@ -582,6 +584,10 @@ struct ArrWantedView: View {
                         }
                     }
                     if records.isEmpty { EmptyRow(text: "manage.nothing_wanted") }
+                    if records.count < total {
+                        // Large libraries have thousands of wanted items: one page at a time.
+                        Button { Task { await more() } } label: { Text("manage.load_more") }.disabled(loadingMore)
+                    }
                 } header: {
                     Text("manage.count_items \(total)")
                 }
@@ -620,15 +626,40 @@ struct ArrWantedView: View {
         }
     }
 
+    private func query(page: Int) -> [URLQueryItem] {
+        var query: [URLQueryItem] = [.q("page", page), .q("pageSize", Self.pageSize), .q("monitored", "true")]
+        if client.service == .sonarr { query.append(.q("includeSeries", "true")) }
+        if client.service == .lidarr { query.append(.q("includeArtist", "true")) }
+        return query
+    }
+
+    private static let pageSize = 100
+
     private func load() async {
         records = nil
+        page = 1
         do {
-            var query: [URLQueryItem] = [.q("page", 1), .q("pageSize", 100), .q("monitored", "true")]
-            if client.service == .sonarr { query.append(.q("includeSeries", "true")) }
-            if client.service == .lidarr { query.append(.q("includeArtist", "true")) }
-            let result = try await client.get(cutoff ? "wanted/cutoff" : "wanted/missing", query: query)
+            let result = try await client.get(cutoff ? "wanted/cutoff" : "wanted/missing", query: query(page: 1))
             records = result["records"].list
             total = result["totalRecords"].int ?? records?.count ?? 0
+            error = nil
+        } catch is CancellationError {} catch { self.error = error }
+    }
+
+    private func more() async {
+        guard !loadingMore, let current = records else { return }
+        loadingMore = true
+        defer { loadingMore = false }
+        let next = page + 1
+        let wantedCutoff = cutoff
+        do {
+            let result = try await client.get(wantedCutoff ? "wanted/cutoff" : "wanted/missing", query: query(page: next))
+            // The tab may have changed while the page loaded.
+            guard wantedCutoff == cutoff else { return }
+            let known = Set(current.map(\.rowID))
+            records = current + result["records"].list.filter { !known.contains($0.rowID) }
+            total = result["totalRecords"].int ?? total
+            page = next
             error = nil
         } catch is CancellationError {} catch { self.error = error }
     }
