@@ -25,6 +25,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/streamero-app/streamero/server/internal/access"
 	"github.com/streamero-app/streamero/server/internal/auth"
 	"github.com/streamero-app/streamero/server/internal/library"
 	"github.com/streamero-app/streamero/server/internal/livetv"
@@ -66,8 +67,9 @@ type Server struct {
 	keysMu sync.Mutex
 	keys   []recentKey // secrets of keys created here, readable for a short time
 
-	playsMu sync.Mutex
-	plays   map[string]playMemo
+	playsMu   sync.Mutex
+	plays     map[string]playMemo
+	playOrder []string // ids of plays, oldest first
 }
 
 type recentKey struct {
@@ -449,7 +451,13 @@ func ownerOf(p auth.Principal) uuid.UUID {
 	return p.User.ID
 }
 
-func canSee(p auth.Principal) bool { return p.User.IsAdmin || p.User.Permissions.AllLibraries }
+func canSee(p auth.Principal) bool { return access.CanSeeLibraries(p) }
+
+// canOpen reports whether p may see item id: library access and the profile's
+// parental limit (D-053). A database error counts as no.
+func (s *Server) canOpen(r *http.Request, p auth.Principal, id uuid.UUID) bool {
+	return access.Item(r.Context(), s.Pool, p, id) == nil
+}
 
 // isAdmin reports administrator rights, which a kids profile never has (even on an
 // administrator's account), as in the Streamero API.

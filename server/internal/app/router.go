@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/netip"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -87,7 +88,7 @@ func NewRouter(state *State, h *api.Handler, opts ...RouterOptions) (http.Handle
 		o = opts[0]
 	}
 	apiServer, err := gen.NewServer(h, api.Security{Auth: state.Auth},
-		gen.WithPathPrefix("/api/v1"), gen.WithErrorHandler(api.ErrorHandler))
+		gen.WithPathPrefix("/api/v1"), gen.WithErrorHandler(api.ErrorHandler), gen.WithMiddleware(h.AccessGuard))
 	if err != nil {
 		return nil, err
 	}
@@ -241,12 +242,48 @@ func sessionCookieHandler(next http.Handler, compatAtRoot bool) http.Handler {
 			if key := strings.TrimSpace(r.Header.Get("X-Api-Key")); nativeAPIPath(r.URL.Path) && strings.HasPrefix(key, auth.APIKeyPrefix) {
 				r.Header.Set("Authorization", "Bearer "+key)
 			} else if c, err := r.Cookie(api.SessionCookie); err == nil && c.Value != "" {
+				if crossSiteWrite(r) {
+					writeJSON(w, http.StatusForbidden, gen.Error{Code: "cross_site_request",
+						Message: "requests from other sites cannot use the session cookie"})
+					return
+				}
 				r.Header.Set("Authorization", "Bearer "+c.Value)
 			}
 		}
 		ctx := auth.WithRequest(api.WithSecure(r.Context(), isHTTPS(r)), r)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+// crossSiteWrite reports a request that would change something with the session
+// cookie but was not made by a page of this server (D-053). SameSite=Strict
+// already keeps the cookie off requests from other sites; this also covers
+// pages on a sibling subdomain (same site, other origin) and browsers without
+// SameSite. Requests without Origin and Sec-Fetch-Site (apps, curl) pass:
+// they carry no ambient cookie of a victim.
+func crossSiteWrite(r *http.Request) bool {
+	switch r.Method {
+	case http.MethodGet, http.MethodHead, http.MethodOptions:
+		if r.Header.Get("Upgrade") == "" {
+			return false
+		}
+	}
+	// Browsers that send Sec-Fetch-Site say it directly; a reverse proxy that
+	// rewrites Host cannot confuse it.
+	switch r.Header.Get("Sec-Fetch-Site") {
+	case "same-origin", "none":
+		return false
+	case "cross-site", "same-site":
+		return true
+	}
+	if o := r.Header.Get("Origin"); o != "" {
+		u, err := url.Parse(o)
+		if err != nil {
+			return true
+		}
+		return !strings.EqualFold(u.Host, r.Host) && !strings.EqualFold(u.Host, r.Header.Get("X-Forwarded-Host"))
+	}
+	return false
 }
 
 // nativeAPIPath reports a path of the native API, including its /api/stats alias.

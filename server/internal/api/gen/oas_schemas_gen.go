@@ -1806,6 +1806,10 @@ type Dashboard struct {
 	NowPlaying       []NowPlaying    `json:"nowPlaying"`
 	ActiveTranscodes int             `json:"activeTranscodes"`
 	Activity         []ActivityEntry `json:"activity"`
+	// Configuration problems for the administrator. `untrusted_proxy`: requests arrive through a reverse
+	// proxy (X-Forwarded-For) but STREAMERO_TRUSTED_PROXIES is empty, so rate limits and sign-in bans see
+	// every client as the proxy.
+	Warnings []DashboardWarningsItem `json:"warnings"`
 }
 
 // GetServer returns the value of Server.
@@ -1833,6 +1837,11 @@ func (s *Dashboard) GetActivity() []ActivityEntry {
 	return s.Activity
 }
 
+// GetWarnings returns the value of Warnings.
+func (s *Dashboard) GetWarnings() []DashboardWarningsItem {
+	return s.Warnings
+}
+
 // SetServer sets the value of Server.
 func (s *Dashboard) SetServer(val DashboardServer) {
 	s.Server = val
@@ -1856,6 +1865,11 @@ func (s *Dashboard) SetActiveTranscodes(val int) {
 // SetActivity sets the value of Activity.
 func (s *Dashboard) SetActivity(val []ActivityEntry) {
 	s.Activity = val
+}
+
+// SetWarnings sets the value of Warnings.
+func (s *Dashboard) SetWarnings(val []DashboardWarningsItem) {
+	s.Warnings = val
 }
 
 type DashboardServer struct {
@@ -1914,6 +1928,40 @@ func (s *DashboardServer) SetOs(val string) {
 // SetStartedAt sets the value of StartedAt.
 func (s *DashboardServer) SetStartedAt(val time.Time) {
 	s.StartedAt = val
+}
+
+type DashboardWarningsItem string
+
+const (
+	DashboardWarningsItemUntrustedProxy DashboardWarningsItem = "untrusted_proxy"
+)
+
+// AllValues returns all DashboardWarningsItem values.
+func (DashboardWarningsItem) AllValues() []DashboardWarningsItem {
+	return []DashboardWarningsItem{
+		DashboardWarningsItemUntrustedProxy,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DashboardWarningsItem) MarshalText() ([]byte, error) {
+	switch s {
+	case DashboardWarningsItemUntrustedProxy:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DashboardWarningsItem) UnmarshalText(data []byte) error {
+	switch DashboardWarningsItem(data) {
+	case DashboardWarningsItemUntrustedProxy:
+		*s = DashboardWarningsItemUntrustedProxy
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 // DeleteAPIKeyNoContent is response for DeleteAPIKey operation.
@@ -15540,6 +15588,12 @@ type RestoreStatus struct {
 	// Backup of the state just before the restore.
 	SafetyBackup OptString `json:"safetyBackup"`
 	Warnings     []string  `json:"warnings"`
+	// Sessions signed out by the restore. The backup's sessions and API keys are revoked so that devices
+	// signed out and keys deleted since the backup do not come back; only the session that started the
+	// restore stays signed in.
+	SignedOutSessions OptInt `json:"signedOutSessions"`
+	// API keys revoked by the restore (create new ones for integrations).
+	RevokedApiKeys OptInt `json:"revokedApiKeys"`
 }
 
 // GetBackup returns the value of Backup.
@@ -15577,6 +15631,16 @@ func (s *RestoreStatus) GetWarnings() []string {
 	return s.Warnings
 }
 
+// GetSignedOutSessions returns the value of SignedOutSessions.
+func (s *RestoreStatus) GetSignedOutSessions() OptInt {
+	return s.SignedOutSessions
+}
+
+// GetRevokedApiKeys returns the value of RevokedApiKeys.
+func (s *RestoreStatus) GetRevokedApiKeys() OptInt {
+	return s.RevokedApiKeys
+}
+
 // SetBackup sets the value of Backup.
 func (s *RestoreStatus) SetBackup(val string) {
 	s.Backup = val
@@ -15610,6 +15674,16 @@ func (s *RestoreStatus) SetSafetyBackup(val OptString) {
 // SetWarnings sets the value of Warnings.
 func (s *RestoreStatus) SetWarnings(val []string) {
 	s.Warnings = val
+}
+
+// SetSignedOutSessions sets the value of SignedOutSessions.
+func (s *RestoreStatus) SetSignedOutSessions(val OptInt) {
+	s.SignedOutSessions = val
+}
+
+// SetRevokedApiKeys sets the value of RevokedApiKeys.
+func (s *RestoreStatus) SetRevokedApiKeys(val OptInt) {
+	s.RevokedApiKeys = val
 }
 
 type RestoreStatusState string

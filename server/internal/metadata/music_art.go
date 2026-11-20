@@ -9,6 +9,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+
+	"github.com/streamero-app/streamero/server/internal/library"
 )
 
 var albumCoverNames = []string{"cover", "folder", "front", "album", "albumart"}
@@ -140,8 +143,9 @@ func (r *Refresher) embeddedCover(ctx context.Context, src, dst string) bool {
 	tmp := dst + ".tmp.jpg"
 	cctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	cmd := exec.CommandContext(cctx, r.FFmpeg, "-nostdin", "-v", "error", "-y", "-i", src, "-an", "-map", "0:v:0", //nolint:gosec // G204: fixed flags, path from ResolvePath
+	args := append(library.SafeInputArgs(), "-nostdin", "-v", "error", "-y", "-i", src, "-an", "-map", "0:v:0",
 		"-frames:v", "1", "-vf", fmt.Sprintf("scale='min(%d,iw)':-2", 1000), "-q:v", "3", tmp)
+	cmd := exec.CommandContext(cctx, r.FFmpeg, args...) //nolint:gosec // G204: fixed flags, path from ResolvePath
 	if err := cmd.Run(); err != nil {
 		_ = os.Remove(tmp)
 		return false

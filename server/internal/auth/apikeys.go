@@ -48,9 +48,18 @@ func WithRequest(ctx context.Context, r *http.Request) context.Context {
 func readOnlyRequest(r *http.Request) bool {
 	switch r.Method {
 	case http.MethodGet, http.MethodHead, http.MethodOptions:
-		return r.Header.Get("Upgrade") == ""
+		return r.Header.Get("Upgrade") == "" && !startsWork(r.URL.Path)
 	}
 	return false
+}
+
+// startsWork reports GET routes that start something (D-053): the compat API's
+// PlaybackInfo and HLS playlists start a transcode, Quick Connect initiation
+// creates a sign-in request. A read-only key is refused there.
+func startsWork(path string) bool {
+	p := strings.ToLower(path)
+	return strings.HasSuffix(p, "/playbackinfo") || strings.HasSuffix(p, ".m3u8") ||
+		strings.HasSuffix(p, "/quickconnect/initiate")
 }
 
 // readOnlyAllowed reports whether a read-only key may authenticate here. A
@@ -122,6 +131,8 @@ func (s *Service) ListAPIKeys(ctx context.Context) ([]APIKey, error) {
 
 // DeleteAPIKey revokes a key immediately.
 func (s *Service) DeleteAPIKey(ctx context.Context, actor Principal, id uuid.UUID) error {
+	// Signed links handed out under a grant this changes stop at once (D-053).
+	defer s.ForgetGrants()
 	tag, err := s.pool.Exec(ctx, `DELETE FROM api_keys WHERE id = $1`, id)
 	if err != nil {
 		return err

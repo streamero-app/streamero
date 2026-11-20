@@ -63,6 +63,45 @@ func NewHTTPClient(timeout time.Duration, allowLoopback bool) *http.Client {
 	}}
 }
 
+// CheckStreamHost resolves the host of a channel URL and refuses it when any
+// address is one the Go fetcher would never connect to (blockedIP). ffmpeg and
+// ffprobe open channel URLs themselves, outside that fetcher's dialer, so this
+// runs before each of them starts (D-053). A name that resolves differently
+// moments later (DNS rebinding) is not caught; tuners are set by administrators.
+func CheckStreamHost(ctx context.Context, raw string, allowLoopback bool) error {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil {
+		return ErrBadSource
+	}
+	host := u.Hostname()
+	if host == "" {
+		return nil // udp://@:1234 and similar listen locally
+	}
+	var ips []net.IP
+	if ip := net.ParseIP(host); ip != nil {
+		ips = []net.IP{ip}
+	} else {
+		rctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+		addrs, err := net.DefaultResolver.LookupIPAddr(rctx, host)
+		if err != nil {
+			return fmt.Errorf("resolve %s: %w", host, err)
+		}
+		for _, a := range addrs {
+			ips = append(ips, a.IP)
+		}
+	}
+	for _, ip := range ips {
+		if allowLoopback && ip.IsLoopback() {
+			continue
+		}
+		if blockedIP(ip) {
+			return ErrBlockedAddress
+		}
+	}
+	return nil
+}
+
 func httpURL(raw string) (*url.URL, error) {
 	u, err := url.Parse(strings.TrimSpace(raw))
 	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {

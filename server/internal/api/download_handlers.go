@@ -30,6 +30,8 @@ func mapDownloadError(err error) *StatusError {
 		return &StatusError{Status: http.StatusForbidden, Code: "parental_limit", Message: err.Error()}
 	case errors.Is(err, downloads.ErrNotDownloadable):
 		return &StatusError{Status: http.StatusConflict, Code: "not_downloadable", Message: err.Error()}
+	case errors.Is(err, downloads.ErrQuota):
+		return &StatusError{Status: http.StatusTooManyRequests, Code: "download_quota", Message: err.Error()}
 	case errors.Is(err, downloads.ErrBadQuality):
 		return &StatusError{Status: http.StatusBadRequest, Code: "invalid_request", Message: err.Error()}
 	}

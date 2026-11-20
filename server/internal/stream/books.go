@@ -16,6 +16,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/streamero-app/streamero/server/internal/books"
+	"github.com/streamero-app/streamero/server/internal/library"
 )
 
 // FileURL is a signed link to a media file as it is (books, photos, downloads).
@@ -141,9 +142,9 @@ func (s *Server) convertPhoto(ctx context.Context, src, dst string) error {
 	tmp := dst + ".tmp.jpg"
 	cctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
-	// #nosec G204 -- fixed binary and flags; src was validated by ResolveSafePath.
-	cmd := exec.CommandContext(cctx, s.FFmpeg, "-nostdin", "-v", "error", "-y", "-i", src, "-frames:v", "1",
+	args := append(library.SafeInputArgs(), "-nostdin", "-v", "error", "-y", "-i", src, "-frames:v", "1",
 		"-vf", "scale='min(3840,iw)':-2", "-q:v", "2", tmp)
+	cmd := exec.CommandContext(cctx, s.FFmpeg, args...) // #nosec G204 -- fixed binary and flags; src was validated by ResolveSafePath
 	if err := cmd.Run(); err != nil {
 		_ = os.Remove(tmp) //nolint:gosec // G703: cache path built from a UUID
 		return err

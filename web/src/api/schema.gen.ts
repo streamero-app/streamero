@@ -3470,6 +3470,8 @@ export interface components {
             nowPlaying: components["schemas"]["NowPlaying"][];
             activeTranscodes: number;
             activity: components["schemas"]["ActivityEntry"][];
+            /** @description Configuration problems for the administrator. `untrusted_proxy`: requests arrive through a reverse proxy (X-Forwarded-For) but STREAMERO_TRUSTED_PROXIES is empty, so rate limits and sign-in bans see every client as the proxy. */
+            warnings?: "untrusted_proxy"[];
         };
         StorageUsage: {
             /** @enum {string} */
@@ -3565,6 +3567,10 @@ export interface components {
             /** @description Backup of the state just before the restore. */
             safetyBackup?: string;
             warnings?: string[];
+            /** @description Sessions signed out by the restore. The backup's sessions and API keys are revoked so that devices signed out and keys deleted since the backup do not come back; only the session that started the restore stays signed in. */
+            signedOutSessions?: number;
+            /** @description API keys revoked by the restore (create new ones for integrations). */
+            revokedApiKeys?: number;
         };
         BackupOverview: {
             /** @description Backup folder inside the server container. */

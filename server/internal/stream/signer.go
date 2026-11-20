@@ -3,6 +3,7 @@
 package stream
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
@@ -14,9 +15,17 @@ import (
 
 // Signer creates and checks short-lived URL signatures. Players such as AVPlayer,
 // Chromecast or a plain <video> cannot send auth headers, so the URL carries proof.
+//
+// A link may also carry a grant (QueryFor): who it was handed to, e.g. a
+// signed-in session and its profile. Such a link only works while Grant says
+// the grant is still valid, so signing out, revoking a device, disabling an
+// account or removing its library access cuts links already handed out (D-053).
 type Signer struct {
 	Key []byte
 	Now func() time.Time
+	// Grant reports whether a grant bound into a link still holds (nil: only
+	// the signature is checked).
+	Grant func(ctx context.Context, grant string) bool
 }
 
 func (s Signer) now() time.Time {
@@ -38,6 +47,79 @@ func (s Signer) mac(scope string, exp int64) string {
 func (s Signer) Query(scope string, ttl time.Duration) string {
 	exp := s.now().Add(ttl).Unix()
 	return url.Values{"exp": {strconv.FormatInt(exp, 10)}, "sig": {s.mac(scope, exp)}}.Encode()
+}
+
+// macFor signs scope for grant; the message differs from mac's, so a bound
+// signature never validates as an unbound one (or for another grant).
+func (s Signer) macFor(scope, grant string, exp int64) string {
+	m := hmac.New(sha256.New, s.Key)
+	m.Write([]byte(scope))
+	m.Write([]byte{0})
+	m.Write([]byte(strconv.FormatInt(exp, 10)))
+	m.Write([]byte{0, 'g', 0})
+	m.Write([]byte(grant))
+	return base64.RawURLEncoding.EncodeToString(m.Sum(nil))
+}
+
+// QueryFor is Query bound to grant ("exp=…&g=…&sig=…"); "" is Query.
+func (s Signer) QueryFor(scope, grant string, ttl time.Duration) string {
+	if grant == "" {
+		return s.Query(scope, ttl)
+	}
+	exp := s.now().Add(ttl).Unix()
+	return url.Values{"exp": {strconv.FormatInt(exp, 10)}, "g": {grant}, "sig": {s.macFor(scope, grant, exp)}}.Encode()
+}
+
+// SignatureQuery returns the signature parameters of q (exp, g, sig) for links
+// derived from a signed one (HLS segments).
+func SignatureQuery(q url.Values) string {
+	v := url.Values{"exp": {q.Get("exp")}, "sig": {q.Get("sig")}}
+	if g := q.Get("g"); g != "" {
+		v.Set("g", g)
+	}
+	return v.Encode()
+}
+
+// ValidFor is Valid for links that may carry a grant: a bound link also needs
+// its grant to hold.
+func (s Signer) ValidFor(ctx context.Context, scope string, q url.Values) bool {
+	grant := q.Get("g")
+	if grant == "" {
+		return s.Valid(scope, q)
+	}
+	exp, err := strconv.ParseInt(q.Get("exp"), 10, 64)
+	now := s.now()
+	if err != nil || now.Unix() > exp || exp > now.Add(MaxTTL).Unix() {
+		return false
+	}
+	if !hmac.Equal([]byte(s.macFor(scope, grant, exp)), []byte(q.Get("sig"))) {
+		return false
+	}
+	return s.Grant == nil || s.Grant(ctx, grant)
+}
+
+// TokenFor is Token bound to grant ("<exp>.<sig>.<grant>"); "" is Token.
+func (s Signer) TokenFor(scope, grant string, ttl time.Duration) string {
+	if grant == "" {
+		return s.Token(scope, ttl)
+	}
+	exp := s.now().Add(ttl).Unix()
+	return strconv.FormatInt(exp, 10) + "." + s.macFor(scope, grant, exp) + "." + grant
+}
+
+// ValidTokenFor accepts a Token or a TokenFor whose grant still holds.
+func (s Signer) ValidTokenFor(ctx context.Context, scope, tok string) bool {
+	parts := strings.SplitN(tok, ".", 3)
+	switch len(parts) {
+	case 2:
+		return s.Valid(scope, url.Values{"exp": {parts[0]}, "sig": {parts[1]}})
+	case 3:
+		if parts[2] == "" {
+			return false
+		}
+		return s.ValidFor(ctx, scope, url.Values{"exp": {parts[0]}, "sig": {parts[1]}, "g": {parts[2]}})
+	}
+	return false
 }
 
 // QueryUntil is Query with a fixed expiry, so the URL (and the browser cache

@@ -208,7 +208,7 @@ func TestLiveTVIntegration(t *testing.T) {
 	signer := stream.Signer{Key: []byte("test-key")}
 	svc := &livetv.Service{Pool: testPool, Settings: testState.Settings, Signer: signer, HLS: hls, FFmpeg: "ffmpeg", FFprobe: "ffprobe",
 		FileRoots: library.Roots{mediaRoot}, RecordingsDir: recDir, Library: testState.Library(),
-		HTTP: livetv.NewHTTPClient(time.Minute, true), ImageDir: t.TempDir(), Log: log}
+		HTTP: livetv.NewHTTPClient(time.Minute, true), AllowLoopback: true, ImageDir: t.TempDir(), Log: log}
 	testState.SetStream(&stream.Server{Pool: testPool, Roots: library.Roots{mediaRoot}, Signer: signer, HLS: hls, FFmpeg: "ffmpeg",
 		Images: svc.ImageHandler()})
 	testState.SetLiveTV(svc)
@@ -772,7 +772,7 @@ func TestLiveTVHDHomeRunIntegration(t *testing.T) {
 	go hls.Reap(ctx)
 	signer := stream.Signer{Key: []byte("test-key")}
 	svc := &livetv.Service{Pool: testPool, Settings: testState.Settings, Signer: signer, HLS: hls, FFmpeg: "ffmpeg", FFprobe: "ffprobe-not-needed",
-		FileRoots: library.Roots{mediaRoot}, HTTP: livetv.NewHTTPClient(time.Minute, true), Log: log}
+		FileRoots: library.Roots{mediaRoot}, HTTP: livetv.NewHTTPClient(time.Minute, true), AllowLoopback: true, Log: log}
 	testState.SetStream(&stream.Server{Pool: testPool, Roots: library.Roots{mediaRoot}, Signer: signer, HLS: hls, FFmpeg: "ffmpeg"})
 	testState.SetLiveTV(svc)
 	dev := fakeHDHomeRunDevice(t)

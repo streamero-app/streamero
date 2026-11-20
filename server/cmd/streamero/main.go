@@ -186,7 +186,9 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		go hls.Reap(ctx)
 		// Also on an in-process restart, where ctx (and so Reap) keeps running.
 		defer hls.StopAll()
-		streamServer := &stream.Server{Pool: deps.Pool, Roots: roots, Signer: stream.Signer{Key: key}, HLS: hls, FFmpeg: cfg.FFmpegPath,
+		// Links handed to a session stop working once it is signed out (D-053).
+		grant := func(ctx context.Context, g string) bool { a := state.Auth(); return a != nil && a.CheckGrant(ctx, g) }
+		streamServer := &stream.Server{Pool: deps.Pool, Roots: roots, Signer: stream.Signer{Key: key, Grant: grant}, HLS: hls, FFmpeg: cfg.FFmpegPath,
 			PhotoCache: filepath.Join(cfg.CacheDir, "photos")}
 		state.SetStream(streamServer)
 		libs := &library.Service{Pool: deps.Pool, Roots: roots, ImageDir: filepath.Join(cfg.CacheDir, "images"), Resume: h.LoadResume,

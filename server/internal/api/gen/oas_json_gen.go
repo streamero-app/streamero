@@ -5213,14 +5213,25 @@ func (s *Dashboard) encodeFields(e *jx.Encoder) {
 		}
 		e.ArrEnd()
 	}
+	{
+		if s.Warnings != nil {
+			e.FieldStart("warnings")
+			e.ArrStart()
+			for _, elem := range s.Warnings {
+				elem.Encode(e)
+			}
+			e.ArrEnd()
+		}
+	}
 }
 
-var jsonFieldsNameOfDashboard = [5]string{
+var jsonFieldsNameOfDashboard = [6]string{
 	0: "server",
 	1: "storage",
 	2: "nowPlaying",
 	3: "activeTranscodes",
 	4: "activity",
+	5: "warnings",
 }
 
 // Decode decodes Dashboard from json.
@@ -5307,6 +5318,23 @@ func (s *Dashboard) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"activity\"")
+			}
+		case "warnings":
+			if err := func() error {
+				s.Warnings = make([]DashboardWarningsItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem DashboardWarningsItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Warnings = append(s.Warnings, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"warnings\"")
 			}
 		default:
 			return d.Skip()
@@ -5524,6 +5552,44 @@ func (s *DashboardServer) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *DashboardServer) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DashboardWarningsItem as json.
+func (s DashboardWarningsItem) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DashboardWarningsItem from json.
+func (s *DashboardWarningsItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DashboardWarningsItem to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DashboardWarningsItem(v) {
+	case DashboardWarningsItemUntrustedProxy:
+		*s = DashboardWarningsItemUntrustedProxy
+	default:
+		*s = DashboardWarningsItem(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DashboardWarningsItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DashboardWarningsItem) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -31475,9 +31541,21 @@ func (s *RestoreStatus) encodeFields(e *jx.Encoder) {
 			e.ArrEnd()
 		}
 	}
+	{
+		if s.SignedOutSessions.Set {
+			e.FieldStart("signedOutSessions")
+			s.SignedOutSessions.Encode(e)
+		}
+	}
+	{
+		if s.RevokedApiKeys.Set {
+			e.FieldStart("revokedApiKeys")
+			s.RevokedApiKeys.Encode(e)
+		}
+	}
 }
 
-var jsonFieldsNameOfRestoreStatus = [7]string{
+var jsonFieldsNameOfRestoreStatus = [9]string{
 	0: "backup",
 	1: "state",
 	2: "startedAt",
@@ -31485,6 +31563,8 @@ var jsonFieldsNameOfRestoreStatus = [7]string{
 	4: "error",
 	5: "safetyBackup",
 	6: "warnings",
+	7: "signedOutSessions",
+	8: "revokedApiKeys",
 }
 
 // Decode decodes RestoreStatus from json.
@@ -31492,7 +31572,7 @@ func (s *RestoreStatus) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode RestoreStatus to nil")
 	}
-	var requiredBitSet [1]uint8
+	var requiredBitSet [2]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
@@ -31579,6 +31659,26 @@ func (s *RestoreStatus) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"warnings\"")
 			}
+		case "signedOutSessions":
+			if err := func() error {
+				s.SignedOutSessions.Reset()
+				if err := s.SignedOutSessions.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"signedOutSessions\"")
+			}
+		case "revokedApiKeys":
+			if err := func() error {
+				s.RevokedApiKeys.Reset()
+				if err := s.RevokedApiKeys.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"revokedApiKeys\"")
+			}
 		default:
 			return d.Skip()
 		}
@@ -31588,8 +31688,9 @@ func (s *RestoreStatus) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
+	for i, mask := range [2]uint8{
 		0b00000111,
+		0b00000000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

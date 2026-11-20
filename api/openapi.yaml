@@ -5498,6 +5498,15 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ActivityEntry"
+        warnings:
+          type: array
+          description: >-
+            Configuration problems for the administrator. `untrusted_proxy`: requests
+            arrive through a reverse proxy (X-Forwarded-For) but STREAMERO_TRUSTED_PROXIES
+            is empty, so rate limits and sign-in bans see every client as the proxy.
+          items:
+            type: string
+            enum: [untrusted_proxy]
     StorageUsage:
       type: object
       required: [kind, path, totalBytes, freeBytes]
@@ -5660,6 +5669,15 @@ components:
           type: array
           items:
             type: string
+        signedOutSessions:
+          type: integer
+          description: >-
+            Sessions signed out by the restore. The backup's sessions and API keys are
+            revoked so that devices signed out and keys deleted since the backup do not
+            come back; only the session that started the restore stays signed in.
+        revokedApiKeys:
+          type: integer
+          description: API keys revoked by the restore (create new ones for integrations).
     BackupOverview:
       type: object
       required: [dir, backups, settings, scanRunning, running, schemaVersion]

@@ -46,7 +46,7 @@ func (s *Server) item(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	rows, _, err := s.query(r.Context(), ownerOf(p), "i.id = $1", []any{id}, "i.id", 1, 0)
+	rows, _, err := s.query(r.Context(), p, "i.id = $1", []any{id}, "i.id", 1, 0)
 	if err != nil || len(rows) == 0 {
 		http.NotFound(w, r)
 		return
@@ -54,7 +54,7 @@ func (s *Server) item(w http.ResponseWriter, r *http.Request) {
 	// A single item always carries the details clients show on its page.
 	f := parseFields(r)
 	f["people"], f["mediasources"] = true, true
-	out, err := s.dtos(r.Context(), rows, f)
+	out, err := s.dtos(r.Context(), principal(r), rows, f)
 	if err != nil {
 		http.Error(w, "error", http.StatusInternalServerError)
 		return
@@ -149,12 +149,12 @@ func (s *Server) latest(w http.ResponseWriter, r *http.Request) {
 		q.add("COALESCE(u.played, false) = ?", v)
 	}
 	limit, _ := page(r, 20)
-	rows, _, err := s.query(r.Context(), ownerOf(p), q.where(), q.args, "i.added_at DESC, i.id", min(limit, 100), 0)
+	rows, _, err := s.query(r.Context(), p, q.where(), q.args, "i.added_at DESC, i.id", min(limit, 100), 0)
 	if err != nil {
 		http.Error(w, "error", http.StatusInternalServerError)
 		return
 	}
-	out, err := s.dtos(r.Context(), rows, parseFields(r))
+	out, err := s.dtos(r.Context(), principal(r), rows, parseFields(r))
 	if err != nil {
 		http.Error(w, "error", http.StatusInternalServerError)
 		return
@@ -190,7 +190,7 @@ func (s *Server) resume(w http.ResponseWriter, r *http.Request) {
 		q.add("lower(COALESCE(i.metadata_title, i.title)) LIKE ?", "%"+strings.ToLower(term)+"%")
 	}
 	limit, offset := page(r, 20)
-	rows, total, err := s.query(r.Context(), ownerOf(p), q.where(), q.args, "u.last_played_at DESC, i.id", limit, offset)
+	rows, total, err := s.query(r.Context(), p, q.where(), q.args, "u.last_played_at DESC, i.id", limit, offset)
 	if err != nil {
 		http.Error(w, "error", http.StatusInternalServerError)
 		return
@@ -238,7 +238,7 @@ func (s *Server) nextUp(w http.ResponseWriter, r *http.Request) {
 			ids = append(ids, it.ID)
 		}
 	}
-	rows, err := s.byIDs(r.Context(), ownerOf(p), ids)
+	rows, err := s.byIDs(r.Context(), p, ids)
 	if err != nil {
 		http.Error(w, "error", http.StatusInternalServerError)
 		return
@@ -248,7 +248,7 @@ func (s *Server) nextUp(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) seasons(w http.ResponseWriter, r *http.Request) {
 	id, err := ParseID(chi.URLParam(r, "seriesId"))
-	if err != nil || !canSee(principal(r)) {
+	if err != nil || !s.canOpen(r, principal(r), id) {
 		http.NotFound(w, r)
 		return
 	}
@@ -257,7 +257,7 @@ func (s *Server) seasons(w http.ResponseWriter, r *http.Request) {
 	if v, ok := boolParam(r, "IsPlayed"); ok {
 		q.add("COALESCE(u.played, false) = ?", v)
 	}
-	rows, total, err := s.query(r.Context(), ownerOf(principal(r)), q.where(), q.args, "i.season_number NULLS LAST, i.sort_title", 500, 0)
+	rows, total, err := s.query(r.Context(), principal(r), q.where(), q.args, "i.season_number NULLS LAST, i.sort_title", 500, 0)
 	if err != nil {
 		http.Error(w, "error", http.StatusInternalServerError)
 		return
@@ -267,7 +267,7 @@ func (s *Server) seasons(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) episodes(w http.ResponseWriter, r *http.Request) {
 	id, err := ParseID(chi.URLParam(r, "seriesId"))
-	if err != nil || !canSee(principal(r)) {
+	if err != nil || !s.canOpen(r, principal(r), id) {
 		http.NotFound(w, r)
 		return
 	}
@@ -303,7 +303,7 @@ func (s *Server) episodes(w http.ResponseWriter, r *http.Request) {
 	}
 	limit, offset := page(r, 2000)
 	order := orderBy(param(r, "SortBy"), param(r, "SortOrder"), "COALESCE(i.season_number, 1), i.episode_number NULLS FIRST, i.sort_title, i.id")
-	rows, total, err := s.query(r.Context(), ownerOf(principal(r)), q.where(), q.args, order, limit, offset)
+	rows, total, err := s.query(r.Context(), principal(r), q.where(), q.args, order, limit, offset)
 	if err != nil {
 		s.Log.Warn("compat episodes query failed", "err", err)
 		http.Error(w, "error", http.StatusInternalServerError)
@@ -315,12 +315,12 @@ func (s *Server) episodes(w http.ResponseWriter, r *http.Request) {
 // similar lists items of the same kind sharing a genre, best rated first.
 func (s *Server) similar(w http.ResponseWriter, r *http.Request) {
 	id, err := ParseID(chi.URLParam(r, "itemId"))
-	if err != nil || !canSee(principal(r)) {
+	if err != nil || !s.canOpen(r, principal(r), id) {
 		writeJSON(w, queryResult(nil, 0, 0))
 		return
 	}
 	limit, _ := page(r, 12)
-	rows, _, err := s.query(r.Context(), ownerOf(principal(r)), `i.id <> $1 AND i.parent_id IS NULL AND (i.kind, i.library_id) =
+	rows, _, err := s.query(r.Context(), principal(r), `i.id <> $1 AND i.parent_id IS NULL AND (i.kind, i.library_id) =
 		(SELECT kind, library_id FROM items WHERE id = $1) AND i.genres && (SELECT genres FROM items WHERE id = $1)`,
 		[]any{id}, "i.community_rating DESC NULLS LAST, i.sort_title, i.id", min(limit, 50), 0)
 	if err != nil {
@@ -333,7 +333,7 @@ func (s *Server) similar(w http.ResponseWriter, r *http.Request) {
 // ancestors lists the parents of an item up to its library.
 func (s *Server) ancestors(w http.ResponseWriter, r *http.Request) {
 	id, err := ParseID(chi.URLParam(r, "itemId"))
-	if err != nil || !canSee(principal(r)) {
+	if err != nil || !s.canOpen(r, principal(r), id) {
 		writeJSON(w, []any{})
 		return
 	}
@@ -348,7 +348,7 @@ func (s *Server) ancestors(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, []any{})
 		return
 	}
-	rows, err := s.byIDs(r.Context(), ownerOf(principal(r)), parents)
+	rows, err := s.byIDs(r.Context(), principal(r), parents)
 	if err != nil {
 		http.Error(w, "error", http.StatusInternalServerError)
 		return
@@ -388,7 +388,7 @@ func (s *Server) searchHints(w http.ResponseWriter, r *http.Request) {
 			ids = append(ids, it.ID)
 		}
 	}
-	rows, err := s.byIDs(r.Context(), ownerOf(p), ids)
+	rows, err := s.byIDs(r.Context(), p, ids)
 	if err != nil {
 		http.Error(w, "error", http.StatusInternalServerError)
 		return
@@ -574,7 +574,7 @@ func (s *Server) image(w http.ResponseWriter, r *http.Request) {
 // setUserData applies played/favorite/position changes and answers the new state.
 func (s *Server) setUserData(w http.ResponseWriter, r *http.Request, id uuid.UUID, favorite, played *bool, positionTicks *int64) {
 	p := principal(r)
-	if !canSee(p) {
+	if !s.canOpen(r, p, id) {
 		http.NotFound(w, r)
 		return
 	}
@@ -601,7 +601,7 @@ func (s *Server) setUserData(w http.ResponseWriter, r *http.Request, id uuid.UUI
 }
 
 func (s *Server) writeUserData(w http.ResponseWriter, r *http.Request, id uuid.UUID) {
-	rows, _, err := s.query(r.Context(), ownerOf(principal(r)), "i.id = $1", []any{id}, "i.id", 1, 0)
+	rows, _, err := s.query(r.Context(), principal(r), "i.id = $1", []any{id}, "i.id", 1, 0)
 	if err != nil || len(rows) == 0 {
 		http.NotFound(w, r)
 		return
@@ -627,7 +627,7 @@ func (s *Server) markUserData(field string, value bool) http.HandlerFunc {
 
 func (s *Server) getUserData(w http.ResponseWriter, r *http.Request) {
 	id, err := ParseID(chi.URLParam(r, "itemId"))
-	if err != nil || !canSee(principal(r)) {
+	if err != nil || !s.canOpen(r, principal(r), id) {
 		http.NotFound(w, r)
 		return
 	}

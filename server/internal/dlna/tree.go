@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/streamero-app/streamero/server/internal/access"
 	"github.com/streamero-app/streamero/server/internal/library"
 	"github.com/streamero-app/streamero/server/internal/stream"
 )
@@ -376,30 +377,11 @@ func (s *Server) item(ctx context.Context, q request, id uuid.UUID) (library.Ite
 // blockedAmong returns the ids whose item or any ancestor carries a rating
 // above the viewer's limit.
 func (s *Server) blockedAmong(ctx context.Context, v *Viewer, ids []uuid.UUID) (map[uuid.UUID]bool, error) {
-	out := map[uuid.UUID]bool{}
-	if len(v.Blocked) == 0 || len(ids) == 0 {
-		return out, nil
-	}
 	blocked := make([]string, 0, len(v.Blocked))
 	for r := range v.Blocked {
 		blocked = append(blocked, r)
 	}
-	rows, err := s.Pool.Query(ctx, `WITH RECURSIVE up AS (
-			SELECT id AS start, parent_id, official_rating FROM items WHERE id = ANY($1)
-			UNION ALL SELECT up.start, i.parent_id, i.official_rating FROM items i JOIN up ON i.id = up.parent_id)
-		SELECT DISTINCT start FROM up WHERE official_rating = ANY($2)`, ids, blocked)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var id uuid.UUID
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		out[id] = true
-	}
-	return out, rows.Err()
+	return access.BlockedAmong(ctx, s.Pool, blocked, ids)
 }
 
 func (s *Server) continueWatching(ctx context.Context, q request) ([]library.Item, error) {

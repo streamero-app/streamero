@@ -15,6 +15,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/streamero-app/streamero/server/internal/books"
+	"github.com/streamero-app/streamero/server/internal/library"
 )
 
 // thumbWidth is the size of generated book covers and photo thumbnails (longest side).
@@ -217,6 +218,9 @@ func (r *Refresher) runFFmpeg(ctx context.Context, dst string, stdin []byte, arg
 	full := []string{"-v", "error", "-y"}
 	if stdin == nil {
 		full = append(full, "-nostdin")
+		full = append(full, library.SafeInputArgs()...)
+	} else {
+		full = append(full, "-protocol_whitelist", "pipe")
 	}
 	full = append(full, args...)
 	full = append(full, "-frames:v", "1", "-q:v", "3", "-f", "mjpeg", tmp)

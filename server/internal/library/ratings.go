@@ -54,3 +54,18 @@ func BlockedRatings(known []string, maxAge int) []string {
 	}
 	return out
 }
+
+// VisibleSQL is a condition on the items row aliased as alias that is true
+// unless the row or one of its ancestors (season, series, album, artist,
+// photo album) has a rating in the text[] parameter param (e.g. "$3"). An
+// unrated episode thus inherits its series' rating. Rows without a parent only
+// compare their own rating. Parental limits use it everywhere (D-053).
+func VisibleSQL(alias, param string) string {
+	return `(cardinality(` + param + `::text[]) = 0 OR ((` + alias + `.official_rating IS NULL OR NOT ` + alias + `.official_rating = ANY(` + param + `::text[]))
+		AND (` + alias + `.parent_id IS NULL OR NOT EXISTS (
+			WITH RECURSIVE up AS (
+				SELECT a.parent_id, a.official_rating, 1 AS depth FROM items a WHERE a.id = ` + alias + `.parent_id
+				UNION ALL
+				SELECT a.parent_id, a.official_rating, up.depth + 1 FROM items a JOIN up ON a.id = up.parent_id WHERE up.depth < 16)
+			SELECT 1 FROM up WHERE up.official_rating = ANY(` + param + `::text[])))))`
+}

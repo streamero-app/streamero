@@ -108,6 +108,10 @@ func TestBackupRestoreIntegration(t *testing.T) {
 	exec(t, pool, `INSERT INTO users (id, username, password_hash, is_admin, locked_until) VALUES ($1, $2, $3, true, $4)`,
 		ana, "ana\ttab\nnewline \\ back šđč 🎬", "hash\x01", locked)
 	exec(t, pool, `INSERT INTO sessions (id, user_id, token_hash, expires_at) VALUES ($1, $2, '\xdeadbeef', now() + interval '1 day')`, uuid.New(), ana)
+	// eva restores the backup later from a session created after it.
+	eva := uuid.New()
+	exec(t, pool, `INSERT INTO users (id, username, password_hash, is_admin) VALUES ($1, 'eva', 'h', true)`, eva)
+	exec(t, pool, `INSERT INTO api_keys (id, name, token_hash, prefix, user_id) VALUES ($1, 'old', '\xbeef', 'sk_old', $2)`, uuid.New(), eva)
 	exec(t, pool, `INSERT INTO libraries (id, name, kind, paths, scan_state) VALUES ($1, 'Filmovi', 'movies', ARRAY['/media/a', '/media/b c'], 'scanning')`, lib)
 	exec(t, pool, `INSERT INTO settings (key, value) VALUES ('test.key', '{"v": 1}')`)
 	exec(t, pool, `INSERT INTO settings (key, value) VALUES ('stream.key', '"key-at-backup"')`)
@@ -150,6 +154,9 @@ func TestBackupRestoreIntegration(t *testing.T) {
 	ivo := uuid.New()
 	exec(t, pool, `DELETE FROM users WHERE id = $1`, ana) // cascades to sessions
 	exec(t, pool, `INSERT INTO users (id, username, password_hash) VALUES ($1, 'ivo', 'h')`, ivo)
+	evaSession := uuid.New()
+	exec(t, pool, `INSERT INTO sessions (id, user_id, token_hash, expires_at) VALUES ($1, $2, '\xcafe', now() + interval '1 day')`, evaSession, eva)
+	exec(t, pool, `INSERT INTO sessions (id, user_id, token_hash, expires_at) VALUES ($1, $2, '\xf00d', now() + interval '1 day')`, uuid.New(), ivo)
 	exec(t, pool, `UPDATE settings SET value = '{"v": 2}' WHERE key = 'test.key'`)
 	exec(t, pool, `UPDATE settings SET value = '"key-now"' WHERE key = 'stream.key'`)
 	exec(t, pool, `INSERT INTO audit_log (action) VALUES ('three'), ('four'), ('five')`)
@@ -158,7 +165,7 @@ func TestBackupRestoreIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res, err := svc.Restore(ctx, filepath.Join(svc.Dir, info.Name), RestoreOptions{SafetyBackup: true})
+	res, err := svc.Restore(ctx, filepath.Join(svc.Dir, info.Name), RestoreOptions{SafetyBackup: true, KeepSession: evaSession})
 	if err != nil {
 		t.Fatal(err, res.Warnings)
 	}
@@ -172,8 +179,19 @@ func TestBackupRestoreIntegration(t *testing.T) {
 	if _, ok := getUser(t, pool, ivo); ok {
 		t.Error("user created after the backup survived the restore")
 	}
-	if n := count(t, pool, `SELECT count(*) FROM sessions WHERE user_id = $1`, ana); n != 1 {
-		t.Errorf("sessions %d", n)
+	// Sessions and API keys from the backup do not come back; only the session
+	// that started the restore stays signed in (D-053).
+	if n := count(t, pool, `SELECT count(*) FROM sessions WHERE user_id = $1`, ana); n != 0 {
+		t.Errorf("restored sessions of ana: %d", n)
+	}
+	if n := count(t, pool, `SELECT count(*) FROM sessions WHERE id = $1 AND user_id = $2`, evaSession, eva); n != 1 {
+		t.Errorf("the restoring session was signed out")
+	}
+	if n := count(t, pool, `SELECT count(*) FROM sessions`); n != 1 {
+		t.Errorf("sessions after restore: %d, want only the restoring one", n)
+	}
+	if n := count(t, pool, `SELECT count(*) FROM api_keys`); n != 0 || res.RevokedAPIKeys != 1 || res.SignedOutSessions != 1 {
+		t.Errorf("api keys %d, result %+v", n, res)
 	}
 	var v string
 	if err := pool.QueryRow(ctx, `SELECT value->>'v' FROM settings WHERE key = 'test.key'`).Scan(&v); err != nil || v != "1" {

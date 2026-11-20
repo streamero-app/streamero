@@ -17,6 +17,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/streamero-app/streamero/server/internal/library"
+	"github.com/streamero-app/streamero/server/internal/netx"
 )
 
 // Run is the DVR loop: it expands series rules, resolves tuner conflicts,
@@ -32,13 +33,13 @@ func (s *Service) Run(ctx context.Context) {
 	var lastRetention time.Time
 	for {
 		if err := s.Schedule(ctx); err != nil && ctx.Err() == nil {
-			s.log().Warn("dvr schedule failed", "err", err)
+			s.log().Warn("dvr schedule failed", "err", netx.RedactErr(err))
 		}
 		s.startDue(ctx)
 		if s.now().Sub(lastRetention) > time.Hour {
 			lastRetention = s.now()
 			if err := s.ApplyRetention(ctx); err != nil && ctx.Err() == nil {
-				s.log().Warn("dvr retention failed", "err", err)
+				s.log().Warn("dvr retention failed", "err", netx.RedactErr(err))
 			}
 		}
 		select {
@@ -265,7 +266,7 @@ func (s *Service) startDue(ctx context.Context) {
 		s.mu.Unlock()
 		if !running {
 			if err := s.startRecorder(ctx, r); err != nil {
-				s.log().Warn("recording could not start", "title", r.Title, "err", err)
+				s.log().Warn("recording could not start", "title", r.Title, "err", netx.RedactErr(err))
 			}
 		}
 	}
@@ -345,6 +346,9 @@ func (s *Service) capture(ctx context.Context, rec *recorder, path string, ch re
 		if left <= 0 || ctx.Err() != nil {
 			return nil
 		}
+		if err := CheckStreamHost(ctx, ch.url, s.AllowLoopback); err != nil {
+			return err
+		}
 		runCtx, cancel := context.WithCancel(ctx)
 		args := append([]string{"-nostdin", "-hide_banner", "-loglevel", "error"}, inputArgs(ch.url, ch.userAgent)...)
 		args = append(args, "-i", ch.url, "-map", "0:v?", "-map", "0:a?", "-map", "0:s?", "-c", "copy", "-f", "mpegts", "pipe:1")
@@ -380,7 +384,7 @@ func (s *Service) capture(ctx context.Context, rec *recorder, path string, ch re
 		if !time.Now().Before(rec.deadline()) {
 			return nil
 		}
-		s.log().Warn("recording source dropped; reconnecting", "path", path, "err", lastErr)
+		s.log().Warn("recording source dropped; reconnecting", "path", path, "err", netx.RedactErr(lastErr))
 		select {
 		case <-ctx.Done():
 			return nil
@@ -444,14 +448,14 @@ func (s *Service) finish(ctx context.Context, id uuid.UUID, rec *recorder, captu
 		return
 	}
 	if err := s.writeNFO(r); err != nil {
-		s.log().Warn("recording nfo not written", "path", r.Path, "err", err)
+		s.log().Warn("recording nfo not written", "path", r.Path, "err", netx.RedactErr(err))
 	}
 	if perr := s.postProcess(ctx, r); perr != nil {
 		_, _ = s.Pool.Exec(ctx, `UPDATE livetv_recordings SET post_process_error = $2 WHERE id = $1`, id, perr.Error())
 	}
 	s.scanLibrary(ctx)
 	if err := s.ApplyRetention(ctx); err != nil {
-		s.log().Warn("dvr retention failed", "err", err)
+		s.log().Warn("dvr retention failed", "err", netx.RedactErr(err))
 	}
 	s.Kick()
 }
@@ -598,7 +602,7 @@ func (s *Service) ensureLibrary(ctx context.Context) (uuid.UUID, bool) {
 	}
 	lib, err := s.Library.Create(ctx, "Recordings", "mixed", []string{s.RecordingsDir})
 	if err != nil {
-		s.log().Warn("recordings library not created", "dir", s.RecordingsDir, "err", err)
+		s.log().Warn("recordings library not created", "dir", s.RecordingsDir, "err", netx.RedactErr(err))
 		return uuid.Nil, false
 	}
 	id := lib.ID
@@ -612,7 +616,7 @@ func (s *Service) ensureLibrary(ctx context.Context) (uuid.UUID, bool) {
 func (s *Service) scanLibrary(ctx context.Context) {
 	if id, ok := s.ensureLibrary(ctx); ok {
 		if err := s.Library.Scan(ctx, id); err != nil {
-			s.log().Warn("recordings library scan not queued", "err", err)
+			s.log().Warn("recordings library scan not queued", "err", netx.RedactErr(err))
 		}
 	}
 }
@@ -687,7 +691,7 @@ func (s *Service) ApplyRetention(ctx context.Context) error {
 		}
 		if err == nil {
 			if err := os.Remove(p); err != nil && !errors.Is(err, os.ErrNotExist) {
-				s.log().Warn("retention could not delete", "path", p, "err", err)
+				s.log().Warn("retention could not delete", "path", p, "err", netx.RedactErr(err))
 				continue
 			}
 			_ = os.Remove(strings.TrimSuffix(p, filepath.Ext(p)) + ".nfo")

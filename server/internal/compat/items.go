@@ -11,6 +11,8 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/streamero-app/streamero/server/internal/access"
+	"github.com/streamero-app/streamero/server/internal/auth"
 	"github.com/streamero-app/streamero/server/internal/library"
 )
 
@@ -91,16 +93,30 @@ var rowCols = `i.id, i.library_id, i.parent_id, ser.id,
 		WHERE NOT EXISTS (SELECT 1 FROM user_item_data w WHERE w.item_id = x.id AND w.owner_id = u2.owner AND w.played))::int END,
 	CASE WHEN i.kind IN ('series', 'season', 'artist', 'album') THEN (SELECT count(*) FROM ` + fmt.Sprintf(episodesUnder, "i") + ` x)::int END`
 
-// query runs a filtered, ordered page of items for owner. where and order are
-// built from fixed fragments; values are numbered parameters only.
-func (s *Server) query(ctx context.Context, owner uuid.UUID, where string, args []any, order string, limit, offset int) ([]row, int, error) {
+// query runs a filtered, ordered page of the items p may see (library access
+// and the profile's parental limit, D-053). where and order are built from
+// fixed fragments; values are numbered parameters only.
+func (s *Server) query(ctx context.Context, p auth.Principal, where string, args []any, order string, limit, offset int) ([]row, int, error) {
+	if !canSee(p) {
+		return nil, 0, nil
+	}
+	hidden, err := access.Labels(ctx, s.Pool, p)
+	if err != nil {
+		return nil, 0, err
+	}
+	if hidden == nil {
+		hidden = []string{}
+	}
+	owner := ownerOf(p)
 	n := len(args)
 	ownerParam := "$" + strconv.Itoa(n+1)
-	where = "(" + where + ") AND " + library.StreamingKindsSQL // books, audiobooks and photos are not served here (D-039)
+	hiddenParam := "$" + strconv.Itoa(n+2)
+	// Books, audiobooks and photos are not served here (D-039).
+	where = "(" + where + ") AND " + library.StreamingKindsSQL + " AND " + library.VisibleSQL("i", hiddenParam)
 	from := fmt.Sprintf(fromSQL, ownerParam) + ` CROSS JOIN (SELECT ` + ownerParam + `::uuid AS owner) u2 `
 	var total int
 	// #nosec G202 -- fixed fragments with numbered parameters only
-	if err := s.Pool.QueryRow(ctx, `SELECT count(*)`+from+` WHERE `+where, append(args, owner)...).Scan(&total); err != nil {
+	if err := s.Pool.QueryRow(ctx, `SELECT count(*)`+from+` WHERE `+where, append(args, owner, hidden)...).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 	if limit == 0 {
@@ -108,7 +124,7 @@ func (s *Server) query(ctx context.Context, owner uuid.UUID, where string, args 
 	}
 	// #nosec G202 -- fixed fragments with numbered parameters only
 	rows, err := s.Pool.Query(ctx, `SELECT `+rowCols+from+` WHERE `+where+` ORDER BY `+order+
-		` LIMIT $`+strconv.Itoa(n+2)+` OFFSET $`+strconv.Itoa(n+3), append(args, owner, limit, offset)...)
+		` LIMIT $`+strconv.Itoa(n+3)+` OFFSET $`+strconv.Itoa(n+4), append(args, owner, hidden, limit, offset)...)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -132,11 +148,11 @@ func (s *Server) query(ctx context.Context, owner uuid.UUID, where string, args 
 }
 
 // byIDs loads items in the given order (missing ones are skipped).
-func (s *Server) byIDs(ctx context.Context, owner uuid.UUID, ids []uuid.UUID) ([]row, error) {
+func (s *Server) byIDs(ctx context.Context, p auth.Principal, ids []uuid.UUID) ([]row, error) {
 	if len(ids) == 0 {
 		return nil, nil
 	}
-	rows, _, err := s.query(ctx, owner, "i.id = ANY($1)", []any{ids}, "i.id", len(ids), 0)
+	rows, _, err := s.query(ctx, p, "i.id = ANY($1)", []any{ids}, "i.id", len(ids), 0)
 	if err != nil {
 		return nil, err
 	}
@@ -663,7 +679,7 @@ func (s *Server) items(w http.ResponseWriter, r *http.Request) {
 	}
 	limit, offset := page(r, 500)
 	order := orderBy(param(r, "SortBy"), param(r, "SortOrder"), defaultOrder)
-	rows, total, err := s.query(r.Context(), ownerOf(p), q.where(), q.args, order, limit, offset)
+	rows, total, err := s.query(r.Context(), p, q.where(), q.args, order, limit, offset)
 	if err != nil {
 		s.Log.Warn("compat items query failed", "err", err)
 		http.Error(w, "error", http.StatusInternalServerError)
@@ -674,7 +690,7 @@ func (s *Server) items(w http.ResponseWriter, r *http.Request) {
 
 // writeRows answers a query result, adding detail fields the client asked for.
 func (s *Server) writeRows(w http.ResponseWriter, r *http.Request, rows []row, total, offset int) {
-	out, err := s.dtos(r.Context(), rows, parseFields(r))
+	out, err := s.dtos(r.Context(), principal(r), rows, parseFields(r))
 	if err != nil {
 		http.Error(w, "error", http.StatusInternalServerError)
 		return
@@ -690,7 +706,7 @@ func queryResult(items []any, total, offset int) map[string]any {
 }
 
 // dtos converts rows, adding media sources and people when f asks for them.
-func (s *Server) dtos(ctx context.Context, rows []row, f fields) ([]any, error) {
+func (s *Server) dtos(ctx context.Context, p auth.Principal, rows []row, f fields) ([]any, error) {
 	out := make([]any, 0, len(rows))
 	var ids []uuid.UUID
 	for _, x := range rows {
@@ -712,7 +728,7 @@ func (s *Server) dtos(ctx context.Context, rows []row, f fields) ([]any, error) 
 		if fs, ok := files[x.id]; ok && len(fs) > 0 {
 			sources := make([]any, 0, len(fs))
 			for _, mf := range fs {
-				sources = append(sources, s.mediaSource(mf))
+				sources = append(sources, s.mediaSource(p, mf))
 			}
 			d["MediaSources"] = sources
 			d["MediaStreams"] = sources[0].(map[string]any)["MediaStreams"]

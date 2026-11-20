@@ -49,6 +49,9 @@ func (h *Handler) GetCollection(ctx context.Context, params gen.GetCollectionPar
 		return nil, err
 	}
 	c, items, err := h.lib().GetCollection(ctx, params.CollectionId, stream.Owner(p))
+	if err == nil {
+		items, err = h.visibleItems(ctx, p, items)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -145,6 +148,9 @@ func (h *Handler) GetPlaylist(ctx context.Context, params gen.GetPlaylistParams)
 	}
 	owner := stream.Owner(p)
 	pl, items, err := h.lib().GetPlaylist(ctx, params.PlaylistId, owner)
+	if err == nil {
+		items, err = h.visibleItems(ctx, p, items)
+	}
 	if err != nil {
 		return nil, err
 	}

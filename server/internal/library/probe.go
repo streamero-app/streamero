@@ -88,14 +88,21 @@ type ffprobeOutput struct {
 	} `json:"streams"`
 }
 
+// SafeInputArgs go before the "-i" of every ffmpeg or ffprobe run on a library
+// file (D-053). A crafted file (a playlist named like a video) must not make
+// ffmpeg fetch URLs or open sockets: only the file protocol is allowed, which
+// nested inputs inherit.
+func SafeInputArgs() []string { return []string{"-protocol_whitelist", "file"} }
+
 // FFprobe runs the ffprobe binary (the ffmpeg build in the image; only invoked, never linked).
 func FFprobe(bin string) Prober {
 	return func(ctx context.Context, path string) (ProbeResult, error) {
 		ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 		defer cancel()
+		args := append(SafeInputArgs(), "-v", "error", "-print_format", "json",
+			"-show_format", "-show_streams", "-show_chapters", "--", path)
 		// #nosec G204 -- fixed binary; the path was validated by ResolveSafePath and is passed as one argument.
-		out, err := exec.CommandContext(ctx, bin, "-v", "error", "-print_format", "json",
-			"-show_format", "-show_streams", "-show_chapters", "--", path).Output()
+		out, err := exec.CommandContext(ctx, bin, args...).Output()
 		if err != nil {
 			return ProbeResult{}, fmt.Errorf("ffprobe: %w", err)
 		}

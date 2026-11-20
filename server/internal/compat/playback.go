@@ -15,6 +15,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
+	"github.com/streamero-app/streamero/server/internal/auth"
 	"github.com/streamero-app/streamero/server/internal/library"
 	"github.com/streamero-app/streamero/server/internal/stream"
 )
@@ -136,15 +137,16 @@ func mediaStreams(f library.MediaFile, defaultAudio int) []any {
 func streamScope(fileID uuid.UUID) string { return "/compat/videos/" + fileID.String() + "/" }
 
 // tagTTL bounds how long a media source tag opens the file without a token.
-const tagTTL = 12 * time.Hour
+// The tag is also bound to the session it was handed to (D-053).
+const tagTTL = 8 * time.Hour
 
 // mediaSource is mediaSource(f) with a signed ETag: some players (observed: the
 // Android TV app) request the direct stream with only the source id and this tag,
 // without credentials, so the tag carries an HMAC signature for that file.
-func (s *Server) mediaSource(f library.MediaFile) map[string]any {
+func (s *Server) mediaSource(p auth.Principal, f library.MediaFile) map[string]any {
 	src := mediaSource(f)
 	if s.Stream != nil {
-		src["ETag"] = s.Stream.Signer.Token(streamScope(f.ID), tagTTL)
+		src["ETag"] = s.Stream.Signer.TokenFor(streamScope(f.ID), p.Grant(), tagTTL)
 	}
 	return src
 }
@@ -517,7 +519,7 @@ func (s *Server) playbackInfo(w http.ResponseWriter, r *http.Request) {
 	if err == nil && s.livePlaybackInfo(w, r, id) {
 		return
 	}
-	if err != nil || !canSee(p) {
+	if err != nil || !s.canOpen(r, p, id) {
 		http.NotFound(w, r)
 		return
 	}
@@ -592,7 +594,7 @@ func (s *Server) playbackInfo(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, map[string]any{"MediaSources": []any{}, "PlaySessionId": playID, "ErrorCode": code})
 		return
 	}
-	src := s.mediaSource(f)
+	src := s.mediaSource(p, f)
 	src["MediaStreams"] = mediaStreams(f, info.AudioIndex)
 	if info.AudioIndex >= 0 {
 		src["DefaultAudioStreamIndex"] = audioBase(f) + info.AudioIndex
@@ -637,6 +639,14 @@ type playMemo struct {
 	at             time.Time
 }
 
+// Play memos are kept for playMemoTTL and at most maxPlayMemos at a time (the
+// oldest go first): every PlaybackInfo call adds one, so without a bound any
+// signed-in client could grow the map without end.
+const (
+	playMemoTTL  = 6 * time.Hour
+	maxPlayMemos = 4096
+)
+
 func (s *Server) rememberPlay(id, method, reason string) {
 	s.playsMu.Lock()
 	defer s.playsMu.Unlock()
@@ -644,10 +654,20 @@ func (s *Server) rememberPlay(id, method, reason string) {
 		s.plays = map[string]playMemo{}
 	}
 	now := time.Now()
-	for k, v := range s.plays {
-		if now.Sub(v.at) > 12*time.Hour {
-			delete(s.plays, k)
+	// Memos are added in time order, so expired ones (and, when full, the
+	// oldest) are at the front of the queue: each call removes a few, never
+	// walking the whole map.
+	for len(s.playOrder) > 0 {
+		old := s.playOrder[0]
+		m, ok := s.plays[old]
+		if ok && now.Sub(m.at) <= playMemoTTL && len(s.plays) < maxPlayMemos {
+			break
 		}
+		delete(s.plays, old)
+		s.playOrder = s.playOrder[1:]
+	}
+	if _, ok := s.plays[id]; !ok {
+		s.playOrder = append(s.playOrder, id)
 	}
 	s.plays[id] = playMemo{method: method, reason: reason, at: now}
 }
@@ -656,6 +676,9 @@ func (s *Server) recallPlay(id string) (playMemo, bool) {
 	s.playsMu.Lock()
 	defer s.playsMu.Unlock()
 	m, ok := s.plays[id]
+	if ok && time.Since(m.at) > playMemoTTL {
+		return playMemo{}, false
+	}
 	return m, ok
 }
 
@@ -700,14 +723,18 @@ func (s *Server) media(w http.ResponseWriter, r *http.Request) {
 	p, authErr := s.Auth.Authenticate(r.Context(), clientInfo(r).token)
 	f, ok := s.itemFile(r, id, param(r, "MediaSourceId"))
 	switch {
-	case authErr == nil && !canSee(p):
+	case authErr == nil && !s.canOpen(r, p, id):
 		http.NotFound(w, r)
 		return
-	case authErr != nil && (!direct || !ok || !s.Stream.Signer.ValidToken(streamScope(f.ID), param(r, "Tag"))):
+	case authErr != nil && (!direct || !ok || !s.Stream.Signer.ValidTokenFor(r.Context(), streamScope(f.ID), param(r, "Tag"))):
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	case !ok:
 		http.NotFound(w, r)
+		return
+	case name == "download" && (authErr != nil || (!p.User.IsAdmin && !p.User.Permissions.Download)):
+		// Saving the file needs the download permission (a media source tag only plays).
+		http.Error(w, "downloads are not allowed for this account", http.StatusForbidden)
 		return
 	}
 	switch {
@@ -757,7 +784,7 @@ func (s *Server) media(w http.ResponseWriter, r *http.Request) {
 // subtitle serves /Videos/{itemId}/{sourceId}/Subtitles/{index}[/{ticks}]/Stream.{format}.
 func (s *Server) subtitle(w http.ResponseWriter, r *http.Request) {
 	id, err := ParseID(chi.URLParam(r, "itemId"))
-	if err != nil || !canSee(principal(r)) || s.Stream == nil {
+	if err != nil || !s.canOpen(r, principal(r), id) || s.Stream == nil {
 		http.NotFound(w, r)
 		return
 	}
@@ -858,7 +885,7 @@ func (s *Server) playing(kind string) http.HandlerFunc {
 		p := principal(r)
 		rep := readReport(r)
 		id, err := ParseID(rep.ItemID)
-		if err != nil || !canSee(p) {
+		if err != nil || !s.canOpen(r, p, id) {
 			w.WriteHeader(http.StatusNoContent) // nothing to record
 			return
 		}
@@ -902,7 +929,7 @@ func (s *Server) playing(kind string) http.HandlerFunc {
 // segments implements /MediaSegments/{itemId} from media analysis (intro, credits, …).
 func (s *Server) segments(w http.ResponseWriter, r *http.Request) {
 	id, err := ParseID(chi.URLParam(r, "itemId"))
-	if err != nil || !canSee(principal(r)) {
+	if err != nil || !s.canOpen(r, principal(r), id) {
 		http.NotFound(w, r)
 		return
 	}

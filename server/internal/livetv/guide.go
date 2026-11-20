@@ -13,6 +13,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+
+
+	"github.com/streamero-app/streamero/server/internal/netx"
 )
 
 // GuideSource is an XMLTV guide source.
@@ -222,7 +225,7 @@ func (s *Service) QueueGuideRefresh(ctx context.Context, id uuid.UUID) error {
 		rctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 		defer cancel()
 		if _, err := s.RefreshGuide(rctx, id, true); err != nil {
-			s.log().Warn("guide refresh failed", "guide", id, "err", err)
+			s.log().Warn("guide refresh failed", "guide", id, "err", netx.RedactErr(err))
 		}
 	}()
 	return nil

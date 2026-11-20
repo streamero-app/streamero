@@ -34,6 +34,8 @@ type Server struct {
 	Downloads http.Handler
 	// Images serves /stream/img/{key}/{name} (live TV logos and programme images; optional).
 	Images http.Handler
+
+	subs subtitleCache
 }
 
 // Routes returns the handler for /stream.
@@ -67,7 +69,7 @@ func (s *Server) verify(next http.Handler) http.Handler {
 			full = "/stream" + full // mounted with the prefix stripped
 		}
 		scope := ScopeOf(full)
-		if scope == "" || !s.Signer.Valid(scope, r.URL.Query()) {
+		if scope == "" || !s.Signer.ValidFor(r.Context(), scope, r.URL.Query()) {
 			http.Error(w, "invalid or expired stream link", http.StatusForbidden)
 			return
 		}
@@ -134,7 +136,7 @@ func (s *Server) hls(w http.ResponseWriter, r *http.Request) {
 	id, name := chi.URLParam(r, "session"), chi.URLParam(r, "name")
 	if name == "index.m3u8" {
 		q := r.URL.Query()
-		body, err := s.HLS.Playlist(id, "exp="+q.Get("exp")+"&sig="+q.Get("sig"))
+		body, err := s.HLS.Playlist(id, SignatureQuery(q))
 		if err != nil {
 			http.NotFound(w, r)
 			return
@@ -247,13 +249,15 @@ func (s *Server) serveSubtitle(w http.ResponseWriter, r *http.Request, id uuid.U
 	}
 	sub := subs[index]
 	var args []string
+	source := video
 	if sub.External {
 		ext, err := library.ResolveSafePath(s.Roots, sub.Path)
 		if err != nil {
 			http.NotFound(w, r)
 			return
 		}
-		args = []string{"-nostdin", "-loglevel", "error", "-i", ext, "-f", muxer[0], "-"}
+		source = ext
+		args = append(library.SafeInputArgs(), "-nostdin", "-loglevel", "error", "-i", ext, "-f", muxer[0], "-")
 	} else {
 		// Embedded tracks are counted among the file's subtitle streams.
 		embedded := 0
@@ -262,11 +266,18 @@ func (s *Server) serveSubtitle(w http.ResponseWriter, r *http.Request, id uuid.U
 				embedded++
 			}
 		}
-		args = []string{"-nostdin", "-loglevel", "error", "-i", video, "-map", "0:s:" + strconv.Itoa(embedded), "-f", muxer[0], "-"}
+		args = append(library.SafeInputArgs(), "-nostdin", "-loglevel", "error", "-i", video, "-map", "0:s:"+strconv.Itoa(embedded), "-f", muxer[0], "-")
 	}
-	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Minute)
-	defer cancel()
-	out, err := exec.CommandContext(ctx, s.FFmpeg, args...).Output() // #nosec G204 -- validated paths, fixed binary
+	out, err := s.subs.convert(r.Context(), subtitleKey(id, index, muxer[0], source), func(ctx context.Context) ([]byte, error) {
+		ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+		defer cancel()
+		return exec.CommandContext(ctx, s.FFmpeg, args...).Output() // #nosec G204 -- validated paths, fixed binary
+	})
+	if errors.Is(err, errSubtitleBusy) {
+		w.Header().Set("Retry-After", "5")
+		http.Error(w, err.Error(), http.StatusServiceUnavailable)
+		return
+	}
 	if err != nil {
 		http.Error(w, "subtitle conversion failed", http.StatusUnprocessableEntity)
 		return
@@ -276,5 +287,6 @@ func (s *Server) serveSubtitle(w http.ResponseWriter, r *http.Request, id uuid.U
 	}
 	w.Header().Set("Content-Type", muxer[1])
 	w.Header().Set("Cache-Control", "private, max-age=3600")
-	_, _ = w.Write(out)
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	_, _ = w.Write(out) // #nosec G705 -- subtitle text served as text/vtt, SubRip or SSA with nosniff, never as HTML
 }

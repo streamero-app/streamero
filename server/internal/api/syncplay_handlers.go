@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/streamero-app/streamero/server/internal/access"
 	"github.com/streamero-app/streamero/server/internal/api/gen"
 	"github.com/streamero-app/streamero/server/internal/auth"
 	"github.com/streamero-app/streamero/server/internal/stream"
@@ -23,6 +24,10 @@ func (h *Handler) SyncLookup(ctx context.Context, p auth.Principal, itemID uuid.
 	}
 	if !canSeeLibraries(p) {
 		return syncplay.ItemInfo{}, syncplay.ErrForbidden
+	}
+	// Above the profile's parental limit: the same answer as a missing item.
+	if err := access.Item(ctx, h.lib().Pool, p, itemID); err != nil {
+		return syncplay.ItemInfo{}, err
 	}
 	it, _, _, err := h.lib().GetItem(ctx, itemID, stream.Owner(p))
 	if err != nil {
