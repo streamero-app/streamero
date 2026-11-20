@@ -42,6 +42,8 @@ struct TwoFactorPage: View {
             }
             if let error { Section { errorText(error) } }
         }
+        // The key and the recovery codes never appear in the app switcher.
+        .hiddenInAppSwitcher(recovery != nil || setup != nil)
     }
 
     // MARK: Sections
@@ -55,7 +57,7 @@ struct TwoFactorPage: View {
                 }
             }
             .padding(.vertical, 6)
-            CopyButton(text: TwoFactor.recoveryText(codes))
+            CopyButton(text: TwoFactor.recoveryText(codes), sensitive: true)
             ShareLink(item: TwoFactor.recoveryText(codes)) { Label("common.share", systemImage: "square.and.arrow.up") }
             Button("twofa.savedCodes") { recovery = nil }
         } header: {
@@ -82,7 +84,7 @@ struct TwoFactorPage: View {
         }
         Section {
             Text(verbatim: setup.secret).font(.callout.monospaced()).textSelection(.enabled)
-            CopyButton(text: setup.secret)
+            CopyButton(text: setup.secret, sensitive: true)
         } header: {
             Text("twofa.manual")
         }
@@ -143,7 +145,7 @@ struct TwoFactorPage: View {
         do {
             setup = try await client.startTOTPSetup()
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func enable() async {
@@ -156,7 +158,7 @@ struct TwoFactorPage: View {
             code = ""
             error = nil
             await app.refreshMe()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func disable() async {
@@ -167,7 +169,7 @@ struct TwoFactorPage: View {
             password = ""
             error = nil
             await app.refreshMe()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 

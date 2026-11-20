@@ -432,7 +432,7 @@ final class DownloadManager {
                     for sub in job.subtitles {
                         guard let url = client.absolute(sub.vttUrl), let data = try? await client.signedData(url) else { continue }
                         let name = OfflinePaths.subtitleName(itemId: itemId, index: sub.index)
-                        if (try? data.write(to: folder.appending(path: name), options: .atomic)) != nil {
+                        if (try? data.write(to: folder.appending(path: name), options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])) != nil {
                             subtitles.append(OfflineSubtitle(index: sub.index, language: sub.language, forced: sub.forced, file: name))
                             extra += Int64(data.count)
                         }
@@ -496,7 +496,7 @@ final class DownloadManager {
     private func saveArtwork(client: MediaClient, folder: URL, id: String, type: String, name: String) async -> (name: String, bytes: Int64)? {
         guard let url = client.imageURL(item: id, type: type),
               let data = try? await client.authorizedData(url), !data.isEmpty,
-              (try? data.write(to: folder.appending(path: name), options: .atomic)) != nil else { return nil }
+              (try? data.write(to: folder.appending(path: name), options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])) != nil else { return nil }
         return (name, Int64(data.count))
     }
 
@@ -617,6 +617,8 @@ final class BackgroundDownloadDelegate: NSObject, URLSessionDownloadDelegate, @u
                 try FileManager.default.removeItem(at: destination)
             }
             try FileManager.default.moveItem(at: location, to: destination)
+            // A moved file keeps the protection class of where it came from; set the folder's.
+            try? FileManager.default.setAttributes([.protectionKey: OfflinePaths.protection], ofItemAtPath: destination.path)
             let attributes = try? FileManager.default.attributesOfItem(atPath: destination.path)
             let bytes = (attributes?[.size] as? NSNumber)?.int64Value ?? 0
             Task { @MainActor in

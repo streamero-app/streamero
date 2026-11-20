@@ -141,11 +141,17 @@ enum OfflinePaths {
         return base.appending(path: "Offline", directoryHint: .isDirectory)
     }
 
-    /// The server's offline folder, created on demand and kept out of iCloud backups.
+    /// Files can be written while the phone is locked (background downloads finish then), but
+    /// stay encrypted until the first unlock after a restart.
+    static let protection = FileProtectionType.completeUntilFirstUserAuthentication
+
+    /// The server's offline folder, created on demand, protected and kept out of iCloud backups.
     static func folder(serverId: String) -> URL {
         var url = root().appending(path: safeName(serverId), directoryHint: .isDirectory)
         if !FileManager.default.fileExists(atPath: url.path) {
-            try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+            // Best effort: when the folder cannot be made, the write that needs it fails and says so.
+            try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true,
+                                                     attributes: [.protectionKey: protection])
             var values = URLResourceValues()
             values.isExcludedFromBackup = true
             try? url.setResourceValues(values)
@@ -184,7 +190,7 @@ enum OfflinePaths {
 
     static func save(_ library: OfflineLibrary, serverId: String) {
         guard let data = try? library.encoded() else { return }
-        try? data.write(to: libraryFile(serverId: serverId), options: .atomic)
+        try? data.write(to: libraryFile(serverId: serverId), options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
     }
 
     static func remove(_ name: String?, serverId: String) {

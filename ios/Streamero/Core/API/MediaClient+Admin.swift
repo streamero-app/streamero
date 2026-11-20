@@ -45,13 +45,13 @@ extension MediaClient {
         var req = URLRequest(url: url(path: "backups/\(name)/download"))
         req.timeoutInterval = 300
         req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        let (file, response) = try await URLSession.shared.download(for: req)
+        let (file, response) = try await HTTP.download(for: req)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard status == 200 else {
-            try? FileManager.default.removeItem(at: file)
+            try? FileManager.default.removeItem(at: file) // a temporary download; the error below is what matters
             throw APIError(status: status, code: "http_\(status)")
         }
-        let dir = FileManager.default.temporaryDirectory.appending(path: "backups", directoryHint: .isDirectory)
+        let dir = BackupFiles.directory
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         // The name comes from the server's list; keep only its last path component.
         let target = dir.appending(path: (name as NSString).lastPathComponent)
