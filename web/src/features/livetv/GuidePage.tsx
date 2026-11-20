@@ -50,7 +50,7 @@ export function GuideFilters({ category, setCategory, favorites, setFavorites }:
 export function ChannelBadge({ channel, size = 40 }: { channel: Pick<Channel, "name" | "logoUrl" | "number">; size?: number }) {
   const [broken, setBroken] = useState(false);
   if (channel.logoUrl && !broken) {
-    return <img src={channel.logoUrl} alt="" onError={() => setBroken(true)} style={{ width: size, height: size }}
+    return <img src={channel.logoUrl} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setBroken(true)} style={{ width: size, height: size }}
       className="shrink-0 rounded-[6px] bg-white/[0.06] object-contain p-1" />;
   }
   return (

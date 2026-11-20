@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { api, unwrap } from "@/api/client";
 import { Badge, Button, Card, ErrorText, TextField } from "@/components/ui";
 import { meQueryKey, useMe } from "@/features/auth/useAuth";
+import { safeHref } from "@/lib/safeUrl";
 
 /** Turn TOTP two-factor authentication on (QR / link / manual key) or off. */
 export function TwoFactorCard() {
@@ -77,7 +78,9 @@ export function TwoFactorCard() {
             <img src={`data:image/png;base64,${start.data.qrPng}`} alt={t("twofa.qrAlt")} width={176} height={176}
               className="rounded-md bg-white p-2 [image-rendering:pixelated]" />
             <div className="flex min-w-0 flex-1 flex-col gap-2 text-sm">
-              <a href={start.data.otpauthUri} className="font-medium text-accent">{t("twofa.openApp")}</a>
+              {safeHref(start.data.otpauthUri, ["otpauth:"]) && (
+                <a href={safeHref(start.data.otpauthUri, ["otpauth:"])} className="font-medium text-accent">{t("twofa.openApp")}</a>
+              )}
               <span className="text-muted">{t("twofa.manual")}</span>
               <code className="rounded bg-bg px-2 py-1 font-mono break-all select-all" data-testid="totp-secret">{start.data.secret}</code>
             </div>

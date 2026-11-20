@@ -4,11 +4,12 @@ import { Download } from "lucide-react";
 import { api, unwrap } from "@/api/client";
 import { Button, ErrorText } from "@/components/ui";
 import { useMe } from "@/features/auth/useAuth";
+import { safeHref } from "@/lib/safeUrl";
 
 /** Whether the signed-in account may download original files (D-040). */
 export function useCanDownload(): boolean {
   const { data: me } = useMe();
-  return !!me && (me.isAdmin || me.permissions.download);
+  return !!me && (me.isAdmin || !!me.permissions?.download);
 }
 
 /**
@@ -22,8 +23,10 @@ export function DownloadOriginalButton({ itemId, fileId }: { itemId: string; fil
   const link = useMutation({
     mutationFn: async () => unwrap(await api.POST("/items/{itemId}/original", { params: { path: { itemId } }, body: { fileId } })),
     onSuccess: (l) => {
+      const href = safeHref(l.url);
+      if (!href) return;
       const a = document.createElement("a");
-      a.href = l.url;
+      a.href = href;
       a.download = l.fileName;
       a.rel = "noopener";
       document.body.appendChild(a);

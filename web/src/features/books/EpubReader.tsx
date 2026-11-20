@@ -60,7 +60,7 @@ export default function EpubReader({ itemId, title, manifest }: { itemId: string
         book.transformTarget?.addEventListener("data", (e) => {
           const { detail } = e as DataEvent;
           if (detail.type === "application/xhtml+xml" || detail.type === "text/html") {
-            detail.data = Promise.resolve(detail.data).then((d) => (typeof d === "string" ? sanitizeSection(d) : d));
+            detail.data = Promise.resolve(detail.data).then((d) => (typeof d === "string" ? sanitizeSection(d, detail.type) : d));
           }
         });
         if (cancelled || !host.current) return;

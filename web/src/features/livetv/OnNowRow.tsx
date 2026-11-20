@@ -16,7 +16,7 @@ function OnNowCard({ channel, now }: { channel: Channel; now: number }) {
       className={`tv-focus group relative flex shrink-0 flex-col overflow-hidden rounded-[6px] bg-surface-2 ${rowCard}`}>
       <div className="relative aspect-video w-full overflow-hidden bg-gradient-to-br from-surface-3 to-surface">
         {p.imageUrl
-          ? <img src={p.imageUrl} alt="" loading="lazy" className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+          ? <img src={p.imageUrl} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
           : <div className="grid size-full place-items-center"><ChannelBadge channel={channel} size={72} /></div>}
         <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/85 to-transparent" />
         <div className="absolute bottom-3 left-3 flex items-center gap-2">

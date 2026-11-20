@@ -6,6 +6,7 @@ import { Badge, Button, Card, ErrorText, SuccessText } from "@/components/ui";
 import { ssoErrorKey, takeQueryParam, useAuthProviders } from "@/features/auth/useSso";
 import { useDateTime } from "./SettingsLayout";
 import { useConfirm } from "@/components/Dialog";
+import { safeHref } from "@/lib/safeUrl";
 
 export const identitiesQueryKey = ["auth", "identities"];
 
@@ -27,7 +28,11 @@ export function LinkedAccountsCard() {
   const link = useMutation({
     mutationFn: async (providerId: string) =>
       unwrap(await api.POST("/auth/oidc/{providerId}/link", { params: { path: { providerId } } })),
-    onSuccess: (res) => window.location.assign(res.authorizationUrl),
+    // Only a real web address leaves the app (never a javascript: or data: link).
+    onSuccess: (res) => {
+      const href = safeHref(res.authorizationUrl);
+      if (href) window.location.assign(href);
+    },
   });
   const unlink = useMutation({
     mutationFn: async (identityId: string) =>

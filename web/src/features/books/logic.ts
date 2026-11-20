@@ -82,16 +82,76 @@ export function pageProgression(page: number, count: number): number {
 export const SECTION_CSP = "default-src blob: data:; img-src blob: data:; media-src blob: data:; font-src blob: data:; " +
   "style-src blob: data: 'unsafe-inline'; script-src 'none'; object-src 'none'; form-action 'none'";
 
+/** Elements a book never needs and that can run code, load other documents or change the base URL. */
+const DROP_ELEMENTS = "script, iframe, frame, frameset, object, embed, applet, base, portal, noscript, meta[http-equiv]";
+/** Attributes holding addresses that must not be script or HTML documents. */
+const URL_ATTRS = ["href", "src", "xlink:href", "action", "formaction", "data", "poster", "background", "srcset"];
+
+/** "java\tscript:", "&#106;avascript:" and similar spellings all count. */
+function dangerousUrl(value: string): boolean {
+  const v = value.replace(/[\u0000- \u007f-\u009f]/g, "").toLowerCase();
+  return /^(javascript|vbscript|livescript):/.test(v) || /^data:(text\/html|application\/(xhtml|xml)|image\/svg)/.test(v);
+}
+
 /**
- * Makes an EPUB section inert before it is rendered: scripts are removed and a
- * Content-Security-Policy that forbids scripts and outside requests is added.
- * (EPUBs can carry JavaScript; a book must never run code in Streamero's origin.)
+ * Cleans a parsed section in place: removes script-capable elements, event handler
+ * attributes and script/HTML addresses, then puts the CSP meta first in <head>.
  */
-export function sanitizeSection(markup: string): string {
+function sanitizeDocument(doc: Document) {
+  for (const el of Array.from(doc.querySelectorAll(DROP_ELEMENTS))) el.remove();
+  for (const el of Array.from(doc.querySelectorAll("*"))) {
+    for (const attr of Array.from(el.attributes)) {
+      const name = attr.name.toLowerCase();
+      if (name.startsWith("on") || name === "srcdoc" || name === "formaction") el.removeAttribute(attr.name);
+      else if (URL_ATTRS.includes(name) || name.endsWith(":href")) {
+        if (attr.value.split(",").some((part) => dangerousUrl(part.trim()))) el.removeAttribute(attr.name);
+      }
+    }
+  }
+  // New elements take the document's own namespace (none for a bare <html> in XML).
+  const ns = doc.documentElement?.namespaceURI ?? null;
+  let head: Element | null = doc.querySelector("head");
+  if (!head) {
+    head = doc.createElementNS(ns, "head");
+    doc.documentElement?.insertBefore(head, doc.documentElement.firstChild);
+  }
+  const meta = doc.createElementNS(ns, "meta");
+  meta.setAttribute("http-equiv", "Content-Security-Policy");
+  meta.setAttribute("content", SECTION_CSP);
+  head.insertBefore(meta, head.firstChild);
+}
+
+/**
+ * Makes an EPUB section inert before it is rendered: script-capable markup is removed
+ * and a Content-Security-Policy that forbids scripts and outside requests is placed
+ * first in its head. (EPUBs can carry JavaScript; a book must never run code in
+ * Streamero's origin.) The markup is parsed and cleaned as a document; the text-based
+ * cleaner below is only used where no DOM parser exists.
+ */
+export function sanitizeSection(markup: string, type = "application/xhtml+xml"): string {
+  if (typeof DOMParser !== "undefined" && typeof XMLSerializer !== "undefined") {
+    const xml = type === "application/xhtml+xml";
+    let doc = new DOMParser().parseFromString(markup, xml ? "application/xhtml+xml" : "text/html");
+    // Not well-formed XHTML (common in real books): read it the forgiving way.
+    if (xml && doc.getElementsByTagName("parsererror").length) {
+      doc = new DOMParser().parseFromString(markup, "text/html");
+      sanitizeDocument(doc);
+      return "<!DOCTYPE html>" + doc.documentElement.outerHTML;
+    }
+    sanitizeDocument(doc);
+    return xml ? new XMLSerializer().serializeToString(doc) : "<!DOCTYPE html>" + doc.documentElement.outerHTML;
+  }
+  return sanitizeSectionText(markup);
+}
+
+/** Text-only fallback of sanitizeSection (no DOMParser). */
+export function sanitizeSectionText(markup: string): string {
   let s = markup
+    .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/<script\b[^>]*\/>/gi, "")
     .replace(/<script\b[\s\S]*?<\/script\s*>/gi, "")
-    .replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/<\/?(iframe|frame|object|embed|base|meta\s+http-equiv)\b[^>]*>/gi, "")
+    .replace(/[\s/]on[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, " ")
     .replace(/(href|src|xlink:href)\s*=\s*(["'])\s*javascript:[^"']*\2/gi, '$1=$2#$2');
   const meta = `<meta http-equiv="Content-Security-Policy" content="${SECTION_CSP}"/>`;
   if (/<head\b[^>]*>/i.test(s)) s = s.replace(/<head\b[^>]*>/i, (m) => m + meta);

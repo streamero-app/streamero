@@ -31,7 +31,7 @@ export function DiscoverCard({ title, canRequest }: { title: Title; canRequest: 
     <div className="group flex flex-col gap-2" data-testid="discover-card">
       <div className="poster-lift relative aspect-[2/3] overflow-hidden rounded-[6px] bg-surface-2">
         {title.posterUrl
-          ? <img src={title.posterUrl} alt="" loading="lazy" className="absolute inset-0 size-full object-cover" />
+          ? <img src={title.posterUrl} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" className="absolute inset-0 size-full object-cover" />
           : <span className="absolute inset-0 grid place-items-end p-3 font-display text-xl">{title.title}</span>}
         <StatusBadge status={status} />
         <div className="absolute inset-x-0 bottom-0 flex flex-col gap-2 bg-gradient-to-t from-black/95 via-black/70 to-transparent p-3 pt-16 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100 max-md:opacity-100">
