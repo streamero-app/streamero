@@ -16,6 +16,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/streamero-app/streamero/server/internal/access"
 	"github.com/streamero-app/streamero/server/internal/auth"
 	"github.com/streamero-app/streamero/server/internal/library"
 	"github.com/streamero-app/streamero/server/internal/settings"
@@ -181,6 +182,10 @@ func loadSubtitles(ctx context.Context, db interface {
 
 // Start prepares playback of an item for a principal.
 func (s *Server) Start(ctx context.Context, lib *library.Service, p auth.Principal, itemID uuid.UUID, req Request) (Info, error) {
+	// Library access and the profile's parental limit, for every client (D-053).
+	if err := access.Item(ctx, s.Pool, p, itemID); err != nil {
+		return Info{}, err
+	}
 	_, files, _, err := lib.GetItem(ctx, itemID, Owner(p))
 	if err != nil {
 		return Info{}, err
@@ -235,7 +240,7 @@ func (s *Server) Start(ctx context.Context, lib *library.Service, p auth.Princip
 	}
 	if plan.Method == "direct" {
 		scope := fmt.Sprintf("/stream/file/%s/", f.ID)
-		info.URL = scope + "video" + filepath.Ext(f.Path) + "?" + s.Signer.Query(scope, URLTTL)
+		info.URL = scope + "video" + filepath.Ext(f.Path) + "?" + s.Signer.QueryFor(scope, p.Grant(), URLTTL)
 	} else {
 		path, err := s.FilePath(ctx, f.ID)
 		if err != nil {
@@ -254,10 +259,10 @@ func (s *Server) Start(ctx context.Context, lib *library.Service, p auth.Princip
 			return Info{}, fmt.Errorf("%w: %w", ErrTranscoderFailure, err)
 		}
 		scope := "/stream/hls/" + id + "/"
-		info.URL = scope + "index.m3u8?" + s.Signer.Query(scope, URLTTL)
+		info.URL = scope + "index.m3u8?" + s.Signer.QueryFor(scope, p.Grant(), URLTTL)
 	}
 	subScope := fmt.Sprintf("/stream/sub/%s/", f.ID)
-	q := s.Signer.Query(subScope, URLTTL)
+	q := s.Signer.QueryFor(subScope, p.Grant(), URLTTL)
 	for i, sub := range f.Subtitles {
 		if IsBitmapSubtitle(sub.Codec) {
 			// Pictures cannot become WebVTT: offered for burn-in instead.

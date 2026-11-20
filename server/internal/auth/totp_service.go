@@ -49,6 +49,8 @@ func (s *Service) StartTOTPSetup(ctx context.Context, p Principal, issuer string
 // EnableTOTP verifies a code for the pending secret, turns 2FA on and returns
 // one-time recovery codes. Other sessions are signed out.
 func (s *Service) EnableTOTP(ctx context.Context, p Principal, code string) ([]string, error) {
+	// Signed links handed out under a grant this changes stop at once (D-053).
+	defer s.ForgetGrants()
 	if p.SessionID == uuid.Nil {
 		return nil, ErrSessionRequired
 	}

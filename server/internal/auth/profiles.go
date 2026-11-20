@@ -126,6 +126,8 @@ func (s *Service) CreateProfile(ctx context.Context, p Principal, in ProfileInpu
 
 // UpdateProfile changes one of the caller's profiles.
 func (s *Service) UpdateProfile(ctx context.Context, p Principal, id uuid.UUID, in ProfileInput) (Profile, error) {
+	// Signed links handed out under a grant this changes stop at once (D-053).
+	defer s.ForgetGrants()
 	if p.IsKid() {
 		return Profile{}, ErrKidProfile
 	}
@@ -149,6 +151,8 @@ func (s *Service) UpdateProfile(ctx context.Context, p Principal, id uuid.UUID, 
 // whole (perhaps administrator) account. The caller's own session, an adult
 // one, falls back to the main profile.
 func (s *Service) DeleteProfile(ctx context.Context, p Principal, id uuid.UUID) error {
+	// Signed links handed out under a grant this changes stop at once (D-053).
+	defer s.ForgetGrants()
 	if p.IsKid() {
 		return ErrKidProfile
 	}
@@ -170,6 +174,8 @@ func (s *Service) DeleteProfile(ctx context.Context, p Principal, id uuid.UUID) 
 
 // SelectProfile switches the caller's session to a profile, checking its PIN.
 func (s *Service) SelectProfile(ctx context.Context, p Principal, id uuid.UUID, pin string) error {
+	// Signed links handed out under a grant this changes stop at once (D-053).
+	defer s.ForgetGrants()
 	if p.SessionID == uuid.Nil {
 		return ErrSessionRequired
 	}
@@ -230,6 +236,8 @@ func (s *Service) SelectProfile(ctx context.Context, p Principal, id uuid.UUID, 
 // SelectMainProfile switches back to the account itself. From a kids profile
 // this needs the account password.
 func (s *Service) SelectMainProfile(ctx context.Context, p Principal, password string) error {
+	// Signed links handed out under a grant this changes stop at once (D-053).
+	defer s.ForgetGrants()
 	if p.SessionID == uuid.Nil {
 		return ErrSessionRequired
 	}
