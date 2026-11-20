@@ -157,6 +157,9 @@ func restoreCmd(ctx context.Context, cfg config.Config, log *slog.Logger) error 
 	for _, w := range res.Warnings {
 		fmt.Println("Warning:", w)
 	}
+	if err == nil {
+		fmt.Printf("Signed out %d sessions and revoked %d API keys: they came from the backup.\n", res.SignedOutSessions, res.RevokedAPIKeys)
+	}
 	if err != nil {
 		return err
 	}

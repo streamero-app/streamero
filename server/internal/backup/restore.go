@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
 	"github.com/streamero-app/streamero/server/internal/db"
@@ -23,6 +24,10 @@ type RestoreOptions struct {
 	SafetyBackup bool
 	// SkipFiles restores only the database (no config files, avatars or artwork).
 	SkipFiles bool
+	// KeepSession is the session that stays signed in after the restore (the
+	// administrator who started it); every other session and all API keys are
+	// revoked.
+	KeepSession uuid.UUID
 }
 
 // RestoreResult describes a finished (or failed) restore.
@@ -33,6 +38,9 @@ type RestoreResult struct {
 	// Changed is true once the database was modified; a failure after that point leaves
 	// it in an unknown state (the safety backup brings it back).
 	Changed bool
+	// SignedOutSessions and RevokedAPIKeys count what the restore revoked.
+	SignedOutSessions int
+	RevokedAPIKeys    int
 }
 
 // Prepare verifies an archive and checks that this server can restore it.
@@ -74,6 +82,12 @@ func (s *Service) Restore(ctx context.Context, p string, opts RestoreOptions) (*
 	if err != nil {
 		return res, err
 	}
+	var keep *keptSession
+	if current > 0 {
+		if keep, err = s.loadSession(ctx, opts.KeepSession); err != nil {
+			return res, err
+		}
+	}
 	if opts.SafetyBackup && current > 0 {
 		info, err := s.create(ctx, CreateOptions{Kind: KindPreRestore})
 		if err != nil {
@@ -103,6 +117,9 @@ func (s *Service) Restore(ctx context.Context, p string, opts RestoreOptions) (*
 	// Forward to this binary's schema (no-op when the backup is current).
 	if err := db.Migrate(ctx, s.Pool); err != nil {
 		return res, fmt.Errorf("migrate after restore: %w", err)
+	}
+	if err := s.revokeCredentials(ctx, keep, res); err != nil {
+		return res, fmt.Errorf("revoke sessions after restore: %w", err)
 	}
 	// Scans that were running when the backup was taken are not running now.
 	if _, err := s.Pool.Exec(ctx, `UPDATE libraries SET scan_state = 'idle' WHERE scan_state IN ('queued', 'scanning')`); err != nil {

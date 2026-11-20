@@ -11,6 +11,9 @@ import (
 	"github.com/streamero-app/streamero/server/internal/api/gen"
 	"github.com/streamero-app/streamero/server/internal/backup"
 	"github.com/streamero-app/streamero/server/internal/db"
+
+
+	"github.com/google/uuid"
 )
 
 // Backups wires backup and restore into the API (D-030).
@@ -95,6 +98,9 @@ func (h *Handler) ListBackups(ctx context.Context) (*gen.BackupOverview, error) 
 	if st, ok := b.Service.ReadStatus(); ok {
 		rs := gen.RestoreStatus{Backup: st.Backup, State: gen.RestoreStatusState(st.State), StartedAt: st.StartedAt,
 			Warnings: st.Warnings, SafetyBackup: optString(st.SafetyBackup), Error: optString(st.Error)}
+		if st.SignedOutSessions > 0 || st.RevokedAPIKeys > 0 {
+			rs.SignedOutSessions, rs.RevokedApiKeys = gen.NewOptInt(st.SignedOutSessions), gen.NewOptInt(st.RevokedAPIKeys)
+		}
 		if st.FinishedAt != nil {
 			rs.FinishedAt = gen.NewOptDateTime(*st.FinishedAt)
 		}
@@ -226,17 +232,18 @@ func (h *Handler) RestoreBackup(ctx context.Context, req *gen.RestoreBackupReque
 	st := backup.Status{Backup: params.BackupName, State: backup.StateRunning, StartedAt: time.Now().UTC()}
 	_ = b.Service.WriteStatus(st)
 	// Detached from the request: restores can take longer than any proxy waits.
-	go h.runRestore(context.WithoutCancel(ctx), b, path, st)
+	// Every other session and every API key is revoked by the restore (D-053).
+	go h.runRestore(context.WithoutCancel(ctx), b, path, st, p.SessionID)
 	return nil
 }
 
 // runRestore restores in the background and records the outcome.
-func (h *Handler) runRestore(ctx context.Context, b *Backups, path string, st backup.Status) {
+func (h *Handler) runRestore(ctx context.Context, b *Backups, path string, st backup.Status, keep uuid.UUID) {
 	defer h.restoring.Store(false)
 	if b.Restoring != nil {
 		b.Restoring(true)
 	}
-	res, err := b.Service.Restore(ctx, path, backup.RestoreOptions{SafetyBackup: true})
+	res, err := b.Service.Restore(ctx, path, backup.RestoreOptions{SafetyBackup: true, KeepSession: keep})
 	st.Finish(res, err, time.Now().UTC())
 	if werr := b.Service.WriteStatus(st); werr != nil {
 		slog.Error("could not record restore status", "err", werr)

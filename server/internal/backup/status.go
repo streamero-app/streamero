@@ -32,6 +32,9 @@ type Status struct {
 	Error        string     `json:"error,omitempty"`
 	SafetyBackup string     `json:"safetyBackup,omitempty"`
 	Warnings     []string   `json:"warnings,omitempty"`
+	// SignedOutSessions and RevokedAPIKeys: what the restore revoked (D-053).
+	SignedOutSessions int `json:"signedOutSessions,omitempty"`
+	RevokedAPIKeys    int `json:"revokedApiKeys,omitempty"`
 }
 
 const statusFile = ".restore-status.json"
@@ -71,6 +74,7 @@ func (st *Status) Finish(res *RestoreResult, err error, at time.Time) {
 	if res != nil {
 		st.SafetyBackup = res.SafetyBackup
 		st.Warnings = res.Warnings
+		st.SignedOutSessions, st.RevokedAPIKeys = res.SignedOutSessions, res.RevokedAPIKeys
 	}
 	if err != nil {
 		st.State, st.Error = StateFailed, err.Error()
