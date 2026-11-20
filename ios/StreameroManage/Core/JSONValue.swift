@@ -47,9 +47,37 @@ enum JSONValue: Sendable, Hashable, Codable {
     }
 
     /// Parses a response body; an empty body is `null`.
+    /// Parses a response body. JSONSerialization reads a whole library (thousands of movies)
+    /// several times faster than decoding through `init(from:)`, which tries each type in turn
+    /// and throws for every miss.
     static func parse(_ data: Data) throws -> JSONValue {
         if data.isEmpty { return .null }
-        return try JSONDecoder().decode(JSONValue.self, from: data)
+        return JSONValue(foundation: try JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed]))
+    }
+
+    /// A value from JSONSerialization's object graph.
+    init(foundation any: Any) {
+        switch any {
+        case let n as NSNumber:
+            if n is NSDecimalNumber {
+                // Integers beyond Int64 come back as decimals.
+                self = .double(n.doubleValue)
+            } else if CFGetTypeID(n) == CFBooleanGetTypeID() {
+                self = .bool(n.boolValue)
+            } else if CFNumberIsFloatType(n as CFNumber) {
+                self = .double(n.doubleValue)
+            } else {
+                self = .int(n.int64Value)
+            }
+        case let s as String:
+            self = .string(s)
+        case let a as [Any]:
+            self = .array(a.map(JSONValue.init(foundation:)))
+        case let o as [String: Any]:
+            self = .object(o.mapValues(JSONValue.init(foundation:)))
+        default:
+            self = .null
+        }
     }
 
     func encoded() throws -> Data {

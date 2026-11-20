@@ -61,7 +61,7 @@ struct ArrAddView: View {
         do {
             results = try await client.get(flavor.lookup, query: [.q("term", term)], timeout: 90).list
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -169,7 +169,7 @@ struct ArrAddOptionsView: View {
             if profile.isNull { profile = profiles.first?["id"] ?? .null }
             if metadataProfile.isNull { metadataProfile = metadataProfiles.first?["id"] ?? .null }
             if client.service == .radarr { monitor = "movieOnly" }
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     /// The lookup result plus the choices, as the add endpoint takes it.
@@ -205,7 +205,7 @@ struct ArrAddOptionsView: View {
             let result = try await client.send("POST", flavor.items, json: requestBody())
             added = result["id"].int
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -290,7 +290,7 @@ struct ArrCalendarView: View {
             let list = try await client.get("calendar", query: query).list
             entries = list.flatMap { Self.entries($0, service: client.service, from: start, to: end) }.sorted { $0.date < $1.date }
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     static func entries(_ item: JSONValue, service: ArrService, from: Date, to: Date) -> [CalendarEntry] {
@@ -369,12 +369,7 @@ struct ArrQueueList: View {
             }
         }
         .manageBackground()
-        .task {
-            while !Task.isCancelled {
-                await load()
-                try? await Task.sleep(for: .seconds(5))
-            }
-        }
+        .poll(every: { .seconds(error == nil ? 5 : 30) }) { await load() }
         .refreshable { await load() }
         .confirmationDialog("manage.remove_confirm", isPresented: Binding(get: { pendingRemove != nil }, set: { if !$0 { pendingRemove = nil } }), titleVisibility: .visible) {
             if let r = pendingRemove {
@@ -394,7 +389,7 @@ struct ArrQueueList: View {
             let page = try await client.get("queue", query: base + ArrFlavor(client.service).includeQuery)
             records = page["records"].list
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func remove(_ r: JSONValue, client removeFromClient: Bool, blocklist: Bool) async {
@@ -402,7 +397,7 @@ struct ArrQueueList: View {
             try await client.send("DELETE", "queue/\(r["id"].text)", query: [.q("removeFromClient", removeFromClient), .q("blocklist", blocklist)])
             notice = ManageNotice(text: "manage.removed")
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -497,7 +492,7 @@ struct ArrHistoryList: View {
             total = result["totalRecords"].int ?? records.count
             page += 1
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -537,14 +532,14 @@ struct ArrBlocklistView: View {
             let result = try await client.get("blocklist", query: [.q("page", 1), .q("pageSize", 100), .q("sortKey", "date"), .q("sortDirection", "descending")])
             records = result["records"].list
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func remove(_ r: JSONValue) async {
         do {
             try await client.send("DELETE", "blocklist/\(r["id"].text)")
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -635,7 +630,7 @@ struct ArrWantedView: View {
             records = result["records"].list
             total = result["totalRecords"].int ?? records?.count ?? 0
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func search(_ ids: [Int]) async {
@@ -643,13 +638,13 @@ struct ArrWantedView: View {
         do {
             try await client.command(command.0, command.1)
             notice = ManageNotice(text: "manage.command_started")
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func searchAll() async {
         do {
             try await client.command(flavor.searchAll(cutoff: cutoff))
             notice = ManageNotice(text: "manage.command_started")
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }

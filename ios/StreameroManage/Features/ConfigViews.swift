@@ -142,7 +142,7 @@ struct ConfigEditorView: View {
             if value.flattened().contains(where: { $0.path.hasSuffix("tags") }) {
                 tags = (try? await client.get("tag").list) ?? []
             }
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func loadExamples() async {
@@ -302,14 +302,14 @@ struct ObjectListView: View {
             let value = try await client.get(resource)
             items = value.array ?? value["results"].array ?? []
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func delete(_ item: JSONValue) async {
         do {
             try await client.send("DELETE", "\(resource)/\(item["id"].text)")
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -355,7 +355,7 @@ struct ObjectEditorView: View {
                 }
                 .disabled(busy)
                 if !isNew && canDelete {
-                    Button("manage.delete", role: .destructive) { Task { await delete() } }
+                    ConfirmDeleteButton { Task { await delete() } }
                 }
             }
         }
@@ -381,13 +381,13 @@ struct ObjectEditorView: View {
             dismiss()
         } catch let e as ArrError where !e.failures.isEmpty {
             failures = e.failures
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func delete() async {
         do {
             try await client.send("DELETE", "\(resource)/\(state.original["id"].text)")
             dismiss()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }

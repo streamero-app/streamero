@@ -69,21 +69,21 @@ struct SonarrSeasonView: View {
             episodes = try await client.get("episode", query: [.q("seriesId", seriesId), .q("seasonNumber", seasonNumber)]).list
                 .sorted { ($0["episodeNumber"].int ?? 0) < ($1["episodeNumber"].int ?? 0) }
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func run(_ name: String, _ params: [String: JSONValue]) async {
         do {
             try await client.command(name, params)
             notice = ManageNotice(text: "manage.command_started")
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func monitor(_ ep: JSONValue, _ on: Bool) async {
         do {
             try await client.send("PUT", "episode/monitor", json: ["episodeIds": .ints([ep["id"].int ?? 0]), "monitored": .bool(on)])
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func monitorSeason(_ on: Bool) async {
@@ -96,7 +96,7 @@ struct SonarrSeasonView: View {
         do {
             try await client.send("PUT", "series/\(seriesId)", json: body)
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -194,14 +194,14 @@ struct LidarrAlbumView: View {
         do {
             try await client.command("AlbumSearch", ["albumIds": .ints([albumId])])
             notice = ManageNotice(text: "manage.command_started")
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func monitor(_ on: Bool) async {
         do {
             try await client.send("PUT", "album/monitor", json: ["albumIds": .ints([albumId]), "monitored": .bool(on)])
             album["monitored"] = .bool(on)
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -259,14 +259,14 @@ struct ReleaseSearchView: View {
         do {
             releases = try await client.get("release", query: query, timeout: 180).list
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func grab(_ r: JSONValue) async {
         do {
             try await client.send("POST", "release", json: ["guid": r["guid"], "indexerId": r["indexerId"]])
             notice = ManageNotice(text: "manage.grabbed")
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 

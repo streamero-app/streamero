@@ -8,6 +8,7 @@ func tmdbImage(_ path: String?, size: String = "w342") -> URL? {
 
 /// Requests by state; approve, decline or delete.
 struct SeerrRequestsView: View {
+    @State private var pendingDelete: JSONValue?
     let client: ArrClient
     @State private var filter = "pending"
     @State private var requests: [JSONValue]?
@@ -40,7 +41,7 @@ struct SeerrRequestsView: View {
                             }
                         }
                         .swipeActions(edge: .trailing) {
-                            Button(role: .destructive) { Task { await delete(r) } } label: { Label("manage.delete", systemImage: "trash") }
+                            Button(role: .destructive) { pendingDelete = r } label: { Label("manage.delete", systemImage: "trash") }
                             if r["status"].int == 1 {
                                 Button { Task { await act(r, "decline") } } label: { Label("manage.decline", systemImage: "xmark") }.tint(.orange)
                             }
@@ -52,6 +53,7 @@ struct SeerrRequestsView: View {
             }
         }
         .manageBackground()
+        .confirmDelete($pendingDelete) { r in Task { await delete(r) } }
         .navigationTitle(Text("manage.requests"))
         .navigationBarTitleDisplayMode(.inline)
         .task(id: filter) { await load() }
@@ -63,7 +65,7 @@ struct SeerrRequestsView: View {
         do {
             requests = try await client.get("request", query: [.q("take", 50), .q("skip", 0), .q("filter", filter), .q("sort", "added")])["results"].list
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func act(_ r: JSONValue, _ action: String) async {
@@ -75,14 +77,14 @@ struct SeerrRequestsView: View {
             default: notice = ManageNotice(text: "manage.command_started")
             }
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func delete(_ r: JSONValue) async {
         do {
             try await client.send("DELETE", "request/\(r["id"].text)")
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -200,7 +202,7 @@ struct SeerrDiscoverView: View {
                 results = try await client.get("search", query: [.q("query", term), .q("page", 1)])["results"].list
             }
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -283,7 +285,7 @@ struct SeerrRequestSheet: View {
             try await client.send("POST", "request", json: body)
             done = true
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -345,7 +347,7 @@ struct SeerrIssuesView: View {
         do {
             issues = try await client.get("issue", query: [.q("take", 50), .q("skip", 0), .q("filter", filter), .q("sort", "added")])["results"].list
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -381,7 +383,7 @@ struct SeerrIssueDetail: View {
                     } else {
                         Button { Task { await setStatus("resolved") } } label: { Text("manage.resolve") }
                     }
-                    Button("manage.delete", role: .destructive) { Task { await delete() } }
+                    ConfirmDeleteButton { Task { await delete() } }
                 }
             } else if error == nil {
                 LoadingView()
@@ -397,7 +399,7 @@ struct SeerrIssueDetail: View {
         do {
             issue = try await client.get("issue/\(issueId)")
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func comment() async {
@@ -405,21 +407,21 @@ struct SeerrIssueDetail: View {
             try await client.send("POST", "issue/\(issueId)/comment", json: ["message": .string(reply)])
             reply = ""
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func setStatus(_ status: String) async {
         do {
             try await client.send("POST", "issue/\(issueId)/\(status)")
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func delete() async {
         do {
             try await client.send("DELETE", "issue/\(issueId)")
             dismiss()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -470,7 +472,7 @@ struct SeerrUsersView: View {
         do {
             users = try await client.get("user", query: [.q("take", 100), .q("skip", 0), .q("sort", "displayname")])["results"].list
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -527,14 +529,14 @@ struct SeerrSystemView: View {
             status = try await client.get("status")
             jobs = (try? await client.get("settings/jobs").list) ?? []
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func cancel(_ j: JSONValue) async {
         do {
             try await client.send("POST", "settings/jobs/\(j["id"].text)/cancel")
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func run(_ j: JSONValue) async {
@@ -542,7 +544,7 @@ struct SeerrSystemView: View {
             try await client.send("POST", "settings/jobs/\(j["id"].text)/run")
             notice = ManageNotice(text: "manage.command_started")
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 

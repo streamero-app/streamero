@@ -114,8 +114,14 @@ struct QualityProfileModel: Equatable, Sendable {
         out["cutoff"] = .number(cutoff)
         out["items"] = .array(items.reversed().map(\.json))
         if !raw["formatItems"].isNull {
+            // Each item as received with only its score changed, so fields this app does not
+            // know survive the round trip.
+            let originals = raw["formatItems"].list
             out["formatItems"] = .array(formatScores.map { fs -> JSONValue in
-                .object(["format": .number(fs.id), "name": .string(fs.name), "score": .number(fs.score)])
+                var item = originals.first { $0["format"].int == fs.id }
+                    ?? .object(["format": .number(fs.id), "name": .string(fs.name)])
+                item["score"] = .number(fs.score)
+                return item
             })
             out["minFormatScore"] = .number(minFormatScore)
             out["cutoffFormatScore"] = .number(cutoffFormatScore)

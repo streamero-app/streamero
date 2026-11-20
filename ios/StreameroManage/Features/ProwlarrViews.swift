@@ -56,14 +56,14 @@ struct ProwlarrSearchView: View {
         do {
             results = try await client.get("search", query: [.q("query", term), .q("type", type), .q("limit", 100)], timeout: 180).list
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func grab(_ r: JSONValue) async {
         do {
             try await client.send("POST", "search", json: ["guid": r["guid"], "indexerId": r["indexerId"]])
             notice = ManageNotice(text: "manage.grabbed")
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -118,6 +118,6 @@ struct ProwlarrStatsView: View {
         do {
             stats = try await client.get("indexerstats")
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }

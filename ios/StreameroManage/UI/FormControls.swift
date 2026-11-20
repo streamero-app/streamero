@@ -4,6 +4,10 @@ import SwiftUI
 struct JSONNumberField: View {
     @Binding var value: JSONValue
     var isFloat = false
+    /// Whether an empty field means null. Off where the editor picks its control from the
+    /// value's type: null there would turn the field into a text field (and the number into a
+    /// string) or hide the row, so emptying the field keeps the last number instead.
+    var allowsNull = false
     @State private var text = ""
 
     var body: some View {
@@ -16,17 +20,26 @@ struct JSONNumberField: View {
                 if Self.parse(text, isFloat: isFloat) != now { text = now.text }
             }
             .onChange(of: text) { _, now in
-                let parsed = Self.parse(now, isFloat: isFloat)
-                if parsed != value, parsed != nil || now.isEmpty { value = parsed ?? .null }
+                if let next = Self.update(text: now, current: value, isFloat: isFloat, allowsNull: allowsNull) { value = next }
             }
+    }
+
+    /// The new value for typed text, or nil to leave the value as it is.
+    static func update(text: String, current: JSONValue, isFloat: Bool, allowsNull: Bool) -> JSONValue? {
+        if let parsed = parse(text, isFloat: isFloat) { return parsed == current ? nil : parsed }
+        let empty = text.trimmingCharacters(in: .whitespaces).isEmpty
+        return empty && allowsNull && !current.isNull ? .null : nil
     }
 
     static func parse(_ text: String, isFloat: Bool) -> JSONValue? {
         let t = text.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
         if t.isEmpty { return nil }
         if !isFloat, let i = Int64(t) { return .int(i) }
-        if let d = Double(t) { return isFloat ? .double(d) : (d.rounded() == d ? .int(Int64(d)) : .double(d)) }
-        return nil
+        // "inf", "nan" and numbers beyond Int64 (twenty digits, 1e19) are not valid input; the
+        // conversion uses Int64(exactly:), which cannot trap.
+        guard let d = Double(t), d.isFinite else { return nil }
+        if isFloat { return .double(d) }
+        return Int64(exactly: d).map(JSONValue.int) ?? .double(d)
     }
 }
 
@@ -236,7 +249,7 @@ struct SchemaFieldRow: View {
                 }
             case .number:
                 LabeledContent {
-                    JSONNumberField(value: binding, isFloat: field.isFloat)
+                    JSONNumberField(value: binding, isFloat: field.isFloat, allowsNull: true)
                 } label: { Text(verbatim: title) }
             case .select, .tagSelect:
                 if field.isMultiSelect {

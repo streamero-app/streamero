@@ -116,7 +116,7 @@ struct ArrBulkEditView: View {
         do {
             try await client.send("PUT", "\(flavor.items)/editor", json: outgoing.body(service: client.service, ids: ids))
             dismiss()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 

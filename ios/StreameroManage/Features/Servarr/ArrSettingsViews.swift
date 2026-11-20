@@ -168,7 +168,7 @@ struct QualityProfilesView: View {
         do {
             profiles = try await client.get("qualityprofile").list
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -192,7 +192,7 @@ private struct QualityProfileTemplateLoader: View {
     }
 
     private func load() async {
-        do { template = try await client.get("qualityprofile/schema") } catch { self.error = error }
+        do { template = try await client.get("qualityprofile/schema") } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -270,7 +270,7 @@ struct QualityProfileEditor: View {
                 Button { Task { await save() } } label: { HStack { Text("save"); Spacer(); if busy { ProgressView() } } }
                     .disabled(busy || model.name.isEmpty)
                 if !isNew {
-                    Button("manage.delete", role: .destructive) { Task { await delete() } }
+                    ConfirmDeleteButton { Task { await delete() } }
                 }
             }
         }
@@ -294,14 +294,14 @@ struct QualityProfileEditor: View {
                 try await client.send("PUT", "qualityprofile/\(model.raw["id"].text)", json: model.json())
             }
             dismiss()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func delete() async {
         do {
             try await client.send("DELETE", "qualityprofile/\(model.raw["id"].text)")
             dismiss()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -345,7 +345,7 @@ struct QualityDefinitionsView: View {
 
     private func sizeRow(_ title: LocalizedStringKey, _ i: Int, _ key: String) -> some View {
         LabeledContent {
-            JSONNumberField(value: Binding(get: { items?[i][key] ?? .null }, set: { v in items?[i][key] = v }), isFloat: true)
+            JSONNumberField(value: Binding(get: { items?[i][key] ?? .null }, set: { v in items?[i][key] = v }), isFloat: true, allowsNull: true)
         } label: { Text(title) }
     }
 
@@ -355,7 +355,7 @@ struct QualityDefinitionsView: View {
             items = list
             original = list
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func save() async {
@@ -364,7 +364,7 @@ struct QualityDefinitionsView: View {
             try await client.send("PUT", "qualitydefinition/update", json: .array(items))
             original = items
             notice = ManageNotice(text: "saved")
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -410,7 +410,7 @@ struct CustomFormatsView: View {
         do {
             formats = try await client.get("customformat").list
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -487,7 +487,7 @@ struct CustomFormatEditor: View {
                 ForEach(failures, id: \.self) { f in Text(verbatim: f.message).font(.footnote).foregroundStyle(f.isWarning ? .orange : .red) }
                 ArrErrorLine(error: error)
                 Button { Task { await save() } } label: { HStack { Text("save"); Spacer(); if busy { ProgressView() } } }.disabled(busy)
-                if !isNew { Button("manage.delete", role: .destructive) { Task { await delete() } } }
+                if !isNew { ConfirmDeleteButton { Task { await delete() } } }
             }
         }
         .manageBackground()
@@ -510,20 +510,21 @@ struct CustomFormatEditor: View {
             dismiss()
         } catch let e as ArrError where !e.failures.isEmpty {
             failures = e.failures
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func delete() async {
         do {
             try await client.send("DELETE", "customformat/\(format["id"].text)")
             dismiss()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
 // MARK: Root folders, tags, metadata profiles
 
 struct RootFoldersView: View {
+    @State private var pendingDelete: JSONValue?
     let client: ArrClient
     @State private var folders: [JSONValue]?
     @State private var error: Error?
@@ -552,13 +553,14 @@ struct RootFoldersView: View {
                             .font(.caption2).foregroundStyle(Theme.textFaint)
                     }
                     .swipeActions {
-                        Button(role: .destructive) { Task { await delete(f) } } label: { Label("manage.delete", systemImage: "trash") }
+                        Button(role: .destructive) { pendingDelete = f } label: { Label("manage.delete", systemImage: "trash") }
                     }
                 }
                 if folders == nil && error == nil { LoadingView() }
             }
         }
         .manageBackground()
+        .confirmDelete($pendingDelete, detail: { $0["path"].text }) { f in Task { await delete(f) } }
         .navigationTitle(Text("manage.root_folders"))
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
@@ -568,7 +570,7 @@ struct RootFoldersView: View {
         do {
             folders = try await client.get("rootfolder").list
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func add() async {
@@ -589,18 +591,19 @@ struct RootFoldersView: View {
             try await client.send("POST", "rootfolder", json: body)
             newPath = ""
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func delete(_ f: JSONValue) async {
         do {
             try await client.send("DELETE", "rootfolder/\(f["id"].text)")
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
 struct TagsView: View {
+    @State private var pendingDelete: JSONValue?
     let client: ArrClient
     @State private var tags: [JSONValue]?
     @State private var usage: [Int: Int] = [:]
@@ -629,7 +632,7 @@ struct TagsView: View {
                         if let n = usage[t["id"].int ?? -1], n > 0 { Text(verbatim: "\(n)").font(.caption.monospacedDigit()).foregroundStyle(Theme.textMuted) }
                     }
                     .swipeActions {
-                        Button(role: .destructive) { Task { await delete(t) } } label: { Label("manage.delete", systemImage: "trash") }
+                        Button(role: .destructive) { pendingDelete = t } label: { Label("manage.delete", systemImage: "trash") }
                         Button {
                             renameText = t["label"].string ?? ""
                             renaming = t
@@ -640,6 +643,7 @@ struct TagsView: View {
             }
         }
         .manageBackground()
+        .confirmDelete($pendingDelete, detail: { $0["label"].text }) { t in Task { await delete(t) } }
         .navigationTitle(Text("manage.tags"))
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
@@ -661,7 +665,7 @@ struct TagsView: View {
             }
             usage = counts
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func add() async {
@@ -669,7 +673,7 @@ struct TagsView: View {
             try await client.send("POST", "tag", json: ["label": .string(newTag.trimmingCharacters(in: .whitespaces).lowercased())])
             newTag = ""
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func rename(_ t: JSONValue) async {
@@ -678,14 +682,14 @@ struct TagsView: View {
         do {
             try await client.send("PUT", "tag/\(t["id"].text)", json: body)
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func delete(_ t: JSONValue) async {
         do {
             try await client.send("DELETE", "tag/\(t["id"].text)")
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -723,7 +727,7 @@ struct MetadataProfilesView: View {
         do {
             profiles = try await client.get("metadataprofile").list
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -746,7 +750,7 @@ private struct MetadataProfileTemplateLoader: View {
     }
 
     private func load() async {
-        do { template = try await client.get("metadataprofile/schema") } catch { self.error = error }
+        do { template = try await client.get("metadataprofile/schema") } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -774,7 +778,7 @@ struct MetadataProfileEditor: View {
             Section {
                 ArrErrorLine(error: error)
                 Button { Task { await save() } } label: { Text("save") }
-                if !isNew { Button("manage.delete", role: .destructive) { Task { await delete() } } }
+                if !isNew { ConfirmDeleteButton { Task { await delete() } } }
             }
         }
         .manageBackground()
@@ -804,13 +808,13 @@ struct MetadataProfileEditor: View {
                 try await client.send("PUT", "metadataprofile/\(profile["id"].text)", json: profile)
             }
             dismiss()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func delete() async {
         do {
             try await client.send("DELETE", "metadataprofile/\(profile["id"].text)")
             dismiss()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
