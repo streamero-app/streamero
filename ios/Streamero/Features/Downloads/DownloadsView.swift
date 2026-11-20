@@ -240,7 +240,7 @@ struct DownloadRow: View {
                 .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 5, style: .continuous).strokeBorder(Theme.border))
             VStack(alignment: .leading, spacing: 4) {
-                Text(verbatim: isEpisode ? seasonEpisode(entry.item) : entry.item.title)
+                Text(verbatim: isEpisode ? episodeLine(entry.item) : entry.item.title)
                     .font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text).lineLimit(2)
                 DownloadStateLine(entry: entry)
             }
@@ -254,9 +254,9 @@ struct DownloadRow: View {
         .contentShape(Rectangle())
     }
 
-    private func seasonEpisode(_ it: ItemSummary) -> String {
+    private func episodeLine(_ it: ItemSummary) -> String {
         guard let s = it.seasonNumber, let e = it.episodeNumber else { return it.title }
-        return "S\(String(format: "%02d", s))E\(String(format: "%02d", e)) · \(it.title)"
+        return "\(seasonEpisode(season: s, episode: e)) · \(it.title)"
     }
 }
 

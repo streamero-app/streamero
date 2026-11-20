@@ -138,7 +138,7 @@ struct PrimaryButtonStyle: ButtonStyle {
             .font(.body.weight(.semibold))
             .foregroundStyle(Theme.background)
             .tint(Theme.background)
-            .padding(.horizontal, 22).frame(height: 50)
+            .padding(.horizontal, 22).padding(.vertical, 8).frame(minHeight: 50)
             .background(Theme.text.opacity(configuration.isPressed ? 0.8 : 1), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(.spring(response: 0.25, dampingFraction: 0.8), value: configuration.isPressed)
@@ -174,7 +174,7 @@ struct MutedButtonStyle: ButtonStyle {
         configuration.label
             .font(.body.weight(.semibold))
             .foregroundStyle(Theme.text)
-            .padding(.horizontal, 20).frame(height: 50)
+            .padding(.horizontal, 20).padding(.vertical, 8).frame(minHeight: 50)
             .background(.white.opacity(configuration.isPressed ? 0.22 : 0.12), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(.spring(response: 0.25, dampingFraction: 0.8), value: configuration.isPressed)

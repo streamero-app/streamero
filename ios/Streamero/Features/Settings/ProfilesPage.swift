@@ -62,7 +62,7 @@ struct ProfilesPage: View {
                     do {
                         try await client.deleteProfile(p.id)
                         await load()
-                    } catch { self.error = error }
+                    } catch is CancellationError {} catch { self.error = error }
                 }
             }
         }
@@ -240,7 +240,7 @@ private struct ProfileEditor: View {
             }
             onSaved(changedPicture)
             dismiss()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func upload(_ item: PhotosPickerItem) async {
@@ -253,7 +253,7 @@ private struct ProfileEditor: View {
             changedPicture = true
             onSaved(true)
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func removePicture() async {
@@ -264,6 +264,6 @@ private struct ProfileEditor: View {
             changedPicture = true
             onSaved(true)
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }

@@ -67,7 +67,7 @@ struct SignInSettingsPage: View {
                         do {
                             try await client.deleteOidcProvider(p.id)
                             await load()
-                        } catch { self.error = error }
+                        } catch is CancellationError {} catch { self.error = error }
                     }
                 }
             }
@@ -226,7 +226,7 @@ private struct OidcEditor: View {
             }
             onSaved()
             dismiss()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -375,7 +375,7 @@ private struct LdapSettingsView: View {
         do {
             result = try await client.testLdap(LdapTestRequest(settings: body, username: testUser.isEmpty ? nil : testUser))
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func save() async {
@@ -389,6 +389,6 @@ private struct LdapSettingsView: View {
             password = ""
             saved = true
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }

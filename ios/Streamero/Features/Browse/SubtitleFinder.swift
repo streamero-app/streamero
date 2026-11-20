@@ -55,7 +55,7 @@ struct SubtitleFinderSheet: View {
     private func search() async {
         do {
             result = try await client.searchSubtitles(item: itemID)
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     @ViewBuilder private func content(_ r: SubtitleSearch) -> some View {
@@ -118,7 +118,7 @@ struct SubtitleFinderSheet: View {
         do {
             try await client.searchMissingSubtitles(item: itemID)
             noticeKey = "subs_auto_started"
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func download(_ o: SubtitleOffer) async {
@@ -127,6 +127,6 @@ struct SubtitleFinderSheet: View {
         do {
             try await client.downloadSubtitle(item: itemID, offer: o)
             noticeKey = "subs_downloaded"
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }

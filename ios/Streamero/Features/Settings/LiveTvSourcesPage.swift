@@ -167,7 +167,7 @@ struct LiveTvSourcesPage: View {
             do {
                 try await action()
                 await load()
-            } catch { self.error = error }
+            } catch is CancellationError {} catch { self.error = error }
         }
     }
 }
@@ -274,7 +274,7 @@ private struct TunerEditor: View {
         do {
             result = try await client.testTuner(form.input)
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func save() async {
@@ -284,7 +284,7 @@ private struct TunerEditor: View {
             if let tuner { _ = try await client.updateTuner(tuner.id, form.input) } else { _ = try await client.createTuner(form.input) }
             onSaved()
             dismiss()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -358,7 +358,7 @@ private struct GuideEditor: View {
         do {
             result = try await client.testGuide(form.input)
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func save() async {
@@ -368,6 +368,6 @@ private struct GuideEditor: View {
             if let guide { _ = try await client.updateGuide(guide.id, form.input) } else { _ = try await client.createGuide(form.input) }
             onSaved()
             dismiss()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }

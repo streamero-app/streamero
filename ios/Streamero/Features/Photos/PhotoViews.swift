@@ -307,7 +307,7 @@ struct PhotoPage: View {
             ZoomableImage(url: full ?? thumb, token: client.token) { _, _ in onTap() }
                 .task(id: item.id) {
                     guard full == nil, let source = try? await client.photo(item.id) else { return }
-                    full = client.absolute(source.url)
+                    full = client.ownURL(source.url)
                 }
         }
     }

@@ -90,7 +90,7 @@ struct ComicReaderView: View {
     var body: some View {
         TabView(selection: Binding(get: { paging.slot(forPage: page) }, set: { page = paging.page(forSlot: $0) })) {
             ForEach(0..<count, id: \.self) { slot in
-                ZoomableImage(url: client.absolute(manifest.pages[paging.page(forSlot: slot)]), token: client.token) { location, size in
+                ZoomableImage(url: client.ownURL(manifest.pages[paging.page(forSlot: slot)]), token: client.token) { location, size in
                     tap(x: location.x, width: size.width)
                 }
                 .tag(slot)
@@ -159,8 +159,8 @@ struct ComicReaderView: View {
     /// Warms the cache with the next two pages.
     private func prefetch(after page: Int) async {
         for p in (page + 1)...(page + 2) where manifest.pages.indices.contains(p) {
-            guard !Task.isCancelled, let url = client.absolute(manifest.pages[p]) else { return }
-            _ = await ImageCache.shared.image(url: url, token: client.token)
+            guard !Task.isCancelled, let url = client.ownURL(manifest.pages[p]) else { return }
+            _ = await ImageCache.shared.image(url: url, token: client.token, maxPixels: ZoomableImage.pixels)
         }
     }
 
@@ -175,6 +175,8 @@ struct ComicReaderView: View {
 /// A picture that fits the screen, with pinch and double-tap zoom and a drag while zoomed.
 /// `onTap` gets single taps (location and size) once a double tap is ruled out.
 struct ZoomableImage: View {
+    /// Pages are decoded large enough to stay sharp when zoomed in.
+    static let pixels: CGFloat = 4096
     let url: URL?
     let token: String
     var onTap: ((CGPoint, CGSize) -> Void)? = nil
@@ -187,7 +189,7 @@ struct ZoomableImage: View {
         GeometryReader { geo in
             ZStack {
                 ProgressView().tint(.white)
-                AuthImage(url: url, token: token, fit: true)
+                AuthImage(url: url, token: token, fit: true, maxPixels: Self.pixels)
             }
             .frame(width: geo.size.width, height: geo.size.height)
             .scaleEffect(scale)
@@ -250,9 +252,10 @@ enum BookFileCache {
         let dir = try fm.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
             .appending(path: "books", directoryHint: .isDirectory)
         try fm.createDirectory(at: dir, withIntermediateDirectories: true)
-        let dest = dir.appending(path: "\(id).\(ext)")
+        // The id names a file: reduce it to safe characters (it is a UUID, but comes from the server).
+        let dest = dir.appending(path: "\(OfflinePaths.safeName(id)).\(OfflinePaths.safeName(ext))")
         if fm.fileExists(atPath: dest.path(percentEncoded: false)) { return dest }
-        let (tmp, response) = try await URLSession.shared.download(from: url)
+        let (tmp, response) = try await HTTP.download(for: URLRequest(url: url))
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard status == 200 else {
             try? fm.removeItem(at: tmp)
@@ -312,6 +315,8 @@ struct PDFReaderView: View {
         do {
             let file = try await BookFileCache.file(for: target.id, ext: "pdf", from: url)
             guard let doc = PDFDocument(url: file) else {
+                // A truncated or wrong file would otherwise be reused on every open.
+                try? FileManager.default.removeItem(at: file)
                 failed = true
                 return
             }

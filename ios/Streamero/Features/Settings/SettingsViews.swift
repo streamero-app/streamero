@@ -254,7 +254,7 @@ struct SettingsDoc<T: Equatable, Content: View>: View {
         do {
             value = try await load()
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func commit() async {
@@ -265,7 +265,7 @@ struct SettingsDoc<T: Equatable, Content: View>: View {
             value = result
             saved = true
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -338,14 +338,14 @@ private struct AccountPage: View {
             await app.refreshMe()
             avatarVersion += 1
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func removeAvatar() async {
         do {
             try await client.removeAvatar()
             await app.refreshMe()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func changePassword() async {
@@ -355,7 +355,7 @@ private struct AccountPage: View {
             passwordMessage = true
             current = ""
             new = ""
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -438,20 +438,28 @@ private struct SubtitleLookPage: View {
     }
 }
 
-private struct HomeSectionsPage: View {
+struct HomeSectionsPage: View {
     let client: MediaClient
-    private let all = ["continue", "nextUp", "latest", "favorites", "collections", "libraries"]
+    /// Every section the server knows (same list as the web client); saving a list without
+    /// one of them would hide it on every device.
+    static let all = ["continue", "nextUp", "latest", "favorites", "collections", "top", "genres", "libraries"]
+    private var all: [String] { Self.all }
 
-    private func title(_ section: String) -> LocalizedStringKey {
+    static func title(_ section: String) -> LocalizedStringKey {
         switch section {
         case "continue": "continue_watching"
         case "nextUp": "next_up"
         case "latest": "recently_added"
         case "favorites": "my_list"
         case "collections": "collections"
-        default: "libraries"
+        case "top": "home.top"
+        case "genres": "home.genres"
+        case "libraries": "libraries"
+        default: LocalizedStringKey(section)
         }
     }
+
+    private func title(_ section: String) -> LocalizedStringKey { Self.title(section) }
 
     var body: some View {
         Form {

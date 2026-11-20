@@ -61,12 +61,7 @@ struct DashboardPage: View {
                     LoadingView()
                 }
             }
-            .task {
-                while !Task.isCancelled {
-                    await load()
-                    try? await Task.sleep(for: .seconds(10))
-                }
-            }
+            .poll(every: { .seconds(10) }) { await load() }
         }
     }
 
@@ -83,6 +78,7 @@ private struct NowPlayingRow: View {
     let client: MediaClient
     let onChanged: () -> Void
     @State private var message = ""
+    @State private var error: Error?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -98,19 +94,31 @@ private struct NowPlayingRow: View {
                 Button("send") {
                     let text = message
                     message = ""
-                    Task { try? await client.sendCommand(sessionKey: session.key, SessionCommand(kind: "message", text: text)) }
+                    Task { await command(SessionCommand(kind: "message", text: text)) }
                 }
                 .disabled(message.isEmpty)
                 .buttonStyle(.bordered)
             }
             ConfirmButton(title: "stop_playback") {
                 Task {
-                    try? await client.sendCommand(sessionKey: session.key, SessionCommand(kind: "stop", text: Loc.string("stopped_by_admin")))
+                    await command(SessionCommand(kind: "stop", text: Loc.string("stopped_by_admin")))
                     onChanged()
                 }
             }
+            ErrorLine(error: error)
         }
         .padding(.vertical, 4)
+    }
+
+    private func command(_ c: SessionCommand) async {
+        do {
+            try await client.sendCommand(sessionKey: session.key, c)
+            error = nil
+        } catch is CancellationError {
+            return
+        } catch {
+            self.error = error
+        }
     }
 
     private var description: String {
@@ -166,7 +174,7 @@ struct LibrariesAdminPage: View {
         do {
             libs = try await client.libraries()
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func perform(_ action: @MainActor @escaping () async throws -> Void) {
@@ -174,7 +182,7 @@ struct LibrariesAdminPage: View {
             do {
                 try await action()
                 await load()
-            } catch { self.error = error }
+            } catch is CancellationError {} catch { self.error = error }
         }
     }
 }
@@ -239,7 +247,7 @@ struct UsersPage: View {
         do {
             users = try await client.users()
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func perform(_ action: @MainActor @escaping () async throws -> Void) {
@@ -247,7 +255,7 @@ struct UsersPage: View {
             do {
                 try await action()
                 await load()
-            } catch { self.error = error }
+            } catch is CancellationError {} catch { self.error = error }
         }
     }
 }
@@ -323,6 +331,8 @@ struct RequestsPage: View {
     let client: MediaClient
     @State private var keys: [String: String] = [:]
     @State private var checks: [ConnectionCheck] = []
+    @State private var testError: Error?
+    @State private var testing = false
 
     var body: some View {
         AdminGuarded {
@@ -366,10 +376,32 @@ struct RequestsPage: View {
                     } header: { Text(verbatim: "Lidarr / Prowlarr") }
                     #endif
                     Section {
-                        Button("test_connections") { Task { checks = (try? await client.testRequestSettings()) ?? [] } }
+                        Button("test_connections") {
+                            testing = true
+                            Task {
+                                defer { testing = false }
+                                do {
+                                    checks = try await client.testRequestSettings()
+                                    testError = nil
+                                } catch is CancellationError {
+                                    return
+                                } catch {
+                                    checks = []
+                                    testError = error
+                                }
+                            }
+                        }
+                        .disabled(testing)
+                        ErrorLine(error: testError)
                         ForEach(checks, id: \.app) { c in
-                            Text(verbatim: "\(c.app): " + (c.ok ? "✓ \(c.version ?? "")" : (c.error ?? "")))
-                                .foregroundStyle(c.ok ? .green : .red)
+                            // Icon and words, not only the colour.
+                            Label {
+                                Text(verbatim: "\(c.app): " + (c.ok ? (c.version ?? "") : (c.error ?? "")))
+                            } icon: {
+                                Image(systemName: c.ok ? "checkmark.circle.fill" : "xmark.octagon.fill")
+                            }
+                            .foregroundStyle(c.ok ? .green : .red)
+                            .accessibilityValue(c.ok ? Text("check.ok") : Text("check.failed"))
                         }
                     }
                 }
@@ -427,12 +459,28 @@ struct TasksPage: View {
     @State private var tasks: [TaskInfo]?
     @State private var error: Error?
 
-    private func title(_ key: String) -> LocalizedStringKey {
+    static func title(_ key: String) -> LocalizedStringKey {
         switch key {
         case "scan_all": "task_scan"
         case "refresh_metadata": "task_metadata"
         case "cleanup_images": "task_cleanup"
-        default: "task_analyze"
+        case "analyze_media": "task_analyze"
+        case "detect_segments": "task_segments"
+        case "backup": "task_backup"
+        case "refresh_guide": "task_guide"
+        default: LocalizedStringKey(key)
+        }
+    }
+
+    private func title(_ key: String) -> LocalizedStringKey { Self.title(key) }
+
+    /// completed / failed / cancelled, translated.
+    static func state(_ state: String) -> String {
+        switch state {
+        case "completed": Loc.string("task_state.completed")
+        case "failed": Loc.string("task_state.failed")
+        case "cancelled": Loc.string("task_state.cancelled")
+        default: state
         }
     }
 
@@ -446,15 +494,21 @@ struct TasksPage: View {
                         let lastRun = t.lastRunAt.map { shortTime($0) }
                         Group {
                             if let every = t.interval {
-                                Text(verbatim: [lastRun, t.lastState].compactMap { $0 }.joined(separator: " · ") + " ") + Text("every \(every)")
+                                Text(verbatim: [lastRun, t.lastState.map(Self.state)].compactMap { $0 }.joined(separator: " · ") + " ") + Text("every \(every)")
                             } else {
-                                Text(verbatim: [lastRun, t.lastState].compactMap { $0 }.joined(separator: " · "))
+                                Text(verbatim: [lastRun, t.lastState.map(Self.state)].compactMap { $0 }.joined(separator: " · "))
                             }
                         }
                         .font(.footnote).foregroundStyle(Theme.textMuted)
                         Button(t.running ? "running" : "run_now") {
                             Task {
-                                try? await client.runTask(t.key)
+                                do {
+                                    try await client.runTask(t.key)
+                                } catch is CancellationError {
+                                    return
+                                } catch {
+                                    self.error = error
+                                }
                                 await load()
                             }
                         }
@@ -463,7 +517,8 @@ struct TasksPage: View {
                     }
                 }
             }
-            .task { await load() }
+            // While a task runs, its state is refreshed every few seconds; otherwise rarely.
+            .poll(every: { .seconds(tasks?.contains { $0.running } == true ? 3 : 30) }) { await load() }
         }
     }
 
@@ -471,6 +526,8 @@ struct TasksPage: View {
         do {
             tasks = try await client.tasks()
             error = nil
+        } catch is CancellationError {
+            return
         } catch { self.error = error }
     }
 }
@@ -579,7 +636,8 @@ struct DevicesPage: View {
                 }
             }
         }
-        .confirmationDialog(Text(verbatim: signingOut.map { String(format: Loc.string("devices.confirmSignOut %@"), $0.deviceName) } ?? ""),
+        .confirmationDialog(Text(verbatim: signingOut.map { String(format: Loc.string("devices.confirmSignOut %@"),
+                                                                     $0.deviceName.isEmpty ? Loc.string("devices.unknown") : $0.deviceName) } ?? ""),
                             isPresented: Binding(get: { signingOut != nil }, set: { if !$0 { signingOut = nil } }),
                             titleVisibility: .visible, presenting: signingOut) { s in
             Button("devices.signOut", role: .destructive) {
@@ -587,7 +645,7 @@ struct DevicesPage: View {
                     do {
                         try await client.revokeSession(s.id)
                         await load()
-                    } catch { self.error = error }
+                    } catch is CancellationError {} catch { self.error = error }
                 }
             }
         }
@@ -623,7 +681,14 @@ struct InvitesPage: View {
                         Text(verbatim: "\(i.uses)/\(i.maxUses) · \(shortTime(i.expiresAt))").font(.footnote).foregroundStyle(Theme.textMuted)
                         ConfirmButton(title: "delete") {
                             Task {
-                                try? await client.deleteInvite(i.id)
+                                do {
+                                    try await client.deleteInvite(i.id)
+                                    error = nil
+                                } catch is CancellationError {
+                                    return
+                                } catch {
+                                    self.error = error
+                                }
                                 await load()
                             }
                         }
@@ -639,14 +704,14 @@ struct InvitesPage: View {
             let created = try await client.createInvite(CreateInvite(expiresInHours: 72, maxUses: 1))
             link = client.inviteLink(token: created.token)?.absoluteString
             await load()
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 
     private func load() async {
         do {
             invites = try await client.invites()
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -656,6 +721,8 @@ struct ApiKeysPage: View {
     @State private var error: Error?
     @State private var name = ""
     @State private var created: String?
+    @State private var readOnly = false
+    @State private var busy = false
 
     var body: some View {
         AdminGuarded {
@@ -663,32 +730,48 @@ struct ApiKeysPage: View {
                 if let error { ErrorLine(error: error) }
                 Section {
                     TextField("name", text: $name)
+                    Toggle("apikeys.readOnly", isOn: $readOnly)
                     Button("create_api_key") {
                         let n = name
+                        let ro = readOnly
+                        busy = true
                         Task {
+                            defer { busy = false }
                             do {
-                                created = try await client.createApiKey(name: n).key
+                                created = try await client.createApiKey(name: n, readOnly: ro).key
                                 name = ""
+                                readOnly = false
+                                error = nil
                                 await load()
-                            } catch { self.error = error }
+                            } catch is CancellationError {} catch { self.error = error }
                         }
                     }
-                    .disabled(name.isEmpty)
-                    if let created { Text(verbatim: created).textSelection(.enabled).font(.caption.monospaced()) }
-                } header: { Text("create_api_key") }
+                    .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty || busy)
+                    if let created {
+                        Text(verbatim: created).textSelection(.enabled).font(.caption.monospaced())
+                        CopyButton(text: created, sensitive: true)
+                        Text("apikeys.shownOnce").font(.caption).foregroundStyle(Theme.textMuted)
+                    }
+                } header: { Text("create_api_key") } footer: { Text("apikeys.readOnlyHint") }
                 ForEach(keys ?? []) { k in
                     Section {
-                        Text(verbatim: "\(k.prefix)… · \(k.createdBy) · \(k.lastUsedAt.map { String($0.prefix(10)) } ?? "—")").font(.footnote).foregroundStyle(Theme.textMuted)
+                        Text(verbatim: "\(k.prefix)… · \(k.createdBy) · \(k.lastUsedAt.map { ServerDate.short($0) } ?? "—")").font(.footnote).foregroundStyle(Theme.textMuted)
+                        if k.readOnly == true { TagBadge(text: "apikeys.readOnly") }
                         ConfirmButton(title: "delete") {
                             Task {
-                                try? await client.deleteApiKey(k.id)
+                                do {
+                                    try await client.deleteApiKey(k.id)
+                                    error = nil
+                                } catch is CancellationError {} catch { self.error = error }
                                 await load()
                             }
                         }
                     } header: { Text(verbatim: k.name) }
                 }
             }
+            .hiddenInAppSwitcher(created != nil)
             .task { await load() }
+            .onDisappear { created = nil }
         }
     }
 
@@ -696,7 +779,7 @@ struct ApiKeysPage: View {
         do {
             keys = try await client.apiKeys()
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 

@@ -7,6 +7,7 @@ struct SearchTab: View {
     @State private var query = ""
     @State private var results: [ItemSummary]?
     @State private var elsewhere: DiscoverPage?
+    @State private var error: Error?
 
     private let columns = [GridItem(.adaptive(minimum: 108), spacing: 14)]
 
@@ -18,6 +19,7 @@ struct SearchTab: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
+                if let error { ErrorLine(error: error).padding(.top, 12) }
                 if let results {
                     if results.isEmpty { Text("nothing_found").foregroundStyle(Theme.textMuted).frame(maxWidth: .infinity, alignment: .center).padding(.top, 32) }
                     LazyVGrid(columns: columns, spacing: 22) {
@@ -43,15 +45,29 @@ struct SearchTab: View {
 
     private func search() async {
         let q = query.trimmingCharacters(in: .whitespaces)
-        guard !q.isEmpty else { results = nil; elsewhere = nil; return }
+        guard !q.isEmpty else { results = nil; elsewhere = nil; error = nil; return }
         try? await Task.sleep(for: .milliseconds(300))
         guard !Task.isCancelled else { return }
-        results = (try? await client.search(q)) ?? []
-        if app.enhancements.discoverInSearch {
-            elsewhere = try? await client.discover(q)
-        } else {
-            elsewhere = nil
+        // Both lookups side by side. A superseded search (the next keystroke) changes nothing;
+        // a failed one says so instead of claiming nothing was found.
+        let client = client
+        let wantsDiscover = app.enhancements.discoverInSearch
+        async let other = wantsDiscover ? try? client.discover(q) : nil
+        do {
+            let found = try await client.search(q)
+            guard !Task.isCancelled else { return }
+            results = found
+            error = nil
+        } catch is CancellationError {
+            return
+        } catch {
+            guard !Task.isCancelled else { return }
+            results = nil
+            self.error = error
         }
+        let page = await other
+        guard !Task.isCancelled else { return }
+        elsewhere = page
     }
 }
 
@@ -117,7 +133,7 @@ struct DiscoverCard: View {
         defer { busy = false }
         do {
             status = try await client.request(title).status
-        } catch { self.error = error }
+        } catch is CancellationError {} catch { self.error = error }
     }
 }
 
@@ -161,7 +177,10 @@ struct DiscoverTab: View {
             .padding(.horizontal, 20).padding(.bottom, 20)
         }
         .background(Theme.background)
-        .task { upcoming = (try? await client.upcoming()) ?? [] }
+        .task {
+            // Optional extra: the list of releases simply stays hidden when it cannot load.
+            if let list = try? await client.upcoming() { upcoming = list }
+        }
         .task(id: query) {
             if !query.isEmpty { try? await Task.sleep(for: .milliseconds(350)) }
             guard !Task.isCancelled else { return }
@@ -177,17 +196,17 @@ struct DiscoverTab: View {
             Image(systemName: "magnifyingglass").foregroundStyle(Theme.textMuted)
             TextField("discover_hint", text: $query).autocorrectionDisabled()
         }
-        .padding(.horizontal, 12).frame(height: 44)
+        .padding(.horizontal, 12).frame(minHeight: 44)
         .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
     }
 
     private func upcomingCard(_ u: UpcomingRelease) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(verbatim: String(u.date.prefix(10))).font(.caption.bold()).foregroundStyle(Theme.accent)
+            Text(verbatim: ServerDate.short(u.date, time: false)).font(.caption.bold()).foregroundStyle(Theme.accent)
             Text(verbatim: u.seriesTitle ?? u.title).font(.subheadline.weight(.semibold)).foregroundStyle(Theme.text).lineLimit(1)
             Group {
                 if u.kind == "episode" {
-                    Text(verbatim: "S\(u.season ?? 0):E\(u.episode ?? 0) · \(u.title)")
+                    Text(verbatim: "\(seasonEpisode(season: u.season, episode: u.episode)) · \(u.title)")
                 } else {
                     Text("movie")
                 }
