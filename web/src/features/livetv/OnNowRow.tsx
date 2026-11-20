@@ -5,7 +5,7 @@ import { api, unwrap } from "@/api/client";
 import { Row, rowCard } from "@/features/library/cards";
 import { useMe } from "@/features/auth/useAuth";
 import { canWatchLiveTv, liveKeys, type Channel } from "./api";
-import { ChannelBadge, useNow } from "./GuidePage";
+import { ChannelBadge, useNow } from "./ChannelBadge";
 import { progress, timeOf } from "./time";
 
 function OnNowCard({ channel, now }: { channel: Channel; now: number }) {

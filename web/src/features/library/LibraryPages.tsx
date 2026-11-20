@@ -22,7 +22,7 @@ const pageFallback = <div className="flex h-64 items-center justify-center"><Spi
 
 /** Libraries with their own pages (not the movie/show grid, not on the home rows). */
 const ownPages = ["music", "books", "audiobooks", "photos"];
-import { SubtitleFinder } from "./SubtitleFinder";
+const SubtitleFinder = lazy(() => import("./SubtitleFinder").then((m) => ({ default: m.SubtitleFinder })));
 import { DownloadOriginalButton } from "@/features/downloads/DownloadOriginal";
 import { api, unwrap } from "@/api/client";
 import type { components } from "@/api/schema.gen";
@@ -31,11 +31,13 @@ import { canAdminister, useMe } from "@/features/auth/useAuth";
 import { channelsLabel, formatDuration, formatSize, imageUrl, placeholderHue, resolutionLabel, type ItemSummary, type Library } from "./format";
 import { AddToMenu, CollectionCard, useCollections } from "./collections";
 import { invalidateUserData } from "./userData";
+import { itemDetailQuery } from "./itemQuery";
 import { releaseMedia } from "@/features/player/playback";
 import { safeHref } from "@/lib/safeUrl";
-import { MetadataMenu } from "./MetadataEditor";
+// Administrator-only tools load when an administrator opens a title.
+const MetadataMenu = lazy(() => import("./MetadataEditor").then((m) => ({ default: m.MetadataMenu })));
 import { ArtFallback, ItemCard, PortraitArt, ProgressBar, RankCard, Row, RowSkeleton, TitleArt, TitleCard, isPlayable, posterCard, progressOf, rowCard } from "./cards";
-import { WatchTogetherButton } from "@/features/syncplay/WatchTogether";
+import { WatchTogetherButton } from "@/features/syncplay/WatchTogetherButton";
 import { useAmbient, useAmbientLight } from "@/features/ambient/Ambient";
 
 export { ItemCard } from "./cards";
@@ -55,11 +57,7 @@ export function useLibraries() {
 }
 
 function useItemDetail(id?: string) {
-  return useQuery({
-    queryKey: ["item", id],
-    enabled: !!id,
-    queryFn: async () => unwrap(await api.GET("/items/{itemId}", { params: { path: { itemId: id! } } })),
-  });
+  return useQuery({ ...itemDetailQuery(id ?? ""), enabled: !!id });
 }
 
 /** The picture on the screen: backdrop art, or a tinted ground when there is none. */
@@ -69,7 +67,7 @@ function BillboardArt({ item, hasBackdrop, still = false }: { item: ItemSummary;
   return (
     <div className="screen-settle absolute inset-0 overflow-hidden" aria-hidden>
       {hasBackdrop && !broken ? (
-        <Art src={imageUrl(item.id, still ? "still" : "backdrop")} loading="eager" onError={() => setBroken(true)}
+        <Art src={imageUrl(item.id, still ? "still" : "backdrop")} loading="eager" fetchPriority="high" onError={() => setBroken(true)}
           className="absolute inset-0 size-full object-cover object-[60%_30%]" />
       ) : (
         <div className="absolute inset-0" style={{ background: `radial-gradient(80% 90% at 70% 30%, hsl(${hue} 22% 22%) 0%, var(--color-bg) 75%)` }} />
@@ -1116,7 +1114,7 @@ function ItemView({ itemId }: { itemId: string }) {
             {d.files.length > 0 && (it.kind === "movie" || it.kind === "episode") && <WatchTogetherButton itemId={it.id} />}
             <UserDataButtons item={it} />
             {it.kind !== "season" && <AddToMenu item={it} />}
-            {isAdmin && <MetadataMenu d={d} />}
+            {isAdmin && <Suspense fallback={null}><MetadataMenu d={d} /></Suspense>}
           </div>
           <PlayOptions d={d} value={choice} onChange={setChoice} />
           <Watched item={it} />
@@ -1209,7 +1207,7 @@ function ItemView({ itemId }: { itemId: string }) {
             {t("library.mediaInfo")}
             <span className="ml-2 text-sm font-normal text-muted">{d.files.length > 1 ? t("library.versions", { count: d.files.length }) : t("library.file")}</span>
           </h2>
-            {(it.kind === "movie" || it.kind === "episode") && <SubtitleFinder itemId={it.id} />}
+            {(it.kind === "movie" || it.kind === "episode") && <Suspense fallback={null}><SubtitleFinder itemId={it.id} /></Suspense>}
           </div>
           <ul className="grid gap-3 lg:grid-cols-2">
             {d.files.map((f) => (

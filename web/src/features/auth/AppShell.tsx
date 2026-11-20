@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { rememberReturnTo } from "@/lib/safeUrl";
 import { Link, Navigate, Outlet, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Bookmark, Clapperboard, Compass, Film, House, LogOut, Music, Radio, Search, Settings, Tv, Users, type LucideIcon } from "lucide-react";
+import { Bookmark, Clapperboard, Compass, House, LogOut, Radio, Search, Settings, Users } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Spinner } from "@/components/ui";
@@ -16,8 +16,6 @@ import { MusicProvider } from "@/features/music/MusicPlayer";
 import { NowPlayingBar } from "@/features/music/NowPlayingBar";
 import { SyncPlayProvider } from "@/features/syncplay/SyncPlay";
 import { canWatchLiveTv } from "@/features/livetv/api";
-
-export const libraryIcon: Record<string, LucideIcon> = { movies: Film, shows: Tv, mixed: Clapperboard, music: Music };
 
 const topLink = "relative inline-flex h-10 items-center px-1 text-[15px] font-medium text-text/65 transition-colors duration-200 hover:text-text after:absolute after:inset-x-1 after:bottom-1 after:h-[2px] after:origin-left after:scale-x-0 after:bg-[var(--amb-a)] after:transition-transform after:duration-300 [&.active]:text-text [&.active]:after:scale-x-100";
 

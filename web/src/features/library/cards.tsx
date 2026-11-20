@@ -1,4 +1,5 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { prefetchItem } from "./itemQuery";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Check, ChevronLeft, ChevronRight, Play, X } from "lucide-react";
@@ -81,10 +82,21 @@ function landscapeSrc(it: ItemSummary): string | null {
   return null;
 }
 
-/** Hovering or focusing a card brings its colour into the interface. */
+/**
+ * Hovering or focusing a card brings its colour into the interface and starts loading
+ * the title (after a short rest, so sweeping across a row does not fetch every card).
+ */
 function useCardLight(item: ItemSummary) {
   const { lightSoon } = useAmbient();
-  return { onMouseEnter: () => lightSoon(item.colors), onFocus: () => lightSoon(item.colors) };
+  const qc = useQueryClient();
+  const timer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  const intent = () => {
+    lightSoon(item.colors);
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => prefetchItem(qc, item.id), 120);
+  };
+  return { onMouseEnter: intent, onFocus: intent, onMouseLeave: () => window.clearTimeout(timer.current) };
 }
 
 /**

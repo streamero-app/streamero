@@ -1,4 +1,5 @@
-@import "tailwindcss";
+/* Classes come from the app's own source only (not from caches or tools next to it). */
+@import "tailwindcss" source(".");
 @import "@fontsource-variable/archivo/wdth.css";
 
 /*

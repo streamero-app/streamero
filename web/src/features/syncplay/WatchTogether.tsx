@@ -3,20 +3,13 @@ import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Check, Copy, LogOut, Users } from "lucide-react";
-import { ApiError, api, unwrap } from "@/api/client";
-import { Badge, Button, Spinner, TextField, buttonVariants, pressable } from "@/components/ui";
-
-const bigButton = "tv-focus h-13 rounded-[6px] px-7 text-base font-semibold";
+import { api, unwrap } from "@/api/client";
+import { Badge, Button, Spinner, TextField } from "@/components/ui";
 import { currentEntry, inviteLink, parseInvite, waitingFor, type SyncGroup, type SyncMember } from "./engine";
 import { useSyncPlay } from "./SyncPlay";
+import { TogetherError, WatchTogetherButton } from "./WatchTogetherButton";
 
-/** A refused watch-together action, in words. */
-export function TogetherError({ error }: { error: unknown }) {
-  const { t } = useTranslation();
-  if (!error) return null;
-  const code = error instanceof ApiError ? error.code : typeof error === "string" ? error : "generic";
-  return <p role="alert" className="text-sm text-danger">{t(`together.errors.${code}`, { defaultValue: t("errors.generic") })}</p>;
-}
+export { TogetherError, WatchTogetherButton };
 
 /** A member's status as a short label. */
 function memberStatus(m: SyncMember, t: (k: string) => string): { label: string; tone: "muted" | "accent" | "danger" | "success" } {
@@ -115,26 +108,6 @@ export function TogetherPanel({ itemId, positionMs, onClose }: { itemId: string;
       )}
       {error ? <TogetherError error={error} /> : null}
     </div>
-  );
-}
-
-/** "Watch together" on a title page: starts a group with the title and opens the player. */
-export function WatchTogetherButton({ itemId }: { itemId: string }) {
-  const { t } = useTranslation();
-  const sync = useSyncPlay();
-  const navigate = useNavigate();
-  const [error, setError] = useState<unknown>(null);
-  if (!sync.allowed) return null;
-  return (
-    <>
-      <button type="button" data-testid="watch-together" className={`${pressable} ${buttonVariants.glass} ${bigButton}`}
-        onClick={() => {
-          sync.create([itemId]).then(() => navigate({ to: "/watch/$itemId", params: { itemId }, search: { together: 1 } }), setError);
-        }}>
-        <Users className="size-5" aria-hidden />{t("together.title")}
-      </button>
-      {error ? <TogetherError error={error} /> : null}
-    </>
   );
 }
 

@@ -6,7 +6,7 @@ import { invalidateUserData } from "@/features/library/userData";
 import { imageUrl, type ItemSummary } from "@/features/library/format";
 import { detectAudioProfile } from "@/features/player/deviceProfile";
 import { nativeHls } from "@/features/player/playback";
-import { sleepDue, type SleepTimer } from "@/features/books/logic";
+import { sleepDue, type SleepTimer } from "@/features/books/sleep";
 
 /**
  * One song in the queue (a track item and where its cover comes from). Audiobook

@@ -1,12 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ChevronLeft, ChevronRight, CircleDot, Heart, Repeat } from "lucide-react";
 import { ErrorText, Spinner, pressable } from "@/components/ui";
 import { useMe } from "@/features/auth/useAuth";
-import { CATEGORIES, canManageLiveTv, useGuide, type Category, type Channel, type Program } from "./api";
+import { CATEGORIES, canManageLiveTv, useGuide, type Category, type Program } from "./api";
 import { ProgramDialog } from "./ProgramDialog";
 import { blockGeometry, dayOf, isAiring, shiftWindow, ticks, timeOf, windowStart } from "./time";
+import { ChannelBadge, useNow } from "./ChannelBadge";
+
+// Kept here too for the pages that already import them from the guide.
+export { ChannelBadge, useNow };
 
 export const GUIDE_HOURS = 3;
 export const PX_PER_MIN = 6;
@@ -16,16 +20,6 @@ const ROW_H = 64;
 const chip =
   `${pressable} h-8 rounded-full px-3.5 text-[13px] ring-1 ring-inset ring-border text-text/70 hover:bg-white/[0.07] hover:text-text aria-pressed:bg-text aria-pressed:text-bg aria-pressed:ring-text`;
 const navBtn = `${pressable} h-9 rounded-[6px] bg-white/[0.07] px-3 text-sm text-text hover:bg-white/[0.13]`;
-
-/** Ticks once a minute so the now-line and "on now" highlighting move. */
-export function useNow(intervalMs = 60_000): number {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), intervalMs);
-    return () => window.clearInterval(id);
-  }, [intervalMs]);
-  return now;
-}
 
 /** Category chips and the favourites switch, shared by the guide and the channel list. */
 export function GuideFilters({ category, setCategory, favorites, setFavorites }: {
@@ -44,20 +38,6 @@ export function GuideFilters({ category, setCategory, favorites, setFavorites }:
         <Heart className={`size-3.5 ${favorites ? "fill-current" : ""}`} aria-hidden />{t("livetv.favorites")}
       </button>
     </div>
-  );
-}
-
-export function ChannelBadge({ channel, size = 40 }: { channel: Pick<Channel, "name" | "logoUrl" | "number">; size?: number }) {
-  const [broken, setBroken] = useState(false);
-  if (channel.logoUrl && !broken) {
-    return <img src={channel.logoUrl} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setBroken(true)} style={{ width: size, height: size }}
-      className="shrink-0 rounded-[6px] bg-white/[0.06] object-contain p-1" />;
-  }
-  return (
-    <span aria-hidden style={{ width: size, height: size }}
-      className="grid shrink-0 place-items-center rounded-[6px] bg-white/[0.07] text-[11px] font-bold text-text/70 tabular">
-      {channel.number || channel.name.slice(0, 2).toUpperCase()}
-    </span>
   );
 }
 

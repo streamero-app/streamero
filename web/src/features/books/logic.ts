@@ -32,16 +32,9 @@ export function previousChapterStart(chapters: Chapter[], ms: number): number {
   return chapters[i - 1]!.startMs;
 }
 
-export type SleepTimer = { kind: "off" } | { kind: "at"; at: number } | { kind: "chapter"; endMs: number };
-
-/** Whether the sleep timer should pause playback now. */
-export function sleepDue(timer: SleepTimer, now: number, positionMs: number): boolean {
-  switch (timer.kind) {
-    case "at": return now >= timer.at;
-    case "chapter": return positionMs >= timer.endMs - 250;
-    default: return false;
-  }
-}
+// The sleep timer lives in its own small module: the always-loaded music player needs it,
+// the rest of this file (readers, EPUB cleaning) loads only with the book pages.
+export { sleepDue, type SleepTimer } from "./sleep";
 
 export const SPEEDS = [0.75, 1, 1.1, 1.25, 1.5, 1.75, 2] as const;
 
