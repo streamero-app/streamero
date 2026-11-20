@@ -33,6 +33,11 @@ final class MusicPlayer {
     private var artwork: MPMediaItemArtwork?
     /// A video player owns the lock screen while it is open.
     private var remoteSuspended = false
+    /// Playing when a call or another app interrupted; resumes when the system says so.
+    private var resumeAfterInterruption = false
+    /// The current track's stream could not be fetched or played.
+    private(set) var failed = false
+    private var itemWatch: PlayerItemWatch?
 
     init(client: MediaClient) {
         self.client = client
@@ -41,6 +46,24 @@ final class MusicPlayer {
         observers = PlayerObservers(player: player)
         observers.time = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.5, preferredTimescale: 600), queue: .main) { [weak self] _ in
             Task { @MainActor in self?.syncFromPlayer() }
+        }
+        observers.interruption = Interruptions.observe { [weak self] began, shouldResume in
+            Task { @MainActor in self?.interrupted(began: began, shouldResume: shouldResume) }
+        }
+    }
+
+    private func interrupted(began: Bool, shouldResume: Bool) {
+        guard current != nil else { return }
+        if began {
+            resumeAfterInterruption = playing
+            playing = false
+            updateElapsed()
+        } else if shouldResume && resumeAfterInterruption {
+            resumeAfterInterruption = false
+            activateAudio()
+            player.play()
+            playing = true
+            updateElapsed()
         }
     }
 
@@ -128,6 +151,8 @@ final class MusicPlayer {
 
     func stop() {
         loadTask?.cancel()
+        itemWatch = nil
+        failed = false
         player.pause()
         player.replaceCurrentItem(with: nil)
         queue = []
@@ -165,7 +190,9 @@ final class MusicPlayer {
         do {
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
             try AVAudioSession.sharedInstance().setActive(true)
-        } catch {}
+        } catch {
+            // Playback still works without the category (it only stops in silent mode).
+        }
     }
 
     private func loadCurrent() {
@@ -178,10 +205,25 @@ final class MusicPlayer {
         position = 0
         duration = track.durationMs ?? 0
         updateNowPlaying(track, artwork: nil)
+        failed = false
         loadTask = Task { [client] in
-            guard let info = try? await client.startPlayback(item: track.id, profile: MediaClient.audioProfile),
-                  let url = client.absolute(info.url), !Task.isCancelled, current?.id == track.id else { return }
+            let info: PlaybackInfo
+            do {
+                info = try await client.startPlayback(item: track.id, profile: MediaClient.audioProfile)
+            } catch {
+                guard !Task.isCancelled, current?.id == track.id else { return }
+                trackFailed()
+                return
+            }
+            guard let url = client.absolute(info.url), !Task.isCancelled, current?.id == track.id else { return }
             let item = AVPlayerItem(url: url)
+            let trackID = track.id
+            itemWatch = PlayerItemWatch(item: item) { [weak self] in
+                Task { @MainActor in
+                    guard self?.current?.id == trackID else { return }
+                    self?.trackFailed()
+                }
+            }
             if let end = observers.end { NotificationCenter.default.removeObserver(end) }
             observers.end = NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: item, queue: .main) { [weak self] _ in
                 Task { @MainActor in self?.advance(userInitiated: false) }
@@ -193,10 +235,24 @@ final class MusicPlayer {
         }
     }
 
+    /// A track that cannot be played is skipped; the queue stops (with the error shown) when it
+    /// was the last one, instead of looking like it plays.
+    private func trackFailed() {
+        guard !failed else { return }
+        failed = true
+        player.pause()
+        playing = false
+        updateElapsed()
+        if index + 1 < queue.count {
+            index += 1
+            loadCurrent()
+        }
+    }
+
     private func fetchArtwork(for track: ItemSummary) async {
         let id = track.hasPoster ? track.id : (track.parentId ?? track.id)
         guard let url = client.imageURL(item: id, type: "poster"),
-              let image = await ImageCache.shared.image(url: url, token: client.token),
+              let image = await ImageCache.shared.image(url: url, token: client.token, maxPixels: 1024),
               current?.id == track.id else { return }
         artwork = Self.artwork(from: image)
         updateNowPlaying(track, artwork: artwork)
@@ -302,16 +358,46 @@ final class MusicPlayer {
     }
 }
 
-/// Owns the music player's observer tokens and removes them when it is released.
-private final class PlayerObservers: @unchecked Sendable {
+/// Owns a player's observer tokens and removes them when it is released (the players live
+/// as long as a sign-in). Not Sendable: it is only touched by its owner on the main actor.
+final class PlayerObservers {
     let player: AVPlayer
     var time: Any?
     var end: (any NSObjectProtocol)?
+    var interruption: (any NSObjectProtocol)?
 
     init(player: AVPlayer) { self.player = player }
 
     deinit {
         if let time { player.removeTimeObserver(time) }
         if let end { NotificationCenter.default.removeObserver(end) }
+        if let interruption { NotificationCenter.default.removeObserver(interruption) }
+    }
+}
+
+/// Audio session interruptions (a call, an alarm, another app taking the audio).
+enum Interruptions {
+    /// `handler(began, shouldResume)`; called on the main queue.
+    static func observe(_ handler: @escaping @Sendable (Bool, Bool) -> Void) -> any NSObjectProtocol {
+        NotificationCenter.default.addObserver(forName: AVAudioSession.interruptionNotification, object: nil, queue: .main) { note in
+            let parsed = parse(note.userInfo)
+            guard let parsed else { return }
+            handler(parsed.began, parsed.shouldResume)
+        }
+    }
+
+    /// Reads the notification's type and options; nil for anything unexpected.
+    static func parse(_ info: [AnyHashable: Any]?) -> (began: Bool, shouldResume: Bool)? {
+        guard let raw = info?[AVAudioSessionInterruptionTypeKey] as? UInt,
+              let type = AVAudioSession.InterruptionType(rawValue: raw) else { return nil }
+        switch type {
+        case .began:
+            return (true, false)
+        case .ended:
+            let options = (info?[AVAudioSessionInterruptionOptionKey] as? UInt).map(AVAudioSession.InterruptionOptions.init(rawValue:)) ?? []
+            return (false, options.contains(.shouldResume))
+        @unknown default:
+            return nil
+        }
     }
 }

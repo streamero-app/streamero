@@ -40,6 +40,12 @@ final class PlayerModel {
     private var counting = false
     private var creditsHandled = false
     private var loading = false
+    /// Bumped by every stream request; an answer for an older one is dropped, so a slow
+    /// response can never install a stream after a newer choice (or after the player closed).
+    private var loadID = 0
+    private var closed = false
+    private var recovery = PlaybackRecovery()
+    private var itemWatch: PlayerItemWatch?
 
     // Watch together
     let together: SyncSession
@@ -97,31 +103,35 @@ final class PlayerModel {
         do {
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
             try AVAudioSession.sharedInstance().setActive(true)
-        } catch {}
-        prefs = try? await client.preferences()
-        detail = try? await client.item(current)
-        next = try? await client.nextEpisode(current)
+        } catch {
+            // Playback still works without the category (it only stops in silent mode).
+        }
+        // Independent: fetched side by side; the stream request needs the preferences.
+        let client = client
+        let id = current
+        async let prefs = try? client.preferences()
+        async let detail = try? client.item(id)
+        async let next = try? client.nextEpisode(id)
+        self.prefs = await prefs
+        self.detail = await detail
+        self.next = await next ?? nil
         await load(startMs: target.start, audio: target.audio, sub: target.sub)
         if together.group != nil { attachGroup() }
     }
 
     private func load(startMs: Int64?, audio: Int?, sub: Int?) async {
+        loadID += 1
+        let id = loadID
         loading = true
-        defer { loading = false }
+        defer { if id == loadID { loading = false } }
         do {
-            let profile = MediaClient.device(preferences: prefs)
+            let profile = recovery.safe ? MediaClient.safeDevice(preferences: prefs) : MediaClient.device(preferences: prefs)
             // The version picked on the item page only applies to that item.
             let file = current == target.id ? target.file : nil
             let pi = try await client.startPlayback(item: current, startMs: startMs.map { max(0, $0) },
                                                     audioIndex: audio, subtitleIndex: sub, fileId: file, profile: profile)
+            guard id == loadID, !closed else { return }
             guard let url = client.absolute(pi.url) else { throw APIError(status: 0, code: "bad_url") }
-            player?.pause()
-            info = pi
-            audioIndex = audio ?? pi.audioIndex
-            offset = pi.method == "direct" ? 0 : pi.startMs
-            // The server resolves the choice (or the profile's preference) and says what it shows.
-            subtitleIndex = SubtitleTracks.current(in: pi)
-            await loadCues(index: subtitleIndex)
             let p = AVPlayer(url: url)
             // Rate changes (group speed, drift correction) keep the pitch.
             p.currentItem?.audioTimePitchAlgorithm = .spectral
@@ -129,7 +139,19 @@ final class PlayerModel {
                 // Seeking before the item is ready can land on the wrong spot or be dropped.
                 await p.seekWhenReady(toMs: pi.startMs)
             }
+            guard id == loadID, !closed else {
+                p.pause()
+                return
+            }
+            player?.pause()
+            info = pi
+            audioIndex = audio ?? pi.audioIndex
+            offset = pi.method == "direct" ? 0 : pi.startMs
+            // The server resolves the choice (or the profile's preference) and says what it shows.
+            subtitleIndex = SubtitleTracks.current(in: pi)
+            error = false
             player = p
+            watch(p, id: id)
             if inGroup || together.group != nil {
                 // The group decides when to play.
                 together.realign()
@@ -137,20 +159,59 @@ final class PlayerModel {
             } else {
                 p.play()
             }
+            await loadCues(index: subtitleIndex)
+        } catch is CancellationError {
+            return
         } catch {
+            guard id == loadID, !closed else { return }
             self.error = true
         }
+    }
+
+    private func watch(_ p: AVPlayer, id: Int) {
+        itemWatch = p.currentItem.map { item in
+            PlayerItemWatch(item: item) { [weak self] in
+                Task { @MainActor in await self?.streamFailed(id: id) }
+            }
+        }
+    }
+
+    /// The stream failed: once, it restarts from the same place with the safe profile; after
+    /// that the error is shown with Retry.
+    private func streamFailed(id: Int) async {
+        guard id == loadID, !closed, !error else { return }
+        let at = absolutePosition()
+        itemWatch = nil
+        switch recovery.onError() {
+        case .fallback:
+            showNotice(Loc.string("player.fallback"))
+            await load(startMs: at, audio: audioIndex, sub: subtitleIndex)
+        case .fail:
+            player?.pause()
+            error = true
+        }
+    }
+
+    /// The Retry button: a new stream from where playback stopped.
+    func retry() async {
+        recovery.retry()
+        error = false
+        await load(startMs: position > 0 ? position : target.start, audio: audioIndex, sub: subtitleIndex)
     }
 
     private func loadCues(index: Int) async {
         cues = []
         cue = nil
         cueClockStart = 0
+        let id = loadID
         guard let info, info.burnedSubtitle != index, let track = SubtitleTracks.text(index, in: info),
               let url = client.absolute(track.url) else { return }
-        guard let text = try? await client.text(from: url), subtitleIndex == index else { return }
+        guard let text = try? await client.text(from: url), subtitleIndex == index, id == loadID else { return }
+        // Parsing a long film's file is real work; keep it off the main actor.
+        let parsed = await Task.detached(priority: .userInitiated) { WebVTT.parse(text) }.value
+        guard subtitleIndex == index, id == loadID else { return }
         cueClockStart = WebVTT.clockStart(of: url)
-        cues = WebVTT.parse(text)
+        cues = parsed
     }
 
     // MARK: Tracks
@@ -284,8 +345,13 @@ final class PlayerModel {
         counting = false
         cues = []
         cue = nil
-        detail = try? await client.item(current)
-        next = try? await client.nextEpisode(current)
+        let client = client
+        let id = current
+        async let detail = try? client.item(id)
+        async let following = try? client.nextEpisode(id)
+        self.detail = await detail
+        next = await following ?? nil
+        guard !closed, current == id else { return }
         await load(startMs: 0, audio: nil, sub: nil)
     }
 
@@ -299,11 +365,16 @@ final class PlayerModel {
     }
 
     func close() async {
+        guard !closed else { return }
+        // Closed first, so a second call (the close button, then the view going away) and any
+        // stream answer still on its way do nothing; the final position is reported once.
+        closed = true
+        itemWatch = nil
+        await report()
         if inGroup {
             detachGroup()
             await together.leave()
         }
-        await report()
         player?.pause()
         player = nil
     }
@@ -498,10 +569,18 @@ struct PlayerView: View {
                     }
                     .ignoresSafeArea()
                 }
-            } else if model.error {
-                Text("player.error").foregroundStyle(.white).padding()
-            } else {
+            } else if !model.error {
                 ProgressView().tint(.white).frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            if model.error {
+                VStack(spacing: 16) {
+                    Text("player.error").font(.body).foregroundStyle(.white).multilineTextAlignment(.center)
+                    Button { Task { await model.retry() } } label: { Label("downloads.retry", systemImage: "arrow.clockwise") }
+                        .buttonStyle(PrimaryButtonStyle())
+                }
+                .padding(24)
+                .background(.black.opacity(0.75), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .padding()
             }
             if let cue = model.cue {
                 // Above AVKit's transport bar while it shows, low in the picture when it hides.

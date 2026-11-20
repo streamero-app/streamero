@@ -274,7 +274,8 @@ struct MiniPlayerBar: View {
                     }
                     .buttonStyle(.plain)
                     Button { m.prev() } label: { Image(systemName: "backward.fill") }.accessibilityLabel(Text("previous"))
-                    Button { m.toggle() } label: { Image(systemName: m.playing ? "pause.fill" : "play.fill") }.accessibilityLabel(Text("player.play"))
+                    Button { m.toggle() } label: { Image(systemName: m.playing ? "pause.fill" : "play.fill") }
+                        .accessibilityLabel(m.playing ? Text("player.pause") : Text("player.play"))
                     Button { m.next() } label: { Image(systemName: "forward.fill") }.accessibilityLabel(Text("next"))
                 }
                 .padding(.horizontal, 12).padding(.vertical, 8)
@@ -294,6 +295,8 @@ struct QueueSheet: View {
     let client: MediaClient
     @Environment(AppState.self) private var app
     @Environment(\.dismiss) private var dismiss
+    /// The scrubber's value while dragging; the seek happens once, on release.
+    @State private var scrubbing: Double?
 
     var body: some View {
         let m = app.music
@@ -302,9 +305,17 @@ struct QueueSheet: View {
                 Text(verbatim: c.title).displayFont(26).foregroundStyle(Theme.text).lineLimit(2)
                 Text(verbatim: [c.artist, c.album].compactMap { $0 }.joined(separator: " · ")).foregroundStyle(Theme.textMuted).lineLimit(1)
             }
-            Slider(value: Binding(get: { Double(m.position) }, set: { m.seek(Int64($0)) }), in: 0...max(1, Double(m.duration))).tint(Theme.accent)
+            Slider(value: Binding(get: { scrubbing ?? Double(m.position) }, set: { scrubbing = $0 }),
+                   in: 0...max(1, Double(m.duration)), onEditingChanged: { editing in
+                       if !editing, let value = scrubbing {
+                           m.seek(Int64(value))
+                           scrubbing = nil
+                       }
+                   })
+                .tint(Theme.accent)
+                .accessibilityLabel(Text("player.position"))
             HStack {
-                Text(verbatim: clock(m.position)).font(.caption).foregroundStyle(Theme.textFaint)
+                Text(verbatim: clock(scrubbing.map { Int64($0) } ?? m.position)).font(.caption).foregroundStyle(Theme.textFaint)
                 Spacer()
                 Button { m.toggleShuffle() } label: { Image(systemName: "shuffle").foregroundStyle(m.shuffle ? Theme.accent : Theme.textMuted) }
                     .accessibilityLabel(Text("shuffle"))
@@ -315,7 +326,7 @@ struct QueueSheet: View {
                     Image(systemName: m.playing ? "pause.fill" : "play.fill").font(.title).foregroundStyle(Theme.background)
                         .frame(width: 56, height: 56).background(Theme.text, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
                 }
-                .accessibilityLabel(Text("player.play"))
+                .accessibilityLabel(m.playing ? Text("player.pause") : Text("player.play"))
                 Spacer()
                 Button { m.next() } label: { Image(systemName: "forward.fill").font(.title2) }.accessibilityLabel(Text("next"))
                 Spacer()

@@ -126,13 +126,38 @@ struct VideoAudioFocus: ViewModifier {
                 music?.pause()
                 app?.audiobook.pause()
                 music?.suspendRemote()
+                app?.audiobook.suspendRemote()
             }
-            .onDisappear { music?.resumeRemote() }
+            .onDisappear {
+                music?.resumeRemote()
+                app?.audiobook.resumeRemote()
+            }
     }
 }
 
 extension View {
     func videoAudioFocus(_ music: MusicPlayer?) -> some View { modifier(VideoAudioFocus(music: music)) }
+}
+
+/// Watches a player item for failure: it could not be opened, or it broke off mid-stream.
+/// `onFailure` may be called more than once and from any thread; it hops to the main actor
+/// itself. Watching stops when the watch is released.
+final class PlayerItemWatch {
+    private var observation: NSKeyValueObservation?
+    private var token: (any NSObjectProtocol)?
+
+    init(item: AVPlayerItem, onFailure: @escaping @Sendable () -> Void) {
+        observation = item.observe(\.status, options: [.initial, .new]) { item, _ in
+            if item.status == .failed { onFailure() }
+        }
+        token = NotificationCenter.default.addObserver(forName: AVPlayerItem.failedToPlayToEndTimeNotification,
+                                                       object: item, queue: .main) { _ in onFailure() }
+    }
+
+    deinit {
+        observation?.invalidate()
+        if let token { NotificationCenter.default.removeObserver(token) }
+    }
 }
 
 extension AVPlayerItem {
