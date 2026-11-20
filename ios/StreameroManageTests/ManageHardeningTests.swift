@@ -22,6 +22,7 @@ final class ManageErrorMappingTests: XCTestCase {
     }
 }
 
+@MainActor
 final class NumberFieldTests: XCTestCase {
     func testHugeIntegersDoNotCrash() {
         // Used to trap in Int64(Double) for anything beyond Int64.
