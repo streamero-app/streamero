@@ -1,4 +1,4 @@
-# CLAUDE.md — Streamero
+# Contributing — Streamero
 
 Streamero je self-hosted media server (alternativa Jellyfinu) s web klijentom i iOS appom (.ipa za Feather). Brand: SCYDE.
 Plan: `docs/PLAN.md`. Feature checklist: `docs/FEATURES.md`. Stanje: `docs/PROGRESS.md`. Odluke: `docs/DECISIONS.md`.

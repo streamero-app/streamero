@@ -16,6 +16,11 @@ on:
       ANDROID_KEY_ALIAS:
   workflow_dispatch:
 
+# A newer push to the same pull request replaces the run in progress.
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 

@@ -260,7 +260,7 @@ func TestShowLibraryScanIntegration(t *testing.T) {
 	}
 }
 
-// Hot-path queries must be able to use an index (CLAUDE.md: EXPLAIN in tests).
+// Hot-path queries must be able to use an index (CONTRIBUTING.md: EXPLAIN in tests).
 func TestLibraryQueriesUseIndexes(t *testing.T) {
 	pool := testPool(t)
 	ctx := context.Background()

@@ -6,7 +6,7 @@ Legenda:
 - `[+]` = Jellyfin nema → Streamero extra
 - Faza u zagradi = u kojoj fazi iz `PLAN.md` se radi (npr. `P5`)
 
-Claude Code: kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djelomično gotove stvari.
+Kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djelomično gotove stvari.
 
 ---
 
