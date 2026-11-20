@@ -6,5 +6,4 @@
         <item name="android:navigationBarColor">@color/bg</item>
     </style>
     <color name="bg">#FF0A0807</color>
-    <color name="accent">#FFD6763F</color>
 </resources>

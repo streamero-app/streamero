@@ -45,6 +45,13 @@ class SsoTest {
         assertNull(parseSsoRedirect(APP_SCHEME, "other", "c1", null))
     }
 
+    @Test fun malformedRedirectValuesAreNotPassedOn() {
+        assertEquals(SsoResult.Failed("invalid_request"), parseSsoRedirect(APP_SCHEME, "oidc", "a b<script>", null))
+        assertEquals(SsoResult.Failed("invalid_request"), parseSsoRedirect(APP_SCHEME, "oidc", "x".repeat(600), null))
+        assertEquals(SsoResult.Failed("internal"), parseSsoRedirect(APP_SCHEME, "oidc", null, "Something <b>bad</b> happened"))
+        assertEquals(SsoResult.Code("IB3LGqhE3YEn1yejQ2Ky3PGP-zyDyKSyUWSvnQFAKiA"), parseSsoRedirect(APP_SCHEME, "OIDC", "IB3LGqhE3YEn1yejQ2Ky3PGP-zyDyKSyUWSvnQFAKiA", null))
+    }
+
     @Test fun readsProviders() = runTest {
         server.enqueue(MockResponse().setBody("""{"passwordLogin":false,"ldap":true,"oidc":[{"id":"kc","label":"Keycloak","authorizeUrl":"https://m/api/v1/auth/oidc/kc/authorize"}]}"""))
         val p = api.authProviders()

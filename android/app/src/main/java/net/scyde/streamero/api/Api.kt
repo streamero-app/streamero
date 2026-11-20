@@ -42,7 +42,9 @@ class Api(baseUrl: String, @Volatile var token: String? = null) {
         .readTimeout(30, TimeUnit.SECONDS)
         .addInterceptor { chain ->
             val t = token
-            val req = if (t != null && chain.request().url.host == base.host) {
+            // Only to the server itself: same scheme, host and port. A link the server hands out to
+            // another port or to plain http on the same host must not carry the session.
+            val req = if (t != null && sameOrigin(chain.request().url, base)) {
                 chain.request().newBuilder().header("Authorization", "Bearer $t").build()
             } else chain.request()
             chain.proceed(req)
@@ -82,9 +84,10 @@ class Api(baseUrl: String, @Volatile var token: String? = null) {
 
     inline fun <reified B> jsonBody(b: B): RequestBody = json.encodeToString(serializer<B>(), b).toRequestBody(JSON)
 
-    suspend inline fun <reified T> get(path: String, query: Map<String, Any?> = emptyMap()): T = call("GET", path, null, query, serializer<T>())!!
-    suspend inline fun <reified B, reified T> post(path: String, body: B): T = call("POST", path, jsonBody(body), emptyMap(), serializer<T>())!!
-    suspend inline fun <reified B, reified T> put(path: String, body: B): T = call("PUT", path, jsonBody(body), emptyMap(), serializer<T>())!!
+    suspend inline fun <reified T> get(path: String, query: Map<String, Any?> = emptyMap()): T =
+        call("GET", path, null, query, serializer<T>()) ?: throw emptyAnswer()
+    suspend inline fun <reified B, reified T> post(path: String, body: B): T = call("POST", path, jsonBody(body), emptyMap(), serializer<T>()) ?: throw emptyAnswer()
+    suspend inline fun <reified B, reified T> put(path: String, body: B): T = call("PUT", path, jsonBody(body), emptyMap(), serializer<T>()) ?: throw emptyAnswer()
     suspend inline fun <reified B> send(method: String, path: String, body: B) { call(method, path, jsonBody(body), emptyMap(), null as KSerializer<Unit>?) }
     suspend fun send(method: String, path: String) { call(method, path, if (method == "GET" || method == "DELETE") null else EMPTY, emptyMap(), null as KSerializer<Unit>?) }
 
@@ -175,7 +178,7 @@ class Api(baseUrl: String, @Volatile var token: String? = null) {
     suspend fun syncGroups(): List<SyncGroup> = get("syncplay/groups")
     suspend fun createSyncGroup(r: CreateSyncGroup): SyncGroup = post("syncplay/groups", r)
     suspend fun syncGroup(id: String): SyncGroup = get("syncplay/groups/$id")
-    suspend fun joinSyncGroup(id: String): SyncGroup = call("POST", "syncplay/groups/$id/join", EMPTY, emptyMap(), SyncGroup.serializer())!!
+    suspend fun joinSyncGroup(id: String): SyncGroup = call("POST", "syncplay/groups/$id/join", EMPTY, emptyMap(), SyncGroup.serializer()) ?: throw emptyAnswer()
     /** The group this session is in, null when none (204). */
     suspend fun mySyncGroup(): SyncGroup? = call("GET", "syncplay/me", null, emptyMap(), SyncGroup.serializer())
     suspend fun leaveSyncGroup() = send("POST", "syncplay/leave")
@@ -215,7 +218,7 @@ class Api(baseUrl: String, @Volatile var token: String? = null) {
     suspend fun activity(offset: Int): ActivityPage = get("admin/activity", mapOf("limit" to 50, "offset" to offset))
     suspend fun users(): List<User> = get("users")
     suspend fun createUser(u: CreateUser): User = post("users", u)
-    suspend fun updateUser(id: String, u: UpdateUser): User = call("PATCH", "users/$id", jsonBody(u), emptyMap(), serializer<User>())!!
+    suspend fun updateUser(id: String, u: UpdateUser): User = call("PATCH", "users/$id", jsonBody(u), emptyMap(), serializer<User>()) ?: throw emptyAnswer()
     suspend fun deleteUser(id: String) = send("DELETE", "users/$id")
     suspend fun sessions(): List<SessionInfo> = get("sessions")
     suspend fun revokeSession(id: String) = send("DELETE", "sessions/$id")
@@ -241,13 +244,17 @@ class Api(baseUrl: String, @Volatile var token: String? = null) {
     suspend fun saveBranding(s: BrandingSettings): BrandingSettings = put("settings/branding", s)
     suspend fun requestSettings(): RequestSettings = get("settings/requests")
     suspend fun saveRequestSettings(s: RequestSettingsInput): RequestSettings = put("settings/requests", s)
-    suspend fun testRequestSettings(): List<ConnectionCheck> = call("POST", "settings/requests/test", EMPTY, emptyMap(), ListSerializer(ConnectionCheck.serializer()))!!
+    suspend fun testRequestSettings(): List<ConnectionCheck> = call("POST", "settings/requests/test", EMPTY, emptyMap(), ListSerializer(ConnectionCheck.serializer())) ?: throw emptyAnswer()
     suspend fun searchSubtitles(itemId: String): SubtitleSearch = get("items/$itemId/subtitles/search")
     suspend fun downloadSubtitle(itemId: String, o: SubtitleOffer) = send("POST", "items/$itemId/subtitles/download", o)
     suspend fun searchMissingSubtitles(itemId: String) = send("POST", "items/$itemId/subtitles/search-missing")
     suspend fun saveEnhancements(e: Enhancements): Enhancements = put("enhancements", e)
 
     companion object {
+        /** A success without the body the call needs (a proxy turning answers into 204s, a broken server). */
+        fun emptyAnswer() = ApiException(204, "empty", "The server sent no content")
+        fun sameOrigin(a: HttpUrl, b: HttpUrl) = a.scheme == b.scheme && a.host.equals(b.host, ignoreCase = true) && a.port == b.port
+
         /** The server refused the session itself (not a wrong password, PIN or code). */
         fun isSessionRejected(e: ApiException) = e.status == 401 && e.code == "unauthenticated"
         val JSON = "application/json".toMediaType()

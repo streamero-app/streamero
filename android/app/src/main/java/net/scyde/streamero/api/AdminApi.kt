@@ -114,7 +114,7 @@ suspend fun Api.downloadBackup(name: String, out: OutputStream): Long = withCont
     val req = Request.Builder().url(url("api/v1/backups/$name/download")).get().build()
     http.newCall(req).execute().use { resp ->
         if (!resp.isSuccessful) throw ApiException(resp.code, "generic", "HTTP ${resp.code}")
-        resp.body!!.byteStream().use { it.copyTo(out) }
+        (resp.body ?: throw java.io.IOException("empty body")).byteStream().use { it.copyTo(out) }
     }
 }
 

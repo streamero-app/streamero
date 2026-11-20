@@ -25,6 +25,11 @@ class StreameroApp : Application() {
     lateinit var state: AppState
     override fun onCreate() {
         super.onCreate()
+        // Debug builds report disk and network work on the main thread, and leaked resources.
+        if (BuildConfig.DEBUG) {
+            android.os.StrictMode.setThreadPolicy(android.os.StrictMode.ThreadPolicy.Builder().detectDiskReads().detectDiskWrites().detectNetwork().penaltyLog().build())
+            android.os.StrictMode.setVmPolicy(android.os.StrictMode.VmPolicy.Builder().detectLeakedClosableObjects().detectLeakedRegistrationObjects().detectActivityLeaks().penaltyLog().build())
+        }
         state = AppState(this)
         state.offline.start()
     }
@@ -39,7 +44,20 @@ class AppState(val app: Application) {
     var api by mutableStateOf<Api?>(null)
     var me by mutableStateOf<User?>(null)
     var enhancements by mutableStateOf(Enhancements())
-    var images by mutableStateOf<ImageLoader?>(null)
+    /**
+     * One image loader for the life of the app (one memory and disk cache). Its requests go
+     * through the current server's client, which adds the session token for that server only.
+     */
+    private val imageClient = okhttp3.OkHttpClient()
+    var images by mutableStateOf<ImageLoader?>(
+        ImageLoader.Builder(app)
+            .callFactory(object : okhttp3.Call.Factory {
+                override fun newCall(request: okhttp3.Request): okhttp3.Call = (api?.http ?: imageClient).newCall(request)
+            })
+            .crossfade(true)
+            .build()
+    )
+        private set
     val music = MusicController(app)
     val book = AudiobookController(app)
     val sync = SyncSession()
@@ -62,7 +80,8 @@ class AppState(val app: Application) {
     fun attach(a: Api?) {
         api = a
         a?.onUnauthorized = { appScope.launch { if (api === a) expireSession() } }
-        images = a?.let { ImageLoader.Builder(app).okHttpClient(it.http).crossfade(true).build() }
+        // Another server or account: what is cached in memory belongs to the previous one.
+        images?.memoryCache?.clear()
         music.api = a
         book.api = a
         sync.api = a
@@ -73,8 +92,8 @@ class AppState(val app: Application) {
 
     suspend fun refreshMe(): User? {
         val a = api ?: return null
-        me = runCatching { a.me() }.getOrNull()
-        enhancements = runCatching { a.enhancements() }.getOrDefault(Enhancements())
+        me = try { a.me() } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { null }
+        enhancements = try { a.enhancements() } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { Enhancements() }
         return me
     }
 
@@ -94,9 +113,17 @@ class AppState(val app: Application) {
     }
 
     suspend fun signOut() {
-        if (sync.group != null) sync.leave()
-        runCatching { api?.logout() }
-        forgetSession()
+        // Whatever the server says, the session is forgotten on this device.
+        try {
+            if (sync.group != null) sync.leave()
+            api?.logout()
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // Unreachable server or an already revoked session: nothing more to do there.
+        } finally {
+            forgetSession()
+        }
     }
 
     /** After sign-in: shows (and syncs) the downloads of this account on this server only. */

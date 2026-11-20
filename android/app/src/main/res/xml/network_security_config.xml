@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Streamero is self-hosted: the server address is whatever the user types, and many servers run
+  on the home network as plain http (http://192.168.1.10:8096, http://nas.local). The host is not
+  known at build time, so cleartext cannot be narrowed to a list of domains here; it stays allowed
+  for any host. The server, sign-in and invite screens warn when http is used to an address
+  outside the local network (isLocalHost in api/Forms.kt).
+
+  Trust: only the system certificate store. Certificates the user installed are not trusted,
+  so a profile or app that adds a CA to the device cannot read the session token. A server with
+  a self-signed certificate needs a real one (for example from Let's Encrypt) or plain http on
+  the home network.
+-->
+<network-security-config xmlns:tools="http://schemas.android.com/tools">
+    <base-config cleartextTrafficPermitted="true" tools:ignore="InsecureBaseConfiguration">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
