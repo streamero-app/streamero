@@ -52,6 +52,14 @@ jobs:
       # Two apps from the same code (D-064): "standard" (Streamero) and "manage" (Streamero Manage).
       - name: Unit tests
         run: ./gradlew --no-daemon :app:testStandardDebugUnitTest :app:testManageDebugUnitTest
+      - name: Lint
+        run: ./gradlew --no-daemon :app:lintStandardRelease :app:lintManageRelease
+      - name: Lint reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-reports
+          path: android/app/build/reports/lint-results-*.html
       - name: Restore signing key
         env:
           KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
