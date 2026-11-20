@@ -1,8 +1,5 @@
 package net.scyde.streamero.ui
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -44,26 +41,26 @@ fun Notice(color: Color, content: @Composable ColumnScope.() -> Unit) {
     }
 }
 
-/** A text the user should copy (a secret, a link): selectable, monospaced, with a copy button. */
+/**
+ * A text the user should copy (a secret, a link): selectable, monospaced, with a copy button.
+ * A [sensitive] one also keeps the screen out of screenshots and is hidden in clipboard previews.
+ */
 @Composable
-fun CopyableText(value: String, display: String = value) {
+fun CopyableText(value: String, display: String = value, sensitive: Boolean = false) {
     val ctx = LocalContext.current
+    if (sensitive) SecureScreen()
     var copied by remember { mutableStateOf(false) }
     LaunchedEffect(copied) { if (copied) { delay(2000); copied = false } }
     Row(Modifier.fillMaxWidth().background(Kino.bg, CardShape).padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {
         androidx.compose.foundation.text.selection.SelectionContainer(Modifier.weight(1f)) {
             Text(display, color = Kino.text, fontSize = 14.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
         }
-        TextButton(onClick = { copyText(ctx, value); copied = true }) {
+        TextButton(onClick = { copyText(ctx, value, sensitive); copied = true }) {
             Icon(Icons.Outlined.ContentCopy, null, Modifier.size(16.dp), tint = Kino.muted)
             Spacer(Modifier.width(6.dp))
             Text(stringResource(if (copied) R.string.copied else R.string.copy), color = Kino.muted)
         }
     }
-}
-
-fun copyText(ctx: Context, text: String) {
-    (ctx.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager)?.setPrimaryClip(ClipData.newPlainText("Streamero", text))
 }
 
 /** A red text action (Delete, Remove) that asks first through [ConfirmDialog] at the call site. */
@@ -86,7 +83,7 @@ fun shortDateTime(iso: String?): String {
 fun <T> rememberReload(key: Any?, load: suspend () -> T): Pair<T?, Throwable?> {
     var value by remember { mutableStateOf<T?>(null) }
     var error by remember { mutableStateOf<Throwable?>(null) }
-    LaunchedEffect(key) { runCatching { load() }.onSuccess { value = it; error = null }.onFailure { error = it } }
+    LaunchedEffect(key) { attempt { load() }.onSuccess { value = it; error = null }.onFailure { error = it } }
     return value to error
 }
 

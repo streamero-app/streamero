@@ -32,7 +32,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavHostController
+import androidx.navigation.NavOptionsBuilder
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -51,10 +53,10 @@ private enum class Gate { Loading, Server, Login, Invite, Profiles, Ready, Offli
 @Composable
 fun StreameroRoot(state: AppState) {
     var gate by remember { mutableStateOf(Gate.Loading) }
-    var attempt by remember { mutableIntStateOf(0) }
+    var round by remember { mutableIntStateOf(0) }
     var retrying by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    LaunchedEffect(attempt) {
+    LaunchedEffect(round) {
         retrying = true
         val api = state.session.restore()
         state.attach(api)
@@ -100,7 +102,7 @@ fun StreameroRoot(state: AppState) {
                     }
                     Gate.Profiles -> ProfileGate(state) { gate = Gate.Ready }
                     Gate.Ready -> Main(state, onSignedOut = { gate = Gate.Login }, onSwitchProfile = { gate = Gate.Profiles })
-                    Gate.Offline -> OfflineMain(state, retrying) { if (!retrying) attempt++ }
+                    Gate.Offline -> OfflineMain(state, retrying) { if (!retrying) round++ }
                 }
             }
         }
@@ -110,7 +112,8 @@ fun StreameroRoot(state: AppState) {
 private suspend fun afterSignIn(state: AppState): Gate {
     state.me?.language?.let { applyLanguage(it) }
     state.bindOffline()
-    val profiles = runCatching { state.api!!.profiles() }.getOrDefault(emptyList())
+    val api = state.api ?: return Gate.Ready
+    val profiles = attempt { api.profiles() }.getOrDefault(emptyList())
     return if (profiles.isNotEmpty() && state.me?.currentProfile == null) Gate.Profiles else Gate.Ready
 }
 
@@ -128,7 +131,7 @@ private fun OfflineMain(state: AppState, retrying: Boolean, onRetry: () -> Unit)
     }
     NavHost(nav, startDestination = "downloads") {
         composable("downloads") { DownloadsScreen(state, onPlay = { nav.navigate("offline/$it") }, banner = { OfflineBanner(retrying, onRetry) }) }
-        composable("offline/{id}") { OfflinePlayerScreen(state, it.arguments?.getString("id")!!) { nav.popBackStack() } }
+        composable("offline/{id}") { OfflinePlayerScreen(state, it.arguments?.getString("id").orEmpty()) { nav.popBackStack() } }
     }
 }
 
@@ -182,52 +185,59 @@ private fun Routes(state: AppState, nav: NavHostController, onSignedOut: () -> U
         composable("discover") { DiscoverScreen(state, nav) }
         composable("libraries") { LibrariesScreen(state, nav) }
         composable("me") { MeScreen(state, nav, onSignedOut, onSwitchProfile) }
-        composable("library/{id}") { LibraryScreen(state, nav, it.arguments?.getString("id")!!) }
-        composable("item/{id}") { ItemScreen(state, nav, it.arguments?.getString("id")!!) }
-        composable("collection/{id}") { CollectionScreen(state, nav, it.arguments?.getString("id")!!) }
+        composable("library/{id}") { LibraryScreen(state, nav, it.arguments?.getString("id").orEmpty()) }
+        composable("item/{id}") { ItemScreen(state, nav, it.arguments?.getString("id").orEmpty()) }
+        composable("collection/{id}") { CollectionScreen(state, nav, it.arguments?.getString("id").orEmpty()) }
         composable("collections") { CollectionsScreen(state, nav) }
-        composable("playlist/{id}") { PlaylistScreen(state, nav, it.arguments?.getString("id")!!) }
+        composable("playlist/{id}") { PlaylistScreen(state, nav, it.arguments?.getString("id").orEmpty()) }
         composable("watch/{id}?start={start}&file={file}&audio={audio}&sub={sub}", arguments = listOf(
             navArgument("start") { type = NavType.LongType; defaultValue = -1L },
             navArgument("file") { type = NavType.StringType; nullable = true },
             navArgument("audio") { type = NavType.IntType; defaultValue = -1 },
             navArgument("sub") { type = NavType.IntType; defaultValue = -2 },
         )) {
-            val a = it.arguments!!
-            PlayerScreen(state, nav, a.getString("id")!!, a.getLong("start").takeIf { s -> s >= 0 }, a.getString("file"),
+            val a = it.arguments ?: android.os.Bundle()
+            PlayerScreen(state, nav, a.getString("id").orEmpty(), a.getLong("start").takeIf { s -> s >= 0 }, a.getString("file"),
                 a.getInt("audio").takeIf { x -> x >= 0 }, a.getInt("sub").takeIf { x -> x >= -1 })
         }
         composable("shelf/{lib}?author={author}&series={series}", arguments = listOf(
             navArgument("author") { type = NavType.StringType; nullable = true },
             navArgument("series") { type = NavType.StringType; nullable = true },
         )) {
-            val a = it.arguments!!
-            ShelfScreen(state, nav, a.getString("lib")!!, a.getString("author"), a.getString("series"))
+            val a = it.arguments ?: android.os.Bundle()
+            ShelfScreen(state, nav, a.getString("lib").orEmpty(), a.getString("author"), a.getString("series"))
         }
-        composable("read/{id}") { ReaderScreen(state, nav, it.arguments?.getString("id")!!) }
-        composable("listen/{id}") { AudiobookPlayerScreen(state, nav, it.arguments?.getString("id")!!) }
-        composable("photo/{id}") { PhotoViewerScreen(state, nav, it.arguments?.getString("id")!!) }
-        composable("settings/{page}") { SettingsPage(state, nav, it.arguments?.getString("page")!!) }
+        composable("read/{id}") { ReaderScreen(state, nav, it.arguments?.getString("id").orEmpty()) }
+        composable("listen/{id}") { AudiobookPlayerScreen(state, nav, it.arguments?.getString("id").orEmpty()) }
+        composable("photo/{id}") { PhotoViewerScreen(state, nav, it.arguments?.getString("id").orEmpty()) }
+        composable("settings/{page}") { SettingsPage(state, nav, it.arguments?.getString("page").orEmpty()) }
         composable("downloads") { DownloadsScreen(state, onPlay = { id -> nav.navigate("offline/$id") }) }
-        composable("offline/{id}") { OfflinePlayerScreen(state, it.arguments?.getString("id")!!) { nav.popBackStack() } }
+        composable("offline/{id}") { OfflinePlayerScreen(state, it.arguments?.getString("id").orEmpty()) { nav.popBackStack() } }
         composable("together") { TogetherScreen(state, nav, null) }
         composable("together/{id}") { TogetherScreen(state, nav, it.arguments?.getString("id")) }
         composable("livetv") { LiveTvScreen(state, nav) }
-        composable("livetv/channel/{id}") { LiveChannelScreen(state, nav, it.arguments?.getString("id")!!) }
+        composable("livetv/channel/{id}") { LiveChannelScreen(state, nav, it.arguments?.getString("id").orEmpty()) }
         // "watch…" routes hide the bottom bar and the mini player.
-        composable("watchlive/{id}") { LivePlayerScreen(state, nav, it.arguments?.getString("id")!!) }
+        composable("watchlive/{id}") { LivePlayerScreen(state, nav, it.arguments?.getString("id").orEmpty()) }
         ManageEntry.routes(this, state, nav)
     }
 }
 
-fun NavHostController.watch(id: String, start: Long? = null, file: String? = null, audio: Int? = null, sub: Int? = null) {
-    val q = buildList {
-        if (start != null) add("start=$start")
-        if (file != null) add("file=$file")
-        if (audio != null) add("audio=$audio")
-        if (sub != null) add("sub=$sub")
-    }.joinToString("&")
-    navigate(if (q.isEmpty()) "watch/$id" else "watch/$id?$q")
+/** Opens the player. Also used by the player itself (the next episode), so it is not guarded like [open]. */
+fun NavHostController.watch(id: String, start: Long? = null, file: String? = null, audio: Int? = null, sub: Int? = null) =
+    navigate(watchRoute(id, start, file, audio, sub))
+
+/** Opens the player from a tap (see [open]). */
+fun NavHostController.play(id: String, start: Long? = null, file: String? = null, audio: Int? = null, sub: Int? = null) =
+    open(watchRoute(id, start, file, audio, sub))
+
+/**
+ * Navigates from a tap. Only the screen on top that has finished opening may navigate, so a
+ * double tap (or a tap during the transition) does not open the same screen twice.
+ */
+fun NavHostController.open(route: String, builder: NavOptionsBuilder.() -> Unit = {}) {
+    if (currentBackStackEntry?.lifecycle?.currentState?.isAtLeast(Lifecycle.State.RESUMED) == false) return
+    navigate(route, builder)
 }
 
 private const val RAIL = 84

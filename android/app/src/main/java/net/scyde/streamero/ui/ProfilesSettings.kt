@@ -23,6 +23,23 @@ import kotlinx.coroutines.launch
 import net.scyde.streamero.AppState
 import net.scyde.streamero.R
 import net.scyde.streamero.api.*
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
+/**
+ * The picture chosen for an avatar, read off the main thread. One larger than the server takes
+ * fails here with the server's own error, before a single byte is uploaded.
+ */
+internal suspend fun readPicture(ctx: android.content.Context, uri: Uri): ByteArray = withContext(Dispatchers.IO) {
+    val input = ctx.contentResolver.openInputStream(uri) ?: throw ApiException(0, "invalid_image", "unreadable")
+    input.use { readLimited(it, MAX_AVATAR_BYTES) } ?: throw ApiException(413, "image_too_large", "too large")
+}
+
 
 /** What the profile form holds; [id] null for a new profile. */
 private data class ProfileForm(
@@ -48,7 +65,8 @@ fun ProfilesPage(state: AppState) {
     val pick = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         val id = avatarFor
         if (uri != null && id != null) scope.launch {
-            runCatching { api.uploadAvatar(ctx.contentResolver.openInputStream(uri)!!.use { it.readBytes() }, id) }.onFailure { error = it }
+            error = null
+            attempt { api.uploadAvatar(readPicture(ctx, uri), id) }.onFailure { error = it }
             tick++
         }
     }
@@ -56,7 +74,7 @@ fun ProfilesPage(state: AppState) {
     ErrorLine(loadError ?: error)
     deleting?.let { p ->
         ConfirmDialog(stringResource(R.string.profile_delete_confirm, p.name), stringResource(R.string.delete), { deleting = null }) {
-            scope.launch { runCatching { api.deleteProfile(p.id) }.onFailure { error = it }; tick++; state.refreshMe() }
+            scope.launch { attempt { api.deleteProfile(p.id) }.onFailure { error = it }; tick++; state.refreshMe() }
         }
     }
     if (profiles == null && loadError == null) Loading()
@@ -81,16 +99,18 @@ fun ProfilesPage(state: AppState) {
                 // A TV has no photo picker: pictures are changed from a phone or the web.
                 if (!tv) GlassButton(stringResource(R.string.change_picture), { avatarFor = p.id; pick.launch("image/*") })
                 if (!tv && p.hasAvatar) DangerAction(stringResource(R.string.remove_picture)) {
-                    scope.launch { runCatching { api.removeAvatar(p.id) }.onFailure { error = it }; tick++ }
+                    scope.launch { attempt { api.removeAvatar(p.id) }.onFailure { error = it }; tick++ }
                 }
                 DangerAction(stringResource(R.string.delete)) { deleting = p }
             }
-            if (editing?.id == p.id) ProfileEditor(editing!!, busy, { editing = it }, { editing = null }) { f ->
+            val edit = editing
+            if (edit != null && edit.id == p.id) ProfileEditor(edit, busy, { editing = it }, { editing = null }) { f ->
                 busy = true; error = null
                 scope.launch {
-                    runCatching { api.updateProfile(p.id, profileInput(f.name, f.color, f.isKid, f.maxRating, f.pin, f.removePin)) }
-                        .onSuccess { editing = null; tick++; state.refreshMe() }.onFailure { error = it }
-                    busy = false
+                    try {
+                        attempt { api.updateProfile(p.id, profileInput(f.name, f.color, f.isKid, f.maxRating, f.pin, f.removePin)) }
+                            .onSuccess { editing = null; tick++; state.refreshMe() }.onFailure { error = it }
+                    } finally { busy = false }
                 }
             }
         }
@@ -102,9 +122,10 @@ fun ProfilesPage(state: AppState) {
             ProfileEditor(form, busy, { editing = it }, { editing = null }) { f ->
                 busy = true; error = null
                 scope.launch {
-                    runCatching { api.createProfile(profileInput(f.name, f.color, f.isKid, f.maxRating, f.pin, false)) }
-                        .onSuccess { editing = null; tick++ }.onFailure { error = it }
-                    busy = false
+                    try {
+                        attempt { api.createProfile(profileInput(f.name, f.color, f.isKid, f.maxRating, f.pin, false)) }
+                            .onSuccess { editing = null; tick++ }.onFailure { error = it }
+                    } finally { busy = false }
                 }
             }
         }
@@ -124,7 +145,8 @@ private fun ProfileEditor(f: ProfileForm, busy: Boolean, onChange: (ProfileForm)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             PROFILE_COLORS.forEach { c ->
                 val selected = c.equals(f.color, ignoreCase = true)
-                Box(Modifier.size(40.dp).focusClickable(RoundedCornerShape(8.dp), scale = 1.12f) { onChange(f.copy(color = c)) }
+                Box(Modifier.size(48.dp).focusClickable(RoundedCornerShape(8.dp), scale = 1.12f) { onChange(f.copy(color = c)) }
+                    .semantics { contentDescription = c; this.selected = selected; role = Role.RadioButton }
                     .then(if (selected) Modifier.border(2.dp, Kino.text, RoundedCornerShape(8.dp)).padding(4.dp) else Modifier)
                     .background(hexColor(c), RoundedCornerShape(6.dp)))
             }

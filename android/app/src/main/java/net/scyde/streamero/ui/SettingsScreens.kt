@@ -12,10 +12,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.res.pluralStringResource
+import net.scyde.streamero.api.webLink
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -55,7 +58,7 @@ private val ADMIN_PAGES = listOf(
     Entry("enhancements", R.string.enhancements, Icons.Outlined.Extension),
     Entry("tasks", R.string.tasks, Icons.Outlined.Checklist),
     Entry("activity", R.string.activity, Icons.Outlined.History),
-    Entry("logs", R.string.logs, Icons.Outlined.Article),
+    Entry("logs", R.string.logs, Icons.AutoMirrored.Outlined.Article),
     Entry("invites", R.string.invites, Icons.Outlined.Mail),
     Entry("apikeys", R.string.api_keys, Icons.Outlined.Key),
     Entry("server", R.string.server, Icons.Outlined.Dns),
@@ -85,28 +88,29 @@ fun MeScreen(state: AppState, nav: NavHostController, onSignedOut: () -> Unit, o
             }
         }
         if (!state.isKid) items(USER_PAGES.filter { !tv || it.page in TV_PAGES }) { e ->
-            SettingsLink(e, Modifier.rememberFocus(mem, e.page, default = e.page == "account")) { nav.navigate("settings/${e.page}") }
+            SettingsLink(e, Modifier.rememberFocus(mem, e.page, default = e.page == "account")) { nav.open("settings/${e.page}") }
         }
         if (!tv && (canDownload(state) || state.offline.store.data.value.entries.isNotEmpty())) item {
-            SettingsLink(Entry("downloads", R.string.downloads, Icons.Outlined.Download)) { nav.navigate("downloads") }
+            SettingsLink(Entry("downloads", R.string.downloads, Icons.Outlined.Download)) { nav.open("downloads") }
         }
         if (canWatchTogether(state)) item {
-            SettingsLink(Entry("together", R.string.watch_together, Icons.Outlined.Groups), Modifier.rememberFocus(mem, "together")) { nav.navigate("together") }
+            SettingsLink(Entry("together", R.string.watch_together, Icons.Outlined.Groups), Modifier.rememberFocus(mem, "together")) { nav.open("together") }
         }
         if (net.scyde.streamero.livetv.canWatchLiveTv(state.me)) item {
-            SettingsLink(Entry("livetv", R.string.livetv, Icons.Outlined.LiveTv), Modifier.rememberFocus(mem, "livetv")) { nav.navigate("livetv") }
+            SettingsLink(Entry("livetv", R.string.livetv, Icons.Outlined.LiveTv), Modifier.rememberFocus(mem, "livetv")) { nav.open("livetv") }
         }
         if (state.isAdmin && tv) item {
             Text(stringResource(R.string.tv_admin_elsewhere), color = Kino.faint, fontSize = 14.sp, modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp))
         }
         if (state.isAdmin && !tv) {
             item { Text(stringResource(R.string.administration).uppercase(), style = Label, color = Kino.faint, modifier = Modifier.padding(start = 20.dp, top = 20.dp, bottom = 6.dp)) }
-            items(ADMIN_PAGES) { e -> SettingsLink(e) { nav.navigate("settings/${e.page}") } }
+            items(ADMIN_PAGES) { e -> SettingsLink(e) { nav.open("settings/${e.page}") } }
         }
         item {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 GlassButton(stringResource(R.string.switch_profile), onSwitchProfile, Modifier.fillMaxWidth().rememberFocus(mem, "profile", default = state.isKid))
-                GlassButton(stringResource(R.string.sign_out), { scope.launch { state.signOut(); onSignedOut() } }, Modifier.fillMaxWidth().rememberFocus(mem, "signout"))
+                // Signed out on this device even when the server cannot be told (offline).
+                GlassButton(stringResource(R.string.sign_out), { scope.launch { attempt { state.signOut() }; onSignedOut() } }, Modifier.fillMaxWidth().rememberFocus(mem, "signout"))
             }
         }
     }
@@ -261,10 +265,14 @@ internal fun <T> SettingsDoc(load: suspend () -> T, save: suspend (T) -> T, cont
     var error by remember { mutableStateOf<Throwable?>(null) }
     var saved by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    LaunchedEffect(Unit) { runCatching { load() }.onSuccess { value = it }.onFailure { error = it } }
+    var busy by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { attempt { load() }.onSuccess { value = it }.onFailure { error = it } }
     val v = value ?: run { if (error == null) Loading() else ErrorLine(error); return }
     content(v) { value = it; saved = false }
-    PrimaryButton(stringResource(R.string.save), { scope.launch { runCatching { save(v) }.onSuccess { value = it; saved = true; error = null }.onFailure { error = it } } }, Modifier.fillMaxWidth())
+    PrimaryButton(stringResource(R.string.save), {
+        busy = true
+        scope.launch { try { attempt { save(v) }.onSuccess { value = it; saved = true; error = null }.onFailure { error = it } } finally { busy = false } }
+    }, Modifier.fillMaxWidth(), enabled = !busy)
     if (saved) Text(stringResource(R.string.saved), color = Kino.success)
     ErrorLine(error)
 }
@@ -289,6 +297,7 @@ internal fun Field(label: String, value: String, onChange: (String) -> Unit, sec
     OutlinedTextField(value, onChange, label = { Text(label) }, supportingText = hint?.let { { Text(it) } }, singleLine = true, enabled = enabled,
         placeholder = placeholder?.let { { Text(it, color = Kino.faint) } },
         visualTransformation = if (secret) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+        keyboardOptions = if (secret) PasswordKeyboard else androidx.compose.foundation.text.KeyboardOptions.Default,
         modifier = Modifier.fillMaxWidth().dpadExit(), shape = CardShape)
 }
 
@@ -303,7 +312,8 @@ private fun AccountPage(state: AppState) {
     var error by remember { mutableStateOf<Throwable?>(null) }
     val pick = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) scope.launch {
-            runCatching { api.uploadAvatar(ctx.contentResolver.openInputStream(uri)!!.use { it.readBytes() }); state.refreshMe() }.onFailure { error = it }
+            error = null
+            attempt { api.uploadAvatar(readPicture(ctx, uri)); state.refreshMe() }.onFailure { error = it }
         }
     }
     // A TV has no photo picker: the picture is changed from a phone or the web.
@@ -312,7 +322,7 @@ private fun AccountPage(state: AppState) {
             Box(Modifier.clickable { pick.launch("image/*") }) { Avatar(me.displayName ?: me.username, "#8A5A3A", if (me.hasAvatar) api.avatarUrl(me.id) + "?v=" + System.identityHashCode(me) else null, 88.dp) }
             Column {
                 TextButton(onClick = { pick.launch("image/*") }) { Text(stringResource(R.string.change_picture)) }
-                if (me.hasAvatar) TextButton(onClick = { scope.launch { runCatching { api.removeAvatar(); state.refreshMe() }.onFailure { error = it } } }) { Text(stringResource(R.string.remove_picture), color = Kino.danger) }
+                if (me.hasAvatar) TextButton(onClick = { scope.launch { attempt { api.removeAvatar(); state.refreshMe() }.onFailure { error = it } } }) { Text(stringResource(R.string.remove_picture), color = Kino.danger) }
             }
         }
         ErrorLine(error)
@@ -401,7 +411,8 @@ private fun HomeSectionsPage(state: AppState) {
 private fun DashboardPage(state: AppState, nav: NavHostController) {
     val api = state.api ?: return
     var tick by remember { mutableIntStateOf(0) }
-    val (d, _, error) = rememberLoad(tick) { api.dashboard() }
+    // Refreshed every 10 s; the last numbers (and a message being typed) stay while it reloads.
+    val (d, error) = rememberReload(tick) { api.dashboard() }
     val scope = rememberCoroutineScope()
     LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(10_000); tick++ } }
     var actionError by remember { mutableStateOf<Throwable?>(null) }
@@ -409,30 +420,30 @@ private fun DashboardPage(state: AppState, nav: NavHostController) {
     val dash = d ?: return Loading()
     Card(stringResource(R.string.now_playing)) {
         if (dash.nowPlaying.isEmpty()) Text(stringResource(R.string.nobody_watching), color = Kino.muted)
-        dash.nowPlaying.forEach { s ->
+        dash.nowPlaying.distinctBy { it.key }.forEach { s -> key(s.key) {
             var msg by remember(s.key) { mutableStateOf("") }
             var confirmStop by remember(s.key) { mutableStateOf(false) }
             Column(Modifier.padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(s.title, color = Kino.text, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { nav.navigate("item/${s.itemId}") })
+                Text(s.title, color = Kino.text, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { nav.open("item/${s.itemId}") })
                 Text("${s.user}${s.profile?.let { " · $it" }.orEmpty()} · ${s.device} · ${label(playMethodRes(s.method), s.method)}${s.reason?.let { " ($it)" }.orEmpty()}", color = Kino.muted, fontSize = 13.sp)
                 if (s.durationMs != null && s.durationMs > 0) ProgressLine((s.positionMs.toFloat() / s.durationMs).coerceIn(0f, 1f))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     OutlinedTextField(msg, { msg = it }, placeholder = { Text(stringResource(R.string.message)) }, singleLine = true, modifier = Modifier.weight(1f), shape = CardShape)
-                    GlassButton(stringResource(R.string.send), { scope.launch { runCatching { api.sendCommand(s.key, SessionCommand("message", msg)) }.onSuccess { msg = "" }.onFailure { actionError = it } } }, enabled = msg.isNotBlank())
+                    GlassButton(stringResource(R.string.send), { val text = msg; scope.launch { attempt { api.sendCommand(s.key, SessionCommand("message", text)) }.onSuccess { msg = "" }.onFailure { actionError = it } } }, enabled = msg.isNotBlank())
                 }
                 val stopped = stringResource(R.string.stopped_by_admin)
                 TextButton(onClick = { confirmStop = true }) { Text(stringResource(R.string.stop_playback), color = Kino.danger) }
                 if (confirmStop) ConfirmDialog(stringResource(R.string.stop_playback_confirm), stringResource(R.string.stop_playback), { confirmStop = false }) {
-                    scope.launch { runCatching { api.sendCommand(s.key, SessionCommand("stop", stopped)) }.onFailure { actionError = it }; tick++ }
+                    scope.launch { attempt { api.sendCommand(s.key, SessionCommand("stop", stopped)) }.onFailure { actionError = it }; tick++ }
                 }
             }
-        }
-        Text(stringResource(R.string.transcodes_now, dash.activeTranscodes), color = Kino.faint, fontSize = 13.sp)
+        } }
+        Text(pluralStringResource(R.plurals.transcodes_now, dash.activeTranscodes, dash.activeTranscodes), color = Kino.faint, fontSize = 13.sp)
     }
     Card(stringResource(R.string.storage)) {
         dash.storage.forEach { s ->
             Text("${label(storageKindRes(s.kind), s.kind)} · ${s.path}", color = Kino.text, fontSize = 14.sp)
-            ProgressLine(1f - s.freeBytes.toFloat() / s.totalBytes.coerceAtLeast(1))
+            ProgressLine(if (s.totalBytes > 0) 1f - s.freeBytes.coerceIn(0, s.totalBytes).toFloat() / s.totalBytes else 0f)
             Text(stringResource(R.string.free_of, s.freeBytes / 1_073_741_824, s.totalBytes / 1_073_741_824), color = Kino.faint, fontSize = 12.sp)
         }
     }
@@ -712,14 +723,23 @@ private fun InvitesPage(state: AppState) {
     var link by remember { mutableStateOf<String?>(null) }
     var err by remember { mutableStateOf<Throwable?>(null) }
     var deleting by remember { mutableStateOf<Invite?>(null) }
+    var creating by remember { mutableStateOf(false) }
     ErrorLine(error ?: err)
     deleting?.let { i ->
         ConfirmDialog(stringResource(R.string.delete_invite_confirm), stringResource(R.string.delete), { deleting = null }) {
             scope.launch { runCatching { api.deleteInvite(i.id) }.onFailure { err = it }; tick++ }
         }
     }
-    PrimaryButton(stringResource(R.string.create_invite), { scope.launch { err = null; runCatching { api.createInvite(CreateInvite(72, 1)) }.onSuccess { link = api.base.resolve("/invite/${it.token}").toString(); tick++ }.onFailure { err = it } } }, Modifier.fillMaxWidth())
-    link?.let { androidx.compose.foundation.text.selection.SelectionContainer { Text(it, color = Kino.text) } }
+    PrimaryButton(stringResource(R.string.create_invite), {
+        creating = true; err = null
+        scope.launch {
+            // Under the server's own path, so a server behind a prefix (/streamero) gets a working link.
+            try { attempt { api.createInvite(CreateInvite(72, 1)) }.onSuccess { link = webLink(api.base.toString(), "invite", it.token); tick++ }.onFailure { err = it } }
+            finally { creating = false }
+        }
+    }, Modifier.fillMaxWidth(), enabled = !creating)
+    // Whoever has the link can make an account: kept out of screenshots, hidden in clipboard previews.
+    link?.let { CopyableText(it, sensitive = true) }
     invites?.forEach { i ->
         Card(i.note.ifBlank { i.id.take(8) }) {
             Text("${i.uses}/${i.maxUses} · ${i.expiresAt.take(16).replace('T', ' ')}", color = Kino.muted, fontSize = 13.sp)
@@ -738,6 +758,7 @@ private fun ApiKeysPage(state: AppState) {
     var created by remember { mutableStateOf<String?>(null) }
     var err by remember { mutableStateOf<Throwable?>(null) }
     var deleting by remember { mutableStateOf<ApiKey?>(null) }
+    var creating by remember { mutableStateOf(false) }
     ErrorLine(error ?: err)
     deleting?.let { k ->
         ConfirmDialog(stringResource(R.string.delete_api_key_confirm, k.name), stringResource(R.string.delete), { deleting = null }) {
@@ -746,8 +767,16 @@ private fun ApiKeysPage(state: AppState) {
     }
     Card(stringResource(R.string.create_api_key)) {
         Field(stringResource(R.string.name), name, { name = it })
-        PrimaryButton(stringResource(R.string.create_api_key), { scope.launch { err = null; runCatching { api.createApiKey(name) }.onSuccess { created = it.key; name = ""; tick++ }.onFailure { err = it } } }, Modifier.fillMaxWidth(), enabled = name.isNotBlank())
-        created?.let { androidx.compose.foundation.text.selection.SelectionContainer { Text(it, color = Kino.text, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace) } }
+        PrimaryButton(stringResource(R.string.create_api_key), {
+            creating = true; err = null
+            val keyName = name.trim()
+            scope.launch {
+                try { attempt { api.createApiKey(keyName) }.onSuccess { created = it.key; name = ""; tick++ }.onFailure { err = it } }
+                finally { creating = false }
+            }
+        }, Modifier.fillMaxWidth(), enabled = name.isNotBlank() && !creating)
+        // Shown once: kept out of screenshots and hidden in clipboard previews.
+        created?.let { CopyableText(it, sensitive = true) }
     }
     keys?.forEach { k ->
         Card(k.name) {
@@ -792,8 +821,8 @@ private fun QuickConnectPage(state: AppState) {
     PrimaryButton(stringResource(R.string.qc_approve), enabled = !busy && code.length == 6, modifier = Modifier.fillMaxWidth(), onClick = {
         busy = true; error = null
         scope.launch {
-            runCatching { api.quickConnectAuthorize(code) }.onSuccess { approved = it.deviceName; code = "" }.onFailure { error = it }
-            busy = false
+            try { attempt { api.quickConnectAuthorize(code) }.onSuccess { approved = it.deviceName; code = "" }.onFailure { error = it } }
+            finally { busy = false }
         }
     })
     approved?.let { Text(stringResource(R.string.qc_approved_device, it), color = Kino.success) }

@@ -15,6 +15,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.ImageBitmap
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -45,9 +48,12 @@ fun TwoFactorCard(state: AppState) {
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<Throwable?>(null) }
     fun act(block: suspend () -> Unit) {
+        if (busy) return
         busy = true; error = null
-        scope.launch { runCatching { block() }.onFailure { error = it }; busy = false }
+        scope.launch { try { attempt { block() }.onFailure { error = it } } finally { busy = false } }
     }
+    // The authenticator secret and the recovery codes stay out of screenshots and the recents thumbnail.
+    if (recovery != null || setup != null) SecureScreen()
     Card(stringResource(R.string.twofa_title)) {
         Pill(stringResource(if (me.totpEnabled) R.string.twofa_on else R.string.twofa_off), if (me.totpEnabled) Kino.success else Kino.muted)
         recovery?.let { codes ->
@@ -58,7 +64,7 @@ fun TwoFactorCard(state: AppState) {
                     Row { row.forEach { Text(it, color = Kino.text, fontFamily = FontFamily.Monospace, fontSize = 15.sp, modifier = Modifier.weight(1f)) } }
                 }
                 Actions {
-                    GlassButton(stringResource(R.string.copy), { copyText(ctx, codes.joinToString("\n")) })
+                    GlassButton(stringResource(R.string.copy), { copyText(ctx, codes.joinToString("\n"), sensitive = true) })
                     GlassButton(stringResource(R.string.done), { recovery = null })
                 }
             }
@@ -69,7 +75,8 @@ fun TwoFactorCard(state: AppState) {
                 Intro(stringResource(R.string.twofa_enabled_text))
                 Field(stringResource(R.string.password), password, { password = it }, secret = true)
                 PrimaryButton(stringResource(R.string.twofa_disable), enabled = !busy && password.isNotEmpty(), onClick = {
-                    act { api.disableTotp(password); password = ""; state.refreshMe() }
+                    val typed = password
+                    act { api.disableTotp(typed); password = ""; state.refreshMe() }
                 })
             }
             s == null -> {
@@ -78,12 +85,17 @@ fun TwoFactorCard(state: AppState) {
             }
             else -> {
                 Text(stringResource(R.string.twofa_step1), color = Kino.text, fontSize = 14.sp)
-                val qr = remember(s.qrPng) {
-                    runCatching { Base64.decode(s.qrPng, Base64.DEFAULT).let { BitmapFactory.decodeByteArray(it, 0, it.size) }?.asImageBitmap() }.getOrNull()
+                // Decoded off the main thread; a broken image just leaves the link and the key.
+                var qr by remember(s.qrPng) { mutableStateOf<ImageBitmap?>(null) }
+                LaunchedEffect(s.qrPng) {
+                    qr = withContext(Dispatchers.Default) {
+                        runCatching { Base64.decode(s.qrPng, Base64.DEFAULT).let { BitmapFactory.decodeByteArray(it, 0, it.size) }?.asImageBitmap() }.getOrNull()
+                    }
                 }
+                val qrImage = qr
                 // White quiet zone so every scanner reads it on the dark theme.
-                if (qr != null) Box(Modifier.align(Alignment.CenterHorizontally).background(Color.White, RoundedCornerShape(8.dp)).padding(10.dp)) {
-                    Image(qr, stringResource(R.string.twofa_qr_alt), Modifier.size(200.dp), filterQuality = FilterQuality.None)
+                if (qrImage != null) Box(Modifier.align(Alignment.CenterHorizontally).background(Color.White, RoundedCornerShape(8.dp)).padding(10.dp)) {
+                    Image(qrImage, stringResource(R.string.twofa_qr_alt), Modifier.size(200.dp), filterQuality = FilterQuality.None)
                 }
                 val otp = remember(s.otpauthUri) { parseOtpAuth(s.otpauthUri) }
                 if (otp != null) Text(listOfNotNull(otp.issuer, otp.account.ifBlank { null }).joinToString(" · "), color = Kino.faint, fontSize = 13.sp)
@@ -92,8 +104,8 @@ fun TwoFactorCard(state: AppState) {
                         .onFailure { error = ApiException(0, "no_authenticator", "") }
                 }, Modifier.fillMaxWidth())
                 Text(stringResource(R.string.twofa_manual), color = Kino.muted, fontSize = 13.sp)
-                CopyableText(s.secret, groupSecret(s.secret))
-                OutlinedTextField(code, { code = cleanTotpCode(it).take(8) }, label = { Text(stringResource(R.string.twofa_code)) }, singleLine = true,
+                CopyableText(s.secret, groupSecret(s.secret), sensitive = true)
+                OutlinedTextField(code, { v -> code = v.filter { it in '0'..'9' }.take(8) }, label = { Text(stringResource(R.string.twofa_code)) }, singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                     modifier = Modifier.fillMaxWidth().dpadExit(), shape = CardShape)
                 Actions {

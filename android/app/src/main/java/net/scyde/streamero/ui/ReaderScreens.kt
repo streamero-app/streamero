@@ -1,6 +1,5 @@
 package net.scyde.streamero.ui
 
-import android.app.Activity
 import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
@@ -72,7 +71,8 @@ import java.io.File
 fun Immersive() {
     val ctx = LocalContext.current
     DisposableEffect(Unit) {
-        val act = ctx as? Activity
+        // The context can be a wrapper (a per-app language), so look for the activity behind it.
+        val act = ctx.findActivity()
         val ctl = act?.let { WindowCompat.getInsetsController(it.window, it.window.decorView) }
         act?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         ctl?.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -132,7 +132,7 @@ fun Zoomable(active: Boolean, onZoomed: (Boolean) -> Unit, onTap: (Float, Float)
 @Composable
 fun ReaderScreen(state: AppState, nav: NavHostController, id: String) {
     val api = state.api ?: return
-    val (data, loading, error) = rememberLoad(id) { api.openBook(id) to runCatching { api.item(id).item.title }.getOrDefault("") }
+    val (data, loading, error) = rememberLoad(id) { api.openBook(id) to attempt { api.item(id).item.title }.getOrDefault("") }
     Immersive()
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         val (m, title) = data ?: run {
@@ -232,14 +232,22 @@ private fun ComicReader(state: AppState, nav: NavHostController, id: String, tit
 /** Downloads a book to the app cache once (the newest few are kept) and returns the file. */
 private suspend fun cachedBook(api: Api, ctx: android.content.Context, id: String, url: String, ext: String): File = withContext(Dispatchers.IO) {
     val dir = File(ctx.cacheDir, "books").apply { mkdirs() }
-    val file = File(dir, "$id.$ext")
+    // The id comes from the server and the route: only a plain name may become a file name.
+    val name = safeFileName(id)
+    val file = File(dir, "$name.$ext")
     if (file.length() > 0) { file.setLastModified(System.currentTimeMillis()); return@withContext file }
-    val tmp = File(dir, "$id.$ext.part")
-    api.http.newCall(Request.Builder().url(api.resolve(url)).build()).execute().use { resp ->
-        if (!resp.isSuccessful) throw net.scyde.streamero.api.ApiException(resp.code, "generic", "HTTP ${resp.code}")
-        tmp.outputStream().use { out -> resp.body!!.byteStream().copyTo(out) }
+    val tmp = File(dir, "$name.$ext.part")
+    try {
+        api.http.newCall(Request.Builder().url(api.resolve(url)).build()).execute().use { resp ->
+            if (!resp.isSuccessful) throw net.scyde.streamero.api.ApiException(resp.code, "generic", "HTTP ${resp.code}")
+            val body = resp.body ?: throw net.scyde.streamero.api.ApiException(resp.code, "generic", "empty")
+            tmp.outputStream().use { out -> body.byteStream().copyTo(out) }
+        }
+        if (!tmp.renameTo(file)) throw java.io.IOException("cannot keep $name")
+    } finally {
+        // A broken download (no connection, full disk) leaves no half file behind.
+        tmp.delete()
     }
-    tmp.renameTo(file)
     dir.listFiles()?.filter { it.name != file.name }?.sortedByDescending { it.lastModified() }?.drop(4)?.forEach { it.delete() }
     file
 }

@@ -138,7 +138,7 @@ fun BackupsPage(state: AppState) {
         val name = saving
         if (uri != null && name != null) scope.launch {
             savedFile = false
-            runCatching { ctx.contentResolver.openOutputStream(uri)!!.use { api.downloadBackup(name, it) } }.onSuccess { savedFile = true }.onFailure { error = it }
+            attempt { (ctx.contentResolver.openOutputStream(uri) ?: throw ApiException(0, "generic", "no output")).use { api.downloadBackup(name, it) } }.onSuccess { savedFile = true }.onFailure { error = it }
         }
     }
     Intro(stringResource(R.string.backups_intro))

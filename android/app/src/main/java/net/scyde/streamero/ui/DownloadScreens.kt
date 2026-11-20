@@ -125,7 +125,7 @@ fun ItemDownloads(state: AppState, nav: androidx.navigation.NavHostController, d
     fun start(itemId: String, q: String) {
         ask()
         error = null
-        scope.launch { runCatching { offline.request(api, DownloadRequest(itemId, q, fileId = fileId.takeIf { itemId == d.item.id })) }.onFailure { error = it } }
+        scope.launch { attempt { offline.request(api, DownloadRequest(itemId, q, fileId = fileId.takeIf { itemId == d.item.id })) }.onFailure { error = it } }
     }
     fun choose(itemId: String) { if (qualities.size == 1) start(itemId, qualities[0]) else pickFor = itemId }
 
@@ -134,8 +134,8 @@ fun ItemDownloads(state: AppState, nav: androidx.navigation.NavHostController, d
             (kind == "movie" || kind == "episode") && d.files.isNotEmpty() -> {
                 val e = data.entry(d.item.id)
                 if (e == null) GlassButton(stringResource(R.string.download), { choose(d.item.id) }, Modifier.fillMaxWidth(), icon = Icons.Outlined.Download)
-                else DownloadStateCard(e, onPlay = { nav.navigate("offline/${e.itemId}") }, onRetry = { scope.launch { offline.retry(e.itemId) } },
-                    onDelete = { scope.launch { offline.delete(listOf(e.itemId)) } })
+                else DownloadStateCard(e, onPlay = { nav.open("offline/${e.itemId}") }, onRetry = { scope.launch { attempt { offline.retry(e.itemId) } } },
+                    onDelete = { scope.launch { attempt { offline.delete(listOf(e.itemId)) } } })
             }
             kind == "season" -> GlassButton(stringResource(R.string.download_this_season), { choose(d.item.id) }, Modifier.fillMaxWidth(), icon = Icons.Outlined.Download)
             kind == "series" -> {
@@ -145,7 +145,7 @@ fun ItemDownloads(state: AppState, nav: androidx.navigation.NavHostController, d
                 if (sub == null) GlassButton(stringResource(R.string.download_auto), { auto = true }, Modifier.fillMaxWidth(), icon = Icons.Outlined.Refresh)
                 else Row(Modifier.fillMaxWidth().clip(CardShape).background(Kino.surface).padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(pluralStringResource(R.plurals.download_auto_active, sub.count, sub.count), color = Kino.text, fontSize = 14.sp, modifier = Modifier.weight(1f))
-                    TextButton(onClick = { scope.launch { offline.unsubscribe(sub.seriesId) } }) { Text(stringResource(R.string.download_auto_stop), color = Kino.muted) }
+                    TextButton(onClick = { scope.launch { attempt { offline.unsubscribe(sub.seriesId) } } }) { Text(stringResource(R.string.download_auto_stop), color = Kino.muted) }
                 }
             }
         }
@@ -161,7 +161,7 @@ fun ItemDownloads(state: AppState, nav: androidx.navigation.NavHostController, d
         auto = false
         ask()
         error = null
-        scope.launch { runCatching { offline.subscribe(api, d.item.id, d.item.title, n, q) }.onFailure { error = it } }
+        scope.launch { attempt { offline.subscribe(api, d.item.id, d.item.title, n, q) }.onFailure { error = it } }
     }
 }
 
@@ -234,9 +234,9 @@ fun DownloadsScreen(state: AppState, onPlay: (String) -> Unit, banner: (@Composa
                 Text(stringResource(R.string.downloads), style = Display.copy(fontSize = 34.sp), color = Kino.text)
                 banner?.invoke()
                 Text(stringResource(R.string.downloads_total, Storage.format(Storage.totalBytes(data.entries))), color = Kino.muted, fontSize = 14.sp)
-                Row(Modifier.fillMaxWidth().clickable { scope.launch { offline.setWifiOnly(!data.wifiOnly) } }.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth().clickable { scope.launch { attempt { offline.setWifiOnly(!data.wifiOnly) } } }.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.downloads_wifi_only), color = Kino.text, fontSize = 15.sp, modifier = Modifier.weight(1f))
-                    Switch(data.wifiOnly, { on -> scope.launch { offline.setWifiOnly(on) } },
+                    Switch(data.wifiOnly, { on -> scope.launch { attempt { offline.setWifiOnly(on) } } },
                         colors = SwitchDefaults.colors(checkedThumbColor = Kino.bg, checkedTrackColor = Kino.text))
                 }
             }
@@ -249,7 +249,7 @@ fun DownloadsScreen(state: AppState, onPlay: (String) -> Unit, banner: (@Composa
                         Text(s.title, color = Kino.text, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(pluralStringResource(R.plurals.download_next_episodes, s.count, s.count) + " · " + qualityLabel(s.quality), color = Kino.faint, fontSize = 13.sp)
                     }
-                    TextButton(onClick = { scope.launch { offline.unsubscribe(s.seriesId) } }) { Text(stringResource(R.string.remove), color = Kino.muted) }
+                    TextButton(onClick = { scope.launch { attempt { offline.unsubscribe(s.seriesId) } } }) { Text(stringResource(R.string.remove), color = Kino.muted) }
                 }
             }
         }
@@ -259,7 +259,7 @@ fun DownloadsScreen(state: AppState, onPlay: (String) -> Unit, banner: (@Composa
         groups.forEach { g ->
             item(key = g.key) {
                 if (g.series == null && g.entries.size == 1 && g.entries[0].item.kind != "episode") OfflineRow(store.file(g.entries[0].poster), g.entries[0], g.entries[0].item.title,
-                    listOfNotNull(g.entries[0].item.year?.toString()), poster = true, onPlay = onPlay, onDelete = { scope.launch { offline.delete(listOf(it)) } })
+                    listOfNotNull(g.entries[0].item.year?.toString()), poster = true, onPlay = onPlay, onDelete = { scope.launch { attempt { offline.delete(listOf(it)) } } })
                 else SeriesGroup(state, g, onPlay)
             }
         }
@@ -269,7 +269,7 @@ fun DownloadsScreen(state: AppState, onPlay: (String) -> Unit, banner: (@Composa
     }
     if (confirmAll) AlertDialog(onDismissRequest = { confirmAll = false }, containerColor = Kino.surface,
         text = { Text(stringResource(R.string.downloads_delete_all_confirm), color = Kino.text) },
-        confirmButton = { TextButton(onClick = { confirmAll = false; scope.launch { offline.deleteAll() } }) { Text(stringResource(R.string.remove), color = Kino.danger) } },
+        confirmButton = { TextButton(onClick = { confirmAll = false; scope.launch { attempt { offline.deleteAll() } } }) { Text(stringResource(R.string.remove), color = Kino.danger) } },
         dismissButton = { TextButton(onClick = { confirmAll = false }) { Text(stringResource(R.string.cancel), color = Kino.muted) } })
 }
 
@@ -290,7 +290,7 @@ private fun SeriesGroup(state: AppState, g: OfflineGroup, onPlay: (String) -> Un
         g.entries.forEach { e ->
             val code = listOfNotNull(e.item.seasonNumber?.let { "S$it" }, e.item.episodeNumber?.let { "E$it" }).joinToString(":")
             OfflineRow(offline.store.file(e.poster), e, listOf(code, e.item.title).filter { it.isNotBlank() }.joinToString(" · "), emptyList(), poster = false,
-                onPlay = onPlay, onDelete = { scope.launch { offline.delete(listOf(it)) } })
+                onPlay = onPlay, onDelete = { scope.launch { attempt { offline.delete(listOf(it)) } } })
         }
     }
 }
@@ -354,12 +354,22 @@ fun OfflinePlayerScreen(state: AppState, itemId: String, onClose: () -> Unit) {
     DisposableEffect(itemId) {
         val act = ctx.findActivity()
         state.music.pause()
-        act?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        state.book.pause()
         val ctl = act?.let { WindowCompat.getInsetsController(it.window, it.window.decorView) }
         ctl?.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         ctl?.hide(WindowInsetsCompat.Type.systemBars())
-        // A local file that does not play will not play better on a retry: say so instead of a black screen.
-        val l = object : Player.Listener { override fun onPlayerError(e: PlaybackException) { error = e } }
+        val l = object : Player.Listener {
+            // A local file that does not play will not play better on a retry: say so instead of a black screen.
+            override fun onPlayerError(e: PlaybackException) { error = e }
+            // A pause (or leaving the app, which pauses) is saved at once, not at the next tick.
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                if (!isPlaying && player.playbackState == Player.STATE_READY) {
+                    val pos = player.currentPosition
+                    val dur = duration()
+                    scope.launch { attempt { offline.recordPlayback(itemId, pos, dur) } }
+                }
+            }
+        }
         player.addListener(l)
         val subs = entry.subtitles.mapNotNull { s ->
             offline.store.file(s.file)?.takeIf { it.exists() }?.let { f ->
@@ -374,7 +384,6 @@ fun OfflinePlayerScreen(state: AppState, itemId: String, onClose: () -> Unit) {
         onDispose {
             offline.finishPlayback(itemId, player.currentPosition, duration())
             ctl?.show(WindowInsetsCompat.Type.systemBars())
-            act?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             player.removeListener(l)
             player.release()
         }
@@ -386,8 +395,13 @@ fun OfflinePlayerScreen(state: AppState, itemId: String, onClose: () -> Unit) {
             delay(5000)
             if (player.isPlaying) {
                 tick++
-                offline.recordPlayback(itemId, player.currentPosition, duration())
-                if (tick % 3 == 0) scope.launch { offline.reportOnline(itemId, player.currentPosition, duration()) }
+                // A full disk must not close the player.
+                attempt { offline.recordPlayback(itemId, player.currentPosition, duration()) }
+                if (tick % 3 == 0) {
+                    val pos = player.currentPosition
+                    val dur = duration()
+                    scope.launch { attempt { offline.reportOnline(itemId, pos, dur) } }
+                }
             }
         }
     }
