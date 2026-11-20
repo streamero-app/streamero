@@ -5,7 +5,7 @@ import { mockApi, renderApp, testUser } from "@/test-utils";
 
 afterEach(() => vi.unstubAllGlobals());
 
-const lib = { id: "0190a8b0-0000-7000-8000-00000000aaaa", name: "Filmovi", kind: "movies", paths: ["/media/movies"], itemCount: 2,
+const lib = { id: "0190a8b0-0000-7000-8000-00000000aaaa", name: "Filmovi", kind: "movies", paths: ["/media/movies"], itemCount: 1,
   scan: { state: "idle", filesSeen: 3 } };
 const movie = { id: "0190a8b0-0000-7000-8000-00000000bbbb", kind: "movie", title: "Big Test Movie", year: 2021, addedAt: new Date().toISOString(), hasPoster: false };
 

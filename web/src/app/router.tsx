@@ -12,7 +12,7 @@ import { HomePage } from "@/routes/HomePage";
 import { LoginPage } from "@/routes/LoginPage";
 import { SetupPage } from "@/routes/SetupPage";
 import { InvitePage } from "@/routes/InvitePage";
-import { ItemPage, LibrariesPage, LibraryPage, MyListPage } from "@/features/library/LibraryPages";
+import { ItemPage, LibrariesPage, LibraryPage, MyListPage, validateLibrarySearch } from "@/features/library/LibraryPages";
 import { ProfileGatePage } from "@/features/profiles/ProfileSwitcher";
 import { SearchPage } from "@/features/library/SearchPage";
 import { NotFoundPage } from "@/routes/NotFoundPage";
@@ -97,7 +97,9 @@ const whoRoute = createRoute({ getParentRoute: () => rootRoute, path: "/who", co
 // Everything below requires a signed-in user (AppShell redirects otherwise).
 const appRoute = createRoute({ getParentRoute: () => rootRoute, id: "app", component: AppShell });
 const homeRoute = createRoute({ getParentRoute: () => appRoute, path: "/", component: HomePage });
-const libraryRoute = createRoute({ getParentRoute: () => appRoute, path: "/library/$libraryId", component: LibraryPage });
+const libraryRoute = createRoute({
+  getParentRoute: () => appRoute, path: "/library/$libraryId", component: LibraryPage, validateSearch: validateLibrarySearch,
+});
 const itemRoute = createRoute({ getParentRoute: () => appRoute, path: "/item/$itemId", component: ItemPage });
 const collectionsRoute = createRoute({ getParentRoute: () => appRoute, path: "/collections", component: CollectionsPage });
 const collectionRoute = createRoute({ getParentRoute: () => appRoute, path: "/collection/$collectionId", component: CollectionPage });

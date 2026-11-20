@@ -1,8 +1,10 @@
-import { Fragment, lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
+import { Fragment, lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { OnNowRow } from "@/features/livetv/OnNowRow";
 import { HOME_SECTIONS, type HomeSection } from "@/features/settings/usePreferences";
 import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useParams } from "@tanstack/react-router";
+import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
+import { useLoadMoreWhenVisible, useWindowedGrid } from "@/components/useWindowedGrid";
+import { onTablistKeyDown } from "@/components/tabs";
 import { useTranslation } from "react-i18next";
 import { Check, Info, LayoutGrid, List, Play, Plus, RotateCcw, Shuffle, Volume2, VolumeX, X } from "lucide-react";
 import { useEnhancements, useSurprise } from "@/features/enhancements/useEnhancements";
@@ -28,6 +30,9 @@ import { Art, Badge, Button, ErrorText, IconButton, Select, Spinner, buttonVaria
 import { canAdminister, useMe } from "@/features/auth/useAuth";
 import { channelsLabel, formatDuration, formatSize, imageUrl, placeholderHue, resolutionLabel, type ItemSummary, type Library } from "./format";
 import { AddToMenu, CollectionCard, useCollections } from "./collections";
+import { invalidateUserData } from "./userData";
+import { releaseMedia } from "@/features/player/playback";
+import { safeHref } from "@/lib/safeUrl";
 import { MetadataMenu } from "./MetadataEditor";
 import { ArtFallback, ItemCard, PortraitArt, ProgressBar, RankCard, Row, RowSkeleton, TitleArt, TitleCard, isPlayable, posterCard, progressOf, rowCard } from "./cards";
 import { WatchTogetherButton } from "@/features/syncplay/WatchTogether";
@@ -95,8 +100,8 @@ function PreviewVideo({ detail }: { detail?: ItemDetail }) {
   const [src, setSrc] = useState<{ url: string; startMs: number } | null>(null);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(true);
-  const file = detail?.files[0];
-  const itemId = detail?.item.id;
+  const file = detail?.files?.[0];
+  const itemId = detail?.item?.id;
   useEffect(() => {
     setSrc(null);
     setPlaying(false);
@@ -104,13 +109,15 @@ function PreviewVideo({ detail }: { detail?: ItemDetail }) {
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     if ((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData) return;
     let cancelled = false;
-    const timer = window.setTimeout(async () => {
+    const timer = window.setTimeout(() => {
       const startMs = Math.round((file.durationMs ?? 0) * 0.18);
-      const res = await api.POST("/items/{itemId}/playback", {
+      // A preview is decoration: when it cannot start, the still simply stays.
+      void api.POST("/items/{itemId}/playback", {
         params: { path: { itemId } },
         body: { startMs, device: { containers: [file.container], videoCodecs: [file.videoCodec!], audioCodecs: (file.audio ?? []).map((a) => a.codec), hls: false } },
-      });
-      if (!cancelled && res.data?.method === "direct") setSrc({ url: res.data.url, startMs });
+      }).then((res) => {
+        if (!cancelled && res.data?.method === "direct") setSrc({ url: res.data.url, startMs });
+      }, () => undefined);
     }, 2200);
     return () => { cancelled = true; window.clearTimeout(timer); };
   }, [itemId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -119,7 +126,11 @@ function PreviewVideo({ detail }: { detail?: ItemDetail }) {
     if (!v || !src || typeof IntersectionObserver === "undefined") return;
     const io = new IntersectionObserver(([e]) => { if (e && !e.isIntersecting) v.pause(); else if (e?.isIntersecting && !v.ended) void v.play().catch(() => undefined); }, { threshold: 0.3 });
     io.observe(v);
-    return () => io.disconnect();
+    return () => {
+      io.disconnect();
+      // The page or the title changed: stop the download, not just the picture.
+      releaseMedia(v);
+    };
   }, [src]);
   if (!src) return null;
   return (
@@ -163,13 +174,13 @@ function Screen({ item, detail, still = false, children, className = "", testId 
 /** Year, length, rating and picture as one quiet line of text. */
 function Facts({ item, detail, className = "" }: { item: ItemSummary; detail?: ItemDetail; className?: string }) {
   const { t } = useTranslation();
-  const file = detail?.files[0];
+  const file = detail?.files?.[0];
   const res = resolutionLabel(file?.width, file?.height);
   const parts: ReactNode[] = [];
   if (item.rating) parts.push(<span key="r" className="font-semibold text-text">★ {item.rating.toFixed(1)}</span>);
   if (item.year) parts.push(<span key="y">{item.year}</span>);
   parts.push(<span key="d">{item.durationMs ? formatDuration(item.durationMs) : t(`library.kind_${item.kind}`)}</span>);
-  if (detail?.genres[0]) parts.push(<span key="g">{detail.genres.slice(0, 2).join(", ")}</span>);
+  if (detail?.genres?.[0]) parts.push(<span key="g">{detail.genres.slice(0, 2).join(", ")}</span>);
   if (detail?.officialRating) parts.push(<span key="o" className="rounded-[3px] px-1.5 ring-1 ring-text/40">{detail.officialRating}</span>);
   if (res) parts.push(<span key="q" className="font-semibold text-text">{res === "4K" ? "4K" : "HD"}</span>);
   if (file?.hdr) parts.push(<span key="h" className="font-semibold text-text">{file.hdr}</span>);
@@ -459,7 +470,27 @@ export function MyListPage() {
 
 type LibTab = "all" | "suggested" | "genres" | "collections" | "favorites";
 type Status = "" | "unplayed" | "resumable" | "favorite";
+type Sort = "title" | "year" | "added" | "rating";
 const LETTERS = ["#", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
+const TABS: LibTab[] = ["all", "suggested", "genres", "collections", "favorites"];
+const SORTS: Sort[] = ["added", "title", "year", "rating"];
+const STATUSES: Status[] = ["unplayed", "resumable", "favorite"];
+
+/** What a library page shows, kept in the address so back, forward and shared links keep it. */
+export type LibrarySearch = { tab?: LibTab; sort?: Sort; genre?: string; status?: Exclude<Status, "">; decade?: number; letter?: string };
+
+/** Reads the library page's address; anything unknown is dropped. */
+export function validateLibrarySearch(s: Record<string, unknown>): LibrarySearch {
+  const out: LibrarySearch = {};
+  if (TABS.includes(s.tab as LibTab) && s.tab !== "all") out.tab = s.tab as LibTab;
+  if (SORTS.includes(s.sort as Sort) && s.sort !== "added") out.sort = s.sort as Sort;
+  if (typeof s.genre === "string" && s.genre.trim() && s.genre.length <= 100) out.genre = s.genre;
+  if (STATUSES.includes(s.status as Status)) out.status = s.status as Exclude<Status, "">;
+  const decade = Number(s.decade);
+  if (Number.isInteger(decade) && decade >= 1880 && decade <= 2100 && decade % 10 === 0) out.decade = decade;
+  if (typeof s.letter === "string" && LETTERS.includes(s.letter)) out.letter = s.letter;
+  return out;
+}
 
 /** Recommendations inside one library: what is started, newest, best rated, and by genre. */
 function LibrarySuggestions({ library }: { library: Library }) {
@@ -469,7 +500,7 @@ function LibrarySuggestions({ library }: { library: Library }) {
     queryFn: async () => unwrap(await api.GET("/libraries/{libraryId}/items", { params: { path: { libraryId: library.id }, query: { limit: 20, ...query } } })).items,
   });
   const resume = useQuery(q("resume", { resumable: true, sort: "added" }));
-  const latest = useQuery(q("latest", { sort: "added" }));
+  const latest = useQuery(latestQuery(library.id));
   const unwatched = useQuery(q("unwatched", { unplayed: true, sort: "rating" }));
   return (
     <div className="flex flex-col gap-12">
@@ -551,19 +582,43 @@ function ListRow({ it }: { it: ItemSummary }) {
   );
 }
 
+/** The newest titles of a library (the stage, and the Suggested tab's row share it). */
+function latestQuery(libraryId: string) {
+  return {
+    queryKey: ["row", "latest", libraryId],
+    queryFn: async () => unwrap(await api.GET("/libraries/{libraryId}/items", { params: { path: { libraryId }, query: { limit: 20, sort: "added" as const } } })).items,
+  };
+}
+
+/** A fresh page per library: nothing of the previous library (filters, stage) carries over. */
 export function LibraryPage() {
+  const { libraryId } = useParams({ from: "/app/library/$libraryId" });
+  return <LibraryView key={libraryId} libraryId={libraryId} />;
+}
+
+function LibraryView({ libraryId }: { libraryId: string }) {
   const { t } = useTranslation();
   const enh = useEnhancements();
   const surprise = useSurprise();
-  const { libraryId } = useParams({ from: "/app/library/$libraryId" });
+  const navigate = useNavigate({ from: "/library/$libraryId" });
+  const search = useSearch({ from: "/app/library/$libraryId" });
   const libraries = useLibraries();
   const lib = libraries.data?.find((l) => l.id === libraryId);
-  const [tab, setTab] = useState<LibTab>("all");
-  const [sort, setSort] = useState<"title" | "year" | "added" | "rating">("added");
-  const [genre, setGenre] = useState("");
-  const [status, setStatus] = useState<Status>("");
-  const [decade, setDecade] = useState("");
-  const [letter, setLetter] = useState("");
+  const tab = search.tab ?? "all";
+  const sort = search.sort ?? "added";
+  const genre = search.genre ?? "";
+  const status: Status = search.status ?? "";
+  const decade = search.decade ? String(search.decade) : "";
+  const letter = search.letter ?? "";
+  /** Filters replace the history entry, so Back leaves the library instead of undoing each choice. */
+  const setSearch = (patch: Partial<LibrarySearch>) =>
+    void navigate({ search: (prev: LibrarySearch) => validateLibrarySearch({ ...prev, ...patch }), replace: true, resetScroll: false });
+  const setTab = (v: LibTab) => setSearch({ tab: v });
+  const setSort = (v: Sort) => setSearch({ sort: v });
+  const setGenre = (v: string) => setSearch({ genre: v || undefined });
+  const setStatus = (v: Status) => setSearch({ status: v || undefined });
+  const setDecade = (v: string) => setSearch({ decade: v ? Number(v) : undefined });
+  const setLetter = (v: string) => setSearch({ letter: v || undefined });
   const [view, setView] = useState<"posters" | "list">(() => {
     try { return localStorage.getItem("library-view") === "list" ? "list" : "posters"; } catch { return "posters"; }
   });
@@ -577,7 +632,9 @@ export function LibraryPage() {
   const yearTo = decade ? Number(decade) + 9 : undefined;
   const items = useInfiniteQuery({
     queryKey: ["library-items", libraryId, sort, genre, effectiveStatus, decade, letter],
-    enabled: tab === "all" || tab === "favorites",
+    // Music, book and photo libraries have their own pages and never show this grid
+    // (while the library list is still loading, the grid starts without waiting for it).
+    enabled: (tab === "all" || tab === "favorites") && (!lib || !ownPages.includes(lib.kind)),
     initialPageParam: 0,
     queryFn: async ({ pageParam }) =>
       unwrap(await api.GET("/libraries/{libraryId}/items", {
@@ -592,14 +649,16 @@ export function LibraryPage() {
       return loaded < last.total ? loaded : undefined;
     },
   });
-  const all = items.data?.pages.flatMap((p) => p.items) ?? [];
+  const all = useMemo(() => items.data?.pages.flatMap((p) => p.items) ?? [], [items.data]);
   const total = items.data?.pages[0]?.total;
-  const [pool, setPool] = useState<ItemSummary[]>();
-  const [libTotal, setLibTotal] = useState<number>();
-  // The stage keeps the newest titles even while filters change the grid.
-  useEffect(() => {
-    if (!pool && items.data) { setPool(all.slice(0, 10)); setLibTotal(total); }
-  }, [all, pool, items.data, total]);
+  // The stage always shows the library's newest titles, whatever the grid is filtered to.
+  const latest = useQuery({ ...latestQuery(libraryId), enabled: !!lib && !ownPages.includes(lib.kind) });
+  const pool = latest.data?.slice(0, 10);
+  const libTotal = lib?.itemCount;
+  const grid = useWindowedGrid<HTMLDivElement>(all.length);
+  const list = useWindowedGrid<HTMLUListElement>(all.length);
+  const fetchMore = () => { if (items.hasNextPage && !items.isFetchingNextPage) void items.fetchNextPage(); };
+  const moreRef = useLoadMoreWhenVisible<HTMLButtonElement>(!!items.hasNextPage && !items.isFetchingNextPage && !items.isError, all.length, fetchMore);
   const cols = useCollections();
   const collections = Array.isArray(cols.data) ? cols.data : [];
   const isMusic = lib?.kind === "music";
@@ -626,9 +685,10 @@ export function LibraryPage() {
           {libTotal !== undefined && <span className="pb-1 text-sm text-text/55 tabular">{t("libraries.items", { count: libTotal })}</span>}
         </div>
         <div className="mt-3 -mb-px flex items-center gap-4">
-          <div role="tablist" aria-label={lib?.name} className="shelf-track flex min-w-0 flex-1 gap-6 overflow-x-auto">
+          <div role="tablist" aria-label={lib?.name} onKeyDown={onTablistKeyDown} className="shelf-track flex min-w-0 flex-1 gap-6 overflow-x-auto">
             {tabs.map((x) => (
-              <button key={x.id} type="button" role="tab" aria-selected={tab === x.id} onClick={() => setTab(x.id)} className={tabClass}>{x.label}</button>
+              <button key={x.id} type="button" role="tab" aria-selected={tab === x.id} tabIndex={tab === x.id ? 0 : -1}
+                onClick={() => setTab(x.id)} className={tabClass}>{x.label}</button>
             ))}
           </div>
           {enh.randomButton && (
@@ -667,7 +727,7 @@ export function LibraryPage() {
               <option value="rating">{t("library.sortRating")}</option>
             </Select>
             {filtered && (
-              <button type="button" onClick={() => { setGenre(""); setStatus(""); setDecade(""); setLetter(""); }}
+              <button type="button" onClick={() => setSearch({ genre: undefined, status: undefined, decade: undefined, letter: undefined })}
                 className={`${pressable} h-9 rounded-[6px] px-3 text-sm text-text/70 hover:text-text`}>
                 <X className="size-4" aria-hidden />{t("library.clearFilters")}
               </button>
@@ -693,22 +753,27 @@ export function LibraryPage() {
               {tab === "favorites" ? t("library.myListEmpty") : filtered ? t("library.noMatches") : lib && ["queued", "scanning"].includes(lib.scan.state) ? t("library.scanning") : t("library.empty")}
             </p>
           )}
+          {/* Only the rows near the screen are rendered; the rest is padding (thousands of titles stay smooth). */}
           {view === "posters" ? (
-            <div className="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
-              {all.map((it) => <ItemCard key={it.id} item={it} />)}
+            <div ref={grid.ref} style={grid.style} data-testid="library-grid"
+              className="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
+              {all.slice(grid.win.start, grid.win.end).map((it) => <ItemCard key={it.id} item={it} />)}
             </div>
           ) : (
-            <ul className="flex flex-col border-t border-border">{all.map((it) => <ListRow key={it.id} it={it} />)}</ul>
+            <ul ref={list.ref} style={list.style} className="grid grid-cols-1 border-t border-border">
+              {all.slice(list.win.start, list.win.end).map((it) => <ListRow key={it.id} it={it} />)}
+            </ul>
           )}
+          <span hidden data-testid="grid-total" data-loaded={all.length} />
           {items.hasNextPage && (
-            <Button variant="secondary" className="self-center" disabled={items.isFetchingNextPage} onClick={() => void items.fetchNextPage()}>
+            <Button ref={moreRef} variant="secondary" className="self-center" disabled={items.isFetchingNextPage} onClick={fetchMore}>
               {items.isFetchingNextPage && <Spinner className="size-4" />}{t("library.more")}
             </Button>
           )}
         </div>
       )}
       {tab === "suggested" && lib && <LibrarySuggestions library={lib} />}
-      {tab === "genres" && lib && <GenreGrid library={lib} onPick={(g) => { setGenre(g); setTab("all"); }} />}
+      {tab === "genres" && lib && <GenreGrid library={lib} onPick={(g) => setSearch({ genre: g, tab: undefined })} />}
       {tab === "collections" && (
         <div className={gutter}>
           {collections.length === 0
@@ -745,9 +810,7 @@ function UserDataButtons({ item }: { item: ItemSummary }) {
   const update = useMutation({
     mutationFn: async (body: { favorite?: boolean; played?: boolean }) =>
       unwrap(await api.PUT("/items/{itemId}/user-data", { params: { path: { itemId: item.id } }, body })),
-    onSuccess: () => {
-      for (const key of [["item"], ["library-items"], ["favorites"], ["continue"], ["latest"], ["row"]]) void qc.invalidateQueries({ queryKey: key });
-    },
+    onSuccess: () => void invalidateUserData(qc),
   });
   return (
     <>
@@ -902,11 +965,11 @@ function ExternalLinks({ d }: { d: ItemDetail }) {
   });
   const kind = d.item.kind === "series" ? "tv" : "movie";
   const links = [
-    ids.imdb && { label: "IMDb", href: `https://www.imdb.com/title/${ids.imdb}/` },
-    ids.tmdb && (d.item.kind === "movie" || d.item.kind === "series") && { label: "TMDb", href: `https://www.themoviedb.org/${kind}/${ids.tmdb}` },
-    ids.tvdb && { label: "TheTVDB", href: `https://thetvdb.com/dereferrer/series/${ids.tvdb}` },
-    arr.data && { label: arr.data.app === "radarr" ? "Radarr" : "Sonarr", href: arr.data.url },
-  ].filter(Boolean) as { label: string; href: string }[];
+    ids.imdb && { label: "IMDb", href: `https://www.imdb.com/title/${encodeURIComponent(ids.imdb)}/` },
+    ids.tmdb && (d.item.kind === "movie" || d.item.kind === "series") && { label: "TMDb", href: `https://www.themoviedb.org/${kind}/${encodeURIComponent(ids.tmdb)}` },
+    ids.tvdb && { label: "TheTVDB", href: `https://thetvdb.com/dereferrer/series/${encodeURIComponent(ids.tvdb)}` },
+    arr.data && { label: arr.data.app === "radarr" ? "Radarr" : "Sonarr", href: safeHref(arr.data.url) },
+  ].filter((l): l is { label: string; href: string } => !!l && !!l.href);
   if (!links.length) return null;
   return (
     <div className="flex flex-wrap gap-2">
@@ -979,10 +1042,15 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
+/** A fresh page per title: the season, version and track choices of the previous one never carry over. */
 export function ItemPage() {
+  const { itemId } = useParams({ from: "/app/item/$itemId" });
+  return <ItemView key={itemId} itemId={itemId} />;
+}
+
+function ItemView({ itemId }: { itemId: string }) {
   const { t, i18n } = useTranslation();
   const isAdmin = canAdminister(useMe().data);
-  const { itemId } = useParams({ from: "/app/item/$itemId" });
   const detail = useItemDetail(itemId);
   const d = detail.data;
   const seasons = d?.children.filter((c) => c.kind === "season") ?? [];
@@ -1121,7 +1189,7 @@ export function ItemPage() {
                 <span aria-hidden className="relative grid size-[88px] place-items-center overflow-hidden rounded-full text-2xl font-bold text-white/70 ring-1 ring-white/10"
                   style={{ background: `radial-gradient(circle at 30% 20%, hsl(${placeholderHue(p.name)} 20% 26%), #1a1a1a 75%)` }}>
                   {initials(p.name)}
-                  {p.imageUrl && <Art src={p.imageUrl} className="absolute inset-0 size-full object-cover object-top" />}
+                  {p.imageUrl && <Art src={p.imageUrl} referrerPolicy="no-referrer" className="absolute inset-0 size-full object-cover object-top" />}
                 </span>
                 <span className="min-w-0">
                   <span className="line-clamp-2 text-[13px] leading-tight font-semibold">{p.name}</span>

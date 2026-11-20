@@ -1,9 +1,9 @@
-import { useId, useState, type ButtonHTMLAttributes, type ImgHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
+import { useId, useState, type Ref, type ButtonHTMLAttributes, type ImgHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError } from "@/api/client";
 
 type Variant = "primary" | "secondary" | "danger" | "ghost" | "play" | "muted" | "lit" | "glass";
-type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: "md" | "lg" };
+type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: "md" | "lg"; ref?: Ref<HTMLButtonElement> };
 
 /** Shared look of every pressable thing: steps on hover, presses on click. */
 export const pressable =
