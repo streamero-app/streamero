@@ -33,7 +33,7 @@ final class AudiobookPlayer {
     @ObservationIgnored var onStart: (@MainActor () -> Void)?
 
     private let client: MediaClient
-    private let player = AVPlayer()
+    private let player: AVPlayer
     @ObservationIgnored private var partIndex = -1
     /// Where the current stream starts inside its file (non-zero only for transcoded streams).
     @ObservationIgnored private var streamOffset: Int64 = 0
@@ -52,6 +52,8 @@ final class AudiobookPlayer {
 
     init(client: MediaClient) {
         self.client = client
+        let player = AVPlayer()
+        self.player = player
         observers = PlayerObservers(player: player)
         observers.time = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.5, preferredTimescale: 600), queue: .main) { [weak self] _ in
             Task { @MainActor in self?.tick() }
