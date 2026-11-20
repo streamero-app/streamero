@@ -180,7 +180,7 @@ struct ObjectFormState: Equatable, Sendable {
         if key.hasSuffix("bypass") { return false }
         return key.contains("password") || key.contains("apikey") || key == "api_key" || key.contains("secret")
             || key.hasSuffix("token") || key.hasSuffix("_key") || key == "passkey"
-            // Notification agents: SMTP password (authPass), PGP key, bot tokens, auth headers, webhooks.
+            // Seerr notification settings: SMTP password (authPass), PGP key, bot tokens, auth headers, webhooks.
             || key.hasSuffix("pass") || key.contains("privatekey") || key == "botapi" || key == "authheader"
             || key == "webhookurl" || key.hasSuffix("accesstoken")
     }

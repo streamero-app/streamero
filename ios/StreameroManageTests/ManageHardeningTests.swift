@@ -54,7 +54,7 @@ final class NumberFieldTests: XCTestCase {
 }
 
 final class SecretKeyTests: XCTestCase {
-    func testNotificationAgentSecretsAreWriteOnly() {
+    func testSeerrNotificationSecretsAreWriteOnly() {
         for key in ["options.authPass", "options.pgpPrivateKey", "options.botAPI", "options.authHeader",
                     "options.webhookUrl", "options.accessToken", "apiKey", "password"] {
             XCTAssertTrue(ObjectFormState.isSecretKey(key), key)
