@@ -115,6 +115,8 @@ type Service struct {
 	mu            sync.Mutex
 	setupFailures int
 	setupBlocked  time.Time
+
+	grants grantCache
 }
 
 // NewService returns a Service. setupCode guards the first-run setup.
@@ -240,8 +242,20 @@ func (s *Service) Login(ctx context.Context, username, password, totpCode string
 	}
 	u.Permissions = parsePermissions(perms)
 	now := s.now()
-	if lockedUntil != nil && now.Before(*lockedUntil) {
+	known, clientLock, err := s.knownClient(ctx, u.ID, now)
+	if err != nil {
+		return Principal{}, "", err
+	}
+	switch {
+	case clientLock != nil:
+		return Principal{}, "", &LockedError{Until: *clientLock}
+	case !known && lockedUntil != nil && now.Before(*lockedUntil):
+		// The account lock does not apply to addresses that signed in before (D-053).
 		return Principal{}, "", &LockedError{Until: *lockedUntil}
+	}
+	failed := s.recordFailedLogin
+	if known {
+		failed = s.recordClientFailure
 	}
 	var (
 		ok    bool
@@ -276,7 +290,7 @@ func (s *Service) Login(ctx context.Context, username, password, totpCode string
 		}
 	}
 	if !ok {
-		return Principal{}, "", s.recordFailedLogin(ctx, u.ID, now, "bad_password", ErrInvalidCredentials)
+		return Principal{}, "", failed(ctx, u.ID, now, "bad_password", ErrInvalidCredentials)
 	}
 	if u.Disabled {
 		_ = audit(ctx, s.pool, &u.ID, "login.failed", map[string]any{"reason": "disabled"})
@@ -284,7 +298,7 @@ func (s *Service) Login(ctx context.Context, username, password, totpCode string
 	}
 	if err := s.requireSecondFactor(ctx, u, totpCode); err != nil {
 		if errors.Is(err, ErrInvalidTOTP) {
-			return Principal{}, "", s.recordFailedLogin(ctx, u.ID, now, "bad_totp", ErrInvalidTOTP)
+			return Principal{}, "", failed(ctx, u.ID, now, "bad_totp", ErrInvalidTOTP)
 		}
 		return Principal{}, "", err
 	}
@@ -294,18 +308,28 @@ func (s *Service) Login(ctx context.Context, username, password, totpCode string
 		if errors.Is(err, ErrAccountDisabled) {
 			return Principal{}, "", ErrInvalidCredentials
 		}
+		if err == nil {
+			_ = rememberClient(ctx, s.pool, u.ID, now)
+		}
 		return p, token, err
 	}
 	var p Principal
 	var token string
 	err = pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, `UPDATE users SET failed_logins = 0, locked_until = NULL, last_login_at = $2 WHERE id = $1`,
-			u.ID, now); err != nil {
+		// A lock set by failures from elsewhere stays: a known client signing in
+		// during it must not reopen the account to whoever is guessing.
+		if _, err := tx.Exec(ctx, `UPDATE users SET last_login_at = $2,
+				failed_logins = CASE WHEN locked_until > $2 THEN failed_logins ELSE 0 END,
+				locked_until = CASE WHEN locked_until > $2 THEN locked_until END
+			WHERE id = $1`, u.ID, now); err != nil {
 			return err
 		}
 		u.LastLoginAt = &now
 		p, token, err = createSession(ctx, tx, u, dev, now)
 		if err != nil {
+			return err
+		}
+		if err := rememberClient(ctx, tx, u.ID, now); err != nil {
 			return err
 		}
 		return audit(ctx, tx, &u.ID, "login.succeeded", map[string]any{"session_id": p.SessionID, "device": dev.Name})
@@ -385,6 +409,8 @@ func (s *Service) Authenticate(ctx context.Context, token string) (Principal, er
 
 // Logout deletes the caller's session.
 func (s *Service) Logout(ctx context.Context, p Principal) error {
+	// Signed links handed out under a grant this changes stop at once (D-053).
+	defer s.ForgetGrants()
 	if p.SessionID == uuid.Nil {
 		return ErrSessionRequired
 	}
@@ -396,6 +422,8 @@ func (s *Service) Logout(ctx context.Context, p Principal) error {
 
 // ChangePassword changes the caller's password and signs out their other sessions.
 func (s *Service) ChangePassword(ctx context.Context, p Principal, current, next string) error {
+	// Signed links handed out under a grant this changes stop at once (D-053).
+	defer s.ForgetGrants()
 	if p.SessionID == uuid.Nil {
 		return ErrSessionRequired
 	}
@@ -491,6 +519,8 @@ type UserUpdate struct {
 
 // UpdateUser changes a user. Disabling or setting a password signs the user out everywhere.
 func (s *Service) UpdateUser(ctx context.Context, actor Principal, id uuid.UUID, upd UserUpdate) (User, error) {
+	// Signed links handed out under a grant this changes stop at once (D-053).
+	defer s.ForgetGrants()
 	var hash *string
 	if upd.Password != nil {
 		h, err := HashPassword(*upd.Password)
@@ -559,6 +589,8 @@ func (s *Service) UpdateUser(ctx context.Context, actor Principal, id uuid.UUID,
 
 // DeleteUser removes a user and their sessions.
 func (s *Service) DeleteUser(ctx context.Context, actor Principal, id uuid.UUID) error {
+	// Signed links handed out under a grant this changes stop at once (D-053).
+	defer s.ForgetGrants()
 	if id == actor.User.ID {
 		return ErrSelf
 	}
@@ -602,6 +634,8 @@ func (s *Service) ListSessions(ctx context.Context, userID *uuid.UUID) ([]Sessio
 
 // RevokeSession deletes a session. Non-admins may only revoke their own.
 func (s *Service) RevokeSession(ctx context.Context, actor Principal, id uuid.UUID) error {
+	// Signed links handed out under a grant this changes stop at once (D-053).
+	defer s.ForgetGrants()
 	var owner *uuid.UUID
 	if !actor.User.IsAdmin {
 		owner = &actor.User.ID
