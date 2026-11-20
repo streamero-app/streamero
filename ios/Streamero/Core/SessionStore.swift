@@ -17,11 +17,18 @@ final class SessionStore {
     private let tokens: TokenStore
     /// The server the state belongs to; switching servers starts from `.unknown`.
     private var serverID: String?
+    /// Checks a saved token against the server (the account call); replaceable in tests.
+    private let check: @Sendable (SavedServer, String) async throws -> Void
 
     /// Keychain items outlive the app, so a reinstall would sign in without asking.
     /// The first launch of an install therefore drops every saved session.
-    init(tokens: TokenStore = KeychainTokenStore(), defaults: UserDefaults = .standard) {
+    init(tokens: TokenStore = KeychainTokenStore(), defaults: UserDefaults = .standard,
+         check: @escaping @Sendable (SavedServer, String) async throws -> Void = { server, token in
+             // The hand-written model: a new value in a server enum must not look like an outage.
+             _ = try await MediaClient(baseURL: server.url, token: token).me()
+         }) {
         self.tokens = tokens
+        self.check = check
         let installed = "streamero.installed"
         if !defaults.bool(forKey: installed) {
             tokens.removeAll()
@@ -47,15 +54,20 @@ final class SessionStore {
             state = .signedOut
             return
         }
+        let next: State
         do {
-            // The hand-written model: a new value in a server enum must not look like an outage.
-            _ = try await MediaClient(baseURL: server.url, token: token).me()
-            state = .signedIn
+            try await check(server, token)
+            next = .signedIn
+        } catch is CancellationError {
+            return
         } catch {
-            let next = Self.state(after: error)
-            if next == .signedOut { tokens.setToken(nil, for: server.id) }
-            state = next
+            next = Self.state(after: error)
         }
+        // A late answer must not overwrite a newer state: the user switched servers, signed in
+        // again (a new token) or out while the check ran.
+        guard serverID == server.id, tokens.token(for: server.id) == token else { return }
+        if next == .signedOut { tokens.setToken(nil, for: server.id) }
+        state = next
     }
 
     /// What a failed session check means. Only an unreachable server (or one answering with a
@@ -86,11 +98,15 @@ final class SessionStore {
         if serverID == server.id { state = .signedOut }
     }
 
+    /// Forgets the session at once and tells the server in the background, so signing out of
+    /// an unreachable server does not wait for a network timeout.
     func signOut(server: SavedServer) async {
-        if let token = tokens.token(for: server.id) {
-            await AuthClient(baseURL: server.url, token: token).logout()
-        }
+        let token = tokens.token(for: server.id)
         tokens.setToken(nil, for: server.id)
         state = .signedOut
+        if let token {
+            let url = server.url
+            Task.detached(priority: .utility) { await AuthClient(baseURL: url, token: token).logout() }
+        }
     }
 }

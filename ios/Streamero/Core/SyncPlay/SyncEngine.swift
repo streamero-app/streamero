@@ -83,6 +83,9 @@ enum SyncAction: Sendable, Equatable {
 struct SyncEngine: Sendable {
     /// Local position may differ this much from the shared one before a new state seeks.
     static let tolerance: Int64 = 1000
+    /// How far before this device's end the group must be to count as rewound (larger than any
+    /// difference between the stream's real length and its reported one).
+    static let rewindAfterEnd: Int64 = 30_000
     /// A stall must last this long before it is reported as buffering.
     static let stallGrace: Int64 = 1500
     static let positionInterval: Int64 = 1000
@@ -172,8 +175,13 @@ struct SyncEngine: Sendable {
             needsAlign = false
             return [.pause, .send(.next(entryId: entry.id))]
         }
-        // Asked for the next entry: wait for the group to move on instead of starting over.
-        if local.ended && endedSentEntry == entry.id && g.state != "idle" { return [] }
+        // Asked for the next entry: wait for the group to move on instead of starting over,
+        // unless someone took the group well back into this entry (a rewind after the end).
+        if local.ended && endedSentEntry == entry.id && g.state != "idle" {
+            if local.positionMs - target <= Self.rewindAfterEnd { return [] }
+            endedSentEntry = nil
+            needsAlign = true
+        }
 
         if !local.stalled { stallSince = nil }
 

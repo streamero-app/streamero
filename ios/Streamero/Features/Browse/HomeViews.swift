@@ -110,11 +110,13 @@ private struct MainContent: View {
     private func watchSessionExpiry() {
         let session = session
         let server = server
-        let music = app.music
+        let app = app
         SessionExpiry.setHandler { token in
             Task { @MainActor in
                 guard session.token(for: server) == token else { return }
-                music.stop()
+                app.music.stop()
+                app.audiobook.stop()
+                app.together.shutdown()
                 session.expire(server: server, token: token)
             }
         }
@@ -122,12 +124,16 @@ private struct MainContent: View {
 
     private func bootstrap() async {
         loadFailed = false
+        let client = client
+        // The three first calls run side by side; the account decides what happens.
+        async let enhancements = try? client.enhancements()
+        async let profiles = try? client.profiles()
         do {
             let me = try await client.me()
             app.me = me
             Loc.apply(language: me.language)
-            app.enhancements = (try? await client.enhancements()) ?? Enhancements()
-            app.profiles = (try? await client.profiles()) ?? []
+            app.enhancements = await enhancements ?? Enhancements()
+            app.profiles = await profiles ?? []
             // Like a streaming service: ask who is watching when the app starts.
             if !app.profiles.isEmpty && me.currentProfile == nil { app.showProfileGate = true }
         } catch let error as APIError where error.status == 401 {
@@ -140,6 +146,7 @@ private struct MainContent: View {
     private func signOut() async {
         app.music.stop()
         app.audiobook.stop()
+        app.together.shutdown()
         await session.signOut(server: server)
     }
 
@@ -211,25 +218,32 @@ struct ProfileGateView: View {
 
     var body: some View {
         let me = app.me
-        VStack(spacing: 36) {
-            Spacer()
-            Text("profiles.whoIsWatching").displayFont(26).foregroundStyle(Theme.text)
-            LazyVGrid(columns: columns, spacing: 28) {
-                tile(name: me?.displayName ?? me?.username ?? "", color: "#8A5A3A",
-                     url: me?.hasAvatar == true ? me.flatMap { client.avatarURL(owner: $0.id) } : nil, locked: false) { chooseMain() }
-                ForEach(profiles) { p in
-                    tile(name: p.name, color: p.color, url: p.hasAvatar == true ? client.avatarURL(owner: p.id) : nil, locked: p.hasPin) {
-                        if p.hasPin { pinFor = p } else { Task { await apply { try await client.selectProfile(p.id, pin: nil) } } }
+        // Scrolls: several profiles do not fit a small phone in landscape or at large text sizes.
+        ScrollView {
+            VStack(spacing: 36) {
+                Text("profiles.whoIsWatching").displayFont(26).foregroundStyle(Theme.text)
+                    .multilineTextAlignment(.center)
+                LazyVGrid(columns: columns, spacing: 28) {
+                    tile(name: me?.displayName ?? me?.username ?? "", color: "#8A5A3A",
+                         url: me?.hasAvatar == true ? me.flatMap { client.avatarURL(owner: $0.id) } : nil, locked: false) { chooseMain() }
+                    ForEach(profiles) { p in
+                        tile(name: p.name, color: p.color, url: p.hasAvatar == true ? client.avatarURL(owner: p.id) : nil, locked: p.hasPin) {
+                            if p.hasPin { pinFor = p } else { Task { await apply { try await client.selectProfile(p.id, pin: nil) } } }
+                        }
                     }
                 }
+                .padding(.horizontal, 32)
             }
-            .padding(.horizontal, 32)
-            Spacer()
-            Spacer()
+            .padding(.vertical, 48)
+            .frame(maxWidth: .infinity)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .defaultScrollAnchor(.center)
         .background(Theme.background.ignoresSafeArea())
-        .task { profiles = (try? await client.profiles()) ?? [] }
+        .task {
+            // The list loaded at start shows at once; a fresh one replaces it.
+            if profiles.isEmpty { profiles = app.profiles }
+            if let fresh = try? await client.profiles() { profiles = fresh }
+        }
         .alert(Text("profiles.pin"), isPresented: Binding(get: { pinFor != nil }, set: { if !$0 { pinFor = nil } })) {
             SecureField("profiles.pin", text: $pin).keyboardType(.numberPad)
             Button("profiles.open") {
