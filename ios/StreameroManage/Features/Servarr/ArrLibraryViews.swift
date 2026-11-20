@@ -184,7 +184,17 @@ struct ArrLibraryView: View {
             }
             notice = ManageNotice(text: "manage.removed")
             await load()
-        } catch is CancellationError {} catch { self.error = error }
+        } catch is CancellationError {
+            return
+        } catch {
+            // Some items may be gone already: reload, keep only the selection that still
+            // exists, and say that it failed even though the reload itself works.
+            notice = ManageNotice(text: "manage.bulk_failed", failed: true)
+            await load()
+            let left = Set((items ?? []).compactMap { $0["id"].int })
+            selected.formIntersection(left)
+            self.error = error
+        }
     }
 
     private func load() async {

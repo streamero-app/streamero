@@ -19183,6 +19183,22 @@
           }
         }
       }
+    },
+    "manage.bulk_failed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not every item could be changed. The list shows what is left."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nisu sve stavke promijenjene. Popis prikazuje što je ostalo."
+          }
+        }
+      }
     }
   }
 }
