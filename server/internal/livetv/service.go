@@ -52,6 +52,8 @@ type Service struct {
 	Library *library.Service
 	// HTTP fetches playlists, guides, tuner APIs and images.
 	HTTP *http.Client
+	// AllowLoopback lets ffmpeg open channels on this machine (tests only).
+	AllowLoopback bool
 	// ImageDir caches channel logos and programme images.
 	ImageDir string
 	// EnqueueGuideRefresh queues a guide refresh for the worker (nil: refresh in a goroutine).

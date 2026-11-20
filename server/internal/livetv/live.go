@@ -13,6 +13,7 @@ import (
 
 	"github.com/streamero-app/streamero/server/internal/auth"
 	"github.com/streamero-app/streamero/server/internal/library"
+	"github.com/streamero-app/streamero/server/internal/netx"
 	"github.com/streamero-app/streamero/server/internal/stream"
 )
 
@@ -171,7 +172,7 @@ func (s *Service) Play(ctx context.Context, p auth.Principal, channelID uuid.UUI
 		// M3U channels do not say what they carry: probe once and remember.
 		if err := s.probeChannel(ctx, &ch); err != nil {
 			s.release(l)
-			s.log().Warn("live channel probe failed", "channel", ch.Name, "err", err)
+			s.log().Warn("live channel probe failed", "channel", ch.Name, "err", netx.RedactErr(err))
 			return Playback{}, ErrChannelUnavailable
 		}
 		plan = s.livePlan(ch, dev)
@@ -185,6 +186,10 @@ func (s *Service) Play(ctx context.Context, p auth.Principal, channelID uuid.UUI
 	if ch.AudioCodec == "" {
 		audio = -1
 	}
+	if err := CheckStreamHost(ctx, ch.StreamURL, s.AllowLoopback); err != nil {
+		s.release(l)
+		return Playback{}, err
+	}
 	job := stream.Job{Input: ch.StreamURL, AudioIndex: audio, Plan: plan, InputArgs: inputArgs(ch.StreamURL, ch.TunerUserAgent),
 		ADTSAudio: ch.AudioCodec == "aac"}
 	var started *liveSession
@@ -197,7 +202,7 @@ func (s *Service) Play(ctx context.Context, p auth.Principal, channelID uuid.UUI
 		s.mu.Unlock()
 	})
 	if err != nil {
-		s.log().Warn("live channel failed to start", "channel", ch.Name, "err", err)
+		s.log().Warn("live channel failed to start", "channel", ch.Name, "err", netx.RedactErr(err))
 		if s.sourceBusy(ctx, ch) {
 			return Playback{}, ErrTunersBusy // the device or provider itself has no free tuner
 		}
@@ -294,6 +299,9 @@ func (s *Service) probeChannel(ctx context.Context, ch *Channel) error {
 	bin := s.FFprobe
 	if bin == "" {
 		bin = "ffprobe"
+	}
+	if err := CheckStreamHost(ctx, ch.StreamURL, s.AllowLoopback); err != nil {
+		return err
 	}
 	pctx, cancel := context.WithTimeout(ctx, 25*time.Second)
 	defer cancel()

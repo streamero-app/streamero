@@ -13,6 +13,9 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+
+	"github.com/streamero-app/streamero/server/internal/netx"
 )
 
 // ErrUpstream wraps errors from the source server (unreachable, rejected key, ...).
@@ -59,7 +62,8 @@ func (c *Client) http() *http.Client {
 	if c.HTTP != nil {
 		return c.HTTP
 	}
-	return &http.Client{Timeout: 60 * time.Second}
+	// The API key travels in a header, which Go keeps on redirects.
+	return &http.Client{Timeout: 60 * time.Second, Transport: netx.SafeTransport(), CheckRedirect: netx.SameHostRedirects}
 }
 
 func (c *Client) get(ctx context.Context, path string, q url.Values, out any) error {
