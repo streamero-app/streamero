@@ -38,7 +38,7 @@ struct DownloadsView: View {
 
     var body: some View {
         let library = downloads.library
-        let movies = library.entries.filter { $0.seriesId == nil }.sorted { $0.item.title < $1.item.title }
+        let movies = library.entries.filter { $0.seriesId == nil }.sorted { $0.item.title.localizedStandardCompare($1.item.title) == .orderedAscending }
         let groups = seriesGroups(library.entries)
         List {
             if let offlineRetry { offlineNotice(offlineRetry) }
@@ -147,7 +147,7 @@ struct DownloadsView: View {
             return SeriesGroup(id: id, title: first?.series?.title ?? first?.item.seriesTitle ?? "",
                                poster: episodes.compactMap(\.seriesPosterFile).first, episodes: episodes)
         }
-        .sorted { $0.title < $1.title }
+        .sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
     }
 
     private func offlineNotice(_ retry: @escaping () async -> Void) -> some View {
