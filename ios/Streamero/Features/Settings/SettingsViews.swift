@@ -228,6 +228,7 @@ struct SettingsDoc<T: Equatable, Content: View>: View {
     @State private var value: T?
     @State private var lastSaved: T?
     @State private var saved = false
+    @State private var saving = false
     @State private var error: Error?
 
     var body: some View {
@@ -236,6 +237,7 @@ struct SettingsDoc<T: Equatable, Content: View>: View {
                 content(binding)
                 Section {
                     Button { Task { await commit() } } label: { Text("save").frame(maxWidth: .infinity) }
+                        .disabled(saving)
                     if saved { Text("saved").foregroundStyle(.green) }
                     ErrorLine(error: error)
                 }
@@ -258,7 +260,10 @@ struct SettingsDoc<T: Equatable, Content: View>: View {
     }
 
     private func commit() async {
-        guard let v = value else { return }
+        // A second tap while the first save runs would send the same document twice.
+        guard let v = value, !saving else { return }
+        saving = true
+        defer { saving = false }
         do {
             let result = try await save(v)
             lastSaved = result
@@ -333,7 +338,10 @@ private struct AccountPage: View {
 
     private func upload(_ item: PhotosPickerItem) async {
         do {
-            guard let data = try await item.loadTransferable(type: Data.self), let jpeg = AvatarImage.jpeg(from: data) else { return }
+            guard let data = try await item.loadTransferable(type: Data.self), let jpeg = AvatarImage.jpeg(from: data) else {
+                error = APIError(status: 400, code: "invalid_image")
+                return
+            }
             try await client.uploadAvatar(jpeg)
             await app.refreshMe()
             avatarVersion += 1
@@ -345,6 +353,7 @@ private struct AccountPage: View {
         do {
             try await client.removeAvatar()
             await app.refreshMe()
+            error = nil
         } catch is CancellationError {} catch { self.error = error }
     }
 
@@ -355,6 +364,7 @@ private struct AccountPage: View {
             passwordMessage = true
             current = ""
             new = ""
+            error = nil
         } catch is CancellationError {} catch { self.error = error }
     }
 }
