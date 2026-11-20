@@ -11,7 +11,7 @@ const tab =
 function Tab({ to, icon: Icon, label, exact }: { to: string; icon: LucideIcon; label: string; exact?: boolean }) {
   return (
     <Link to={to} className={tab} activeOptions={{ exact: !!exact }}>
-      <Icon className="size-4 text-text/40 transition-colors group-[.active]:text-[var(--amb-a)]" aria-hidden />
+      <Icon className="size-4 text-text/55 transition-colors group-[.active]:text-[var(--amb-a)]" aria-hidden />
       {label}
     </Link>
   );

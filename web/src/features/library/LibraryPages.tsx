@@ -847,7 +847,7 @@ function EpisodeRow({ item: c }: { item: ItemSummary }) {
     <li className="border-b border-white/10">
       <Link to={playable ? "/watch/$itemId" : "/item/$itemId"} params={{ itemId: c.id }} data-testid="child-row"
         className="tv-focus group flex items-center gap-4 rounded-[6px] px-2 py-4 transition-colors hover:bg-white/[0.04] sm:gap-6 sm:px-4">
-        <span className="hidden w-10 shrink-0 text-center font-display text-3xl text-text/45 tabular sm:block">{c.episodeNumber ?? ""}</span>
+        <span className="hidden w-10 shrink-0 text-center font-display text-3xl text-text/55 tabular sm:block">{c.episodeNumber ?? ""}</span>
         <div className="relative aspect-video w-32 shrink-0 overflow-hidden rounded-[6px] bg-surface-2 sm:w-44">
           {c.hasPoster && !broken
             ? <Art src={imageUrl(c.id, "still")} onError={() => setBroken(true)} className="absolute inset-0 size-full object-cover" />
@@ -941,7 +941,7 @@ function Chapters({ d }: { d: ItemDetail }) {
                 {tp ? <TrickFrame tp={tp} ms={frameAt(c.startMs, chapters[i + 1]?.startMs)} className="absolute inset-0" /> : <ArtFallback item={d.item} wide />}
                 <span className="absolute bottom-2 left-2 rounded-[3px] bg-black/75 px-1.5 py-0.5 text-xs font-semibold tabular">{formatClock(c.startMs)}</span>
               </div>
-              <p className="truncate text-sm text-text/85 group-hover:text-text"><span className="mr-2 text-text/45 tabular">{i + 1}</span>{c.title}</p>
+              <p className="truncate text-sm text-text/85 group-hover:text-text"><span className="mr-2 text-text/55 tabular">{i + 1}</span>{c.title}</p>
             </Link>
           </li>
         ))}

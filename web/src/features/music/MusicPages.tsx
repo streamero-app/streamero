@@ -9,6 +9,7 @@ import { Button, ErrorText, Select, Spinner, buttonVariants, pressable } from "@
 import { imageUrl, formatDuration, type ItemSummary, type Library } from "@/features/library/format";
 import { useAmbientLight } from "@/features/ambient/Ambient";
 import { useMusic, type QueueTrack } from "./MusicPlayer";
+import { onTablistKeyDown } from "@/components/tabs";
 
 type ItemDetail = components["schemas"]["ItemDetail"];
 const gutter = "px-5 sm:px-10 lg:px-16";
@@ -65,7 +66,7 @@ export function TrackList({ tracks, showAlbum = false, showArtist = false, album
             {header && <p className="px-3 pt-5 pb-2 font-label text-text/50">{t("music.disc", { n: disc })}</p>}
             <button type="button" onClick={() => m.play(tracks, i)} data-testid="track-row"
               className={`tv-focus group grid w-full grid-cols-[2.25rem_minmax(0,1fr)_auto] items-center gap-3 rounded-[6px] px-3 py-2.5 text-left transition-colors hover:bg-white/[0.05] ${active ? "bg-white/[0.06]" : ""}`}>
-              <span className="text-right text-sm text-text/45 tabular">
+              <span className="text-right text-sm text-text/55 tabular">
                 <span className="group-hover:hidden">{active && m.playing ? <Music className="ml-auto size-4 text-[var(--amb-a)]" aria-hidden /> : tr.episodeNumber ?? i + 1}</span>
                 <Play className="ml-auto hidden size-4 fill-current text-text group-hover:block" aria-hidden />
               </span>
@@ -118,9 +119,9 @@ export function MusicLibrary({ library }: { library: Library }) {
           </div>
         </div>
         <div className="-mb-px flex items-center gap-4">
-          <div role="tablist" className="flex flex-1 gap-6">
+          <div role="tablist" aria-label={library.name} onKeyDown={onTablistKeyDown} className="flex flex-1 gap-6">
             {(["album", "artist", "track"] as const).map((k) => (
-              <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={tabClass}>{t(`music.tab_${k}`)}</button>
+              <button key={k} type="button" role="tab" aria-selected={tab === k} tabIndex={tab === k ? 0 : -1} onClick={() => setTab(k)} className={tabClass}>{t(`music.tab_${k}`)}</button>
             ))}
           </div>
           <Select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} aria-label={t("library.sort")} className="mb-2">

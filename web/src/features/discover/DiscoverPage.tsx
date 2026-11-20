@@ -68,7 +68,7 @@ export function DiscoverPage() {
         <label className="relative flex max-w-3xl items-center">
           <Search className="pointer-events-none absolute left-5 size-5 text-text/50" aria-hidden />
           <input type="search" value={text} onChange={(e) => setText(e.target.value)} autoFocus placeholder={t("discover.placeholder")} aria-label={t("discover.placeholder")}
-            className="h-16 w-full rounded-[8px] border border-border bg-surface pr-5 pl-14 text-xl text-text placeholder:text-text/40 hover:border-border-strong focus:border-text/50" />
+            className="h-16 w-full rounded-[8px] border border-border bg-surface pr-5 pl-14 text-xl text-text placeholder:text-text/55 hover:border-border-strong focus:border-text/50" />
         </label>
       </header>
 

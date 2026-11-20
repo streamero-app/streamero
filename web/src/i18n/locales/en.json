@@ -29,7 +29,8 @@
     "account": "Account",
     "myList": "My list",
     "profileMenu": "Account menu",
-    "switchProfile": "Switch profile"
+    "switchProfile": "Switch profile",
+    "skipToContent": "Skip to content"
   },
   "login": {
     "title": "Sign in",

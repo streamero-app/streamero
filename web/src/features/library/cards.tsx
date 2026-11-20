@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { prefetchItem } from "./itemQuery";
+import { scrollBehavior } from "@/lib/motion";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Check, ChevronLeft, ChevronRight, Play, X } from "lucide-react";
@@ -206,7 +207,7 @@ export function Row({ title, testId, count, children, action }: { title: string;
     return () => ro.disconnect();
   }, [count]);
   if (!count) return null;
-  const page = (dir: 1 | -1) => track.current?.scrollBy({ left: dir * track.current.clientWidth * 0.85, behavior: "smooth" });
+  const page = (dir: 1 | -1) => track.current?.scrollBy({ left: dir * track.current.clientWidth * 0.85, behavior: scrollBehavior() });
   const arrow = "grid size-9 place-items-center rounded-[6px] text-text/80 transition-colors hover:bg-white/10 hover:text-text disabled:opacity-20";
   return (
     <section className="flex flex-col gap-4" data-testid={testId}>

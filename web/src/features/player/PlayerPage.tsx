@@ -718,7 +718,7 @@ export function PlayerPage() {
       )}
 
       {/* Top bar */}
-      <div className={`absolute inset-x-0 top-0 flex items-center gap-3 bg-gradient-to-b from-black/80 to-transparent px-4 pt-4 pb-10 transition-opacity duration-300 sm:px-8 ${visible ? "opacity-100" : "pointer-events-none opacity-0"}`}>
+      <div className={`absolute inset-x-0 top-0 flex items-center gap-3 bg-gradient-to-b from-black/80 to-transparent px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-10 transition-opacity duration-300 sm:px-8 ${visible ? "opacity-100" : "pointer-events-none opacity-0"}`}>
         <Link to="/item/$itemId" params={{ itemId }} className="inline-flex h-10 items-center gap-1.5 rounded-[6px] pr-4 pl-2.5 text-sm font-medium transition-colors hover:bg-white/10" onClick={() => save(true)}>
           <ArrowLeft className="size-5" aria-hidden />{t("player.back")}
         </Link>
@@ -812,7 +812,7 @@ export function PlayerPage() {
       )}
 
       {/* Bottom controls */}
-      <div className={`absolute inset-x-0 bottom-0 flex flex-col gap-1 bg-gradient-to-t from-black/90 via-black/50 to-transparent px-4 pt-16 pb-4 transition-opacity duration-300 sm:px-8 ${visible ? "opacity-100" : "pointer-events-none opacity-0"}`}>
+      <div className={`absolute inset-x-0 bottom-0 flex flex-col gap-1 bg-gradient-to-t from-black/90 via-black/50 to-transparent px-4 pt-16 pb-[max(1rem,env(safe-area-inset-bottom))] transition-opacity duration-300 sm:px-8 ${visible ? "opacity-100" : "pointer-events-none opacity-0"}`}>
         <div className="flex items-center gap-3">
           <div className="flex-1">
             <SeekBar positionMs={position} durationMs={durationMs} bufferedMs={buffered} info={info} onSeek={seekTo} />

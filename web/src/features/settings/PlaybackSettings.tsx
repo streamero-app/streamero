@@ -195,8 +195,8 @@ export function HomeSettings() {
             const on = chosen.includes(s);
             return (
               <li key={s} className="flex items-center gap-3 border-t border-border py-3 first:border-t-0" data-testid="home-section">
-                <span className="w-6 text-right text-sm text-text/40 tabular">{on ? chosen.indexOf(s) + 1 : ""}</span>
-                <span className={`flex-1 text-[15px] ${on ? "text-text" : "text-text/45"}`}>{t(`homePrefs.section_${s}`)}</span>
+                <span className="w-6 text-right text-sm text-text/55 tabular">{on ? chosen.indexOf(s) + 1 : ""}</span>
+                <span className={`flex-1 text-[15px] ${on ? "text-text" : "text-text/55"}`}>{t(`homePrefs.section_${s}`)}</span>
                 <button type="button" aria-label={t("homePrefs.moveUp")} disabled={!on || chosen.indexOf(s) === 0} onClick={() => move(i, -1)}
                   className="grid size-8 place-items-center rounded-[4px] text-text/70 hover:bg-white/10 disabled:opacity-25"><ArrowUp className="size-4" aria-hidden /></button>
                 <button type="button" aria-label={t("homePrefs.moveDown")} disabled={!on || chosen.indexOf(s) === chosen.length - 1} onClick={() => move(i, 1)}

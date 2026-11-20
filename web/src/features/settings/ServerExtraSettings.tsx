@@ -127,7 +127,7 @@ export function TranscodingSettings() {
   );
 }
 
-const LEVEL_TONE: Record<string, string> = { debug: "text-text/45", info: "text-text/80", warn: "text-[#ffc46b]", error: "text-danger" };
+const LEVEL_TONE: Record<string, string> = { debug: "text-text/55", info: "text-text/80", warn: "text-[#ffc46b]", error: "text-danger" };
 
 /** Recent log lines of the server and the worker, filterable, refreshing on its own. */
 export function LogsSettings() {
@@ -162,10 +162,10 @@ export function LogsSettings() {
           <tbody>
             {logs.data?.map((l, i) => (
               <tr key={i} className="border-b border-white/[0.04] align-top hover:bg-white/[0.03]" data-testid="log-row">
-                <td className="px-3 py-1.5 whitespace-nowrap text-text/40 tabular">{time.format(new Date(l.time))}</td>
+                <td className="px-3 py-1.5 whitespace-nowrap text-text/55 tabular">{time.format(new Date(l.time))}</td>
                 <td className={`px-2 py-1.5 font-semibold uppercase ${LEVEL_TONE[l.level]}`}>{l.level}</td>
-                <td className="px-2 py-1.5 text-text/45">{l.source}</td>
-                <td className="px-3 py-1.5 break-words text-text/90">{l.message}{l.attrs && <span className="ml-2 text-text/45">{l.attrs}</span>}</td>
+                <td className="px-2 py-1.5 text-text/55">{l.source}</td>
+                <td className="px-3 py-1.5 break-words text-text/90">{l.message}{l.attrs && <span className="ml-2 text-text/55">{l.attrs}</span>}</td>
               </tr>
             ))}
           </tbody>
@@ -200,7 +200,7 @@ export function ActivitySettings() {
               <span className="min-w-0">
                 <span className="text-[15px]">{t(`activity.${e.action}`, { defaultValue: e.action })}</span>
                 {e.user && <span className="ml-2 text-[13px] font-semibold text-text/70">{e.user}</span>}
-                {detail && <span className="mt-0.5 block truncate text-[12px] text-text/45">{detail}</span>}
+                {detail && <span className="mt-0.5 block truncate text-[12px] text-text/55">{detail}</span>}
               </span>
             </li>
           );

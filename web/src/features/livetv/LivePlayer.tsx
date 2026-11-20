@@ -233,7 +233,7 @@ export function LivePlayer() {
       )}
 
       <div className={`absolute inset-0 flex flex-col justify-between transition-opacity duration-300 ${chrome ? "opacity-100" : "pointer-events-none opacity-0"}`}>
-        <div className="flex items-start gap-3 bg-gradient-to-b from-black/80 to-transparent p-4 sm:p-6">
+        <div className="flex items-start gap-3 bg-gradient-to-b from-black/80 to-transparent p-4 pt-[max(1rem,env(safe-area-inset-top))] sm:p-6">
           <button type="button" className={iconBtn} aria-label={t("livetv.back")} onClick={back}><ArrowLeft className="size-6" aria-hidden /></button>
           <div className="min-w-0 pt-1">
             <p className="text-xs font-semibold tracking-[0.08em] text-white/60 uppercase">{[ch?.number, ch?.name].filter(Boolean).join(" · ")}</p>
@@ -246,7 +246,7 @@ export function LivePlayer() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 bg-gradient-to-t from-black/85 to-transparent p-4 pt-16 sm:p-6 sm:pt-20">
+        <div className="flex flex-col gap-3 bg-gradient-to-t from-black/85 to-transparent p-4 pt-16 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6 sm:pt-20">
           {now && (
             <div className="h-[3px] w-full max-w-md bg-white/20" aria-hidden title={t("livetv.programProgress")}>
               <div className="h-full bg-[var(--amb-a)]" style={{ width: `${progress(now, Date.now()) * 100}%` }} />

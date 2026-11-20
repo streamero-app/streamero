@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { safeHref } from "@/lib/safeUrl";
+import { onTablistKeyDown } from "@/components/tabs";
 import { invalidateUserData } from "@/features/library/userData";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
@@ -115,9 +116,9 @@ export function BooksLibrary({ library }: { library: Library }) {
           <span className="pb-1 text-sm text-text/55 tabular">{total !== undefined && !filtered && tab === "all" && t(audio ? "books.count_audiobook" : "books.count_book", { count: total })}</span>
         </div>
         <div className="-mb-px flex items-center gap-4">
-          <div role="tablist" className="flex flex-1 gap-6">
+          <div role="tablist" aria-label={library.name} onKeyDown={onTablistKeyDown} className="flex flex-1 gap-6">
             {(["all", "authors", "series"] as const).map((k) => (
-              <button key={k} type="button" role="tab" aria-selected={tab === k} className={tabClass}
+              <button key={k} type="button" role="tab" aria-selected={tab === k} tabIndex={tab === k ? 0 : -1} className={tabClass}
                 onClick={() => { setTab(k); setFilter({}); }}>{t(`books.tab_${k}`)}</button>
             ))}
           </div>
@@ -288,7 +289,7 @@ function AudiobookPanel({ item }: { item: ItemSummary }) {
               <li key={`${c.startMs}-${i}`}>
                 <button type="button" onClick={() => playAt(c.startMs)}
                   className={`tv-focus grid w-full grid-cols-[2.25rem_minmax(0,1fr)_auto] items-center gap-3 rounded-[6px] px-3 py-2.5 text-left hover:bg-white/[0.05] ${i === cur && started ? "bg-white/[0.06]" : ""}`}>
-                  <span className="text-right text-sm text-text/45 tabular">{i === cur && active && m.playing ? <Play className="ml-auto size-4 fill-current text-[var(--amb-a)]" aria-hidden /> : i + 1}</span>
+                  <span className="text-right text-sm text-text/55 tabular">{i === cur && active && m.playing ? <Play className="ml-auto size-4 fill-current text-[var(--amb-a)]" aria-hidden /> : i + 1}</span>
                   <span className={`truncate text-[15px] ${i === cur && started ? "font-semibold text-[var(--amb-a)]" : "text-text"}`}>{c.title}</span>
                   <span className="text-sm text-text/50 tabular">{clock(c.endMs - c.startMs)}</span>
                 </button>
@@ -360,7 +361,7 @@ export function BookView({ d }: { d: ItemDetail }) {
           {audio && <AudiobookPanel item={it} />}
           {d.overview && <p className="max-w-[68ch] text-[15px] leading-relaxed whitespace-pre-line text-text/75">{d.overview}</p>}
           {!!d.genres.length && <p className="text-[13px] text-text/50">{d.genres.join(" · ")}</p>}
-          {b?.isbn && <p className="text-[12px] text-text/40 tabular">ISBN {b.isbn}</p>}
+          {b?.isbn && <p className="text-[12px] text-text/55 tabular">ISBN {b.isbn}</p>}
         </div>
       </section>
       {b?.seriesName && <RelatedRow libraryId={d.libraryId} title={t("books.moreInSeries", { name: b.seriesName })} filter={{ series: b.seriesName }} exclude={it.id} />}

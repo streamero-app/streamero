@@ -9,6 +9,8 @@ import { Button, ErrorText, Select, Spinner, buttonVariants, pressable } from "@
 import { imageUrl, type ItemSummary, type Library } from "@/features/library/format";
 import { INTERVALS, byMonth, exposureLine, neighbours, nextIndex } from "./slideshow";
 import { invalidateUserData } from "@/features/library/userData";
+import { useFocusTrap } from "@/components/focusTrap";
+import { onTablistKeyDown } from "@/components/tabs";
 import { safeHref } from "@/lib/safeUrl";
 
 type ItemDetail = components["schemas"]["ItemDetail"];
@@ -117,9 +119,9 @@ export function PhotosLibrary({ library }: { library: Library }) {
     <div className="flex flex-col gap-6 pt-24" data-testid="photos-library">
       <header className={`flex flex-col gap-4 border-b border-border ${gutter}`}>
         <h1 className="font-display text-4xl sm:text-6xl">{library.name}</h1>
-        <div role="tablist" className="-mb-px flex gap-6">
+        <div role="tablist" aria-label={library.name} onKeyDown={onTablistKeyDown} className="-mb-px flex gap-6">
           {(["albums", "all"] as const).map((k) => (
-            <button key={k} type="button" role="tab" aria-selected={tab === k} className={tabClass} onClick={() => setTab(k)}>{t(`photos.tab_${k}`)}</button>
+            <button key={k} type="button" role="tab" aria-selected={tab === k} tabIndex={tab === k ? 0 : -1} className={tabClass} onClick={() => setTab(k)}>{t(`photos.tab_${k}`)}</button>
           ))}
         </div>
       </header>
@@ -259,6 +261,8 @@ export function Lightbox({ items, index: initial, onIndex, onClose, autoplay = f
     return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = prev; };
   }, [onClose, step]);
   const touch = useRef<number | null>(null);
+  const layer = useRef<HTMLDivElement>(null);
+  useFocusTrap(layer, "[data-testid=lightbox-close]");
   if (!item) return null;
   const favorite = fav[item.id] ?? !!item.favorite;
   // Shown at once; put back if the server refuses, and every grid learns of it.
@@ -274,7 +278,7 @@ export function Lightbox({ items, index: initial, onIndex, onClose, autoplay = f
   const btn = "tv-focus grid size-11 shrink-0 place-items-center rounded-full bg-black/40 text-white/90 backdrop-blur transition-colors hover:bg-black/60 hover:text-white aria-pressed:bg-white/20";
   const p = detail.data?.photo;
   return (
-    <div role="dialog" aria-modal aria-label={item.title} className="fixed inset-0 z-[70] bg-black" data-testid="lightbox"
+    <div ref={layer} role="dialog" aria-modal aria-label={item.title} className="fixed inset-0 z-[70] bg-black" data-testid="lightbox"
       onTouchStart={(e) => { touch.current = e.touches[0]?.clientX ?? null; }}
       onTouchEnd={(e) => {
         const x0 = touch.current;

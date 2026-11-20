@@ -57,7 +57,7 @@ export function ChannelsPage() {
                     <ProgressBar value={progress(ch.now, now) * 100} className="mt-1.5" />
                   </button>
                 ) : (
-                  <p className="mt-1 text-sm text-text/45">{t("livetv.noGuide")}</p>
+                  <p className="mt-1 text-sm text-text/55">{t("livetv.noGuide")}</p>
                 )}
                 {ch.next && (
                   <button type="button" className="mt-1 flex w-full max-w-xl items-baseline gap-2 text-left text-[13px] text-text/55"

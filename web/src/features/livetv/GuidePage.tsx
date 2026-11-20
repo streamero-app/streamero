@@ -125,7 +125,7 @@ export function GuidePage() {
                         style={{ left: g.left, width: Math.max(0, g.width - 2) }}
                         className={`tv-focus absolute top-1 bottom-1 flex flex-col justify-center overflow-hidden rounded-[5px] px-2.5 text-left transition-colors duration-150 ${
                           live ? "bg-white/[0.12] ring-1 ring-inset ring-[var(--amb-a)]/60 hover:bg-white/[0.17]"
-                            : past ? "bg-white/[0.03] text-text/45 hover:bg-white/[0.07]" : "bg-white/[0.06] hover:bg-white/[0.11]"}`}>
+                            : past ? "bg-white/[0.03] text-text/55 hover:bg-white/[0.07]" : "bg-white/[0.06] hover:bg-white/[0.11]"}`}>
                         <span className="flex items-center gap-1.5 truncate text-[13px] font-semibold">
                           {p.recordingStatus === "recording" || p.recordingStatus === "scheduled" ? (
                             <CircleDot className={`size-3 shrink-0 text-danger ${p.recordingStatus === "recording" ? "animate-pulse" : ""}`} aria-label={t(`livetv.status.${p.recordingStatus}`)} />

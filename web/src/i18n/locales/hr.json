@@ -29,7 +29,8 @@
     "account": "Račun",
     "myList": "Moja lista",
     "profileMenu": "Izbornik računa",
-    "switchProfile": "Promijeni profil"
+    "switchProfile": "Promijeni profil",
+    "skipToContent": "Preskoči na sadržaj"
   },
   "login": {
     "title": "Prijava",

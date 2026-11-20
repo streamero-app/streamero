@@ -57,7 +57,7 @@ export function AccountSettings() {
             {me.isAdmin ? <Badge tone="accent">{t("users.admin")}</Badge> : <Badge>{t("users.user")}</Badge>}
             {me.totpEnabled && <Badge tone="success">{t("account.twoFactorOn")}</Badge>}
           </p>
-          <p className="mt-1 text-[13px] text-text/45">{t("account.memberSince", { date: fmt(me.createdAt) })}{me.lastLoginAt ? ` · ${t("account.lastSignIn", { date: fmt(me.lastLoginAt) })}` : ""}</p>
+          <p className="mt-1 text-[13px] text-text/55">{t("account.memberSince", { date: fmt(me.createdAt) })}{me.lastLoginAt ? ` · ${t("account.lastSignIn", { date: fmt(me.lastLoginAt) })}` : ""}</p>
         </div>
       </section>
 
