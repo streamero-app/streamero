@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api } from "@/api/client";
+import { invalidateUserData } from "@/features/library/userData";
 
 export type ProgressInput = { page?: number; locator?: string; progression: number; finished?: boolean };
 
@@ -18,8 +19,9 @@ export function useReadingProgress(itemId: string) {
     const body = pending.current;
     pending.current = null;
     if (!body) return;
+    // The book page, "Continue reading" and the shelves all show this position.
     void api.PUT("/items/{itemId}/reading-progress", { params: { path: { itemId } }, body, keepalive: true })
-      .then(() => { void qc.invalidateQueries({ queryKey: ["item", itemId] }); });
+      .then((res) => { if (res.response.ok) void invalidateUserData(qc, { quiet: true }); }, () => undefined);
   }, [itemId, qc]);
   const save = useCallback((p: ProgressInput) => {
     pending.current = { ...p, progression: Math.min(1, Math.max(0, p.progression)) };

@@ -5,8 +5,9 @@ import { Check, ChevronLeft, ChevronRight, Play, X } from "lucide-react";
 import { Art } from "@/components/ui";
 import { useAmbient } from "@/features/ambient/Ambient";
 import { qualityTags, useEnhancements } from "@/features/enhancements/useEnhancements";
-import { useQueryClient } from "@tanstack/react-query";
-import { api } from "@/api/client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { api, unwrap } from "@/api/client";
+import { invalidateUserData } from "./userData";
 import { imageUrl, placeholderHue, type ItemSummary } from "./format";
 
 export function progressOf(it: ItemSummary): number {
@@ -95,10 +96,10 @@ export function TitleCard({ item, className = "", play = false }: { item: ItemSu
   const enh = useEnhancements();
   const qc = useQueryClient();
   const removable = play && enh.removeFromContinue && progressOf(item) > 0;
-  const forget = async () => {
-    await api.PUT("/items/{itemId}/progress", { params: { path: { itemId: item.id } }, body: { positionMs: 0 } });
-    void qc.invalidateQueries({ queryKey: ["continue"] });
-  };
+  const forget = useMutation({
+    mutationFn: async () => unwrap(await api.PUT("/items/{itemId}/progress", { params: { path: { itemId: item.id } }, body: { positionMs: 0 } })),
+    onSuccess: () => void invalidateUserData(qc),
+  });
   const [broken, setBroken] = useState(false);
   const light = useCardLight(item);
   const src = landscapeSrc(item);
@@ -130,7 +131,7 @@ export function TitleCard({ item, className = "", play = false }: { item: ItemSu
       </div>
     </Link>
     {removable && (
-      <button type="button" onClick={() => void forget()} aria-label={t("home.removeFromContinue", { title: item.seriesTitle ?? item.title })}
+      <button type="button" onClick={() => forget.mutate()} disabled={forget.isPending} aria-label={t("home.removeFromContinue", { title: item.seriesTitle ?? item.title })}
         title={t("home.removeFromContinue", { title: item.seriesTitle ?? item.title })}
         className="tv-focus absolute top-3 left-3 grid size-8 place-items-center rounded-[6px] bg-black/70 text-text opacity-0 backdrop-blur transition-opacity group-hover/card:opacity-100 focus-visible:opacity-100 max-md:opacity-100">
         <X className="size-4" aria-hidden />

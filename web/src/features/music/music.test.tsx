@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, vi } from "vitest";
 import { setLanguage } from "@/i18n";
 import { mockApi, renderApp, testUser } from "@/test-utils";
@@ -71,7 +72,7 @@ describe("music provider", () => {
       }
       return { status: 200, body: [] };
     });
-    const { unmount } = render(<MusicProvider><Controls /></MusicProvider>);
+    const { unmount } = render(<QueryClientProvider client={new QueryClient()}><MusicProvider><Controls /></MusicProvider></QueryClientProvider>);
     fireEvent.click(screen.getByText("start"));
     await waitFor(() => expect(plays).toHaveLength(1));
     fireEvent.click(screen.getByText("shuffle"));

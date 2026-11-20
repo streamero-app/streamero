@@ -14,7 +14,8 @@ import type { components } from "@/api/schema.gen";
 import { Button, ErrorText, Spinner } from "@/components/ui";
 import { imageUrl } from "@/features/library/format";
 import { detectDeviceProfile, SAFE_PROFILE } from "./deviceProfile";
-import { isFullscreen, keyBelongsToControl, nativeHls, requestSequence, subtitleSrc, toggleFullscreen as toggleFs, tryPlay } from "./playback";
+import { isFullscreen, keyBelongsToControl, nativeHls, releaseMedia, requestSequence, subtitleSrc, toggleFullscreen as toggleFs, tryPlay } from "./playback";
+import { invalidateUserData } from "@/features/library/userData";
 import { useGroupPlayback } from "@/features/syncplay/useGroupPlayback";
 import { TogetherError, TogetherPanel, WaitingBanner } from "@/features/syncplay/WatchTogether";
 
@@ -91,7 +92,8 @@ function SeekBar({ positionMs, durationMs, bufferedMs, info, onSeek }: {
       onPointerMove={(e) => { setHover(at(e)); if (drag !== null) setDrag(at(e)); }}
       onPointerLeave={() => { if (drag === null) setHover(null); }}
       onPointerDown={(e: ReactPointerEvent) => { e.currentTarget.setPointerCapture?.(e.pointerId); setDrag(at(e)); }}
-      onPointerUp={(e) => { if (drag !== null) onSeek(at(e)); setDrag(null); setHover(null); }}>
+      onPointerUp={(e) => { if (drag !== null) onSeek(at(e)); setDrag(null); setHover(null); }}
+      onPointerCancel={() => { setDrag(null); setHover(null); }}>
       <div className="relative h-1 w-full rounded-full bg-white/25 transition-[height] duration-150 group-hover/seek:h-1.5">
         <div className="absolute inset-y-0 left-0 rounded-full bg-white/35" style={{ width: `${durationMs ? Math.min(100, (bufferedMs / durationMs) * 100) : 0}%` }} />
         <div className="absolute inset-y-0 left-0 rounded-full bg-accent" style={{ width: `${pct}%` }} />
@@ -284,10 +286,12 @@ export function PlayerPage() {
     lastSave.current = now;
     const pos = absolute();
     if (pos <= 0) return;
+    // A failed save is retried by the next one; it must not become an unhandled rejection.
     void api.PUT("/items/{itemId}/progress", {
       params: { path: { itemId: media.itemId } },
       body: { positionMs: pos, durationMs: media.durationMs },
-    }).then(() => qc.invalidateQueries({ queryKey: ["continue"] }));
+      keepalive: force,
+    }).then((res) => { if (force && res.response.ok) void invalidateUserData(qc, { quiet: true }); }, () => undefined);
   }, [absolute, qc]);
   const saveRef = useRef(save);
   saveRef.current = save;
@@ -432,11 +436,17 @@ export function PlayerPage() {
     if (chosen) chosen.mode = "showing";
   }, [subtitle, info]);
 
-  // Leaving the player: save where the viewer stopped, release the stream and timers.
-  useEffect(() => () => {
-    saveRef.current(true);
-    hlsRef.current?.destroy();
-    window.clearTimeout(stopTimer.current);
+  // Leaving the player: save where the viewer stopped, release the stream and timers,
+  // and empty the <video> so the browser stops downloading the file.
+  useEffect(() => {
+    const video = videoRef.current;
+    return () => {
+      saveRef.current(true);
+      hlsRef.current?.destroy();
+      hlsRef.current = null;
+      window.clearTimeout(stopTimer.current);
+      releaseMedia(video);
+    };
   }, []);
 
   /** A burned-in subtitle stays in the picture when the stream restarts (seek, audio switch). */

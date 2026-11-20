@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { safeHref } from "@/lib/safeUrl";
+import { invalidateUserData } from "@/features/library/userData";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { BookOpen, ChevronLeft, Download, Headphones, Moon, Pause, Play, RotateCcw, RotateCw } from "lucide-react";
@@ -308,14 +310,17 @@ export function BookView({ d }: { d: ItemDetail }) {
   useAmbientLight(it.colors);
   const audio = it.kind === "audiobook";
   const pct = progressPct(it);
-  const download = async () => {
-    const mf = unwrap(await api.GET("/items/{itemId}/read", { params: { path: { itemId: it.id } } }));
-    window.location.assign(mf.fileUrl);
-  };
-  const markRead = async (played: boolean) => {
-    await api.PUT("/items/{itemId}/user-data", { params: { path: { itemId: it.id } }, body: { played } });
-    void qc.invalidateQueries({ queryKey: ["item", it.id] });
-  };
+  const download = useMutation({
+    mutationFn: async () => unwrap(await api.GET("/items/{itemId}/read", { params: { path: { itemId: it.id } } })),
+    onSuccess: (mf) => {
+      const href = safeHref(mf.fileUrl);
+      if (href) window.location.assign(href);
+    },
+  });
+  const markRead = useMutation({
+    mutationFn: async (played: boolean) => unwrap(await api.PUT("/items/{itemId}/user-data", { params: { path: { itemId: it.id } }, body: { played } })),
+    onSuccess: () => invalidateUserData(qc),
+  });
   const facts = [
     b?.seriesName ? `${b.seriesName}${b.seriesIndex !== undefined ? ` #${b.seriesIndex}` : ""}` : null,
     it.year,
@@ -341,14 +346,17 @@ export function BookView({ d }: { d: ItemDetail }) {
                 className={`${pressable} ${buttonVariants.primary} tv-focus h-13 rounded-[6px] px-7 text-base font-semibold`}>
                 <BookOpen className="size-5" aria-hidden />{pct > 0 && pct < 100 ? t("books.continueReading", { pct }) : t("books.read")}
               </Link>
-              <button type="button" onClick={() => void download()} className={`${pressable} ${buttonVariants.glass} tv-focus h-13 rounded-[6px] px-6 text-base font-semibold`}>
+              <button type="button" onClick={() => download.mutate()} disabled={download.isPending}
+                className={`${pressable} ${buttonVariants.glass} tv-focus h-13 rounded-[6px] px-6 text-base font-semibold`}>
                 <Download className="size-5" aria-hidden />{t("books.download")}
               </button>
-              <button type="button" onClick={() => void markRead(!it.played)} className={`${pressable} ${buttonVariants.glass} tv-focus h-13 rounded-[6px] px-6 text-base font-semibold`}>
+              <button type="button" onClick={() => markRead.mutate(!it.played)} disabled={markRead.isPending}
+                className={`${pressable} ${buttonVariants.glass} tv-focus h-13 rounded-[6px] px-6 text-base font-semibold`}>
                 {it.played ? t("books.markUnread") : t("books.markRead")}
               </button>
             </div>
           )}
+          <ErrorText error={download.error ?? markRead.error} />
           {audio && <AudiobookPanel item={it} />}
           {d.overview && <p className="max-w-[68ch] text-[15px] leading-relaxed whitespace-pre-line text-text/75">{d.overview}</p>}
           {!!d.genres.length && <p className="text-[13px] text-text/50">{d.genres.join(" · ")}</p>}

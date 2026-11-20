@@ -7,7 +7,7 @@ import { ArrowLeft, Maximize, Minimize, Pause, Play, RotateCcw, RotateCw, Volume
 import { api, unwrap } from "@/api/client";
 import { Button, ErrorText, Spinner } from "@/components/ui";
 import { detectDeviceProfile } from "@/features/player/deviceProfile";
-import { isFullscreen, nativeHls, toggleFullscreen as toggleFs, tryPlay } from "@/features/player/playback";
+import { isFullscreen, keyBelongsToControl, nativeHls, releaseMedia, toggleFullscreen as toggleFs, tryPlay } from "@/features/player/playback";
 import { useMusic } from "@/features/music/MusicPlayer";
 import type { Playback } from "./api";
 import { progress, timeOf } from "./time";
@@ -109,7 +109,14 @@ export function LivePlayer() {
       video.removeEventListener("canplay", begin);
     };
   }, [info]);
-  useEffect(() => () => hlsRef.current?.destroy(), []);
+  useEffect(() => {
+    const video = videoRef.current;
+    return () => {
+      hlsRef.current?.destroy();
+      hlsRef.current = null;
+      releaseMedia(video);
+    };
+  }, []);
 
   const measure = useCallback(() => {
     const v = videoRef.current;
@@ -136,7 +143,7 @@ export function LivePlayer() {
     if (!v) return;
     const edge = hlsRef.current?.liveSyncPosition ?? (v.seekable.length ? v.seekable.end(v.seekable.length - 1) - 3 : 0);
     seek(edge);
-    void v.play().catch(() => undefined);
+    void tryPlay(v).then((refused) => { if (refused) setBlocked(true); });
   }, [seek]);
   const togglePlay = useCallback(() => {
     const v = videoRef.current;
@@ -167,18 +174,23 @@ export function LivePlayer() {
   }, []);
   useEffect(() => () => window.clearTimeout(hideTimer.current), []);
   useEffect(() => {
+    // Capture phase, like the film player: these keys are the player's, not the
+    // app's arrow-key navigation (which would also move focus) or the browser's.
     const onKey = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement) return;
-      if (e.key === " " || e.key === "k") { e.preventDefault(); togglePlay(); }
-      else if (e.key === "ArrowLeft") seek((videoRef.current?.currentTime ?? 0) - 10);
-      else if (e.key === "ArrowRight") seek((videoRef.current?.currentTime ?? 0) + 10);
-      else if (e.key === "f") toggleFullscreen();
-      else if (e.key === "m" && videoRef.current) { videoRef.current.muted = !videoRef.current.muted; }
+      if (e.ctrlKey || e.metaKey || e.altKey || keyBelongsToControl(e.target, e.key)) return;
+      const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      if (k === " " || k === "k" || k === "MediaPlayPause") togglePlay();
+      else if (k === "ArrowLeft" || k === "j") seek((videoRef.current?.currentTime ?? 0) - 10);
+      else if (k === "ArrowRight" || k === "l") seek((videoRef.current?.currentTime ?? 0) + 10);
+      else if (k === "f") toggleFullscreen();
+      else if (k === "m" && videoRef.current) { videoRef.current.muted = !videoRef.current.muted; }
       else return;
+      e.preventDefault();
+      e.stopPropagation();
       poke();
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
   }, [togglePlay, seek, toggleFullscreen, poke]);
 
   const back = () => {
