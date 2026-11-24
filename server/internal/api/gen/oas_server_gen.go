@@ -330,6 +330,44 @@ type Handler interface {
 	//
 	// GET /admin/activity
 	GetActivity(ctx context.Context, params GetActivityParams) (*ActivityPage, error)
+	// GetAdultImage implements getAdultImage operation.
+	//
+	// Artwork of a scene, studio or performer (JPEG, never cached by the browser).
+	//
+	// GET /adult/images/{owner}/{id}/{imageType}
+	GetAdultImage(ctx context.Context, params GetAdultImageParams) (*GetAdultImageOKHeaders, error)
+	// GetAdultPerformer implements getAdultPerformer operation.
+	//
+	// One performer.
+	//
+	// GET /adult/performers/{performerId}
+	GetAdultPerformer(ctx context.Context, params GetAdultPerformerParams) (*AdultPerformer, error)
+	// GetAdultScene implements getAdultScene operation.
+	//
+	// One scene or movie with performers and files.
+	//
+	// GET /adult/scenes/{sceneId}
+	GetAdultScene(ctx context.Context, params GetAdultSceneParams) (*AdultSceneDetail, error)
+	// GetAdultSettings implements getAdultSettings operation.
+	//
+	// ThePornDB and StashDB keys (admin; the keys themselves are never returned).
+	//
+	// GET /adult/settings
+	GetAdultSettings(ctx context.Context) (*AdultSettings, error)
+	// GetAdultStatus implements getAdultStatus operation.
+	//
+	// 404 `not_found` unless the account was given adult access, the session is not an API key or a kids
+	// profile, and an adult library exists. The same 404 is returned by every `/adult/*` endpoint in that
+	// case, so other accounts cannot tell the section exists.
+	//
+	// GET /adult/status
+	GetAdultStatus(ctx context.Context) (*AdultStatus, error)
+	// GetAdultStudio implements getAdultStudio operation.
+	//
+	// One studio.
+	//
+	// GET /adult/studios/{studioId}
+	GetAdultStudio(ctx context.Context, params GetAdultStudioParams) (*AdultStudio, error)
 	// GetArrLink implements getArrLink operation.
 	//
 	// Where this title is managed in Radarr or Sonarr (admin).
@@ -611,6 +649,24 @@ type Handler interface {
 	//
 	// GET /apikeys
 	ListAPIKeys(ctx context.Context) ([]ApiKey, error)
+	// ListAdultPerformers implements listAdultPerformers operation.
+	//
+	// Performers with scene counts.
+	//
+	// GET /adult/performers
+	ListAdultPerformers(ctx context.Context, params ListAdultPerformersParams) (*AdultPerformerPage, error)
+	// ListAdultScenes implements listAdultScenes operation.
+	//
+	// 403 `adult_locked` while the viewer's PIN has not been entered in this session.
+	//
+	// GET /adult/scenes
+	ListAdultScenes(ctx context.Context, params ListAdultScenesParams) (*AdultScenePage, error)
+	// ListAdultStudios implements listAdultStudios operation.
+	//
+	// Studios with scene counts.
+	//
+	// GET /adult/studios
+	ListAdultStudios(ctx context.Context, params ListAdultStudiosParams) (*AdultStudioPage, error)
 	// ListArrServices implements listArrServices operation.
 	//
 	// Always all six services, in this order: radarr, sonarr, lidarr, prowlarr, bazarr, seerr. `reachable`
@@ -785,6 +841,12 @@ type Handler interface {
 	//
 	// GET /users
 	ListUsers(ctx context.Context) ([]User, error)
+	// LockAdult implements lockAdult operation.
+	//
+	// Lock the adult section of this session again.
+	//
+	// POST /adult/lock
+	LockAdult(ctx context.Context) error
 	// Login implements login operation.
 	//
 	// Sign in with username and password.
@@ -882,6 +944,12 @@ type Handler interface {
 	//
 	// GET /home/latest
 	RecentlyAdded(ctx context.Context) ([]ItemSummary, error)
+	// RefreshAdultScene implements refreshAdultScene operation.
+	//
+	// Look the scene up again in ThePornDB / StashDB (admin with adult access).
+	//
+	// POST /adult/scenes/{sceneId}/refresh
+	RefreshAdultScene(ctx context.Context, params RefreshAdultSceneParams) (*AdultSceneDetail, error)
 	// RefreshItem implements refreshItem operation.
 	//
 	// Fetch metadata and artwork of one title again (administrators).
@@ -918,6 +986,12 @@ type Handler interface {
 	//
 	// PATCH /sessions/{sessionId}
 	RenameSession(ctx context.Context, req *RenameSessionRequest, params RenameSessionParams) error
+	// ReportAdultProgress implements reportAdultProgress operation.
+	//
+	// Save the playback position of a scene (per account).
+	//
+	// PUT /adult/scenes/{sceneId}/progress
+	ReportAdultProgress(ctx context.Context, req *ProgressReport, params ReportAdultProgressParams) error
 	// ReportProgress implements reportProgress operation.
 	//
 	// Save the playback position (per profile).
@@ -1011,6 +1085,21 @@ type Handler interface {
 	//
 	// PUT /profiles/{profileId}/avatar
 	SetProfileAvatar(ctx context.Context, req SetProfileAvatarReq, params SetProfileAvatarParams) error
+	// SetUserAdultAccess implements setUserAdultAccess operation.
+	//
+	// A permission of its own (D-053): never part of `permissions`, defaults, invites, sign-in providers
+	// or `allLibraries`, and administrators do not have it unless it is given here. Giving it needs
+	// `confirm: true` (400 `confirmation_required`).
+	//
+	// PUT /users/{userId}/adult-access
+	SetUserAdultAccess(ctx context.Context, req *AdultAccessInput, params SetUserAdultAccessParams) (*User, error)
+	// StartAdultPlayback implements startAdultPlayback operation.
+	//
+	// Adult playback never appears in the activity dashboard, notifications, webhooks, watch-together or
+	// the statistics of other accounts.
+	//
+	// POST /adult/scenes/{sceneId}/playback
+	StartAdultPlayback(ctx context.Context, req *PlaybackRequest, params StartAdultPlaybackParams) (*PlaybackInfo, error)
 	// StartImport implements startImport operation.
 	//
 	// The API key is kept only until the job finishes and is never returned. Running the same import again
@@ -1089,6 +1178,25 @@ type Handler interface {
 	//
 	// DELETE /auth/identities/{identityId}
 	UnlinkIdentity(ctx context.Context, params UnlinkIdentityParams) error
+	// UnlockAdult implements unlockAdult operation.
+	//
+	// Needed only when the viewer set a PIN. The session stays unlocked for four hours or until sign-out.
+	// Wrong PINs count towards the sign-in ban (D-051): 403 `invalid_pin`.
+	//
+	// POST /adult/unlock
+	UnlockAdult(ctx context.Context, req *AdultUnlockRequest) error
+	// UpdateAdultPreferences implements updateAdultPreferences operation.
+	//
+	// Blurring and the session PIN of the current account.
+	//
+	// PUT /adult/preferences
+	UpdateAdultPreferences(ctx context.Context, req *AdultPreferencesInput) (*AdultStatus, error)
+	// UpdateAdultSettings implements updateAdultSettings operation.
+	//
+	// Save or remove ThePornDB / StashDB keys (admin; stored encrypted).
+	//
+	// PUT /adult/settings
+	UpdateAdultSettings(ctx context.Context, req *AdultSettingsInput) (*AdultSettings, error)
 	// UpdateAuthSettings implements updateAuthSettings operation.
 	//
 	// Turning password sign-in off is refused (409 `no_sso_admin`) unless an enabled administrator has a

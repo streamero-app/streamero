@@ -464,6 +464,20 @@ func encodeRenameSessionRequest(
 	return nil
 }
 
+func encodeReportAdultProgressRequest(
+	req *ProgressReport,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeReportProgressRequest(
 	req *ProgressReport,
 	r *http.Request,
@@ -594,6 +608,34 @@ func encodeSetProfileAvatarRequest(
 	return nil
 }
 
+func encodeSetUserAdultAccessRequest(
+	req *AdultAccessInput,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeStartAdultPlaybackRequest(
+	req *PlaybackRequest,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeStartImportRequest(
 	req *ImportRequest,
 	r *http.Request,
@@ -694,6 +736,48 @@ func encodeTestNotificationRequest(
 
 func encodeTestOidcProviderRequest(
 	req *OidcTestRequest,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeUnlockAdultRequest(
+	req *AdultUnlockRequest,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeUpdateAdultPreferencesRequest(
+	req *AdultPreferencesInput,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeUpdateAdultSettingsRequest(
+	req *AdultSettingsInput,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"

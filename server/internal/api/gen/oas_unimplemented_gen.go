@@ -491,6 +491,62 @@ func (UnimplementedHandler) GetActivity(ctx context.Context, params GetActivityP
 	return r, ht.ErrNotImplemented
 }
 
+// GetAdultImage implements getAdultImage operation.
+//
+// Artwork of a scene, studio or performer (JPEG, never cached by the browser).
+//
+// GET /adult/images/{owner}/{id}/{imageType}
+func (UnimplementedHandler) GetAdultImage(ctx context.Context, params GetAdultImageParams) (r *GetAdultImageOKHeaders, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetAdultPerformer implements getAdultPerformer operation.
+//
+// One performer.
+//
+// GET /adult/performers/{performerId}
+func (UnimplementedHandler) GetAdultPerformer(ctx context.Context, params GetAdultPerformerParams) (r *AdultPerformer, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetAdultScene implements getAdultScene operation.
+//
+// One scene or movie with performers and files.
+//
+// GET /adult/scenes/{sceneId}
+func (UnimplementedHandler) GetAdultScene(ctx context.Context, params GetAdultSceneParams) (r *AdultSceneDetail, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetAdultSettings implements getAdultSettings operation.
+//
+// ThePornDB and StashDB keys (admin; the keys themselves are never returned).
+//
+// GET /adult/settings
+func (UnimplementedHandler) GetAdultSettings(ctx context.Context) (r *AdultSettings, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetAdultStatus implements getAdultStatus operation.
+//
+// 404 `not_found` unless the account was given adult access, the session is not an API key or a kids
+// profile, and an adult library exists. The same 404 is returned by every `/adult/*` endpoint in that
+// case, so other accounts cannot tell the section exists.
+//
+// GET /adult/status
+func (UnimplementedHandler) GetAdultStatus(ctx context.Context) (r *AdultStatus, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetAdultStudio implements getAdultStudio operation.
+//
+// One studio.
+//
+// GET /adult/studios/{studioId}
+func (UnimplementedHandler) GetAdultStudio(ctx context.Context, params GetAdultStudioParams) (r *AdultStudio, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetArrLink implements getArrLink operation.
 //
 // Where this title is managed in Radarr or Sonarr (admin).
@@ -910,6 +966,33 @@ func (UnimplementedHandler) ListAPIKeys(ctx context.Context) (r []ApiKey, _ erro
 	return r, ht.ErrNotImplemented
 }
 
+// ListAdultPerformers implements listAdultPerformers operation.
+//
+// Performers with scene counts.
+//
+// GET /adult/performers
+func (UnimplementedHandler) ListAdultPerformers(ctx context.Context, params ListAdultPerformersParams) (r *AdultPerformerPage, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListAdultScenes implements listAdultScenes operation.
+//
+// 403 `adult_locked` while the viewer's PIN has not been entered in this session.
+//
+// GET /adult/scenes
+func (UnimplementedHandler) ListAdultScenes(ctx context.Context, params ListAdultScenesParams) (r *AdultScenePage, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListAdultStudios implements listAdultStudios operation.
+//
+// Studios with scene counts.
+//
+// GET /adult/studios
+func (UnimplementedHandler) ListAdultStudios(ctx context.Context, params ListAdultStudiosParams) (r *AdultStudioPage, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ListArrServices implements listArrServices operation.
 //
 // Always all six services, in this order: radarr, sonarr, lidarr, prowlarr, bazarr, seerr. `reachable`
@@ -1162,6 +1245,15 @@ func (UnimplementedHandler) ListUsers(ctx context.Context) (r []User, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
+// LockAdult implements lockAdult operation.
+//
+// Lock the adult section of this session again.
+//
+// POST /adult/lock
+func (UnimplementedHandler) LockAdult(ctx context.Context) error {
+	return ht.ErrNotImplemented
+}
+
 // Login implements login operation.
 //
 // Sign in with username and password.
@@ -1301,6 +1393,15 @@ func (UnimplementedHandler) RecentlyAdded(ctx context.Context) (r []ItemSummary,
 	return r, ht.ErrNotImplemented
 }
 
+// RefreshAdultScene implements refreshAdultScene operation.
+//
+// Look the scene up again in ThePornDB / StashDB (admin with adult access).
+//
+// POST /adult/scenes/{sceneId}/refresh
+func (UnimplementedHandler) RefreshAdultScene(ctx context.Context, params RefreshAdultSceneParams) (r *AdultSceneDetail, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // RefreshItem implements refreshItem operation.
 //
 // Fetch metadata and artwork of one title again (administrators).
@@ -1352,6 +1453,15 @@ func (UnimplementedHandler) RemoveLiveTvFavorite(ctx context.Context, params Rem
 //
 // PATCH /sessions/{sessionId}
 func (UnimplementedHandler) RenameSession(ctx context.Context, req *RenameSessionRequest, params RenameSessionParams) error {
+	return ht.ErrNotImplemented
+}
+
+// ReportAdultProgress implements reportAdultProgress operation.
+//
+// Save the playback position of a scene (per account).
+//
+// PUT /adult/scenes/{sceneId}/progress
+func (UnimplementedHandler) ReportAdultProgress(ctx context.Context, req *ProgressReport, params ReportAdultProgressParams) error {
 	return ht.ErrNotImplemented
 }
 
@@ -1493,6 +1603,27 @@ func (UnimplementedHandler) SetProfileAvatar(ctx context.Context, req SetProfile
 	return ht.ErrNotImplemented
 }
 
+// SetUserAdultAccess implements setUserAdultAccess operation.
+//
+// A permission of its own (D-053): never part of `permissions`, defaults, invites, sign-in providers
+// or `allLibraries`, and administrators do not have it unless it is given here. Giving it needs
+// `confirm: true` (400 `confirmation_required`).
+//
+// PUT /users/{userId}/adult-access
+func (UnimplementedHandler) SetUserAdultAccess(ctx context.Context, req *AdultAccessInput, params SetUserAdultAccessParams) (r *User, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// StartAdultPlayback implements startAdultPlayback operation.
+//
+// Adult playback never appears in the activity dashboard, notifications, webhooks, watch-together or
+// the statistics of other accounts.
+//
+// POST /adult/scenes/{sceneId}/playback
+func (UnimplementedHandler) StartAdultPlayback(ctx context.Context, req *PlaybackRequest, params StartAdultPlaybackParams) (r *PlaybackInfo, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // StartImport implements startImport operation.
 //
 // The API key is kept only until the job finishes and is never returned. Running the same import again
@@ -1605,6 +1736,34 @@ func (UnimplementedHandler) TestRequestSettings(ctx context.Context) (r []Connec
 // DELETE /auth/identities/{identityId}
 func (UnimplementedHandler) UnlinkIdentity(ctx context.Context, params UnlinkIdentityParams) error {
 	return ht.ErrNotImplemented
+}
+
+// UnlockAdult implements unlockAdult operation.
+//
+// Needed only when the viewer set a PIN. The session stays unlocked for four hours or until sign-out.
+// Wrong PINs count towards the sign-in ban (D-051): 403 `invalid_pin`.
+//
+// POST /adult/unlock
+func (UnimplementedHandler) UnlockAdult(ctx context.Context, req *AdultUnlockRequest) error {
+	return ht.ErrNotImplemented
+}
+
+// UpdateAdultPreferences implements updateAdultPreferences operation.
+//
+// Blurring and the session PIN of the current account.
+//
+// PUT /adult/preferences
+func (UnimplementedHandler) UpdateAdultPreferences(ctx context.Context, req *AdultPreferencesInput) (r *AdultStatus, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateAdultSettings implements updateAdultSettings operation.
+//
+// Save or remove ThePornDB / StashDB keys (admin; stored encrypted).
+//
+// PUT /adult/settings
+func (UnimplementedHandler) UpdateAdultSettings(ctx context.Context, req *AdultSettingsInput) (r *AdultSettings, _ error) {
+	return r, ht.ErrNotImplemented
 }
 
 // UpdateAuthSettings implements updateAuthSettings operation.
