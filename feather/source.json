@@ -15,6 +15,15 @@
       "category": "entertainment",
       "versions": [
         {
+          "version": "0.12.0",
+          "buildVersion": "1200",
+          "date": "2026-11-24",
+          "downloadURL": "https://github.com/streamero-app/streamero/releases/download/v0.12.0/Streamero-v0.12.0.ipa",
+          "size": 5460675,
+          "localizedDescription": "Streamero 0.12.0",
+          "minOSVersion": "17.0"
+        },
+        {
           "version": "0.11.4",
           "buildVersion": "1104",
           "date": "2026-11-17",
@@ -197,6 +206,15 @@
       "tintColor": "#E5484D",
       "category": "utilities",
       "versions": [
+        {
+          "version": "0.12.0",
+          "buildVersion": "1200",
+          "date": "2026-11-24",
+          "downloadURL": "https://github.com/streamero-app/streamero/releases/download/v0.12.0/Streamero-Manage-v0.12.0.ipa",
+          "size": 7233619,
+          "localizedDescription": "Streamero Manage 0.12.0",
+          "minOSVersion": "17.0"
+        },
         {
           "version": "0.11.4",
           "buildVersion": "1104",
