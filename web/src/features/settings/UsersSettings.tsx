@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { api, unwrap, type User } from "@/api/client";
 import { Badge, Button, Card, ErrorText, SuccessText, TextField } from "@/components/ui";
-import { useMe } from "@/features/auth/useAuth";
+import { meQueryKey, useMe } from "@/features/auth/useAuth";
 import { useDateTime } from "./SettingsLayout";
 import { PermissionsEditor, type Permissions } from "./PermissionsEditor";
 import { useConfirm } from "@/components/Dialog";
@@ -17,6 +17,17 @@ export function UsersSettings() {
   const fmt = useDateTime();
   const { data: me } = useMe();
   const users = useQuery({ queryKey: ["users"], queryFn: async () => unwrap(await api.GET("/users")) });
+  const libraries = useQuery({ queryKey: ["libraries", "all"], queryFn: async () => unwrap(await api.GET("/libraries")) });
+  const hasAdult = Array.isArray(libraries.data) && libraries.data.some((l) => l.kind === "adult");
+  // Adult access (D-053) is its own permission, given one account at a time after a confirmation.
+  const adultAccess = useMutation({
+    mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) =>
+      unwrap(await api.PUT("/users/{userId}/adult-access", { params: { path: { userId: id } }, body: { enabled, confirm: enabled } })),
+    onSuccess: () => {
+      void refresh();
+      void qc.invalidateQueries({ queryKey: meQueryKey });
+    },
+  });
   const refresh = () => qc.invalidateQueries({ queryKey: ["users"] });
 
   const [form, setForm] = useState({ username: "", password: "", isAdmin: false });
@@ -63,11 +74,16 @@ export function UsersSettings() {
       </Card>
 
       <Card title={t("settings.users")}>
-        <ErrorText error={users.error ?? update.error ?? remove.error} />
+        <ErrorText error={users.error ?? update.error ?? remove.error ?? adultAccess.error} />
         <ul className="divide-y divide-border">
           {users.data?.map((u) => (
-            <UserRow key={u.id} user={u} isSelf={u.id === me?.id} fmt={fmt} busy={update.isPending || remove.isPending}
+            <UserRow key={u.id} user={u} isSelf={u.id === me?.id} fmt={fmt} busy={update.isPending || remove.isPending || adultAccess.isPending}
               onPatch={(patch) => update.mutate({ id: u.id, patch })}
+              onAdult={hasAdult ? (enabled) => {
+                if (!enabled) return adultAccess.mutate({ id: u.id, enabled });
+                void confirmDialog({ message: t("adult.confirmGrant", { name: u.username }), danger: true })
+                  .then((ok) => ok && adultAccess.mutate({ id: u.id, enabled }));
+              } : undefined}
               onDelete={() => {
                 void confirmDialog({ message: t("users.confirmDelete", { name: u.username }), danger: true }).then((ok) => { if (ok) remove.mutate(u.id); });
               }} />
@@ -78,9 +94,9 @@ export function UsersSettings() {
   );
 }
 
-function UserRow({ user, isSelf, fmt, busy, onPatch, onDelete }: {
+function UserRow({ user, isSelf, fmt, busy, onPatch, onDelete, onAdult }: {
   user: User; isSelf: boolean; fmt: (iso?: string) => string; busy: boolean;
-  onPatch: (p: Patch) => void; onDelete: () => void;
+  onPatch: (p: Patch) => void; onDelete: () => void; onAdult?: (enabled: boolean) => void;
 }) {
   const confirmDialog = useConfirm();
   const { t } = useTranslation();
@@ -95,6 +111,7 @@ function UserRow({ user, isSelf, fmt, busy, onPatch, onDelete }: {
         {user.disabled && <Badge tone="danger">{t("users.disabled")}</Badge>}
         {user.totpEnabled && <Badge tone="success">2FA</Badge>}
         {isSelf && <Badge tone="success">{t("users.you")}</Badge>}
+        {user.adultAccess && <Badge tone="danger">{t("adult.badge")}</Badge>}
         <span className="ml-auto text-xs text-muted">{t("users.lastLogin", { when: fmt(user.lastLoginAt) })}</span>
       </div>
       <div className="flex flex-wrap gap-2">
@@ -114,6 +131,11 @@ function UserRow({ user, isSelf, fmt, busy, onPatch, onDelete }: {
           <Button variant="secondary" disabled={busy}
             onClick={() => void confirmDialog({ message: t("users.confirmReset2fa", { name: user.username }), danger: true }).then((ok) => ok && onPatch({ resetTwoFactor: true }))}>
             {t("users.reset2fa")}
+          </Button>
+        )}
+        {onAdult && (
+          <Button variant="secondary" disabled={busy} data-testid="adult-access" onClick={() => onAdult(!user.adultAccess)}>
+            {user.adultAccess ? t("adult.revoke") : t("adult.grant")}
           </Button>
         )}
         {!isSelf && <Button variant="danger" disabled={busy} onClick={onDelete}>{t("users.delete")}</Button>}

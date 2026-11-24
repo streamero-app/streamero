@@ -14,6 +14,7 @@ x-common: &common
     STREAMERO_VALKEY_URL: redis://valkey:6379/0
     # Optional fixed first-run setup code; otherwise a random one is printed to the log.
     STREAMERO_SETUP_CODE: ${STREAMERO_SETUP_CODE:-}
+    STREAMERO_SECRET_KEY: ${STREAMERO_SECRET_KEY:-}
     # Reverse proxies whose X-Forwarded-For is trusted (see docs/DEPLOY.md).
     STREAMERO_TRUSTED_PROXIES: ${STREAMERO_TRUSTED_PROXIES:-}
     STREAMERO_AUTH_RATE_LIMIT: ${STREAMERO_AUTH_RATE_LIMIT:-20,10}

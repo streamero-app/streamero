@@ -44,6 +44,10 @@ tags:
     description: Books, comics and audiobooks (D-039).
   - name: photos
     description: Photo libraries (D-039).
+  - name: adult
+    description: |
+      Optional adult libraries (D-053). Off unless an administrator creates one; every
+      endpoint answers 404 to accounts without adult access.
 security: []
 paths:
   /system/info:
@@ -4315,6 +4319,464 @@ paths:
                 $ref: "#/components/schemas/LiveTvSettings"
         default:
           $ref: "#/components/responses/Error"
+  /adult/status:
+    get:
+      operationId: getAdultStatus
+      summary: The adult section of the current account (D-053)
+      description: |
+        404 `not_found` unless the account was given adult access, the session is not an
+        API key or a kids profile, and an adult library exists. The same 404 is returned
+        by every `/adult/*` endpoint in that case, so other accounts cannot tell the
+        section exists.
+      tags: [adult]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdultStatus"
+        default:
+          $ref: "#/components/responses/Error"
+  /adult/unlock:
+    post:
+      operationId: unlockAdult
+      summary: Unlock the adult section for this session with the viewer's PIN
+      description: |
+        Needed only when the viewer set a PIN. The session stays unlocked for four hours
+        or until sign-out. Wrong PINs count towards the sign-in ban (D-051): 403 `invalid_pin`.
+      tags: [adult]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdultUnlockRequest"
+      responses:
+        "204":
+          description: Unlocked
+        default:
+          $ref: "#/components/responses/Error"
+  /adult/lock:
+    post:
+      operationId: lockAdult
+      summary: Lock the adult section of this session again
+      tags: [adult]
+      security:
+        - sessionToken: []
+      responses:
+        "204":
+          description: Locked
+        default:
+          $ref: "#/components/responses/Error"
+  /adult/preferences:
+    put:
+      operationId: updateAdultPreferences
+      summary: Blurring and the session PIN of the current account
+      tags: [adult]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdultPreferencesInput"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdultStatus"
+        default:
+          $ref: "#/components/responses/Error"
+  /adult/scenes:
+    get:
+      operationId: listAdultScenes
+      summary: Scenes and movies of the adult libraries
+      description: 403 `adult_locked` while the viewer's PIN has not been entered in this session.
+      tags: [adult]
+      security:
+        - sessionToken: []
+      parameters:
+        - name: libraryId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: studioId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: performerId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: kind
+          in: query
+          schema:
+            $ref: "#/components/schemas/AdultSceneKind"
+        - name: q
+          in: query
+          description: Words in the title, studio or a performer's name.
+          schema:
+            type: string
+            maxLength: 200
+        - name: tag
+          in: query
+          schema:
+            type: string
+            maxLength: 100
+        - name: year
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          description: "`unwatched`, `inProgress` (continue watching) or `watched`."
+          schema:
+            type: string
+            enum: [all, unwatched, inProgress, watched]
+            default: all
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [date, added, title, played]
+            default: date
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 60
+      responses:
+        "200":
+          description: A page of scenes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdultScenePage"
+        default:
+          $ref: "#/components/responses/Error"
+  /adult/scenes/{sceneId}:
+    parameters:
+      - $ref: "#/components/parameters/AdultSceneId"
+    get:
+      operationId: getAdultScene
+      summary: One scene or movie with performers and files
+      tags: [adult]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Scene
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdultSceneDetail"
+        default:
+          $ref: "#/components/responses/Error"
+  /adult/scenes/{sceneId}/playback:
+    parameters:
+      - $ref: "#/components/parameters/AdultSceneId"
+    post:
+      operationId: startAdultPlayback
+      summary: Play a scene (same decision and signed URLs as startPlayback)
+      description: |
+        Adult playback never appears in the activity dashboard, notifications, webhooks,
+        watch-together or the statistics of other accounts.
+      tags: [adult]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaybackRequest"
+      responses:
+        "200":
+          description: How to play
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaybackInfo"
+        default:
+          $ref: "#/components/responses/Error"
+  /adult/scenes/{sceneId}/progress:
+    parameters:
+      - $ref: "#/components/parameters/AdultSceneId"
+    put:
+      operationId: reportAdultProgress
+      summary: Save the playback position of a scene (per account)
+      tags: [adult]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProgressReport"
+      responses:
+        "204":
+          description: Saved
+        default:
+          $ref: "#/components/responses/Error"
+  /adult/scenes/{sceneId}/refresh:
+    parameters:
+      - $ref: "#/components/parameters/AdultSceneId"
+    post:
+      operationId: refreshAdultScene
+      summary: Look the scene up again in ThePornDB / StashDB (admin with adult access)
+      tags: [adult]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: The scene after the lookup
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdultSceneDetail"
+        default:
+          $ref: "#/components/responses/Error"
+  /adult/studios:
+    get:
+      operationId: listAdultStudios
+      summary: Studios with scene counts
+      tags: [adult]
+      security:
+        - sessionToken: []
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+            maxLength: 200
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 100
+      responses:
+        "200":
+          description: A page of studios, most scenes first
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdultStudioPage"
+        default:
+          $ref: "#/components/responses/Error"
+  /adult/studios/{studioId}:
+    parameters:
+      - name: studioId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getAdultStudio
+      summary: One studio
+      tags: [adult]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Studio
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdultStudio"
+        default:
+          $ref: "#/components/responses/Error"
+  /adult/performers:
+    get:
+      operationId: listAdultPerformers
+      summary: Performers with scene counts
+      tags: [adult]
+      security:
+        - sessionToken: []
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+            maxLength: 200
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 100
+      responses:
+        "200":
+          description: A page of performers, most scenes first
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdultPerformerPage"
+        default:
+          $ref: "#/components/responses/Error"
+  /adult/performers/{performerId}:
+    parameters:
+      - name: performerId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getAdultPerformer
+      summary: One performer
+      tags: [adult]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Performer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdultPerformer"
+        default:
+          $ref: "#/components/responses/Error"
+  /adult/images/{owner}/{id}/{imageType}:
+    parameters:
+      - name: owner
+        in: path
+        required: true
+        schema:
+          type: string
+          enum: [scene, studio, performer]
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: imageType
+        in: path
+        required: true
+        schema:
+          type: string
+          enum: [poster, backdrop, image]
+    get:
+      operationId: getAdultImage
+      summary: Artwork of a scene, studio or performer (JPEG, never cached by the browser)
+      tags: [adult]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Image
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+        default:
+          $ref: "#/components/responses/Error"
+  /adult/settings:
+    get:
+      operationId: getAdultSettings
+      summary: ThePornDB and StashDB keys (admin; the keys themselves are never returned)
+      tags: [adult]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdultSettings"
+        default:
+          $ref: "#/components/responses/Error"
+    put:
+      operationId: updateAdultSettings
+      summary: Save or remove ThePornDB / StashDB keys (admin; stored encrypted)
+      tags: [adult]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdultSettingsInput"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdultSettings"
+        default:
+          $ref: "#/components/responses/Error"
+  /users/{userId}/adult-access:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    put:
+      operationId: setUserAdultAccess
+      summary: Give or take away access to adult libraries (admin)
+      description: |
+        A permission of its own (D-053): never part of `permissions`, defaults, invites,
+        sign-in providers or `allLibraries`, and administrators do not have it unless it is
+        given here. Giving it needs `confirm: true` (400 `confirmation_required`).
+      tags: [users, adult]
+      security:
+        - sessionToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdultAccessInput"
+      responses:
+        "200":
+          description: The user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        default:
+          $ref: "#/components/responses/Error"
 components:
   securitySchemes:
     sessionToken:
@@ -4325,6 +4787,13 @@ components:
         Web clients get the session as the HttpOnly `streamero_session` cookie instead
         (useCookie: true), which the server accepts too.
   parameters:
+    AdultSceneId:
+      name: sceneId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
     OidcProviderId:
       name: providerId
       in: path
@@ -4428,6 +4897,267 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
   schemas:
+    AdultSceneKind:
+      type: string
+      enum: [scene, movie]
+    AdultStatus:
+      type: object
+      required: [pinSet, unlocked, blur, libraries, metadataConfigured]
+      properties:
+        pinSet:
+          type: boolean
+          description: The viewer asked for a PIN before entering the section.
+        unlocked:
+          type: boolean
+          description: The section is open in this session (always true without a PIN).
+        blur:
+          type: boolean
+          description: Blur artwork until it is clicked (default on).
+        metadataConfigured:
+          type: boolean
+          description: A ThePornDB or StashDB key is set.
+        libraries:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdultLibrary"
+    AdultLibrary:
+      type: object
+      required: [id, name, sceneCount]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        sceneCount:
+          type: integer
+    AdultUnlockRequest:
+      type: object
+      required: [pin]
+      properties:
+        pin:
+          type: string
+          minLength: 4
+          maxLength: 12
+    AdultPreferencesInput:
+      type: object
+      properties:
+        blur:
+          type: boolean
+        pin:
+          type: string
+          description: New PIN (4–12 digits); an empty string removes it.
+          maxLength: 12
+        currentPin:
+          type: string
+          description: Needed to change or remove an existing PIN.
+          maxLength: 12
+    AdultAccessInput:
+      type: object
+      required: [enabled]
+      properties:
+        enabled:
+          type: boolean
+        confirm:
+          type: boolean
+          description: The administrator confirms the account belongs to an adult.
+    AdultSettings:
+      type: object
+      required: [tpdbConfigured, stashdbConfigured]
+      properties:
+        tpdbConfigured:
+          type: boolean
+        stashdbConfigured:
+          type: boolean
+    AdultSettingsInput:
+      type: object
+      properties:
+        tpdbApiKey:
+          type: string
+          maxLength: 500
+          description: New ThePornDB key (checked before it is saved); empty = unchanged.
+        stashdbApiKey:
+          type: string
+          maxLength: 500
+          description: New StashDB key (checked before it is saved); empty = unchanged.
+        clearTpdb:
+          type: boolean
+        clearStashdb:
+          type: boolean
+    AdultRef:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+    AdultScene:
+      type: object
+      required: [id, libraryId, kind, title, performers, tags, hasPoster, hasBackdrop, positionMs, played, addedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        libraryId:
+          type: string
+          format: uuid
+        kind:
+          $ref: "#/components/schemas/AdultSceneKind"
+        title:
+          type: string
+        date:
+          type: string
+          format: date
+        year:
+          type: integer
+        studio:
+          $ref: "#/components/schemas/AdultRef"
+        performers:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdultRef"
+        tags:
+          type: array
+          items:
+            type: string
+        durationMs:
+          type: integer
+          format: int64
+        height:
+          type: integer
+        hasPoster:
+          type: boolean
+        hasBackdrop:
+          type: boolean
+        positionMs:
+          type: integer
+          format: int64
+        played:
+          type: boolean
+        addedAt:
+          type: string
+          format: date-time
+    AdultSceneDetail:
+      allOf:
+        - $ref: "#/components/schemas/AdultScene"
+        - type: object
+          required: [files, providerIds]
+          properties:
+            description:
+              type: string
+            url:
+              type: string
+              description: Page of the scene at the studio (from the metadata source).
+            files:
+              type: array
+              items:
+                $ref: "#/components/schemas/AdultFile"
+            providerIds:
+              type: object
+              additionalProperties:
+                type: string
+              description: "`tpdb` and `stashdb` ids when the scene was matched."
+            metadataError:
+              type: string
+    AdultFile:
+      type: object
+      required: [id, name, size, container]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          description: File name (without the folder).
+        size:
+          type: integer
+          format: int64
+        container:
+          type: string
+        videoCodec:
+          type: string
+        width:
+          type: integer
+        height:
+          type: integer
+        durationMs:
+          type: integer
+          format: int64
+    AdultScenePage:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdultScene"
+        total:
+          type: integer
+    AdultStudio:
+      type: object
+      required: [id, name, sceneCount, hasImage]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        sceneCount:
+          type: integer
+        hasImage:
+          type: boolean
+        url:
+          type: string
+        parent:
+          type: string
+          description: Network the studio belongs to.
+    AdultStudioPage:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdultStudio"
+        total:
+          type: integer
+    AdultPerformer:
+      type: object
+      required: [id, name, sceneCount, hasImage, aliases]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        sceneCount:
+          type: integer
+        hasImage:
+          type: boolean
+        aliases:
+          type: array
+          items:
+            type: string
+        gender:
+          type: string
+        birthdate:
+          type: string
+        country:
+          type: string
+        description:
+          type: string
+    AdultPerformerPage:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdultPerformer"
+        total:
+          type: integer
     Username:
       type: string
       minLength: 1
@@ -4968,7 +5698,11 @@ components:
           type: string
     LibraryKind:
       type: string
-      enum: [movies, shows, music, mixed, books, audiobooks, photos]
+      enum: [movies, shows, music, mixed, books, audiobooks, photos, adult]
+      description: |
+        `adult` (D-053) needs `confirmAdult` when it is created, cannot be changed to or from
+        another kind, and is listed only to administrators; its content is reached only
+        through `/adult/*`.
     LibraryInput:
       type: object
       required: [name, kind, paths]
@@ -4986,6 +5720,11 @@ components:
           items:
             type: string
             maxLength: 4096
+        confirmAdult:
+          type: boolean
+          description: >-
+            Required for kind `adult`: the administrator confirms the library holds adult
+            content that only accounts given adult access may see (400 `confirmation_required`).
     Library:
       type: object
       required: [id, name, kind, paths, itemCount, scan]
@@ -6684,6 +7423,12 @@ components:
           description: Interface language chosen by the user.
         hasAvatar:
           type: boolean
+        adultAccess:
+          type: boolean
+          description: >-
+            The account was given adult access (D-053). On /auth/me: the adult section is
+            available in this session (access given, an adult library exists, not a kids
+            profile, not an API key).
         createdAt:
           type: string
           format: date-time

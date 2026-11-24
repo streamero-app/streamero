@@ -9,7 +9,7 @@ import { useConfirm } from "@/components/Dialog";
 
 type Kind = Library["kind"];
 type Form = { id: string | null; name: string; kind: Kind; paths: string[] };
-const KINDS: Kind[] = ["movies", "shows", "music", "mixed", "books", "audiobooks", "photos"];
+const KINDS: Kind[] = ["movies", "shows", "music", "mixed", "books", "audiobooks", "photos", "adult"];
 const busyStates = new Set(["queued", "scanning"]);
 
 /** Navigates folders under the server's media roots and picks one. */
@@ -54,7 +54,8 @@ export function LibrariesSettings() {
   const qc = useQueryClient();
   const fmt = useDateTime();
   const libraries = useQuery({
-    queryKey: ["libraries"],
+    // Its own key: the browsing list (useLibraries) leaves adult libraries out.
+    queryKey: ["libraries", "all"],
     queryFn: async () => unwrap(await api.GET("/libraries")),
     refetchInterval: (q) => (q.state.data?.some((l) => busyStates.has(l.scan.state)) ? 2000 : false),
   });
@@ -64,7 +65,8 @@ export function LibrariesSettings() {
 
   const save = useMutation({
     mutationFn: async (f: Form) => {
-      const body = { name: f.name, kind: f.kind, paths: f.paths };
+      // An adult library (D-053) is created only after an explicit confirmation (onSubmit).
+      const body = { name: f.name, kind: f.kind, paths: f.paths, ...(f.kind === "adult" ? { confirmAdult: true } : {}) };
       return f.id
         ? unwrap(await api.PUT("/libraries/{libraryId}", { params: { path: { libraryId: f.id } }, body }))
         : unwrap(await api.POST("/libraries", { body }));
@@ -92,7 +94,12 @@ export function LibrariesSettings() {
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (form) save.mutate(form);
+    if (!form) return;
+    if (form.kind === "adult" && !form.id) {
+      void confirmDialog({ message: t("adult.confirmCreate"), danger: true }).then((ok) => ok && save.mutate(form));
+      return;
+    }
+    save.mutate(form);
   };
   const stateBadge = (l: Library) => {
     switch (l.scan.state) {
@@ -165,10 +172,18 @@ export function LibrariesSettings() {
             <label className="flex max-w-xs flex-col gap-1 text-sm">
               {t("libraries.kind")}
               <select value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value as Kind })}
+                disabled={!!form.id && (form.kind === "adult" || libraries.data?.find((l) => l.id === form.id)?.kind === "adult")}
                 className="rounded-md border border-border bg-bg px-3 py-2 text-base text-text">
-                {KINDS.map((k) => <option key={k} value={k}>{t(`libraries.kind_${k}`)}</option>)}
+                {/* A library cannot change to or from the adult kind (D-053). */}
+                {KINDS.filter((k) => !form.id || (k === "adult") === (libraries.data?.find((l) => l.id === form.id)?.kind === "adult"))
+                  .map((k) => <option key={k} value={k}>{t(`libraries.kind_${k}`)}</option>)}
               </select>
             </label>
+            {form.kind === "adult" && (
+              <p className="max-w-prose rounded-[6px] border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-text/90" data-testid="adult-library-note">
+                {t("adult.libraryNote")}
+              </p>
+            )}
             <div className="flex flex-col gap-2 text-sm">
               <span>{t("libraries.folders")}</span>
               {form.paths.length === 0 && <span className="text-xs text-muted">{t("libraries.noFolders")}</span>}

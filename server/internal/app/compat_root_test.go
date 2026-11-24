@@ -36,6 +36,8 @@ func spaRoutes(t *testing.T) []string {
 			p = "/settings/" + strings.TrimPrefix(p, "/")
 		case "liveTvRoute":
 			p = "/live/" + strings.TrimPrefix(p, "/")
+		case "adultRoute":
+			p = "/adult/" + strings.TrimPrefix(p, "/")
 		default:
 			t.Fatalf("route %q has parent %s: teach spaRoutes its prefix", p, parent)
 		}

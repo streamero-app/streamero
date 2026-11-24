@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, Navigate, Outlet, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Bookmark, Clapperboard, Compass, Film, House, LogOut, Music, Radio, Search, Settings, Tv, Users, type LucideIcon } from "lucide-react";
+import { Bookmark, Clapperboard, Compass, Film, House, LogOut, Music, Radio, Search, Settings, ShieldAlert, Tv, Users, type LucideIcon } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Spinner } from "@/components/ui";
@@ -86,6 +86,11 @@ function AccountMenu() {
               <Radio className="size-4 text-text/55" aria-hidden />{t("livetv.title")}
             </Link>
           )}
+          {me.adultAccess && (
+            <Link to="/adult" role="menuitem" className={item} onClick={() => setOpen(false)} data-testid="adult-menu">
+              <ShieldAlert className="size-4 text-text/55" aria-hidden />{t("adult.title")}
+            </Link>
+          )}
           {(me.isAdmin || me.permissions.syncPlay) && (
             <Link to="/together" role="menuitem" className={item} onClick={() => setOpen(false)} data-testid="together-menu">
               <Users className="size-4 text-text/55" aria-hidden />{t("together.groups")}
@@ -140,7 +145,7 @@ export function AppShell() {
   // Like a streaming service: choose who is watching once per browser session.
   if ((profiles.data?.length ?? 0) > 0 && !me.currentProfile && !profilePicked()) return <Navigate to="/who" />;
 
-  const watching = path.startsWith("/watch/") || path.startsWith("/read/") || path.startsWith("/live/watch/");
+  const watching = path.startsWith("/watch/") || path.startsWith("/read/") || path.startsWith("/live/watch/") || path.startsWith("/adult/watch/");
   const libs = Array.isArray(libraries.data) ? libraries.data : [];
 
   return (
@@ -162,6 +167,7 @@ export function AppShell() {
             <Link to="/my-list" className={topLink}>{t("nav.myList")}</Link>
             <Link to="/playlists" className={topLink}>{t("playlists.title")}</Link>
             {canWatchLiveTv(me) && <Link to="/live" className={topLink} data-testid="livetv-link">{t("livetv.title")}</Link>}
+            {me.adultAccess && <Link to="/adult" className={topLink} data-testid="adult-link">{t("adult.title")}</Link>}
           </nav>
           <div className="ml-auto flex items-center gap-3">
             <div className="hidden sm:block"><SearchBox /></div>

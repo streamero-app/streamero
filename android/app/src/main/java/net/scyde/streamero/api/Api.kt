@@ -132,7 +132,11 @@ class Api(baseUrl: String, @Volatile var token: String? = null) {
     suspend fun selectMain(password: String) = send("POST", "profiles/main/select", mapOf("password" to password))
 
     // Browse
-    suspend fun libraries(): List<Library> = get("libraries")
+    /** Libraries to browse. Adult libraries (listed to administrators for managing them) are left out: their content is reached only through the adult section. */
+    suspend fun libraries(): List<Library> = librariesAll().filter { it.kind != "adult" }
+
+    /** Every library including adult ones (library settings). */
+    suspend fun librariesAll(): List<Library> = get("libraries")
     suspend fun items(libraryId: String, query: Map<String, Any?>): ItemPage = get("libraries/$libraryId/items", query)
     suspend fun genres(libraryId: String): List<String> = get("libraries/$libraryId/genres")
     suspend fun item(id: String): ItemDetail = get("items/$id")
@@ -247,7 +251,27 @@ class Api(baseUrl: String, @Volatile var token: String? = null) {
     suspend fun searchMissingSubtitles(itemId: String) = send("POST", "items/$itemId/subtitles/search-missing")
     suspend fun saveEnhancements(e: Enhancements): Enhancements = put("enhancements", e)
 
+    // Adult section (D-053): its own endpoints, never mixed into the regular lists.
+    suspend fun adultStatus(): AdultStatus = get("adult/status")
+    suspend fun adultUnlock(pin: String) = send("POST", "adult/unlock", AdultUnlockRequest(pin))
+    suspend fun adultLock() = send("POST", "adult/lock")
+    suspend fun adultPreferences(p: AdultPreferencesInput): AdultStatus = put("adult/preferences", p)
+    suspend fun adultScenes(query: Map<String, Any?>): AdultScenePage = get("adult/scenes", query)
+    suspend fun adultScene(id: String): AdultSceneDetail = get("adult/scenes/$id")
+    suspend fun adultPlayback(id: String, r: PlaybackRequest): PlaybackInfo = post("adult/scenes/$id/playback", r)
+    suspend fun adultProgress(id: String, p: ProgressReport) = send("PUT", "adult/scenes/$id/progress", p)
+    suspend fun adultStudios(q: String?, offset: Int, limit: Int = 100): AdultStudioPage =
+        get("adult/studios", mapOf("q" to q?.ifBlank { null }, "offset" to offset, "limit" to limit))
+    suspend fun adultStudio(id: String): AdultStudio = get("adult/studios/$id")
+    suspend fun adultPerformers(q: String?, offset: Int, limit: Int = 100): AdultPerformerPage =
+        get("adult/performers", mapOf("q" to q?.ifBlank { null }, "offset" to offset, "limit" to limit))
+    suspend fun adultPerformer(id: String): AdultPerformer = get("adult/performers/$id")
+    /** Artwork of a scene, studio or performer; needs the session like other API calls and is never kept on disk. */
+    fun adultImageUrl(owner: String, id: String, kind: String) = api("adult/images/$owner/$id/$kind").toString()
+
     companion object {
+        /** The adult section is locked with the viewer's PIN in this session. */
+        fun isAdultLocked(e: Throwable?) = e is ApiException && e.status == 403 && e.code == "adult_locked"
         /** The server refused the session itself (not a wrong password, PIN or code). */
         fun isSessionRejected(e: ApiException) = e.status == 401 && e.code == "unauthenticated"
         val JSON = "application/json".toMediaType()

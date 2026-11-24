@@ -41,10 +41,12 @@ const gutter = "px-5 sm:px-10 lg:px-16";
 
 export function useLibraries() {
   return useQuery({
-    queryKey: ["libraries"],
+    queryKey: ["libraries", "browse"],
     queryFn: async () => {
       const data = unwrap(await api.GET("/libraries"));
-      return Array.isArray(data) ? data : [];
+      // Adult libraries (D-053) are listed to administrators only for managing
+      // them; they are never browsed as libraries.
+      return Array.isArray(data) ? data.filter((l) => l.kind !== "adult") : [];
     },
   });
 }

@@ -58,6 +58,9 @@ final class PlayerModel {
         self.together = together
     }
 
+    /// A scene of the adult section (D-053): its own playback and progress endpoints.
+    var isAdult: Bool { target.adult }
+
     private var introMode: String { prefs?.skipIntro ?? "button" }
     private var creditsMode: String { prefs?.skipCredits ?? "button" }
     private var autoplay: Bool { prefs?.autoplayNext ?? true }
@@ -87,6 +90,7 @@ final class PlayerModel {
     var autoplaysNext: Bool { autoplay && creditsMode != "off" }
 
     var titleLine: String {
+        if target.adult { return target.title ?? "" }
         guard let it = detail?.item else { return "" }
         return (it.seriesTitle.map { "\($0) · " } ?? "") + it.title
     }
@@ -99,6 +103,11 @@ final class PlayerModel {
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {}
         prefs = try? await client.preferences()
+        if target.adult {
+            // No item page, no next episode, never watch together.
+            await load(startMs: target.start, audio: target.audio, sub: nil)
+            return
+        }
         detail = try? await client.item(current)
         next = try? await client.nextEpisode(current)
         await load(startMs: target.start, audio: target.audio, sub: target.sub)
@@ -112,8 +121,14 @@ final class PlayerModel {
             let profile = MediaClient.device(preferences: prefs)
             // The version picked on the item page only applies to that item.
             let file = current == target.id ? target.file : nil
-            let pi = try await client.startPlayback(item: current, startMs: startMs.map { max(0, $0) },
+            let pi: PlaybackInfo
+            if target.adult {
+                pi = try await client.startAdultPlayback(scene: current, startMs: startMs.map { max(0, $0) },
+                                                         audioIndex: audio, fileId: file, profile: profile)
+            } else {
+                pi = try await client.startPlayback(item: current, startMs: startMs.map { max(0, $0) },
                                                     audioIndex: audio, subtitleIndex: sub, fileId: file, profile: profile)
+            }
             guard let url = client.absolute(pi.url) else { throw APIError(status: 0, code: "bad_url") }
             player?.pause()
             info = pi
@@ -130,7 +145,7 @@ final class PlayerModel {
                 await p.seekWhenReady(toMs: pi.startMs)
             }
             player = p
-            if inGroup || together.group != nil {
+            if !target.adult && (inGroup || together.group != nil) {
                 // The group decides when to play.
                 together.realign()
                 syncDirty = true
@@ -295,7 +310,12 @@ final class PlayerModel {
     private func report() async {
         guard info != nil else { return }
         let pos = absolutePosition()
-        if pos > 0 { await client.reportProgress(item: current, positionMs: pos, durationMs: info?.durationMs) }
+        guard pos > 0 else { return }
+        if target.adult {
+            await client.reportAdultProgress(scene: current, positionMs: pos, durationMs: info?.durationMs)
+        } else {
+            await client.reportProgress(item: current, positionMs: pos, durationMs: info?.durationMs)
+        }
     }
 
     func close() async {
@@ -493,7 +513,8 @@ struct PlayerView: View {
                     // The group's own controls replace AVKit's, so every action goes to the group.
                     PlayerLayerView(player: player).ignoresSafeArea()
                 } else {
-                    SystemVideoPlayer(player: player, autoPip: app.enhancements.autoPip) { point, size in
+                    SystemVideoPlayer(player: player, autoPip: model.isAdult ? false : app.enhancements.autoPip,
+                                      publishesNowPlaying: !model.isAdult) { point, size in
                         chrome.tap(at: point, in: size)
                     }
                     .ignoresSafeArea()
@@ -539,6 +560,10 @@ struct PlayerView: View {
             }
             if model.inGroup, let group = model.together.group {
                 TogetherOverlay(model: model, group: group)
+            }
+            if model.isAdult && scenePhase != .active {
+                // The app switcher's snapshot shows nothing of an adult scene.
+                Color.black.ignoresSafeArea()
             }
         }
         .videoAudioFocus(music)

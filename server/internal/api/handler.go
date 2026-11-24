@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/streamero-app/streamero/server/internal/activity"
+	adultlib "github.com/streamero-app/streamero/server/internal/adult"
 	"github.com/streamero-app/streamero/server/internal/api/gen"
 	"github.com/streamero-app/streamero/server/internal/arr"
 	"github.com/streamero-app/streamero/server/internal/auth"
@@ -50,6 +51,10 @@ type Handler struct {
 	Stream func() *stream.Server
 	// LiveTV is Live TV and the DVR (nil until ready).
 	LiveTV func() *livetv.Service
+	// Adult is the adult library service (D-053; nil until ready).
+	Adult func() *adultlib.Service
+	// EnqueueAdult queues a metadata lookup of an adult library (nil until ready).
+	EnqueueAdult func(ctx context.Context, libraryID uuid.UUID, force bool) error
 	// Logs holds recent log records of the server and worker (admin log viewer).
 	Logs *logbuf.Buffer
 	// Requests talks to Seerr, Radarr and Sonarr (nil = default HTTP client).

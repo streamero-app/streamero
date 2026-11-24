@@ -62,6 +62,15 @@ const SeriesPage = lazyRouteComponent(() => import("@/features/livetv/SeriesPage
 const LivePlayer = lazyRouteComponent(() => import("@/features/livetv/LivePlayer"), "LivePlayer");
 const LiveTvSettings = lazyRouteComponent(() => import("@/features/settings/LiveTvSettings"), "LiveTvSettings");
 const ReaderPage = lazyRouteComponent(() => import("@/features/books/ReaderPage"), "ReaderPage");
+// Adult section (D-053): its own chunk, loaded only by accounts given adult access.
+const AdultLayout = lazyRouteComponent(() => import("@/features/adult/AdultPages"), "AdultLayout");
+const AdultScenesPage = lazyRouteComponent(() => import("@/features/adult/AdultPages"), "AdultScenesPage");
+const AdultStudiosPage = lazyRouteComponent(() => import("@/features/adult/AdultPages"), "AdultStudiosPage");
+const AdultPerformersPage = lazyRouteComponent(() => import("@/features/adult/AdultPages"), "AdultPerformersPage");
+const AdultStudioPage = lazyRouteComponent(() => import("@/features/adult/AdultPages"), "AdultStudioPage");
+const AdultPerformerPage = lazyRouteComponent(() => import("@/features/adult/AdultPages"), "AdultPerformerPage");
+const AdultScenePage = lazyRouteComponent(() => import("@/features/adult/AdultPages"), "AdultScenePage");
+const AdultPlayer = lazyRouteComponent(() => import("@/features/adult/AdultPlayer"), "AdultPlayer");
 
 /** The administrator's extra CSS (Settings → Branding), on every page. */
 function CustomCss() {
@@ -137,6 +146,31 @@ const watchRoute = createRoute({
     if (num(s.together) === 1) out.together = 1;
     return out;
   },
+});
+
+type ScenesSearch = { q?: string; kind?: "scene" | "movie"; status?: "unwatched" | "inProgress" | "watched"; sort?: "added" | "title" | "played"; tag?: string };
+function validateScenesSearch(s: Record<string, unknown>): ScenesSearch {
+  const out: ScenesSearch = {};
+  if (typeof s.q === "string" && s.q) out.q = s.q.slice(0, 200);
+  if (s.kind === "scene" || s.kind === "movie") out.kind = s.kind;
+  if (s.status === "unwatched" || s.status === "inProgress" || s.status === "watched") out.status = s.status;
+  if (s.sort === "added" || s.sort === "title" || s.sort === "played") out.sort = s.sort;
+  if (typeof s.tag === "string" && s.tag) out.tag = s.tag.slice(0, 100);
+  return out;
+}
+const adultRoute = createRoute({ getParentRoute: () => appRoute, path: "/adult", component: AdultLayout });
+const adultScenesRoute = createRoute({ getParentRoute: () => adultRoute, path: "/", component: AdultScenesPage, validateSearch: validateScenesSearch });
+const adultStudiosRoute = createRoute({ getParentRoute: () => adultRoute, path: "studios", component: AdultStudiosPage });
+const adultPerformersRoute = createRoute({ getParentRoute: () => adultRoute, path: "performers", component: AdultPerformersPage });
+const adultStudioRoute = createRoute({ getParentRoute: () => adultRoute, path: "studio/$studioId", component: AdultStudioPage });
+const adultPerformerRoute = createRoute({ getParentRoute: () => adultRoute, path: "performer/$performerId", component: AdultPerformerPage });
+const adultSceneRoute = createRoute({ getParentRoute: () => adultRoute, path: "scene/$sceneId", component: AdultScenePage });
+const adultWatchRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/adult/watch/$sceneId",
+  component: AdultPlayer,
+  validateSearch: (s: Record<string, unknown>): { start?: number } =>
+    s.start === undefined || s.start === "" || Number.isNaN(Number(s.start)) ? {} : { start: Math.max(0, Number(s.start)) },
 });
 
 type Lazy = FunctionComponent & { preload?: () => Promise<void> | undefined };
@@ -222,6 +256,8 @@ export const routeTree = rootRoute.addChildren([
     togetherInviteRoute,
     searchRoute,
     discoverRoute,
+    adultRoute.addChildren([adultScenesRoute, adultStudiosRoute, adultPerformersRoute, adultStudioRoute, adultPerformerRoute, adultSceneRoute]),
+    adultWatchRoute,
     settingsRoute.addChildren([settingsIndex, playbackRoute, dashboardRoute, tasksRoute, backupsRoute, notificationsRoute, accountRoute, profilesRoute, devicesRoute, quickConnectRoute, serverRoute, librariesRoute, metadataRoute, integrationsRoute, usersRoute, invitesRoute, apiKeysRoute,
       subtitleLookRoute, homePrefsRoute, transcodingRoute, logsRoute, activityRoute, brandingRoute, requestsRoute, enhancementsRoute, importRoute, ssoRoute, liveTvSettingsRoute]),
   ]),

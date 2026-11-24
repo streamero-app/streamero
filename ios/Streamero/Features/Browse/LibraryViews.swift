@@ -18,6 +18,12 @@ struct LibrariesTab: View {
                     }
                     .buttonStyle(MutedButtonStyle())
                 }
+                if app.showsAdult {
+                    NavigationLink(value: Route.adult) {
+                        Label("adult.title", systemImage: "eye.slash").frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(MutedButtonStyle())
+                }
                 if !loaded && error == nil { LoadingView() }
                 ErrorLine(error: error)
                 ForEach(libraries) { lib in
@@ -40,7 +46,7 @@ struct LibrariesTab: View {
 
     private func load() async {
         do {
-            libraries = try await client.libraries()
+            libraries = try await client.libraries().filter { !$0.isAdult }
             error = nil
         } catch { self.error = error }
         loaded = true

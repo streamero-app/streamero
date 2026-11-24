@@ -200,6 +200,8 @@ fun PageTitle(text: String, modifier: Modifier = Modifier) {
 fun LibrariesScreen(state: AppState, nav: NavHostController) {
     val api = state.api ?: return
     val (libs, loading, error) = rememberLoad(Unit) { api.libraries() }
+    // The adult entry follows the server's current answer (access may change, profiles switch).
+    LaunchedEffect(Unit) { runCatching { api.me() }.getOrNull()?.let { state.me = it } }
     val mem = rememberFocusMemory()
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 20.dp)) {
         item { PageTitle(stringResource(R.string.libraries)) }
@@ -215,6 +217,9 @@ fun LibrariesScreen(state: AppState, nav: NavHostController) {
                     }
                 }
             }
+        }
+        if (net.scyde.streamero.adult.showsAdultSection(state.me) && !loading) item(key = "adult") {
+            Box(Modifier.padding(horizontal = Dims.edge, vertical = 6.dp)) { AdultLibraryTile(Modifier.rememberFocus(mem, "adult")) { nav.navigate("adult") } }
         }
         item {
             Row(Modifier.padding(Dims.edge, 20.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {

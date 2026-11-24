@@ -32,13 +32,17 @@ func (w *HeartbeatWorker) Work(_ context.Context, job *river.Job[HeartbeatArgs])
 	return nil
 }
 
+// AfterAdultScan queues the metadata lookup after an adult library scan; the
+// worker process sets it before Register (D-053).
+var AfterAdultScan func(ctx context.Context, libraryID uuid.UUID) error
+
 // Register adds all workers to the registry.
 func Register(workers *river.Workers, log *slog.Logger, scanner *library.Scanner, libraries *library.Service,
 	refresher *metadata.Refresher, afterScan func(context.Context, uuid.UUID) error, n *notify.Dispatcher,
 	analyzer *analyze.Analyzer, enqueueAnalyze func(context.Context, uuid.UUID) error,
 	detector *analyze.Detector, enqueueDetect func(context.Context, uuid.UUID) error) {
 	river.AddWorker(workers, &HeartbeatWorker{Log: log})
-	river.AddWorker(workers, &LibraryScanWorker{Scanner: scanner, Log: log, AfterScan: afterScan, Notify: n})
+	river.AddWorker(workers, &LibraryScanWorker{Scanner: scanner, Log: log, AfterScan: afterScan, Notify: n, AfterAdultScan: AfterAdultScan})
 	river.AddWorker(workers, &MetadataRefreshWorker{Refresher: refresher, Log: log, Analyze: enqueueAnalyze})
 	river.AddWorker(workers, &MediaAnalyzeWorker{Analyzer: analyzer, Log: log, Then: enqueueDetect})
 	river.AddWorker(workers, &MediaAnalyzeAllWorker{Libraries: libraries, Analyze: enqueueAnalyze})

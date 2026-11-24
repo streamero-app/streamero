@@ -778,4 +778,46 @@
     <plurals name="livetv_programs"><item quantity="one">%1$d emisija</item><item quantity="few">%1$d emisije</item><item quantity="other">%1$d emisija</item></plurals>
     <plurals name="livetv_tuners_n"><item quantity="one">%1$d tuner</item><item quantity="few">%1$d tunera</item><item quantity="other">%1$d tunera</item></plurals>
     <plurals name="livetv_every_hours"><item quantity="one">svakih %1$d sat</item><item quantity="few">svaka %1$d sata</item><item quantity="other">svakih %1$d sati</item></plurals>
+    <!-- Adult section (D-053) -->
+    <string name="adult_section">Za odrasle</string>
+    <string name="adult_section_hint">Privatni odjeljak</string>
+    <string name="adult_unavailable">Ovaj odjeljak nije dostupan ovom računu.</string>
+    <string name="adult_locked_title">Odjeljak je zaključan</string>
+    <string name="adult_locked_hint">Unesi PIN da otvoriš odjeljak na ovom uređaju.</string>
+    <string name="adult_unlock">Otključaj</string>
+    <string name="adult_scenes">Scene</string>
+    <string name="adult_studios">Studiji</string>
+    <string name="adult_performers">Izvođači</string>
+    <string name="adult_search_hint">Naslov, studio, izvođač…</string>
+    <string name="adult_search_studios">Traži studije</string>
+    <string name="adult_search_performers">Traži izvođače</string>
+    <string name="adult_kind_all">Scene i filmovi</string>
+    <string name="adult_kind_scenes">Scene</string>
+    <string name="adult_kind_movies">Filmovi</string>
+    <string name="adult_status_all">Sve</string>
+    <string name="adult_status_in_progress">U tijeku</string>
+    <string name="adult_sort_date">Datum izlaska</string>
+    <string name="adult_sort_played">Nedavno gledano</string>
+    <string name="adult_tap_to_show">Dodirni za prikaz</string>
+    <string name="adult_no_files">Nema datoteke za reprodukciju.</string>
+    <string name="adult_tags">Oznake</string>
+    <string name="adult_aliases">Poznat(a) i kao</string>
+    <string name="adult_born">Rođen(a)</string>
+    <string name="adult_country">Država</string>
+    <string name="adult_settings">Postavke odjeljka</string>
+    <string name="adult_blur">Zamuti slike</string>
+    <string name="adult_blur_hint">Slike ostaju zamućene dok ih ne dodirneš.</string>
+    <string name="adult_pin">PIN</string>
+    <string name="adult_pin_on_hint">Odjeljak traži PIN u svakoj novoj sesiji.</string>
+    <string name="adult_pin_off_hint">Postavi PIN da ga odjeljak traži u svakoj novoj sesiji.</string>
+    <string name="adult_current_pin">Trenutni PIN</string>
+    <string name="adult_new_pin">Novi PIN</string>
+    <string name="adult_pin_rules">4 do 12 znamenki</string>
+    <string name="adult_set_pin">Postavi PIN</string>
+    <string name="adult_change_pin">Promijeni PIN</string>
+    <string name="adult_remove_pin">Ukloni PIN</string>
+    <string name="adult_pin_saved">PIN je spremljen.</string>
+    <string name="adult_pin_removed">PIN je uklonjen.</string>
+    <string name="adult_lock_now">Zaključaj sada</string>
+    <plurals name="adult_scenes_count"><item quantity="one">%1$d scena</item><item quantity="few">%1$d scene</item><item quantity="other">%1$d scena</item></plurals>
 </resources>

@@ -443,7 +443,7 @@ private fun DashboardPage(state: AppState, nav: NavHostController) {
 private fun LibrariesAdminPage(state: AppState) {
     val api = state.api ?: return
     var tick by remember { mutableIntStateOf(0) }
-    val (libs, _, error) = rememberLoad(tick) { api.libraries() }
+    val (libs, _, error) = rememberLoad(tick) { api.librariesAll() }
     val scope = rememberCoroutineScope()
     var name by remember { mutableStateOf("") }
     var kind by remember { mutableStateOf("movies") }

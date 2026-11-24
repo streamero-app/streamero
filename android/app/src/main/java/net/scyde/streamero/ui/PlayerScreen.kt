@@ -125,8 +125,13 @@ private fun applySubtitle(player: ExoPlayer, pi: PlaybackInfo?, choice: Subtitle
 
 @OptIn(UnstableApi::class)
 @Composable
-fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start: Long?, file: String?, audioChoice: Int?, subChoice: Int?) {
+fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start: Long?, file: String?, audioChoice: Int?, subChoice: Int?, adult: Boolean = false) {
     val api = state.api ?: return
+    // Adult scenes (D-053) play through their own endpoints and stay out of watch together,
+    // next-episode and picture in picture; the window is kept out of screenshots and recents.
+    SecureWindow(enabled = adult)
+    var adultScene by remember { mutableStateOf<AdultSceneDetail?>(null) }
+    suspend fun report(id: String, p: ProgressReport) { if (adult) api.adultProgress(id, p) else api.progress(id, p) }
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     val player = remember { videoPlayer(ctx) }
@@ -149,7 +154,7 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
     // Watch together: the group decides what plays (it may switch to another item), the
     // local controls ask the group instead of acting on the player.
     val sync = state.sync
-    val group = sync.group
+    val group = if (adult) null else sync.group
     val grouped = group != null
     var current by remember { mutableStateOf(itemId) }
     var syncEntry by remember { mutableStateOf<String?>(null) }
@@ -165,7 +170,7 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
      * keeps the player paused when it was paused.
      */
     fun load(startMs: Long?, audioIndex: Int?, subRequest: Int?,
-             autoplay: Boolean = playWhenReadyAfterReload(if (info == null) null else player.playWhenReady, sync.group != null)) {
+             autoplay: Boolean = playWhenReadyAfterReload(if (info == null) null else player.playWhenReady, !adult && sync.group != null)) {
         prepared = false
         val id = current
         val first = firstStart
@@ -174,7 +179,8 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
         loadJob = scope.launch {
             try {
                 val device = if (safe) SAFE_PROFILE.copy(maxHeight = prefs?.maxHeight, maxBitrate = prefs?.maxBitrateKbps?.let { it * 1000 }) else androidDeviceProfile(prefs)
-                val pi = api.playback(id, PlaybackRequest(device, if (id == itemId) file else null, audioIndex, startMs?.coerceAtLeast(0), subtitleIndex = subRequest))
+                val req = PlaybackRequest(device, if (id == itemId) file else null, audioIndex, startMs?.coerceAtLeast(0), subtitleIndex = subRequest)
+                val pi = if (adult) api.adultPlayback(id, req) else api.playback(id, req)
                 info = pi
                 error = null
                 subtitle = if (first) Subtitles.initial(pi, subRequest) else Subtitles.afterReload(pi, subtitle)
@@ -210,6 +216,8 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
         val act = ctx.findActivity()
         state.music.pause()
         state.book.pause()
+        // A group would follow this device: an adult scene is never played in one.
+        if (adult && sync.group != null) sync.leaveInBackground()
         act?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         val ctl = act?.let { WindowCompat.getInsetsController(it.window, it.window.decorView) }
         ctl?.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -239,19 +247,24 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
             val id = current
             val pos = abs()
             val dur = info?.durationMs
-            if (info != null && pos > 0 && !ended) state.appScope.launch { runCatching { api.progress(id, ProgressReport(pos, dur)) } }
+            if (info != null && pos > 0 && !ended) state.appScope.launch { runCatching { report(id, ProgressReport(pos, dur)) } }
             ctl?.show(WindowInsetsCompat.Type.systemBars())
             act?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             player.removeListener(listener)
             player.release()
             // Closing the player leaves the group, so nobody waits for a screen that is gone.
-            if (sync.group != null) sync.leaveInBackground()
+            if (!adult && sync.group != null) sync.leaveInBackground()
         }
     }
-    val inPip = videoLifecycle(player, state.enhancements.autoPip)
+    val inPip = videoLifecycle(player, state.enhancements.autoPip && !adult)
 
     LaunchedEffect(current) {
         if (prefs == null) prefs = runCatching { api.preferences() }.getOrNull()
+        if (adult) {
+            adultScene = runCatching { api.adultScene(current) }.getOrNull()
+            load(start, audioChoice, subChoice, autoplay = true)
+            return@LaunchedEffect
+        }
         detail = runCatching { api.item(current) }.getOrNull()
         next = api.nextEpisode(current)
         if (sync.group == null) load(start, audioChoice, subChoice, autoplay = true)
@@ -286,7 +299,7 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
     }
     // Local seeks (skip intro, TV remote) go to the whole group while in one.
     fun seekAbs(ms: Long) {
-        if (sync.group != null) sync.send(sync.engine.seek(ms)) else seekTo(player, info, offset, ms) { s -> reload(s) }
+        if (!adult && sync.group != null) sync.send(sync.engine.seek(ms)) else seekTo(player, info, offset, ms) { s -> reload(s) }
     }
     // Progress every 10 s; messages and stop requests from an administrator every 4 s.
     LaunchedEffect(info) {
@@ -294,7 +307,7 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
         while (info != null) {
             delay(1000)
             position = abs()
-            if (++tick % 10 == 0 && player.isPlaying) runCatching { api.progress(current, ProgressReport(position, info?.durationMs)) }
+            if (++tick % 10 == 0 && player.isPlaying) runCatching { report(current, ProgressReport(position, info?.durationMs)) }
             if (tick % 4 == 0) runCatching { api.commands() }.getOrNull()?.forEach { c ->
                 if (c.kind == "stop") { player.pause(); notice = c.text ?: ctx.getString(R.string.stopped_by_admin); delay(4000); nav.popBackStack(); return@LaunchedEffect }
                 notice = c.text
@@ -303,7 +316,7 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
     }
     LaunchedEffect(notice) { if (notice != null) { delay(10_000); notice = null } }
 
-    val dur = info?.durationMs ?: detail?.item?.durationMs ?: 0L
+    val dur = info?.durationMs ?: detail?.item?.durationMs ?: adultScene?.durationMs ?: 0L
     val intro = info?.segments?.firstOrNull { (it.kind == "intro" || it.kind == "recap") && position in it.startMs until it.endMs - 1000 }
     val introMode = prefs?.skipIntro ?: "button"
     LaunchedEffect(intro?.startMs) {
@@ -323,7 +336,7 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
         if (!ended) return@LaunchedEffect
         val id = current
         val total = info?.durationMs ?: dur
-        state.appScope.launch { runCatching { api.progress(id, ProgressReport(if (total > 0) total else abs(), info?.durationMs, played = true)) } }
+        state.appScope.launch { runCatching { report(id, ProgressReport(if (total > 0) total else abs(), info?.durationMs, played = true)) } }
         if (autoplayNextOnEnd(autoplayNext, nextUp != null, grouped)) playNext()
     }
     // Credits on "automatic" go straight on to the next episode.
@@ -339,7 +352,7 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
     fun chooseAudio(a: Int) { audio = a; panel = false; reload() }
     val retry: () -> Unit = { error = null; if (info == null) load(start, audioChoice, subChoice, autoplay = true) else reload(autoplay = true) }
     val it0 = detail?.item
-    val pauseTitle = it0?.let { if (it.kind == "episode") stringResource(R.string.episode_title, it.episodeNumber ?: 0, it.title) else it.title }
+    val pauseTitle = if (adult) adultScene?.title else it0?.let { if (it.kind == "episode") stringResource(R.string.episode_title, it.episodeNumber ?: 0, it.title) else it.title }
 
     if (tv) {
         Box(Modifier.fillMaxSize()) {
@@ -363,13 +376,13 @@ fun PlayerScreen(state: AppState, nav: NavHostController, itemId: String, start:
         AndroidView({ PlayerView(it).apply { this.player = controls; setShowSubtitleButton(false); setShowNextButton(false); setShowPreviousButton(false) } }, Modifier.fillMaxSize(),
             update = { v -> v.useController = !inPip; if (inPip) v.hideController(); v.applyCaptionLook(prefs) })
         if (inPip) return@Box
-        PauseInfo(player, state.enhancements.pauseScreen, pauseTitle, it0?.seriesTitle, detail?.overview)
+        PauseInfo(player, state.enhancements.pauseScreen, pauseTitle, if (adult) adultScene?.studio?.name else it0?.seriesTitle, if (adult) adultScene?.description else detail?.overview)
         group?.let { SyncOverlay(it, sync.connected, { sync.leaveInBackground() }, Modifier.align(Alignment.TopEnd).padding(top = 64.dp, end = 12.dp)) }
         Row(Modifier.align(Alignment.TopStart).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = leave) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back), tint = Color.White)
             }
-            Text(detail?.item?.let { it.seriesTitle?.let { s -> "$s · " }.orEmpty() + it.title }.orEmpty(), color = Color.White, fontWeight = FontWeight.SemiBold)
+            Text(if (adult) adultScene?.title.orEmpty() else detail?.item?.let { it.seriesTitle?.let { s -> "$s · " }.orEmpty() + it.title }.orEmpty(), color = Color.White, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.weight(1f))
             info?.let { pi -> if (pi.subtitles.isNotEmpty() || pi.bitmapSubtitles.isNotEmpty() || pi.audio.size > 1) IconButton(onClick = { panel = true }) { Icon(Icons.Default.ClosedCaption, stringResource(R.string.subtitles), tint = Color.White) } }
         }

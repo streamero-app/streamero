@@ -2915,10 +2915,457 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/adult/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The adult section of the current account (D-053)
+         * @description 404 `not_found` unless the account was given adult access, the session is not an
+         *     API key or a kids profile, and an adult library exists. The same 404 is returned
+         *     by every `/adult/*` endpoint in that case, so other accounts cannot tell the
+         *     section exists.
+         */
+        get: operations["getAdultStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adult/unlock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Unlock the adult section for this session with the viewer's PIN
+         * @description Needed only when the viewer set a PIN. The session stays unlocked for four hours
+         *     or until sign-out. Wrong PINs count towards the sign-in ban (D-051): 403 `invalid_pin`.
+         */
+        post: operations["unlockAdult"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adult/lock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Lock the adult section of this session again */
+        post: operations["lockAdult"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adult/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Blurring and the session PIN of the current account */
+        put: operations["updateAdultPreferences"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adult/scenes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Scenes and movies of the adult libraries
+         * @description 403 `adult_locked` while the viewer's PIN has not been entered in this session.
+         */
+        get: operations["listAdultScenes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adult/scenes/{sceneId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sceneId: components["parameters"]["AdultSceneId"];
+            };
+            cookie?: never;
+        };
+        /** One scene or movie with performers and files */
+        get: operations["getAdultScene"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adult/scenes/{sceneId}/playback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sceneId: components["parameters"]["AdultSceneId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Play a scene (same decision and signed URLs as startPlayback)
+         * @description Adult playback never appears in the activity dashboard, notifications, webhooks,
+         *     watch-together or the statistics of other accounts.
+         */
+        post: operations["startAdultPlayback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adult/scenes/{sceneId}/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sceneId: components["parameters"]["AdultSceneId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Save the playback position of a scene (per account) */
+        put: operations["reportAdultProgress"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adult/scenes/{sceneId}/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sceneId: components["parameters"]["AdultSceneId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Look the scene up again in ThePornDB / StashDB (admin with adult access) */
+        post: operations["refreshAdultScene"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adult/studios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Studios with scene counts */
+        get: operations["listAdultStudios"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adult/studios/{studioId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studioId: string;
+            };
+            cookie?: never;
+        };
+        /** One studio */
+        get: operations["getAdultStudio"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adult/performers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Performers with scene counts */
+        get: operations["listAdultPerformers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adult/performers/{performerId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                performerId: string;
+            };
+            cookie?: never;
+        };
+        /** One performer */
+        get: operations["getAdultPerformer"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adult/images/{owner}/{id}/{imageType}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                owner: "scene" | "studio" | "performer";
+                id: string;
+                imageType: "poster" | "backdrop" | "image";
+            };
+            cookie?: never;
+        };
+        /** Artwork of a scene, studio or performer (JPEG, never cached by the browser) */
+        get: operations["getAdultImage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adult/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** ThePornDB and StashDB keys (admin; the keys themselves are never returned) */
+        get: operations["getAdultSettings"];
+        /** Save or remove ThePornDB / StashDB keys (admin; stored encrypted) */
+        put: operations["updateAdultSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{userId}/adult-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Give or take away access to adult libraries (admin)
+         * @description A permission of its own (D-053): never part of `permissions`, defaults, invites,
+         *     sign-in providers or `allLibraries`, and administrators do not have it unless it is
+         *     given here. Giving it needs `confirm: true` (400 `confirmation_required`).
+         */
+        put: operations["setUserAdultAccess"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @enum {string} */
+        AdultSceneKind: "scene" | "movie";
+        AdultStatus: {
+            /** @description The viewer asked for a PIN before entering the section. */
+            pinSet: boolean;
+            /** @description The section is open in this session (always true without a PIN). */
+            unlocked: boolean;
+            /** @description Blur artwork until it is clicked (default on). */
+            blur: boolean;
+            /** @description A ThePornDB or StashDB key is set. */
+            metadataConfigured: boolean;
+            libraries: components["schemas"]["AdultLibrary"][];
+        };
+        AdultLibrary: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            sceneCount: number;
+        };
+        AdultUnlockRequest: {
+            pin: string;
+        };
+        AdultPreferencesInput: {
+            blur?: boolean;
+            /** @description New PIN (4–12 digits); an empty string removes it. */
+            pin?: string;
+            /** @description Needed to change or remove an existing PIN. */
+            currentPin?: string;
+        };
+        AdultAccessInput: {
+            enabled: boolean;
+            /** @description The administrator confirms the account belongs to an adult. */
+            confirm?: boolean;
+        };
+        AdultSettings: {
+            tpdbConfigured: boolean;
+            stashdbConfigured: boolean;
+        };
+        AdultSettingsInput: {
+            /** @description New ThePornDB key (checked before it is saved); empty = unchanged. */
+            tpdbApiKey?: string;
+            /** @description New StashDB key (checked before it is saved); empty = unchanged. */
+            stashdbApiKey?: string;
+            clearTpdb?: boolean;
+            clearStashdb?: boolean;
+        };
+        AdultRef: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
+        AdultScene: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            libraryId: string;
+            kind: components["schemas"]["AdultSceneKind"];
+            title: string;
+            /** Format: date */
+            date?: string;
+            year?: number;
+            studio?: components["schemas"]["AdultRef"];
+            performers: components["schemas"]["AdultRef"][];
+            tags: string[];
+            /** Format: int64 */
+            durationMs?: number;
+            height?: number;
+            hasPoster: boolean;
+            hasBackdrop: boolean;
+            /** Format: int64 */
+            positionMs: number;
+            played: boolean;
+            /** Format: date-time */
+            addedAt: string;
+        };
+        AdultSceneDetail: components["schemas"]["AdultScene"] & {
+            description?: string;
+            /** @description Page of the scene at the studio (from the metadata source). */
+            url?: string;
+            files: components["schemas"]["AdultFile"][];
+            /** @description `tpdb` and `stashdb` ids when the scene was matched. */
+            providerIds: {
+                [key: string]: string;
+            };
+            metadataError?: string;
+        };
+        AdultFile: {
+            /** Format: uuid */
+            id: string;
+            /** @description File name (without the folder). */
+            name: string;
+            /** Format: int64 */
+            size: number;
+            container: string;
+            videoCodec?: string;
+            width?: number;
+            height?: number;
+            /** Format: int64 */
+            durationMs?: number;
+        };
+        AdultScenePage: {
+            items: components["schemas"]["AdultScene"][];
+            total: number;
+        };
+        AdultStudio: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            sceneCount: number;
+            hasImage: boolean;
+            url?: string;
+            /** @description Network the studio belongs to. */
+            parent?: string;
+        };
+        AdultStudioPage: {
+            items: components["schemas"]["AdultStudio"][];
+            total: number;
+        };
+        AdultPerformer: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            sceneCount: number;
+            hasImage: boolean;
+            aliases: string[];
+            gender?: string;
+            birthdate?: string;
+            country?: string;
+            description?: string;
+        };
+        AdultPerformerPage: {
+            items: components["schemas"]["AdultPerformer"][];
+            total: number;
+        };
         /** @description Case-insensitive; letters, digits, space and . _ - @ */
         Username: string;
         Password: string;
@@ -3179,12 +3626,19 @@ export interface components {
         QuickConnectApproved: {
             deviceName: string;
         };
-        /** @enum {string} */
-        LibraryKind: "movies" | "shows" | "music" | "mixed" | "books" | "audiobooks" | "photos";
+        /**
+         * @description `adult` (D-053) needs `confirmAdult` when it is created, cannot be changed to or from
+         *     another kind, and is listed only to administrators; its content is reached only
+         *     through `/adult/*`.
+         * @enum {string}
+         */
+        LibraryKind: "movies" | "shows" | "music" | "mixed" | "books" | "audiobooks" | "photos" | "adult";
         LibraryInput: {
             name: string;
             kind: components["schemas"]["LibraryKind"];
             paths: string[];
+            /** @description Required for kind `adult`: the administrator confirms the library holds adult content that only accounts given adult access may see (400 `confirmation_required`). */
+            confirmAdult?: boolean;
         };
         Library: {
             /** Format: uuid */
@@ -4111,6 +4565,8 @@ export interface components {
              */
             language?: "en" | "hr";
             hasAvatar?: boolean;
+            /** @description The account was given adult access (D-053). On /auth/me: the adult section is available in this session (access given, an adult library exists, not a kids profile, not an API key). */
+            adultAccess?: boolean;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -5166,6 +5622,7 @@ export interface components {
         };
     };
     parameters: {
+        AdultSceneId: string;
         OidcProviderId: string;
         LibraryId: string;
         CollectionId: string;
@@ -9850,6 +10307,422 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LiveTvSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getAdultStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdultStatus"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    unlockAdult: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdultUnlockRequest"];
+            };
+        };
+        responses: {
+            /** @description Unlocked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    lockAdult: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Locked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateAdultPreferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdultPreferencesInput"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdultStatus"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listAdultScenes: {
+        parameters: {
+            query?: {
+                libraryId?: string;
+                studioId?: string;
+                performerId?: string;
+                kind?: components["schemas"]["AdultSceneKind"];
+                /** @description Words in the title, studio or a performer's name. */
+                q?: string;
+                tag?: string;
+                year?: number;
+                /** @description `unwatched`, `inProgress` (continue watching) or `watched`. */
+                status?: "all" | "unwatched" | "inProgress" | "watched";
+                sort?: "date" | "added" | "title" | "played";
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of scenes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdultScenePage"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getAdultScene: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sceneId: components["parameters"]["AdultSceneId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Scene */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdultSceneDetail"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    startAdultPlayback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sceneId: components["parameters"]["AdultSceneId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlaybackRequest"];
+            };
+        };
+        responses: {
+            /** @description How to play */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaybackInfo"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    reportAdultProgress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sceneId: components["parameters"]["AdultSceneId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProgressReport"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    refreshAdultScene: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sceneId: components["parameters"]["AdultSceneId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The scene after the lookup */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdultSceneDetail"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listAdultStudios: {
+        parameters: {
+            query?: {
+                q?: string;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of studios, most scenes first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdultStudioPage"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getAdultStudio: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studioId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Studio */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdultStudio"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listAdultPerformers: {
+        parameters: {
+            query?: {
+                q?: string;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of performers, most scenes first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdultPerformerPage"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getAdultPerformer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                performerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Performer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdultPerformer"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getAdultImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                owner: "scene" | "studio" | "performer";
+                id: string;
+                imageType: "poster" | "backdrop" | "image";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Image */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": string;
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getAdultSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdultSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateAdultSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdultSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdultSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    setUserAdultAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdultAccessInput"];
+            };
+        };
+        responses: {
+            /** @description The user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
                 };
             };
             default: components["responses"]["Error"];
