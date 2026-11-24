@@ -73,6 +73,9 @@ Chrome više ne dobiva HLS na ugrađeni player (ne parsira transkodirane streamo
 ## Obrana od botova (branch `fix/hardening-bots`, 2026-11-17)
 Pregled demo hosta (bez znakova provale; skeneri i SSH pogađanje lozinki). Server: zabrana adrese nakon 15 neuspjelih prijava u 10 min, 404 za putanje skenera, `robots.txt`, kontejneri bez capabilityja. Host: `scripts/harden-host.sh` + `docs/SECURITY.md` (D-051).
 
+## v0.12.0 (2026-11-24)
+Neobavezna biblioteka za odrasle (#92, migracija 00035, D-053): vlastita vrsta biblioteke i vlastite tablice, zasebna dozvola koju nitko ne dobiva automatski (ni administratori, ni pozivnice, ni „pristup svim bibliotekama"), neobavezni PIN, metapodaci s ThePornDB-a i StashDB-a s vlastitim ključem, zamućene slike, web i pregled/reprodukcija u Android i iOS aplikaciji; ništa ne izlazi u početnu, pretragu, nastavak gledanja, statistiku, obavijesti, DLNA ni kompatibilni API. Pravila projekta premještena u `CONTRIBUTING.md` (#87).
+
 ## v0.11.4 (2026-11-17)
 `/api/stats` za nadzorne ploče i API ključevi samo za čitanje (#85, migracija 00034, D-052). Obrana od botova (#84, D-051): zabrana adrese nakon 15 neuspjelih prijava u 10 min, 404 za putanje skenera, `robots.txt`, kontejneri bez capabilityja, `scripts/harden-host.sh` i `docs/SECURITY.md`.
 
