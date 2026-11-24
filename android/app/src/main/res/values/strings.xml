@@ -779,4 +779,46 @@
     <plurals name="livetv_programs"><item quantity="one">%1$d programme</item><item quantity="other">%1$d programmes</item></plurals>
     <plurals name="livetv_tuners_n"><item quantity="one">%1$d tuner</item><item quantity="other">%1$d tuners</item></plurals>
     <plurals name="livetv_every_hours"><item quantity="one">every %1$d hour</item><item quantity="other">every %1$d hours</item></plurals>
+    <!-- Adult section (D-053) -->
+    <string name="adult_section">Adult</string>
+    <string name="adult_section_hint">Private section</string>
+    <string name="adult_unavailable">This section is not available to this account.</string>
+    <string name="adult_locked_title">Section locked</string>
+    <string name="adult_locked_hint">Enter your PIN to open the section on this device.</string>
+    <string name="adult_unlock">Unlock</string>
+    <string name="adult_scenes">Scenes</string>
+    <string name="adult_studios">Studios</string>
+    <string name="adult_performers">Performers</string>
+    <string name="adult_search_hint">Title, studio, performer…</string>
+    <string name="adult_search_studios">Search studios</string>
+    <string name="adult_search_performers">Search performers</string>
+    <string name="adult_kind_all">Scenes and movies</string>
+    <string name="adult_kind_scenes">Scenes</string>
+    <string name="adult_kind_movies">Movies</string>
+    <string name="adult_status_all">All</string>
+    <string name="adult_status_in_progress">In progress</string>
+    <string name="adult_sort_date">Release date</string>
+    <string name="adult_sort_played">Recently watched</string>
+    <string name="adult_tap_to_show">Tap to show</string>
+    <string name="adult_no_files">No playable file.</string>
+    <string name="adult_tags">Tags</string>
+    <string name="adult_aliases">Also known as</string>
+    <string name="adult_born">Born</string>
+    <string name="adult_country">Country</string>
+    <string name="adult_settings">Section settings</string>
+    <string name="adult_blur">Blur artwork</string>
+    <string name="adult_blur_hint">Pictures stay blurred until you tap them.</string>
+    <string name="adult_pin">PIN</string>
+    <string name="adult_pin_on_hint">The section asks for your PIN in every new session.</string>
+    <string name="adult_pin_off_hint">Set a PIN to have the section ask for it in every new session.</string>
+    <string name="adult_current_pin">Current PIN</string>
+    <string name="adult_new_pin">New PIN</string>
+    <string name="adult_pin_rules">4 to 12 digits</string>
+    <string name="adult_set_pin">Set PIN</string>
+    <string name="adult_change_pin">Change PIN</string>
+    <string name="adult_remove_pin">Remove PIN</string>
+    <string name="adult_pin_saved">PIN saved.</string>
+    <string name="adult_pin_removed">PIN removed.</string>
+    <string name="adult_lock_now">Lock now</string>
+    <plurals name="adult_scenes_count"><item quantity="one">%1$d scene</item><item quantity="other">%1$d scenes</item></plurals>
 </resources>

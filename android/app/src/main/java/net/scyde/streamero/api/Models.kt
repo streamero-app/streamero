@@ -40,6 +40,8 @@ import kotlinx.serialization.json.JsonElement
     val totpEnabled: Boolean = false, val permissions: UserPermissions = UserPermissions(),
     val currentProfile: Profile? = null, val displayName: String? = null, val email: String? = null,
     val language: String? = null, val hasAvatar: Boolean = false, val createdAt: String = "", val lastLoginAt: String? = null,
+    /** On /auth/me: the adult section may be shown in this session (D-053). */
+    val adultAccess: Boolean = false,
 )
 
 @Serializable data class UpdateMe(val displayName: String? = null, val email: String? = null, val language: String? = null)
@@ -305,3 +307,51 @@ import kotlinx.serialization.json.JsonElement
     val id: String, val title: String, val newOnly: Boolean = true, val priority: Int = 0, val keepLast: Int = 0,
     val upcoming: Int = 0, val createdAt: String = "", val channelId: String? = null,
 )
+
+// Adult section (D-053). Every /adult endpoint answers 404 to accounts without access.
+@Serializable data class AdultLibrary(val id: String, val name: String, val sceneCount: Int = 0)
+@Serializable data class AdultStatus(
+    val pinSet: Boolean = false, val unlocked: Boolean = true, val blur: Boolean = true,
+    val metadataConfigured: Boolean = false, val libraries: List<AdultLibrary> = emptyList(),
+)
+@Serializable data class AdultUnlockRequest(val pin: String)
+/** PUT body of /adult/preferences; absent fields are left unchanged, an empty [pin] removes it. */
+@Serializable data class AdultPreferencesInput(val blur: Boolean? = null, val pin: String? = null, val currentPin: String? = null)
+@Serializable data class AdultRef(val id: String, val name: String)
+@Serializable data class AdultScene(
+    val id: String, val libraryId: String = "", val kind: String = "scene", val title: String,
+    val date: String? = null, val year: Int? = null, val studio: AdultRef? = null,
+    val performers: List<AdultRef> = emptyList(), val tags: List<String> = emptyList(),
+    val durationMs: Long? = null, val height: Int? = null, val hasPoster: Boolean = false, val hasBackdrop: Boolean = false,
+    val positionMs: Long = 0, val played: Boolean = false, val addedAt: String = "",
+) {
+    val progress: Float get() = if (durationMs != null && durationMs > 0 && positionMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
+}
+@Serializable data class AdultFile(
+    val id: String, val name: String = "", val size: Long = 0, val container: String = "", val videoCodec: String? = null,
+    val width: Int? = null, val height: Int? = null, val durationMs: Long? = null,
+)
+/** AdultSceneDetail: the scene's fields (allOf AdultScene) plus description, link and files. */
+@Serializable data class AdultSceneDetail(
+    val id: String, val libraryId: String = "", val kind: String = "scene", val title: String,
+    val date: String? = null, val year: Int? = null, val studio: AdultRef? = null,
+    val performers: List<AdultRef> = emptyList(), val tags: List<String> = emptyList(),
+    val durationMs: Long? = null, val height: Int? = null, val hasPoster: Boolean = false, val hasBackdrop: Boolean = false,
+    val positionMs: Long = 0, val played: Boolean = false, val addedAt: String = "",
+    val description: String? = null, val url: String? = null, val files: List<AdultFile> = emptyList(),
+    val providerIds: Map<String, String> = emptyMap(), val metadataError: String? = null,
+) {
+    val progress: Float get() = if (durationMs != null && durationMs > 0 && positionMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
+}
+@Serializable data class AdultScenePage(val items: List<AdultScene> = emptyList(), val total: Int = 0)
+@Serializable data class AdultStudio(
+    val id: String, val name: String, val sceneCount: Int = 0, val hasImage: Boolean = false,
+    val url: String? = null, val parent: String? = null,
+)
+@Serializable data class AdultStudioPage(val items: List<AdultStudio> = emptyList(), val total: Int = 0)
+@Serializable data class AdultPerformer(
+    val id: String, val name: String, val sceneCount: Int = 0, val hasImage: Boolean = false,
+    val aliases: List<String> = emptyList(), val gender: String? = null, val birthdate: String? = null,
+    val country: String? = null, val description: String? = null,
+)
+@Serializable data class AdultPerformerPage(val items: List<AdultPerformer> = emptyList(), val total: Int = 0)

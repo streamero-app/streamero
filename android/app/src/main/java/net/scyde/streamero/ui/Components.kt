@@ -224,6 +224,7 @@ fun errorMessageRes(code: String): Int? = when (code) {
     "backup_confirm_mismatch" -> R.string.err_backup_confirm_mismatch
     "no_sso_admin" -> R.string.err_no_sso_admin
     "no_local_password" -> R.string.err_no_local_password
+    "adult_locked" -> R.string.adult_locked_title
     else -> null
 }
 

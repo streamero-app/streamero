@@ -216,6 +216,15 @@ private fun Routes(state: AppState, nav: NavHostController, onSignedOut: () -> U
         composable("livetv/channel/{id}") { LiveChannelScreen(state, nav, it.arguments?.getString("id")!!) }
         // "watch…" routes hide the bottom bar and the mini player.
         composable("watchlive/{id}") { LivePlayerScreen(state, nav, it.arguments?.getString("id")!!) }
+        // The adult section (D-053); its pages check access themselves and keep the window private.
+        composable("adult") { AdultScreen(state, nav) }
+        composable("adult/scene/{id}") { AdultSceneScreen(state, nav, it.arguments?.getString("id")!!) }
+        composable("adult/studio/{id}") { AdultStudioScreen(state, nav, it.arguments?.getString("id")!!) }
+        composable("adult/performer/{id}") { AdultPerformerScreen(state, nav, it.arguments?.getString("id")!!) }
+        composable("watchadult/{id}?start={start}", arguments = listOf(navArgument("start") { type = NavType.LongType; defaultValue = -1L })) {
+            val a = it.arguments!!
+            PlayerScreen(state, nav, a.getString("id")!!, a.getLong("start").takeIf { s -> s >= 0 }, null, null, null, adult = true)
+        }
         ManageEntry.routes(this, state, nav)
     }
 }
