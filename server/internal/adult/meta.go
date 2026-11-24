@@ -108,6 +108,12 @@ func (s *Service) SaveKeys(ctx context.Context, in KeysInput) (Keys, error) {
 	if err := s.Settings.Set(ctx, keysSetting, st); err != nil {
 		return Keys{}, err
 	}
+	if in.TPDB != "" || in.StashDB != "" {
+		// A new key: look up again every scene that has not been matched yet.
+		if _, err := s.Pool.Exec(ctx, `UPDATE adult_scenes SET metadata_refreshed_at = NULL WHERE provider_ids = '{}'::jsonb`); err != nil {
+			return Keys{}, err
+		}
+	}
 	return s.LoadKeys(ctx)
 }
 

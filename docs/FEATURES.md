@@ -67,6 +67,7 @@ Kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djelomično gotov
 - [x] `[JF]` Audioknjige (M4B, MP3 folderi, poglavlja) (P9)
 - [x] `[JF]` Mješoviti sadržaj (mixed) (P2)
 - [ ] `[JF]` Kolekcije (box sets) i playliste kao virtualne biblioteke (P4)
+- [x] `[+]` Biblioteka za odrasle (D-053): zasebna dozvola koju nitko nema zadano, vlastite tablice (ne curi na početnu, pretragu, compat API, DLNA, statistiku, obavijesti…), Locarrovi nazivi datoteka, ThePornDB/StashDB s vlastitim šifriranim ključevima, scene/studiji/izvođači s filtrima, zamućene slike, PIN po sesiji; web, Android i iOS — *mobilne aplikacije provjerene samo CI buildom i unit testovima*
 - [ ] `[JF]` Live TV kao biblioteka (P11)
 
 ### Opcije biblioteke (po biblioteci)
