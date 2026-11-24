@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { api, unwrap } from "@/api/client";
 import { Badge, Button, Card, ErrorText, SuccessText, TextField } from "@/components/ui";
 import { useConfirm } from "@/components/Dialog";
+import { AdultMetadataCard } from "@/features/adult/AdultMetadataCard";
 
 const LANGUAGES = ["en-US", "hr-HR", "en-GB", "de-DE", "sr-RS", "bs-BA", "sl-SI", "it-IT", "fr-FR", "es-ES"];
 const COUNTRIES = ["US", "HR", "GB", "DE", "AT", "RS", "BA", "SI", "IT", "FR", "ES"];
@@ -36,6 +37,7 @@ export function MetadataSettings() {
   const configured = settings.data?.tmdbConfigured;
 
   return (
+    <div className="flex flex-col gap-6">
     <Card title={<span className="flex items-center gap-2">{t("settings.metadata")} {configured
       ? <Badge tone="success">{t("metadata.connected")}</Badge> : <Badge>{t("metadata.notConnected")}</Badge>}</span>}>
       <p className="mb-4 text-sm text-muted">{t("metadata.intro")}</p>
@@ -91,5 +93,7 @@ export function MetadataSettings() {
         </div>
       </form>
     </Card>
+    <AdultMetadataCard />
+    </div>
   );
 }
