@@ -852,8 +852,8 @@ func (h *Handler) toLiveSettings(ctx context.Context, svc *livetv.Service, st li
 		args = []string{}
 	}
 	out := &gen.LiveTvSettings{PrePaddingSeconds: st.PrePadding, PostPaddingSeconds: st.PostPadding, TimeshiftMinutes: st.TimeshiftMinutes,
-		Retention: gen.LiveTvRetention{Enabled: st.Retention.Enabled, DeleteAfterDays: st.Retention.DeleteAfterDays, KeepLast: st.Retention.KeepLast},
-		PostProcess: gen.LiveTvPostProcess{Command: st.PostProcess.Command, Args: args, TimeoutMinutes: st.PostProcess.TimeoutMinutes},
+		Retention:      gen.LiveTvRetention{Enabled: st.Retention.Enabled, DeleteAfterDays: st.Retention.DeleteAfterDays, KeepLast: st.Retention.KeepLast},
+		PostProcess:    gen.LiveTvPostProcess{Command: st.PostProcess.Command, Args: args, TimeoutMinutes: st.PostProcess.TimeoutMinutes},
 		RecordingsPath: optStr(svc.RecordingsDir), RecordingsLibraryId: optUUIDP(svc.RecordingsLibrary(ctx))}
 	return out
 }

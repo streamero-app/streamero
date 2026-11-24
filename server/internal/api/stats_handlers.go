@@ -155,7 +155,7 @@ func (h *Handler) queryStats(ctx context.Context) (gen.SystemStats, error) {
 		return out, err
 	}
 	out.Failed += unreadable
-	if err := pool.QueryRow(ctx, `SELECT (SELECT count(*) FROM libraries), (SELECT count(*) FROM users)`).
+	if err := pool.QueryRow(ctx, `SELECT (SELECT count(*) FROM libraries WHERE kind <> 'adult'), (SELECT count(*) FROM users)`).
 		Scan(&out.Libraries, &out.Users); err != nil {
 		return out, err
 	}

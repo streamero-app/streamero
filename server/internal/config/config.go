@@ -12,20 +12,23 @@ import (
 
 // Config is the static process configuration.
 type Config struct {
-	HTTPAddr       string
-	DatabaseURL    string
-	ValkeyURL      string
-	ConfigDir      string
-	BackupDir      string // where backups are written (default <ConfigDir>/backups)
-	CacheDir       string
-	TranscodeDir   string
-	ServerName     string
-	SetupCode      string // optional fixed first-run setup code (otherwise random per start)
+	HTTPAddr     string
+	DatabaseURL  string
+	ValkeyURL    string
+	ConfigDir    string
+	BackupDir    string // where backups are written (default <ConfigDir>/backups)
+	CacheDir     string
+	TranscodeDir string
+	ServerName   string
+	SetupCode    string // optional fixed first-run setup code (otherwise random per start)
+	// SecretKey encrypts stored keys of outside services (D-053); empty = a key
+	// file in ConfigDir, created on first use.
+	SecretKey      string
 	TrustedProxies string // CIDRs/IPs whose X-Forwarded-For is trusted, comma-separated
 	MediaRoots     string // folders libraries may use, comma-separated
 	// RecordingsDir is where the DVR writes recordings (D-041); it is added to
 	// the media roots so the recordings library can use it.
-	RecordingsDir string
+	RecordingsDir  string
 	FFprobePath    string
 	FFmpegPath     string
 	FpcalcPath     string // Chromaprint's fpcalc for intro/credits detection (ffmpeg's muxer is the fallback)
@@ -66,6 +69,7 @@ func Load() (Config, error) {
 		TranscodeDir:    env("STREAMERO_TRANSCODE_DIR", "/transcode"),
 		ServerName:      env("STREAMERO_SERVER_NAME", "Streamero"),
 		SetupCode:       os.Getenv("STREAMERO_SETUP_CODE"),
+		SecretKey:       os.Getenv("STREAMERO_SECRET_KEY"),
 		TrustedProxies:  os.Getenv("STREAMERO_TRUSTED_PROXIES"),
 		MediaRoots:      env("STREAMERO_MEDIA_ROOTS", "/media"),
 		RecordingsDir:   env("STREAMERO_RECORDINGS_DIR", "/recordings"),

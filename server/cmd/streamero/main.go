@@ -24,6 +24,7 @@ import (
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 
 	"github.com/streamero-app/streamero/server/internal/activity"
+	"github.com/streamero-app/streamero/server/internal/adult"
 	"github.com/streamero-app/streamero/server/internal/analyze"
 	"github.com/streamero-app/streamero/server/internal/api"
 	"github.com/streamero-app/streamero/server/internal/app"
@@ -43,6 +44,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/metadata"
 	"github.com/streamero-app/streamero/server/internal/netx"
 	"github.com/streamero-app/streamero/server/internal/notify"
+	"github.com/streamero-app/streamero/server/internal/secretbox"
 	"github.com/streamero-app/streamero/server/internal/settings"
 	"github.com/streamero-app/streamero/server/internal/storage"
 	"github.com/streamero-app/streamero/server/internal/stream"
@@ -227,6 +229,13 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 			return err
 		}
 		state.SetLibrary(libs)
+		adultSvc := newAdult(cfg, deps.Pool, roots, state.Settings(), nil, log)
+		h.Adult = func() *adult.Service { return adultSvc }
+		h.EnqueueAdult = func(ctx context.Context, id uuid.UUID, force bool) error {
+			_, err := inserter.Insert(ctx, jobs.AdultEnrichArgs{LibraryID: id, Force: force}, nil)
+			return err
+		}
+		streamServer.AdultPath = adultSvc.FilePath
 		// Offline downloads (D-040): the worker transcodes into the shared cache, serve hands out the files.
 		dl := &downloads.Service{Pool: deps.Pool, Library: libs, Roots: roots, Signer: stream.Signer{Key: key},
 			Dir: filepath.Join(cfg.CacheDir, "downloads"), Settings: state.Settings(),
@@ -337,7 +346,14 @@ func worker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		}
 		return cfg.ServerName
 	}}
-	jobs.Register(workers, log, &library.Scanner{Pool: deps.Pool, Roots: roots, Probe: library.FFprobe(cfg.FFprobePath), Log: log},
+	adultSvc := newAdult(cfg, deps.Pool, roots, state.Settings(), library.FFprobe(cfg.FFprobePath), log)
+	jobs.AfterAdultScan = func(ctx context.Context, id uuid.UUID) error {
+		_, err := client.Insert(ctx, jobs.AdultEnrichArgs{LibraryID: id}, nil)
+		return err
+	}
+	jobs.RegisterAdult(workers, adultSvc, log)
+	jobs.Register(workers, log, &library.Scanner{Pool: deps.Pool, Roots: roots, Probe: library.FFprobe(cfg.FFprobePath), Log: log,
+		Adult: adultSvc.Scan},
 		libraries, refresher, func(ctx context.Context, id uuid.UUID) error {
 			return jobs.Enqueue(ctx, client, jobs.MetadataRefreshArgs{LibraryID: id})
 		}, notifier,
@@ -497,4 +513,16 @@ func newLiveTV(cfg config.Config, pool *pgxpool.Pool, st func() *settings.Store,
 	return &livetv.Service{Pool: pool, Settings: st, FFmpeg: cfg.FFmpegPath, FFprobe: cfg.FFprobePath, FileRoots: files,
 		RecordingsDir: filepath.Clean(cfg.RecordingsDir), HTTP: livetv.NewHTTPClient(2*time.Minute, false),
 		ImageDir: filepath.Join(cfg.CacheDir, "livetv-images"), Log: log}
+}
+
+// newAdult builds the adult library service (D-053). Without a usable secret key
+// the ThePornDB / StashDB keys cannot be saved; everything else works.
+func newAdult(cfg config.Config, pool *pgxpool.Pool, roots library.Roots, st *settings.Store, probe library.Prober, log *slog.Logger) *adult.Service {
+	box, err := secretbox.Load(cfg.SecretKey, cfg.ConfigDir)
+	if err != nil {
+		log.Warn("secret key unavailable: adult metadata keys cannot be saved", "err", err)
+		box = nil
+	}
+	return &adult.Service{Pool: pool, Roots: roots, ImageDir: filepath.Join(cfg.CacheDir, "adult-images"), Settings: st,
+		Box: box, Probe: probe, FFmpeg: cfg.FFmpegPath, Log: log}
 }

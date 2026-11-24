@@ -59,6 +59,10 @@ func rateLimited(r *http.Request) bool {
 		return true
 	case r.Method == http.MethodPost && strings.HasPrefix(p, "/api/v1/profiles/") && strings.HasSuffix(p, "/select"):
 		return true
+	// The adult section PIN (D-053) and changing it.
+	case r.Method == http.MethodPost && p == "/api/v1/adult/unlock",
+		r.Method == http.MethodPut && p == "/api/v1/adult/preferences":
+		return true
 	}
 	return false
 }

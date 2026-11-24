@@ -138,7 +138,7 @@ func walkMedia(ctx context.Context, root string, unreadable *[]string, keep func
 		}
 		name := d.Name()
 		if d.IsDir() {
-			if path != root && (IgnoredName(name) || hasIgnoreMarker(path)) {
+			if path != root && (IgnoredName(name) || hasIgnoreMarker(path) || skipped(ctx, path)) {
 				return filepath.SkipDir
 			}
 			return nil

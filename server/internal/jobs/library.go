@@ -54,6 +54,8 @@ type LibraryScanWorker struct {
 	AfterScan func(ctx context.Context, libraryID uuid.UUID) error
 	// Notify announces new titles and failed scans (nil disables it).
 	Notify *notify.Dispatcher
+	// AfterAdultScan queues the metadata lookup of an adult library (nil: none).
+	AfterAdultScan func(ctx context.Context, libraryID uuid.UUID) error
 }
 
 // Timeout allows long first scans of big libraries.
@@ -65,7 +67,23 @@ func (w *LibraryScanWorker) Work(ctx context.Context, job *river.Job[LibraryScan
 		return err
 	}
 	start := time.Now()
+	var kind string
+	_ = w.Scanner.Pool.QueryRow(ctx, `SELECT kind FROM libraries WHERE id = $1`, job.Args.LibraryID).Scan(&kind)
 	res, err := w.Scanner.ScanWith(ctx, job.Args.LibraryID, library.ScanOptions{ConfirmRemoval: job.Args.ConfirmRemoval})
+	if kind == library.KindAdult {
+		// Adult libraries (D-053): no notifications or webhooks at all, and the log
+		// carries counts only.
+		if err != nil {
+			w.Log.Warn("adult library scan failed", "library", job.Args.LibraryID)
+			return river.JobCancel(err)
+		}
+		w.Log.Info("adult library scanned", "library", job.Args.LibraryID, "files", res.Files, "probed", res.Probed,
+			"removed", res.Removed, "took", time.Since(start).String())
+		if w.AfterAdultScan != nil {
+			return w.AfterAdultScan(ctx, job.Args.LibraryID)
+		}
+		return nil
+	}
 	if err != nil {
 		w.Log.Warn("library scan failed", "library", job.Args.LibraryID, "err", err)
 		w.Notify.Emit(ctx, notify.Event{Kind: notify.ScanFailed, Title: "Library scan failed", Message: err.Error(),
@@ -149,7 +167,7 @@ type LibraryScanAllWorker struct {
 
 // Work implements river.Worker.
 func (w *LibraryScanAllWorker) Work(ctx context.Context, _ *river.Job[LibraryScanAllArgs]) error {
-	libs, err := w.Libraries.List(ctx)
+	libs, err := w.Libraries.ListAll(ctx)
 	if err != nil {
 		return err
 	}

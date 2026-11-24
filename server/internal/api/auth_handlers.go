@@ -175,6 +175,9 @@ func (h *Handler) GetMe(ctx context.Context) (*gen.User, error) {
 	if p.Profile != nil {
 		u.CurrentProfile = gen.NewOptProfile(toProfile(*p.Profile))
 	}
+	if a := h.adultService(); a != nil && a.Available(ctx, p) {
+		u.AdultAccess = gen.NewOptBool(true)
+	}
 	if a, err := h.Auth().Account(ctx, p.User.ID); err == nil {
 		u.DisplayName, u.Email = optString(a.DisplayName), optString(a.Email)
 		u.HasAvatar = gen.NewOptBool(a.HasAvatar)
@@ -203,9 +206,17 @@ func (h *Handler) ListUsers(ctx context.Context) ([]gen.User, error) {
 	if err != nil {
 		return nil, err
 	}
+	var granted map[uuid.UUID]bool
+	if a := h.adultService(); a != nil {
+		if granted, err = a.GrantedUsers(ctx); err != nil {
+			return nil, err
+		}
+	}
 	out := make([]gen.User, 0, len(users))
 	for _, u := range users {
-		out = append(out, toUser(u))
+		gu := toUser(u)
+		gu.AdultAccess = gen.NewOptBool(granted[u.ID])
+		out = append(out, gu)
 	}
 	return out, nil
 }
@@ -479,6 +490,9 @@ func mapError(err error) *StatusError {
 	var se *StatusError
 	if errors.As(err, &se) {
 		return se
+	}
+	if ae := mapAdultError(err); ae != nil {
+		return ae
 	}
 	if le := mapLibraryError(err); le != nil {
 		return le

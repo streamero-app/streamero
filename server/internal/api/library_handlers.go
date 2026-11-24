@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 
+	adultlib "github.com/streamero-app/streamero/server/internal/adult"
 	"github.com/streamero-app/streamero/server/internal/analyze"
 	"github.com/streamero-app/streamero/server/internal/api/gen"
 	"github.com/streamero-app/streamero/server/internal/auth"
@@ -59,7 +60,13 @@ func (h *Handler) ListLibraries(ctx context.Context) ([]gen.Library, error) {
 	if !canSeeLibraries(p) {
 		return out, nil
 	}
-	libs, err := h.lib().List(ctx)
+	list := h.lib().List
+	if p.User.IsAdmin && !p.IsKid() {
+		// Administrators manage (and Locarr scans) adult libraries too; their
+		// content is reached only through /adult/* (D-053).
+		list = h.lib().ListAll
+	}
+	libs, err := list(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -76,6 +83,9 @@ func (h *Handler) CreateLibrary(ctx context.Context, req *gen.LibraryInput) (*ge
 	}
 	if _, err := admin(ctx); err != nil {
 		return nil, err
+	}
+	if string(req.Kind) == library.KindAdult && !req.ConfirmAdult.Value {
+		return nil, adultlib.ErrConfirm
 	}
 	l, err := h.lib().Create(ctx, req.Name, string(req.Kind), req.Paths)
 	if err != nil {
@@ -108,6 +118,11 @@ func (h *Handler) DeleteLibrary(ctx context.Context, params gen.DeleteLibraryPar
 	}
 	if _, err := admin(ctx); err != nil {
 		return err
+	}
+	if l, err := h.lib().GetAny(ctx, params.LibraryId); err == nil && l.Kind == library.KindAdult {
+		if a := h.adultService(); a != nil {
+			_ = a.RemoveLibraryImages(ctx, l.ID)
+		}
 	}
 	return h.lib().Delete(ctx, params.LibraryId)
 }
@@ -404,6 +419,9 @@ func (h *Handler) RefreshLibraryMetadata(ctx context.Context, params gen.Refresh
 	}
 	if _, err := admin(ctx); err != nil {
 		return err
+	}
+	if l, err := h.lib().GetAny(ctx, params.LibraryId); err == nil && l.Kind == library.KindAdult && h.EnqueueAdult != nil {
+		return h.EnqueueAdult(ctx, l.ID, true)
 	}
 	if _, err := h.lib().Get(ctx, params.LibraryId); err != nil {
 		return err

@@ -32,6 +32,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/streamero-app/streamero/server/internal/activity"
+	"github.com/streamero-app/streamero/server/internal/adult"
 	"github.com/streamero-app/streamero/server/internal/api"
 	"github.com/streamero-app/streamero/server/internal/auth"
 	"github.com/streamero-app/streamero/server/internal/backup"
@@ -42,6 +43,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/library"
 	"github.com/streamero-app/streamero/server/internal/metadata"
 	"github.com/streamero-app/streamero/server/internal/notify"
+	"github.com/streamero-app/streamero/server/internal/secretbox"
 	"github.com/streamero-app/streamero/server/internal/settings"
 	"github.com/streamero-app/streamero/server/internal/stream"
 	"github.com/streamero-app/streamero/server/internal/syncplay"
@@ -113,8 +115,8 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 		t.Fatal(err)
 	}
 	t.Cleanup(deps.Close)
-	if _, err := deps.Pool.Exec(ctx, `TRUNCATE users, downloads, download_transcodes, sessions, audit_log, api_keys, user_totp, recovery_codes, quick_connect, invites, profiles, import_runs, user_identities, oidc_flows, oidc_handoffs, oidc_providers;
-		DELETE FROM settings WHERE key IN ('setup.completed', 'server.name', 'playback.resume', 'encoding', 'branding', 'integrations.requests', 'enhancements', 'auth.general', 'auth.ldap', 'dlna', 'downloads')`); err != nil {
+	if _, err := deps.Pool.Exec(ctx, `TRUNCATE users, downloads, download_transcodes, sessions, audit_log, api_keys, user_totp, recovery_codes, quick_connect, invites, profiles, import_runs, user_identities, oidc_flows, oidc_handoffs, oidc_providers, adult_access, adult_prefs, adult_progress;
+		DELETE FROM settings WHERE key IN ('setup.completed', 'server.name', 'playback.resume', 'encoding', 'branding', 'integrations.requests', 'enhancements', 'auth.general', 'auth.ldap', 'dlna', 'downloads', 'adult.metadata')`); err != nil {
 		t.Fatal(err)
 	}
 	mediaRoot = t.TempDir()
@@ -140,6 +142,14 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 			return (&importer.Runner{Pool: deps.Pool, Log: log}).Run(ctx, id)
 		}}
 	h.Notify.Server = h.ServerNameFor
+	box, err := secretbox.Load("", t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	testAdult = &adult.Service{Pool: deps.Pool, Roots: library.Roots{mediaRoot}, ImageDir: t.TempDir(), Settings: state.Settings(),
+		Box: box, Log: log}
+	h.Adult = func() *adult.Service { return testAdult }
+	state.Stream().AdultPath = testAdult.FilePath
 	h.SyncPlay = &syncplay.Service{Hub: syncplay.NewHub(), Lookup: h.SyncLookup}
 	testSyncPlay = h.SyncPlay
 	state.Compat().SyncPlay, state.Compat().SyncIdentity = h.SyncPlay, h.SyncIdentity
@@ -163,6 +173,9 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 	t.Cleanup(srv.Close)
 	return srv
 }
+
+// testAdult is the adult library service of the most recent test server (D-053).
+var testAdult *adult.Service
 
 // testDownloads is the offline downloads service of the most recent test server;
 // testEnqueued records the transcodes it queued (no worker runs in tests).

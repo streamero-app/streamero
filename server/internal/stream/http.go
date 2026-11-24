@@ -34,6 +34,9 @@ type Server struct {
 	Downloads http.Handler
 	// Images serves /stream/img/{key}/{name} (live TV logos and programme images; optional).
 	Images http.Handler
+	// AdultPath returns the stored path of an adult library file (D-053); nil
+	// disables /stream/adult/.
+	AdultPath func(ctx context.Context, fileID uuid.UUID) (string, error)
 }
 
 // Routes returns the handler for /stream.
@@ -46,6 +49,7 @@ func (s *Server) Routes() http.Handler {
 	r.Get("/page/{fileId}/{n}", s.page)
 	r.Get("/photo/{fileId}/{name}", s.photo)
 	r.Get("/orig/{fileId}/{name}", s.original)
+	r.Get("/adult/{fileId}/{name}", s.adultFile)
 	r.Get("/dl/{id}/{name}", func(w http.ResponseWriter, r *http.Request) {
 		if s.Downloads == nil {
 			http.NotFound(w, r)

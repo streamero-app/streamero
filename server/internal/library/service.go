@@ -133,9 +133,27 @@ func (s *Service) RetryFailedMetadata(ctx context.Context) error {
 	return err
 }
 
-// List returns all libraries by name.
+// KindAdult is the kind of adult libraries (D-053). Their content is never in
+// items or media_files; List and Get leave them out, so nothing that browses
+// libraries (home, DLNA, compat views, item lists) ever sees one.
+const KindAdult = "adult"
+
+// List returns the libraries by name, without adult libraries.
 func (s *Service) List(ctx context.Context) ([]Library, error) {
-	rows, err := s.Pool.Query(ctx, `SELECT `+libCols+` FROM libraries l ORDER BY lower(l.name)`)
+	return s.list(ctx, false)
+}
+
+// ListAll returns every library including adult ones (administration, scans).
+func (s *Service) ListAll(ctx context.Context) ([]Library, error) {
+	return s.list(ctx, true)
+}
+
+func (s *Service) list(ctx context.Context, all bool) ([]Library, error) {
+	where := ` WHERE l.kind <> 'adult'`
+	if all {
+		where = ""
+	}
+	rows, err := s.Pool.Query(ctx, `SELECT `+libCols+` FROM libraries l`+where+` ORDER BY lower(l.name)`)
 	if err != nil {
 		return nil, err
 	}
@@ -171,6 +189,108 @@ func (s *Service) validate(name, _ string, paths []string) (string, []string, er
 	return name, clean, nil
 }
 
+// ErrAdultOverlap is returned for folders that would mix adult and other content (D-053).
+var ErrAdultOverlap = errors.New("an adult library cannot contain another library's folder, and no library can be inside an adult library's folder")
+
+// checkAdultOverlap: an adult folder may sit inside another library's folder (that
+// library skips it), but must not contain another library's folder, and no other
+// library may be inside an adult folder.
+func (s *Service) checkAdultOverlap(ctx context.Context, self uuid.UUID, kind string, paths []string) error {
+	rows, err := s.Pool.Query(ctx, `SELECT kind, paths FROM libraries WHERE id <> $1`, self)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var k string
+		var other []string
+		if err := rows.Scan(&k, &other); err != nil {
+			return err
+		}
+		if k != KindAdult && kind != KindAdult {
+			continue
+		}
+		for _, p := range paths {
+			for _, o := range other {
+				switch {
+				case kind == KindAdult && k == KindAdult && (under(p, o) || under(o, p)):
+					return ErrAdultOverlap
+				case kind == KindAdult && under(o, p): // another library inside the adult folder
+					return ErrAdultOverlap
+				case kind != KindAdult && under(p, o): // a library inside an adult folder
+					return ErrAdultOverlap
+				}
+			}
+		}
+	}
+	return rows.Err()
+}
+
+// AdultRoots returns the resolved folders of adult libraries other than except.
+func (s *Service) AdultRoots(ctx context.Context, except uuid.UUID) ([]string, error) {
+	return adultRoots(ctx, s.Pool, s.Roots, except)
+}
+
+func adultRoots(ctx context.Context, pool *pgxpool.Pool, roots Roots, except uuid.UUID) ([]string, error) {
+	rows, err := pool.Query(ctx, `SELECT paths FROM libraries WHERE kind = 'adult' AND id <> $1`, except)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var ps []string
+		if err := rows.Scan(&ps); err != nil {
+			return nil, err
+		}
+		for _, p := range ps {
+			out = append(out, filepath.Clean(p))
+			if r, err := ResolveSafePath(roots, p); err == nil && r != filepath.Clean(p) {
+				out = append(out, r)
+			}
+		}
+	}
+	return out, rows.Err()
+}
+
+// purgeUnderAdult removes items and files of other libraries that lie inside an
+// adult library's folders (scanned before the adult library existed) and queues
+// those libraries for a rescan.
+func (s *Service) purgeUnderAdult(ctx context.Context, adultID uuid.UUID, paths []string) error {
+	var libs []uuid.UUID
+	for _, p := range paths {
+		like := strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`).Replace(strings.TrimSuffix(p, "/")) + "/%"
+		rows, err := s.Pool.Query(ctx, `DELETE FROM media_files WHERE library_id <> $1 AND (path = $2 OR path LIKE $3)
+			RETURNING library_id`, adultID, p, like)
+		if err != nil {
+			return err
+		}
+		for rows.Next() {
+			var id uuid.UUID
+			if err := rows.Scan(&id); err == nil {
+				libs = append(libs, id)
+			}
+		}
+		rows.Close()
+		if _, err := s.Pool.Exec(ctx, `DELETE FROM items WHERE library_id <> $1 AND (path = $2 OR path LIKE $3)`, adultID, p, like); err != nil {
+			return err
+		}
+	}
+	// Movies and episodes whose only files were removed.
+	if _, err := s.Pool.Exec(ctx, `DELETE FROM items i WHERE i.kind IN ('movie', 'episode', 'track', 'book', 'audiobook', 'photo', 'video')
+		AND i.library_id = ANY ($1) AND NOT EXISTS (SELECT 1 FROM media_files f WHERE f.item_id = i.id)`, libs); err != nil {
+		return err
+	}
+	seen := map[uuid.UUID]bool{}
+	for _, id := range libs {
+		if !seen[id] && s.Enqueue != nil {
+			seen[id] = true
+			_ = s.Scan(ctx, id)
+		}
+	}
+	return nil
+}
+
 // Create adds a library and queues its first scan.
 func (s *Service) Create(ctx context.Context, name, kind string, paths []string) (Library, error) {
 	name, paths, err := s.validate(name, kind, paths)
@@ -181,25 +301,57 @@ func (s *Service) Create(ctx context.Context, name, kind string, paths []string)
 	if err != nil {
 		return Library{}, err
 	}
+	if err := s.checkAdultOverlap(ctx, id, kind, paths); err != nil {
+		return Library{}, err
+	}
 	if _, err := s.Pool.Exec(ctx, `INSERT INTO libraries (id, name, kind, paths) VALUES ($1, $2, $3, $4)`, id, name, kind, paths); err != nil {
 		return Library{}, err
+	}
+	if kind == KindAdult {
+		if err := s.purgeUnderAdult(ctx, id, paths); err != nil {
+			return Library{}, err
+		}
 	}
 	if err := s.Scan(ctx, id); err != nil {
 		return Library{}, err
 	}
-	return s.Get(ctx, id)
+	return s.GetAny(ctx, id)
 }
 
-// Get returns one library.
+// Get returns one library (never an adult one: those are reached only through
+// the adult section).
 func (s *Service) Get(ctx context.Context, id uuid.UUID) (Library, error) {
+	return scanLibrary(s.Pool.QueryRow(ctx, `SELECT `+libCols+` FROM libraries l WHERE l.id = $1 AND l.kind <> 'adult'`, id))
+}
+
+// GetAny returns one library of any kind (administration).
+func (s *Service) GetAny(ctx context.Context, id uuid.UUID) (Library, error) {
 	return scanLibrary(s.Pool.QueryRow(ctx, `SELECT `+libCols+` FROM libraries l WHERE l.id = $1`, id))
 }
+
+// ErrKindChange is returned when a library would change to or from the adult kind.
+var ErrKindChange = errors.New("a library cannot be changed to or from the adult kind; create a new library instead")
 
 // Update changes name, kind or folders and rescans.
 func (s *Service) Update(ctx context.Context, id uuid.UUID, name, kind string, paths []string) (Library, error) {
 	name, paths, err := s.validate(name, kind, paths)
 	if err != nil {
 		return Library{}, err
+	}
+	cur, err := s.GetAny(ctx, id)
+	if err != nil {
+		return Library{}, err
+	}
+	if (cur.Kind == KindAdult) != (kind == KindAdult) {
+		return Library{}, ErrKindChange
+	}
+	if err := s.checkAdultOverlap(ctx, id, kind, paths); err != nil {
+		return Library{}, err
+	}
+	if kind == KindAdult {
+		if err := s.purgeUnderAdult(ctx, id, paths); err != nil {
+			return Library{}, err
+		}
 	}
 	tag, err := s.Pool.Exec(ctx, `UPDATE libraries SET name = $2, kind = $3, paths = $4 WHERE id = $1`, id, name, kind, paths)
 	if err != nil {
@@ -211,7 +363,7 @@ func (s *Service) Update(ctx context.Context, id uuid.UUID, name, kind string, p
 	if err := s.Scan(ctx, id); err != nil {
 		return Library{}, err
 	}
-	return s.Get(ctx, id)
+	return s.GetAny(ctx, id)
 }
 
 // Delete removes the library and its items from the database. Files are never touched.
@@ -409,6 +561,9 @@ func (s *Service) GetItem(ctx context.Context, id, owner uuid.UUID) (Item, []Med
 }
 
 // Browse lists sub-folders of path (or the media roots when path is empty).
+//
+// The folders inside an adult library's folder are never listed (their names
+// are studios and titles); the adult folder itself is, so it can be chosen.
 func (s *Service) Browse(path string) (string, string, []string, error) {
 	if path == "" {
 		var roots []string
@@ -428,6 +583,11 @@ func (s *Service) Browse(path string) (string, string, []string, error) {
 		return "", "", nil, ErrInvalidPath
 	}
 	var dirs []string
+	if s.Pool != nil {
+		if adult, err := adultRoots(context.Background(), s.Pool, s.Roots, uuid.Nil); err == nil && underAny(resolved, adult) {
+			entries = nil
+		}
+	}
 	for _, e := range entries {
 		if e.IsDir() && !IgnoredName(e.Name()) {
 			dirs = append(dirs, filepath.Join(resolved, e.Name()))

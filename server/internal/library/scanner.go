@@ -25,6 +25,23 @@ type Scanner struct {
 	Probe       Prober
 	Log         *slog.Logger
 	Concurrency int // parallel ffprobe runs (default 4)
+	// Adult scans adult libraries (D-053); nil refuses to scan them. Their content
+	// never goes into items / media_files.
+	Adult func(ctx context.Context, libraryID uuid.UUID, paths []string, opts ScanOptions) (ScanResult, error)
+}
+
+type skipKey struct{}
+
+// withSkip makes the folder walkers skip dirs (the folders of adult libraries
+// inside another library's folder).
+func withSkip(ctx context.Context, dirs []string) context.Context {
+	return context.WithValue(ctx, skipKey{}, dirs)
+}
+
+// skipped reports a folder another library owns exclusively (an adult library).
+func skipped(ctx context.Context, dir string) bool {
+	dirs, _ := ctx.Value(skipKey{}).([]string)
+	return underAny(dir, dirs)
 }
 
 type planFile struct {
@@ -117,6 +134,17 @@ type walkResult struct {
 }
 
 func (s *Scanner) scan(ctx context.Context, libID uuid.UUID, kind string, paths []string, opts ScanOptions) (ScanResult, error) {
+	if kind == KindAdult {
+		if s.Adult == nil {
+			return ScanResult{}, errors.New("adult libraries are not supported by this process")
+		}
+		return s.Adult(ctx, libID, paths, opts)
+	}
+	skip, err := adultRoots(ctx, s.Pool, s.Roots, libID)
+	if err != nil {
+		return ScanResult{}, err
+	}
+	ctx = withSkip(ctx, skip)
 	plan := map[string]*planItem{}
 	walk := walkResult{roots: make([]string, 0, len(paths))}
 	for _, p := range paths {
@@ -194,7 +222,7 @@ func collect(ctx context.Context, root string, unreadable *[]string) (map[string
 		}
 		name := d.Name()
 		if d.IsDir() {
-			if path != root && (IgnoredName(name) || IsExtraDir(name) || hasIgnoreMarker(path)) {
+			if path != root && (IgnoredName(name) || IsExtraDir(name) || hasIgnoreMarker(path) || skipped(ctx, path)) {
 				return filepath.SkipDir
 			}
 			return nil

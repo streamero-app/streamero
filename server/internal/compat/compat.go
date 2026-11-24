@@ -801,7 +801,7 @@ func (s *Server) refreshAll(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
-	libs, err := s.Libraries.List(r.Context())
+	libs, err := s.Libraries.ListAll(r.Context())
 	if err == nil {
 		for _, l := range libs {
 			_ = s.Libraries.Scan(r.Context(), l.ID)
@@ -823,7 +823,7 @@ func (s *Server) mediaUpdated(w http.ResponseWriter, r *http.Request) {
 		} `json:"Updates"`
 	}
 	_ = json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&body)
-	libs, err := s.Libraries.List(r.Context())
+	libs, err := s.Libraries.ListAll(r.Context()) // scanning only: adult libraries pick up new files too
 	if err != nil {
 		http.Error(w, "error", http.StatusInternalServerError)
 		return
