@@ -44,6 +44,8 @@ struct User: Codable, Sendable, Equatable, Identifiable {
     var email: String?
     var language: String?
     var hasAvatar: Bool?
+    /// On /auth/me: the adult section is available in this session (D-053).
+    var adultAccess: Bool?
     var createdAt: String
     var lastLoginAt: String?
 }

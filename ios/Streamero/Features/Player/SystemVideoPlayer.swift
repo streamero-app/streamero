@@ -11,6 +11,8 @@ struct SystemVideoPlayer: UIViewControllerRepresentable {
     let player: AVPlayer
     /// Picture in Picture starts by itself when the app goes to the background.
     var autoPip = false
+    /// Off for adult scenes: nothing about them on the lock screen or in Control Center.
+    var publishesNowPlaying = true
     var onTap: (CGPoint, CGSize) -> Void = { _, _ in }
 
     func makeCoordinator() -> Coordinator { Coordinator() }
@@ -21,6 +23,7 @@ struct SystemVideoPlayer: UIViewControllerRepresentable {
         vc.allowsPictureInPicturePlayback = true
         vc.canStartPictureInPictureAutomaticallyFromInline = autoPip
         vc.videoGravity = .resizeAspect
+        vc.updatesNowPlayingInfoCenter = publishesNowPlaying
         vc.view.backgroundColor = .black
         let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.tapped(_:)))
         tap.cancelsTouchesInView = false

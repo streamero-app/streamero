@@ -36,6 +36,10 @@ struct RouteDestination: View {
         case .downloads: DownloadsView()
         case .liveTv: LiveTVView(client: client)
         case .liveChannel(let channel): LiveChannelView(channel: channel, client: client)
+        case .adult: AdultHomeView(client: client)
+        case .adultScene(let id): AdultSceneView(sceneID: id, client: client)
+        case .adultStudio(let studio): AdultStudioView(studio: studio, client: client)
+        case .adultPerformer(let performer): AdultPerformerView(performer: performer, client: client)
         }
     }
 }
@@ -71,6 +75,7 @@ private struct MainContent: View {
     @State private var showDownloads = false
     @Environment(SessionStore.self) private var session
     @Environment(\.locale) private var systemLocale
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         Group {
@@ -103,6 +108,13 @@ private struct MainContent: View {
         .environment(\.locale, app.locale ?? systemLocale)
         .task { await bootstrap() }
         .onAppear { watchSessionExpiry() }
+        .onChange(of: scenePhase) { _, phase in
+            // The adult section locks again in the background, unless a scene is still playing
+            // (its progress reports need the open session).
+            if phase == .background && app.showsAdult && app.playing?.adult != true {
+                Task { await app.adult.lock(client: client) }
+            }
+        }
     }
 
     /// A token the server rejects mid-session (revoked device, password changed elsewhere)
@@ -140,6 +152,7 @@ private struct MainContent: View {
     private func signOut() async {
         app.music.stop()
         app.audiobook.stop()
+        app.adult.reset()
         await session.signOut(server: server)
     }
 
@@ -486,7 +499,7 @@ struct HomeTab: View {
                              nextUp: await nextUp ?? [],
                              favorites: await favorites ?? [],
                              collections: await collections ?? [],
-                             libraries: await libraries ?? [],
+                             libraries: (await libraries ?? []).filter { !$0.isAdult },
                              sections: await prefs?.homeSections)
             data = d
             error = nil
@@ -496,7 +509,7 @@ struct HomeTab: View {
     }
 
     private func surprise() async {
-        let skip: Set<String> = ["music", "books", "audiobooks", "photos"]
+        let skip: Set<String> = ["music", "books", "audiobooks", "photos", "adult"]
         let libs = ((try? await client.libraries()) ?? []).filter { !skip.contains($0.kind) }.shuffled()
         for lib in libs {
             if let item = try? await client.items(library: lib.id, query: ["sort": "random", "unplayed": "true", "limit": "1"]).items.first {

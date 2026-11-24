@@ -9,6 +9,11 @@ struct PlayTarget: Identifiable, Hashable {
     var audio: Int? = nil
     /// Index into the file's subtitle tracks (-1 = none, nil = automatic).
     var sub: Int? = nil
+    /// A scene of the adult section: played through /adult/scenes, with nothing shown outside
+    /// the app (no Now Playing details, no Picture in Picture by itself, no watch together).
+    var adult = false
+    /// Shown in the player's top bar when there is no item to load the title from.
+    var title: String? = nil
 }
 
 struct LibraryRoute: Hashable {
@@ -48,6 +53,10 @@ enum Route: Hashable {
     case downloads
     case liveTv
     case liveChannel(LiveTvChannel)
+    case adult
+    case adultScene(String)
+    case adultStudio(AdultRef)
+    case adultPerformer(AdultRef)
 }
 
 /// Personal and administration settings; the admin pages also guard themselves.
@@ -87,6 +96,8 @@ final class AppState {
     let audiobook: AudiobookPlayer
     /// Watch-together membership (D-036).
     let together: SyncSession
+    /// The adult section (D-053); only used when `me.adultAccess` is true.
+    let adult: AdultSession
 
     init(server: SavedServer, client: MediaClient) {
         self.server = server
@@ -98,6 +109,7 @@ final class AppState {
         self.music = music
         self.audiobook = audiobook
         self.together = SyncSession(client: client)
+        self.adult = AdultSession()
     }
 
     /// Whether this account may watch together.
@@ -106,6 +118,7 @@ final class AppState {
     var isAdmin: Bool { Access.isAdmin(me) }
     var isKid: Bool { Access.isKid(me) }
     var canFindSubtitles: Bool { Access.canFindSubtitles(me) }
+    var showsAdult: Bool { AdultGate.showsEntry(me) }
 
     var locale: Locale? {
         me?.language.map { Locale(identifier: $0) }
@@ -117,6 +130,8 @@ final class AppState {
         me = try? await client.me()
         enhancements = (try? await client.enhancements()) ?? Enhancements()
         Loc.apply(language: me?.language)
+        // A profile switch or a removed grant hides the section and forgets what it showed.
+        if !AdultGate.showsEntry(me) { adult.reset() }
         return me
     }
 
