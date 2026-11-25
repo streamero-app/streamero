@@ -78,6 +78,9 @@ Chrome više ne dobiva HLS na ugrađeni player (ne parsira transkodirane streamo
 ## Obrana od botova (branch `fix/hardening-bots`, 2026-11-17)
 Pregled demo hosta (bez znakova provale; skeneri i SSH pogađanje lozinki). Server: zabrana adrese nakon 15 neuspjelih prijava u 10 min, 404 za putanje skenera, `robots.txt`, kontejneri bez capabilityja. Host: `scripts/harden-host.sh` + `docs/SECURITY.md` (D-051).
 
+## v0.12.1 (2026-11-25)
+Pristup po biblioteci (#94, migracija 00036, D-054): za svakog korisnika „sve biblioteke" ili odabrane, i pri dodavanju korisnika i u pozivnicama; skrivena biblioteka ne vidi se nigdje (početna, pretraga, nastavak gledanja, kolekcije, popisi, preuzimanja, zajedničko gledanje, DLNA, kompatibilni API, obavijesti). Postavke → Korisnici su pravi uređivač (ime, administrator, uključen, biblioteke, prava, lozinka, 2FA, odjava svugdje). Dijelovi za odrasle u Korisnicima i Metapodacima više nisu skriveni nego objašnjavaju da prvo treba napraviti biblioteku za odrasle. Administratorske stranice u Android i iOS aplikaciji: pristup po biblioteci za korisnike i pozivnice.
+
 ## v0.12.0 (2026-11-24)
 Neobavezna biblioteka za odrasle (#92, migracija 00035, D-053): vlastita vrsta biblioteke i vlastite tablice, zasebna dozvola koju nitko ne dobiva automatski (ni administratori, ni pozivnice, ni „pristup svim bibliotekama"), neobavezni PIN, metapodaci s ThePornDB-a i StashDB-a s vlastitim ključem, zamućene slike, web i pregled/reprodukcija u Android i iOS aplikaciji; ništa ne izlazi u početnu, pretragu, nastavak gledanja, statistiku, obavijesti, DLNA ni kompatibilni API. Pravila projekta premještena u `CONTRIBUTING.md` (#87).
 
