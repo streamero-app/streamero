@@ -30,7 +30,7 @@ func (s *Server) item(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// A library ID asked as an item (clients do this for views).
-	if lib, err := s.Libraries.Get(r.Context(), id); err == nil {
+	if lib, err := s.Libraries.GetFor(r.Context(), id, ownerOf(principal(r))); err == nil {
 		if !library.IsStreamingLibrary(lib.Kind) {
 			http.NotFound(w, r)
 			return
@@ -357,7 +357,7 @@ func (s *Server) ancestors(w http.ResponseWriter, r *http.Request) {
 	for _, x := range rows {
 		out = append(out, s.dto(x))
 	}
-	if l, err := s.Libraries.Get(r.Context(), lib); err == nil {
+	if l, err := s.Libraries.GetFor(r.Context(), lib, ownerOf(principal(r))); err == nil {
 		out = append(out, s.viewDTO(l))
 	}
 	writeJSON(w, out)
@@ -440,10 +440,10 @@ func (s *Server) genres(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) genreNames(r *http.Request) ([]string, error) {
-	where, args := "parent_id IS NULL", []any{}
+	where, args := "parent_id IS NULL AND "+library.Visible("library_id", "$1"), []any{ownerOf(principal(r))}
 	if parent := param(r, "ParentId"); parent != "" {
 		if pid, err := ParseID(parent); err == nil {
-			where, args = "parent_id IS NULL AND library_id = $1", []any{pid}
+			where, args = where+" AND library_id = $2", append(args, pid)
 		}
 	}
 	// #nosec G202 -- fixed fragments
@@ -481,7 +481,9 @@ func (s *Server) filters(legacy bool) http.HandlerFunc {
 		years := []int{}
 		ratings := []string{}
 		if canSee(principal(r)) {
-			rows, err := s.Pool.Query(r.Context(), `SELECT DISTINCT year FROM items WHERE year IS NOT NULL AND parent_id IS NULL ORDER BY year`)
+			owner := ownerOf(principal(r))
+			rows, err := s.Pool.Query(r.Context(), `SELECT DISTINCT year FROM items WHERE year IS NOT NULL AND parent_id IS NULL
+				AND `+library.Visible("library_id", "$1")+` ORDER BY year`, owner)
 			if err == nil {
 				for rows.Next() {
 					var y int
@@ -491,7 +493,8 @@ func (s *Server) filters(legacy bool) http.HandlerFunc {
 				}
 				rows.Close()
 			}
-			rows, err = s.Pool.Query(r.Context(), `SELECT DISTINCT official_rating FROM items WHERE official_rating <> '' ORDER BY 1`)
+			rows, err = s.Pool.Query(r.Context(), `SELECT DISTINCT official_rating FROM items WHERE official_rating <> ''
+				AND `+library.Visible("library_id", "$1")+` ORDER BY 1`, owner)
 			if err == nil {
 				for rows.Next() {
 					var v string
@@ -552,6 +555,14 @@ func (s *Server) image(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		path = metadata.ImagePath(s.Libraries.ImageDir, id, kind) // built from a UUID and a fixed word
+		// Artwork is public (see the router), but a caller that does identify
+		// itself only gets artwork of its own libraries (D-054).
+		if tok := clientInfo(r).token; tok != "" {
+			if p, err := s.Auth.Authenticate(r.Context(), tok); err == nil && s.Libraries.CanSeeItem(r.Context(), ownerOf(p), id) != nil {
+				http.NotFound(w, r)
+				return
+			}
+		}
 	}
 	f, err := os.Open(path) // #nosec G304 G703 -- see above: no client text in the path
 	if err != nil {
@@ -590,7 +601,7 @@ func (s *Server) setUserData(w http.ResponseWriter, r *http.Request, id uuid.UUI
 	}
 	if positionTicks != nil && (played == nil || !*played) {
 		if _, err := s.Pool.Exec(r.Context(), `INSERT INTO user_item_data (owner_id, item_id, position_ms)
-			SELECT $1, $2, $3 WHERE EXISTS (SELECT 1 FROM items WHERE id = $2)
+			SELECT $1, $2, $3 WHERE `+library.VisibleItem("$2::uuid", "$1")+`
 			ON CONFLICT (owner_id, item_id) DO UPDATE SET position_ms = EXCLUDED.position_ms, last_played_at = now()`,
 			ownerOf(p), id, max(0, *positionTicks/10_000)); err != nil {
 			http.Error(w, "error", http.StatusInternalServerError)

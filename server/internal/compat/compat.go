@@ -449,7 +449,14 @@ func ownerOf(p auth.Principal) uuid.UUID {
 	return p.User.ID
 }
 
-func canSee(p auth.Principal) bool { return p.User.IsAdmin || p.User.Permissions.AllLibraries }
+// canSee lets any signed-in viewer browse: what each query returns is kept to
+// the viewer's libraries by library.Visible (D-054).
+func canSee(p auth.Principal) bool { return p.User.ID != uuid.Nil }
+
+// seesItem reports whether the viewer may open the item (its library is visible).
+func (s *Server) seesItem(r *http.Request, p auth.Principal, id uuid.UUID) bool {
+	return canSee(p) && s.Libraries.CanSeeItem(r.Context(), ownerOf(p), id) == nil
+}
 
 // isAdmin reports administrator rights, which a kids profile never has (even on an
 // administrator's account), as in the Streamero API.
@@ -457,8 +464,8 @@ func isAdmin(p auth.Principal) bool { return p.User.IsAdmin && !p.IsKid() }
 
 // selfDTO is the caller's account as its own client sees it: a kids profile is
 // not shown as an administrator (clients would offer their admin screens).
-func (s *Server) selfDTO(p auth.Principal) map[string]any {
-	dto := s.userDTO(p.User)
+func (s *Server) selfDTO(ctx context.Context, p auth.Principal) map[string]any {
+	dto := s.userDTO(ctx, p.User)
 	if policy, ok := dto["Policy"].(map[string]any); ok && p.IsKid() {
 		policy["IsAdministrator"] = false
 		policy["EnableLiveTvAccess"], policy["EnableLiveTvManagement"] = false, false
@@ -524,20 +531,28 @@ func accepted(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (s *Server) userDTO(u auth.User) map[string]any {
+func (s *Server) userDTO(ctx context.Context, u auth.User) map[string]any {
 	last := ""
 	if u.LastLoginAt != nil {
 		last = u.LastLoginAt.UTC().Format(time.RFC3339)
 	}
 	perms := u.Permissions
 	all := u.IsAdmin
+	// EnabledFolders lists the chosen libraries of an account without allLibraries (D-054).
+	folders := []string{}
+	if !all && !perms.AllLibraries && s.Libraries != nil {
+		ids, _ := s.Libraries.VisibleLibraryIDs(ctx, u.ID)
+		for _, id := range ids {
+			folders = append(folders, ID(id))
+		}
+	}
 	return map[string]any{
 		"Name": u.Username, "ServerId": ID(s.ServerID), "ServerName": "", "Id": ID(u.ID), "HasPassword": true,
 		"HasConfiguredPassword": true, "HasConfiguredEasyPassword": false, "EnableAutoLogin": false,
 		"LastLoginDate": last, "LastActivityDate": last,
 		"Policy": map[string]any{
 			"IsAdministrator": u.IsAdmin, "IsDisabled": u.Disabled, "IsHidden": true,
-			"EnableAllFolders": all || perms.AllLibraries, "EnabledFolders": []string{},
+			"EnableAllFolders": all || perms.AllLibraries, "EnabledFolders": folders,
 			"EnableCollectionManagement": all || perms.ManageCollections, "EnableSubtitleManagement": all || perms.EditSubtitles,
 			"EnableLyricManagement": false, "EnableUserPreferenceAccess": true,
 			"EnableRemoteControlOfOtherUsers": false, "EnableSharedDeviceControl": false, "EnableRemoteAccess": true,
@@ -565,10 +580,10 @@ func (s *Server) userDTO(u auth.User) map[string]any {
 }
 
 // authResult is the sign-in answer (user, token and the new session).
-func (s *Server) authResult(p auth.Principal, token string, c client) map[string]any {
+func (s *Server) authResult(ctx context.Context, p auth.Principal, token string, c client) map[string]any {
 	now := time.Now().UTC().Format(time.RFC3339)
 	return map[string]any{
-		"User": s.selfDTO(p), "AccessToken": token, "ServerId": ID(s.ServerID),
+		"User": s.selfDTO(ctx, p), "AccessToken": token, "ServerId": ID(s.ServerID),
 		"SessionInfo": map[string]any{"Id": ID(p.SessionID), "UserId": ID(p.User.ID), "UserName": p.User.Username,
 			"Client": c.name, "DeviceName": c.device, "DeviceId": c.deviceID, "ApplicationVersion": c.version,
 			"ServerId": ID(s.ServerID), "PlayableMediaTypes": []string{"Video", "Audio"}, "LastActivityDate": now,
@@ -613,7 +628,7 @@ func (s *Server) authenticateByName(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	writeJSON(w, s.authResult(p, token, c))
+	writeJSON(w, s.authResult(r.Context(), p, token, c))
 }
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
@@ -622,13 +637,13 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) me(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, s.selfDTO(principal(r)))
+	writeJSON(w, s.selfDTO(r.Context(), principal(r)))
 }
 
 func (s *Server) users(w http.ResponseWriter, r *http.Request) {
 	p := principal(r)
 	if !isAdmin(p) {
-		writeJSON(w, []any{s.selfDTO(p)})
+		writeJSON(w, []any{s.selfDTO(r.Context(), p)})
 		return
 	}
 	users, err := s.Auth.ListUsers(r.Context())
@@ -638,7 +653,7 @@ func (s *Server) users(w http.ResponseWriter, r *http.Request) {
 	}
 	out := make([]any, 0, len(users))
 	for _, u := range users {
-		out = append(out, s.userDTO(u))
+		out = append(out, s.userDTO(r.Context(), u))
 	}
 	writeJSON(w, out)
 }
@@ -651,7 +666,7 @@ func (s *Server) user(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if id == p.User.ID {
-		writeJSON(w, s.selfDTO(p))
+		writeJSON(w, s.selfDTO(r.Context(), p))
 		return
 	}
 	if !isAdmin(p) {
@@ -665,7 +680,7 @@ func (s *Server) user(w http.ResponseWriter, r *http.Request) {
 	}
 	for _, u := range users {
 		if u.ID == id {
-			writeJSON(w, s.userDTO(u))
+			writeJSON(w, s.userDTO(r.Context(), u))
 			return
 		}
 	}
@@ -733,7 +748,7 @@ func (s *Server) quickConnectAuthenticate(w http.ResponseWriter, r *http.Request
 		http.Error(w, "error", http.StatusInternalServerError)
 		return
 	}
-	writeJSON(w, s.authResult(p, token, clientInfo(r)))
+	writeJSON(w, s.authResult(r.Context(), p, token, clientInfo(r)))
 }
 
 // quickConnectAuthorize approves a code from a signed-in client (not an API key).
@@ -779,8 +794,8 @@ func (s *Server) viewDTO(l library.Library) map[string]any {
 
 func (s *Server) views(w http.ResponseWriter, r *http.Request) {
 	out := []any{}
-	if canSee(principal(r)) {
-		libs, err := s.Libraries.List(r.Context())
+	if p := principal(r); canSee(p) {
+		libs, err := s.Libraries.ListFor(r.Context(), ownerOf(p))
 		if err != nil {
 			http.Error(w, "error", http.StatusInternalServerError)
 			return

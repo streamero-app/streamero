@@ -25,10 +25,11 @@ func (h *Handler) ListCollections(ctx context.Context) ([]gen.Collection, error)
 	if h.lib() == nil {
 		return nil, errStarting
 	}
-	if _, err := viewer(ctx); err != nil {
+	p, err := viewer(ctx)
+	if err != nil {
 		return nil, err
 	}
-	cs, err := h.lib().Collections(ctx)
+	cs, err := h.lib().Collections(ctx, stream.Owner(p))
 	if err != nil {
 		return nil, err
 	}
@@ -69,10 +70,11 @@ func (h *Handler) saveCollection(ctx context.Context, id uuid.UUID, req *gen.Col
 	if h.lib() == nil {
 		return nil, errStarting
 	}
-	if _, err := admin(ctx); err != nil {
+	p, err := admin(ctx)
+	if err != nil {
 		return nil, err
 	}
-	c, err := h.lib().SaveCollection(ctx, id, req.Name, req.Overview.Value, req.ItemIds)
+	c, err := h.lib().SaveCollection(ctx, id, stream.Owner(p), req.Name, req.Overview.Value, req.ItemIds)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +98,11 @@ func (h *Handler) GetCollectionImage(ctx context.Context, params gen.GetCollecti
 	if h.lib() == nil {
 		return nil, errStarting
 	}
-	if _, err := viewer(ctx); err != nil {
+	p, err := viewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if _, _, err := h.lib().GetCollection(ctx, params.CollectionId, stream.Owner(p)); err != nil {
 		return nil, err
 	}
 	// Built from a UUID and an enum, never from client text.

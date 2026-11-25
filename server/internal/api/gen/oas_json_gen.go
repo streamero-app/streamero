@@ -7456,13 +7456,31 @@ func (s *CreateInviteRequest) encodeFields(e *jx.Encoder) {
 			s.Permissions.Encode(e)
 		}
 	}
+	{
+		if s.LibraryIds != nil {
+			e.FieldStart("libraryIds")
+			e.ArrStart()
+			for _, elem := range s.LibraryIds {
+				json.EncodeUUID(e, elem)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.NewLibraries.Set {
+			e.FieldStart("newLibraries")
+			s.NewLibraries.Encode(e)
+		}
+	}
 }
 
-var jsonFieldsNameOfCreateInviteRequest = [4]string{
+var jsonFieldsNameOfCreateInviteRequest = [6]string{
 	0: "note",
 	1: "expiresInHours",
 	2: "maxUses",
 	3: "permissions",
+	4: "libraryIds",
+	5: "newLibraries",
 }
 
 // Decode decodes CreateInviteRequest from json.
@@ -7517,6 +7535,35 @@ func (s *CreateInviteRequest) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"permissions\"")
+			}
+		case "libraryIds":
+			if err := func() error {
+				s.LibraryIds = make([]uuid.UUID, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem uuid.UUID
+					v, err := json.DecodeUUID(d)
+					elem = v
+					if err != nil {
+						return err
+					}
+					s.LibraryIds = append(s.LibraryIds, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"libraryIds\"")
+			}
+		case "newLibraries":
+			if err := func() error {
+				s.NewLibraries.Reset()
+				if err := s.NewLibraries.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"newLibraries\"")
 			}
 		default:
 			return d.Skip()
@@ -7730,13 +7777,31 @@ func (s *CreateUserRequest) encodeFields(e *jx.Encoder) {
 			s.Permissions.Encode(e)
 		}
 	}
+	{
+		if s.LibraryIds != nil {
+			e.FieldStart("libraryIds")
+			e.ArrStart()
+			for _, elem := range s.LibraryIds {
+				json.EncodeUUID(e, elem)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.NewLibraries.Set {
+			e.FieldStart("newLibraries")
+			s.NewLibraries.Encode(e)
+		}
+	}
 }
 
-var jsonFieldsNameOfCreateUserRequest = [4]string{
+var jsonFieldsNameOfCreateUserRequest = [6]string{
 	0: "username",
 	1: "password",
 	2: "isAdmin",
 	3: "permissions",
+	4: "libraryIds",
+	5: "newLibraries",
 }
 
 // Decode decodes CreateUserRequest from json.
@@ -7787,6 +7852,35 @@ func (s *CreateUserRequest) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"permissions\"")
+			}
+		case "libraryIds":
+			if err := func() error {
+				s.LibraryIds = make([]uuid.UUID, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem uuid.UUID
+					v, err := json.DecodeUUID(d)
+					elem = v
+					if err != nil {
+						return err
+					}
+					s.LibraryIds = append(s.LibraryIds, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"libraryIds\"")
+			}
+		case "newLibraries":
+			if err := func() error {
+				s.NewLibraries.Reset()
+				if err := s.NewLibraries.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"newLibraries\"")
 			}
 		default:
 			return d.Skip()
@@ -14602,9 +14696,25 @@ func (s *Invite) encodeFields(e *jx.Encoder) {
 		e.FieldStart("permissions")
 		s.Permissions.Encode(e)
 	}
+	{
+		if s.LibraryIds != nil {
+			e.FieldStart("libraryIds")
+			e.ArrStart()
+			for _, elem := range s.LibraryIds {
+				json.EncodeUUID(e, elem)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.NewLibraries.Set {
+			e.FieldStart("newLibraries")
+			s.NewLibraries.Encode(e)
+		}
+	}
 }
 
-var jsonFieldsNameOfInvite = [8]string{
+var jsonFieldsNameOfInvite = [10]string{
 	0: "id",
 	1: "note",
 	2: "createdBy",
@@ -14613,6 +14723,8 @@ var jsonFieldsNameOfInvite = [8]string{
 	5: "maxUses",
 	6: "uses",
 	7: "permissions",
+	8: "libraryIds",
+	9: "newLibraries",
 }
 
 // Decode decodes Invite from json.
@@ -14620,7 +14732,7 @@ func (s *Invite) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode Invite to nil")
 	}
-	var requiredBitSet [1]uint8
+	var requiredBitSet [2]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
@@ -14718,6 +14830,35 @@ func (s *Invite) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"permissions\"")
 			}
+		case "libraryIds":
+			if err := func() error {
+				s.LibraryIds = make([]uuid.UUID, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem uuid.UUID
+					v, err := json.DecodeUUID(d)
+					elem = v
+					if err != nil {
+						return err
+					}
+					s.LibraryIds = append(s.LibraryIds, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"libraryIds\"")
+			}
+		case "newLibraries":
+			if err := func() error {
+				s.NewLibraries.Reset()
+				if err := s.NewLibraries.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"newLibraries\"")
+			}
 		default:
 			return d.Skip()
 		}
@@ -14727,8 +14868,9 @@ func (s *Invite) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
+	for i, mask := range [2]uint8{
 		0b11111111,
+		0b00000000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -25258,9 +25400,19 @@ func (s *NotificationTarget) encodeFields(e *jx.Encoder) {
 		e.FieldStart("enabled")
 		e.Bool(s.Enabled)
 	}
+	{
+		if s.LibraryIds != nil {
+			e.FieldStart("libraryIds")
+			e.ArrStart()
+			for _, elem := range s.LibraryIds {
+				json.EncodeUUID(e, elem)
+			}
+			e.ArrEnd()
+		}
+	}
 }
 
-var jsonFieldsNameOfNotificationTarget = [8]string{
+var jsonFieldsNameOfNotificationTarget = [9]string{
 	0: "id",
 	1: "name",
 	2: "kind",
@@ -25269,6 +25421,7 @@ var jsonFieldsNameOfNotificationTarget = [8]string{
 	5: "hasToken",
 	6: "events",
 	7: "enabled",
+	8: "libraryIds",
 }
 
 // Decode decodes NotificationTarget from json.
@@ -25276,7 +25429,7 @@ func (s *NotificationTarget) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode NotificationTarget to nil")
 	}
-	var requiredBitSet [1]uint8
+	var requiredBitSet [2]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
@@ -25376,6 +25529,25 @@ func (s *NotificationTarget) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"enabled\"")
 			}
+		case "libraryIds":
+			if err := func() error {
+				s.LibraryIds = make([]uuid.UUID, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem uuid.UUID
+					v, err := json.DecodeUUID(d)
+					elem = v
+					if err != nil {
+						return err
+					}
+					s.LibraryIds = append(s.LibraryIds, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"libraryIds\"")
+			}
 		default:
 			return d.Skip()
 		}
@@ -25385,8 +25557,9 @@ func (s *NotificationTarget) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
+	for i, mask := range [2]uint8{
 		0b11001111,
+		0b00000000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -28961,6 +29134,39 @@ func (s OptUserPermissions) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptUserPermissions) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes Username as json.
+func (o OptUsername) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes Username from json.
+func (o *OptUsername) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptUsername to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptUsername) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptUsername) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -39115,6 +39321,18 @@ func (s *UpdateUserRequest) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *UpdateUserRequest) encodeFields(e *jx.Encoder) {
 	{
+		if s.Username.Set {
+			e.FieldStart("username")
+			s.Username.Encode(e)
+		}
+	}
+	{
+		if s.DisplayName.Set {
+			e.FieldStart("displayName")
+			s.DisplayName.Encode(e)
+		}
+	}
+	{
 		if s.IsAdmin.Set {
 			e.FieldStart("isAdmin")
 			s.IsAdmin.Encode(e)
@@ -39139,19 +39357,46 @@ func (s *UpdateUserRequest) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.LibraryIds != nil {
+			e.FieldStart("libraryIds")
+			e.ArrStart()
+			for _, elem := range s.LibraryIds {
+				json.EncodeUUID(e, elem)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.NewLibraries.Set {
+			e.FieldStart("newLibraries")
+			s.NewLibraries.Encode(e)
+		}
+	}
+	{
 		if s.ResetTwoFactor.Set {
 			e.FieldStart("resetTwoFactor")
 			s.ResetTwoFactor.Encode(e)
 		}
 	}
+	{
+		if s.SignOutEverywhere.Set {
+			e.FieldStart("signOutEverywhere")
+			s.SignOutEverywhere.Encode(e)
+		}
+	}
 }
 
-var jsonFieldsNameOfUpdateUserRequest = [5]string{
-	0: "isAdmin",
-	1: "disabled",
-	2: "password",
-	3: "permissions",
-	4: "resetTwoFactor",
+var jsonFieldsNameOfUpdateUserRequest = [10]string{
+	0: "username",
+	1: "displayName",
+	2: "isAdmin",
+	3: "disabled",
+	4: "password",
+	5: "permissions",
+	6: "libraryIds",
+	7: "newLibraries",
+	8: "resetTwoFactor",
+	9: "signOutEverywhere",
 }
 
 // Decode decodes UpdateUserRequest from json.
@@ -39162,6 +39407,26 @@ func (s *UpdateUserRequest) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
+		case "username":
+			if err := func() error {
+				s.Username.Reset()
+				if err := s.Username.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"username\"")
+			}
+		case "displayName":
+			if err := func() error {
+				s.DisplayName.Reset()
+				if err := s.DisplayName.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"displayName\"")
+			}
 		case "isAdmin":
 			if err := func() error {
 				s.IsAdmin.Reset()
@@ -39202,6 +39467,35 @@ func (s *UpdateUserRequest) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"permissions\"")
 			}
+		case "libraryIds":
+			if err := func() error {
+				s.LibraryIds = make([]uuid.UUID, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem uuid.UUID
+					v, err := json.DecodeUUID(d)
+					elem = v
+					if err != nil {
+						return err
+					}
+					s.LibraryIds = append(s.LibraryIds, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"libraryIds\"")
+			}
+		case "newLibraries":
+			if err := func() error {
+				s.NewLibraries.Reset()
+				if err := s.NewLibraries.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"newLibraries\"")
+			}
 		case "resetTwoFactor":
 			if err := func() error {
 				s.ResetTwoFactor.Reset()
@@ -39211,6 +39505,16 @@ func (s *UpdateUserRequest) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"resetTwoFactor\"")
+			}
+		case "signOutEverywhere":
+			if err := func() error {
+				s.SignOutEverywhere.Reset()
+				if err := s.SignOutEverywhere.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"signOutEverywhere\"")
 			}
 		default:
 			return d.Skip()
@@ -39300,6 +39604,22 @@ func (s *User) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.LibraryIds != nil {
+			e.FieldStart("libraryIds")
+			e.ArrStart()
+			for _, elem := range s.LibraryIds {
+				json.EncodeUUID(e, elem)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.NewLibraries.Set {
+			e.FieldStart("newLibraries")
+			s.NewLibraries.Encode(e)
+		}
+	}
+	{
 		if s.AdultAccess.Set {
 			e.FieldStart("adultAccess")
 			s.AdultAccess.Encode(e)
@@ -39317,7 +39637,7 @@ func (s *User) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfUser = [14]string{
+var jsonFieldsNameOfUser = [16]string{
 	0:  "id",
 	1:  "username",
 	2:  "isAdmin",
@@ -39329,9 +39649,11 @@ var jsonFieldsNameOfUser = [14]string{
 	8:  "email",
 	9:  "language",
 	10: "hasAvatar",
-	11: "adultAccess",
-	12: "createdAt",
-	13: "lastLoginAt",
+	11: "libraryIds",
+	12: "newLibraries",
+	13: "adultAccess",
+	14: "createdAt",
+	15: "lastLoginAt",
 }
 
 // Decode decodes User from json.
@@ -39463,6 +39785,35 @@ func (s *User) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"hasAvatar\"")
 			}
+		case "libraryIds":
+			if err := func() error {
+				s.LibraryIds = make([]uuid.UUID, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem uuid.UUID
+					v, err := json.DecodeUUID(d)
+					elem = v
+					if err != nil {
+						return err
+					}
+					s.LibraryIds = append(s.LibraryIds, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"libraryIds\"")
+			}
+		case "newLibraries":
+			if err := func() error {
+				s.NewLibraries.Reset()
+				if err := s.NewLibraries.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"newLibraries\"")
+			}
 		case "adultAccess":
 			if err := func() error {
 				s.AdultAccess.Reset()
@@ -39474,7 +39825,7 @@ func (s *User) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"adultAccess\"")
 			}
 		case "createdAt":
-			requiredBitSet[1] |= 1 << 4
+			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.CreatedAt = v
@@ -39506,7 +39857,7 @@ func (s *User) Decode(d *jx.Decoder) error {
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
 		0b00111111,
-		0b00010000,
+		0b01000000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

@@ -204,7 +204,7 @@ func toTargets(ts []notify.Target) []gen.NotificationTarget {
 			events = append(events, gen.NotificationEvent(e))
 		}
 		g := gen.NotificationTarget{ID: t.ID, Name: t.Name, Kind: gen.NotificationTargetKind(t.Kind), Events: events,
-			Enabled: t.Enabled, HasToken: gen.NewOptBool(t.Token != "")}
+			Enabled: t.Enabled, HasToken: gen.NewOptBool(t.Token != ""), LibraryIds: t.Libraries}
 		if u != nil {
 			g.URL = *u
 		}
@@ -214,7 +214,8 @@ func toTargets(ts []notify.Target) []gen.NotificationTarget {
 }
 
 func fromTarget(g gen.NotificationTarget) notify.Target {
-	t := notify.Target{ID: g.ID, Name: g.Name, Kind: string(g.Kind), URL: g.URL.String(), Token: g.Token.Value, Enabled: g.Enabled}
+	t := notify.Target{ID: g.ID, Name: g.Name, Kind: string(g.Kind), URL: g.URL.String(), Token: g.Token.Value, Enabled: g.Enabled,
+		Libraries: g.LibraryIds}
 	for _, e := range g.Events {
 		t.Events = append(t.Events, string(e))
 	}
@@ -310,7 +311,8 @@ func (h *Handler) trackPlayback(ctx context.Context, p auth.Principal, itemID uu
 		_ = h.lib().Pool.QueryRow(ctx, `SELECT device_name, client FROM sessions WHERE id = $1`, p.SessionID).Scan(&device, &client)
 	}
 	title := ""
-	_ = h.lib().Pool.QueryRow(ctx, `SELECT COALESCE(metadata_title, title) FROM items WHERE id = $1`, itemID).Scan(&title)
+	var libID uuid.UUID
+	_ = h.lib().Pool.QueryRow(ctx, `SELECT COALESCE(metadata_title, title), library_id FROM items WHERE id = $1`, itemID).Scan(&title, &libID)
 	s := activity.Session{Key: key, User: p.User.Username, Device: device, Client: client, ItemID: itemID, Title: title,
 		Method: method, Reason: reason, PositionMS: startMS}
 	if p.Profile != nil {
@@ -326,7 +328,8 @@ func (h *Handler) trackPlayback(ctx context.Context, p auth.Principal, itemID uu
 		}
 		h.Notify.Emit(ctx, notify.Event{Kind: notify.PlaybackStarted, Title: "▶ " + title,
 			Message: fmt.Sprintf("%s · %s · %s", who, device, method),
-			Data:    map[string]any{"itemId": itemID, "user": p.User.Username, "device": device, "method": method}})
+			Data: map[string]any{"itemId": itemID, "libraryId": libID, "user": p.User.Username, "device": device,
+				"method": method}})
 	}
 }
 

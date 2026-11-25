@@ -517,7 +517,7 @@ func (s *Server) playbackInfo(w http.ResponseWriter, r *http.Request) {
 	if err == nil && s.livePlaybackInfo(w, r, id) {
 		return
 	}
-	if err != nil || !canSee(p) {
+	if err != nil || !s.seesItem(r, p, id) {
 		http.NotFound(w, r)
 		return
 	}
@@ -700,7 +700,7 @@ func (s *Server) media(w http.ResponseWriter, r *http.Request) {
 	p, authErr := s.Auth.Authenticate(r.Context(), clientInfo(r).token)
 	f, ok := s.itemFile(r, id, param(r, "MediaSourceId"))
 	switch {
-	case authErr == nil && !canSee(p):
+	case authErr == nil && !s.seesItem(r, p, id):
 		http.NotFound(w, r)
 		return
 	case authErr != nil && (!direct || !ok || !s.Stream.Signer.ValidToken(streamScope(f.ID), param(r, "Tag"))):
@@ -757,7 +757,7 @@ func (s *Server) media(w http.ResponseWriter, r *http.Request) {
 // subtitle serves /Videos/{itemId}/{sourceId}/Subtitles/{index}[/{ticks}]/Stream.{format}.
 func (s *Server) subtitle(w http.ResponseWriter, r *http.Request) {
 	id, err := ParseID(chi.URLParam(r, "itemId"))
-	if err != nil || !canSee(principal(r)) || s.Stream == nil {
+	if err != nil || !s.seesItem(r, principal(r), id) || s.Stream == nil {
 		http.NotFound(w, r)
 		return
 	}
@@ -858,7 +858,7 @@ func (s *Server) playing(kind string) http.HandlerFunc {
 		p := principal(r)
 		rep := readReport(r)
 		id, err := ParseID(rep.ItemID)
-		if err != nil || !canSee(p) {
+		if err != nil || !s.seesItem(r, p, id) {
 			w.WriteHeader(http.StatusNoContent) // nothing to record
 			return
 		}
@@ -902,7 +902,7 @@ func (s *Server) playing(kind string) http.HandlerFunc {
 // segments implements /MediaSegments/{itemId} from media analysis (intro, credits, …).
 func (s *Server) segments(w http.ResponseWriter, r *http.Request) {
 	id, err := ParseID(chi.URLParam(r, "itemId"))
-	if err != nil || !canSee(principal(r)) {
+	if err != nil || !s.seesItem(r, principal(r), id) {
 		http.NotFound(w, r)
 		return
 	}

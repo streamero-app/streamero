@@ -67,6 +67,13 @@ type User struct {
 	Permissions Permissions
 	CreatedAt   time.Time
 	LastLoginAt *time.Time
+	// DisplayName is the name shown instead of the username ("" = none).
+	DisplayName string
+	// LibraryIDs are the libraries the user may see while Permissions.AllLibraries
+	// is off (D-054); NewLibraries adds libraries created later to that list.
+	// Only filled where users are listed or edited, not on every request.
+	LibraryIDs   []uuid.UUID
+	NewLibraries bool
 }
 
 // totpEnabledSQL is a column expression for users aliased as alias.
@@ -428,17 +435,25 @@ func (s *Service) ChangePassword(ctx context.Context, p Principal, current, next
 	})
 }
 
-var userCols = `id, username, is_admin, disabled, ` + totpEnabledSQL("users") + `, created_at, last_login_at, permissions`
+var userCols = `id, username, is_admin, disabled, ` + totpEnabledSQL("users") + `, created_at, last_login_at, permissions,
+	COALESCE(display_name, ''), new_libraries,
+	ARRAY(SELECT a.library_id FROM user_library_access a WHERE a.user_id = users.id ORDER BY a.library_id)`
 
 func scanUser(row pgx.Row) (User, error) {
 	var u User
 	var perms []byte
-	err := row.Scan(&u.ID, &u.Username, &u.IsAdmin, &u.Disabled, &u.TOTPEnabled, &u.CreatedAt, &u.LastLoginAt, &perms)
+	err := row.Scan(&u.ID, &u.Username, &u.IsAdmin, &u.Disabled, &u.TOTPEnabled, &u.CreatedAt, &u.LastLoginAt, &perms,
+		&u.DisplayName, &u.NewLibraries, &u.LibraryIDs)
 	u.Permissions = parsePermissions(perms)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return u, ErrNotFound
 	}
 	return u, err
+}
+
+// GetUser returns one user.
+func (s *Service) GetUser(ctx context.Context, id uuid.UUID) (User, error) {
+	return scanUser(s.pool.QueryRow(ctx, `SELECT `+userCols+` FROM users WHERE id = $1`, id))
 }
 
 // ListUsers returns all users ordered by name.
@@ -460,7 +475,7 @@ func (s *Service) ListUsers(ctx context.Context) ([]User, error) {
 }
 
 // CreateUser adds a user.
-func (s *Service) CreateUser(ctx context.Context, actor Principal, username, password string, isAdmin bool, perms *Permissions) (User, error) {
+func (s *Service) CreateUser(ctx context.Context, actor Principal, username, password string, isAdmin bool, perms *Permissions, libs *LibraryAccess) (User, error) {
 	username, err := NormalizeUsername(username)
 	if err != nil {
 		return User{}, err
@@ -475,6 +490,11 @@ func (s *Service) CreateUser(ctx context.Context, actor Principal, username, pas
 		if err != nil {
 			return err
 		}
+		if libs != nil {
+			if u, err = setLibraryAccess(ctx, tx, u.ID, *libs); err != nil {
+				return err
+			}
+		}
 		return audit(ctx, tx, &actor.User.ID, "user.created", map[string]any{"user_id": u.ID, "username": u.Username, "is_admin": isAdmin})
 	})
 	return u, err
@@ -482,11 +502,54 @@ func (s *Service) CreateUser(ctx context.Context, actor Principal, username, pas
 
 // UserUpdate holds optional changes to a user.
 type UserUpdate struct {
+	Username       *string
+	DisplayName    *string
 	IsAdmin        *bool
 	Disabled       *bool
 	Password       *string
 	Permissions    *Permissions
+	Libraries      *LibraryAccess
 	ResetTwoFactor bool
+	// SignOutEverywhere revokes every session of the user (API keys stay).
+	SignOutEverywhere bool
+}
+
+// LibraryAccess is the chosen list of libraries of an account whose
+// allLibraries permission is off (D-054).
+type LibraryAccess struct {
+	IDs []uuid.UUID // nil on an update keeps the current list
+	// NewLibraries adds libraries created later to the list.
+	NewLibraries bool
+}
+
+// setLibraryAccess replaces a user's library list (nil IDs keep it). Unknown and
+// adult libraries are dropped: the list can never grant adult access (D-053).
+func setLibraryAccess(ctx context.Context, tx pgx.Tx, id uuid.UUID, la LibraryAccess) (User, error) {
+	if la.IDs != nil {
+		if _, err := tx.Exec(ctx, `DELETE FROM user_library_access WHERE user_id = $1`, id); err != nil {
+			return User{}, err
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO user_library_access (user_id, library_id)
+			SELECT $1, l.id FROM libraries l WHERE l.id = ANY ($2) AND l.kind <> 'adult' ON CONFLICT DO NOTHING`, id, la.IDs); err != nil {
+			return User{}, err
+		}
+	}
+	return scanUser(tx.QueryRow(ctx, `UPDATE users SET new_libraries = $2 WHERE id = $1 RETURNING `+userCols, id, la.NewLibraries))
+}
+
+// LibraryAccessOf returns whether a user sees every library and, if not, the list.
+// Administrators always see every (non-adult) library.
+func (s *Service) LibraryAccessOf(ctx context.Context, u User) (all bool, ids []uuid.UUID, err error) {
+	if u.IsAdmin || u.Permissions.AllLibraries {
+		return true, nil, nil
+	}
+	rows, err := s.pool.Query(ctx, `SELECT a.library_id FROM user_library_access a JOIN libraries l ON l.id = a.library_id
+		WHERE a.user_id = $1 AND l.kind <> 'adult' ORDER BY l.name`, u.ID)
+	if err != nil {
+		return false, nil, err
+	}
+	ids, err = pgx.CollectRows(rows, pgx.RowTo[uuid.UUID])
+	return false, ids, err
 }
 
 // UpdateUser changes a user. Disabling or setting a password signs the user out everywhere.
@@ -509,12 +572,24 @@ func (s *Service) UpdateUser(ctx context.Context, actor Principal, id uuid.UUID,
 			return User{}, err
 		}
 	}
+	if upd.Username != nil {
+		name, err := NormalizeUsername(*upd.Username)
+		if err != nil {
+			return User{}, err
+		}
+		upd.Username = &name
+	}
+	if upd.DisplayName != nil {
+		v := truncate(strings.TrimSpace(*upd.DisplayName), 100)
+		upd.DisplayName = &v
+	}
 	var u User
 	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
 		var err error
 		if u, err = scanUser(tx.QueryRow(ctx, `SELECT `+userCols+` FROM users WHERE id = $1 FOR UPDATE`, id)); err != nil {
 			return err
 		}
+		oldName := u.Username
 		demote := upd.IsAdmin != nil && !*upd.IsAdmin && u.IsAdmin
 		disable := upd.Disabled != nil && *upd.Disabled && !u.Disabled && u.IsAdmin
 		if demote || disable {
@@ -528,10 +603,21 @@ func (s *Service) UpdateUser(ctx context.Context, actor Principal, id uuid.UUID,
 				password_hash = COALESCE($4, password_hash),
 				failed_logins = CASE WHEN $4::text IS NULL THEN failed_logins ELSE 0 END,
 				locked_until = CASE WHEN $4::text IS NULL THEN locked_until ELSE NULL END,
-				permissions = COALESCE($5::jsonb, permissions)
-			WHERE id = $1 RETURNING `+userCols, id, upd.IsAdmin, upd.Disabled, hash, permsJSON))
+				permissions = COALESCE($5::jsonb, permissions),
+				username = COALESCE($6, username),
+				display_name = CASE WHEN $7::text IS NULL THEN display_name ELSE NULLIF($7, '') END
+			WHERE id = $1 RETURNING `+userCols, id, upd.IsAdmin, upd.Disabled, hash, permsJSON, upd.Username, upd.DisplayName))
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return ErrUsernameTaken
+		}
 		if err != nil {
 			return err
+		}
+		if upd.Libraries != nil {
+			if u, err = setLibraryAccess(ctx, tx, id, *upd.Libraries); err != nil {
+				return err
+			}
 		}
 		if err := enforceMaxSessions(ctx, tx, u, uuid.Nil); err != nil {
 			return err
@@ -545,14 +631,16 @@ func (s *Service) UpdateUser(ctx context.Context, actor Principal, id uuid.UUID,
 			}
 			u.TOTPEnabled = false
 		}
-		if (upd.Disabled != nil && *upd.Disabled) || hash != nil || upd.ResetTwoFactor {
+		if (upd.Disabled != nil && *upd.Disabled) || hash != nil || upd.ResetTwoFactor || upd.SignOutEverywhere {
 			if _, err := tx.Exec(ctx, `DELETE FROM sessions WHERE user_id = $1`, id); err != nil {
 				return err
 			}
 		}
 		return audit(ctx, tx, &actor.User.ID, "user.updated", map[string]any{
 			"user_id": id, "is_admin": upd.IsAdmin, "disabled": upd.Disabled, "password_reset": hash != nil,
-			"two_factor_reset": upd.ResetTwoFactor, "permissions_changed": upd.Permissions != nil})
+			"two_factor_reset": upd.ResetTwoFactor, "permissions_changed": upd.Permissions != nil,
+			"libraries_changed": upd.Libraries != nil, "signed_out": upd.SignOutEverywhere,
+			"renamed": upd.Username != nil && *upd.Username != oldName})
 	})
 	return u, err
 }

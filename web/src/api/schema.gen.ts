@@ -3587,6 +3587,10 @@ export interface components {
             maxUses: number;
             uses: number;
             permissions: components["schemas"]["UserPermissions"];
+            /** @description Libraries this account may see when permissions.allLibraries is off (D-054). Adult libraries are never part of it: they have their own grant (D-053). */
+            libraryIds?: string[];
+            /** @description With a chosen list (allLibraries off): libraries created later are added to the list automatically. Default off. */
+            newLibraries?: boolean;
         };
         CreateInviteRequest: {
             /** @description e.g. "For my sister" */
@@ -3594,6 +3598,10 @@ export interface components {
             expiresInHours: number;
             maxUses: number;
             permissions?: components["schemas"]["UserPermissions"];
+            /** @description Libraries this account may see when permissions.allLibraries is off (D-054). Adult libraries are never part of it: they have their own grant (D-053). */
+            libraryIds?: string[];
+            /** @description With a chosen list (allLibraries off): libraries created later are added to the list automatically. Default off. */
+            newLibraries?: boolean;
         };
         CreatedInvite: {
             /** @description Goes into the link /invite/<token>. Shown only once. */
@@ -4059,6 +4067,8 @@ export interface components {
             readonly hasToken?: boolean;
             events: components["schemas"]["NotificationEvent"][];
             enabled: boolean;
+            /** @description Send library events (item.added, playback.started) only for these libraries, e.g. a channel read by accounts that see only some libraries (D-054). Empty or absent = all. Adult libraries never send these events (D-053). */
+            libraryIds?: string[];
         };
         NotificationSettings: {
             targets: components["schemas"]["NotificationTarget"][];
@@ -4565,6 +4575,10 @@ export interface components {
              */
             language?: "en" | "hr";
             hasAvatar?: boolean;
+            /** @description Libraries this account may see when permissions.allLibraries is off (D-054). Adult libraries are never part of it: they have their own grant (D-053). */
+            libraryIds?: string[];
+            /** @description With a chosen list (allLibraries off): libraries created later are added to the list automatically. Default off. */
+            newLibraries?: boolean;
             /** @description The account was given adult access (D-053). On /auth/me: the adult section is available in this session (access given, an adult library exists, not a kids profile, not an API key). */
             adultAccess?: boolean;
             /** Format: date-time */
@@ -4735,14 +4749,27 @@ export interface components {
             password: components["schemas"]["Password"];
             isAdmin?: boolean;
             permissions?: components["schemas"]["UserPermissions"];
+            /** @description Libraries this account may see when permissions.allLibraries is off (D-054). Adult libraries are never part of it: they have their own grant (D-053). */
+            libraryIds?: string[];
+            /** @description With a chosen list (allLibraries off): libraries created later are added to the list automatically. Default off. */
+            newLibraries?: boolean;
         };
         UpdateUserRequest: {
+            username?: components["schemas"]["Username"];
+            /** @description Empty clears it. */
+            displayName?: string;
             isAdmin?: boolean;
             disabled?: boolean;
             password?: components["schemas"]["Password"];
             permissions?: components["schemas"]["UserPermissions"];
+            /** @description Libraries this account may see when permissions.allLibraries is off (D-054). Adult libraries are never part of it: they have their own grant (D-053). */
+            libraryIds?: string[];
+            /** @description With a chosen list (allLibraries off): libraries created later are added to the list automatically. Default off. */
+            newLibraries?: boolean;
             /** @description Turn the user's 2FA off (e.g. lost phone); signs them out everywhere. */
             resetTwoFactor?: boolean;
+            /** @description Revoke every session of the user (API keys stay). */
+            signOutEverywhere?: boolean;
         };
         Session: {
             /** Format: uuid */

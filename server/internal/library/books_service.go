@@ -56,6 +56,7 @@ func (s *Service) nameCounts(ctx context.Context, q string, args ...any) ([]Name
 func (s *Service) ContinueReading(ctx context.Context, owner uuid.UUID, limit int) ([]Item, error) {
 	return s.queryItems(ctx, `SELECT `+itemCols+` FROM user_item_data u JOIN items i ON i.id = u.item_id
 		WHERE u.owner_id = $1 AND NOT u.played AND (u.progression > 0 OR u.position_ms > 0) AND i.kind IN ('book', 'audiobook')
+			AND `+Visible("i.library_id", "$1")+`
 		ORDER BY u.last_played_at DESC LIMIT $2`, owner, limit)
 }
 

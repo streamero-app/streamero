@@ -22,9 +22,9 @@ import (
 	"github.com/streamero-app/streamero/server/internal/stream"
 )
 
-// canSeeLibraries: admins always; others need the allLibraries permission
-// (per-library access lists come with the library picker in invites/users).
-func canSeeLibraries(p auth.Principal) bool { return p.User.IsAdmin || p.User.Permissions.AllLibraries }
+// Which libraries a viewer may reach (all, or a chosen list; D-054) is decided by
+// the library queries themselves (library.Visible, keyed on stream.Owner), so a
+// signed-in viewer may call every browsing endpoint and only gets what is visible.
 
 var errStarting = &StatusError{Status: http.StatusServiceUnavailable, Code: "starting", Message: "server is starting"}
 
@@ -37,14 +37,12 @@ func (h *Handler) lib() *library.Service {
 }
 
 func viewer(ctx context.Context) (auth.Principal, error) {
-	p, err := principal(ctx)
-	if err != nil {
-		return p, err
-	}
-	if !canSeeLibraries(p) {
-		return p, library.ErrNotFound
-	}
-	return p, nil
+	return principal(ctx)
+}
+
+// seeItem returns 404 unless the item is in a library the viewer may see.
+func (h *Handler) seeItem(ctx context.Context, p auth.Principal, itemID uuid.UUID) error {
+	return h.lib().CanSeeItem(ctx, stream.Owner(p), itemID)
 }
 
 // ListLibraries implements GET /libraries.
@@ -57,10 +55,7 @@ func (h *Handler) ListLibraries(ctx context.Context) ([]gen.Library, error) {
 		return nil, err
 	}
 	out := []gen.Library{}
-	if !canSeeLibraries(p) {
-		return out, nil
-	}
-	list := h.lib().List
+	list := func(ctx context.Context) ([]library.Library, error) { return h.lib().ListFor(ctx, stream.Owner(p)) }
 	if p.User.IsAdmin && !p.IsKid() {
 		// Administrators manage (and Locarr scans) adult libraries too; their
 		// content is reached only through /adult/* (D-053).
@@ -150,7 +145,7 @@ func (h *Handler) ListLibraryItems(ctx context.Context, params gen.ListLibraryIt
 	if err != nil {
 		return nil, err
 	}
-	if _, err := h.lib().Get(ctx, params.LibraryId); err != nil {
+	if _, err := h.lib().GetFor(ctx, params.LibraryId, stream.Owner(p)); err != nil {
 		return nil, err
 	}
 	items, total, err := h.lib().ListItems(ctx, params.LibraryId, stream.Owner(p), string(params.Sort.Or(gen.ListLibraryItemsSortTitle)),
@@ -211,7 +206,7 @@ func (h *Handler) GetItem(ctx context.Context, params gen.GetItemParams) (*gen.I
 			out.Trickplay = gen.NewOptTrickplayInfo(trickplayInfo(files[0].ID, tp))
 		}
 	}
-	if cs, err := h.lib().ItemCollections(ctx, it.ID); err == nil {
+	if cs, err := h.lib().ItemCollections(ctx, it.ID, stream.Owner(p)); err == nil {
 		for _, c := range cs {
 			out.Collections = append(out.Collections, toCollection(c))
 		}
@@ -434,7 +429,11 @@ func (h *Handler) GetItemImage(ctx context.Context, params gen.GetItemImageParam
 	if h.lib() == nil {
 		return nil, errStarting
 	}
-	if _, err := viewer(ctx); err != nil {
+	p, err := viewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := h.seeItem(ctx, p, params.ItemId); err != nil {
 		return nil, err
 	}
 	// The path is built from a UUID and an enum, never from client text.
@@ -642,6 +641,9 @@ func (h *Handler) ReportProgress(ctx context.Context, req *gen.ProgressReport, p
 	if err != nil {
 		return err
 	}
+	if err := h.seeItem(ctx, p, params.ItemId); err != nil {
+		return err
+	}
 	var dur *int64
 	if v, ok := req.DurationMs.Get(); ok && v > 0 {
 		dur = &v
@@ -660,9 +662,6 @@ func (h *Handler) ContinueWatching(ctx context.Context) ([]gen.ItemSummary, erro
 		return nil, err
 	}
 	out := []gen.ItemSummary{}
-	if !canSeeLibraries(p) {
-		return out, nil
-	}
 	items, err := h.lib().ContinueWatching(ctx, stream.Owner(p), 20)
 	if err != nil {
 		return nil, err
@@ -681,7 +680,7 @@ func summaries(items []library.Item) []gen.ItemSummary {
 	return out
 }
 
-// listFor runs a per-viewer listing; viewers without library access get an empty list.
+// listFor runs a per-viewer listing (the queries keep it to the viewer's libraries).
 func (h *Handler) listFor(ctx context.Context, fn func(owner uuid.UUID) ([]library.Item, error)) ([]gen.ItemSummary, error) {
 	if h.lib() == nil {
 		return nil, errStarting
@@ -689,9 +688,6 @@ func (h *Handler) listFor(ctx context.Context, fn func(owner uuid.UUID) ([]libra
 	p, err := principal(ctx)
 	if err != nil {
 		return nil, err
-	}
-	if !canSeeLibraries(p) {
-		return []gen.ItemSummary{}, nil
 	}
 	items, err := fn(stream.Owner(p))
 	if err != nil {
@@ -722,7 +718,11 @@ func (h *Handler) ListLibraryGenres(ctx context.Context, params gen.ListLibraryG
 	if h.lib() == nil {
 		return nil, errStarting
 	}
-	if _, err := viewer(ctx); err != nil {
+	p, err := viewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := h.lib().GetFor(ctx, params.LibraryId, stream.Owner(p)); err != nil {
 		return nil, err
 	}
 	return h.lib().Genres(ctx, params.LibraryId)
@@ -757,9 +757,6 @@ func (h *Handler) NextUp(ctx context.Context) ([]gen.ItemSummary, error) {
 		return nil, err
 	}
 	out := []gen.ItemSummary{}
-	if !canSeeLibraries(p) {
-		return out, nil
-	}
 	items, err := h.lib().NextUp(ctx, stream.Owner(p), 20)
 	if err != nil {
 		return nil, err
@@ -883,7 +880,11 @@ func (h *Handler) GetTrickplaySheet(ctx context.Context, params gen.GetTrickplay
 	if h.lib() == nil {
 		return nil, errStarting
 	}
-	if _, err := viewer(ctx); err != nil {
+	p, err := viewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := h.lib().CanSeeFile(ctx, stream.Owner(p), params.FileId); err != nil {
 		return nil, err
 	}
 	// Built from a UUID and a bounded integer, never from client text.

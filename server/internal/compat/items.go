@@ -96,7 +96,8 @@ var rowCols = `i.id, i.library_id, i.parent_id, ser.id,
 func (s *Server) query(ctx context.Context, owner uuid.UUID, where string, args []any, order string, limit, offset int) ([]row, int, error) {
 	n := len(args)
 	ownerParam := "$" + strconv.Itoa(n+1)
-	where = "(" + where + ") AND " + library.StreamingKindsSQL // books, audiobooks and photos are not served here (D-039)
+	where = "(" + where + ") AND " + library.StreamingKindsSQL + // books, audiobooks and photos are not served here (D-039)
+		" AND " + library.Visible("i.library_id", ownerParam) // the viewer's libraries only (D-054)
 	from := fmt.Sprintf(fromSQL, ownerParam) + ` CROSS JOIN (SELECT ` + ownerParam + `::uuid AS owner) u2 `
 	var total int
 	// #nosec G202 -- fixed fragments with numbered parameters only

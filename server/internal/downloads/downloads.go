@@ -121,11 +121,11 @@ func Owner(p auth.Principal) uuid.UUID { return stream.Owner(p) }
 // Allowed reports why p may not keep itemID offline (nil = allowed): library
 // access, the download permission, the profile's parental limit, a gone item.
 func (s *Service) Allowed(ctx context.Context, p auth.Principal, itemID uuid.UUID) error {
-	if !p.User.IsAdmin && !p.User.Permissions.AllLibraries {
-		return library.ErrNotFound
-	}
 	if !p.User.IsAdmin && !p.User.Permissions.Download {
 		return ErrNoPermission
+	}
+	if err := s.Library.CanSeeItem(ctx, Owner(p), itemID); err != nil {
+		return err
 	}
 	rows, err := s.Pool.Query(ctx, `WITH RECURSIVE anc AS (
 			SELECT id, parent_id, official_rating, 0 AS depth FROM items WHERE id = $1
@@ -454,12 +454,14 @@ const jobFrom = ` FROM downloads d JOIN media_files f ON f.id = d.file_id LEFT J
 
 // Get returns one of p's jobs.
 func (s *Service) Get(ctx context.Context, p auth.Principal, id uuid.UUID) (Job, error) {
-	return s.scanJob(s.Pool.QueryRow(ctx, `SELECT `+jobCols+jobFrom+`WHERE d.id = $1 AND d.owner_id = $2`, id, Owner(p)))
+	return s.scanJob(s.Pool.QueryRow(ctx, `SELECT `+jobCols+jobFrom+`WHERE d.id = $1 AND d.owner_id = $2 AND `+
+		library.Visible("f.library_id", "$2"), id, Owner(p)))
 }
 
 // List returns p's jobs, newest first.
 func (s *Service) List(ctx context.Context, p auth.Principal) ([]Job, error) {
-	rows, err := s.Pool.Query(ctx, `SELECT `+jobCols+jobFrom+`WHERE d.owner_id = $1 ORDER BY d.created_at DESC LIMIT 1000`, Owner(p))
+	rows, err := s.Pool.Query(ctx, `SELECT `+jobCols+jobFrom+`WHERE d.owner_id = $1 AND `+library.Visible("f.library_id", "$1")+`
+		ORDER BY d.created_at DESC LIMIT 1000`, Owner(p))
 	if err != nil {
 		return nil, err
 	}
@@ -520,7 +522,8 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var state *string
 	err = s.Pool.QueryRow(r.Context(), `SELECT d.quality, d.file_id, f.path, i.title, d.transcode_id, t.state
 		FROM downloads d JOIN media_files f ON f.id = d.file_id JOIN items i ON i.id = d.item_id
-		LEFT JOIN download_transcodes t ON t.id = d.transcode_id WHERE d.id = $1`, id).
+		LEFT JOIN download_transcodes t ON t.id = d.transcode_id
+		WHERE d.id = $1 AND `+library.Visible("f.library_id", "d.owner_id"), id).
 		Scan(&quality, &fileID, &path, &title, &tid, &state)
 	if err != nil {
 		http.NotFound(w, r)

@@ -53,7 +53,7 @@ func TestGrabFramesIntegration(t *testing.T) {
 	if err != nil || n != 1 {
 		t.Fatalf("grab: %d %v", n, err)
 	}
-	items, _, _ := svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 10, 0, library.ItemFilter{})
+	items, _, _ := svc.ListItems(ctx, lib.ID, library.EveryLibrary, "title", 10, 0, library.ItemFilter{})
 	if len(items) != 1 || !items[0].HasBackdrop {
 		t.Fatalf("backdrop flag: %+v", items)
 	}
@@ -64,7 +64,7 @@ func TestGrabFramesIntegration(t *testing.T) {
 	if n, err := r.FillPalettes(ctx, lib.ID); err != nil || n != 1 {
 		t.Fatalf("palettes: %d %v", n, err)
 	}
-	items, _, _ = svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 10, 0, library.ItemFilter{})
+	items, _, _ = svc.ListItems(ctx, lib.ID, library.EveryLibrary, "title", 10, 0, library.ItemFilter{})
 	if len(items[0].Colors) != 2 || items[0].Colors[0][0] != '#' {
 		t.Fatalf("colors: %v", items[0].Colors)
 	}
@@ -116,7 +116,7 @@ func TestLocalArtworkIntegration(t *testing.T) {
 	if n, err := r.LocalArtwork(ctx, lib.ID); err != nil || n != 1 {
 		t.Fatalf("import: %d %v", n, err)
 	}
-	items, _, _ := svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 10, 0, library.ItemFilter{})
+	items, _, _ := svc.ListItems(ctx, lib.ID, library.EveryLibrary, "title", 10, 0, library.ItemFilter{})
 	if len(items) != 1 || !items[0].HasPoster || !items[0].HasLogo || items[0].HasBackdrop {
 		t.Fatalf("flags: %+v", items)
 	}
@@ -176,7 +176,7 @@ func TestLocalNFOIntegration(t *testing.T) {
 	if n, err := r.LocalNFO(ctx, lib.ID); err != nil || n != 1 {
 		t.Fatalf("apply: %d %v", n, err)
 	}
-	items, _, _ := svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 10, 0, library.ItemFilter{})
+	items, _, _ := svc.ListItems(ctx, lib.ID, library.EveryLibrary, "title", 10, 0, library.ItemFilter{})
 	if len(items) != 1 || items[0].Title != "Proper Title" || items[0].Rating == nil || *items[0].Rating != 7.5 {
 		t.Fatalf("item: %+v", items)
 	}

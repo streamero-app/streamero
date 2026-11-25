@@ -162,7 +162,7 @@ func TestRefreshLibraryIntegration(t *testing.T) {
 		t.Fatalf("refreshed %d items, want 3 (one has no match)", n)
 	}
 
-	items, _, err := svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 10, 0, library.ItemFilter{})
+	items, _, err := svc.ListItems(ctx, lib.ID, library.EveryLibrary, "title", 10, 0, library.ItemFilter{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,7 +196,7 @@ func TestRefreshLibraryIntegration(t *testing.T) {
 		t.Fatalf("person photo not cached: %v", err)
 	}
 	// TMDb box set: collection created once, movie linked, artwork cached.
-	cols, err := svc.ItemCollections(ctx, movie.ID)
+	cols, err := svc.ItemCollections(ctx, movie.ID, uuid.Nil)
 	if err != nil || len(cols) != 1 || cols[0].Name != "Testni filmovi – kolekcija" || !cols[0].HasPoster || cols[0].TMDbID == nil {
 		t.Fatalf("collection: %+v %v", cols, err)
 	}
@@ -212,8 +212,8 @@ func TestRefreshLibraryIntegration(t *testing.T) {
 	if !ok {
 		t.Fatalf("series not matched: %v", byTitle)
 	}
-	_, _, seasons, _ := svc.GetItem(ctx, show.ID, uuid.Nil)
-	_, _, eps, _ := svc.GetItem(ctx, seasons[0].ID, uuid.Nil)
+	_, _, seasons, _ := svc.GetItem(ctx, show.ID, library.EveryLibrary)
+	_, _, eps, _ := svc.GetItem(ctx, seasons[0].ID, library.EveryLibrary)
 	if !seasons[0].HasPoster || len(eps) != 1 || eps[0].Title != "Pilot" || !eps[0].HasPoster {
 		t.Fatalf("episodes: %+v / %+v", seasons, eps)
 	}
@@ -225,7 +225,7 @@ func TestRefreshLibraryIntegration(t *testing.T) {
 	if _, err := scanner.Scan(ctx, lib.ID); err != nil {
 		t.Fatal(err)
 	}
-	items, _, _ = svc.ListItems(ctx, lib.ID, uuid.Nil, "title", 10, 0, library.ItemFilter{})
+	items, _, _ = svc.ListItems(ctx, lib.ID, library.EveryLibrary, "title", 10, 0, library.ItemFilter{})
 	found := false
 	for _, it := range items {
 		found = found || it.Title == "Veliki testni film"

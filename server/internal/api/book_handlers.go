@@ -153,6 +153,9 @@ func (h *Handler) OpenBook(ctx context.Context, params gen.OpenBookParams) (*gen
 	if err != nil {
 		return nil, err
 	}
+	if err := h.seeItem(ctx, p, params.ItemId); err != nil {
+		return nil, err
+	}
 	f, err := h.lib().ItemFile(ctx, params.ItemId)
 	if err != nil {
 		return nil, err
@@ -192,6 +195,9 @@ func (h *Handler) GetReadingProgress(ctx context.Context, params gen.GetReadingP
 	if err != nil {
 		return nil, err
 	}
+	if err := h.seeItem(ctx, p, params.ItemId); err != nil {
+		return nil, err
+	}
 	r, err := h.lib().GetReading(ctx, stream.Owner(p), params.ItemId)
 	if err != nil {
 		return nil, err
@@ -209,6 +215,9 @@ func (h *Handler) SaveReadingProgress(ctx context.Context, req *gen.ReadingProgr
 	if err != nil {
 		return err
 	}
+	if err := h.seeItem(ctx, p, params.ItemId); err != nil {
+		return err
+	}
 	var page *int
 	if v, ok := req.Page.Get(); ok {
 		page = &v
@@ -223,6 +232,9 @@ func (h *Handler) OpenAudiobook(ctx context.Context, params gen.OpenAudiobookPar
 	}
 	p, err := viewer(ctx)
 	if err != nil {
+		return nil, err
+	}
+	if err := h.seeItem(ctx, p, params.ItemId); err != nil {
 		return nil, err
 	}
 	parts, chapters, err := h.lib().Audiobook(ctx, params.ItemId)
@@ -251,7 +263,11 @@ func (h *Handler) ViewPhoto(ctx context.Context, params gen.ViewPhotoParams) (*g
 	if err != nil {
 		return nil, err
 	}
-	if _, err := viewer(ctx); err != nil {
+	p, err := viewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := h.seeItem(ctx, p, params.ItemId); err != nil {
 		return nil, err
 	}
 	f, err := h.lib().ItemFile(ctx, params.ItemId)
@@ -279,7 +295,11 @@ func (h *Handler) ListLibraryAuthors(ctx context.Context, params gen.ListLibrary
 	if h.lib() == nil {
 		return nil, errStarting
 	}
-	if _, err := viewer(ctx); err != nil {
+	p, err := viewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := h.lib().GetFor(ctx, params.LibraryId, stream.Owner(p)); err != nil {
 		return nil, err
 	}
 	ns, err := h.lib().Authors(ctx, params.LibraryId)
@@ -294,7 +314,11 @@ func (h *Handler) ListLibrarySeries(ctx context.Context, params gen.ListLibraryS
 	if h.lib() == nil {
 		return nil, errStarting
 	}
-	if _, err := viewer(ctx); err != nil {
+	p, err := viewer(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := h.lib().GetFor(ctx, params.LibraryId, stream.Owner(p)); err != nil {
 		return nil, err
 	}
 	ns, err := h.lib().Series(ctx, params.LibraryId)
