@@ -1,13 +1,16 @@
 import { useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { Link } from "@tanstack/react-router";
 import { api, unwrap } from "@/api/client";
-import { Badge, Button, Card, ErrorText, SuccessText, TextField } from "@/components/ui";
+import { Badge, Button, Card, ErrorText, SuccessText, TextField, buttonVariants, pressable } from "@/components/ui";
+import { canAdminister, useMe } from "@/features/auth/useAuth";
 
-/** ThePornDB and StashDB keys for adult libraries (D-053); shown only when one exists. */
+/** ThePornDB and StashDB keys for adult libraries (D-053); until one exists, a hint where to start. */
 export function AdultMetadataCard() {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const { data: me } = useMe();
   const libraries = useQuery({ queryKey: ["libraries", "all"], queryFn: async () => unwrap(await api.GET("/libraries")) });
   const hasAdult = Array.isArray(libraries.data) && libraries.data.some((l) => l.kind === "adult");
   const settings = useQuery({ queryKey: ["settings", "adult"], enabled: hasAdult,
@@ -23,7 +26,19 @@ export function AdultMetadataCard() {
       setStash("");
     },
   });
-  if (!hasAdult) return null;
+  if (!canAdminister(me) || !Array.isArray(libraries.data)) return null;
+  if (!hasAdult) {
+    return (
+      <Card title={t("adult.settingsTitleFull")}>
+        <div className="flex flex-col items-start gap-3" data-testid="adult-metadata-hint">
+          <p className="max-w-prose text-sm text-muted">{t("adult.settingsNoLibrary")}</p>
+          <Link to="/settings/libraries" className={`${pressable} ${buttonVariants.secondary} h-10 rounded-[6px] px-4 text-sm`}>
+            {t("adult.openLibraries")}
+          </Link>
+        </div>
+      </Card>
+    );
+  }
   const s = settings.data;
   const status = (on?: boolean) => on ? <Badge tone="success">{t("adult.connected")}</Badge> : <Badge>{t("adult.notConnected")}</Badge>;
   const submit = (e: FormEvent) => {
@@ -31,7 +46,7 @@ export function AdultMetadataCard() {
     save.mutate({ tpdbApiKey: tpdb.trim() || undefined, stashdbApiKey: stash.trim() || undefined });
   };
   return (
-    <Card title={t("adult.settingsTitle")}>
+    <Card title={t("adult.settingsTitleFull")}>
       <p className="mb-4 max-w-prose text-sm text-muted">{t("adult.settingsIntro")}</p>
       <form className="flex max-w-md flex-col gap-4" onSubmit={submit} data-testid="adult-metadata">
         <div className="flex flex-col gap-1.5">

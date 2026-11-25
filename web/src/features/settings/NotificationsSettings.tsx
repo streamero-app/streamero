@@ -5,12 +5,20 @@ import { Bell, Plus, Send, Trash2 } from "lucide-react";
 import { api, unwrap } from "@/api/client";
 import type { components } from "@/api/schema.gen";
 import { Button, Card, ErrorText, Select, SuccessText, TextField } from "@/components/ui";
+import { LibraryAccessPicker } from "./LibraryAccessPicker";
 
 type Target = components["schemas"]["NotificationTarget"];
 type EventKind = components["schemas"]["NotificationEvent"];
 
 const EVENTS: EventKind[] = ["item.added", "playback.started", "login.succeeded", "login.failed", "scan.failed"];
 const KINDS: Target["kind"][] = ["discord", "ntfy", "gotify", "generic"];
+
+/** An empty library filter means every library: shown as "All libraries". */
+function normalize(t: Target): Target {
+  if (t.libraryIds && t.libraryIds.length > 0) return t;
+  const { libraryIds: _, ...rest } = t;
+  return rest;
+}
 
 function newTarget(): Target {
   const id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}`;
@@ -54,6 +62,15 @@ function TargetEditor({ target, onChange, onRemove }: { target: Target; onChange
           ))}
         </div>
       </fieldset>
+      <fieldset className="flex flex-col gap-2 text-sm">
+        <legend className="mb-1 font-medium text-text/90">{t("notifications.libraries")}</legend>
+        <p className="text-xs text-muted">{t("notifications.librariesHint")}</p>
+        {/* Absent = every library; a list (even while empty in the editor) = only those. */}
+        <LibraryAccessPicker withNewLibraries={false} emptyHint={t("notifications.noLibrariesChosen")}
+          adultNote={t("notifications.adultNote")}
+          value={{ all: target.libraryIds === undefined, ids: target.libraryIds ?? [], newLibraries: false }}
+          onChange={(v) => set({ libraryIds: v.all ? undefined : v.ids })} />
+      </fieldset>
       <div className="flex flex-wrap items-center gap-3">
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" className="accent-[var(--color-accent)]" checked={target.enabled} onChange={(e) => set({ enabled: e.target.checked })} />
@@ -81,12 +98,12 @@ export function NotificationsSettings() {
     queryFn: async () => unwrap(await api.GET("/settings/notifications")),
   });
   const [targets, setTargets] = useState<Target[]>([]);
-  useEffect(() => { if (current.data) setTargets(current.data.targets); }, [current.data]);
+  useEffect(() => { if (current.data) setTargets(current.data.targets.map(normalize)); }, [current.data]);
   const save = useMutation({
     mutationFn: async () => unwrap(await api.PUT("/settings/notifications", { body: { targets } })),
     onSuccess: (data) => {
       qc.setQueryData(["notifications"], data);
-      setTargets(data.targets);
+      setTargets(data.targets.map(normalize));
     },
   });
   return (

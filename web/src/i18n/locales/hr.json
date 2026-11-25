@@ -157,7 +157,19 @@
     "confirmDelete": "Obrisati korisnika {{name}}? Ovo se ne može poništiti.",
     "passwordHint": "Najmanje 8 znakova.",
     "reset2fa": "Poništi 2FA",
-    "confirmReset2fa": "Isključiti dvofaktorsku autentifikaciju za {{name}} (npr. izgubljen mobitel)? Bit će odjavljen sa svih uređaja."
+    "confirmReset2fa": "Isključiti dvofaktorsku autentifikaciju za {{name}} (npr. izgubljen mobitel)? Bit će odjavljen sa svih uređaja.",
+    "details": "Račun",
+    "displayName": "Prikazano ime",
+    "displayNameHint": "Prikazuje se umjesto korisničkog imena; ostavi prazno za korisničko ime.",
+    "enabled": "Omogućen",
+    "selfEnabledHint": "(ne možeš onemogućiti vlastiti račun)",
+    "saveChanges": "Spremi promjene",
+    "actions": "Radnje",
+    "signOutEverywhere": "Odjavi sa svih uređaja",
+    "confirmSignOutEverywhere": "Odjaviti korisnika {{name}} sa svih uređaja? API ključevi i dalje rade.",
+    "signedOutEverywhere": "Odjavljen sa svih uređaja.",
+    "passwordSet": "Lozinka je postavljena.",
+    "reset2faDone": "Dvofaktorska autentifikacija je isključena."
   },
   "server": {
     "checking": "Spajanje na server…",
@@ -319,11 +331,12 @@
     "liveTv": "Gledanje TV-a uživo",
     "manageLiveTv": "Upravljanje TV-om uživo i snimkama",
     "maxSessions": "Najviše prijavljenih uređaja",
-    "maxSessionsHint": "0 = neograničeno. Prijava na još jednom uređaju odjavljuje najdulje neaktivan."
+    "maxSessionsHint": "0 = neograničeno. Prijava na još jednom uređaju odjavljuje najdulje neaktivan.",
+    "adminAll": "Administratori uvijek smiju sve; dozvole vrijede za obične račune."
   },
   "invites": {
     "create": "Napravi pozivnicu",
-    "intro": "Tko otvori poveznicu može napraviti običan (ne-admin) račun sa zadanim dozvolama, dok pozivnica ne istekne ili se ne potroši.",
+    "intro": "Tko otvori poveznicu može napraviti običan (ne-admin) račun sa zadanim dozvolama i bibliotekama odabranima ispod, dok pozivnica ne istekne ili se ne potroši.",
     "note": "Napomena (neobavezno)",
     "expires": "Vrijedi",
     "expiry_24": "1 dan",
@@ -752,7 +765,11 @@
     "enabled": "Uključeno",
     "test": "Pošalji test",
     "testSent": "Testna poruka poslana.",
-    "namePlaceholder": "Discord #filmovi"
+    "namePlaceholder": "Discord #filmovi",
+    "libraries": "Biblioteke",
+    "librariesHint": "Nove stavke i reprodukcija šalju se samo za ove biblioteke. Ostali događaji šalju se uvijek.",
+    "noLibrariesChosen": "Nijedna biblioteka nije odabrana: šalju se događaji iz svih biblioteka.",
+    "adultNote": "Biblioteke za odrasle nikad ne šalju obavijesti."
   },
   "playbackPrefs": {
     "title": "Reprodukcija",
@@ -1686,6 +1703,25 @@
     "removeTpdb": "Ukloni ThePornDB ključ",
     "removeStash": "Ukloni StashDB ključ",
     "checking": "Provjeravam…",
-    "saved": "Spremljeno. Nove scene traže se u pozadini."
+    "saved": "Spremljeno. Nove scene traže se u pozadini.",
+    "createLibraryFirst": "Najprije stvori biblioteku za odrasle (Postavke → Biblioteke).",
+    "settingsTitleFull": "Metapodaci za odrasle (ThePornDB / StashDB)",
+    "settingsNoLibrary": "Najprije stvori biblioteku vrste Za odrasle u Postavke → Biblioteke; zatim ovdje možeš dodati ključeve.",
+    "openLibraries": "Otvori Biblioteke"
+  },
+  "libraryAccess": {
+    "title": "Pristup bibliotekama",
+    "label": "Biblioteke",
+    "all": "Sve biblioteke",
+    "chosen": "Samo odabrane biblioteke",
+    "noLibraries": "Još nema biblioteka.",
+    "noneChosen": "Nijedna biblioteka nije odabrana: ovaj račun neće vidjeti nijednu biblioteku.",
+    "newLibraries": "Daj i biblioteke stvorene kasnije",
+    "newLibrariesHint": "Nove biblioteke automatski se dodaju na ovaj popis.",
+    "adultNote": "Biblioteke za odrasle nikad nisu dio ovog popisa: imaju vlastiti, zasebni pristup za odrasle koji se daje svakom računu posebno.",
+    "adminAll": "Administratori vide sve biblioteke.",
+    "noneShort": "Bez biblioteka",
+    "someMore": "{{names}} i još {{count}}",
+    "withNew": "{{names}} + nove biblioteke"
   }
 }

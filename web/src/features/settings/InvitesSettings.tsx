@@ -5,6 +5,7 @@ import { api, unwrap } from "@/api/client";
 import { Badge, Button, Card, ErrorText, TextField } from "@/components/ui";
 import { useConfirm } from "@/components/Dialog";
 import { useDateTime } from "./SettingsLayout";
+import { ALL_LIBRARIES, DEFAULT_PERMISSIONS, LibraryAccessPicker, describeAccess, useAllLibraries, type LibraryAccess } from "./LibraryAccessPicker";
 
 const EXPIRY = [24, 24 * 7, 24 * 30] as const;
 
@@ -15,10 +16,14 @@ export function InvitesSettings() {
   const confirmDialog = useConfirm();
   const invites = useQuery({ queryKey: ["invites"], queryFn: async () => unwrap(await api.GET("/invites")) });
   const [form, setForm] = useState({ note: "", expiresInHours: 24 * 7, maxUses: 1 });
+  const [access, setAccess] = useState<LibraryAccess>(ALL_LIBRARIES);
+  const libraries = useAllLibraries();
   const [link, setLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const create = useMutation({
-    mutationFn: async () => unwrap(await api.POST("/invites", { body: form })),
+    mutationFn: async () => unwrap(await api.POST("/invites", {
+      body: access.all ? form : { ...form, permissions: { ...DEFAULT_PERMISSIONS, allLibraries: false }, libraryIds: access.ids, newLibraries: access.newLibraries },
+    })),
     onSuccess: (res) => {
       setLink(`${window.location.origin}/invite/${res.token}`);
       setCopied(false);
@@ -63,6 +68,10 @@ export function InvitesSettings() {
           </label>
           <TextField label={t("invites.maxUses")} type="number" min={1} max={100} value={form.maxUses}
             onChange={(e) => setForm({ ...form, maxUses: Math.max(1, Math.min(100, Number(e.target.value) || 1)) })} />
+          <fieldset className="flex flex-col gap-2 sm:col-span-3">
+            <legend className="mb-1 text-sm font-medium text-text/90">{t("libraryAccess.title")}</legend>
+            <LibraryAccessPicker value={access} onChange={setAccess} />
+          </fieldset>
           <div className="sm:col-span-3">
             <Button type="submit" disabled={create.isPending}>{t("invites.create")}</Button>
           </div>
@@ -91,6 +100,9 @@ export function InvitesSettings() {
                 <div className="min-w-0 flex-1">
                   <p className="font-medium">
                     {i.note || t("invites.untitled")} {active ? <Badge tone="success">{t("invites.active")}</Badge> : <Badge>{t("invites.inactive")}</Badge>}
+                  </p>
+                  <p className="text-xs text-muted" data-testid="invite-access">
+                    {t("libraryAccess.label")}: {describeAccess(t, { all: i.permissions.allLibraries, ids: i.libraryIds ?? [], newLibraries: i.newLibraries ?? false }, libraries.data)}
                   </p>
                   <p className="text-xs text-muted">{t("invites.meta", { uses: i.uses, max: i.maxUses, expires: fmt(i.expiresAt), user: i.createdBy })}</p>
                 </div>
