@@ -75,7 +75,8 @@ test("a user limited to one library never sees the other", async ({ page, browse
 
   // A direct link to the hidden library shows "not found" and none of its items.
   await other.goto(`/library/${libs.shows}`);
-  await expect(other.getByRole("alert")).toContainText("Not found");
+  // The items query retries before it gives up, so allow for its back-off.
+  await expect(other.getByRole("alert")).toContainText("Not found", { timeout: 30_000 });
   await expect(other.getByTestId("item-card").filter({ hasText: "Test Show" })).toHaveCount(0);
 
   // The visible library works as usual.
