@@ -444,3 +444,65 @@ private fun LdapCard(api: Api) {
         if (saved) Text(stringResource(R.string.saved), color = Kino.success)
     }
 }
+
+// ---- Library access (D-054) ----
+
+/**
+ * "All libraries" or a chosen list of [libraries] (GET /libraries, adult ones included so the
+ * note about their separate grant only shows when there are any; they are never pickable).
+ */
+@Composable
+internal fun LibraryAccessEditor(access: LibraryAccess, libraries: List<Library>?, onChange: (LibraryAccess) -> Unit) {
+    Toggle(stringResource(R.string.access_all_libraries), stringResource(R.string.access_all_libraries_hint), access.all) { onChange(access.copy(all = it)) }
+    if (!access.all) {
+        val pickable = libraries?.let(::pickableLibraries)
+        when {
+            pickable == null -> Loading()
+            pickable.isEmpty() -> Intro(stringResource(R.string.access_no_libraries))
+            else -> pickable.forEach { l ->
+                Toggle(l.name, libraryKindRes(l.kind)?.let { stringResource(it) }, l.id in access.ids) { onChange(access.toggle(l.id, it)) }
+            }
+        }
+        Toggle(stringResource(R.string.access_new_libraries), stringResource(R.string.access_new_libraries_hint), access.newLibraries) { onChange(access.copy(newLibraries = it)) }
+    }
+    if (libraries?.any { it.kind == "adult" } == true) Intro(stringResource(R.string.access_adult_note))
+}
+
+/** One-line summary of a user's library access for the users list. */
+@Composable
+internal fun libraryAccessSummary(u: User): String = when {
+    u.isAdmin -> stringResource(R.string.access_admins_all)
+    u.permissions.allLibraries -> stringResource(R.string.access_all_libraries)
+    else -> pluralStringResource(R.plurals.access_chosen_count, u.libraryIds.size, u.libraryIds.size)
+}
+
+/** Library access of one existing user, edited in place and saved with PATCH /users/{id}. */
+@Composable
+internal fun UserLibraryAccess(api: Api, user: User, libraries: List<Library>?, onSaved: () -> Unit) {
+    var editing by remember(user.id) { mutableStateOf<LibraryAccess?>(null) }
+    var busy by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<Throwable?>(null) }
+    val scope = rememberCoroutineScope()
+    Text(stringResource(R.string.access_libraries) + " · " + libraryAccessSummary(user), color = Kino.muted, fontSize = 13.sp)
+    if (user.isAdmin) return
+    val draft = editing
+    if (draft == null) {
+        TextButton(onClick = { editing = LibraryAccess.of(user); error = null }) { Text(stringResource(R.string.access_edit), color = Kino.text) }
+        return
+    }
+    Column(Modifier.padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        LibraryAccessEditor(draft, libraries) { editing = it }
+        Actions {
+            PrimaryButton(stringResource(R.string.save), enabled = !busy && libraries != null, onClick = {
+                busy = true; error = null
+                scope.launch {
+                    runCatching { api.updateUser(user.id, draft.toUpdate(user.permissions, libraries.orEmpty())) }
+                        .onSuccess { editing = null; onSaved() }.onFailure { error = it }
+                    busy = false
+                }
+            })
+            GlassButton(stringResource(R.string.cancel), { editing = null })
+        }
+        ErrorLine(error)
+    }
+}

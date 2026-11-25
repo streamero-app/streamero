@@ -183,6 +183,8 @@ struct UsersPage: View {
     let client: MediaClient
     @Environment(AppState.self) private var app
     @State private var users: [User]?
+    @State private var libraries: [Library]?
+    @State private var editingAccess: User?
     @State private var error: Error?
     @State private var name = ""
     @State private var password = ""
@@ -202,6 +204,10 @@ struct UsersPage: View {
                 } header: { Text("add_user") }
             }
             .task { await load() }
+            .sheet(item: $editingAccess) { u in
+                UserLibraryAccessEditor(client: client, user: u, libraries: libraries) { Task { await load() } }
+                    .environment(\.locale, app.locale ?? Locale.current)
+            }
         }
     }
 
@@ -213,12 +219,27 @@ struct UsersPage: View {
                 if u.disabled { Text(verbatim: "·"); Text("disabled") }
             }
             .font(.footnote).foregroundStyle(Theme.textMuted)
+            if u.isAdmin {
+                FieldHint(text: "access.adminsAll")
+            } else {
+                Button { editingAccess = u } label: {
+                    HStack {
+                        Text("access.libraries").foregroundStyle(Theme.text)
+                        Spacer()
+                        accessSummary(u).foregroundStyle(Theme.textMuted)
+                    }
+                }
+            }
             if u.id != app.me?.id {
                 Toggle("administrator", isOn: Binding(get: { u.isAdmin }, set: { on in update(u.id, UpdateUser(isAdmin: on)) }))
                 Toggle("disabled", isOn: Binding(get: { u.disabled }, set: { on in update(u.id, UpdateUser(disabled: on)) }))
                 ConfirmButton(title: "delete") { perform { try await client.deleteUser(u.id) } }
             }
         } header: { Text(verbatim: u.displayName ?? u.username) }
+    }
+
+    private func accessSummary(_ u: User) -> Text {
+        u.permissions.allLibraries ? Text("access.allLibraries") : Text("access.chosenN \(u.libraryIds?.count ?? 0)")
     }
 
     private func update(_ id: String, _ body: UpdateUser) {
@@ -238,6 +259,7 @@ struct UsersPage: View {
     private func load() async {
         do {
             users = try await client.users()
+            libraries = try await client.libraries()
             error = nil
         } catch { self.error = error }
     }
@@ -606,6 +628,8 @@ struct DevicesPage: View {
 struct InvitesPage: View {
     let client: MediaClient
     @State private var invites: [Invite]?
+    @State private var libraries: [Library]?
+    @State private var access = LibraryAccess()
     @State private var error: Error?
     @State private var link: String?
 
@@ -613,6 +637,7 @@ struct InvitesPage: View {
         AdminGuarded {
             List {
                 if let error { ErrorLine(error: error) }
+                LibraryAccessFields(access: $access, libraries: libraries)
                 Section {
                     Button("create_invite") { Task { await createInvite() } }
                     if let link { Text(verbatim: link).textSelection(.enabled).font(.footnote) }
@@ -636,7 +661,7 @@ struct InvitesPage: View {
 
     private func createInvite() async {
         do {
-            let created = try await client.createInvite(CreateInvite(expiresInHours: 72, maxUses: 1))
+            let created = try await client.createInvite(access.invite(expiresInHours: 72, maxUses: 1, libraries: libraries ?? []))
             link = client.inviteLink(token: created.token)?.absoluteString
             await load()
         } catch { self.error = error }
@@ -645,7 +670,96 @@ struct InvitesPage: View {
     private func load() async {
         do {
             invites = try await client.invites()
+            libraries = try await client.libraries()
             error = nil
+        } catch { self.error = error }
+    }
+}
+
+/// "All libraries" or a chosen list (D-054). Adult libraries are never pickable: they have
+/// their own grant (D-053), so a note says so when the server has any.
+struct LibraryAccessFields: View {
+    @Binding var access: LibraryAccess
+    let libraries: [Library]?
+
+    var body: some View {
+        Section {
+            Toggle("access.allLibraries", isOn: $access.all)
+            if !access.all {
+                if let libraries {
+                    let pickable = LibraryAccess.pickable(libraries)
+                    if pickable.isEmpty { FieldHint(text: "access.noLibraries") }
+                    ForEach(pickable) { l in
+                        Toggle(isOn: Binding(get: { access.ids.contains(l.id) }, set: { access.set(l.id, $0) })) {
+                            Text(verbatim: l.name)
+                        }
+                    }
+                } else {
+                    ProgressView()
+                }
+                Toggle("access.newLibraries", isOn: $access.newLibraries)
+            }
+        } header: {
+            Text("access.libraries")
+        } footer: {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(access.all ? LocalizedStringKey("access.allLibrariesHint") : LocalizedStringKey("access.newLibrariesHint"))
+                if libraries?.contains(where: \.isAdult) == true { Text("access.adultNote") }
+            }
+            .foregroundStyle(Theme.textFaint)
+        }
+    }
+}
+
+/// Library access of one non-admin user, saved with PATCH /users/{id}.
+private struct UserLibraryAccessEditor: View {
+    let client: MediaClient
+    let user: User
+    let libraries: [Library]?
+    let onSaved: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var access: LibraryAccess
+    @State private var busy = false
+    @State private var error: Error?
+
+    init(client: MediaClient, user: User, libraries: [Library]?, onSaved: @escaping () -> Void) {
+        self.client = client
+        self.user = user
+        self.libraries = libraries
+        self.onSaved = onSaved
+        _access = State(initialValue: LibraryAccess(user))
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                LibraryAccessFields(access: $access, libraries: libraries)
+                if let error { Section { ErrorLine(error: error) } }
+            }
+            .scrollContentBackground(.hidden)
+            .background(Theme.background)
+            .navigationTitle(Text(verbatim: user.displayName ?? user.username))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("common.cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    if busy { ProgressView() } else {
+                        Button("save") { Task { await save() } }.disabled(libraries == nil)
+                    }
+                }
+            }
+        }
+        .presentationBackground(Theme.background)
+    }
+
+    private func save() async {
+        guard let libraries else { return }
+        busy = true
+        defer { busy = false }
+        do {
+            _ = try await client.updateUser(user.id, access.update(keeping: user.permissions, libraries: libraries))
+            onSaved()
+            dismiss()
         } catch { self.error = error }
     }
 }

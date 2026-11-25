@@ -28,7 +28,12 @@ import kotlinx.serialization.json.JsonElement
     val manageLiveTv: Boolean = false, val syncPlay: Boolean = false, val deleteMedia: Boolean = false,
     val manageCollections: Boolean = false, val editSubtitles: Boolean = false, val remoteControl: Boolean = false,
     val maxSessions: Int = 0,
-)
+) {
+    companion object {
+        /** What the server gives a new account when nothing is chosen (invites without explicit permissions). */
+        val NEW_ACCOUNT = UserPermissions(download = true, liveTv = true, syncPlay = true, remoteControl = true)
+    }
+}
 
 @Serializable data class Profile(
     val id: String, val name: String, val color: String, val hasPin: Boolean = false,
@@ -42,6 +47,10 @@ import kotlinx.serialization.json.JsonElement
     val language: String? = null, val hasAvatar: Boolean = false, val createdAt: String = "", val lastLoginAt: String? = null,
     /** On /auth/me: the adult section may be shown in this session (D-053). */
     val adultAccess: Boolean = false,
+    /** Libraries this account sees when permissions.allLibraries is off (D-054); never adult ones. */
+    val libraryIds: List<String> = emptyList(),
+    /** With a chosen list: libraries created later are added automatically. */
+    val newLibraries: Boolean = false,
 )
 
 @Serializable data class UpdateMe(val displayName: String? = null, val email: String? = null, val language: String? = null)
@@ -188,17 +197,24 @@ import kotlinx.serialization.json.JsonElement
 @Serializable data class LogEntry(val time: String, val level: String, val message: String, val source: String, val attrs: String? = null)
 @Serializable data class ActivityPage(val entries: List<ActivityEntry>, val total: Int)
 @Serializable data class CreateUser(val username: String, val password: String, val isAdmin: Boolean = false)
-@Serializable data class UpdateUser(val isAdmin: Boolean? = null, val disabled: Boolean? = null, val password: String? = null, val resetTwoFactor: Boolean? = null)
+@Serializable data class UpdateUser(
+    val isAdmin: Boolean? = null, val disabled: Boolean? = null, val password: String? = null, val resetTwoFactor: Boolean? = null,
+    val permissions: UserPermissions? = null, val libraryIds: List<String>? = null, val newLibraries: Boolean? = null,
+)
 @Serializable data class SessionInfo(val id: String, val userId: String, val username: String, val deviceName: String, val client: String, val createdAt: String, val lastSeenAt: String, val current: Boolean)
 @Serializable data class ApiKey(val id: String, val name: String, val prefix: String, val createdBy: String, val createdAt: String, val lastUsedAt: String? = null)
 @Serializable data class CreatedApiKey(val key: String, val apiKey: ApiKey)
 @Serializable data class CreateApiKey(val name: String)
-@Serializable data class CreateInvite(val expiresInHours: Int, val maxUses: Int, val note: String? = null)
+@Serializable data class CreateInvite(
+    val expiresInHours: Int, val maxUses: Int, val note: String? = null,
+    val permissions: UserPermissions? = null, val libraryIds: List<String>? = null, val newLibraries: Boolean? = null,
+)
 @Serializable data class CreatedInvite(val token: String, val invite: Invite)
 @Serializable data class CollectionDetail(val collection: MediaCollection, val items: List<ItemSummary>)
 @Serializable data class Playlist(val id: String, val name: String, val itemCount: Int = 0, val durationMs: Long = 0, val public: Boolean = false, val mine: Boolean = true, val coverItemIds: List<String> = emptyList())
 @Serializable data class PlaylistDetail(val playlist: Playlist, val items: List<ItemSummary>)
-@Serializable data class Invite(val id: String, val note: String = "", val createdBy: String = "", val createdAt: String = "", val expiresAt: String = "", val maxUses: Int = 1, val uses: Int = 0)
+@Serializable data class Invite(val id: String, val note: String = "", val createdBy: String = "", val createdAt: String = "", val expiresAt: String = "", val maxUses: Int = 1, val uses: Int = 0,
+    val permissions: UserPermissions? = null, val libraryIds: List<String> = emptyList(), val newLibraries: Boolean = false)
 @Serializable data class ServerSettings(val serverName: String)
 @Serializable data class MetadataSettings(val tmdbConfigured: Boolean, val language: String, val country: String)
 @Serializable data class MetadataSettingsInput(val language: String, val country: String, val tmdbApiKey: String? = null, val removeTmdbKey: Boolean? = null)

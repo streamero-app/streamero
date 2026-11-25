@@ -820,4 +820,14 @@
     <string name="adult_pin_removed">PIN je uklonjen.</string>
     <string name="adult_lock_now">Zaključaj sada</string>
     <plurals name="adult_scenes_count"><item quantity="one">%1$d scena</item><item quantity="few">%1$d scene</item><item quantity="other">%1$d scena</item></plurals>
+    <string name="access_libraries">Pristup bibliotekama</string>
+    <string name="access_all_libraries">Sve biblioteke</string>
+    <string name="access_all_libraries_hint">Isključeno: samo biblioteke odabrane ispod</string>
+    <string name="access_new_libraries">Biblioteke dodane kasnije</string>
+    <string name="access_new_libraries_hint">Nove biblioteke automatski dodaj na ovaj popis</string>
+    <string name="access_no_libraries">Još nema biblioteka.</string>
+    <string name="access_adult_note">Biblioteke za odrasle nisu na ovom popisu; za njih postoji zasebno dopuštenje.</string>
+    <string name="access_admins_all">Administratori vide sve biblioteke</string>
+    <string name="access_edit">Promijeni pristup bibliotekama</string>
+    <plurals name="access_chosen_count"><item quantity="one">%1$d odabrana biblioteka</item><item quantity="few">%1$d odabrane biblioteke</item><item quantity="other">%1$d odabranih biblioteka</item></plurals>
 </resources>
