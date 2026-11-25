@@ -232,7 +232,11 @@ func (h *Handler) CreateUser(ctx context.Context, req *gen.CreateUserRequest) (*
 		pp := fromPermissions(v)
 		perms = &pp
 	}
-	u, err := h.Auth().CreateUser(ctx, p, string(req.Username), string(req.Password), req.IsAdmin.Value, perms)
+	libs := &auth.LibraryAccess{IDs: req.LibraryIds, NewLibraries: req.NewLibraries.Value}
+	if libs.IDs == nil {
+		libs.IDs = []uuid.UUID{}
+	}
+	u, err := h.Auth().CreateUser(ctx, p, string(req.Username), string(req.Password), req.IsAdmin.Value, perms, libs)
 	if err != nil {
 		return nil, err
 	}
@@ -258,9 +262,25 @@ func (h *Handler) UpdateUser(ctx context.Context, req *gen.UpdateUserRequest, pa
 		upd.Password = &pw
 	}
 	upd.ResetTwoFactor = req.ResetTwoFactor.Value
+	upd.SignOutEverywhere = req.SignOutEverywhere.Value
 	if v, ok := req.Permissions.Get(); ok {
 		pp := fromPermissions(v)
 		upd.Permissions = &pp
+	}
+	if v, ok := req.Username.Get(); ok {
+		name := string(v)
+		upd.Username = &name
+	}
+	if v, ok := req.DisplayName.Get(); ok {
+		upd.DisplayName = &v
+	}
+	if req.LibraryIds != nil || req.NewLibraries.Set {
+		upd.Libraries = &auth.LibraryAccess{IDs: req.LibraryIds}
+		if v, ok := req.NewLibraries.Get(); ok {
+			upd.Libraries.NewLibraries = v
+		} else if cur, err := h.Auth().GetUser(ctx, params.UserId); err == nil {
+			upd.Libraries.NewLibraries = cur.NewLibraries
+		}
 	}
 	u, err := h.Auth().UpdateUser(ctx, p, params.UserId, upd)
 	if err != nil {
@@ -478,7 +498,14 @@ func (h *Handler) serverName(ctx context.Context) string {
 
 func toUser(u auth.User) gen.User {
 	out := gen.User{ID: u.ID, Username: u.Username, IsAdmin: u.IsAdmin, Disabled: u.Disabled, TotpEnabled: u.TOTPEnabled,
-		Permissions: toPermissions(u.Permissions), CreatedAt: u.CreatedAt}
+		Permissions: toPermissions(u.Permissions), CreatedAt: u.CreatedAt, LibraryIds: u.LibraryIDs,
+		NewLibraries: gen.NewOptBool(u.NewLibraries)}
+	if out.LibraryIds == nil {
+		out.LibraryIds = []uuid.UUID{}
+	}
+	if u.DisplayName != "" {
+		out.DisplayName = gen.NewOptString(u.DisplayName)
+	}
 	if u.LastLoginAt != nil {
 		out.LastLoginAt = gen.NewOptDateTime(*u.LastLoginAt)
 	}
@@ -621,7 +648,8 @@ func (h *Handler) CreateInvite(ctx context.Context, req *gen.CreateInviteRequest
 		pp := fromPermissions(v)
 		perms = &pp
 	}
-	inv, token, err := h.Auth().CreateInvite(ctx, p, req.Note.Value, time.Duration(req.ExpiresInHours)*time.Hour, req.MaxUses, perms)
+	inv, token, err := h.Auth().CreateInvite(ctx, p, req.Note.Value, time.Duration(req.ExpiresInHours)*time.Hour, req.MaxUses, perms,
+		&auth.LibraryAccess{IDs: req.LibraryIds, NewLibraries: req.NewLibraries.Value})
 	if err != nil {
 		return nil, err
 	}
@@ -657,7 +685,8 @@ func (h *Handler) AcceptInvite(ctx context.Context, req *gen.AcceptInviteRequest
 
 func toInvite(i auth.Invite) gen.Invite {
 	return gen.Invite{ID: i.ID, Note: i.Note, CreatedBy: i.CreatedBy, CreatedAt: i.CreatedAt, ExpiresAt: i.ExpiresAt,
-		MaxUses: i.MaxUses, Uses: i.Uses, Permissions: toPermissions(i.Permissions)}
+		MaxUses: i.MaxUses, Uses: i.Uses, Permissions: toPermissions(i.Permissions), LibraryIds: i.Libraries.IDs,
+		NewLibraries: gen.NewOptBool(i.Libraries.NewLibraries)}
 }
 
 // ListProfiles implements GET /profiles.

@@ -82,9 +82,10 @@ type Viewer struct {
 	Lang      string
 }
 
-// CanSeeLibraries mirrors the API rule: admins, or users allowed all libraries.
+// CanSeeLibraries reports a usable viewer. Which libraries it sees (all, or the
+// account's chosen list, D-054) is applied by the library queries keyed on Owner.
 func (v *Viewer) CanSeeLibraries() bool {
-	return v.Principal.User.IsAdmin || v.Principal.User.Permissions.AllLibraries
+	return v.Principal.User.ID != uuid.Nil
 }
 
 // UDN is the device id: stable per server, distinct from the server id.

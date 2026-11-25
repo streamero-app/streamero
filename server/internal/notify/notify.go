@@ -44,6 +44,29 @@ type Target struct {
 	Token   string    `json:"token,omitempty"`
 	Events  []string  `json:"events"`
 	Enabled bool      `json:"enabled"`
+	// Libraries limits library events (those with a "libraryId") to these
+	// libraries; empty = every library (D-054).
+	Libraries []uuid.UUID `json:"libraryIds,omitempty"`
+}
+
+// wants reports whether t takes e (its kind, and its library when t is limited).
+func (t Target) wants(e Event) bool {
+	if !t.Enabled || !slices.Contains(t.Events, e.Kind) {
+		return false
+	}
+	if len(t.Libraries) == 0 {
+		return true
+	}
+	var lib uuid.UUID
+	switch v := e.Data["libraryId"].(type) {
+	case uuid.UUID:
+		lib = v
+	case string:
+		lib, _ = uuid.Parse(v)
+	default:
+		return true // not a library event
+	}
+	return slices.Contains(t.Libraries, lib)
 }
 
 // Event is something that happened on the server.
@@ -165,7 +188,7 @@ func (d *Dispatcher) Emit(ctx context.Context, e Event) {
 		e.At = time.Now().UTC()
 	}
 	for _, t := range d.targets(ctx) {
-		if !t.Enabled || !slices.Contains(t.Events, e.Kind) {
+		if !t.wants(e) {
 			continue
 		}
 		go func(t Target) {

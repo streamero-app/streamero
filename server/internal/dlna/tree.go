@@ -132,7 +132,7 @@ func (s *Server) library(ctx context.Context, q request, id uuid.UUID) (library.
 	if !q.v.CanSeeLibraries() {
 		return library.Library{}, errNoObject
 	}
-	l, err := s.Library.Get(ctx, id)
+	l, err := s.Library.GetFor(ctx, id, q.v.Owner)
 	if errors.Is(err, library.ErrNotFound) || (err == nil && !library.IsStreamingLibrary(l.Kind)) {
 		return l, errNoObject
 	}
@@ -237,7 +237,7 @@ func (s *Server) children(ctx context.Context, q request, n node, id string, sta
 	case "root":
 		var out []Object
 		if q.v.CanSeeLibraries() {
-			libs, err := s.Library.List(ctx)
+			libs, err := s.Library.ListFor(ctx, q.v.Owner)
 			if err != nil {
 				return nil, 0, err
 			}

@@ -85,10 +85,10 @@ describe("user permissions", () => {
       return { status: 200, body: [] };
     });
     renderApp("/settings/users", { me: testUser({ isAdmin: true, username: "admin" }) });
-    fireEvent.click(await screen.findByRole("button", { name: "Permissions" }));
+    fireEvent.click(await screen.findByTestId("user-edit"));
     fireEvent.click(screen.getByLabelText("Download"));
     fireEvent.change(screen.getByLabelText("Max. signed-in devices"), { target: { value: "3" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
     await waitFor(() => expect(fetch.mock.calls.some(([r]) => (r as Request).method === "PATCH")).toBe(true));
     const patch = fetch.mock.calls.find(([r]) => (r as Request).method === "PATCH")![0] as Request;
     expect(await patch.json()).toMatchObject({ permissions: { download: false, maxSessions: 3 } });

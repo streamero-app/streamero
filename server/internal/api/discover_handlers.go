@@ -17,6 +17,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/library"
 	"github.com/streamero-app/streamero/server/internal/netx"
 	"github.com/streamero-app/streamero/server/internal/requests"
+	"github.com/streamero-app/streamero/server/internal/stream"
 )
 
 const tmdbImage = "https://image.tmdb.org/t/p/"
@@ -192,7 +193,7 @@ func (h *Handler) Discover(ctx context.Context, params gen.DiscoverParams) (*gen
 		return nil, upstream(err)
 	}
 	out.Page, out.TotalPages = max(res.Page, 1), max(res.TotalPages, 1)
-	local := h.localByTMDb(ctx, res.Titles)
+	local := h.localByTMDb(ctx, stream.Owner(p), res.Titles)
 	for _, t := range res.Titles {
 		dt := gen.DiscoverTitle{TmdbId: t.TMDbID, MediaType: gen.DiscoverTitleMediaType(t.MediaType), Title: t.Title,
 			Overview: optString(t.Overview), Status: gen.DiscoverTitleStatus(t.Status)}
@@ -217,8 +218,8 @@ func (h *Handler) Discover(ctx context.Context, params gen.DiscoverParams) (*gen
 	return out, nil
 }
 
-// localByTMDb finds which results are already in the libraries.
-func (h *Handler) localByTMDb(ctx context.Context, titles []requests.Title) map[string]uuid.UUID {
+// localByTMDb finds which results are already in the libraries owner may see.
+func (h *Handler) localByTMDb(ctx context.Context, owner uuid.UUID, titles []requests.Title) map[string]uuid.UUID {
 	out := map[string]uuid.UUID{}
 	if h.lib() == nil || len(titles) == 0 {
 		return out
@@ -228,7 +229,8 @@ func (h *Handler) localByTMDb(ctx context.Context, titles []requests.Title) map[
 		ids = append(ids, strconv.Itoa(t.TMDbID))
 	}
 	rows, err := h.lib().Pool.Query(ctx, `SELECT id, kind, provider_ids->>'tmdb' FROM items
-		WHERE parent_id IS NULL AND kind IN ('movie', 'series') AND provider_ids->>'tmdb' = ANY($1)`, ids)
+		WHERE parent_id IS NULL AND kind IN ('movie', 'series') AND provider_ids->>'tmdb' = ANY($1)
+			AND `+library.Visible("library_id", "$2"), ids, owner)
 	if err != nil {
 		return out
 	}

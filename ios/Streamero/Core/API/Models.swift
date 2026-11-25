@@ -48,6 +48,11 @@ struct User: Codable, Sendable, Equatable, Identifiable {
     var adultAccess: Bool?
     var createdAt: String
     var lastLoginAt: String?
+    /// Libraries this account sees when permissions.allLibraries is off (D-054); never adult ones.
+    /// Absent on older servers.
+    var libraryIds: [String]?
+    /// With a chosen list: libraries created later are added automatically.
+    var newLibraries: Bool?
 }
 
 struct UpdateMe: Codable, Sendable, Equatable {
@@ -440,6 +445,9 @@ struct UpdateUser: Codable, Sendable, Equatable {
     var disabled: Bool?
     var password: String?
     var resetTwoFactor: Bool?
+    var permissions: UserPermissions?
+    var libraryIds: [String]?
+    var newLibraries: Bool?
 }
 
 struct SessionInfo: Codable, Sendable, Equatable, Identifiable {
@@ -475,6 +483,9 @@ struct CreateInvite: Codable, Sendable, Equatable {
     var expiresInHours: Int
     var maxUses: Int
     var note: String?
+    var permissions: UserPermissions?
+    var libraryIds: [String]?
+    var newLibraries: Bool?
 }
 
 struct Invite: Codable, Sendable, Equatable, Identifiable {
@@ -485,6 +496,8 @@ struct Invite: Codable, Sendable, Equatable, Identifiable {
     var expiresAt: String
     var maxUses: Int
     var uses: Int
+    var libraryIds: [String]?
+    var newLibraries: Bool?
 }
 
 struct CreatedInvite: Codable, Sendable, Equatable {

@@ -20,10 +20,11 @@ type Invite struct {
 	MaxUses     int
 	Uses        int
 	Permissions Permissions
+	Libraries   LibraryAccess // used when Permissions.AllLibraries is off (D-054)
 }
 
 // CreateInvite makes a link valid for ttl and maxUses accounts; returns the token once.
-func (s *Service) CreateInvite(ctx context.Context, actor Principal, note string, ttl time.Duration, maxUses int, perms *Permissions) (Invite, string, error) {
+func (s *Service) CreateInvite(ctx context.Context, actor Principal, note string, ttl time.Duration, maxUses int, perms *Permissions, libs *LibraryAccess) (Invite, string, error) {
 	token, hash, err := newToken()
 	if err != nil {
 		return Invite{}, "", err
@@ -40,12 +41,24 @@ func (s *Service) CreateInvite(ctx context.Context, actor Principal, note string
 	if err != nil {
 		return Invite{}, "", err
 	}
+	la := LibraryAccess{IDs: []uuid.UUID{}}
+	if libs != nil {
+		la.NewLibraries = libs.NewLibraries
+		if libs.IDs != nil {
+			la.IDs = libs.IDs
+		}
+	}
 	now := s.now()
 	inv := Invite{ID: id, Note: truncate(note, 100), CreatedBy: actor.User.Username, CreatedAt: now,
 		ExpiresAt: now.Add(ttl), MaxUses: maxUses, Permissions: p}
 	err = pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, `INSERT INTO invites (id, token_hash, note, created_by, created_at, expires_at, max_uses, permissions)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, id, hash, inv.Note, actor.User.ID, now, inv.ExpiresAt, maxUses, raw); err != nil {
+		// Only existing, non-adult libraries are kept (D-053, D-054).
+		if err := tx.QueryRow(ctx, `INSERT INTO invites (id, token_hash, note, created_by, created_at, expires_at, max_uses, permissions,
+				library_ids, new_libraries)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
+				ARRAY(SELECT l.id FROM libraries l WHERE l.id = ANY ($9::uuid[]) AND l.kind <> 'adult' ORDER BY l.id), $10)
+			RETURNING library_ids, new_libraries`,
+			id, hash, inv.Note, actor.User.ID, now, inv.ExpiresAt, maxUses, raw, la.IDs, la.NewLibraries).Scan(&inv.Libraries.IDs, &inv.Libraries.NewLibraries); err != nil {
 			return err
 		}
 		return audit(ctx, tx, &actor.User.ID, "invite.created", map[string]any{"invite_id": id, "max_uses": maxUses, "expires_at": inv.ExpiresAt})
@@ -55,7 +68,8 @@ func (s *Service) CreateInvite(ctx context.Context, actor Principal, note string
 
 // ListInvites returns all invites, newest first.
 func (s *Service) ListInvites(ctx context.Context) ([]Invite, error) {
-	rows, err := s.pool.Query(ctx, `SELECT i.id, i.note, u.username, i.created_at, i.expires_at, i.max_uses, i.uses, i.permissions
+	rows, err := s.pool.Query(ctx, `SELECT i.id, i.note, u.username, i.created_at, i.expires_at, i.max_uses, i.uses, i.permissions,
+			ARRAY(SELECT x FROM unnest(i.library_ids) x WHERE EXISTS (SELECT 1 FROM libraries l WHERE l.id = x)), i.new_libraries
 		FROM invites i JOIN users u ON u.id = i.created_by ORDER BY i.created_at DESC`)
 	if err != nil {
 		return nil, err
@@ -65,7 +79,8 @@ func (s *Service) ListInvites(ctx context.Context) ([]Invite, error) {
 	for rows.Next() {
 		var inv Invite
 		var raw []byte
-		if err := rows.Scan(&inv.ID, &inv.Note, &inv.CreatedBy, &inv.CreatedAt, &inv.ExpiresAt, &inv.MaxUses, &inv.Uses, &raw); err != nil {
+		if err := rows.Scan(&inv.ID, &inv.Note, &inv.CreatedBy, &inv.CreatedAt, &inv.ExpiresAt, &inv.MaxUses, &inv.Uses, &raw,
+			&inv.Libraries.IDs, &inv.Libraries.NewLibraries); err != nil {
 			return nil, err
 		}
 		inv.Permissions = parsePermissions(raw)
@@ -113,9 +128,10 @@ func (s *Service) AcceptInvite(ctx context.Context, token, username, password st
 		// Consuming a use and creating the account happen together, so the use limit holds under concurrency.
 		var inviteID uuid.UUID
 		var raw []byte
+		var la LibraryAccess
 		err := tx.QueryRow(ctx, `UPDATE invites SET uses = uses + 1
-			WHERE token_hash = $1 AND expires_at > $2 AND uses < max_uses RETURNING id, permissions`,
-			hashToken(token), s.now()).Scan(&inviteID, &raw)
+			WHERE token_hash = $1 AND expires_at > $2 AND uses < max_uses RETURNING id, permissions, library_ids, new_libraries`,
+			hashToken(token), s.now()).Scan(&inviteID, &raw, &la.IDs, &la.NewLibraries)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrNotFound
 		}
@@ -126,6 +142,11 @@ func (s *Service) AcceptInvite(ctx context.Context, token, username, password st
 		u, err := insertUser(ctx, tx, username, hash, false, &perms)
 		if err != nil {
 			return err
+		}
+		if !perms.AllLibraries {
+			if u, err = setLibraryAccess(ctx, tx, u.ID, la); err != nil {
+				return err
+			}
 		}
 		p, sessionToken, err = createSession(ctx, tx, u, dev, s.now())
 		if err != nil {

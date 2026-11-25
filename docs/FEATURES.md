@@ -39,7 +39,7 @@ Kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djelomično gotov
 - [x] `[+]` API ključevi samo za čitanje i statistika za nadzorne ploče (`GET /api/stats` s `X-Api-Key`; D-052)
 - [x] `[JF]` Uređaji: lista, preimenovanje, opoziv pristupa (odmah gasi postojeće sesije) (P1)
 - [ ] `[JF]` Ograničenje pristupa po uređaju (P1)
-- [ ] `[JF]` Dozvole po korisniku: pristup bibliotekama, Live TV, upravljanje Live TV, brisanje medija, download, transkodiranje (audio/video/remux zasebno), SyncPlay, upravljanje kolekcijama, uređivanje podnaslova, remote control drugih korisnika, dijeljeni uređaji (P1) — *model, API i UI gotovi (P1); provedba stiže sa značajkom (biblioteke P2, reprodukcija P5, Live TV P11)*
+- [ ] `[JF]` Dozvole po korisniku: pristup bibliotekama, Live TV, upravljanje Live TV, brisanje medija, download, transkodiranje (audio/video/remux zasebno), SyncPlay, upravljanje kolekcijama, uređivanje podnaslova, remote control drugih korisnika, dijeljeni uređaji (P1) — *model, API i UI gotovi (P1); provedba stiže sa značajkom (biblioteke P2, reprodukcija P5, Live TV P11); pristup bibliotekama po popisu provodi se svugdje (D-054)*
 - [x] `[JF]` Max broj aktivnih sesija po korisniku (P1)
 - [x] `[JF]` Bitrate limit za remote klijente po korisniku (P5) — *po profilu; server ga provodi (transkodiranje s -maxrate)*
 - [x] `[JF]` Login-attempt lockout (N neuspjelih pokušaja) (P1)
@@ -49,7 +49,8 @@ Kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djelomično gotov
 - [x] `[+]` 2FA TOTP + recovery kodovi (P1)
 - [ ] `[+]` Passkeys / WebAuthn za web (P13)
 - [ ] `[+]` Profili unutar korisnika (Netflix-style): avatar, PIN po profilu, dječji profil s vlastitim parental limitom, odvojena watch povijest (P1) — *profili, boja/avatar, PIN (s lockoutom), dječji profil s dobnom granicom i zaključanim postavkama gotovi; odvojena watch povijest i provedba dobne granice stižu s P3/P4*
-- [x] `[+]` Pozivnice (invite link s rokom, unaprijed postavljenim bibliotekama i dozvolama) (P1) — *biblioteke u pozivnici dolaze s P2*
+- [x] `[+]` Pozivnice (invite link s rokom, unaprijed postavljenim bibliotekama i dozvolama) (P1) — *odabir biblioteka u pozivnici (D-054)*
+- [x] `[JF]` Pristup bibliotekama po korisniku: sve ili odabrani popis, nove biblioteke po izboru, provedba na svim površinama (nativni i compat API, DLNA, preuzimanja, pretraga, početna, slike, streamovi, kolekcije, popisi, zajedničko gledanje), uređivač korisnika na webu, izbor i u Android/iOS administraciji (D-054)
 - [ ] `[+]` Audit log svih admin akcija (P10)
 - [ ] `[+]` Potpisani kratkotrajni stream URL-ovi (HMAC) — AVPlayer/Chromecast mogu fetchati bez headera (P5)
 - [ ] `[+]` GeoIP prikaz sesija + opcionalno blokiranje po državi (P10)

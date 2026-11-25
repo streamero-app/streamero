@@ -5620,6 +5620,20 @@ components:
           type: integer
         permissions:
           $ref: "#/components/schemas/UserPermissions"
+        libraryIds:
+          type: array
+          maxItems: 500
+          description: >-
+            Libraries this account may see when permissions.allLibraries is off (D-054).
+            Adult libraries are never part of it: they have their own grant (D-053).
+          items:
+            type: string
+            format: uuid
+        newLibraries:
+          type: boolean
+          description: >-
+            With a chosen list (allLibraries off): libraries created later are added to the
+            list automatically. Default off.
     CreateInviteRequest:
       type: object
       required: [expiresInHours, maxUses]
@@ -5638,6 +5652,20 @@ components:
           maximum: 100
         permissions:
           $ref: "#/components/schemas/UserPermissions"
+        libraryIds:
+          type: array
+          maxItems: 500
+          description: >-
+            Libraries this account may see when permissions.allLibraries is off (D-054).
+            Adult libraries are never part of it: they have their own grant (D-053).
+          items:
+            type: string
+            format: uuid
+        newLibraries:
+          type: boolean
+          description: >-
+            With a chosen list (allLibraries off): libraries created later are added to the
+            list automatically. Default off.
     CreatedInvite:
       type: object
       required: [token, invite]
@@ -6471,6 +6499,16 @@ components:
             $ref: "#/components/schemas/NotificationEvent"
         enabled:
           type: boolean
+        libraryIds:
+          type: array
+          maxItems: 500
+          description: >-
+            Send library events (item.added, playback.started) only for these libraries, e.g. a
+            channel read by accounts that see only some libraries (D-054). Empty or absent = all.
+            Adult libraries never send these events (D-053).
+          items:
+            type: string
+            format: uuid
     NotificationSettings:
       type: object
       required: [targets]
@@ -7423,6 +7461,20 @@ components:
           description: Interface language chosen by the user.
         hasAvatar:
           type: boolean
+        libraryIds:
+          type: array
+          maxItems: 500
+          description: >-
+            Libraries this account may see when permissions.allLibraries is off (D-054).
+            Adult libraries are never part of it: they have their own grant (D-053).
+          items:
+            type: string
+            format: uuid
+        newLibraries:
+          type: boolean
+          description: >-
+            With a chosen list (allLibraries off): libraries created later are added to the
+            list automatically. Default off.
         adultAccess:
           type: boolean
           description: >-
@@ -7685,9 +7737,29 @@ components:
           type: boolean
         permissions:
           $ref: "#/components/schemas/UserPermissions"
+        libraryIds:
+          type: array
+          maxItems: 500
+          description: >-
+            Libraries this account may see when permissions.allLibraries is off (D-054).
+            Adult libraries are never part of it: they have their own grant (D-053).
+          items:
+            type: string
+            format: uuid
+        newLibraries:
+          type: boolean
+          description: >-
+            With a chosen list (allLibraries off): libraries created later are added to the
+            list automatically. Default off.
     UpdateUserRequest:
       type: object
       properties:
+        username:
+          $ref: "#/components/schemas/Username"
+        displayName:
+          type: string
+          maxLength: 100
+          description: Empty clears it.
         isAdmin:
           type: boolean
         disabled:
@@ -7696,9 +7768,26 @@ components:
           $ref: "#/components/schemas/Password"
         permissions:
           $ref: "#/components/schemas/UserPermissions"
+        libraryIds:
+          type: array
+          maxItems: 500
+          description: >-
+            Libraries this account may see when permissions.allLibraries is off (D-054).
+            Adult libraries are never part of it: they have their own grant (D-053).
+          items:
+            type: string
+            format: uuid
+        newLibraries:
+          type: boolean
+          description: >-
+            With a chosen list (allLibraries off): libraries created later are added to the
+            list automatically. Default off.
         resetTwoFactor:
           type: boolean
           description: Turn the user's 2FA off (e.g. lost phone); signs them out everywhere.
+        signOutEverywhere:
+          type: boolean
+          description: Revoke every session of the user (API keys stay).
     Session:
       type: object
       required: [id, userId, username, deviceName, client, createdAt, lastSeenAt, current]

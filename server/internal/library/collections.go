@@ -24,8 +24,12 @@ type Collection struct {
 	HasBackdrop bool
 }
 
-const collectionCols = `c.id, c.name, COALESCE(c.overview, ''), c.tmdb_id,
-	(SELECT count(*) FROM collection_items ci WHERE ci.collection_id = c.id), c.has_poster, c.has_backdrop`
+// collectionCols counts only the titles the viewer in placeholder owner may see.
+func collectionCols(owner string) string {
+	return `c.id, c.name, COALESCE(c.overview, ''), c.tmdb_id,
+	(SELECT count(*) FROM collection_items ci WHERE ci.collection_id = c.id AND ` + VisibleItem("ci.item_id", owner) + `),
+	c.has_poster, c.has_backdrop`
+}
 
 func scanCollection(row pgx.Row) (Collection, error) {
 	var c Collection
@@ -36,10 +40,11 @@ func scanCollection(row pgx.Row) (Collection, error) {
 	return c, err
 }
 
-// Collections lists collections with at least one title (or all, for admins editing).
-func (s *Service) Collections(ctx context.Context) ([]Collection, error) {
-	rows, err := s.Pool.Query(ctx, `SELECT `+collectionCols+` FROM collections c
-		WHERE EXISTS (SELECT 1 FROM collection_items ci WHERE ci.collection_id = c.id) ORDER BY lower(c.name)`)
+// Collections lists collections with at least one title owner may see.
+func (s *Service) Collections(ctx context.Context, owner uuid.UUID) ([]Collection, error) {
+	rows, err := s.Pool.Query(ctx, `SELECT `+collectionCols("$1")+` FROM collections c
+		WHERE EXISTS (SELECT 1 FROM collection_items ci WHERE ci.collection_id = c.id AND `+VisibleItem("ci.item_id", "$1")+`)
+		ORDER BY lower(c.name)`, owner)
 	if err != nil {
 		return nil, err
 	}
@@ -56,20 +61,25 @@ func (s *Service) Collections(ctx context.Context) ([]Collection, error) {
 }
 
 // GetCollection returns a collection and its titles (oldest first, like a saga).
+// A collection whose titles are all in libraries hidden from owner does not exist
+// for owner (an empty one does, so collection managers can fill it).
 func (s *Service) GetCollection(ctx context.Context, id, owner uuid.UUID) (Collection, []Item, error) {
-	c, err := scanCollection(s.Pool.QueryRow(ctx, `SELECT `+collectionCols+` FROM collections c WHERE c.id = $1`, id))
+	c, err := scanCollection(s.Pool.QueryRow(ctx, `SELECT `+collectionCols("$2")+` FROM collections c WHERE c.id = $1
+		AND (NOT EXISTS (SELECT 1 FROM collection_items ci WHERE ci.collection_id = c.id)
+			OR EXISTS (SELECT 1 FROM collection_items ci WHERE ci.collection_id = c.id AND `+VisibleItem("ci.item_id", "$2")+`))`, id, owner))
 	if err != nil {
 		return c, nil, err
 	}
 	items, err := s.queryItems(ctx, `SELECT `+itemCols+` FROM collection_items ci JOIN items i ON i.id = ci.item_id
-		`+userJoin("$2")+` WHERE ci.collection_id = $1 ORDER BY i.year NULLS LAST, i.sort_title`, id, owner)
+		`+userJoin("$2")+` WHERE ci.collection_id = $1 AND `+Visible("i.library_id", "$2")+`
+		ORDER BY i.year NULLS LAST, i.sort_title`, id, owner)
 	return c, items, err
 }
 
 // ItemCollections returns the collections an item belongs to.
-func (s *Service) ItemCollections(ctx context.Context, itemID uuid.UUID) ([]Collection, error) {
-	rows, err := s.Pool.Query(ctx, `SELECT `+collectionCols+` FROM collections c
-		JOIN collection_items x ON x.collection_id = c.id WHERE x.item_id = $1 ORDER BY c.name`, itemID)
+func (s *Service) ItemCollections(ctx context.Context, itemID, owner uuid.UUID) ([]Collection, error) {
+	rows, err := s.Pool.Query(ctx, `SELECT `+collectionCols("$2")+` FROM collections c
+		JOIN collection_items x ON x.collection_id = c.id WHERE x.item_id = $1 ORDER BY c.name`, itemID, owner)
 	if err != nil {
 		return nil, err
 	}
@@ -85,8 +95,10 @@ func (s *Service) ItemCollections(ctx context.Context, itemID uuid.UUID) ([]Coll
 	return out, rows.Err()
 }
 
-// SaveCollection creates (id == Nil) or updates a collection and replaces its titles.
-func (s *Service) SaveCollection(ctx context.Context, id uuid.UUID, name, overview string, itemIDs []uuid.UUID) (Collection, error) {
+// SaveCollection creates (id == Nil) or updates a collection and replaces the
+// titles owner can see with itemIDs (titles of libraries owner cannot see are
+// neither added nor removed).
+func (s *Service) SaveCollection(ctx context.Context, id, owner uuid.UUID, name, overview string, itemIDs []uuid.UUID) (Collection, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return Collection{}, ErrInvalidName
@@ -105,18 +117,19 @@ func (s *Service) SaveCollection(ctx context.Context, id uuid.UUID, name, overvi
 			if tag.RowsAffected() == 0 {
 				return ErrNotFound
 			}
-			if _, err := tx.Exec(ctx, `DELETE FROM collection_items WHERE collection_id = $1`, id); err != nil {
+			if _, err := tx.Exec(ctx, `DELETE FROM collection_items ci WHERE ci.collection_id = $1 AND `+VisibleItem("ci.item_id", "$2"),
+				id, owner); err != nil {
 				return err
 			}
 		}
 		_, err := tx.Exec(ctx, `INSERT INTO collection_items (collection_id, item_id)
-			SELECT $1, i.id FROM items i WHERE i.id = ANY($2) ON CONFLICT DO NOTHING`, id, itemIDs)
+			SELECT $1, i.id FROM items i WHERE i.id = ANY($2) AND `+Visible("i.library_id", "$3")+` ON CONFLICT DO NOTHING`, id, itemIDs, owner)
 		return err
 	})
 	if err != nil {
 		return Collection{}, err
 	}
-	return scanCollection(s.Pool.QueryRow(ctx, `SELECT `+collectionCols+` FROM collections c WHERE c.id = $1`, id))
+	return scanCollection(s.Pool.QueryRow(ctx, `SELECT `+collectionCols("$2")+` FROM collections c WHERE c.id = $1`, id, owner))
 }
 
 // DeleteCollection removes a collection; its titles stay.
@@ -143,13 +156,18 @@ type Playlist struct {
 	UpdatedAt  time.Time
 }
 
-const playlistCols = `p.id, p.owner_id, p.name, p.public, p.updated_at,
-	(SELECT count(*) FROM playlist_items pi WHERE pi.playlist_id = p.id),
+// playlistCols counts and shows only the entries the viewer in placeholder owner
+// may see (a public playlist can hold titles of libraries hidden from others).
+func playlistCols(owner string) string {
+	return `p.id, p.owner_id, p.name, p.public, p.updated_at,
+	(SELECT count(*) FROM playlist_items pi WHERE pi.playlist_id = p.id AND ` + VisibleItem("pi.item_id", owner) + `),
 	(SELECT COALESCE(sum(d.ms), 0)::bigint FROM playlist_items pi
 		JOIN LATERAL (SELECT max(f.duration_ms) AS ms FROM media_files f WHERE f.item_id = pi.item_id) d ON true
-		WHERE pi.playlist_id = p.id),
+		WHERE pi.playlist_id = p.id AND ` + VisibleItem("pi.item_id", owner) + `),
 	ARRAY(SELECT pi.item_id FROM playlist_items pi JOIN items i ON i.id = pi.item_id
-		WHERE pi.playlist_id = p.id AND (i.has_poster OR i.has_backdrop) ORDER BY pi.position LIMIT 4)`
+		WHERE pi.playlist_id = p.id AND (i.has_poster OR i.has_backdrop) AND ` + Visible("i.library_id", owner) + `
+		ORDER BY pi.position LIMIT 4)`
+}
 
 func scanPlaylist(row pgx.Row) (Playlist, error) {
 	var p Playlist
@@ -162,7 +180,7 @@ func scanPlaylist(row pgx.Row) (Playlist, error) {
 
 // Playlists lists the owner's playlists, then other viewers' public ones.
 func (s *Service) Playlists(ctx context.Context, owner uuid.UUID) ([]Playlist, error) {
-	rows, err := s.Pool.Query(ctx, `SELECT `+playlistCols+` FROM playlists p
+	rows, err := s.Pool.Query(ctx, `SELECT `+playlistCols("$1")+` FROM playlists p
 		WHERE p.owner_id = $1 OR p.public ORDER BY (p.owner_id = $1) DESC, p.updated_at DESC`, owner)
 	if err != nil {
 		return nil, err
@@ -180,7 +198,7 @@ func (s *Service) Playlists(ctx context.Context, owner uuid.UUID) ([]Playlist, e
 }
 
 func (s *Service) playlistFor(ctx context.Context, id, owner uuid.UUID, edit bool) (Playlist, error) {
-	p, err := scanPlaylist(s.Pool.QueryRow(ctx, `SELECT `+playlistCols+` FROM playlists p WHERE p.id = $1`, id))
+	p, err := scanPlaylist(s.Pool.QueryRow(ctx, `SELECT `+playlistCols("$2")+` FROM playlists p WHERE p.id = $1`, id, owner))
 	if err != nil {
 		return p, err
 	}
@@ -200,17 +218,18 @@ func (s *Service) GetPlaylist(ctx context.Context, id, owner uuid.UUID) (Playlis
 		return p, nil, err
 	}
 	items, err := s.queryItems(ctx, `SELECT `+itemCols+` FROM playlist_items pi JOIN items i ON i.id = pi.item_id
-		`+userJoin("$2")+` WHERE pi.playlist_id = $1 ORDER BY pi.position`, id, owner)
+		`+userJoin("$2")+` WHERE pi.playlist_id = $1 AND `+Visible("i.library_id", "$2")+` ORDER BY pi.position`, id, owner)
 	if err != nil {
 		return p, nil, err
 	}
 	return p, items, s.AttachSeries(ctx, items)
 }
 
-func writePlaylistItems(ctx context.Context, tx pgx.Tx, id uuid.UUID, itemIDs []uuid.UUID, from int) error {
+// writePlaylistItems adds the titles owner may see; others are skipped.
+func writePlaylistItems(ctx context.Context, tx pgx.Tx, id, owner uuid.UUID, itemIDs []uuid.UUID, from int) error {
 	for i, item := range itemIDs {
 		var exists bool
-		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM items WHERE id = $1)`, item).Scan(&exists); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT `+VisibleItem("$1::uuid", "$2"), item, owner).Scan(&exists); err != nil {
 			return err
 		}
 		if !exists {
@@ -249,7 +268,7 @@ func (s *Service) SavePlaylist(ctx context.Context, id, owner uuid.UUID, name st
 		if _, err := tx.Exec(ctx, `DELETE FROM playlist_items WHERE playlist_id = $1`, id); err != nil {
 			return err
 		}
-		return writePlaylistItems(ctx, tx, id, itemIDs, 0)
+		return writePlaylistItems(ctx, tx, id, owner, itemIDs, 0)
 	})
 	if err != nil {
 		return Playlist{}, err
@@ -274,7 +293,7 @@ func (s *Service) AppendToPlaylist(ctx context.Context, id, owner uuid.UUID, ite
 		if _, err := tx.Exec(ctx, `UPDATE playlists SET updated_at = now() WHERE id = $1`, id); err != nil {
 			return err
 		}
-		return writePlaylistItems(ctx, tx, id, itemIDs, next)
+		return writePlaylistItems(ctx, tx, id, owner, itemIDs, next)
 	})
 	if err != nil {
 		return Playlist{}, err

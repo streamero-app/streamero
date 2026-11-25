@@ -12,6 +12,7 @@ import (
 	"github.com/streamero-app/streamero/server/internal/api/gen"
 	"github.com/streamero-app/streamero/server/internal/library"
 	"github.com/streamero-app/streamero/server/internal/requests"
+	"github.com/streamero-app/streamero/server/internal/stream"
 )
 
 // subtitleEditor allows administrators and users with the "edit subtitles" permission.
@@ -28,15 +29,19 @@ func subtitleEditor(ctx context.Context) error {
 
 // subtitleTarget finds the movie or episode in Radarr/Sonarr for Bazarr, and the library to rescan.
 func (h *Handler) subtitleTarget(ctx context.Context, itemID uuid.UUID) (requests.SubtitleTarget, uuid.UUID, error) {
+	p, err := principal(ctx)
+	if err != nil {
+		return requests.SubtitleTarget{}, uuid.Nil, err
+	}
 	var kind string
 	var raw []byte
 	var season, episode *int
 	var libID uuid.UUID
 	// Episodes are looked up through their series' ids.
-	err := h.lib().Pool.QueryRow(ctx, `SELECT i.kind, i.library_id, i.season_number, i.episode_number,
+	err = h.lib().Pool.QueryRow(ctx, `SELECT i.kind, i.library_id, i.season_number, i.episode_number,
 			CASE WHEN i.kind = 'episode' THEN COALESCE((SELECT s.provider_ids FROM items se JOIN items s ON s.id = se.parent_id WHERE se.id = i.parent_id),
 				(SELECT s.provider_ids FROM items s WHERE s.id = i.parent_id)) ELSE i.provider_ids END
-		FROM items i WHERE i.id = $1`, itemID).Scan(&kind, &libID, &season, &episode, &raw)
+		FROM items i WHERE i.id = $1 AND `+library.Visible("i.library_id", "$2"), itemID, stream.Owner(p)).Scan(&kind, &libID, &season, &episode, &raw)
 	if err != nil {
 		return requests.SubtitleTarget{}, uuid.Nil, library.ErrNotFound
 	}

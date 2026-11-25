@@ -482,12 +482,13 @@ private fun UsersPage(state: AppState) {
     val api = state.api ?: return
     var tick by remember { mutableIntStateOf(0) }
     val (users, _, error) = rememberLoad(tick) { api.users() }
+    val (libraries, librariesError) = rememberReload(Unit) { api.librariesAll() }
     val scope = rememberCoroutineScope()
     var name by remember { mutableStateOf("") }
     var pass by remember { mutableStateOf("") }
     var admin by remember { mutableStateOf(false) }
     var err by remember { mutableStateOf<Throwable?>(null) }
-    ErrorLine(error ?: err)
+    ErrorLine(error ?: err ?: librariesError)
     var deleting by remember { mutableStateOf<User?>(null) }
     deleting?.let { u ->
         ConfirmDialog(stringResource(R.string.delete_user_confirm, u.username), stringResource(R.string.delete), { deleting = null }) {
@@ -500,8 +501,9 @@ private fun UsersPage(state: AppState) {
             if (u.id != state.me?.id) {
                 Toggle(stringResource(R.string.administrator), null, u.isAdmin) { on -> scope.launch { runCatching { api.updateUser(u.id, UpdateUser(isAdmin = on)) }.onFailure { err = it }; tick++ } }
                 Toggle(stringResource(R.string.disabled), null, u.disabled) { on -> scope.launch { runCatching { api.updateUser(u.id, UpdateUser(disabled = on)) }.onFailure { err = it }; tick++ } }
-                TextButton(onClick = { deleting = u }) { Text(stringResource(R.string.delete), color = Kino.danger) }
             }
+            UserLibraryAccess(api, u, libraries) { tick++ }
+            if (u.id != state.me?.id) TextButton(onClick = { deleting = u }) { Text(stringResource(R.string.delete), color = Kino.danger) }
         }
     }
     Card(stringResource(R.string.add_user)) {
@@ -712,13 +714,16 @@ private fun InvitesPage(state: AppState) {
     var link by remember { mutableStateOf<String?>(null) }
     var err by remember { mutableStateOf<Throwable?>(null) }
     var deleting by remember { mutableStateOf<Invite?>(null) }
-    ErrorLine(error ?: err)
+    val (libraries, librariesError) = rememberReload(Unit) { api.librariesAll() }
+    var access by remember { mutableStateOf(LibraryAccess()) }
+    ErrorLine(error ?: err ?: librariesError)
     deleting?.let { i ->
         ConfirmDialog(stringResource(R.string.delete_invite_confirm), stringResource(R.string.delete), { deleting = null }) {
             scope.launch { runCatching { api.deleteInvite(i.id) }.onFailure { err = it }; tick++ }
         }
     }
-    PrimaryButton(stringResource(R.string.create_invite), { scope.launch { err = null; runCatching { api.createInvite(CreateInvite(72, 1)) }.onSuccess { link = api.base.resolve("/invite/${it.token}").toString(); tick++ }.onFailure { err = it } } }, Modifier.fillMaxWidth())
+    Card(stringResource(R.string.access_libraries)) { LibraryAccessEditor(access, libraries) { access = it } }
+    PrimaryButton(stringResource(R.string.create_invite), { scope.launch { err = null; runCatching { api.createInvite(access.toInvite(72, 1, libraries.orEmpty())) }.onSuccess { link = api.base.resolve("/invite/${it.token}").toString(); tick++ }.onFailure { err = it } } }, Modifier.fillMaxWidth())
     link?.let { androidx.compose.foundation.text.selection.SelectionContainer { Text(it, color = Kino.text) } }
     invites?.forEach { i ->
         Card(i.note.ifBlank { i.id.take(8) }) {

@@ -157,7 +157,19 @@
     "confirmDelete": "Delete user {{name}}? This cannot be undone.",
     "passwordHint": "At least 8 characters.",
     "reset2fa": "Reset 2FA",
-    "confirmReset2fa": "Turn off two-factor authentication for {{name}} (e.g. lost phone)? They will be signed out everywhere."
+    "confirmReset2fa": "Turn off two-factor authentication for {{name}} (e.g. lost phone)? They will be signed out everywhere.",
+    "details": "Account",
+    "displayName": "Display name",
+    "displayNameHint": "Shown instead of the username; leave empty to use the username.",
+    "enabled": "Enabled",
+    "selfEnabledHint": "(you cannot disable your own account)",
+    "saveChanges": "Save changes",
+    "actions": "Actions",
+    "signOutEverywhere": "Sign out everywhere",
+    "confirmSignOutEverywhere": "Sign {{name}} out on every device? API keys keep working.",
+    "signedOutEverywhere": "Signed out on every device.",
+    "passwordSet": "Password set.",
+    "reset2faDone": "Two-factor authentication turned off."
   },
   "server": {
     "checking": "Connecting to server…",
@@ -319,11 +331,12 @@
     "liveTv": "Watch Live TV",
     "manageLiveTv": "Manage Live TV and recordings",
     "maxSessions": "Max. signed-in devices",
-    "maxSessionsHint": "0 = unlimited. Signing in on one more device signs out the least recently used one."
+    "maxSessionsHint": "0 = unlimited. Signing in on one more device signs out the least recently used one.",
+    "adminAll": "Administrators can always do everything; permissions apply to ordinary accounts."
   },
   "invites": {
     "create": "Create invite link",
-    "intro": "Whoever opens the link can create an ordinary (non-admin) account with default permissions until it expires or runs out of uses.",
+    "intro": "Whoever opens the link can create an ordinary (non-admin) account with default permissions and the libraries chosen below, until it expires or runs out of uses.",
     "note": "Note (optional)",
     "expires": "Valid for",
     "expiry_24": "1 day",
@@ -752,7 +765,11 @@
     "enabled": "Enabled",
     "test": "Send test",
     "testSent": "Test message sent.",
-    "namePlaceholder": "Discord #movies"
+    "namePlaceholder": "Discord #movies",
+    "libraries": "Libraries",
+    "librariesHint": "New items and playback are sent only for these libraries. Other events are always sent.",
+    "noLibrariesChosen": "No library chosen: events from all libraries are sent.",
+    "adultNote": "Adult libraries never send notifications."
   },
   "playbackPrefs": {
     "title": "Playback",
@@ -1686,6 +1703,25 @@
     "removeTpdb": "Remove ThePornDB key",
     "removeStash": "Remove StashDB key",
     "checking": "Checking…",
-    "saved": "Saved. New scenes are looked up in the background."
+    "saved": "Saved. New scenes are looked up in the background.",
+    "createLibraryFirst": "Create an adult library first (Settings → Libraries).",
+    "settingsTitleFull": "Adult metadata (ThePornDB / StashDB)",
+    "settingsNoLibrary": "Create a library of the kind Adult in Settings → Libraries first; then you can add keys here.",
+    "openLibraries": "Open Libraries"
+  },
+  "libraryAccess": {
+    "title": "Library access",
+    "label": "Libraries",
+    "all": "All libraries",
+    "chosen": "Only chosen libraries",
+    "noLibraries": "There are no libraries yet.",
+    "noneChosen": "No library chosen: this account will not see any library.",
+    "newLibraries": "Also give libraries created later",
+    "newLibrariesHint": "New libraries are added to this list automatically.",
+    "adultNote": "Adult libraries are never part of this list: they have their own separate adult access, given below for each account.",
+    "adminAll": "Administrators see every library.",
+    "noneShort": "No libraries",
+    "someMore": "{{names}} and {{count}} more",
+    "withNew": "{{names}} + new libraries"
   }
 }

@@ -821,4 +821,14 @@
     <string name="adult_pin_removed">PIN removed.</string>
     <string name="adult_lock_now">Lock now</string>
     <plurals name="adult_scenes_count"><item quantity="one">%1$d scene</item><item quantity="other">%1$d scenes</item></plurals>
+    <string name="access_libraries">Library access</string>
+    <string name="access_all_libraries">All libraries</string>
+    <string name="access_all_libraries_hint">Off: only the libraries chosen below</string>
+    <string name="access_new_libraries">Libraries created later</string>
+    <string name="access_new_libraries_hint">Add new libraries to this list automatically</string>
+    <string name="access_no_libraries">There are no libraries yet.</string>
+    <string name="access_adult_note">Adult libraries are not on this list; they have their own separate permission.</string>
+    <string name="access_admins_all">Administrators see every library</string>
+    <string name="access_edit">Change library access</string>
+    <plurals name="access_chosen_count"><item quantity="one">%1$d chosen library</item><item quantity="other">%1$d chosen libraries</item></plurals>
 </resources>

@@ -21,9 +21,6 @@ func (h *Handler) SyncLookup(ctx context.Context, p auth.Principal, itemID uuid.
 	if h.lib() == nil {
 		return syncplay.ItemInfo{}, errStarting
 	}
-	if !canSeeLibraries(p) {
-		return syncplay.ItemInfo{}, syncplay.ErrForbidden
-	}
 	it, _, _, err := h.lib().GetItem(ctx, itemID, stream.Owner(p))
 	if err != nil {
 		return syncplay.ItemInfo{}, err

@@ -2705,6 +2705,12 @@ type CreateInviteRequest struct {
 	ExpiresInHours int                `json:"expiresInHours"`
 	MaxUses        int                `json:"maxUses"`
 	Permissions    OptUserPermissions `json:"permissions"`
+	// Libraries this account may see when permissions.allLibraries is off (D-054). Adult libraries are
+	// never part of it: they have their own grant (D-053).
+	LibraryIds []uuid.UUID `json:"libraryIds"`
+	// With a chosen list (allLibraries off): libraries created later are added to the list automatically.
+	// Default off.
+	NewLibraries OptBool `json:"newLibraries"`
 }
 
 // GetNote returns the value of Note.
@@ -2727,6 +2733,16 @@ func (s *CreateInviteRequest) GetPermissions() OptUserPermissions {
 	return s.Permissions
 }
 
+// GetLibraryIds returns the value of LibraryIds.
+func (s *CreateInviteRequest) GetLibraryIds() []uuid.UUID {
+	return s.LibraryIds
+}
+
+// GetNewLibraries returns the value of NewLibraries.
+func (s *CreateInviteRequest) GetNewLibraries() OptBool {
+	return s.NewLibraries
+}
+
 // SetNote sets the value of Note.
 func (s *CreateInviteRequest) SetNote(val OptString) {
 	s.Note = val
@@ -2745,6 +2761,16 @@ func (s *CreateInviteRequest) SetMaxUses(val int) {
 // SetPermissions sets the value of Permissions.
 func (s *CreateInviteRequest) SetPermissions(val OptUserPermissions) {
 	s.Permissions = val
+}
+
+// SetLibraryIds sets the value of LibraryIds.
+func (s *CreateInviteRequest) SetLibraryIds(val []uuid.UUID) {
+	s.LibraryIds = val
+}
+
+// SetNewLibraries sets the value of NewLibraries.
+func (s *CreateInviteRequest) SetNewLibraries(val OptBool) {
+	s.NewLibraries = val
 }
 
 // Ref: #/components/schemas/CreateSyncGroupRequest
@@ -2803,6 +2829,12 @@ type CreateUserRequest struct {
 	Password    Password           `json:"password"`
 	IsAdmin     OptBool            `json:"isAdmin"`
 	Permissions OptUserPermissions `json:"permissions"`
+	// Libraries this account may see when permissions.allLibraries is off (D-054). Adult libraries are
+	// never part of it: they have their own grant (D-053).
+	LibraryIds []uuid.UUID `json:"libraryIds"`
+	// With a chosen list (allLibraries off): libraries created later are added to the list automatically.
+	// Default off.
+	NewLibraries OptBool `json:"newLibraries"`
 }
 
 // GetUsername returns the value of Username.
@@ -2825,6 +2857,16 @@ func (s *CreateUserRequest) GetPermissions() OptUserPermissions {
 	return s.Permissions
 }
 
+// GetLibraryIds returns the value of LibraryIds.
+func (s *CreateUserRequest) GetLibraryIds() []uuid.UUID {
+	return s.LibraryIds
+}
+
+// GetNewLibraries returns the value of NewLibraries.
+func (s *CreateUserRequest) GetNewLibraries() OptBool {
+	return s.NewLibraries
+}
+
 // SetUsername sets the value of Username.
 func (s *CreateUserRequest) SetUsername(val Username) {
 	s.Username = val
@@ -2843,6 +2885,16 @@ func (s *CreateUserRequest) SetIsAdmin(val OptBool) {
 // SetPermissions sets the value of Permissions.
 func (s *CreateUserRequest) SetPermissions(val OptUserPermissions) {
 	s.Permissions = val
+}
+
+// SetLibraryIds sets the value of LibraryIds.
+func (s *CreateUserRequest) SetLibraryIds(val []uuid.UUID) {
+	s.LibraryIds = val
+}
+
+// SetNewLibraries sets the value of NewLibraries.
+func (s *CreateUserRequest) SetNewLibraries(val OptBool) {
+	s.NewLibraries = val
 }
 
 // Ref: #/components/schemas/CreatedApiKey
@@ -6319,6 +6371,12 @@ type Invite struct {
 	MaxUses     int             `json:"maxUses"`
 	Uses        int             `json:"uses"`
 	Permissions UserPermissions `json:"permissions"`
+	// Libraries this account may see when permissions.allLibraries is off (D-054). Adult libraries are
+	// never part of it: they have their own grant (D-053).
+	LibraryIds []uuid.UUID `json:"libraryIds"`
+	// With a chosen list (allLibraries off): libraries created later are added to the list automatically.
+	// Default off.
+	NewLibraries OptBool `json:"newLibraries"`
 }
 
 // GetID returns the value of ID.
@@ -6361,6 +6419,16 @@ func (s *Invite) GetPermissions() UserPermissions {
 	return s.Permissions
 }
 
+// GetLibraryIds returns the value of LibraryIds.
+func (s *Invite) GetLibraryIds() []uuid.UUID {
+	return s.LibraryIds
+}
+
+// GetNewLibraries returns the value of NewLibraries.
+func (s *Invite) GetNewLibraries() OptBool {
+	return s.NewLibraries
+}
+
 // SetID sets the value of ID.
 func (s *Invite) SetID(val uuid.UUID) {
 	s.ID = val
@@ -6399,6 +6467,16 @@ func (s *Invite) SetUses(val int) {
 // SetPermissions sets the value of Permissions.
 func (s *Invite) SetPermissions(val UserPermissions) {
 	s.Permissions = val
+}
+
+// SetLibraryIds sets the value of LibraryIds.
+func (s *Invite) SetLibraryIds(val []uuid.UUID) {
+	s.LibraryIds = val
+}
+
+// SetNewLibraries sets the value of NewLibraries.
+func (s *Invite) SetNewLibraries(val OptBool) {
+	s.NewLibraries = val
 }
 
 // Ref: #/components/schemas/InviteInfo
@@ -11657,6 +11735,10 @@ type NotificationTarget struct {
 	HasToken OptBool             `json:"hasToken"`
 	Events   []NotificationEvent `json:"events"`
 	Enabled  bool                `json:"enabled"`
+	// Send library events (item.added, playback.started) only for these libraries, e.g. a channel read by
+	// accounts that see only some libraries (D-054). Empty or absent = all. Adult libraries never send
+	// these events (D-053).
+	LibraryIds []uuid.UUID `json:"libraryIds"`
 }
 
 // GetID returns the value of ID.
@@ -11699,6 +11781,11 @@ func (s *NotificationTarget) GetEnabled() bool {
 	return s.Enabled
 }
 
+// GetLibraryIds returns the value of LibraryIds.
+func (s *NotificationTarget) GetLibraryIds() []uuid.UUID {
+	return s.LibraryIds
+}
+
 // SetID sets the value of ID.
 func (s *NotificationTarget) SetID(val uuid.UUID) {
 	s.ID = val
@@ -11737,6 +11824,11 @@ func (s *NotificationTarget) SetEvents(val []NotificationEvent) {
 // SetEnabled sets the value of Enabled.
 func (s *NotificationTarget) SetEnabled(val bool) {
 	s.Enabled = val
+}
+
+// SetLibraryIds sets the value of LibraryIds.
+func (s *NotificationTarget) SetLibraryIds(val []uuid.UUID) {
+	s.LibraryIds = val
 }
 
 type NotificationTargetKind string
@@ -14701,6 +14793,52 @@ func (o OptUserPermissions) Get() (v UserPermissions, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptUserPermissions) Or(d UserPermissions) UserPermissions {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptUsername returns new OptUsername with value set to v.
+func NewOptUsername(v Username) OptUsername {
+	return OptUsername{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUsername is optional Username.
+type OptUsername struct {
+	Value Username
+	Set   bool
+}
+
+// IsSet returns true if OptUsername was set.
+func (o OptUsername) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUsername) Reset() {
+	var v Username
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUsername) SetTo(v Username) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUsername) Get() (v Username, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUsername) Or(d Username) Username {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -19432,12 +19570,33 @@ type UpdateUserDataNoContent struct{}
 
 // Ref: #/components/schemas/UpdateUserRequest
 type UpdateUserRequest struct {
+	Username OptUsername `json:"username"`
+	// Empty clears it.
+	DisplayName OptString          `json:"displayName"`
 	IsAdmin     OptBool            `json:"isAdmin"`
 	Disabled    OptBool            `json:"disabled"`
 	Password    OptPassword        `json:"password"`
 	Permissions OptUserPermissions `json:"permissions"`
+	// Libraries this account may see when permissions.allLibraries is off (D-054). Adult libraries are
+	// never part of it: they have their own grant (D-053).
+	LibraryIds []uuid.UUID `json:"libraryIds"`
+	// With a chosen list (allLibraries off): libraries created later are added to the list automatically.
+	// Default off.
+	NewLibraries OptBool `json:"newLibraries"`
 	// Turn the user's 2FA off (e.g. lost phone); signs them out everywhere.
 	ResetTwoFactor OptBool `json:"resetTwoFactor"`
+	// Revoke every session of the user (API keys stay).
+	SignOutEverywhere OptBool `json:"signOutEverywhere"`
+}
+
+// GetUsername returns the value of Username.
+func (s *UpdateUserRequest) GetUsername() OptUsername {
+	return s.Username
+}
+
+// GetDisplayName returns the value of DisplayName.
+func (s *UpdateUserRequest) GetDisplayName() OptString {
+	return s.DisplayName
 }
 
 // GetIsAdmin returns the value of IsAdmin.
@@ -19460,9 +19619,34 @@ func (s *UpdateUserRequest) GetPermissions() OptUserPermissions {
 	return s.Permissions
 }
 
+// GetLibraryIds returns the value of LibraryIds.
+func (s *UpdateUserRequest) GetLibraryIds() []uuid.UUID {
+	return s.LibraryIds
+}
+
+// GetNewLibraries returns the value of NewLibraries.
+func (s *UpdateUserRequest) GetNewLibraries() OptBool {
+	return s.NewLibraries
+}
+
 // GetResetTwoFactor returns the value of ResetTwoFactor.
 func (s *UpdateUserRequest) GetResetTwoFactor() OptBool {
 	return s.ResetTwoFactor
+}
+
+// GetSignOutEverywhere returns the value of SignOutEverywhere.
+func (s *UpdateUserRequest) GetSignOutEverywhere() OptBool {
+	return s.SignOutEverywhere
+}
+
+// SetUsername sets the value of Username.
+func (s *UpdateUserRequest) SetUsername(val OptUsername) {
+	s.Username = val
+}
+
+// SetDisplayName sets the value of DisplayName.
+func (s *UpdateUserRequest) SetDisplayName(val OptString) {
+	s.DisplayName = val
 }
 
 // SetIsAdmin sets the value of IsAdmin.
@@ -19485,9 +19669,24 @@ func (s *UpdateUserRequest) SetPermissions(val OptUserPermissions) {
 	s.Permissions = val
 }
 
+// SetLibraryIds sets the value of LibraryIds.
+func (s *UpdateUserRequest) SetLibraryIds(val []uuid.UUID) {
+	s.LibraryIds = val
+}
+
+// SetNewLibraries sets the value of NewLibraries.
+func (s *UpdateUserRequest) SetNewLibraries(val OptBool) {
+	s.NewLibraries = val
+}
+
 // SetResetTwoFactor sets the value of ResetTwoFactor.
 func (s *UpdateUserRequest) SetResetTwoFactor(val OptBool) {
 	s.ResetTwoFactor = val
+}
+
+// SetSignOutEverywhere sets the value of SignOutEverywhere.
+func (s *UpdateUserRequest) SetSignOutEverywhere(val OptBool) {
+	s.SignOutEverywhere = val
 }
 
 type UploadBackupReq struct {
@@ -19519,6 +19718,12 @@ type User struct {
 	// Interface language chosen by the user.
 	Language  OptUserLanguage `json:"language"`
 	HasAvatar OptBool         `json:"hasAvatar"`
+	// Libraries this account may see when permissions.allLibraries is off (D-054). Adult libraries are
+	// never part of it: they have their own grant (D-053).
+	LibraryIds []uuid.UUID `json:"libraryIds"`
+	// With a chosen list (allLibraries off): libraries created later are added to the list automatically.
+	// Default off.
+	NewLibraries OptBool `json:"newLibraries"`
 	// The account was given adult access (D-053). On /auth/me: the adult section is available in this
 	// session (access given, an adult library exists, not a kids profile, not an API key).
 	AdultAccess OptBool     `json:"adultAccess"`
@@ -19579,6 +19784,16 @@ func (s *User) GetLanguage() OptUserLanguage {
 // GetHasAvatar returns the value of HasAvatar.
 func (s *User) GetHasAvatar() OptBool {
 	return s.HasAvatar
+}
+
+// GetLibraryIds returns the value of LibraryIds.
+func (s *User) GetLibraryIds() []uuid.UUID {
+	return s.LibraryIds
+}
+
+// GetNewLibraries returns the value of NewLibraries.
+func (s *User) GetNewLibraries() OptBool {
+	return s.NewLibraries
 }
 
 // GetAdultAccess returns the value of AdultAccess.
@@ -19649,6 +19864,16 @@ func (s *User) SetLanguage(val OptUserLanguage) {
 // SetHasAvatar sets the value of HasAvatar.
 func (s *User) SetHasAvatar(val OptBool) {
 	s.HasAvatar = val
+}
+
+// SetLibraryIds sets the value of LibraryIds.
+func (s *User) SetLibraryIds(val []uuid.UUID) {
+	s.LibraryIds = val
+}
+
+// SetNewLibraries sets the value of NewLibraries.
+func (s *User) SetNewLibraries(val OptBool) {
+	s.NewLibraries = val
 }
 
 // SetAdultAccess sets the value of AdultAccess.

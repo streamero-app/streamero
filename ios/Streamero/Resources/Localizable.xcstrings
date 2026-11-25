@@ -19081,6 +19081,180 @@
           }
         }
       }
+    },
+    "access.libraries": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Library access"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pristup bibliotekama"
+          }
+        }
+      }
+    },
+    "access.allLibraries": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All libraries"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sve biblioteke"
+          }
+        }
+      }
+    },
+    "access.allLibrariesHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn off to choose which libraries this account sees."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Isključite za odabir biblioteka koje ovaj račun vidi."
+          }
+        }
+      }
+    },
+    "access.newLibraries": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Libraries created later"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Biblioteke dodane kasnije"
+          }
+        }
+      }
+    },
+    "access.newLibrariesHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "With libraries created later on, new libraries are added to this list automatically."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uz biblioteke dodane kasnije, nove biblioteke automatski se dodaju na ovaj popis."
+          }
+        }
+      }
+    },
+    "access.noLibraries": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "There are no libraries yet."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Još nema biblioteka."
+          }
+        }
+      }
+    },
+    "access.adultNote": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adult libraries are not on this list; they have their own separate permission."
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Biblioteke za odrasle nisu na ovom popisu; za njih postoji zasebno dopuštenje."
+          }
+        }
+      }
+    },
+    "access.adminsAll": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Administrators see every library"
+          }
+        },
+        "hr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Administratori vide sve biblioteke"
+          }
+        }
+      }
+    },
+    "access.chosenN %lld": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld chosen library"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld chosen libraries"
+                }
+              }
+            }
+          }
+        },
+        "hr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld odabrana biblioteka"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld odabrane biblioteke"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld odabranih biblioteka"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

@@ -307,6 +307,9 @@ func (s *Service) Create(ctx context.Context, name, kind string, paths []string)
 	if _, err := s.Pool.Exec(ctx, `INSERT INTO libraries (id, name, kind, paths) VALUES ($1, $2, $3, $4)`, id, name, kind, paths); err != nil {
 		return Library{}, err
 	}
+	if err := s.grantNewLibrary(ctx, id, kind); err != nil {
+		return Library{}, err
+	}
 	if kind == KindAdult {
 		if err := s.purgeUnderAdult(ctx, id, paths); err != nil {
 			return Library{}, err
@@ -489,7 +492,8 @@ func (s *Service) ListItems(ctx context.Context, libID, owner uuid.UUID, sortBy 
 		AND (NOT $5 OR COALESCE(u.favorite, false)) AND (NOT $6 OR (COALESCE(u.position_ms, 0) > 0 AND NOT COALESCE(u.played, false)))
 		AND ($7 = 0 OR i.year >= $7) AND ($8 = 0 OR i.year <= $8)
 		AND ($9 = '' OR ($9 = '#' AND upper(left(i.sort_title, 1)) !~ '^[A-ZČĆĐŠŽ]') OR upper(left(i.sort_title, 1)) = $9)
-		AND (cardinality($11::text[]) = 0 OR i.official_rating IS NULL OR NOT i.official_rating = ANY($11::text[]))`
+		AND (cardinality($11::text[]) = 0 OR i.official_rating IS NULL OR NOT i.official_rating = ANY($11::text[]))
+		AND ` + Visible("i.library_id", "$4")
 	excl := f.ExcludeRatings
 	if excl == nil {
 		excl = []string{}
@@ -520,7 +524,7 @@ func (s *Service) ListItems(ctx context.Context, libID, owner uuid.UUID, sortBy 
 
 // GetItem returns an item with its files and children.
 func (s *Service) GetItem(ctx context.Context, id, owner uuid.UUID) (Item, []MediaFile, []Item, error) {
-	it, err := scanItem(s.Pool.QueryRow(ctx, `SELECT `+itemCols+` FROM items i`+userJoin("$2")+`WHERE i.id = $1`, id, owner))
+	it, err := scanItem(s.Pool.QueryRow(ctx, `SELECT `+itemCols+` FROM items i`+userJoin("$2")+`WHERE i.id = $1 AND `+Visible("i.library_id", "$2"), id, owner))
 	if err != nil {
 		return it, nil, nil, err
 	}
@@ -720,7 +724,7 @@ func (s *Service) saveProgress(ctx context.Context, owner, itemID uuid.UUID, pos
 	}
 	if at == nil {
 		tag, err := s.Pool.Exec(ctx, `INSERT INTO user_item_data (owner_id, item_id, position_ms, played, play_count, last_played_at, progression)
-			SELECT $1, $2, $3, $4, CASE WHEN $4 THEN 1 ELSE 0 END, now(), $5 WHERE EXISTS (SELECT 1 FROM items WHERE id = $2)
+			SELECT $1, $2, $3, $4, CASE WHEN $4 THEN 1 ELSE 0 END, now(), $5 WHERE `+VisibleItem("$2::uuid", "$1")+`
 			ON CONFLICT (owner_id, item_id) DO UPDATE SET position_ms = EXCLUDED.position_ms, last_played_at = now(),
 				play_count = user_item_data.play_count + CASE WHEN EXCLUDED.played AND NOT user_item_data.played THEN 1 ELSE 0 END,
 				played = EXCLUDED.played, progression = COALESCE(EXCLUDED.progression, user_item_data.progression)`,
@@ -739,7 +743,7 @@ func (s *Service) saveProgress(ctx context.Context, owner, itemID uuid.UUID, pos
 		when = now
 	}
 	tag, err := s.Pool.Exec(ctx, `INSERT INTO user_item_data (owner_id, item_id, position_ms, played, play_count, last_played_at, progression)
-		SELECT $1, $2, $3, $4, CASE WHEN $4 THEN 1 ELSE 0 END, $5, $6 WHERE EXISTS (SELECT 1 FROM items WHERE id = $2)
+		SELECT $1, $2, $3, $4, CASE WHEN $4 THEN 1 ELSE 0 END, $5, $6 WHERE `+VisibleItem("$2::uuid", "$1")+`
 		ON CONFLICT (owner_id, item_id) DO UPDATE SET position_ms = EXCLUDED.position_ms, last_played_at = EXCLUDED.last_played_at,
 			play_count = user_item_data.play_count + CASE WHEN EXCLUDED.played AND NOT user_item_data.played THEN 1 ELSE 0 END,
 			played = EXCLUDED.played, progression = COALESCE(EXCLUDED.progression, user_item_data.progression)
@@ -753,7 +757,7 @@ func (s *Service) saveProgress(ctx context.Context, owner, itemID uuid.UUID, pos
 // ContinueWatching returns started, unfinished movies and episodes of owner.
 func (s *Service) ContinueWatching(ctx context.Context, owner uuid.UUID, limit int) ([]Item, error) {
 	rows, err := s.Pool.Query(ctx, `SELECT `+itemCols+` FROM user_item_data u JOIN items i ON i.id = u.item_id
-		WHERE u.owner_id = $1 AND u.position_ms > 0 AND NOT u.played AND i.kind IN ('movie', 'episode')
+		WHERE u.owner_id = $1 AND u.position_ms > 0 AND NOT u.played AND i.kind IN ('movie', 'episode') AND `+Visible("i.library_id", "$1")+`
 		ORDER BY u.last_played_at DESC LIMIT $2`, owner, limit)
 	if err != nil {
 		return nil, err
@@ -823,6 +827,7 @@ func (s *Service) Search(ctx context.Context, owner uuid.UUID, q string, limit i
 			-- typo tolerance: 0.35 keeps swapped letters ("matirx") and drops unrelated titles
 			OR word_similarity($1, lower(COALESCE(i.metadata_title, i.title))) >= 0.35
 			OR EXISTS (SELECT 1 FROM item_people p WHERE p.item_id = i.id AND lower(p.name) LIKE $2))
+			AND `+Visible("i.library_id", "$3")+`
 		ORDER BY (lower(COALESCE(i.metadata_title, i.title)) LIKE $2) DESC,
 			word_similarity($1, lower(COALESCE(i.metadata_title, i.title))) DESC,
 			(i.kind IN ('episode', 'track')), i.sort_title
@@ -832,13 +837,14 @@ func (s *Service) Search(ctx context.Context, owner uuid.UUID, q string, limit i
 // RecentlyAdded returns the newest movies and series.
 func (s *Service) RecentlyAdded(ctx context.Context, owner uuid.UUID, limit int) ([]Item, error) {
 	return s.queryItems(ctx, `SELECT `+itemCols+` FROM items i`+userJoin("$1")+`
-		WHERE i.parent_id IS NULL AND i.kind IN ('movie', 'series') ORDER BY i.added_at DESC LIMIT $2`, owner, limit)
+		WHERE i.parent_id IS NULL AND i.kind IN ('movie', 'series') AND `+Visible("i.library_id", "$1")+`
+		ORDER BY i.added_at DESC LIMIT $2`, owner, limit)
 }
 
 // Favorites returns the owner's favorites, most recently marked first.
 func (s *Service) Favorites(ctx context.Context, owner uuid.UUID, limit int) ([]Item, error) {
 	return s.queryItems(ctx, `SELECT `+itemCols+` FROM user_item_data u JOIN items i ON i.id = u.item_id
-		WHERE u.owner_id = $1 AND u.favorite ORDER BY u.last_played_at DESC LIMIT $2`, owner, limit)
+		WHERE u.owner_id = $1 AND u.favorite AND `+Visible("i.library_id", "$1")+` ORDER BY u.last_played_at DESC LIMIT $2`, owner, limit)
 }
 
 // SetUserData marks an item favorite and/or watched. Watching a series or season
@@ -846,7 +852,7 @@ func (s *Service) Favorites(ctx context.Context, owner uuid.UUID, limit int) ([]
 func (s *Service) SetUserData(ctx context.Context, owner, itemID uuid.UUID, favorite, played *bool) error {
 	return pgx.BeginFunc(ctx, s.Pool, func(tx pgx.Tx) error {
 		var exists bool
-		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM items WHERE id = $1)`, itemID).Scan(&exists); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT `+VisibleItem("$1::uuid", "$2"), itemID, owner).Scan(&exists); err != nil {
 			return err
 		}
 		if !exists {

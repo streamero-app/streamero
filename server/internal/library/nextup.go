@@ -260,6 +260,7 @@ func (s *Service) NextUp(ctx context.Context, owner uuid.UUID, limit int) ([]Ite
 		) nxt ON true
 		JOIN items i ON i.id = nxt.id
 		LEFT JOIN user_item_data u ON u.item_id = i.id AND u.owner_id = $1
+		WHERE `+Visible("i.library_id", "$1")+`
 		ORDER BY w.last_played_at DESC LIMIT $2`, owner, limit)
 	if err != nil {
 		return nil, err
@@ -281,7 +282,8 @@ func (s *Service) NextEpisode(ctx context.Context, owner, id uuid.UUID) (Item, e
 			ORDER BY COALESCE(e.season_number, 1), e.episode_number LIMIT 1
 		) nxt ON true
 		JOIN items i ON i.id = nxt.id
-		LEFT JOIN user_item_data u ON u.item_id = i.id AND u.owner_id = $1`, owner, id)
+		LEFT JOIN user_item_data u ON u.item_id = i.id AND u.owner_id = $1
+		WHERE `+Visible("i.library_id", "$1"), owner, id)
 	if err != nil {
 		return Item{}, err
 	}
