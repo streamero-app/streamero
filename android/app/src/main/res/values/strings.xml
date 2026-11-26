@@ -831,4 +831,39 @@
     <string name="access_admins_all">Administrators see every library</string>
     <string name="access_edit">Change library access</string>
     <plurals name="access_chosen_count"><item quantity="one">%1$d chosen library</item><item quantity="other">%1$d chosen libraries</item></plurals>
+    <!-- Adult section navigation, galleries and tags (D-058). -->
+    <string name="adult_home">Home</string>
+    <string name="adult_photos">Photos</string>
+    <string name="adult_search_section">Search the adult section</string>
+    <string name="adult_sort_oldest">Oldest first</string>
+    <string name="adult_sort_duration">Longest</string>
+    <string name="adult_sort_images">Most pictures</string>
+    <string name="adult_sort_count">Most content</string>
+    <string name="adult_sort_name">Name</string>
+    <string name="adult_favorite">Favourite</string>
+    <string name="adult_favorites_only">Favourites</string>
+    <string name="adult_make_favorite">Add to favourites</string>
+    <string name="adult_gender">Gender</string>
+    <string name="adult_scenes_and_movies">Scenes and movies</string>
+    <string name="adult_scene_galleries">Galleries of this scene</string>
+    <string name="adult_hide_tagged">Also hide what has a hidden tag</string>
+    <string name="adult_hide_tagged_hint">Scenes and galleries with any of your hidden tags (%1$d) are left out everywhere in this section.</string>
+    <string name="adult_search_galleries">Galleries, studios, performers…</string>
+    <string name="adult_view_gallery">View</string>
+    <string name="adult_from_scene">From the scene %1$s</string>
+    <string name="adult_slideshow">Start slideshow</string>
+    <string name="adult_slideshow_stop">Stop slideshow</string>
+    <string name="adult_continue">Continue watching</string>
+    <string name="adult_recently_added">Recently added</string>
+    <string name="adult_favorite_scenes">New from your favourite performers</string>
+    <string name="adult_recent_galleries">New galleries</string>
+    <string name="adult_recently_released">Recently released</string>
+    <string name="adult_search_tags">Search tags</string>
+    <string name="adult_show_hidden_tags">Hidden (%1$d)</string>
+    <string name="adult_tags_hint">Tags come from ThePornDB and StashDB. Hidden tags disappear from lists; in the section settings you can also hide everything that carries them.</string>
+    <string name="adult_show_tag">Show this tag again</string>
+    <string name="adult_hide_tag">Hide this tag</string>
+    <string name="adult_no_tags">No tags yet. They come from ThePornDB and StashDB.</string>
+    <plurals name="adult_galleries_count"><item quantity="one">%1$d gallery</item><item quantity="other">%1$d galleries</item></plurals>
+    <plurals name="adult_pictures_count"><item quantity="one">%1$d picture</item><item quantity="other">%1$d pictures</item></plurals>
 </resources>

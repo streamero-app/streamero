@@ -14,6 +14,12 @@ type Handler interface {
 	//
 	// POST /invite/{token}
 	AcceptInvite(ctx context.Context, req *AcceptInviteRequest, params AcceptInviteParams) (*SignedInHeaders, error)
+	// AddAdultFavoritePerformer implements addAdultFavoritePerformer operation.
+	//
+	// Mark a performer as a favourite of the viewer (D-058).
+	//
+	// PUT /adult/performers/{performerId}/favorite
+	AddAdultFavoritePerformer(ctx context.Context, params AddAdultFavoritePerformerParams) error
 	// AddLiveTvFavorite implements addLiveTvFavorite operation.
 	//
 	// Mark a channel as a favourite of the viewer (profile or account).
@@ -330,6 +336,24 @@ type Handler interface {
 	//
 	// GET /admin/activity
 	GetActivity(ctx context.Context, params GetActivityParams) (*ActivityPage, error)
+	// GetAdultGallery implements getAdultGallery operation.
+	//
+	// One gallery with its pictures in order.
+	//
+	// GET /adult/galleries/{galleryId}
+	GetAdultGallery(ctx context.Context, params GetAdultGalleryParams) (*AdultGalleryDetail, error)
+	// GetAdultGalleryImage implements getAdultGalleryImage operation.
+	//
+	// A gallery picture (never cached by the browser).
+	//
+	// GET /adult/gallery-images/{imageId}/{variant}
+	GetAdultGalleryImage(ctx context.Context, params GetAdultGalleryImageParams) (GetAdultGalleryImageRes, error)
+	// GetAdultHome implements getAdultHome operation.
+	//
+	// Continue watching reads adult progress only; nothing here appears on the regular home page.
+	//
+	// GET /adult/home
+	GetAdultHome(ctx context.Context) (*AdultHome, error)
 	// GetAdultImage implements getAdultImage operation.
 	//
 	// Artwork of a scene, studio or performer (JPEG, never cached by the browser).
@@ -649,9 +673,15 @@ type Handler interface {
 	//
 	// GET /apikeys
 	ListAPIKeys(ctx context.Context) ([]ApiKey, error)
+	// ListAdultGalleries implements listAdultGalleries operation.
+	//
+	// Galleries (image sets) of the adult libraries (D-058).
+	//
+	// GET /adult/galleries
+	ListAdultGalleries(ctx context.Context, params ListAdultGalleriesParams) (*AdultGalleryPage, error)
 	// ListAdultPerformers implements listAdultPerformers operation.
 	//
-	// Performers with scene counts.
+	// Performers with scene and gallery counts.
 	//
 	// GET /adult/performers
 	ListAdultPerformers(ctx context.Context, params ListAdultPerformersParams) (*AdultPerformerPage, error)
@@ -663,10 +693,16 @@ type Handler interface {
 	ListAdultScenes(ctx context.Context, params ListAdultScenesParams) (*AdultScenePage, error)
 	// ListAdultStudios implements listAdultStudios operation.
 	//
-	// Studios with scene counts.
+	// Studios with scene and gallery counts.
 	//
 	// GET /adult/studios
 	ListAdultStudios(ctx context.Context, params ListAdultStudiosParams) (*AdultStudioPage, error)
+	// ListAdultTags implements listAdultTags operation.
+	//
+	// The viewer's hidden tags are left out unless `includeHidden` is set.
+	//
+	// GET /adult/tags
+	ListAdultTags(ctx context.Context, params ListAdultTagsParams) (*AdultTagPage, error)
 	// ListArrServices implements listArrServices operation.
 	//
 	// Always all six services, in this order: radarr, sonarr, lidarr, prowlarr, bazarr, seerr. `reachable`
@@ -974,6 +1010,12 @@ type Handler interface {
 	//
 	// POST /livetv/tuners/{tunerId}/refresh
 	RefreshLiveTvTuner(ctx context.Context, params RefreshLiveTvTunerParams) (*LiveTvTuner, error)
+	// RemoveAdultFavoritePerformer implements removeAdultFavoritePerformer operation.
+	//
+	// Unmark a favourite performer.
+	//
+	// DELETE /adult/performers/{performerId}/favorite
+	RemoveAdultFavoritePerformer(ctx context.Context, params RemoveAdultFavoritePerformerParams) error
 	// RemoveLiveTvFavorite implements removeLiveTvFavorite operation.
 	//
 	// Remove a channel from the viewer's favourites.
@@ -1043,6 +1085,12 @@ type Handler interface {
 	//
 	// GET /search
 	Search(ctx context.Context, params SearchParams) ([]ItemSummary, error)
+	// SearchAdult implements searchAdult operation.
+	//
+	// The regular `/search` never returns adult content.
+	//
+	// GET /adult/search
+	SearchAdult(ctx context.Context, params SearchAdultParams) (*AdultSearchResult, error)
 	// SearchMissingSubtitles implements searchMissingSubtitles operation.
 	//
 	// Let Bazarr fetch the missing languages of its profile on its own.

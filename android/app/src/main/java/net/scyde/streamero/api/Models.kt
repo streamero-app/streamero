@@ -1,5 +1,6 @@
 package net.scyde.streamero.api
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 
@@ -325,14 +326,18 @@ import kotlinx.serialization.json.JsonElement
 )
 
 // Adult section (D-053). Every /adult endpoint answers 404 to accounts without access.
-@Serializable data class AdultLibrary(val id: String, val name: String, val sceneCount: Int = 0)
+@Serializable data class AdultLibrary(val id: String, val name: String, val sceneCount: Int = 0, val galleryCount: Int = 0)
 @Serializable data class AdultStatus(
     val pinSet: Boolean = false, val unlocked: Boolean = true, val blur: Boolean = true,
     val metadataConfigured: Boolean = false, val libraries: List<AdultLibrary> = emptyList(),
+    val hiddenTags: List<String> = emptyList(), val hideTagged: Boolean = false, val canDownload: Boolean = false,
 )
 @Serializable data class AdultUnlockRequest(val pin: String)
 /** PUT body of /adult/preferences; absent fields are left unchanged, an empty [pin] removes it. */
-@Serializable data class AdultPreferencesInput(val blur: Boolean? = null, val pin: String? = null, val currentPin: String? = null)
+@Serializable data class AdultPreferencesInput(
+    val blur: Boolean? = null, val pin: String? = null, val currentPin: String? = null,
+    val hiddenTags: List<String>? = null, val hideTagged: Boolean? = null,
+)
 @Serializable data class AdultRef(val id: String, val name: String)
 @Serializable data class AdultScene(
     val id: String, val libraryId: String = "", val kind: String = "scene", val title: String,
@@ -356,18 +361,45 @@ import kotlinx.serialization.json.JsonElement
     val positionMs: Long = 0, val played: Boolean = false, val addedAt: String = "",
     val description: String? = null, val url: String? = null, val files: List<AdultFile> = emptyList(),
     val providerIds: Map<String, String> = emptyMap(), val metadataError: String? = null,
+    val galleries: List<AdultGallery> = emptyList(),
 ) {
     val progress: Float get() = if (durationMs != null && durationMs > 0 && positionMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
 }
 @Serializable data class AdultScenePage(val items: List<AdultScene> = emptyList(), val total: Int = 0)
 @Serializable data class AdultStudio(
-    val id: String, val name: String, val sceneCount: Int = 0, val hasImage: Boolean = false,
+    val id: String, val name: String, val sceneCount: Int = 0, val galleryCount: Int = 0, val hasImage: Boolean = false,
     val url: String? = null, val parent: String? = null,
 )
 @Serializable data class AdultStudioPage(val items: List<AdultStudio> = emptyList(), val total: Int = 0)
 @Serializable data class AdultPerformer(
-    val id: String, val name: String, val sceneCount: Int = 0, val hasImage: Boolean = false,
-    val aliases: List<String> = emptyList(), val gender: String? = null, val birthdate: String? = null,
+    val id: String, val name: String, val sceneCount: Int = 0, val galleryCount: Int = 0, val hasImage: Boolean = false,
+    val favorite: Boolean = false, val aliases: List<String> = emptyList(), val gender: String? = null, val birthdate: String? = null,
     val country: String? = null, val description: String? = null,
 )
 @Serializable data class AdultPerformerPage(val items: List<AdultPerformer> = emptyList(), val total: Int = 0)
+// Galleries, tags, home and search of the adult section (D-058).
+@Serializable data class AdultGallery(
+    val id: String, val libraryId: String = "", val title: String, val date: String? = null, val year: Int? = null,
+    val studio: AdultRef? = null, val scene: AdultRef? = null, val performers: List<AdultRef> = emptyList(),
+    val tags: List<String> = emptyList(), val imageCount: Int = 0, val coverImageId: String? = null, val addedAt: String = "",
+)
+@Serializable data class AdultGalleryImage(val id: String, val position: Int = 0, val name: String = "", val width: Int? = null, val height: Int? = null)
+/** AdultGalleryDetail: the gallery's fields (allOf AdultGallery) plus its pictures in order. */
+@Serializable data class AdultGalleryDetail(
+    val id: String, val libraryId: String = "", val title: String, val date: String? = null, val year: Int? = null,
+    val studio: AdultRef? = null, val scene: AdultRef? = null, val performers: List<AdultRef> = emptyList(),
+    val tags: List<String> = emptyList(), val imageCount: Int = 0, val coverImageId: String? = null, val addedAt: String = "",
+    val images: List<AdultGalleryImage> = emptyList(),
+)
+@Serializable data class AdultGalleryPage(val items: List<AdultGallery> = emptyList(), val total: Int = 0)
+@Serializable data class AdultTag(val name: String, val sceneCount: Int = 0, val galleryCount: Int = 0, val hidden: Boolean = false)
+@Serializable data class AdultTagPage(val items: List<AdultTag> = emptyList(), val total: Int = 0)
+@Serializable data class AdultHome(
+    @SerialName("continue") val continueWatching: List<AdultScene> = emptyList(), val recentlyAdded: List<AdultScene> = emptyList(),
+    val recentlyReleased: List<AdultScene> = emptyList(), val favoritePerformers: List<AdultScene> = emptyList(),
+    val recentGalleries: List<AdultGallery> = emptyList(),
+)
+@Serializable data class AdultSearchResult(
+    val scenes: List<AdultScene> = emptyList(), val galleries: List<AdultGallery> = emptyList(),
+    val performers: List<AdultPerformer> = emptyList(), val studios: List<AdultStudio> = emptyList(), val tags: List<AdultTag> = emptyList(),
+)

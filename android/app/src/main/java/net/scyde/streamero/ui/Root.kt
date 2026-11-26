@@ -221,6 +221,12 @@ private fun Routes(state: AppState, nav: NavHostController, onSignedOut: () -> U
         composable("adult/scene/{id}") { AdultSceneScreen(state, nav, it.arguments?.getString("id")!!) }
         composable("adult/studio/{id}") { AdultStudioScreen(state, nav, it.arguments?.getString("id")!!) }
         composable("adult/performer/{id}") { AdultPerformerScreen(state, nav, it.arguments?.getString("id")!!) }
+        composable("adult/gallery/{id}") { AdultGalleryScreen(state, nav, it.arguments?.getString("id")!!) }
+        composable("adult/gallery/{id}/view/{index}", arguments = listOf(navArgument("index") { type = NavType.IntType; defaultValue = 0 })) {
+            AdultGalleryViewer(state, nav, it.arguments?.getString("id")!!, it.arguments?.getInt("index") ?: 0)
+        }
+        composable("adult/tag/{tag}") { AdultTagScreen(state, nav, it.arguments?.getString("tag").orEmpty()) }
+        composable("adult/search/{q}") { AdultSearchScreen(state, nav, it.arguments?.getString("q").orEmpty()) }
         composable("watchadult/{id}?start={start}", arguments = listOf(navArgument("start") { type = NavType.LongType; defaultValue = -1L })) {
             val a = it.arguments!!
             PlayerScreen(state, nav, a.getString("id")!!, a.getLong("start").takeIf { s -> s >= 0 }, null, null, null, adult = true)

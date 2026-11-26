@@ -65,4 +65,28 @@ class AdultLogicTest {
         assertFalse(off.blurred("scene:1"))
         assertFalse(off.reveal("scene:1"))
     }
+
+    @Test fun galleryFilterLeavesDefaultsOut() {
+        val q = AdultGalleryFilter(q = "  set ", sort = "date", tag = "Outdoor").query(60, 60)
+        assertEquals("set", q["q"])
+        assertEquals(null, q["sort"])
+        assertEquals("Outdoor", q["tag"])
+        assertEquals("added", AdultGalleryFilter(sort = "added").query(0, 1)["sort"])
+    }
+
+    @Test fun hidingTagsIsCaseInsensitive() {
+        assertEquals(listOf("Outdoor"), toggleHiddenTag(emptyList(), "Outdoor"))
+        assertEquals(emptyList<String>(), toggleHiddenTag(listOf("outdoor"), "Outdoor"))
+    }
+
+    @Test fun picturesWrapAround() {
+        assertEquals(1, nextPicture(0, 1, 3))
+        assertEquals(0, nextPicture(2, 1, 3))
+        assertEquals(2, nextPicture(0, -1, 3))
+        assertEquals(0, nextPicture(0, 1, 0))
+    }
+
+    @Test fun navigationHasEveryPlace() {
+        assertEquals(listOf("Home", "Scenes", "Movies", "Photos", "Performers", "Studios", "Tags"), AdultPlace.entries.map { it.name })
+    }
 }

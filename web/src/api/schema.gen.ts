@@ -3100,7 +3100,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Studios with scene counts */
+        /** Studios with scene and gallery counts */
         get: operations["listAdultStudios"];
         put?: never;
         post?: never;
@@ -3136,7 +3136,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Performers with scene counts */
+        /** Performers with scene and gallery counts */
         get: operations["listAdultPerformers"];
         put?: never;
         post?: never;
@@ -3157,6 +3157,147 @@ export interface paths {
         };
         /** One performer */
         get: operations["getAdultPerformer"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adult/performers/{performerId}/favorite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                performerId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Mark a performer as a favourite of the viewer (D-058) */
+        put: operations["addAdultFavoritePerformer"];
+        post?: never;
+        /** Unmark a favourite performer */
+        delete: operations["removeAdultFavoritePerformer"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adult/home": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Start page of the adult section (D-058)
+         * @description Continue watching reads adult progress only; nothing here appears on the regular home page.
+         */
+        get: operations["getAdultHome"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adult/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search inside the adult section (scenes, galleries, performers, studios, tags)
+         * @description The regular `/search` never returns adult content.
+         */
+        get: operations["searchAdult"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adult/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tags of scenes and galleries (from ThePornDB / StashDB)
+         * @description The viewer's hidden tags are left out unless `includeHidden` is set.
+         */
+        get: operations["listAdultTags"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adult/galleries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Galleries (image sets) of the adult libraries (D-058) */
+        get: operations["listAdultGalleries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adult/galleries/{galleryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                galleryId: string;
+            };
+            cookie?: never;
+        };
+        /** One gallery with its pictures in order */
+        get: operations["getAdultGallery"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/adult/gallery-images/{imageId}/{variant}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                imageId: string;
+                /**
+                 * @description `thumb` (a JPEG thumbnail made and cached on the server), `full` (the picture;
+                 *     HEIC/AVIF converted to JPEG) or `download` (the original file as an attachment;
+                 *     403 `forbidden` without the download permission).
+                 */
+                variant: "thumb" | "full" | "download";
+            };
+            cookie?: never;
+        };
+        /** A gallery picture (never cached by the browser) */
+        get: operations["getAdultGalleryImage"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3235,6 +3376,12 @@ export interface components {
         /** @enum {string} */
         AdultSceneKind: "scene" | "movie";
         AdultStatus: {
+            /** @description Tags the viewer does not want to see (left out of tag lists and cards). */
+            hiddenTags: string[];
+            /** @description Also hide scenes and galleries that carry a hidden tag. */
+            hideTagged: boolean;
+            /** @description The account may download gallery originals (its download permission). */
+            canDownload: boolean;
             /** @description The viewer asked for a PIN before entering the section. */
             pinSet: boolean;
             /** @description The section is open in this session (always true without a PIN). */
@@ -3250,6 +3397,7 @@ export interface components {
             id: string;
             name: string;
             sceneCount: number;
+            galleryCount: number;
         };
         AdultUnlockRequest: {
             pin: string;
@@ -3260,6 +3408,9 @@ export interface components {
             pin?: string;
             /** @description Needed to change or remove an existing PIN. */
             currentPin?: string;
+            /** @description Replaces the list of hidden tags. */
+            hiddenTags?: string[];
+            hideTagged?: boolean;
         };
         AdultAccessInput: {
             enabled: boolean;
@@ -3308,6 +3459,8 @@ export interface components {
             addedAt: string;
         };
         AdultSceneDetail: components["schemas"]["AdultScene"] & {
+            /** @description Galleries that belong to this scene. */
+            galleries: components["schemas"]["AdultGallery"][];
             description?: string;
             /** @description Page of the scene at the studio (from the metadata source). */
             url?: string;
@@ -3341,6 +3494,7 @@ export interface components {
             id: string;
             name: string;
             sceneCount: number;
+            galleryCount: number;
             hasImage: boolean;
             url?: string;
             /** @description Network the studio belongs to. */
@@ -3355,6 +3509,9 @@ export interface components {
             id: string;
             name: string;
             sceneCount: number;
+            galleryCount: number;
+            /** @description The viewer marked the performer as a favourite. */
+            favorite: boolean;
             hasImage: boolean;
             aliases: string[];
             gender?: string;
@@ -3365,6 +3522,70 @@ export interface components {
         AdultPerformerPage: {
             items: components["schemas"]["AdultPerformer"][];
             total: number;
+        };
+        AdultGallery: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            libraryId: string;
+            title: string;
+            /** Format: date */
+            date?: string;
+            year?: number;
+            studio?: components["schemas"]["AdultRef"];
+            scene?: components["schemas"]["AdultRef"];
+            performers: components["schemas"]["AdultRef"][];
+            tags: string[];
+            imageCount: number;
+            /**
+             * Format: uuid
+             * @description Picture shown as the gallery's cover (`/adult/gallery-images/{id}/thumb`).
+             */
+            coverImageId?: string;
+            /** Format: date-time */
+            addedAt: string;
+        };
+        AdultGalleryDetail: components["schemas"]["AdultGallery"] & {
+            images: components["schemas"]["AdultGalleryImage"][];
+        };
+        AdultGalleryImage: {
+            /** Format: uuid */
+            id: string;
+            position: number;
+            /** @description File name (without the folder). */
+            name: string;
+            /** @description As shown (EXIF orientation applied). */
+            width?: number;
+            height?: number;
+        };
+        AdultGalleryPage: {
+            items: components["schemas"]["AdultGallery"][];
+            total: number;
+        };
+        AdultTag: {
+            name: string;
+            sceneCount: number;
+            galleryCount: number;
+            hidden: boolean;
+        };
+        AdultTagPage: {
+            items: components["schemas"]["AdultTag"][];
+            total: number;
+        };
+        AdultHome: {
+            continue: components["schemas"]["AdultScene"][];
+            recentlyAdded: components["schemas"]["AdultScene"][];
+            recentlyReleased: components["schemas"]["AdultScene"][];
+            /** @description Newest scenes of the viewer's favourite performers. */
+            favoritePerformers: components["schemas"]["AdultScene"][];
+            recentGalleries: components["schemas"]["AdultGallery"][];
+        };
+        AdultSearchResult: {
+            scenes: components["schemas"]["AdultScene"][];
+            galleries: components["schemas"]["AdultGallery"][];
+            performers: components["schemas"]["AdultPerformer"][];
+            studios: components["schemas"]["AdultStudio"][];
+            tags: components["schemas"]["AdultTag"][];
         };
         /** @description Case-insensitive; letters, digits, space and . _ - @ */
         Username: string;
@@ -10438,9 +10659,11 @@ export interface operations {
                 q?: string;
                 tag?: string;
                 year?: number;
+                /** @description Only scenes with a performer the viewer marked as a favourite. */
+                favoritePerformers?: boolean;
                 /** @description `unwatched`, `inProgress` (continue watching) or `watched`. */
                 status?: "all" | "unwatched" | "inProgress" | "watched";
-                sort?: "date" | "added" | "title" | "played";
+                sort?: "date" | "oldest" | "added" | "title" | "played" | "duration";
                 offset?: number;
                 limit?: number;
             };
@@ -10563,6 +10786,8 @@ export interface operations {
     listAdultStudios: {
         parameters: {
             query?: {
+                /** @description `count` (most scenes and galleries first) or `name`. */
+                sort?: "count" | "name";
                 q?: string;
                 offset?: number;
                 limit?: number;
@@ -10611,6 +10836,10 @@ export interface operations {
     listAdultPerformers: {
         parameters: {
             query?: {
+                /** @description `count` (most scenes and galleries first) or `name`. */
+                sort?: "count" | "name";
+                /** @description Only the viewer's favourite performers. */
+                favorites?: boolean;
                 q?: string;
                 offset?: number;
                 limit?: number;
@@ -10651,6 +10880,210 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdultPerformer"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    addAdultFavoritePerformer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                performerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Marked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    removeAdultFavoritePerformer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                performerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unmarked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getAdultHome: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Rows */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdultHome"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    searchAdult: {
+        parameters: {
+            query: {
+                q: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Matches by kind */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdultSearchResult"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listAdultTags: {
+        parameters: {
+            query?: {
+                q?: string;
+                sort?: "count" | "name";
+                includeHidden?: boolean;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of tags */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdultTagPage"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listAdultGalleries: {
+        parameters: {
+            query?: {
+                libraryId?: string;
+                studioId?: string;
+                performerId?: string;
+                sceneId?: string;
+                q?: string;
+                tag?: string;
+                year?: number;
+                sort?: "date" | "oldest" | "added" | "title" | "images";
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of galleries */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdultGalleryPage"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getAdultGallery: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                galleryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Gallery */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdultGalleryDetail"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getAdultGalleryImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                imageId: string;
+                /**
+                 * @description `thumb` (a JPEG thumbnail made and cached on the server), `full` (the picture;
+                 *     HEIC/AVIF converted to JPEG) or `download` (the original file as an attachment;
+                 *     403 `forbidden` without the download permission).
+                 */
+                variant: "thumb" | "full" | "download";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Picture */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Disposition"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": string;
+                    "image/png": string;
+                    "image/webp": string;
+                    "image/gif": string;
+                    "application/octet-stream": string;
                 };
             };
             default: components["responses"]["Error"];

@@ -1,63 +1,18 @@
-import { useEffect, useMemo, useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, Navigate, Outlet, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Building2, Eye, Lock, Play, RotateCcw, Search, Settings2, UserRound, X } from "lucide-react";
+import { Building2, Clapperboard, Film, Heart, House, Images, Lock, Play, RotateCcw, Search, Settings2, Tag, UserRound, X } from "lucide-react";
 import { api, unwrap } from "@/api/client";
-import { Art, Badge, Button, ErrorText, Select, Spinner, TextField } from "@/components/ui";
+import { Badge, Button, ErrorText, Select, Spinner, TextField } from "@/components/ui";
 import { canAdminister, useMe } from "@/features/auth/useAuth";
-import { formatDuration, formatSize, placeholderHue } from "@/features/library/format";
+import { formatDuration, formatSize } from "@/features/library/format";
 import {
   adultImage, fetchScenes, formatDate, isLocked, PAGE, sceneProgress, statusKey, useAdultStatus,
   type AdultPerformer, type AdultScene, type AdultStudio, type SceneQuery,
 } from "./api";
-
-/**
- * Artwork that stays blurred until it is clicked (when the viewer keeps blurring
- * on). The first click on a blurred picture only reveals it.
- */
-export function BlurArt({ src, blur, className = "", fallback }: { src?: string; blur: boolean; className?: string; fallback: ReactNode }) {
-  const { t } = useTranslation();
-  const [shown, setShown] = useState(false);
-  const [broken, setBroken] = useState(false);
-  const hidden = blur && !shown;
-  if (!src || broken) return <>{fallback}</>;
-  const reveal = (e: MouseEvent) => {
-    if (!hidden) return;
-    e.preventDefault();
-    e.stopPropagation();
-    setShown(true);
-  };
-  return (
-    <div className={`absolute inset-0 overflow-hidden ${className}`} onClickCapture={reveal}>
-      <Art src={src} onError={() => setBroken(true)}
-        className={`absolute inset-0 size-full object-cover transition-[filter,transform] duration-500 ease-out ${hidden ? "scale-110 blur-2xl" : ""}`} />
-      {hidden && (
-        <button type="button" onClick={reveal} data-testid="adult-reveal"
-          className="absolute inset-0 grid place-items-center bg-black/25 text-text/85 transition-colors hover:bg-black/10">
-          <span className="flex items-center gap-1.5 rounded-full bg-black/55 px-3 py-1.5 text-xs font-semibold backdrop-blur-md">
-            <Eye className="size-3.5" aria-hidden />{t("adult.reveal")}
-          </span>
-        </button>
-      )}
-    </div>
-  );
-}
-
-function Monogram({ name, round = false }: { name: string; round?: boolean }) {
-  const hue = placeholderHue(name);
-  return (
-    <div className={`absolute inset-0 grid place-items-center ${round ? "rounded-full" : ""}`}
-      style={{ background: `linear-gradient(150deg, hsl(${hue} 22% 22%) 0%, hsl(${(hue + 30) % 360} 14% 10%) 80%)` }}>
-      <span className="font-display text-[clamp(1.5rem,4vw,2.6rem)] text-text/80">{name.slice(0, 1).toUpperCase()}</span>
-    </div>
-  );
-}
-
-function useBlur(): boolean {
-  const { data } = useAdultStatus();
-  return data?.blur ?? true;
-}
+import { BlurArt, Breadcrumbs, Monogram, SearchField, useBlur } from "./AdultCommon";
+import { GalleryGrid } from "./AdultGalleries";
 
 export function SceneCard({ scene }: { scene: AdultScene }) {
   const { t, i18n } = useTranslation();
@@ -93,7 +48,7 @@ export function SceneCard({ scene }: { scene: AdultScene }) {
 }
 
 /** A grid of scenes with "load more". */
-function SceneGrid({ query, empty }: { query: SceneQuery; empty?: ReactNode }) {
+export function SceneGrid({ query, empty }: { query: SceneQuery; empty?: ReactNode }) {
   const { t } = useTranslation();
   const scenes = useInfiniteQuery({
     queryKey: ["adult", "scenes", query],
@@ -123,83 +78,55 @@ function SceneGrid({ query, empty }: { query: SceneQuery; empty?: ReactNode }) {
   );
 }
 
-function SearchField({ value, onChange, label }: { value: string; onChange: (v: string) => void; label: string }) {
-  const [text, setText] = useState(value);
-  useEffect(() => setText(value), [value]);
-  useEffect(() => {
-    const id = window.setTimeout(() => text !== value && onChange(text.trim()), 300);
-    return () => window.clearTimeout(id);
-  }, [text]); // eslint-disable-line react-hooks/exhaustive-deps
-  return (
-    <label className="relative flex min-w-0 flex-1 basis-56 items-center">
-      <Search className="pointer-events-none absolute left-3 size-4 text-muted" aria-hidden />
-      <input type="search" value={text} onChange={(e) => setText(e.target.value)} aria-label={label} placeholder={label}
-        className="h-9 w-full rounded-[6px] border border-border bg-white/[0.05] pr-3 pl-9 text-sm text-text placeholder:text-faint focus:border-accent/70 focus-visible:outline-none" />
-    </label>
-  );
-}
+export type ScenesSearch = { q?: string; status?: "unwatched" | "inProgress" | "watched"; sort?: "oldest" | "added" | "title" | "played" | "duration"; tag?: string };
 
-type ScenesSearch = { q?: string; kind?: "scene" | "movie"; status?: "unwatched" | "inProgress" | "watched"; sort?: "added" | "title" | "played"; tag?: string };
-
-/** Scenes and movies with search and filters (kept in the address). */
-export function AdultScenesPage() {
+/** Scenes or movies with search, filters and sort (kept in the address). */
+function ScenesBrowser({ kind }: { kind: "scene" | "movie" }) {
   const { t } = useTranslation();
-  const search = useSearch({ from: "/app/adult/" });
-  const navigate = useNavigate({ from: "/adult/" });
-  const set = (patch: Partial<ScenesSearch>) => void navigate({ search: (s: ScenesSearch) => ({ ...s, ...patch }), replace: true });
-  const filtered = !!(search.q || search.kind || search.status || search.tag);
-  return (
-    <div className="flex flex-col gap-8">
-      {!filtered && <ContinueRow />}
-      <section>
-        <div className="mb-5 flex flex-wrap items-center gap-2">
-          <SearchField value={search.q ?? ""} onChange={(q) => set({ q: q || undefined })} label={t("adult.searchScenes")} />
-          <Select aria-label={t("adult.kind")} value={search.kind ?? ""} onChange={(e) => set({ kind: (e.target.value || undefined) as ScenesSearch["kind"] })}>
-            <option value="">{t("adult.kindAll")}</option>
-            <option value="scene">{t("adult.kindScene")}</option>
-            <option value="movie">{t("adult.kindMovie")}</option>
-          </Select>
-          <Select aria-label={t("adult.status")} value={search.status ?? ""} onChange={(e) => set({ status: (e.target.value || undefined) as ScenesSearch["status"] })}>
-            <option value="">{t("adult.statusAll")}</option>
-            <option value="unwatched">{t("adult.statusUnwatched")}</option>
-            <option value="inProgress">{t("adult.statusInProgress")}</option>
-            <option value="watched">{t("adult.statusWatched")}</option>
-          </Select>
-          <Select aria-label={t("adult.sort")} value={search.sort ?? "date"} onChange={(e) => set({ sort: e.target.value === "date" ? undefined : e.target.value as ScenesSearch["sort"] })}>
-            <option value="date">{t("adult.sortDate")}</option>
-            <option value="added">{t("adult.sortAdded")}</option>
-            <option value="title">{t("adult.sortTitle")}</option>
-            <option value="played">{t("adult.sortPlayed")}</option>
-          </Select>
-          {search.tag && (
-            <button type="button" onClick={() => set({ tag: undefined })} className="inline-flex h-9 items-center gap-1.5 rounded-[6px] bg-white/[0.08] px-3 text-sm">
-              #{search.tag}<X className="size-3.5" aria-label={t("adult.clearTag")} />
-            </button>
-          )}
-        </div>
-        <SceneGrid query={{ q: search.q, kind: search.kind, status: search.status, sort: search.sort, tag: search.tag }} />
-      </section>
-    </div>
-  );
-}
-
-function ContinueRow() {
-  const { t } = useTranslation();
-  const scenes = useQuery({ queryKey: ["adult", "continue"], queryFn: () => fetchScenes({ status: "inProgress" }, 0) });
-  const items = scenes.data?.items.slice(0, 8) ?? [];
-  if (items.length === 0) return null;
+  const search = useSearch({ strict: false }) as ScenesSearch;
+  const navigate = useNavigate();
+  const set = (patch: Partial<ScenesSearch>) => void navigate({ to: ".", search: ((s: ScenesSearch) => ({ ...s, ...patch })) as never, replace: true });
   return (
     <section>
-      <h2 className="mb-3 font-head text-lg">{t("adult.continue")}</h2>
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))] gap-4">
-        {items.map((s) => <SceneCard key={s.id} scene={s} />)}
+      <div className="mb-5 flex flex-wrap items-center gap-2">
+        <SearchField value={search.q ?? ""} onChange={(q) => set({ q: q || undefined })} label={t("adult.searchScenes")} />
+        <Select aria-label={t("adult.status")} value={search.status ?? ""} onChange={(e) => set({ status: (e.target.value || undefined) as ScenesSearch["status"] })}>
+          <option value="">{t("adult.statusAll")}</option>
+          <option value="unwatched">{t("adult.statusUnwatched")}</option>
+          <option value="inProgress">{t("adult.statusInProgress")}</option>
+          <option value="watched">{t("adult.statusWatched")}</option>
+        </Select>
+        <Select aria-label={t("adult.sort")} value={search.sort ?? "date"} onChange={(e) => set({ sort: e.target.value === "date" ? undefined : e.target.value as ScenesSearch["sort"] })}>
+          <option value="date">{t("adult.sortDate")}</option>
+          <option value="oldest">{t("adult.sortOldest")}</option>
+          <option value="added">{t("adult.sortAdded")}</option>
+          <option value="title">{t("adult.sortTitle")}</option>
+          <option value="duration">{t("adult.sortDuration")}</option>
+          <option value="played">{t("adult.sortPlayed")}</option>
+        </Select>
+        {search.tag && (
+          <button type="button" onClick={() => set({ tag: undefined })} className="inline-flex h-9 items-center gap-1.5 rounded-[6px] bg-white/[0.08] px-3 text-sm">
+            #{search.tag}<X className="size-3.5" aria-label={t("adult.clearTag")} />
+          </button>
+        )}
       </div>
+      <SceneGrid query={{ kind, q: search.q, status: search.status, sort: search.sort, tag: search.tag }}
+        empty={kind === "movie" ? t("adult.noMovies") : undefined} />
     </section>
   );
 }
 
-function NamedTile({ to, id, name, count, image, round, blur }: {
-  to: "/adult/studio/$studioId" | "/adult/performer/$performerId"; id: string; name: string; count: number; image?: string; round?: boolean; blur: boolean;
+export function AdultScenesPage() {
+  return <ScenesBrowser kind="scene" />;
+}
+
+export function AdultMoviesPage() {
+  return <ScenesBrowser kind="movie" />;
+}
+
+export function NamedTile({ to, id, name, count, galleries = 0, image, round, blur, favorite }: {
+  to: "/adult/studio/$studioId" | "/adult/performer/$performerId"; id: string; name: string; count: number; galleries?: number; image?: string;
+  round?: boolean; blur: boolean; favorite?: boolean;
 }) {
   const { t } = useTranslation();
   const params = to === "/adult/studio/$studioId" ? { studioId: id } : { performerId: id };
@@ -209,21 +136,27 @@ function NamedTile({ to, id, name, count, image, round, blur }: {
         <BlurArt blur={blur} src={image} className={round ? "rounded-full" : ""} fallback={<Monogram name={name} round={round} />} />
       </div>
       <div className="min-w-0">
-        <p className="truncate text-sm font-semibold">{name}</p>
-        <p className="text-xs text-muted tabular">{t("adult.sceneCount", { count })}</p>
+        <p className="flex items-center justify-center gap-1 truncate text-sm font-semibold">
+          {favorite && <Heart className="size-3.5 shrink-0 fill-current text-accent" aria-label={t("adult.favorite")} />}{name}
+        </p>
+        <p className="text-xs text-muted tabular">
+          {[count > 0 && t("adult.sceneCount", { count }), galleries > 0 && t("adult.galleryCount", { count: galleries })].filter(Boolean).join(" · ")}
+        </p>
       </div>
     </Link>
   );
 }
 
-function NamedList<T extends { id: string; name: string; sceneCount: number; hasImage: boolean }>({ kind }: { kind: "studios" | "performers" }) {
+function NamedList<T extends { id: string; name: string; sceneCount: number; galleryCount: number; hasImage: boolean; favorite?: boolean }>({ kind }: { kind: "studios" | "performers" }) {
   const { t } = useTranslation();
   const blur = useBlur();
   const [q, setQ] = useState("");
+  const [sort, setSort] = useState<"count" | "name">("count");
+  const [favorites, setFavorites] = useState(false);
   const list = useInfiniteQuery({
-    queryKey: ["adult", kind, q],
+    queryKey: ["adult", kind, q, sort, favorites],
     queryFn: async ({ pageParam }) => {
-      const query = { q: q || undefined, offset: pageParam, limit: 120 };
+      const query = { q: q || undefined, offset: pageParam, limit: 120, sort, ...(kind === "performers" && favorites ? { favorites: true } : {}) };
       return (kind === "studios"
         ? unwrap(await api.GET("/adult/studios", { params: { query } }))
         : unwrap(await api.GET("/adult/performers", { params: { query } }))) as { items: T[]; total: number };
@@ -237,15 +170,27 @@ function NamedList<T extends { id: string; name: string; sceneCount: number; has
   const items = list.data?.pages.flatMap((p) => p.items) ?? [];
   return (
     <section>
-      <div className="mb-5 flex"><SearchField value={q} onChange={setQ} label={t(kind === "studios" ? "adult.searchStudios" : "adult.searchPerformers")} /></div>
+      <div className="mb-5 flex flex-wrap items-center gap-2">
+        <SearchField value={q} onChange={setQ} label={t(kind === "studios" ? "adult.searchStudios" : "adult.searchPerformers")} />
+        <Select aria-label={t("adult.sort")} value={sort} onChange={(e) => setSort(e.target.value as "count" | "name")}>
+          <option value="count">{t("adult.sortCount")}</option>
+          <option value="name">{t("adult.sortName")}</option>
+        </Select>
+        {kind === "performers" && (
+          <button type="button" aria-pressed={favorites} onClick={() => setFavorites(!favorites)} data-testid="adult-favorites-only"
+            className={`inline-flex h-9 items-center gap-1.5 rounded-[6px] px-3 text-sm ring-1 ring-inset ring-border ${favorites ? "bg-white/[0.14] text-text" : "bg-white/[0.04] text-text/75 hover:bg-white/[0.1]"}`}>
+            <Heart className={`size-4 ${favorites ? "fill-current text-accent" : ""}`} aria-hidden />{t("adult.favoritesOnly")}
+          </button>
+        )}
+      </div>
       {list.isPending ? <div className="py-16 text-center"><Spinner /></div> : <ErrorText error={list.error} />}
       {list.isSuccess && items.length === 0 && <p className="py-16 text-center text-muted">{t("adult.nothing")}</p>}
       <div className={`grid gap-x-4 gap-y-6 ${kind === "studios" ? "grid-cols-[repeat(auto-fill,minmax(min(100%,12rem),1fr))]" : "grid-cols-[repeat(auto-fill,minmax(min(100%,8.5rem),1fr))]"}`}>
         {items.map((it) => kind === "studios"
-          ? <NamedTile key={it.id} to="/adult/studio/$studioId" id={it.id} name={it.name} count={it.sceneCount} blur={blur}
+          ? <NamedTile key={it.id} to="/adult/studio/$studioId" id={it.id} name={it.name} count={it.sceneCount} galleries={it.galleryCount} blur={blur}
               image={it.hasImage ? adultImage("studio", it.id, "image") : undefined} />
-          : <NamedTile key={it.id} to="/adult/performer/$performerId" id={it.id} name={it.name} count={it.sceneCount} round blur={blur}
-              image={it.hasImage ? adultImage("performer", it.id, "image") : undefined} />)}
+          : <NamedTile key={it.id} to="/adult/performer/$performerId" id={it.id} name={it.name} count={it.sceneCount} galleries={it.galleryCount}
+              round blur={blur} favorite={it.favorite} image={it.hasImage ? adultImage("performer", it.id, "image") : undefined} />)}
       </div>
       {list.hasNextPage && (
         <div className="mt-8 flex justify-center">
@@ -264,6 +209,30 @@ export function AdultPerformersPage() {
   return <NamedList<AdultPerformer> kind="performers" />;
 }
 
+/** Scenes and galleries tabs of a studio or performer page (kept in the address). */
+function DetailTabs({ scenes, galleries, children }: { scenes: number; galleries: number; children: (tab: "scenes" | "galleries") => ReactNode }) {
+  const { t } = useTranslation();
+  const search = useSearch({ strict: false }) as { tab?: "scenes" | "galleries" };
+  const navigate = useNavigate();
+  const tab = search.tab ?? (scenes === 0 && galleries > 0 ? "galleries" : "scenes");
+  const btn = (id: "scenes" | "galleries", label: string, n: number) => (
+    <button type="button" role="tab" aria-selected={tab === id} data-testid={`adult-tab-${id}`}
+      onClick={() => void navigate({ to: ".", search: (s: Record<string, unknown>) => ({ ...s, tab: id === "scenes" ? undefined : id }), replace: true })}
+      className={`relative inline-flex h-10 items-center gap-2 px-1 text-sm font-medium transition-colors ${tab === id ? "text-text after:absolute after:inset-x-0 after:-bottom-px after:h-[2px] after:bg-text" : "text-text/55 hover:text-text"}`}>
+      {label}<span className="text-xs text-muted tabular">{n}</span>
+    </button>
+  );
+  return (
+    <>
+      <div role="tablist" className="flex gap-6 border-b border-border">
+        {btn("scenes", t("adult.scenesAndMovies"), scenes)}
+        {btn("galleries", t("adult.galleries"), galleries)}
+      </div>
+      {children(tab)}
+    </>
+  );
+}
+
 export function AdultStudioPage() {
   const { t } = useTranslation();
   const { studioId } = useParams({ from: "/app/adult/studio/$studioId" });
@@ -274,6 +243,7 @@ export function AdultStudioPage() {
   const s = studio.data;
   return (
     <div className="flex flex-col gap-6">
+      <Breadcrumbs items={[{ label: t("adult.studios"), to: "/adult/studios" }, { label: s?.name ?? "…" }]} />
       {s && (
         <header className="flex items-center gap-5">
           <div className="relative aspect-video w-40 shrink-0 overflow-hidden rounded-[6px] bg-surface ring-1 ring-border">
@@ -282,11 +252,16 @@ export function AdultStudioPage() {
           <div className="min-w-0">
             <p className="text-xs font-semibold tracking-[0.14em] text-muted uppercase">{t("adult.studio")}</p>
             <h2 className="font-display text-3xl">{s.name}</h2>
-            <p className="text-sm text-muted">{[s.parent, t("adult.sceneCount", { count: s.sceneCount })].filter(Boolean).join(" · ")}</p>
+            <p className="text-sm text-muted">{[s.parent, t("adult.sceneCount", { count: s.sceneCount }), s.galleryCount > 0 && t("adult.galleryCount", { count: s.galleryCount })].filter(Boolean).join(" · ")}</p>
+            {s.url && <a href={s.url} target="_blank" rel="noreferrer noopener" className="text-xs text-muted underline underline-offset-4 hover:text-text">{s.url}</a>}
           </div>
         </header>
       )}
-      <SceneGrid query={{ studioId }} />
+      {s && (
+        <DetailTabs scenes={s.sceneCount} galleries={s.galleryCount}>
+          {(tab) => tab === "scenes" ? <SceneGrid query={{ studioId }} /> : <GalleryGrid query={{ studioId }} />}
+        </DetailTabs>
+      )}
     </div>
   );
 }
@@ -295,27 +270,54 @@ export function AdultPerformerPage() {
   const { t } = useTranslation();
   const { performerId } = useParams({ from: "/app/adult/performer/$performerId" });
   const blur = useBlur();
+  const qc = useQueryClient();
   const performer = useQuery({ queryKey: ["adult", "performer", performerId],
     queryFn: async () => unwrap(await api.GET("/adult/performers/{performerId}", { params: { path: { performerId } } })) });
+  const fav = useMutation({
+    mutationFn: async (on: boolean) => {
+      const params = { params: { path: { performerId } } };
+      unwrap(on ? await api.PUT("/adult/performers/{performerId}/favorite", params) : await api.DELETE("/adult/performers/{performerId}/favorite", params));
+      return on;
+    },
+    onSuccess: (on) => {
+      qc.setQueryData(["adult", "performer", performerId], (p: AdultPerformer | undefined) => (p ? { ...p, favorite: on } : p));
+      void qc.invalidateQueries({ queryKey: ["adult", "performers"] });
+      void qc.invalidateQueries({ queryKey: ["adult", "home"] });
+    },
+  });
   if (performer.error) return <ErrorText error={performer.error} />;
   const p = performer.data;
+  const facts: [string, string | undefined][] = p ? [[t("adult.gender"), p.gender], [t("adult.birthdate"), p.birthdate], [t("adult.country"), p.country]] : [];
   return (
     <div className="flex flex-col gap-6">
+      <Breadcrumbs items={[{ label: t("adult.performersTab"), to: "/adult/performers" }, { label: p?.name ?? "…" }]} />
       {p && (
-        <header className="flex items-center gap-5">
+        <header className="flex flex-col gap-5 sm:flex-row sm:items-center">
           <div className="relative size-28 shrink-0 overflow-hidden rounded-full bg-surface ring-1 ring-border">
             <BlurArt blur={blur} className="rounded-full" src={p.hasImage ? adultImage("performer", p.id, "image") : undefined} fallback={<Monogram name={p.name} round />} />
           </div>
           <div className="min-w-0">
             <p className="text-xs font-semibold tracking-[0.14em] text-muted uppercase">{t("adult.performer")}</p>
-            <h2 className="font-display text-3xl">{p.name}</h2>
-            <p className="text-sm text-muted">{[p.country, p.birthdate, t("adult.sceneCount", { count: p.sceneCount })].filter(Boolean).join(" · ")}</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <h2 className="font-display text-3xl">{p.name}</h2>
+              <button type="button" aria-pressed={p.favorite} disabled={fav.isPending} onClick={() => fav.mutate(!p.favorite)} data-testid="adult-favorite"
+                className="inline-flex h-8 items-center gap-1.5 rounded-full bg-white/[0.07] px-3 text-sm ring-1 ring-inset ring-border hover:bg-white/[0.13]">
+                <Heart className={`size-4 ${p.favorite ? "fill-current text-accent" : ""}`} aria-hidden />{p.favorite ? t("adult.unfavorite") : t("adult.makeFavorite")}
+              </button>
+            </div>
+            <dl className="mt-1 flex flex-wrap gap-x-4 text-sm text-muted">
+              {facts.filter(([, v]) => !!v).map(([k, v]) => <div key={k} className="flex gap-1"><dt>{k}:</dt><dd className="text-text/80">{v}</dd></div>)}
+            </dl>
             {p.aliases.length > 0 && <p className="mt-1 text-xs text-text/60">{t("adult.aliases")}: {p.aliases.join(", ")}</p>}
             {p.description && <p className="mt-2 line-clamp-4 max-w-prose text-sm text-text/80">{p.description}</p>}
           </div>
         </header>
       )}
-      <SceneGrid query={{ performerId }} />
+      {p && (
+        <DetailTabs scenes={p.sceneCount} galleries={p.galleryCount}>
+          {(tab) => tab === "scenes" ? <SceneGrid query={{ performerId }} /> : <GalleryGrid query={{ performerId }} />}
+        </DetailTabs>
+      )}
     </div>
   );
 }
@@ -342,6 +344,8 @@ export function AdultScenePage() {
   const art = s.hasBackdrop ? adultImage("scene", s.id, "backdrop") : s.hasPoster ? adultImage("scene", s.id, "poster") : undefined;
   return (
     <article className="flex flex-col gap-8">
+      <Breadcrumbs items={[s.kind === "movie" ? { label: t("adult.movies"), to: "/adult/movies" } : { label: t("adult.scenes"), to: "/adult/scenes" },
+        ...(s.studio ? [{ label: s.studio.name, to: `/adult/studio/${s.studio.id}` }] : []), { label: s.title }]} />
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <div className="relative aspect-video overflow-hidden rounded-[8px] bg-surface ring-1 ring-border">
           <BlurArt blur={blur} src={art} fallback={<Monogram name={s.studio?.name ?? s.title} />} />
@@ -393,13 +397,19 @@ export function AdultScenePage() {
             <ul className="flex flex-wrap gap-1.5">
               {s.tags.map((tag) => (
                 <li key={tag}>
-                  <Link to="/adult" search={{ tag }} className="inline-flex h-7 items-center rounded-[4px] bg-white/[0.05] px-2 text-xs text-text/75 hover:bg-white/[0.1]">#{tag}</Link>
+                  <Link to="/adult/tag/$tag" params={{ tag }} className="inline-flex h-7 items-center rounded-[4px] bg-white/[0.05] px-2 text-xs text-text/75 hover:bg-white/[0.1]">#{tag}</Link>
                 </li>
               ))}
             </ul>
           )}
         </div>
       </div>
+      {s.galleries.length > 0 && (
+        <section>
+          <h3 className="mb-3 font-head text-lg">{t("adult.sceneGalleries")}</h3>
+          <GalleryGrid items={s.galleries} />
+        </section>
+      )}
       <section className="flex flex-col gap-2 border-t border-border pt-5 text-sm text-muted">
         {s.files.map((f) => (
           <p key={f.id} className="flex flex-wrap gap-x-3 tabular">
@@ -461,11 +471,12 @@ function PrefsPanel({ onClose }: { onClose: () => void }) {
   const [pin, setPin] = useState("");
   const [current, setCurrent] = useState("");
   const save = useMutation({
-    mutationFn: async (body: { blur?: boolean; pin?: string; currentPin?: string }) => unwrap(await api.PUT("/adult/preferences", { body })),
-    onSuccess: (data) => {
+    mutationFn: async (body: { blur?: boolean; pin?: string; currentPin?: string; hideTagged?: boolean }) => unwrap(await api.PUT("/adult/preferences", { body })),
+    onSuccess: (data, body) => {
       qc.setQueryData(statusKey, data);
       setPin("");
       setCurrent("");
+      if (body.hideTagged !== undefined) void qc.invalidateQueries({ predicate: (q) => q.queryKey[0] === "adult" && q.queryKey[1] !== "status" });
     },
   });
   if (!status) return null;
@@ -479,6 +490,12 @@ function PrefsPanel({ onClose }: { onClose: () => void }) {
         <input type="checkbox" className="mt-1 accent-[var(--color-accent)]" checked={status.blur} disabled={save.isPending}
           data-testid="adult-blur" onChange={(e) => save.mutate({ blur: e.target.checked })} />
         <span><span className="block font-medium">{t("adult.blur")}</span><span className="text-muted">{t("adult.blurHint")}</span></span>
+      </label>
+      <label className="mt-4 flex items-start gap-3 text-sm">
+        <input type="checkbox" className="mt-1 accent-[var(--color-accent)]" checked={status.hideTagged} disabled={save.isPending}
+          data-testid="adult-hide-tagged" onChange={(e) => save.mutate({ hideTagged: e.target.checked })} />
+        <span><span className="block font-medium">{t("adult.hideTagged")}</span>
+          <span className="text-muted">{t("adult.hideTaggedHint", { count: status.hiddenTags.length })}</span></span>
       </label>
       <form className="mt-5 flex flex-col gap-3 border-t border-border pt-5" onSubmit={(e) => {
         e.preventDefault();
@@ -507,7 +524,37 @@ function PrefsPanel({ onClose }: { onClose: () => void }) {
   );
 }
 
-const tab = "relative inline-flex h-10 items-center gap-2 px-1 text-sm font-medium text-text/55 transition-colors hover:text-text [&.active]:text-text after:absolute after:inset-x-0 after:-bottom-px after:h-[2px] after:scale-x-0 after:bg-text after:transition-transform [&.active]:after:scale-x-100";
+type NavTo = "/adult" | "/adult/scenes" | "/adult/movies" | "/adult/galleries" | "/adult/performers" | "/adult/studios" | "/adult/tags";
+
+const navItems: { to: NavTo; key: string; icon: typeof House }[] = [
+  { to: "/adult", key: "adult.home", icon: House },
+  { to: "/adult/scenes", key: "adult.scenes", icon: Clapperboard },
+  { to: "/adult/movies", key: "adult.movies", icon: Film },
+  { to: "/adult/galleries", key: "adult.galleries", icon: Images },
+  { to: "/adult/performers", key: "adult.performersTab", icon: UserRound },
+  { to: "/adult/studios", key: "adult.studios", icon: Building2 },
+  { to: "/adult/tags", key: "adult.tags", icon: Tag },
+];
+
+const navLink = "tv-focus flex shrink-0 items-center gap-2.5 rounded-[6px] px-3 py-2 text-sm font-medium text-text/60 transition-colors hover:bg-white/[0.06] hover:text-text [&.active]:bg-white/[0.09] [&.active]:text-text";
+
+/** Search inside the adult section (never the regular search). */
+function SectionSearch() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [q, setQ] = useState("");
+  return (
+    <form role="search" className="relative flex w-full items-center lg:max-w-xs" onSubmit={(e) => {
+      e.preventDefault();
+      if (q.trim()) void navigate({ to: "/adult/search", search: { q: q.trim() } });
+    }}>
+      <Search className="pointer-events-none absolute left-3 size-4 text-muted" aria-hidden />
+      <input type="search" value={q} onChange={(e) => setQ(e.target.value)} aria-label={t("adult.searchSection")} placeholder={t("adult.searchSection")}
+        data-testid="adult-search" maxLength={200}
+        className="h-9 w-full rounded-[6px] border border-border bg-white/[0.05] pr-3 pl-9 text-sm text-text placeholder:text-faint focus:border-accent/70 focus-visible:outline-none" />
+    </form>
+  );
+}
 
 /** The adult section: only for accounts given adult access (D-053), behind the PIN when one is set. */
 export function AdultLayout() {
@@ -517,7 +564,6 @@ export function AdultLayout() {
   const allowed = !!me?.adultAccess;
   const status = useAdultStatus(allowed);
   const [prefs, setPrefs] = useState(false);
-  // Probe one content call so a locked session shows the PIN at once.
   const locked = useMemo(() => !!status.data && status.data.pinSet && !status.data.unlocked, [status.data]);
   const lock = useMutation({
     mutationFn: async () => unwrap(await api.POST("/adult/lock")),
@@ -534,37 +580,44 @@ export function AdultLayout() {
   }, []);
   if (!allowed || status.error) return <Navigate to="/" />;
   if (status.isPending) return <div className="pt-32 text-center"><Spinner /></div>;
+  const empty = status.data && status.data.libraries.every((l) => l.sceneCount === 0 && l.galleryCount === 0);
   return (
-    <div className="px-5 pt-24 sm:px-10 lg:px-16" data-testid="adult-section">
-      <header className="mb-8 flex flex-wrap items-end gap-x-8 gap-y-3 border-b border-border">
-        <h1 className="pb-3 font-display text-[clamp(1.6rem,3vw,2.2rem)]">{t("adult.title")}</h1>
-        {!locked && (
-          <nav className="flex gap-6" aria-label={t("adult.title")}>
-            <Link to="/adult" className={tab} activeOptions={{ exact: true, includeSearch: false }}>{t("adult.scenes")}</Link>
-            <Link to="/adult/studios" className={tab}><Building2 className="size-4" aria-hidden />{t("adult.studios")}</Link>
-            <Link to="/adult/performers" className={tab}><UserRound className="size-4" aria-hidden />{t("adult.performersTab")}</Link>
-          </nav>
-        )}
-        <div className="ml-auto flex items-center gap-1 pb-2">
+    <div className="px-4 pt-24 sm:px-10 lg:px-16" data-testid="adult-section">
+      <header className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-3">
+        <h1 className="font-display text-[clamp(1.6rem,3vw,2.2rem)]">{t("adult.title")}</h1>
+        {!locked && <div className="order-last w-full lg:order-none lg:ml-auto lg:w-auto lg:flex-1 lg:justify-end lg:flex"><SectionSearch /></div>}
+        <div className="ml-auto flex items-center gap-1 lg:ml-0">
           {!locked && (
             <button type="button" onClick={() => setPrefs(!prefs)} aria-label={t("adult.preferences")} title={t("adult.preferences")}
-              className="grid size-9 place-items-center rounded-[6px] text-text/75 hover:bg-white/10 hover:text-text"><Settings2 className="size-[18px]" /></button>
+              className="tv-focus grid size-9 place-items-center rounded-[6px] text-text/75 hover:bg-white/10 hover:text-text"><Settings2 className="size-[18px]" /></button>
           )}
           {status.data?.pinSet && !locked && (
             <button type="button" onClick={() => lock.mutate()} aria-label={t("adult.lock")} title={t("adult.lock")} data-testid="adult-lock"
-              className="grid size-9 place-items-center rounded-[6px] text-text/75 hover:bg-white/10 hover:text-text"><Lock className="size-[18px]" /></button>
+              className="tv-focus grid size-9 place-items-center rounded-[6px] text-text/75 hover:bg-white/10 hover:text-text"><Lock className="size-[18px]" /></button>
           )}
         </div>
       </header>
-      {status.data && status.data.libraries.every((l) => l.sceneCount === 0) && !locked && (
-        <p className="mb-6 text-sm text-muted">{t("adult.empty")}</p>
+      {locked ? <PinGate /> : (
+        <div className="flex flex-col gap-6 lg:flex-row lg:gap-10">
+          <nav aria-label={t("adult.title")} data-testid="adult-nav"
+            className="-mx-4 flex gap-1 overflow-x-auto border-b border-border px-4 pb-3 [scrollbar-width:none] lg:sticky lg:top-24 lg:mx-0 lg:w-48 lg:shrink-0 lg:flex-col lg:self-start lg:overflow-visible lg:border-b-0 lg:px-0 lg:pb-0">
+            {navItems.map(({ to, key, icon: Icon }) => (
+              <Link key={to} to={to} className={navLink} activeOptions={{ exact: to === "/adult", includeSearch: false }}>
+                <Icon className="size-4" aria-hidden />{t(key)}
+              </Link>
+            ))}
+          </nav>
+          <main className="min-w-0 flex-1 pb-16">
+            {empty && <p className="mb-6 text-sm text-muted">{t("adult.empty")}</p>}
+            {!status.data?.metadataConfigured && canAdminister(me) && (
+              <p className="mb-6 flex items-center gap-2 text-sm text-muted"><Badge>{t("adult.noKeysBadge")}</Badge>
+                <Link to="/settings/metadata" className="underline underline-offset-4 hover:text-text">{t("adult.noKeys")}</Link></p>
+            )}
+            {prefs && <div className="mb-8"><PrefsPanel onClose={() => setPrefs(false)} /></div>}
+            <LockedBoundary><Outlet /></LockedBoundary>
+          </main>
+        </div>
       )}
-      {!status.data?.metadataConfigured && canAdminister(me) && !locked && (
-        <p className="mb-6 flex items-center gap-2 text-sm text-muted"><Badge>{t("adult.noKeysBadge")}</Badge>
-          <Link to="/settings/metadata" className="underline underline-offset-4 hover:text-text">{t("adult.noKeys")}</Link></p>
-      )}
-      {prefs && !locked && <div className="mb-8"><PrefsPanel onClose={() => setPrefs(false)} /></div>}
-      {locked ? <PinGate /> : <LockedBoundary><Outlet /></LockedBoundary>}
     </div>
   );
 }

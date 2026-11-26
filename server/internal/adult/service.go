@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -87,6 +88,8 @@ type Viewer struct {
 	UserID    uuid.UUID
 	SessionID uuid.UUID
 	IsAdmin   bool
+	// CanDownload: the account may download originals (its download permission).
+	CanDownload bool
 }
 
 // HasAccess reports whether the account was given adult access (regardless of
@@ -130,7 +133,8 @@ func (s *Service) Access(ctx context.Context, p auth.Principal) (Viewer, error) 
 	if !ok {
 		return Viewer{}, ErrNotFound
 	}
-	return Viewer{UserID: p.User.ID, SessionID: p.SessionID, IsAdmin: p.User.IsAdmin}, nil
+	return Viewer{UserID: p.User.ID, SessionID: p.SessionID, IsAdmin: p.User.IsAdmin,
+		CanDownload: p.User.IsAdmin || p.User.Permissions.Download}, nil
 }
 
 // Open is Access plus the session PIN: content endpoints answer ErrLocked until
@@ -204,13 +208,19 @@ func (s *Service) prefs(ctx context.Context, userID uuid.UUID) (pinHash string, 
 type Status struct {
 	PinSet, Unlocked, Blur, MetadataConfigured bool
 	Libraries                                  []LibraryInfo
+	// HiddenTags the viewer does not want to see; HideTagged also hides the
+	// scenes and galleries that carry one.
+	HiddenTags  []string
+	HideTagged  bool
+	CanDownload bool
 }
 
-// LibraryInfo is an adult library with its scene count.
+// LibraryInfo is an adult library with its scene and gallery counts.
 type LibraryInfo struct {
-	ID         uuid.UUID
-	Name       string
-	SceneCount int
+	ID           uuid.UUID
+	Name         string
+	SceneCount   int
+	GalleryCount int
 }
 
 // Status returns the section status of a viewer.
@@ -219,11 +229,15 @@ func (s *Service) Status(ctx context.Context, v Viewer) (Status, error) {
 	if err != nil {
 		return Status{}, err
 	}
-	st := Status{PinSet: h != "", Blur: blur}
+	st := Status{PinSet: h != "", Blur: blur, CanDownload: v.CanDownload}
 	st.Unlocked = !st.PinSet || s.isUnlocked(v.SessionID)
+	if st.HiddenTags, st.HideTagged, err = s.hiddenTags(ctx, v.UserID); err != nil {
+		return st, err
+	}
 	keys, _ := s.LoadKeys(ctx)
 	st.MetadataConfigured = keys.TPDB != "" || keys.StashDB != ""
-	rows, err := s.Pool.Query(ctx, `SELECT l.id, l.name, (SELECT count(*)::int FROM adult_scenes a WHERE a.library_id = l.id)
+	rows, err := s.Pool.Query(ctx, `SELECT l.id, l.name, (SELECT count(*)::int FROM adult_scenes a WHERE a.library_id = l.id),
+		(SELECT count(*)::int FROM adult_galleries g WHERE g.library_id = l.id)
 		FROM libraries l WHERE l.kind = 'adult' ORDER BY lower(l.name)`)
 	if err != nil {
 		return st, err
@@ -231,7 +245,7 @@ func (s *Service) Status(ctx context.Context, v Viewer) (Status, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var l LibraryInfo
-		if err := rows.Scan(&l.ID, &l.Name, &l.SceneCount); err != nil {
+		if err := rows.Scan(&l.ID, &l.Name, &l.SceneCount, &l.GalleryCount); err != nil {
 			return st, err
 		}
 		st.Libraries = append(st.Libraries, l)
@@ -266,6 +280,40 @@ type PrefsInput struct {
 	Blur       *bool
 	PIN        *string
 	CurrentPIN string
+	HiddenTags *[]string
+	HideTagged *bool
+}
+
+// hiddenTags returns the tags a viewer hid and whether tagged content is hidden too.
+func (s *Service) hiddenTags(ctx context.Context, userID uuid.UUID) ([]string, bool, error) {
+	var tags []string
+	var hide bool
+	err := s.Pool.QueryRow(ctx, `SELECT hidden_tags, hide_tagged FROM adult_prefs WHERE user_id = $1`, userID).Scan(&tags, &hide)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return []string{}, false, nil
+	}
+	if tags == nil {
+		tags = []string{}
+	}
+	return tags, hide, err
+}
+
+// cleanTags trims, de-duplicates and bounds a list of hidden tags.
+func cleanTags(in []string) []string {
+	out := []string{}
+	seen := map[string]bool{}
+	for _, t := range in {
+		t = strings.TrimSpace(t)
+		if t == "" || len(t) > 100 || seen[strings.ToLower(t)] {
+			continue
+		}
+		seen[strings.ToLower(t)] = true
+		out = append(out, t)
+		if len(out) == 500 {
+			break
+		}
+	}
+	return out
 }
 
 // SetPrefs saves the viewer's preferences.
@@ -300,8 +348,19 @@ func (s *Service) SetPrefs(ctx context.Context, v Viewer, in PrefsInput) error {
 	if h != "" {
 		hp = &h
 	}
-	_, err = s.Pool.Exec(ctx, `INSERT INTO adult_prefs (user_id, blur, pin_hash) VALUES ($1, $2, $3)
-		ON CONFLICT (user_id) DO UPDATE SET blur = EXCLUDED.blur, pin_hash = EXCLUDED.pin_hash`, v.UserID, blur, hp)
+	hidden, hideTagged, err := s.hiddenTags(ctx, v.UserID)
+	if err != nil {
+		return err
+	}
+	if in.HiddenTags != nil {
+		hidden = cleanTags(*in.HiddenTags)
+	}
+	if in.HideTagged != nil {
+		hideTagged = *in.HideTagged
+	}
+	_, err = s.Pool.Exec(ctx, `INSERT INTO adult_prefs (user_id, blur, pin_hash, hidden_tags, hide_tagged) VALUES ($1, $2, $3, $4, $5)
+		ON CONFLICT (user_id) DO UPDATE SET blur = EXCLUDED.blur, pin_hash = EXCLUDED.pin_hash, hidden_tags = EXCLUDED.hidden_tags,
+		hide_tagged = EXCLUDED.hide_tagged`, v.UserID, blur, hp, hidden, hideTagged)
 	return err
 }
 

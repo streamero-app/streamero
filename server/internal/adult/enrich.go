@@ -103,7 +103,8 @@ func (s *Service) Enrich(ctx context.Context, libID uuid.UUID, force bool) (int,
 			matched++
 		}
 	}
-	return matched, nil
+	// Galleries follow their scene's new studio, date and tags.
+	return matched, s.LinkGalleries(ctx, libID)
 }
 
 // RefreshScene looks one scene up again.
@@ -124,8 +125,14 @@ func (s *Service) RefreshScene(ctx context.Context, id uuid.UUID) error {
 	if err != nil {
 		return err
 	}
-	_, err = s.enrichOne(ctx, keys, p)
-	return err
+	if _, err = s.enrichOne(ctx, keys, p); err != nil {
+		return err
+	}
+	var libID uuid.UUID
+	if err := s.Pool.QueryRow(ctx, `SELECT library_id FROM adult_scenes WHERE id = $1`, id).Scan(&libID); err != nil {
+		return err
+	}
+	return s.LinkGalleries(ctx, libID)
 }
 
 func (s *Service) enrichOne(ctx context.Context, keys Keys, p pending) (bool, error) {
@@ -456,5 +463,26 @@ func (s *Service) RemoveLibraryImages(ctx context.Context, libID uuid.UUID) erro
 			_ = os.RemoveAll(filepath.Join(s.ImageDir, "scene", id.String()))
 		}
 	}
-	return rows.Err()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	// Cached gallery thumbnails and converted pictures.
+	imgs, err := s.Pool.Query(ctx, `SELECT id FROM adult_images WHERE library_id = $1`, libID)
+	if err != nil {
+		return err
+	}
+	var gone []uuid.UUID
+	for imgs.Next() {
+		var id uuid.UUID
+		if err := imgs.Scan(&id); err != nil {
+			imgs.Close()
+			return err
+		}
+		gone = append(gone, id)
+	}
+	imgs.Close()
+	for _, id := range gone {
+		s.removeImageCache(id)
+	}
+	return imgs.Err()
 }

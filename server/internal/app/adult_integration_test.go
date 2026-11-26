@@ -1,6 +1,7 @@
 package app
 
 import (
+	"archive/zip"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -34,7 +35,25 @@ import (
 
 // Words that exist only in the adult library: no response to an account without
 // adult access may contain any of them.
-var adultMarkers = []string{"Velvetine", "Moonlit Secret", "Performer Onyx", "Xanadu Tag"}
+var adultMarkers = []string{"Velvetine", "Moonlit Secret", "Performer Onyx", "Xanadu Tag", "Gilded Hour", "Zephyrine", "Quasar"}
+
+// zipOf builds a zip archive of the given files.
+func zipOf(t *testing.T, files map[string][]byte) []byte {
+	t.Helper()
+	var b bytes.Buffer
+	w := zip.NewWriter(&b)
+	for name, data := range files {
+		f, err := w.Create(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, _ = f.Write(data)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return b.Bytes()
+}
 
 // rawCall sends a native API request and returns the status and body.
 func rawCall(t *testing.T, c *client, method, path string, body any) (int, string) {
@@ -146,12 +165,22 @@ func TestAdultLibraryNoLeaksIntegration(t *testing.T) {
 	tpdb := fakeTPDB(t)
 	testAdult.TPDBURL = tpdb.URL
 
-	// One folder holds a normal film and, under adult/, a Locarr scene.
+	// One folder holds a normal film, a holiday photo and, under adult/, a Locarr
+	// scene with its gallery, a second gallery, a zip gallery and a plain folder of
+	// pictures (D-058). The pictures are synthetic.
 	all := filepath.Join(mediaRoot, "all")
 	adultDir := filepath.Join(all, "adult")
+	pic := string(pngBytes(t))
 	for p, data := range map[string]string{
 		filepath.Join(all, "Film (2020)", "Film (2020).mkv"):                                                             "film-bytes",
+		filepath.Join(all, "Holiday", "beach.png"):                                                                       pic,
 		filepath.Join(adultDir, "Velvetine", "Velvetine - 2024-01-15 - Moonlit Secret [Performer Onyx] WEBDL-1080p.mp4"): "adult-video-bytes",
+		filepath.Join(adultDir, "Velvetine", "Velvetine - 2024-01-15 - Moonlit Secret [Performer Onyx]", "02.png"):       pic,
+		filepath.Join(adultDir, "Velvetine", "Velvetine - 2024-01-15 - Moonlit Secret [Performer Onyx]", "01.png"):       pic,
+		filepath.Join(adultDir, "Velvetine", "Velvetine - 2024-03-01 - Gilded Hour [Performer Onyx]", "a.png"):          pic,
+		filepath.Join(adultDir, "Velvetine", "Velvetine - 2024-02-02 - Quasar Set.zip"): string(zipOf(t, map[string][]byte{
+			"p1.png": pngBytes(t), "p2.png": pngBytes(t), "../evil.png": pngBytes(t), "notes.txt": []byte("x")})),
+		filepath.Join(adultDir, "Zephyrine pictures", "x.png"): pic,
 	} {
 		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
 			t.Fatal(err)
@@ -168,14 +197,30 @@ func TestAdultLibraryNoLeaksIntegration(t *testing.T) {
 	t.Cleanup(func() {
 		_, _ = testPool.Exec(context.Background(), `DELETE FROM libraries WHERE kind IN ('mixed', 'adult') AND name IN ('Sve', 'Privatno')`)
 	})
-	// Before the adult library exists the mixed library picks up the scene.
+	// A photo library over the same folder (control for the photo endpoints).
+	var photos struct{ ID string }
+	if s := adminC.do("POST", "/libraries", map[string]any{"name": "Fotke", "kind": "photos", "paths": []string{all}}, &photos); s != 201 {
+		t.Fatalf("create photos: HTTP %d", s)
+	}
+	t.Cleanup(func() {
+		_, _ = testPool.Exec(context.Background(), `DELETE FROM libraries WHERE kind = 'photos' AND name = 'Fotke'`)
+	})
+	// Before the adult library exists the mixed library picks up the scene and the
+	// photo library the gallery pictures.
 	if _, err := scanner.Scan(ctx, uuid.MustParse(mixed.ID)); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := scanner.Scan(ctx, uuid.MustParse(photos.ID)); err != nil {
+		t.Fatal(err)
+	}
 	var n int
-	_ = testPool.QueryRow(ctx, `SELECT count(*) FROM media_files WHERE path LIKE '%Velvetine%'`).Scan(&n)
+	_ = testPool.QueryRow(ctx, `SELECT count(*) FROM media_files WHERE path LIKE '%Velvetine%' AND path LIKE '%.mp4' AND library_id = $1`, mixed.ID).Scan(&n)
 	if n != 1 {
 		t.Fatalf("setup: the mixed library should have scanned the scene first (%d)", n)
+	}
+	_ = testPool.QueryRow(ctx, `SELECT count(*) FROM items WHERE library_id = $1 AND path LIKE '%Gilded Hour%'`, photos.ID).Scan(&n)
+	if n == 0 {
+		t.Fatal("setup: the photo library should have scanned the gallery pictures first")
 	}
 
 	// Creating the adult library: admin only, with explicit confirmation.
@@ -190,10 +235,14 @@ func TestAdultLibraryNoLeaksIntegration(t *testing.T) {
 		t.Fatalf("create adult library: HTTP %d %+v", s, lib)
 	}
 	libID := uuid.MustParse(lib.ID)
-	// What the mixed library had found inside the adult folder is gone at once.
-	_ = testPool.QueryRow(ctx, `SELECT count(*) FROM media_files WHERE path LIKE '%Velvetine%'`).Scan(&n)
+	// What the mixed and photo libraries had found inside the adult folder is gone at once.
+	_ = testPool.QueryRow(ctx, `SELECT count(*) FROM media_files WHERE path LIKE '%Velvetine%' OR path LIKE '%Zephyrine%'`).Scan(&n)
 	if n != 0 {
-		t.Fatalf("items under the adult folder were not purged from the mixed library (%d)", n)
+		t.Fatalf("files under the adult folder were not purged from other libraries (%d)", n)
+	}
+	_ = testPool.QueryRow(ctx, `SELECT count(*) FROM items WHERE library_id <> $1 AND (path LIKE '%Velvetine%' OR path LIKE '%Zephyrine%')`, lib.ID).Scan(&n)
+	if n != 0 {
+		t.Fatalf("items under the adult folder were not purged from other libraries (%d)", n)
 	}
 	// Kind changes and overlapping folders are refused.
 	if s := adminC.do("PUT", "/libraries/"+lib.ID, map[string]any{"name": "x", "kind": "movies", "paths": []string{adultDir}}, &e); s != 400 || e.Code != "kind_change_not_allowed" {
@@ -242,7 +291,8 @@ func TestAdultLibraryNoLeaksIntegration(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(all, "Druga (2021)", "Druga (2021).mkv"), []byte("x"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	runScan(uuid.MustParse(mixed.ID)) // the rescan skips the adult folder
+	runScan(uuid.MustParse(mixed.ID))  // the rescan skips the adult folder
+	runScan(uuid.MustParse(photos.ID)) // so does the photo library's
 
 	// Metadata: a wrong key is refused, the right one is stored encrypted and never returned.
 	if s := adminC.do("PUT", "/adult/settings", map[string]any{"tpdbApiKey": "wrong"}, &e); s != 400 || e.Code != "invalid_key" {
@@ -268,6 +318,54 @@ func TestAdultLibraryNoLeaksIntegration(t *testing.T) {
 	var studioID, performerID uuid.UUID
 	_ = testPool.QueryRow(ctx, `SELECT id FROM adult_studios WHERE name = 'Velvetine'`).Scan(&studioID)
 	_ = testPool.QueryRow(ctx, `SELECT id FROM adult_performers WHERE name = 'Performer Onyx'`).Scan(&performerID)
+	// Galleries: four (two folders next to the scene, a zip, a plain folder); the
+	// scene's own gallery is linked to it and took its tags; the zip's unsafe
+	// entry and the text file are not pictures of it.
+	type galRow struct {
+		id      uuid.UUID
+		title   string
+		scene   *uuid.UUID
+		tags    []string
+		images  int
+		archive bool
+	}
+	gals := map[string]galRow{}
+	grows, err := testPool.Query(ctx, `SELECT id, title, scene_id, tags, image_count, archive FROM adult_galleries WHERE library_id = $1`, libID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for grows.Next() {
+		var g galRow
+		if err := grows.Scan(&g.id, &g.title, &g.scene, &g.tags, &g.images, &g.archive); err != nil {
+			t.Fatal(err)
+		}
+		gals[g.title] = g
+	}
+	grows.Close()
+	if len(gals) != 4 {
+		t.Fatalf("galleries: %+v", gals)
+	}
+	if g := gals["Moonlit Secret"]; g.scene == nil || *g.scene != sceneID || g.images != 2 || len(g.tags) != 1 || g.tags[0] != "Xanadu Tag" {
+		t.Fatalf("scene gallery: %+v", g)
+	}
+	if g := gals["Gilded Hour"]; g.scene != nil || g.images != 1 {
+		t.Fatalf("second gallery: %+v", g)
+	}
+	if g := gals["Quasar Set"]; !g.archive || g.images != 2 {
+		t.Fatalf("zip gallery: %+v", g)
+	}
+	if g := gals["Zephyrine pictures"]; g.images != 1 {
+		t.Fatalf("plain folder gallery: %+v", g)
+	}
+	// A rescan without changes reads no picture again (and keeps the zip closed).
+	if res, err := testAdult.Scan(ctx, libID, []string{adultDir}, library.ScanOptions{}); err != nil || res.Probed != 0 || res.Removed != 0 {
+		t.Fatalf("unchanged rescan: %+v %v", res, err)
+	}
+	galleryID := gals["Gilded Hour"].id
+	var imageID uuid.UUID
+	_ = testPool.QueryRow(ctx, `SELECT id FROM adult_images WHERE gallery_id = $1`, galleryID).Scan(&imageID)
+	var zipImage uuid.UUID
+	_ = testPool.QueryRow(ctx, `SELECT id FROM adult_images WHERE gallery_id = $1 ORDER BY position LIMIT 1`, gals["Quasar Set"].id).Scan(&zipImage)
 
 	// Accounts: a member (default permissions, all libraries), a member through an
 	// invite with every permission, and the grantee.
@@ -394,6 +492,100 @@ func TestAdultLibraryNoLeaksIntegration(t *testing.T) {
 		}
 	}
 
+	// Galleries for the grantee: list, detail, pictures, tags, home and search.
+	gid, iid := galleryID.String(), imageID.String()
+	for _, p := range []string{"/adult/galleries", "/adult/galleries?performerId=" + performerID.String(), "/adult/galleries/" + gid,
+		"/adult/galleries?sceneId=" + sceneID.String(), "/adult/tags", "/adult/home", "/adult/search?q=gilded",
+		"/adult/galleries?tag=Xanadu%20Tag", "/adult/scenes/" + sceneID.String()} {
+		s, body := rawCall(t, grantee, "GET", p, nil)
+		if s != 200 || !strings.Contains(body, "Gilded Hour") && !strings.Contains(body, "Xanadu Tag") && !strings.Contains(body, "Moonlit Secret") {
+			t.Errorf("grantee %s: HTTP %d %s", p, s, body)
+		}
+	}
+	var studioPage struct {
+		Items []struct{ SceneCount, GalleryCount int }
+	}
+	if grantee.do("GET", "/adult/studios", nil, &studioPage); len(studioPage.Items) != 1 || studioPage.Items[0].GalleryCount != 3 {
+		t.Errorf("studio gallery count: %+v", studioPage)
+	}
+	for _, v := range []string{"thumb", "full"} {
+		for _, id := range []string{iid, zipImage.String()} {
+			req, _ := http.NewRequest("GET", grantee.base+"/adult/gallery-images/"+id+"/"+v, nil)
+			req.Header.Set("Authorization", "Bearer "+grantee.token)
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil || resp.StatusCode != 200 || resp.Header.Get("Cache-Control") != "private, no-store" {
+				t.Fatalf("gallery picture %s %s: %v %+v", id, v, err, resp)
+			}
+			b, _ := io.ReadAll(resp.Body)
+			_ = resp.Body.Close()
+			if _, _, err := image.Decode(bytes.NewReader(b)); err != nil {
+				t.Fatalf("gallery picture %s %s is not an image: %v", id, v, err)
+			}
+		}
+	}
+	// The cached thumbnail lives under the adult image folder only.
+	if m, _ := filepath.Glob(filepath.Join(testAdult.ImageDir, "gallery", "*", iid+".thumb.jpg")); len(m) != 1 {
+		t.Fatalf("thumbnail not cached under the adult image folder: %v", m)
+	}
+	// Downloads follow the download permission.
+	req, _ = http.NewRequest("GET", grantee.base+"/adult/gallery-images/"+iid+"/download", nil)
+	req.Header.Set("Authorization", "Bearer "+grantee.token)
+	if resp, err := http.DefaultClient.Do(req); err != nil || resp.StatusCode != 200 ||
+		!strings.HasPrefix(resp.Header.Get("Content-Disposition"), "attachment") || resp.Header.Get("Cache-Control") != "private, no-store" {
+		t.Fatalf("download with permission: %v %+v", err, resp)
+	} else {
+		_ = resp.Body.Close()
+	}
+	noDl := map[string]any{}
+	for k, v := range allPerms {
+		noDl[k] = v
+	}
+	noDl["download"] = false
+	if s := adminC.do("PATCH", "/users/"+granteeMe.ID, map[string]any{"permissions": noDl}, nil); s != 200 {
+		t.Fatalf("take download away: HTTP %d", s)
+	}
+	if s := grantee.do("GET", "/adult/gallery-images/"+iid+"/download", nil, nil); s != 403 {
+		t.Fatalf("download without permission: HTTP %d", s)
+	}
+	var dlStatus struct{ CanDownload bool }
+	if grantee.do("GET", "/adult/status", nil, &dlStatus); dlStatus.CanDownload {
+		t.Fatal("status says the account can download")
+	}
+	// Favourite performers feed the home row.
+	if s := grantee.do("PUT", "/adult/performers/"+performerID.String()+"/favorite", nil, nil); s != 204 {
+		t.Fatalf("favourite: HTTP %d", s)
+	}
+	var home struct {
+		FavoritePerformers []struct{ ID string }
+		Continue           []struct{ ID string }
+		RecentGalleries    []struct{ ID string }
+	}
+	if grantee.do("GET", "/adult/home", nil, &home); len(home.FavoritePerformers) != 1 || len(home.Continue) != 1 || len(home.RecentGalleries) != 4 {
+		t.Fatalf("adult home: %+v", home)
+	}
+	// Hidden tags vanish from lists; with hideTagged their scenes and galleries too.
+	if s := grantee.do("PUT", "/adult/preferences", map[string]any{"hiddenTags": []string{"xanadu tag"}}, nil); s != 200 {
+		t.Fatalf("hide tag: HTTP %d", s)
+	}
+	if s, body := rawCall(t, grantee, "GET", "/adult/tags", nil); s != 200 || strings.Contains(body, "Xanadu") {
+		t.Fatalf("hidden tag listed: %s", body)
+	}
+	if s, body := rawCall(t, grantee, "GET", "/adult/tags?includeHidden=true", nil); s != 200 || !strings.Contains(body, `"hidden":true`) {
+		t.Fatalf("hidden tags for managing: %s", body)
+	}
+	if s, body := rawCall(t, grantee, "GET", "/adult/scenes/"+sceneID.String(), nil); s != 200 || strings.Contains(body, "Xanadu") {
+		t.Fatalf("hidden tag on the scene: %s", body)
+	}
+	grantee.do("PUT", "/adult/preferences", map[string]any{"hideTagged": true}, nil)
+	var gp struct{ Total int }
+	if grantee.do("GET", "/adult/galleries", nil, &gp); gp.Total != 3 {
+		t.Fatalf("hideTagged galleries: %+v", gp)
+	}
+	if grantee.do("GET", "/adult/scenes", nil, &page); page.Total != 0 {
+		t.Fatalf("hideTagged scenes: %+v", page)
+	}
+	grantee.do("PUT", "/adult/preferences", map[string]any{"hiddenTags": []string{}, "hideTagged": false}, nil)
+
 	// Kids profile on the grantee's account and the grantee's API key: no access.
 	var kid struct{ ID string }
 	grantee.do("POST", "/profiles", map[string]any{"name": "Dijete", "color": "#3dd68c", "isKid": true, "maxRating": 7}, &kid)
@@ -441,6 +633,18 @@ func TestAdultLibraryNoLeaksIntegration(t *testing.T) {
 		{"GET", "/adult/performers/" + pid, nil}, {"GET", "/adult/images/scene/" + sid + "/poster", nil},
 		{"GET", "/adult/images/performer/" + pid + "/image", nil}, {"POST", "/adult/unlock", map[string]any{"pin": "1234"}},
 		{"PUT", "/adult/preferences", map[string]any{"blur": false}}, {"POST", "/adult/scenes/" + sid + "/refresh", nil},
+		{"GET", "/adult/home", nil}, {"GET", "/adult/search?q=gilded", nil}, {"GET", "/adult/tags", nil},
+		{"GET", "/adult/galleries", nil}, {"GET", "/adult/galleries/" + gid, nil},
+		{"GET", "/adult/gallery-images/" + iid + "/thumb", nil}, {"GET", "/adult/gallery-images/" + iid + "/full", nil},
+		{"GET", "/adult/gallery-images/" + iid + "/download", nil},
+		{"PUT", "/adult/performers/" + pid + "/favorite", nil},
+		// Photo endpoints of the photo library over the same folder, and item
+		// endpoints asked with the ids of galleries and pictures.
+		{"GET", "/libraries/" + photos.ID + "/items?limit=200", nil},
+		{"GET", "/libraries/" + photos.ID + "/items?limit=200&sort=taken", nil},
+		{"GET", "/items/" + gid, nil}, {"GET", "/items/" + iid, nil}, {"GET", "/items/" + iid + "/photo", nil},
+		{"GET", "/items/" + iid + "/images/poster", nil}, {"GET", "/items/" + gid + "/images/poster", nil},
+		{"GET", "/search?q=Gilded", nil}, {"GET", "/search?q=Zephyrine", nil}, {"GET", "/search?q=Quasar", nil},
 	}
 	leaks := func(who string, c *client, isAdmin bool) {
 		t.Helper()
@@ -449,7 +653,7 @@ func TestAdultLibraryNoLeaksIntegration(t *testing.T) {
 			if strings.HasPrefix(cl.path, "/adult/") && s != 404 {
 				t.Errorf("%s %s %s: HTTP %d, want 404", who, cl.method, cl.path, s)
 			}
-			for _, m := range append(adultMarkers, sid, fid, stid, pid) {
+			for _, m := range append(adultMarkers, sid, fid, stid, pid, gid, iid) {
 				if strings.Contains(body, m) {
 					t.Errorf("%s %s %s leaks %q: %s", who, cl.method, cl.path, m, body)
 				}
@@ -475,20 +679,25 @@ func TestAdultLibraryNoLeaksIntegration(t *testing.T) {
 			t.Errorf("control %s: %d %s", p, s, body)
 		}
 	}
+	// Control: the photo library does show the holiday photo.
+	if s, body := rawCall(t, member, "GET", "/libraries/"+photos.ID+"/items?limit=200", nil); s != 200 || !strings.Contains(body, "Holiday") {
+		t.Errorf("control: photo library: %d %s", s, body)
+	}
 	leaks("admin", adminC, true)
 	leaks("member", member, false)
 	leaks("invited", invited, false)
 	leaks("kids profile", kidC, false)
 	leaks("api key", keyC, true)
 
-	// /api/stats (dashboards): no adult counts, no adult library.
+	// /api/stats (dashboards): no adult counts, no adult library (the photo library
+	// counts the two films as videos and the holiday photo, nothing from adult/).
 	st, _, body := statsCall(t, "GET", srv.URL+"/api/stats", map[string]string{"X-Api-Key": adminKey}, "")
 	if st != 200 {
 		t.Fatalf("/api/stats: %d", st)
 	}
 	var stats map[string]any
 	_ = json.Unmarshal([]byte(body), &stats)
-	if stats["libraries"] != float64(1) || stats["movies"] != float64(2) || stats["videos"] != float64(2) {
+	if stats["libraries"] != float64(2) || stats["movies"] != float64(2) || stats["videos"] != float64(4) || stats["photos"] != float64(1) {
 		t.Errorf("/api/stats counts adult content: %s", body)
 	}
 
@@ -500,12 +709,14 @@ func TestAdultLibraryNoLeaksIntegration(t *testing.T) {
 		"/Items/" + compat.ID(sceneID), "/Users/" + uid + "/Items/" + compat.ID(sceneID), "/Search/Hints?searchTerm=Velvetine",
 		"/Shows/NextUp?userId=" + uid, "/UserItems/Resume?userId=" + uid, "/Items/" + compat.ID(sceneID) + "/PlaybackInfo",
 		"/Videos/" + compat.ID(sceneID) + "/stream?static=true", "/Items/" + compat.ID(sceneID) + "/Images/Primary",
-		"/Persons?searchTerm=Onyx", "/Studios?searchTerm=Velvetine", "/Items/Filters", "/Genres"} {
+		"/Persons?searchTerm=Onyx", "/Studios?searchTerm=Velvetine", "/Items/Filters", "/Genres",
+		"/Items?Recursive=true&IncludeItemTypes=Photo,PhotoAlbum&Limit=200", "/Items?Recursive=true&searchTerm=Gilded",
+		"/Items/" + compat.ID(galleryID), "/Items/" + compat.ID(imageID) + "/Images/Primary", "/Search/Hints?searchTerm=Zephyrine"} {
 		s, b, _ := cc.raw("GET", p, nil, nil)
 		if p == "/Items?Recursive=true&IncludeItemTypes=Movie,Video,Episode&Limit=200" && (s != 200 || !strings.Contains(string(b), "Film")) {
 			t.Errorf("control: compat lists no film: %d %s", s, b)
 		}
-		for _, m := range append(adultMarkers, "Privatno", compat.ID(sceneID), compat.ID(libID)) {
+		for _, m := range append(adultMarkers, "Privatno", compat.ID(sceneID), compat.ID(libID), compat.ID(galleryID), compat.ID(imageID)) {
 			if strings.Contains(string(b), m) {
 				t.Errorf("compat %s leaks %q: %s", p, m, b)
 			}
@@ -531,7 +742,7 @@ func TestAdultLibraryNoLeaksIntegration(t *testing.T) {
 		}
 		seen[id] = true
 		doc, raw := didlOf(t, tv.URL, id)
-		for _, m := range append(adultMarkers, "Privatno", sid, lib.ID) {
+		for _, m := range append(adultMarkers, "Privatno", sid, lib.ID, gid, iid) {
 			if strings.Contains(raw, m) {
 				t.Errorf("DLNA %s leaks %q", id, m)
 			}
@@ -560,7 +771,7 @@ func TestAdultLibraryNoLeaksIntegration(t *testing.T) {
 	hookMu.Lock()
 	sent := strings.Join(hookBodies, "\n")
 	hookMu.Unlock()
-	for _, m := range append(adultMarkers, "Privatno", sid, lib.ID) {
+	for _, m := range append(adultMarkers, "Privatno", sid, lib.ID, gid, iid) {
 		if strings.Contains(sent, m) {
 			t.Errorf("webhook leaks %q: %s", m, sent)
 		}
@@ -597,6 +808,11 @@ func TestAdultLibraryNoLeaksIntegration(t *testing.T) {
 	}
 	if s := second.do("GET", "/adult/images/scene/"+sid+"/poster", nil, nil); s != 403 {
 		t.Fatalf("image of a locked section: %d", s)
+	}
+	for _, p := range []string{"/adult/gallery-images/" + iid + "/thumb", "/adult/galleries/" + gid, "/adult/home", "/adult/tags"} {
+		if s := second.do("GET", p, nil, nil); s != 403 {
+			t.Fatalf("%s in a locked section: %d", p, s)
+		}
 	}
 	if s := second.do("POST", "/adult/unlock", map[string]any{"pin": "0000"}, &e); s != 403 || e.Code != "invalid_pin" {
 		t.Fatalf("wrong PIN: %d %+v", s, e)

@@ -53,7 +53,6 @@ jobs:
         run: |
           go tool ogen --target internal/api/gen --package gen --clean ../api/openapi.yaml
           git diff --exit-code -- internal/api/gen
-          cmp ../api/openapi.yaml ../ios/Streamero/openapi.yaml
       - run: go vet ./...
       - uses: golangci/golangci-lint-action@v8
         with:

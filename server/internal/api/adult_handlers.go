@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"errors"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -79,9 +80,12 @@ func (h *Handler) adultOpen(ctx context.Context) (*adultlib.Service, adultlib.Vi
 
 func toAdultStatus(st adultlib.Status) *gen.AdultStatus {
 	out := &gen.AdultStatus{PinSet: st.PinSet, Unlocked: st.Unlocked, Blur: st.Blur, MetadataConfigured: st.MetadataConfigured,
-		Libraries: []gen.AdultLibrary{}}
+		Libraries: []gen.AdultLibrary{}, HiddenTags: st.HiddenTags, HideTagged: st.HideTagged, CanDownload: st.CanDownload}
+	if out.HiddenTags == nil {
+		out.HiddenTags = []string{}
+	}
 	for _, l := range st.Libraries {
-		out.Libraries = append(out.Libraries, gen.AdultLibrary{ID: l.ID, Name: l.Name, SceneCount: l.SceneCount})
+		out.Libraries = append(out.Libraries, gen.AdultLibrary{ID: l.ID, Name: l.Name, SceneCount: l.SceneCount, GalleryCount: l.GalleryCount})
 	}
 	return out
 }
@@ -132,6 +136,13 @@ func (h *Handler) UpdateAdultPreferences(ctx context.Context, req *gen.AdultPref
 		in.PIN = &pin
 	}
 	in.CurrentPIN = req.CurrentPin.Value
+	if req.HiddenTags != nil {
+		tags := req.HiddenTags
+		in.HiddenTags = &tags
+	}
+	if b, ok := req.HideTagged.Get(); ok {
+		in.HideTagged = &b
+	}
 	if in.PIN == nil {
 		// Blurring changes only in an open section (a set PIN is checked by SetPrefs).
 		if _, err := a.Open(ctx, mustPrincipal(ctx)); err != nil {
@@ -184,7 +195,10 @@ func toAdultSceneDetail(sc adultlib.Scene) *gen.AdultSceneDetail {
 		Studio: b.Studio, Performers: b.Performers, Tags: b.Tags, DurationMs: b.DurationMs, Height: b.Height, HasPoster: b.HasPoster,
 		HasBackdrop: b.HasBackdrop, PositionMs: b.PositionMs, Played: b.Played, AddedAt: b.AddedAt,
 		Description: optString(sc.Description), URL: optString(sc.URL), MetadataError: optString(sc.MetadataError),
-		Files: []gen.AdultFile{}, ProviderIds: gen.AdultSceneDetailProviderIds{}}
+		Files: []gen.AdultFile{}, ProviderIds: gen.AdultSceneDetailProviderIds{}, Galleries: []gen.AdultGallery{}}
+	for _, g := range sc.Galleries {
+		out.Galleries = append(out.Galleries, toAdultGallery(g))
+	}
 	for k, v := range sc.ProviderIDs {
 		out.ProviderIds[k] = v
 	}
@@ -220,7 +234,8 @@ func (h *Handler) ListAdultScenes(ctx context.Context, params gen.ListAdultScene
 	}
 	f := adultlib.Filter{LibraryID: optUUID(params.LibraryId), StudioID: optUUID(params.StudioId), PerformerID: optUUID(params.PerformerId),
 		Kind: string(params.Kind.Value), Query: params.Q.Value, Tag: params.Tag.Value, Status: string(params.Status.Value),
-		Sort: string(params.Sort.Value), Offset: params.Offset.Or(0), Limit: params.Limit.Or(60)}
+		Sort: string(params.Sort.Value), Offset: params.Offset.Or(0), Limit: params.Limit.Or(60),
+		FavoritePerformers: params.FavoritePerformers.Value}
 	if y, ok := params.Year.Get(); ok {
 		f.Year = &y
 	}
@@ -349,22 +364,24 @@ func (h *Handler) ReportAdultProgress(ctx context.Context, req *gen.ProgressRepo
 }
 
 func toAdultStudio(s adultlib.Studio) gen.AdultStudio {
-	return gen.AdultStudio{ID: s.ID, Name: s.Name, SceneCount: s.SceneCount, HasImage: s.HasImage, URL: optString(s.URL),
+	return gen.AdultStudio{ID: s.ID, Name: s.Name, SceneCount: s.SceneCount, GalleryCount: s.GalleryCount, HasImage: s.HasImage, URL: optString(s.URL),
 		Parent: optString(s.Parent)}
 }
 
 func toAdultPerformer(p adultlib.Performer) gen.AdultPerformer {
-	return gen.AdultPerformer{ID: p.ID, Name: p.Name, SceneCount: p.SceneCount, HasImage: p.HasImage, Aliases: p.Aliases,
+	return gen.AdultPerformer{ID: p.ID, Name: p.Name, SceneCount: p.SceneCount, GalleryCount: p.GalleryCount, Favorite: p.Favorite,
+		HasImage: p.HasImage, Aliases: p.Aliases,
 		Gender: optString(p.Gender), Birthdate: optString(p.Birthdate), Country: optString(p.Country), Description: optString(p.Description)}
 }
 
 // ListAdultStudios implements GET /adult/studios.
 func (h *Handler) ListAdultStudios(ctx context.Context, params gen.ListAdultStudiosParams) (*gen.AdultStudioPage, error) {
-	a, _, _, err := h.adultOpen(ctx)
+	a, v, _, err := h.adultOpen(ctx)
 	if err != nil {
 		return nil, err
 	}
-	list, total, err := a.Studios(ctx, params.Q.Value, params.Offset.Or(0), params.Limit.Or(100))
+	list, total, err := a.Studios(ctx, v, adultlib.NamedFilter{Query: params.Q.Value, Sort: string(params.Sort.Value),
+		Offset: params.Offset.Or(0), Limit: params.Limit.Or(100)})
 	if err != nil {
 		return nil, err
 	}
@@ -391,11 +408,12 @@ func (h *Handler) GetAdultStudio(ctx context.Context, params gen.GetAdultStudioP
 
 // ListAdultPerformers implements GET /adult/performers.
 func (h *Handler) ListAdultPerformers(ctx context.Context, params gen.ListAdultPerformersParams) (*gen.AdultPerformerPage, error) {
-	a, _, _, err := h.adultOpen(ctx)
+	a, v, _, err := h.adultOpen(ctx)
 	if err != nil {
 		return nil, err
 	}
-	list, total, err := a.Performers(ctx, params.Q.Value, params.Offset.Or(0), params.Limit.Or(100))
+	list, total, err := a.Performers(ctx, v, adultlib.NamedFilter{Query: params.Q.Value, Sort: string(params.Sort.Value),
+		Favorites: params.Favorites.Value, Offset: params.Offset.Or(0), Limit: params.Limit.Or(100)})
 	if err != nil {
 		return nil, err
 	}
@@ -408,11 +426,11 @@ func (h *Handler) ListAdultPerformers(ctx context.Context, params gen.ListAdultP
 
 // GetAdultPerformer implements GET /adult/performers/{performerId}.
 func (h *Handler) GetAdultPerformer(ctx context.Context, params gen.GetAdultPerformerParams) (*gen.AdultPerformer, error) {
-	a, _, _, err := h.adultOpen(ctx)
+	a, v, _, err := h.adultOpen(ctx)
 	if err != nil {
 		return nil, err
 	}
-	p, err := a.Performer(ctx, params.PerformerId)
+	p, err := a.Performer(ctx, v, params.PerformerId)
 	if err != nil {
 		return nil, err
 	}
@@ -506,4 +524,208 @@ func (h *Handler) SetUserAdultAccess(ctx context.Context, req *gen.AdultAccessIn
 		}
 	}
 	return nil, adultlib.ErrNotFound
+}
+
+// AddAdultFavoritePerformer implements PUT /adult/performers/{performerId}/favorite.
+func (h *Handler) AddAdultFavoritePerformer(ctx context.Context, params gen.AddAdultFavoritePerformerParams) error {
+	a, v, _, err := h.adultOpen(ctx)
+	if err != nil {
+		return err
+	}
+	return a.SetFavorite(ctx, v, params.PerformerId, true)
+}
+
+// RemoveAdultFavoritePerformer implements DELETE /adult/performers/{performerId}/favorite.
+func (h *Handler) RemoveAdultFavoritePerformer(ctx context.Context, params gen.RemoveAdultFavoritePerformerParams) error {
+	a, v, _, err := h.adultOpen(ctx)
+	if err != nil {
+		return err
+	}
+	return a.SetFavorite(ctx, v, params.PerformerId, false)
+}
+
+func toAdultGallery(g adultlib.Gallery) gen.AdultGallery {
+	out := gen.AdultGallery{ID: g.ID, LibraryId: g.LibraryID, Title: g.Title, Performers: []gen.AdultRef{}, Tags: g.Tags,
+		ImageCount: g.ImageCount, AddedAt: g.AddedAt}
+	if out.Tags == nil {
+		out.Tags = []string{}
+	}
+	if g.Date != nil {
+		out.Date = gen.NewOptDate(*g.Date)
+	}
+	if g.Year != nil {
+		out.Year = gen.NewOptInt(*g.Year)
+	}
+	if g.Studio != nil {
+		out.Studio = gen.NewOptAdultRef(gen.AdultRef{ID: g.Studio.ID, Name: g.Studio.Name})
+	}
+	if g.Scene != nil {
+		out.Scene = gen.NewOptAdultRef(gen.AdultRef{ID: g.Scene.ID, Name: g.Scene.Name})
+	}
+	if g.CoverImageID != nil {
+		out.CoverImageId = gen.NewOptUUID(*g.CoverImageID)
+	}
+	for _, p := range g.Performers {
+		out.Performers = append(out.Performers, gen.AdultRef{ID: p.ID, Name: p.Name})
+	}
+	return out
+}
+
+func toAdultScenes(list []adultlib.Scene) []gen.AdultScene {
+	out := []gen.AdultScene{}
+	for _, sc := range list {
+		out = append(out, toAdultScene(sc))
+	}
+	return out
+}
+
+func toAdultGalleries(list []adultlib.Gallery) []gen.AdultGallery {
+	out := []gen.AdultGallery{}
+	for _, g := range list {
+		out = append(out, toAdultGallery(g))
+	}
+	return out
+}
+
+// ListAdultGalleries implements GET /adult/galleries.
+func (h *Handler) ListAdultGalleries(ctx context.Context, params gen.ListAdultGalleriesParams) (*gen.AdultGalleryPage, error) {
+	a, v, _, err := h.adultOpen(ctx)
+	if err != nil {
+		return nil, err
+	}
+	f := adultlib.GalleryFilter{LibraryID: optUUID(params.LibraryId), StudioID: optUUID(params.StudioId), PerformerID: optUUID(params.PerformerId),
+		SceneID: optUUID(params.SceneId), Query: params.Q.Value, Tag: params.Tag.Value, Sort: string(params.Sort.Value),
+		Offset: params.Offset.Or(0), Limit: params.Limit.Or(60)}
+	if y, ok := params.Year.Get(); ok {
+		f.Year = &y
+	}
+	list, total, err := a.Galleries(ctx, v, f)
+	if err != nil {
+		return nil, err
+	}
+	return &gen.AdultGalleryPage{Items: toAdultGalleries(list), Total: total}, nil
+}
+
+// GetAdultGallery implements GET /adult/galleries/{galleryId}.
+func (h *Handler) GetAdultGallery(ctx context.Context, params gen.GetAdultGalleryParams) (*gen.AdultGalleryDetail, error) {
+	a, v, _, err := h.adultOpen(ctx)
+	if err != nil {
+		return nil, err
+	}
+	g, err := a.Gallery(ctx, v, params.GalleryId)
+	if err != nil {
+		return nil, err
+	}
+	b := toAdultGallery(g)
+	out := &gen.AdultGalleryDetail{ID: b.ID, LibraryId: b.LibraryId, Title: b.Title, Date: b.Date, Year: b.Year, Studio: b.Studio,
+		Scene: b.Scene, Performers: b.Performers, Tags: b.Tags, ImageCount: b.ImageCount, CoverImageId: b.CoverImageId, AddedAt: b.AddedAt,
+		Images: []gen.AdultGalleryImage{}}
+	for _, im := range g.Images {
+		gi := gen.AdultGalleryImage{ID: im.ID, Position: im.Position, Name: im.Name}
+		if im.Width != nil {
+			gi.Width = gen.NewOptInt(*im.Width)
+		}
+		if im.Height != nil {
+			gi.Height = gen.NewOptInt(*im.Height)
+		}
+		out.Images = append(out.Images, gi)
+	}
+	return out, nil
+}
+
+// GetAdultGalleryImage implements GET /adult/gallery-images/{imageId}/{variant}:
+// through the gate only, never cached by the browser or a proxy; the original
+// file only with the download permission.
+func (h *Handler) GetAdultGalleryImage(ctx context.Context, params gen.GetAdultGalleryImageParams) (gen.GetAdultGalleryImageRes, error) {
+	a, v, _, err := h.adultOpen(ctx)
+	if err != nil {
+		return nil, err
+	}
+	variant := string(params.Variant)
+	if variant == "download" && !v.CanDownload {
+		return nil, errForbidden
+	}
+	pic, err := a.Image(ctx, params.ImageId, variant)
+	if err != nil {
+		return nil, err
+	}
+	cache := gen.NewOptString("private, no-store")
+	disp := gen.OptString{}
+	if variant == "download" {
+		disp = gen.NewOptString(mime.FormatMediaType("attachment", map[string]string{"filename": pic.Name}))
+	}
+	switch pic.ContentType {
+	case "image/jpeg":
+		return &gen.GetAdultGalleryImageOKImageJpegHeaders{CacheControl: cache, ContentDisposition: disp,
+			Response: gen.GetAdultGalleryImageOKImageJpeg{Data: pic.Data}}, nil
+	case "image/png":
+		return &gen.GetAdultGalleryImageOKImagePNGHeaders{CacheControl: cache, ContentDisposition: disp,
+			Response: gen.GetAdultGalleryImageOKImagePNG{Data: pic.Data}}, nil
+	case "image/webp":
+		return &gen.GetAdultGalleryImageOKImageWEBPHeaders{CacheControl: cache, ContentDisposition: disp,
+			Response: gen.GetAdultGalleryImageOKImageWEBP{Data: pic.Data}}, nil
+	case "image/gif":
+		return &gen.GetAdultGalleryImageOKImageGIFHeaders{CacheControl: cache, ContentDisposition: disp,
+			Response: gen.GetAdultGalleryImageOKImageGIF{Data: pic.Data}}, nil
+	}
+	return &gen.GetAdultGalleryImageOKApplicationOctetStreamHeaders{CacheControl: cache, ContentDisposition: disp,
+		Response: gen.GetAdultGalleryImageOKApplicationOctetStream{Data: pic.Data}}, nil
+}
+
+// ListAdultTags implements GET /adult/tags.
+func (h *Handler) ListAdultTags(ctx context.Context, params gen.ListAdultTagsParams) (*gen.AdultTagPage, error) {
+	a, v, _, err := h.adultOpen(ctx)
+	if err != nil {
+		return nil, err
+	}
+	list, total, err := a.Tags(ctx, v, adultlib.TagFilter{Query: params.Q.Value, Sort: string(params.Sort.Value),
+		IncludeHidden: params.IncludeHidden.Value, Offset: params.Offset.Or(0), Limit: params.Limit.Or(200)})
+	if err != nil {
+		return nil, err
+	}
+	return &gen.AdultTagPage{Items: toAdultTags(list), Total: total}, nil
+}
+
+func toAdultTags(list []adultlib.Tag) []gen.AdultTag {
+	out := []gen.AdultTag{}
+	for _, t := range list {
+		out = append(out, gen.AdultTag{Name: t.Name, SceneCount: t.SceneCount, GalleryCount: t.GalleryCount, Hidden: t.Hidden})
+	}
+	return out
+}
+
+// GetAdultHome implements GET /adult/home.
+func (h *Handler) GetAdultHome(ctx context.Context) (*gen.AdultHome, error) {
+	a, v, _, err := h.adultOpen(ctx)
+	if err != nil {
+		return nil, err
+	}
+	home, err := a.Home(ctx, v)
+	if err != nil {
+		return nil, err
+	}
+	return &gen.AdultHome{Continue: toAdultScenes(home.Continue), RecentlyAdded: toAdultScenes(home.RecentlyAdded),
+		RecentlyReleased: toAdultScenes(home.RecentlyReleased), FavoritePerformers: toAdultScenes(home.FavoritePerformers),
+		RecentGalleries: toAdultGalleries(home.RecentGalleries)}, nil
+}
+
+// SearchAdult implements GET /adult/search.
+func (h *Handler) SearchAdult(ctx context.Context, params gen.SearchAdultParams) (*gen.AdultSearchResult, error) {
+	a, v, _, err := h.adultOpen(ctx)
+	if err != nil {
+		return nil, err
+	}
+	r, err := a.Search(ctx, v, params.Q, params.Limit.Or(12))
+	if err != nil {
+		return nil, err
+	}
+	out := &gen.AdultSearchResult{Scenes: toAdultScenes(r.Scenes), Galleries: toAdultGalleries(r.Galleries),
+		Performers: []gen.AdultPerformer{}, Studios: []gen.AdultStudio{}, Tags: toAdultTags(r.Tags)}
+	for _, p := range r.Performers {
+		out.Performers = append(out.Performers, toAdultPerformer(p))
+	}
+	for _, st := range r.Studios {
+		out.Studios = append(out.Studios, toAdultStudio(st))
+	}
+	return out, nil
 }

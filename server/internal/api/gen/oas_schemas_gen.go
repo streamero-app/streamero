@@ -151,6 +151,9 @@ func (s *ActivityPage) SetTotal(val int) {
 	s.Total = val
 }
 
+// AddAdultFavoritePerformerNoContent is response for AddAdultFavoritePerformer operation.
+type AddAdultFavoritePerformerNoContent struct{}
+
 // AddLiveTvFavoriteNoContent is response for AddLiveTvFavorite operation.
 type AddLiveTvFavoriteNoContent struct{}
 
@@ -288,11 +291,445 @@ func (s *AdultFile) SetDurationMs(val OptInt64) {
 	s.DurationMs = val
 }
 
+// Ref: #/components/schemas/AdultGallery
+type AdultGallery struct {
+	ID         uuid.UUID   `json:"id"`
+	LibraryId  uuid.UUID   `json:"libraryId"`
+	Title      string      `json:"title"`
+	Date       OptDate     `json:"date"`
+	Year       OptInt      `json:"year"`
+	Studio     OptAdultRef `json:"studio"`
+	Scene      OptAdultRef `json:"scene"`
+	Performers []AdultRef  `json:"performers"`
+	Tags       []string    `json:"tags"`
+	ImageCount int         `json:"imageCount"`
+	// Picture shown as the gallery's cover (`/adult/gallery-images/{id}/thumb`).
+	CoverImageId OptUUID   `json:"coverImageId"`
+	AddedAt      time.Time `json:"addedAt"`
+}
+
+// GetID returns the value of ID.
+func (s *AdultGallery) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetLibraryId returns the value of LibraryId.
+func (s *AdultGallery) GetLibraryId() uuid.UUID {
+	return s.LibraryId
+}
+
+// GetTitle returns the value of Title.
+func (s *AdultGallery) GetTitle() string {
+	return s.Title
+}
+
+// GetDate returns the value of Date.
+func (s *AdultGallery) GetDate() OptDate {
+	return s.Date
+}
+
+// GetYear returns the value of Year.
+func (s *AdultGallery) GetYear() OptInt {
+	return s.Year
+}
+
+// GetStudio returns the value of Studio.
+func (s *AdultGallery) GetStudio() OptAdultRef {
+	return s.Studio
+}
+
+// GetScene returns the value of Scene.
+func (s *AdultGallery) GetScene() OptAdultRef {
+	return s.Scene
+}
+
+// GetPerformers returns the value of Performers.
+func (s *AdultGallery) GetPerformers() []AdultRef {
+	return s.Performers
+}
+
+// GetTags returns the value of Tags.
+func (s *AdultGallery) GetTags() []string {
+	return s.Tags
+}
+
+// GetImageCount returns the value of ImageCount.
+func (s *AdultGallery) GetImageCount() int {
+	return s.ImageCount
+}
+
+// GetCoverImageId returns the value of CoverImageId.
+func (s *AdultGallery) GetCoverImageId() OptUUID {
+	return s.CoverImageId
+}
+
+// GetAddedAt returns the value of AddedAt.
+func (s *AdultGallery) GetAddedAt() time.Time {
+	return s.AddedAt
+}
+
+// SetID sets the value of ID.
+func (s *AdultGallery) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetLibraryId sets the value of LibraryId.
+func (s *AdultGallery) SetLibraryId(val uuid.UUID) {
+	s.LibraryId = val
+}
+
+// SetTitle sets the value of Title.
+func (s *AdultGallery) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetDate sets the value of Date.
+func (s *AdultGallery) SetDate(val OptDate) {
+	s.Date = val
+}
+
+// SetYear sets the value of Year.
+func (s *AdultGallery) SetYear(val OptInt) {
+	s.Year = val
+}
+
+// SetStudio sets the value of Studio.
+func (s *AdultGallery) SetStudio(val OptAdultRef) {
+	s.Studio = val
+}
+
+// SetScene sets the value of Scene.
+func (s *AdultGallery) SetScene(val OptAdultRef) {
+	s.Scene = val
+}
+
+// SetPerformers sets the value of Performers.
+func (s *AdultGallery) SetPerformers(val []AdultRef) {
+	s.Performers = val
+}
+
+// SetTags sets the value of Tags.
+func (s *AdultGallery) SetTags(val []string) {
+	s.Tags = val
+}
+
+// SetImageCount sets the value of ImageCount.
+func (s *AdultGallery) SetImageCount(val int) {
+	s.ImageCount = val
+}
+
+// SetCoverImageId sets the value of CoverImageId.
+func (s *AdultGallery) SetCoverImageId(val OptUUID) {
+	s.CoverImageId = val
+}
+
+// SetAddedAt sets the value of AddedAt.
+func (s *AdultGallery) SetAddedAt(val time.Time) {
+	s.AddedAt = val
+}
+
+// Merged schema.
+// Ref: #/components/schemas/AdultGalleryDetail
+type AdultGalleryDetail struct {
+	ID         uuid.UUID   `json:"id"`
+	LibraryId  uuid.UUID   `json:"libraryId"`
+	Title      string      `json:"title"`
+	Date       OptDate     `json:"date"`
+	Year       OptInt      `json:"year"`
+	Studio     OptAdultRef `json:"studio"`
+	Scene      OptAdultRef `json:"scene"`
+	Performers []AdultRef  `json:"performers"`
+	Tags       []string    `json:"tags"`
+	ImageCount int         `json:"imageCount"`
+	// Picture shown as the gallery's cover (`/adult/gallery-images/{id}/thumb`).
+	CoverImageId OptUUID             `json:"coverImageId"`
+	AddedAt      time.Time           `json:"addedAt"`
+	Images       []AdultGalleryImage `json:"images"`
+}
+
+// GetID returns the value of ID.
+func (s *AdultGalleryDetail) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetLibraryId returns the value of LibraryId.
+func (s *AdultGalleryDetail) GetLibraryId() uuid.UUID {
+	return s.LibraryId
+}
+
+// GetTitle returns the value of Title.
+func (s *AdultGalleryDetail) GetTitle() string {
+	return s.Title
+}
+
+// GetDate returns the value of Date.
+func (s *AdultGalleryDetail) GetDate() OptDate {
+	return s.Date
+}
+
+// GetYear returns the value of Year.
+func (s *AdultGalleryDetail) GetYear() OptInt {
+	return s.Year
+}
+
+// GetStudio returns the value of Studio.
+func (s *AdultGalleryDetail) GetStudio() OptAdultRef {
+	return s.Studio
+}
+
+// GetScene returns the value of Scene.
+func (s *AdultGalleryDetail) GetScene() OptAdultRef {
+	return s.Scene
+}
+
+// GetPerformers returns the value of Performers.
+func (s *AdultGalleryDetail) GetPerformers() []AdultRef {
+	return s.Performers
+}
+
+// GetTags returns the value of Tags.
+func (s *AdultGalleryDetail) GetTags() []string {
+	return s.Tags
+}
+
+// GetImageCount returns the value of ImageCount.
+func (s *AdultGalleryDetail) GetImageCount() int {
+	return s.ImageCount
+}
+
+// GetCoverImageId returns the value of CoverImageId.
+func (s *AdultGalleryDetail) GetCoverImageId() OptUUID {
+	return s.CoverImageId
+}
+
+// GetAddedAt returns the value of AddedAt.
+func (s *AdultGalleryDetail) GetAddedAt() time.Time {
+	return s.AddedAt
+}
+
+// GetImages returns the value of Images.
+func (s *AdultGalleryDetail) GetImages() []AdultGalleryImage {
+	return s.Images
+}
+
+// SetID sets the value of ID.
+func (s *AdultGalleryDetail) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetLibraryId sets the value of LibraryId.
+func (s *AdultGalleryDetail) SetLibraryId(val uuid.UUID) {
+	s.LibraryId = val
+}
+
+// SetTitle sets the value of Title.
+func (s *AdultGalleryDetail) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetDate sets the value of Date.
+func (s *AdultGalleryDetail) SetDate(val OptDate) {
+	s.Date = val
+}
+
+// SetYear sets the value of Year.
+func (s *AdultGalleryDetail) SetYear(val OptInt) {
+	s.Year = val
+}
+
+// SetStudio sets the value of Studio.
+func (s *AdultGalleryDetail) SetStudio(val OptAdultRef) {
+	s.Studio = val
+}
+
+// SetScene sets the value of Scene.
+func (s *AdultGalleryDetail) SetScene(val OptAdultRef) {
+	s.Scene = val
+}
+
+// SetPerformers sets the value of Performers.
+func (s *AdultGalleryDetail) SetPerformers(val []AdultRef) {
+	s.Performers = val
+}
+
+// SetTags sets the value of Tags.
+func (s *AdultGalleryDetail) SetTags(val []string) {
+	s.Tags = val
+}
+
+// SetImageCount sets the value of ImageCount.
+func (s *AdultGalleryDetail) SetImageCount(val int) {
+	s.ImageCount = val
+}
+
+// SetCoverImageId sets the value of CoverImageId.
+func (s *AdultGalleryDetail) SetCoverImageId(val OptUUID) {
+	s.CoverImageId = val
+}
+
+// SetAddedAt sets the value of AddedAt.
+func (s *AdultGalleryDetail) SetAddedAt(val time.Time) {
+	s.AddedAt = val
+}
+
+// SetImages sets the value of Images.
+func (s *AdultGalleryDetail) SetImages(val []AdultGalleryImage) {
+	s.Images = val
+}
+
+// Ref: #/components/schemas/AdultGalleryImage
+type AdultGalleryImage struct {
+	ID       uuid.UUID `json:"id"`
+	Position int       `json:"position"`
+	// File name (without the folder).
+	Name string `json:"name"`
+	// As shown (EXIF orientation applied).
+	Width  OptInt `json:"width"`
+	Height OptInt `json:"height"`
+}
+
+// GetID returns the value of ID.
+func (s *AdultGalleryImage) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetPosition returns the value of Position.
+func (s *AdultGalleryImage) GetPosition() int {
+	return s.Position
+}
+
+// GetName returns the value of Name.
+func (s *AdultGalleryImage) GetName() string {
+	return s.Name
+}
+
+// GetWidth returns the value of Width.
+func (s *AdultGalleryImage) GetWidth() OptInt {
+	return s.Width
+}
+
+// GetHeight returns the value of Height.
+func (s *AdultGalleryImage) GetHeight() OptInt {
+	return s.Height
+}
+
+// SetID sets the value of ID.
+func (s *AdultGalleryImage) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetPosition sets the value of Position.
+func (s *AdultGalleryImage) SetPosition(val int) {
+	s.Position = val
+}
+
+// SetName sets the value of Name.
+func (s *AdultGalleryImage) SetName(val string) {
+	s.Name = val
+}
+
+// SetWidth sets the value of Width.
+func (s *AdultGalleryImage) SetWidth(val OptInt) {
+	s.Width = val
+}
+
+// SetHeight sets the value of Height.
+func (s *AdultGalleryImage) SetHeight(val OptInt) {
+	s.Height = val
+}
+
+// Ref: #/components/schemas/AdultGalleryPage
+type AdultGalleryPage struct {
+	Items []AdultGallery `json:"items"`
+	Total int            `json:"total"`
+}
+
+// GetItems returns the value of Items.
+func (s *AdultGalleryPage) GetItems() []AdultGallery {
+	return s.Items
+}
+
+// GetTotal returns the value of Total.
+func (s *AdultGalleryPage) GetTotal() int {
+	return s.Total
+}
+
+// SetItems sets the value of Items.
+func (s *AdultGalleryPage) SetItems(val []AdultGallery) {
+	s.Items = val
+}
+
+// SetTotal sets the value of Total.
+func (s *AdultGalleryPage) SetTotal(val int) {
+	s.Total = val
+}
+
+// Ref: #/components/schemas/AdultHome
+type AdultHome struct {
+	Continue         []AdultScene `json:"continue"`
+	RecentlyAdded    []AdultScene `json:"recentlyAdded"`
+	RecentlyReleased []AdultScene `json:"recentlyReleased"`
+	// Newest scenes of the viewer's favourite performers.
+	FavoritePerformers []AdultScene   `json:"favoritePerformers"`
+	RecentGalleries    []AdultGallery `json:"recentGalleries"`
+}
+
+// GetContinue returns the value of Continue.
+func (s *AdultHome) GetContinue() []AdultScene {
+	return s.Continue
+}
+
+// GetRecentlyAdded returns the value of RecentlyAdded.
+func (s *AdultHome) GetRecentlyAdded() []AdultScene {
+	return s.RecentlyAdded
+}
+
+// GetRecentlyReleased returns the value of RecentlyReleased.
+func (s *AdultHome) GetRecentlyReleased() []AdultScene {
+	return s.RecentlyReleased
+}
+
+// GetFavoritePerformers returns the value of FavoritePerformers.
+func (s *AdultHome) GetFavoritePerformers() []AdultScene {
+	return s.FavoritePerformers
+}
+
+// GetRecentGalleries returns the value of RecentGalleries.
+func (s *AdultHome) GetRecentGalleries() []AdultGallery {
+	return s.RecentGalleries
+}
+
+// SetContinue sets the value of Continue.
+func (s *AdultHome) SetContinue(val []AdultScene) {
+	s.Continue = val
+}
+
+// SetRecentlyAdded sets the value of RecentlyAdded.
+func (s *AdultHome) SetRecentlyAdded(val []AdultScene) {
+	s.RecentlyAdded = val
+}
+
+// SetRecentlyReleased sets the value of RecentlyReleased.
+func (s *AdultHome) SetRecentlyReleased(val []AdultScene) {
+	s.RecentlyReleased = val
+}
+
+// SetFavoritePerformers sets the value of FavoritePerformers.
+func (s *AdultHome) SetFavoritePerformers(val []AdultScene) {
+	s.FavoritePerformers = val
+}
+
+// SetRecentGalleries sets the value of RecentGalleries.
+func (s *AdultHome) SetRecentGalleries(val []AdultGallery) {
+	s.RecentGalleries = val
+}
+
 // Ref: #/components/schemas/AdultLibrary
 type AdultLibrary struct {
-	ID         uuid.UUID `json:"id"`
-	Name       string    `json:"name"`
-	SceneCount int       `json:"sceneCount"`
+	ID           uuid.UUID `json:"id"`
+	Name         string    `json:"name"`
+	SceneCount   int       `json:"sceneCount"`
+	GalleryCount int       `json:"galleryCount"`
 }
 
 // GetID returns the value of ID.
@@ -310,6 +747,11 @@ func (s *AdultLibrary) GetSceneCount() int {
 	return s.SceneCount
 }
 
+// GetGalleryCount returns the value of GalleryCount.
+func (s *AdultLibrary) GetGalleryCount() int {
+	return s.GalleryCount
+}
+
 // SetID sets the value of ID.
 func (s *AdultLibrary) SetID(val uuid.UUID) {
 	s.ID = val
@@ -325,11 +767,19 @@ func (s *AdultLibrary) SetSceneCount(val int) {
 	s.SceneCount = val
 }
 
+// SetGalleryCount sets the value of GalleryCount.
+func (s *AdultLibrary) SetGalleryCount(val int) {
+	s.GalleryCount = val
+}
+
 // Ref: #/components/schemas/AdultPerformer
 type AdultPerformer struct {
-	ID          uuid.UUID `json:"id"`
-	Name        string    `json:"name"`
-	SceneCount  int       `json:"sceneCount"`
+	ID           uuid.UUID `json:"id"`
+	Name         string    `json:"name"`
+	SceneCount   int       `json:"sceneCount"`
+	GalleryCount int       `json:"galleryCount"`
+	// The viewer marked the performer as a favourite.
+	Favorite    bool      `json:"favorite"`
 	HasImage    bool      `json:"hasImage"`
 	Aliases     []string  `json:"aliases"`
 	Gender      OptString `json:"gender"`
@@ -351,6 +801,16 @@ func (s *AdultPerformer) GetName() string {
 // GetSceneCount returns the value of SceneCount.
 func (s *AdultPerformer) GetSceneCount() int {
 	return s.SceneCount
+}
+
+// GetGalleryCount returns the value of GalleryCount.
+func (s *AdultPerformer) GetGalleryCount() int {
+	return s.GalleryCount
+}
+
+// GetFavorite returns the value of Favorite.
+func (s *AdultPerformer) GetFavorite() bool {
+	return s.Favorite
 }
 
 // GetHasImage returns the value of HasImage.
@@ -396,6 +856,16 @@ func (s *AdultPerformer) SetName(val string) {
 // SetSceneCount sets the value of SceneCount.
 func (s *AdultPerformer) SetSceneCount(val int) {
 	s.SceneCount = val
+}
+
+// SetGalleryCount sets the value of GalleryCount.
+func (s *AdultPerformer) SetGalleryCount(val int) {
+	s.GalleryCount = val
+}
+
+// SetFavorite sets the value of Favorite.
+func (s *AdultPerformer) SetFavorite(val bool) {
+	s.Favorite = val
 }
 
 // SetHasImage sets the value of HasImage.
@@ -461,6 +931,9 @@ type AdultPreferencesInput struct {
 	Pin OptString `json:"pin"`
 	// Needed to change or remove an existing PIN.
 	CurrentPin OptString `json:"currentPin"`
+	// Replaces the list of hidden tags.
+	HiddenTags []string `json:"hiddenTags"`
+	HideTagged OptBool  `json:"hideTagged"`
 }
 
 // GetBlur returns the value of Blur.
@@ -478,6 +951,16 @@ func (s *AdultPreferencesInput) GetCurrentPin() OptString {
 	return s.CurrentPin
 }
 
+// GetHiddenTags returns the value of HiddenTags.
+func (s *AdultPreferencesInput) GetHiddenTags() []string {
+	return s.HiddenTags
+}
+
+// GetHideTagged returns the value of HideTagged.
+func (s *AdultPreferencesInput) GetHideTagged() OptBool {
+	return s.HideTagged
+}
+
 // SetBlur sets the value of Blur.
 func (s *AdultPreferencesInput) SetBlur(val OptBool) {
 	s.Blur = val
@@ -491,6 +974,16 @@ func (s *AdultPreferencesInput) SetPin(val OptString) {
 // SetCurrentPin sets the value of CurrentPin.
 func (s *AdultPreferencesInput) SetCurrentPin(val OptString) {
 	s.CurrentPin = val
+}
+
+// SetHiddenTags sets the value of HiddenTags.
+func (s *AdultPreferencesInput) SetHiddenTags(val []string) {
+	s.HiddenTags = val
+}
+
+// SetHideTagged sets the value of HideTagged.
+func (s *AdultPreferencesInput) SetHideTagged(val OptBool) {
+	s.HideTagged = val
 }
 
 // Ref: #/components/schemas/AdultRef
@@ -718,6 +1211,8 @@ type AdultSceneDetail struct {
 	PositionMs  int64          `json:"positionMs"`
 	Played      bool           `json:"played"`
 	AddedAt     time.Time      `json:"addedAt"`
+	// Galleries that belong to this scene.
+	Galleries   []AdultGallery `json:"galleries"`
 	Description OptString      `json:"description"`
 	// Page of the scene at the studio (from the metadata source).
 	URL   OptString   `json:"url"`
@@ -805,6 +1300,11 @@ func (s *AdultSceneDetail) GetPlayed() bool {
 // GetAddedAt returns the value of AddedAt.
 func (s *AdultSceneDetail) GetAddedAt() time.Time {
 	return s.AddedAt
+}
+
+// GetGalleries returns the value of Galleries.
+func (s *AdultSceneDetail) GetGalleries() []AdultGallery {
+	return s.Galleries
 }
 
 // GetDescription returns the value of Description.
@@ -912,6 +1412,11 @@ func (s *AdultSceneDetail) SetAddedAt(val time.Time) {
 	s.AddedAt = val
 }
 
+// SetGalleries sets the value of Galleries.
+func (s *AdultSceneDetail) SetGalleries(val []AdultGallery) {
+	s.Galleries = val
+}
+
 // SetDescription sets the value of Description.
 func (s *AdultSceneDetail) SetDescription(val OptString) {
 	s.Description = val
@@ -1017,6 +1522,65 @@ func (s *AdultScenePage) SetTotal(val int) {
 	s.Total = val
 }
 
+// Ref: #/components/schemas/AdultSearchResult
+type AdultSearchResult struct {
+	Scenes     []AdultScene     `json:"scenes"`
+	Galleries  []AdultGallery   `json:"galleries"`
+	Performers []AdultPerformer `json:"performers"`
+	Studios    []AdultStudio    `json:"studios"`
+	Tags       []AdultTag       `json:"tags"`
+}
+
+// GetScenes returns the value of Scenes.
+func (s *AdultSearchResult) GetScenes() []AdultScene {
+	return s.Scenes
+}
+
+// GetGalleries returns the value of Galleries.
+func (s *AdultSearchResult) GetGalleries() []AdultGallery {
+	return s.Galleries
+}
+
+// GetPerformers returns the value of Performers.
+func (s *AdultSearchResult) GetPerformers() []AdultPerformer {
+	return s.Performers
+}
+
+// GetStudios returns the value of Studios.
+func (s *AdultSearchResult) GetStudios() []AdultStudio {
+	return s.Studios
+}
+
+// GetTags returns the value of Tags.
+func (s *AdultSearchResult) GetTags() []AdultTag {
+	return s.Tags
+}
+
+// SetScenes sets the value of Scenes.
+func (s *AdultSearchResult) SetScenes(val []AdultScene) {
+	s.Scenes = val
+}
+
+// SetGalleries sets the value of Galleries.
+func (s *AdultSearchResult) SetGalleries(val []AdultGallery) {
+	s.Galleries = val
+}
+
+// SetPerformers sets the value of Performers.
+func (s *AdultSearchResult) SetPerformers(val []AdultPerformer) {
+	s.Performers = val
+}
+
+// SetStudios sets the value of Studios.
+func (s *AdultSearchResult) SetStudios(val []AdultStudio) {
+	s.Studios = val
+}
+
+// SetTags sets the value of Tags.
+func (s *AdultSearchResult) SetTags(val []AdultTag) {
+	s.Tags = val
+}
+
 // Ref: #/components/schemas/AdultSettings
 type AdultSettings struct {
 	TpdbConfigured    bool `json:"tpdbConfigured"`
@@ -1095,6 +1659,12 @@ func (s *AdultSettingsInput) SetClearStashdb(val OptBool) {
 
 // Ref: #/components/schemas/AdultStatus
 type AdultStatus struct {
+	// Tags the viewer does not want to see (left out of tag lists and cards).
+	HiddenTags []string `json:"hiddenTags"`
+	// Also hide scenes and galleries that carry a hidden tag.
+	HideTagged bool `json:"hideTagged"`
+	// The account may download gallery originals (its download permission).
+	CanDownload bool `json:"canDownload"`
 	// The viewer asked for a PIN before entering the section.
 	PinSet bool `json:"pinSet"`
 	// The section is open in this session (always true without a PIN).
@@ -1104,6 +1674,21 @@ type AdultStatus struct {
 	// A ThePornDB or StashDB key is set.
 	MetadataConfigured bool           `json:"metadataConfigured"`
 	Libraries          []AdultLibrary `json:"libraries"`
+}
+
+// GetHiddenTags returns the value of HiddenTags.
+func (s *AdultStatus) GetHiddenTags() []string {
+	return s.HiddenTags
+}
+
+// GetHideTagged returns the value of HideTagged.
+func (s *AdultStatus) GetHideTagged() bool {
+	return s.HideTagged
+}
+
+// GetCanDownload returns the value of CanDownload.
+func (s *AdultStatus) GetCanDownload() bool {
+	return s.CanDownload
 }
 
 // GetPinSet returns the value of PinSet.
@@ -1129,6 +1714,21 @@ func (s *AdultStatus) GetMetadataConfigured() bool {
 // GetLibraries returns the value of Libraries.
 func (s *AdultStatus) GetLibraries() []AdultLibrary {
 	return s.Libraries
+}
+
+// SetHiddenTags sets the value of HiddenTags.
+func (s *AdultStatus) SetHiddenTags(val []string) {
+	s.HiddenTags = val
+}
+
+// SetHideTagged sets the value of HideTagged.
+func (s *AdultStatus) SetHideTagged(val bool) {
+	s.HideTagged = val
+}
+
+// SetCanDownload sets the value of CanDownload.
+func (s *AdultStatus) SetCanDownload(val bool) {
+	s.CanDownload = val
 }
 
 // SetPinSet sets the value of PinSet.
@@ -1158,11 +1758,12 @@ func (s *AdultStatus) SetLibraries(val []AdultLibrary) {
 
 // Ref: #/components/schemas/AdultStudio
 type AdultStudio struct {
-	ID         uuid.UUID `json:"id"`
-	Name       string    `json:"name"`
-	SceneCount int       `json:"sceneCount"`
-	HasImage   bool      `json:"hasImage"`
-	URL        OptString `json:"url"`
+	ID           uuid.UUID `json:"id"`
+	Name         string    `json:"name"`
+	SceneCount   int       `json:"sceneCount"`
+	GalleryCount int       `json:"galleryCount"`
+	HasImage     bool      `json:"hasImage"`
+	URL          OptString `json:"url"`
 	// Network the studio belongs to.
 	Parent OptString `json:"parent"`
 }
@@ -1180,6 +1781,11 @@ func (s *AdultStudio) GetName() string {
 // GetSceneCount returns the value of SceneCount.
 func (s *AdultStudio) GetSceneCount() int {
 	return s.SceneCount
+}
+
+// GetGalleryCount returns the value of GalleryCount.
+func (s *AdultStudio) GetGalleryCount() int {
+	return s.GalleryCount
 }
 
 // GetHasImage returns the value of HasImage.
@@ -1210,6 +1816,11 @@ func (s *AdultStudio) SetName(val string) {
 // SetSceneCount sets the value of SceneCount.
 func (s *AdultStudio) SetSceneCount(val int) {
 	s.SceneCount = val
+}
+
+// SetGalleryCount sets the value of GalleryCount.
+func (s *AdultStudio) SetGalleryCount(val int) {
+	s.GalleryCount = val
 }
 
 // SetHasImage sets the value of HasImage.
@@ -1250,6 +1861,80 @@ func (s *AdultStudioPage) SetItems(val []AdultStudio) {
 
 // SetTotal sets the value of Total.
 func (s *AdultStudioPage) SetTotal(val int) {
+	s.Total = val
+}
+
+// Ref: #/components/schemas/AdultTag
+type AdultTag struct {
+	Name         string `json:"name"`
+	SceneCount   int    `json:"sceneCount"`
+	GalleryCount int    `json:"galleryCount"`
+	Hidden       bool   `json:"hidden"`
+}
+
+// GetName returns the value of Name.
+func (s *AdultTag) GetName() string {
+	return s.Name
+}
+
+// GetSceneCount returns the value of SceneCount.
+func (s *AdultTag) GetSceneCount() int {
+	return s.SceneCount
+}
+
+// GetGalleryCount returns the value of GalleryCount.
+func (s *AdultTag) GetGalleryCount() int {
+	return s.GalleryCount
+}
+
+// GetHidden returns the value of Hidden.
+func (s *AdultTag) GetHidden() bool {
+	return s.Hidden
+}
+
+// SetName sets the value of Name.
+func (s *AdultTag) SetName(val string) {
+	s.Name = val
+}
+
+// SetSceneCount sets the value of SceneCount.
+func (s *AdultTag) SetSceneCount(val int) {
+	s.SceneCount = val
+}
+
+// SetGalleryCount sets the value of GalleryCount.
+func (s *AdultTag) SetGalleryCount(val int) {
+	s.GalleryCount = val
+}
+
+// SetHidden sets the value of Hidden.
+func (s *AdultTag) SetHidden(val bool) {
+	s.Hidden = val
+}
+
+// Ref: #/components/schemas/AdultTagPage
+type AdultTagPage struct {
+	Items []AdultTag `json:"items"`
+	Total int        `json:"total"`
+}
+
+// GetItems returns the value of Items.
+func (s *AdultTagPage) GetItems() []AdultTag {
+	return s.Items
+}
+
+// GetTotal returns the value of Total.
+func (s *AdultTagPage) GetTotal() int {
+	return s.Total
+}
+
+// SetItems sets the value of Items.
+func (s *AdultTagPage) SetItems(val []AdultTag) {
+	s.Items = val
+}
+
+// SetTotal sets the value of Total.
+func (s *AdultTagPage) SetTotal(val int) {
 	s.Total = val
 }
 
@@ -5035,6 +5720,319 @@ func (s *ErrorStatusCode) SetResponse(val Error) {
 	s.Response = val
 }
 
+type GetAdultGalleryImageOKApplicationOctetStream struct {
+	Data io.Reader
+}
+
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s GetAdultGalleryImageOKApplicationOctetStream) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
+}
+
+// GetAdultGalleryImageOKApplicationOctetStreamHeaders wraps GetAdultGalleryImageOKApplicationOctetStream with response headers.
+type GetAdultGalleryImageOKApplicationOctetStreamHeaders struct {
+	CacheControl       OptString
+	ContentDisposition OptString
+	Response           GetAdultGalleryImageOKApplicationOctetStream
+}
+
+// GetCacheControl returns the value of CacheControl.
+func (s *GetAdultGalleryImageOKApplicationOctetStreamHeaders) GetCacheControl() OptString {
+	return s.CacheControl
+}
+
+// GetContentDisposition returns the value of ContentDisposition.
+func (s *GetAdultGalleryImageOKApplicationOctetStreamHeaders) GetContentDisposition() OptString {
+	return s.ContentDisposition
+}
+
+// GetResponse returns the value of Response.
+func (s *GetAdultGalleryImageOKApplicationOctetStreamHeaders) GetResponse() GetAdultGalleryImageOKApplicationOctetStream {
+	return s.Response
+}
+
+// SetCacheControl sets the value of CacheControl.
+func (s *GetAdultGalleryImageOKApplicationOctetStreamHeaders) SetCacheControl(val OptString) {
+	s.CacheControl = val
+}
+
+// SetContentDisposition sets the value of ContentDisposition.
+func (s *GetAdultGalleryImageOKApplicationOctetStreamHeaders) SetContentDisposition(val OptString) {
+	s.ContentDisposition = val
+}
+
+// SetResponse sets the value of Response.
+func (s *GetAdultGalleryImageOKApplicationOctetStreamHeaders) SetResponse(val GetAdultGalleryImageOKApplicationOctetStream) {
+	s.Response = val
+}
+
+func (*GetAdultGalleryImageOKApplicationOctetStreamHeaders) getAdultGalleryImageRes() {}
+
+type GetAdultGalleryImageOKImageGIF struct {
+	Data io.Reader
+}
+
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s GetAdultGalleryImageOKImageGIF) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
+}
+
+// GetAdultGalleryImageOKImageGIFHeaders wraps GetAdultGalleryImageOKImageGIF with response headers.
+type GetAdultGalleryImageOKImageGIFHeaders struct {
+	CacheControl       OptString
+	ContentDisposition OptString
+	Response           GetAdultGalleryImageOKImageGIF
+}
+
+// GetCacheControl returns the value of CacheControl.
+func (s *GetAdultGalleryImageOKImageGIFHeaders) GetCacheControl() OptString {
+	return s.CacheControl
+}
+
+// GetContentDisposition returns the value of ContentDisposition.
+func (s *GetAdultGalleryImageOKImageGIFHeaders) GetContentDisposition() OptString {
+	return s.ContentDisposition
+}
+
+// GetResponse returns the value of Response.
+func (s *GetAdultGalleryImageOKImageGIFHeaders) GetResponse() GetAdultGalleryImageOKImageGIF {
+	return s.Response
+}
+
+// SetCacheControl sets the value of CacheControl.
+func (s *GetAdultGalleryImageOKImageGIFHeaders) SetCacheControl(val OptString) {
+	s.CacheControl = val
+}
+
+// SetContentDisposition sets the value of ContentDisposition.
+func (s *GetAdultGalleryImageOKImageGIFHeaders) SetContentDisposition(val OptString) {
+	s.ContentDisposition = val
+}
+
+// SetResponse sets the value of Response.
+func (s *GetAdultGalleryImageOKImageGIFHeaders) SetResponse(val GetAdultGalleryImageOKImageGIF) {
+	s.Response = val
+}
+
+func (*GetAdultGalleryImageOKImageGIFHeaders) getAdultGalleryImageRes() {}
+
+type GetAdultGalleryImageOKImageJpeg struct {
+	Data io.Reader
+}
+
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s GetAdultGalleryImageOKImageJpeg) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
+}
+
+// GetAdultGalleryImageOKImageJpegHeaders wraps GetAdultGalleryImageOKImageJpeg with response headers.
+type GetAdultGalleryImageOKImageJpegHeaders struct {
+	CacheControl       OptString
+	ContentDisposition OptString
+	Response           GetAdultGalleryImageOKImageJpeg
+}
+
+// GetCacheControl returns the value of CacheControl.
+func (s *GetAdultGalleryImageOKImageJpegHeaders) GetCacheControl() OptString {
+	return s.CacheControl
+}
+
+// GetContentDisposition returns the value of ContentDisposition.
+func (s *GetAdultGalleryImageOKImageJpegHeaders) GetContentDisposition() OptString {
+	return s.ContentDisposition
+}
+
+// GetResponse returns the value of Response.
+func (s *GetAdultGalleryImageOKImageJpegHeaders) GetResponse() GetAdultGalleryImageOKImageJpeg {
+	return s.Response
+}
+
+// SetCacheControl sets the value of CacheControl.
+func (s *GetAdultGalleryImageOKImageJpegHeaders) SetCacheControl(val OptString) {
+	s.CacheControl = val
+}
+
+// SetContentDisposition sets the value of ContentDisposition.
+func (s *GetAdultGalleryImageOKImageJpegHeaders) SetContentDisposition(val OptString) {
+	s.ContentDisposition = val
+}
+
+// SetResponse sets the value of Response.
+func (s *GetAdultGalleryImageOKImageJpegHeaders) SetResponse(val GetAdultGalleryImageOKImageJpeg) {
+	s.Response = val
+}
+
+func (*GetAdultGalleryImageOKImageJpegHeaders) getAdultGalleryImageRes() {}
+
+type GetAdultGalleryImageOKImagePNG struct {
+	Data io.Reader
+}
+
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s GetAdultGalleryImageOKImagePNG) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
+}
+
+// GetAdultGalleryImageOKImagePNGHeaders wraps GetAdultGalleryImageOKImagePNG with response headers.
+type GetAdultGalleryImageOKImagePNGHeaders struct {
+	CacheControl       OptString
+	ContentDisposition OptString
+	Response           GetAdultGalleryImageOKImagePNG
+}
+
+// GetCacheControl returns the value of CacheControl.
+func (s *GetAdultGalleryImageOKImagePNGHeaders) GetCacheControl() OptString {
+	return s.CacheControl
+}
+
+// GetContentDisposition returns the value of ContentDisposition.
+func (s *GetAdultGalleryImageOKImagePNGHeaders) GetContentDisposition() OptString {
+	return s.ContentDisposition
+}
+
+// GetResponse returns the value of Response.
+func (s *GetAdultGalleryImageOKImagePNGHeaders) GetResponse() GetAdultGalleryImageOKImagePNG {
+	return s.Response
+}
+
+// SetCacheControl sets the value of CacheControl.
+func (s *GetAdultGalleryImageOKImagePNGHeaders) SetCacheControl(val OptString) {
+	s.CacheControl = val
+}
+
+// SetContentDisposition sets the value of ContentDisposition.
+func (s *GetAdultGalleryImageOKImagePNGHeaders) SetContentDisposition(val OptString) {
+	s.ContentDisposition = val
+}
+
+// SetResponse sets the value of Response.
+func (s *GetAdultGalleryImageOKImagePNGHeaders) SetResponse(val GetAdultGalleryImageOKImagePNG) {
+	s.Response = val
+}
+
+func (*GetAdultGalleryImageOKImagePNGHeaders) getAdultGalleryImageRes() {}
+
+type GetAdultGalleryImageOKImageWEBP struct {
+	Data io.Reader
+}
+
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s GetAdultGalleryImageOKImageWEBP) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
+}
+
+// GetAdultGalleryImageOKImageWEBPHeaders wraps GetAdultGalleryImageOKImageWEBP with response headers.
+type GetAdultGalleryImageOKImageWEBPHeaders struct {
+	CacheControl       OptString
+	ContentDisposition OptString
+	Response           GetAdultGalleryImageOKImageWEBP
+}
+
+// GetCacheControl returns the value of CacheControl.
+func (s *GetAdultGalleryImageOKImageWEBPHeaders) GetCacheControl() OptString {
+	return s.CacheControl
+}
+
+// GetContentDisposition returns the value of ContentDisposition.
+func (s *GetAdultGalleryImageOKImageWEBPHeaders) GetContentDisposition() OptString {
+	return s.ContentDisposition
+}
+
+// GetResponse returns the value of Response.
+func (s *GetAdultGalleryImageOKImageWEBPHeaders) GetResponse() GetAdultGalleryImageOKImageWEBP {
+	return s.Response
+}
+
+// SetCacheControl sets the value of CacheControl.
+func (s *GetAdultGalleryImageOKImageWEBPHeaders) SetCacheControl(val OptString) {
+	s.CacheControl = val
+}
+
+// SetContentDisposition sets the value of ContentDisposition.
+func (s *GetAdultGalleryImageOKImageWEBPHeaders) SetContentDisposition(val OptString) {
+	s.ContentDisposition = val
+}
+
+// SetResponse sets the value of Response.
+func (s *GetAdultGalleryImageOKImageWEBPHeaders) SetResponse(val GetAdultGalleryImageOKImageWEBP) {
+	s.Response = val
+}
+
+func (*GetAdultGalleryImageOKImageWEBPHeaders) getAdultGalleryImageRes() {}
+
+type GetAdultGalleryImageVariant string
+
+const (
+	GetAdultGalleryImageVariantThumb    GetAdultGalleryImageVariant = "thumb"
+	GetAdultGalleryImageVariantFull     GetAdultGalleryImageVariant = "full"
+	GetAdultGalleryImageVariantDownload GetAdultGalleryImageVariant = "download"
+)
+
+// AllValues returns all GetAdultGalleryImageVariant values.
+func (GetAdultGalleryImageVariant) AllValues() []GetAdultGalleryImageVariant {
+	return []GetAdultGalleryImageVariant{
+		GetAdultGalleryImageVariantThumb,
+		GetAdultGalleryImageVariantFull,
+		GetAdultGalleryImageVariantDownload,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s GetAdultGalleryImageVariant) MarshalText() ([]byte, error) {
+	switch s {
+	case GetAdultGalleryImageVariantThumb:
+		return []byte(s), nil
+	case GetAdultGalleryImageVariantFull:
+		return []byte(s), nil
+	case GetAdultGalleryImageVariantDownload:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *GetAdultGalleryImageVariant) UnmarshalText(data []byte) error {
+	switch GetAdultGalleryImageVariant(data) {
+	case GetAdultGalleryImageVariantThumb:
+		*s = GetAdultGalleryImageVariantThumb
+		return nil
+	case GetAdultGalleryImageVariantFull:
+		*s = GetAdultGalleryImageVariantFull
+		return nil
+	case GetAdultGalleryImageVariantDownload:
+		*s = GetAdultGalleryImageVariantDownload
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 type GetAdultImageImageType string
 
 const (
@@ -8237,22 +9235,129 @@ func (s *LinkedIdentityKind) UnmarshalText(data []byte) error {
 	}
 }
 
+type ListAdultGalleriesSort string
+
+const (
+	ListAdultGalleriesSortDate   ListAdultGalleriesSort = "date"
+	ListAdultGalleriesSortOldest ListAdultGalleriesSort = "oldest"
+	ListAdultGalleriesSortAdded  ListAdultGalleriesSort = "added"
+	ListAdultGalleriesSortTitle  ListAdultGalleriesSort = "title"
+	ListAdultGalleriesSortImages ListAdultGalleriesSort = "images"
+)
+
+// AllValues returns all ListAdultGalleriesSort values.
+func (ListAdultGalleriesSort) AllValues() []ListAdultGalleriesSort {
+	return []ListAdultGalleriesSort{
+		ListAdultGalleriesSortDate,
+		ListAdultGalleriesSortOldest,
+		ListAdultGalleriesSortAdded,
+		ListAdultGalleriesSortTitle,
+		ListAdultGalleriesSortImages,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListAdultGalleriesSort) MarshalText() ([]byte, error) {
+	switch s {
+	case ListAdultGalleriesSortDate:
+		return []byte(s), nil
+	case ListAdultGalleriesSortOldest:
+		return []byte(s), nil
+	case ListAdultGalleriesSortAdded:
+		return []byte(s), nil
+	case ListAdultGalleriesSortTitle:
+		return []byte(s), nil
+	case ListAdultGalleriesSortImages:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListAdultGalleriesSort) UnmarshalText(data []byte) error {
+	switch ListAdultGalleriesSort(data) {
+	case ListAdultGalleriesSortDate:
+		*s = ListAdultGalleriesSortDate
+		return nil
+	case ListAdultGalleriesSortOldest:
+		*s = ListAdultGalleriesSortOldest
+		return nil
+	case ListAdultGalleriesSortAdded:
+		*s = ListAdultGalleriesSortAdded
+		return nil
+	case ListAdultGalleriesSortTitle:
+		*s = ListAdultGalleriesSortTitle
+		return nil
+	case ListAdultGalleriesSortImages:
+		*s = ListAdultGalleriesSortImages
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ListAdultPerformersSort string
+
+const (
+	ListAdultPerformersSortCount ListAdultPerformersSort = "count"
+	ListAdultPerformersSortName  ListAdultPerformersSort = "name"
+)
+
+// AllValues returns all ListAdultPerformersSort values.
+func (ListAdultPerformersSort) AllValues() []ListAdultPerformersSort {
+	return []ListAdultPerformersSort{
+		ListAdultPerformersSortCount,
+		ListAdultPerformersSortName,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListAdultPerformersSort) MarshalText() ([]byte, error) {
+	switch s {
+	case ListAdultPerformersSortCount:
+		return []byte(s), nil
+	case ListAdultPerformersSortName:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListAdultPerformersSort) UnmarshalText(data []byte) error {
+	switch ListAdultPerformersSort(data) {
+	case ListAdultPerformersSortCount:
+		*s = ListAdultPerformersSortCount
+		return nil
+	case ListAdultPerformersSortName:
+		*s = ListAdultPerformersSortName
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 type ListAdultScenesSort string
 
 const (
-	ListAdultScenesSortDate   ListAdultScenesSort = "date"
-	ListAdultScenesSortAdded  ListAdultScenesSort = "added"
-	ListAdultScenesSortTitle  ListAdultScenesSort = "title"
-	ListAdultScenesSortPlayed ListAdultScenesSort = "played"
+	ListAdultScenesSortDate     ListAdultScenesSort = "date"
+	ListAdultScenesSortOldest   ListAdultScenesSort = "oldest"
+	ListAdultScenesSortAdded    ListAdultScenesSort = "added"
+	ListAdultScenesSortTitle    ListAdultScenesSort = "title"
+	ListAdultScenesSortPlayed   ListAdultScenesSort = "played"
+	ListAdultScenesSortDuration ListAdultScenesSort = "duration"
 )
 
 // AllValues returns all ListAdultScenesSort values.
 func (ListAdultScenesSort) AllValues() []ListAdultScenesSort {
 	return []ListAdultScenesSort{
 		ListAdultScenesSortDate,
+		ListAdultScenesSortOldest,
 		ListAdultScenesSortAdded,
 		ListAdultScenesSortTitle,
 		ListAdultScenesSortPlayed,
+		ListAdultScenesSortDuration,
 	}
 }
 
@@ -8261,11 +9366,15 @@ func (s ListAdultScenesSort) MarshalText() ([]byte, error) {
 	switch s {
 	case ListAdultScenesSortDate:
 		return []byte(s), nil
+	case ListAdultScenesSortOldest:
+		return []byte(s), nil
 	case ListAdultScenesSortAdded:
 		return []byte(s), nil
 	case ListAdultScenesSortTitle:
 		return []byte(s), nil
 	case ListAdultScenesSortPlayed:
+		return []byte(s), nil
+	case ListAdultScenesSortDuration:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -8278,6 +9387,9 @@ func (s *ListAdultScenesSort) UnmarshalText(data []byte) error {
 	case ListAdultScenesSortDate:
 		*s = ListAdultScenesSortDate
 		return nil
+	case ListAdultScenesSortOldest:
+		*s = ListAdultScenesSortOldest
+		return nil
 	case ListAdultScenesSortAdded:
 		*s = ListAdultScenesSortAdded
 		return nil
@@ -8286,6 +9398,9 @@ func (s *ListAdultScenesSort) UnmarshalText(data []byte) error {
 		return nil
 	case ListAdultScenesSortPlayed:
 		*s = ListAdultScenesSortPlayed
+		return nil
+	case ListAdultScenesSortDuration:
+		*s = ListAdultScenesSortDuration
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -8341,6 +9456,88 @@ func (s *ListAdultScenesStatus) UnmarshalText(data []byte) error {
 		return nil
 	case ListAdultScenesStatusWatched:
 		*s = ListAdultScenesStatusWatched
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ListAdultStudiosSort string
+
+const (
+	ListAdultStudiosSortCount ListAdultStudiosSort = "count"
+	ListAdultStudiosSortName  ListAdultStudiosSort = "name"
+)
+
+// AllValues returns all ListAdultStudiosSort values.
+func (ListAdultStudiosSort) AllValues() []ListAdultStudiosSort {
+	return []ListAdultStudiosSort{
+		ListAdultStudiosSortCount,
+		ListAdultStudiosSortName,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListAdultStudiosSort) MarshalText() ([]byte, error) {
+	switch s {
+	case ListAdultStudiosSortCount:
+		return []byte(s), nil
+	case ListAdultStudiosSortName:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListAdultStudiosSort) UnmarshalText(data []byte) error {
+	switch ListAdultStudiosSort(data) {
+	case ListAdultStudiosSortCount:
+		*s = ListAdultStudiosSortCount
+		return nil
+	case ListAdultStudiosSortName:
+		*s = ListAdultStudiosSortName
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ListAdultTagsSort string
+
+const (
+	ListAdultTagsSortCount ListAdultTagsSort = "count"
+	ListAdultTagsSortName  ListAdultTagsSort = "name"
+)
+
+// AllValues returns all ListAdultTagsSort values.
+func (ListAdultTagsSort) AllValues() []ListAdultTagsSort {
+	return []ListAdultTagsSort{
+		ListAdultTagsSortCount,
+		ListAdultTagsSortName,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListAdultTagsSort) MarshalText() ([]byte, error) {
+	switch s {
+	case ListAdultTagsSortCount:
+		return []byte(s), nil
+	case ListAdultTagsSortName:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListAdultTagsSort) UnmarshalText(data []byte) error {
+	switch ListAdultTagsSort(data) {
+	case ListAdultTagsSortCount:
+		*s = ListAdultTagsSortCount
+		return nil
+	case ListAdultTagsSortName:
+		*s = ListAdultTagsSortName
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -13557,6 +14754,98 @@ func (o OptItemSummary) Or(d ItemSummary) ItemSummary {
 	return d
 }
 
+// NewOptListAdultGalleriesSort returns new OptListAdultGalleriesSort with value set to v.
+func NewOptListAdultGalleriesSort(v ListAdultGalleriesSort) OptListAdultGalleriesSort {
+	return OptListAdultGalleriesSort{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptListAdultGalleriesSort is optional ListAdultGalleriesSort.
+type OptListAdultGalleriesSort struct {
+	Value ListAdultGalleriesSort
+	Set   bool
+}
+
+// IsSet returns true if OptListAdultGalleriesSort was set.
+func (o OptListAdultGalleriesSort) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptListAdultGalleriesSort) Reset() {
+	var v ListAdultGalleriesSort
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptListAdultGalleriesSort) SetTo(v ListAdultGalleriesSort) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptListAdultGalleriesSort) Get() (v ListAdultGalleriesSort, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptListAdultGalleriesSort) Or(d ListAdultGalleriesSort) ListAdultGalleriesSort {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptListAdultPerformersSort returns new OptListAdultPerformersSort with value set to v.
+func NewOptListAdultPerformersSort(v ListAdultPerformersSort) OptListAdultPerformersSort {
+	return OptListAdultPerformersSort{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptListAdultPerformersSort is optional ListAdultPerformersSort.
+type OptListAdultPerformersSort struct {
+	Value ListAdultPerformersSort
+	Set   bool
+}
+
+// IsSet returns true if OptListAdultPerformersSort was set.
+func (o OptListAdultPerformersSort) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptListAdultPerformersSort) Reset() {
+	var v ListAdultPerformersSort
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptListAdultPerformersSort) SetTo(v ListAdultPerformersSort) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptListAdultPerformersSort) Get() (v ListAdultPerformersSort, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptListAdultPerformersSort) Or(d ListAdultPerformersSort) ListAdultPerformersSort {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptListAdultScenesSort returns new OptListAdultScenesSort with value set to v.
 func NewOptListAdultScenesSort(v ListAdultScenesSort) OptListAdultScenesSort {
 	return OptListAdultScenesSort{
@@ -13643,6 +14932,98 @@ func (o OptListAdultScenesStatus) Get() (v ListAdultScenesStatus, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptListAdultScenesStatus) Or(d ListAdultScenesStatus) ListAdultScenesStatus {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptListAdultStudiosSort returns new OptListAdultStudiosSort with value set to v.
+func NewOptListAdultStudiosSort(v ListAdultStudiosSort) OptListAdultStudiosSort {
+	return OptListAdultStudiosSort{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptListAdultStudiosSort is optional ListAdultStudiosSort.
+type OptListAdultStudiosSort struct {
+	Value ListAdultStudiosSort
+	Set   bool
+}
+
+// IsSet returns true if OptListAdultStudiosSort was set.
+func (o OptListAdultStudiosSort) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptListAdultStudiosSort) Reset() {
+	var v ListAdultStudiosSort
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptListAdultStudiosSort) SetTo(v ListAdultStudiosSort) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptListAdultStudiosSort) Get() (v ListAdultStudiosSort, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptListAdultStudiosSort) Or(d ListAdultStudiosSort) ListAdultStudiosSort {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptListAdultTagsSort returns new OptListAdultTagsSort with value set to v.
+func NewOptListAdultTagsSort(v ListAdultTagsSort) OptListAdultTagsSort {
+	return OptListAdultTagsSort{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptListAdultTagsSort is optional ListAdultTagsSort.
+type OptListAdultTagsSort struct {
+	Value ListAdultTagsSort
+	Set   bool
+}
+
+// IsSet returns true if OptListAdultTagsSort was set.
+func (o OptListAdultTagsSort) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptListAdultTagsSort) Reset() {
+	var v ListAdultTagsSort
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptListAdultTagsSort) SetTo(v ListAdultTagsSort) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptListAdultTagsSort) Get() (v ListAdultTagsSort, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptListAdultTagsSort) Or(d ListAdultTagsSort) ListAdultTagsSort {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -16802,6 +18183,9 @@ type RefreshLibraryMetadataAccepted struct{}
 
 // RefreshLiveTvGuideAccepted is response for RefreshLiveTvGuide operation.
 type RefreshLiveTvGuideAccepted struct{}
+
+// RemoveAdultFavoritePerformerNoContent is response for RemoveAdultFavoritePerformer operation.
+type RemoveAdultFavoritePerformerNoContent struct{}
 
 // RemoveLiveTvFavoriteNoContent is response for RemoveLiveTvFavorite operation.
 type RemoveLiveTvFavoriteNoContent struct{}
