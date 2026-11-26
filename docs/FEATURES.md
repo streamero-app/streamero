@@ -69,6 +69,7 @@ Kad je stavka gotova I testirana, označi `[x]`. Ne označavaj djelomično gotov
 - [x] `[JF]` Mješoviti sadržaj (mixed) (P2)
 - [ ] `[JF]` Kolekcije (box sets) i playliste kao virtualne biblioteke (P4)
 - [x] `[+]` Biblioteka za odrasle (D-053): zasebna dozvola koju nitko nema zadano, vlastite tablice (ne curi na početnu, pretragu, compat API, DLNA, statistiku, obavijesti…), Locarrovi nazivi datoteka, ThePornDB/StashDB s vlastitim šifriranim ključevima, scene/studiji/izvođači s filtrima, zamućene slike, PIN po sesiji; web, Android i iOS — *mobilne aplikacije provjerene samo CI buildom i unit testovima*
+- [x] `[+]` Odrasli: navigacija i galerije (D-058): početna (nastavi gledati, nedavno dodano/objavljeno, omiljeni izvođači, nove galerije), scene, filmovi, fotografije, izvođači, studiji i oznake s filtrima i poretkom, pretraga unutar odjeljka, putokaz; galerije iz mapa slika i zip/cbz arhiva, povezane sa scenom po studiju i datumu; preglednik slika (tipkovnica, prelazak prstom, zoom, prezentacija, preuzimanje samo uz dozvolu); skrivanje oznaka; web i Android — *Android provjeren unit testovima i CI buildom*
 - [ ] `[JF]` Live TV kao biblioteka (P11)
 
 ### Opcije biblioteke (po biblioteci)
