@@ -1,15 +1,6 @@
 name: ios
 on:
-  push:
-    branches: [main]
-    paths: ["ios/**", "api/**", ".github/workflows/ios.yml"]
-  pull_request:
-    paths: ["ios/**", "api/**", ".github/workflows/ios.yml"]
-  workflow_call:
-    inputs:
-      version:
-        type: string
-        required: true
+  # iOS is no longer built or shipped (D-055); kept for a manual build only.
   workflow_dispatch:
 
 # A newer push to the same pull request replaces the run in progress.
