@@ -241,4 +241,17 @@ for n in 1 2; do
 done
 make "$AB/Max Author/Folder Book/cover.jpg" -f lavfi -i "color=c=0x2a7a4a:size=600x600:duration=1" -frames:v 1
 
+# Adult library e2e (D-058): a scene named like Locarr names it, its gallery next to it
+# and a plain folder of pictures. Test patterns and flat colours only.
+echo "==> adult-e2e"
+AD="$OUT/adult-e2e/Lumen Studio"
+SCENE="Lumen Studio - 2024-05-01 - Morning Light [Ana Bee]"
+make "$AD/$SCENE WEBDL-1080p.mp4" -f lavfi -i "testsrc2=size=640x360:rate=24:duration=3" -c:v libx264 -preset veryfast -crf 30 -pix_fmt yuv420p
+for n in 1 2 3 4; do
+  make "$AD/$SCENE/0${n}.jpg" -f lavfi -i "testsrc=size=$((480 + n * 40))x360:rate=1:duration=1" -frames:v 1
+done
+for c in 0x3a6ea5 0xa5793a; do
+  make "$OUT/adult-e2e/Garden Set/${c#0x}.png" -f lavfi -i "color=c=${c}:size=400x500:duration=1" -frames:v 1
+done
+
 echo "done: $OUT"

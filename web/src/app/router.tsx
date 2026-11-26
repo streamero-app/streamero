@@ -65,6 +65,13 @@ const ReaderPage = lazyRouteComponent(() => import("@/features/books/ReaderPage"
 // Adult section (D-053): its own chunk, loaded only by accounts given adult access.
 const AdultLayout = lazyRouteComponent(() => import("@/features/adult/AdultPages"), "AdultLayout");
 const AdultScenesPage = lazyRouteComponent(() => import("@/features/adult/AdultPages"), "AdultScenesPage");
+const AdultMoviesPage = lazyRouteComponent(() => import("@/features/adult/AdultPages"), "AdultMoviesPage");
+const AdultHomePage = lazyRouteComponent(() => import("@/features/adult/AdultBrowse"), "AdultHomePage");
+const AdultTagsPage = lazyRouteComponent(() => import("@/features/adult/AdultBrowse"), "AdultTagsPage");
+const AdultTagPage = lazyRouteComponent(() => import("@/features/adult/AdultBrowse"), "AdultTagPage");
+const AdultSearchPage = lazyRouteComponent(() => import("@/features/adult/AdultBrowse"), "AdultSearchPage");
+const AdultGalleriesPage = lazyRouteComponent(() => import("@/features/adult/AdultGalleries"), "AdultGalleriesPage");
+const AdultGalleryPage = lazyRouteComponent(() => import("@/features/adult/AdultGalleries"), "AdultGalleryPage");
 const AdultStudiosPage = lazyRouteComponent(() => import("@/features/adult/AdultPages"), "AdultStudiosPage");
 const AdultPerformersPage = lazyRouteComponent(() => import("@/features/adult/AdultPages"), "AdultPerformersPage");
 const AdultStudioPage = lazyRouteComponent(() => import("@/features/adult/AdultPages"), "AdultStudioPage");
@@ -148,22 +155,42 @@ const watchRoute = createRoute({
   },
 });
 
-type ScenesSearch = { q?: string; kind?: "scene" | "movie"; status?: "unwatched" | "inProgress" | "watched"; sort?: "added" | "title" | "played"; tag?: string };
+type ScenesSearch = { q?: string; status?: "unwatched" | "inProgress" | "watched"; sort?: "oldest" | "added" | "title" | "played" | "duration"; tag?: string };
 function validateScenesSearch(s: Record<string, unknown>): ScenesSearch {
   const out: ScenesSearch = {};
   if (typeof s.q === "string" && s.q) out.q = s.q.slice(0, 200);
-  if (s.kind === "scene" || s.kind === "movie") out.kind = s.kind;
   if (s.status === "unwatched" || s.status === "inProgress" || s.status === "watched") out.status = s.status;
-  if (s.sort === "added" || s.sort === "title" || s.sort === "played") out.sort = s.sort;
+  if (s.sort === "oldest" || s.sort === "added" || s.sort === "title" || s.sort === "played" || s.sort === "duration") out.sort = s.sort;
   if (typeof s.tag === "string" && s.tag) out.tag = s.tag.slice(0, 100);
   return out;
 }
+type GalleriesSearch = { q?: string; sort?: "oldest" | "added" | "title" | "images"; tag?: string };
+function validateGalleriesSearch(s: Record<string, unknown>): GalleriesSearch {
+  const out: GalleriesSearch = {};
+  if (typeof s.q === "string" && s.q) out.q = s.q.slice(0, 200);
+  if (s.sort === "oldest" || s.sort === "added" || s.sort === "title" || s.sort === "images") out.sort = s.sort;
+  if (typeof s.tag === "string" && s.tag) out.tag = s.tag.slice(0, 100);
+  return out;
+}
+const validateTab = (s: Record<string, unknown>): { tab?: "galleries" } => (s.tab === "galleries" ? { tab: "galleries" } : {});
 const adultRoute = createRoute({ getParentRoute: () => appRoute, path: "/adult", component: AdultLayout });
-const adultScenesRoute = createRoute({ getParentRoute: () => adultRoute, path: "/", component: AdultScenesPage, validateSearch: validateScenesSearch });
+const adultHomeRoute = createRoute({ getParentRoute: () => adultRoute, path: "/", component: AdultHomePage });
+const adultScenesRoute = createRoute({ getParentRoute: () => adultRoute, path: "scenes", component: AdultScenesPage, validateSearch: validateScenesSearch });
+const adultMoviesRoute = createRoute({ getParentRoute: () => adultRoute, path: "movies", component: AdultMoviesPage, validateSearch: validateScenesSearch });
+const adultGalleriesRoute = createRoute({ getParentRoute: () => adultRoute, path: "galleries", component: AdultGalleriesPage, validateSearch: validateGalleriesSearch });
+const adultGalleryRoute = createRoute({ getParentRoute: () => adultRoute, path: "gallery/$galleryId", component: AdultGalleryPage,
+  validateSearch: (s: Record<string, unknown>): { i?: number } => {
+    const n = Number(s.i);
+    return s.i === undefined || s.i === "" || !Number.isInteger(n) || n < 0 ? {} : { i: n };
+  } });
 const adultStudiosRoute = createRoute({ getParentRoute: () => adultRoute, path: "studios", component: AdultStudiosPage });
 const adultPerformersRoute = createRoute({ getParentRoute: () => adultRoute, path: "performers", component: AdultPerformersPage });
-const adultStudioRoute = createRoute({ getParentRoute: () => adultRoute, path: "studio/$studioId", component: AdultStudioPage });
-const adultPerformerRoute = createRoute({ getParentRoute: () => adultRoute, path: "performer/$performerId", component: AdultPerformerPage });
+const adultTagsRoute = createRoute({ getParentRoute: () => adultRoute, path: "tags", component: AdultTagsPage });
+const adultTagRoute = createRoute({ getParentRoute: () => adultRoute, path: "tag/$tag", component: AdultTagPage });
+const adultSearchRoute = createRoute({ getParentRoute: () => adultRoute, path: "search", component: AdultSearchPage,
+  validateSearch: (s: Record<string, unknown>): { q?: string } => (typeof s.q === "string" && s.q ? { q: s.q.slice(0, 200) } : {}) });
+const adultStudioRoute = createRoute({ getParentRoute: () => adultRoute, path: "studio/$studioId", component: AdultStudioPage, validateSearch: validateTab });
+const adultPerformerRoute = createRoute({ getParentRoute: () => adultRoute, path: "performer/$performerId", component: AdultPerformerPage, validateSearch: validateTab });
 const adultSceneRoute = createRoute({ getParentRoute: () => adultRoute, path: "scene/$sceneId", component: AdultScenePage });
 const adultWatchRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -256,7 +283,8 @@ export const routeTree = rootRoute.addChildren([
     togetherInviteRoute,
     searchRoute,
     discoverRoute,
-    adultRoute.addChildren([adultScenesRoute, adultStudiosRoute, adultPerformersRoute, adultStudioRoute, adultPerformerRoute, adultSceneRoute]),
+    adultRoute.addChildren([adultHomeRoute, adultScenesRoute, adultMoviesRoute, adultGalleriesRoute, adultGalleryRoute, adultStudiosRoute,
+      adultPerformersRoute, adultTagsRoute, adultTagRoute, adultSearchRoute, adultStudioRoute, adultPerformerRoute, adultSceneRoute]),
     adultWatchRoute,
     settingsRoute.addChildren([settingsIndex, playbackRoute, dashboardRoute, tasksRoute, backupsRoute, notificationsRoute, accountRoute, profilesRoute, devicesRoute, quickConnectRoute, serverRoute, librariesRoute, metadataRoute, integrationsRoute, usersRoute, invitesRoute, apiKeysRoute,
       subtitleLookRoute, homePrefsRoute, transcodingRoute, logsRoute, activityRoute, brandingRoute, requestsRoute, enhancementsRoute, importRoute, ssoRoute, liveTvSettingsRoute]),
