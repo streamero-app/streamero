@@ -402,3 +402,7 @@ Restore: arhiva se najprije cijela provjeri (checksumi, nazivi unosa); kopija s 
 - **Uređivač korisnika:** `PATCH /users/{id}` uz dosadašnje mijenja i korisničko ime, prikazno ime, popis biblioteka i `signOutEverywhere` (odjava sa svih uređaja; API ključevi ostaju).
 **Posljedice:** novi upit koji vraća stavke mora dodati `library.Visible`; integracijski test `TestLibraryAccessIntegration` prolazi sve površine i pada ako se provjera ukloni. Svaki upit gledatelja ima jedan dodatni uvjet (`library_id IN (SELECT visible_library_ids(...))`, mali skup biblioteka, izračunat jednom po upitu). Dodatno sužavanje po profilu (dječji profil vidi manje od računa) nije napravljeno: profil sada vidi točno biblioteke računa. Starije mobilne aplikacije rade (nova polja su neobavezna), samo ne prikazuju izbor.
 
+## D-055 Samo Android, bez iOS izdanja (2026-11-26)
+**Kontekst:** vlasnik više ne koristi iOS aplikacije i ne želi .ipa izdanja.
+**Odluka:** iOS se više ne gradi u CI-ju ni pri izdanju; `release.yml` objavljuje samo .apk (Streamero i Streamero Manage), a Feather izvor se više ne ažurira. `ios.yml` ostaje samo za ručno pokretanje (`workflow_dispatch`), a kod u `ios/` ostaje u repozitoriju, ali nove značajke ga ne mijenjaju.
+**Posljedice:** izdanja su brža (bez čekanja na macOS runner); postojeće instalacije preko Feathera ostaju na zadnjoj objavljenoj verziji (v0.12.1).
