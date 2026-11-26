@@ -83,6 +83,9 @@ Chrome više ne dobiva HLS na ugrađeni player (ne parsira transkodirane streamo
 ## Obrana od botova (branch `fix/hardening-bots`, 2026-11-17)
 Pregled demo hosta (bez znakova provale; skeneri i SSH pogađanje lozinki). Server: zabrana adrese nakon 15 neuspjelih prijava u 10 min, 404 za putanje skenera, `robots.txt`, kontejneri bez capabilityja. Host: `scripts/harden-host.sh` + `docs/SECURITY.md` (D-051).
 
+## v0.13.0 (2026-11-26)
+Sadržaj za odrasle dobiva vlastitu navigaciju i galerije (#97, migracija 00037, D-058): početna (nastavak gledanja, nedavno dodano, novo od omiljenih izvođača, nove galerije, nedavno izašlo), scene, filmovi, fotografije, izvođači (omiljeni), studiji i oznake (skrivanje po korisniku), pretraga unutar odjeljka, preglednik galerija (strelice, listanje, zum, slideshow); galerije su mape slika ili zip/cbz arhive uz scene i povezuju se sa scenom istog studija i datuma. Samo Android, bez iOS izdanja (#96, D-055).
+
 ## v0.12.1 (2026-11-25)
 Pristup po biblioteci (#94, migracija 00036, D-054): za svakog korisnika „sve biblioteke" ili odabrane, i pri dodavanju korisnika i u pozivnicama; skrivena biblioteka ne vidi se nigdje (početna, pretraga, nastavak gledanja, kolekcije, popisi, preuzimanja, zajedničko gledanje, DLNA, kompatibilni API, obavijesti). Postavke → Korisnici su pravi uređivač (ime, administrator, uključen, biblioteke, prava, lozinka, 2FA, odjava svugdje). Dijelovi za odrasle u Korisnicima i Metapodacima više nisu skriveni nego objašnjavaju da prvo treba napraviti biblioteku za odrasle. Administratorske stranice u Android i iOS aplikaciji: pristup po biblioteci za korisnike i pozivnice.
 
