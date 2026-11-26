@@ -12,7 +12,5 @@ echo "==> server (ogen)"
 echo "==> web (openapi-typescript)"
 (cd "$ROOT/web" && pnpm exec openapi-typescript "$SPEC" -o src/api/schema.gen.ts)
 
-echo "==> ios (spec copy for swift-openapi-generator)"
-cp "$SPEC" "$ROOT/ios/Streamero/openapi.yaml"
 
 echo "done"
