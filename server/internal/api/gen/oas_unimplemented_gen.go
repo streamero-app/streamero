@@ -22,6 +22,15 @@ func (UnimplementedHandler) AcceptInvite(ctx context.Context, req *AcceptInviteR
 	return r, ht.ErrNotImplemented
 }
 
+// AddAdultFavoritePerformer implements addAdultFavoritePerformer operation.
+//
+// Mark a performer as a favourite of the viewer (D-058).
+//
+// PUT /adult/performers/{performerId}/favorite
+func (UnimplementedHandler) AddAdultFavoritePerformer(ctx context.Context, params AddAdultFavoritePerformerParams) error {
+	return ht.ErrNotImplemented
+}
+
 // AddLiveTvFavorite implements addLiveTvFavorite operation.
 //
 // Mark a channel as a favourite of the viewer (profile or account).
@@ -488,6 +497,33 @@ func (UnimplementedHandler) EnableTOTP(ctx context.Context, req *TOTPCodeRequest
 //
 // GET /admin/activity
 func (UnimplementedHandler) GetActivity(ctx context.Context, params GetActivityParams) (r *ActivityPage, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetAdultGallery implements getAdultGallery operation.
+//
+// One gallery with its pictures in order.
+//
+// GET /adult/galleries/{galleryId}
+func (UnimplementedHandler) GetAdultGallery(ctx context.Context, params GetAdultGalleryParams) (r *AdultGalleryDetail, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetAdultGalleryImage implements getAdultGalleryImage operation.
+//
+// A gallery picture (never cached by the browser).
+//
+// GET /adult/gallery-images/{imageId}/{variant}
+func (UnimplementedHandler) GetAdultGalleryImage(ctx context.Context, params GetAdultGalleryImageParams) (r GetAdultGalleryImageRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetAdultHome implements getAdultHome operation.
+//
+// Continue watching reads adult progress only; nothing here appears on the regular home page.
+//
+// GET /adult/home
+func (UnimplementedHandler) GetAdultHome(ctx context.Context) (r *AdultHome, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -966,9 +1002,18 @@ func (UnimplementedHandler) ListAPIKeys(ctx context.Context) (r []ApiKey, _ erro
 	return r, ht.ErrNotImplemented
 }
 
+// ListAdultGalleries implements listAdultGalleries operation.
+//
+// Galleries (image sets) of the adult libraries (D-058).
+//
+// GET /adult/galleries
+func (UnimplementedHandler) ListAdultGalleries(ctx context.Context, params ListAdultGalleriesParams) (r *AdultGalleryPage, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ListAdultPerformers implements listAdultPerformers operation.
 //
-// Performers with scene counts.
+// Performers with scene and gallery counts.
 //
 // GET /adult/performers
 func (UnimplementedHandler) ListAdultPerformers(ctx context.Context, params ListAdultPerformersParams) (r *AdultPerformerPage, _ error) {
@@ -986,10 +1031,19 @@ func (UnimplementedHandler) ListAdultScenes(ctx context.Context, params ListAdul
 
 // ListAdultStudios implements listAdultStudios operation.
 //
-// Studios with scene counts.
+// Studios with scene and gallery counts.
 //
 // GET /adult/studios
 func (UnimplementedHandler) ListAdultStudios(ctx context.Context, params ListAdultStudiosParams) (r *AdultStudioPage, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListAdultTags implements listAdultTags operation.
+//
+// The viewer's hidden tags are left out unless `includeHidden` is set.
+//
+// GET /adult/tags
+func (UnimplementedHandler) ListAdultTags(ctx context.Context, params ListAdultTagsParams) (r *AdultTagPage, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -1438,6 +1492,15 @@ func (UnimplementedHandler) RefreshLiveTvTuner(ctx context.Context, params Refre
 	return r, ht.ErrNotImplemented
 }
 
+// RemoveAdultFavoritePerformer implements removeAdultFavoritePerformer operation.
+//
+// Unmark a favourite performer.
+//
+// DELETE /adult/performers/{performerId}/favorite
+func (UnimplementedHandler) RemoveAdultFavoritePerformer(ctx context.Context, params RemoveAdultFavoritePerformerParams) error {
+	return ht.ErrNotImplemented
+}
+
 // RemoveLiveTvFavorite implements removeLiveTvFavorite operation.
 //
 // Remove a channel from the viewer's favourites.
@@ -1537,6 +1600,15 @@ func (UnimplementedHandler) ScanLibrary(ctx context.Context, params ScanLibraryP
 //
 // GET /search
 func (UnimplementedHandler) Search(ctx context.Context, params SearchParams) (r []ItemSummary, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// SearchAdult implements searchAdult operation.
+//
+// The regular `/search` never returns adult content.
+//
+// GET /adult/search
+func (UnimplementedHandler) SearchAdult(ctx context.Context, params SearchAdultParams) (r *AdultSearchResult, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

@@ -115,7 +115,7 @@ func newAuthTestServer(t *testing.T) *httptest.Server {
 		t.Fatal(err)
 	}
 	t.Cleanup(deps.Close)
-	if _, err := deps.Pool.Exec(ctx, `TRUNCATE users, user_library_access, downloads, download_transcodes, sessions, audit_log, api_keys, user_totp, recovery_codes, quick_connect, invites, profiles, import_runs, user_identities, oidc_flows, oidc_handoffs, oidc_providers, adult_access, adult_prefs, adult_progress;
+	if _, err := deps.Pool.Exec(ctx, `TRUNCATE users, user_library_access, downloads, download_transcodes, sessions, audit_log, api_keys, user_totp, recovery_codes, quick_connect, invites, profiles, import_runs, user_identities, oidc_flows, oidc_handoffs, oidc_providers, adult_access, adult_prefs, adult_progress, adult_favorite_performers;
 		DELETE FROM settings WHERE key IN ('setup.completed', 'server.name', 'playback.resume', 'encoding', 'branding', 'integrations.requests', 'enhancements', 'auth.general', 'auth.ldap', 'dlna', 'downloads', 'adult.metadata')`); err != nil {
 		t.Fatal(err)
 	}

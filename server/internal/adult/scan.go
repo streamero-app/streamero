@@ -45,13 +45,17 @@ func ignoredDir(dir string) bool {
 	return false
 }
 
-// walk lists the video files under root with their sidecar subtitles.
-func walk(ctx context.Context, root string, unreadable *[]string) ([]foundFile, error) {
+// walk lists the video files under root with their sidecar subtitles, and the
+// galleries (D-058): a folder that holds pictures and no video, or a zip/cbz
+// archive of pictures. Pictures next to a video (artwork) are not a gallery.
+func walk(ctx context.Context, root string, unreadable *[]string) ([]foundFile, []foundGallery, error) {
 	type dir struct {
 		videos []foundFile
 		subs   []string
+		images []foundImage
 	}
 	dirs := map[string]*dir{}
+	var archives []foundGallery
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			if path == root {
@@ -79,6 +83,10 @@ func walk(ctx context.Context, root string, unreadable *[]string) ([]foundFile, 
 			c = &dir{}
 			dirs[parent] = c
 		}
+		folder := ""
+		if parent != root {
+			folder = filepath.Base(parent)
+		}
 		switch {
 		case library.IsVideo(name) && !library.IsExtraFile(name):
 			info, err := d.Info()
@@ -86,19 +94,31 @@ func walk(ctx context.Context, root string, unreadable *[]string) ([]foundFile, 
 				*unreadable = append(*unreadable, path)
 				return nil
 			}
-			folder := ""
-			if parent != root {
-				folder = filepath.Base(parent)
-			}
 			c.videos = append(c.videos, foundFile{path: path, folder: folder, size: info.Size(),
 				mtime: info.ModTime().UTC().Truncate(time.Microsecond)})
 		case library.IsSubtitle(name):
 			c.subs = append(c.subs, path)
+		case IsGalleryImage(name):
+			info, err := d.Info()
+			if err != nil {
+				*unreadable = append(*unreadable, path)
+				return nil
+			}
+			c.images = append(c.images, foundImage{path: path, size: info.Size(), mtime: info.ModTime().UTC().Truncate(time.Microsecond)})
+		case IsGalleryArchive(name):
+			info, err := d.Info()
+			if err != nil {
+				*unreadable = append(*unreadable, path)
+				return nil
+			}
+			archives = append(archives, foundGallery{path: path, parent: folder, archive: true,
+				images: []foundImage{{path: path, size: info.Size(), mtime: info.ModTime().UTC().Truncate(time.Microsecond)}}})
 		}
 		return nil
 	})
 	var out []foundFile
-	for _, c := range dirs {
+	galleries := archives
+	for p, c := range dirs {
 		for _, v := range c.videos {
 			for _, sp := range c.subs {
 				if sub, ok := library.ExternalSubtitle(v.path, sp); ok {
@@ -107,8 +127,15 @@ func walk(ctx context.Context, root string, unreadable *[]string) ([]foundFile, 
 			}
 			out = append(out, v)
 		}
+		if len(c.videos) == 0 && len(c.images) > 0 && p != root {
+			parent := ""
+			if up := filepath.Dir(p); up != root {
+				parent = filepath.Base(up)
+			}
+			galleries = append(galleries, foundGallery{path: p, parent: parent, images: c.images})
+		}
 	}
-	return out, err
+	return out, galleries, err
 }
 
 // Scan reads an adult library's folders: new and changed files are probed and
@@ -125,12 +152,14 @@ func (s *Service) Scan(ctx context.Context, libID uuid.UUID, paths []string, opt
 		roots = append(roots, root)
 	}
 	var found []foundFile
+	var galleries []foundGallery
 	for _, root := range roots {
-		files, err := walk(ctx, root, &res.Unreadable)
+		files, gals, err := walk(ctx, root, &res.Unreadable)
 		if err != nil {
 			return res, fmt.Errorf("reading the adult library folder: %w", err)
 		}
 		found = append(found, files...)
+		galleries = append(galleries, gals...)
 	}
 	res.Files = len(found)
 	known, err := s.knownFiles(ctx, libID)
@@ -175,16 +204,24 @@ func (s *Service) Scan(ctx context.Context, libID uuid.UUID, paths []string, opt
 		AND NOT EXISTS (SELECT 1 FROM adult_files f WHERE f.scene_id = a.id)`, libID); err != nil {
 		return res, err
 	}
+	if err := s.scanGalleries(ctx, libID, galleries, opts, &res); err != nil {
+		return res, err
+	}
+	if err := s.LinkGalleries(ctx, libID); err != nil {
+		return res, err
+	}
 	return res, s.pruneNames(ctx)
 }
 
-// pruneNames removes studios and performers no scene refers to any more.
+// pruneNames removes studios and performers no scene or gallery refers to any more.
 func (s *Service) pruneNames(ctx context.Context) error {
 	if _, err := s.Pool.Exec(ctx, `DELETE FROM adult_performers p
-		WHERE NOT EXISTS (SELECT 1 FROM adult_scene_performers sp WHERE sp.performer_id = p.id)`); err != nil {
+		WHERE NOT EXISTS (SELECT 1 FROM adult_scene_performers sp WHERE sp.performer_id = p.id)
+		AND NOT EXISTS (SELECT 1 FROM adult_gallery_performers gp WHERE gp.performer_id = p.id)`); err != nil {
 		return err
 	}
-	_, err := s.Pool.Exec(ctx, `DELETE FROM adult_studios st WHERE NOT EXISTS (SELECT 1 FROM adult_scenes a WHERE a.studio_id = st.id)`)
+	_, err := s.Pool.Exec(ctx, `DELETE FROM adult_studios st WHERE NOT EXISTS (SELECT 1 FROM adult_scenes a WHERE a.studio_id = st.id)
+		AND NOT EXISTS (SELECT 1 FROM adult_galleries g WHERE g.studio_id = st.id)`)
 	return err
 }
 

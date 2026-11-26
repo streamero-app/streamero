@@ -4438,6 +4438,11 @@ paths:
           in: query
           schema:
             type: integer
+        - name: favoritePerformers
+          in: query
+          description: Only scenes with a performer the viewer marked as a favourite.
+          schema:
+            type: boolean
         - name: status
           in: query
           description: "`unwatched`, `inProgress` (continue watching) or `watched`."
@@ -4449,7 +4454,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [date, added, title, played]
+            enum: [date, oldest, added, title, played, duration]
             default: date
         - name: offset
           in: query
@@ -4559,11 +4564,18 @@ paths:
   /adult/studios:
     get:
       operationId: listAdultStudios
-      summary: Studios with scene counts
+      summary: Studios with scene and gallery counts
       tags: [adult]
       security:
         - sessionToken: []
       parameters:
+        - name: sort
+          in: query
+          description: "`count` (most scenes and galleries first) or `name`."
+          schema:
+            type: string
+            enum: [count, name]
+            default: count
         - name: q
           in: query
           schema:
@@ -4617,11 +4629,23 @@ paths:
   /adult/performers:
     get:
       operationId: listAdultPerformers
-      summary: Performers with scene counts
+      summary: Performers with scene and gallery counts
       tags: [adult]
       security:
         - sessionToken: []
       parameters:
+        - name: sort
+          in: query
+          description: "`count` (most scenes and galleries first) or `name`."
+          schema:
+            type: string
+            enum: [count, name]
+            default: count
+        - name: favorites
+          in: query
+          description: Only the viewer's favourite performers.
+          schema:
+            type: boolean
         - name: q
           in: query
           schema:
@@ -4670,6 +4694,280 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AdultPerformer"
+        default:
+          $ref: "#/components/responses/Error"
+  /adult/performers/{performerId}/favorite:
+    parameters:
+      - name: performerId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    put:
+      operationId: addAdultFavoritePerformer
+      summary: Mark a performer as a favourite of the viewer (D-058)
+      tags: [adult]
+      security:
+        - sessionToken: []
+      responses:
+        "204":
+          description: Marked
+        default:
+          $ref: "#/components/responses/Error"
+    delete:
+      operationId: removeAdultFavoritePerformer
+      summary: Unmark a favourite performer
+      tags: [adult]
+      security:
+        - sessionToken: []
+      responses:
+        "204":
+          description: Unmarked
+        default:
+          $ref: "#/components/responses/Error"
+  /adult/home:
+    get:
+      operationId: getAdultHome
+      summary: Start page of the adult section (D-058)
+      description: Continue watching reads adult progress only; nothing here appears on the regular home page.
+      tags: [adult]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Rows
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdultHome"
+        default:
+          $ref: "#/components/responses/Error"
+  /adult/search:
+    get:
+      operationId: searchAdult
+      summary: Search inside the adult section (scenes, galleries, performers, studios, tags)
+      description: The regular `/search` never returns adult content.
+      tags: [adult]
+      security:
+        - sessionToken: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            maxLength: 200
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 12
+      responses:
+        "200":
+          description: Matches by kind
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdultSearchResult"
+        default:
+          $ref: "#/components/responses/Error"
+  /adult/tags:
+    get:
+      operationId: listAdultTags
+      summary: Tags of scenes and galleries (from ThePornDB / StashDB)
+      description: The viewer's hidden tags are left out unless `includeHidden` is set.
+      tags: [adult]
+      security:
+        - sessionToken: []
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+            maxLength: 200
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [count, name]
+            default: count
+        - name: includeHidden
+          in: query
+          schema:
+            type: boolean
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 200
+      responses:
+        "200":
+          description: A page of tags
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdultTagPage"
+        default:
+          $ref: "#/components/responses/Error"
+  /adult/galleries:
+    get:
+      operationId: listAdultGalleries
+      summary: Galleries (image sets) of the adult libraries (D-058)
+      tags: [adult]
+      security:
+        - sessionToken: []
+      parameters:
+        - name: libraryId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: studioId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: performerId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: sceneId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: q
+          in: query
+          schema:
+            type: string
+            maxLength: 200
+        - name: tag
+          in: query
+          schema:
+            type: string
+            maxLength: 100
+        - name: year
+          in: query
+          schema:
+            type: integer
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [date, oldest, added, title, images]
+            default: date
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 60
+      responses:
+        "200":
+          description: A page of galleries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdultGalleryPage"
+        default:
+          $ref: "#/components/responses/Error"
+  /adult/galleries/{galleryId}:
+    parameters:
+      - name: galleryId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getAdultGallery
+      summary: One gallery with its pictures in order
+      tags: [adult]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Gallery
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdultGalleryDetail"
+        default:
+          $ref: "#/components/responses/Error"
+  /adult/gallery-images/{imageId}/{variant}:
+    parameters:
+      - name: imageId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: variant
+        in: path
+        required: true
+        description: |
+          `thumb` (a JPEG thumbnail made and cached on the server), `full` (the picture;
+          HEIC/AVIF converted to JPEG) or `download` (the original file as an attachment;
+          403 `forbidden` without the download permission).
+        schema:
+          type: string
+          enum: [thumb, full, download]
+    get:
+      operationId: getAdultGalleryImage
+      summary: A gallery picture (never cached by the browser)
+      tags: [adult]
+      security:
+        - sessionToken: []
+      responses:
+        "200":
+          description: Picture
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+            Content-Disposition:
+              schema:
+                type: string
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+            image/gif:
+              schema:
+                type: string
+                format: binary
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
         default:
           $ref: "#/components/responses/Error"
   /adult/images/{owner}/{id}/{imageType}:
@@ -4902,8 +5200,19 @@ components:
       enum: [scene, movie]
     AdultStatus:
       type: object
-      required: [pinSet, unlocked, blur, libraries, metadataConfigured]
+      required: [pinSet, unlocked, blur, libraries, metadataConfigured, hiddenTags, hideTagged, canDownload]
       properties:
+        hiddenTags:
+          type: array
+          items:
+            type: string
+          description: Tags the viewer does not want to see (left out of tag lists and cards).
+        hideTagged:
+          type: boolean
+          description: Also hide scenes and galleries that carry a hidden tag.
+        canDownload:
+          type: boolean
+          description: The account may download gallery originals (its download permission).
         pinSet:
           type: boolean
           description: The viewer asked for a PIN before entering the section.
@@ -4922,7 +5231,7 @@ components:
             $ref: "#/components/schemas/AdultLibrary"
     AdultLibrary:
       type: object
-      required: [id, name, sceneCount]
+      required: [id, name, sceneCount, galleryCount]
       properties:
         id:
           type: string
@@ -4930,6 +5239,8 @@ components:
         name:
           type: string
         sceneCount:
+          type: integer
+        galleryCount:
           type: integer
     AdultUnlockRequest:
       type: object
@@ -4952,6 +5263,15 @@ components:
           type: string
           description: Needed to change or remove an existing PIN.
           maxLength: 12
+        hiddenTags:
+          type: array
+          maxItems: 500
+          items:
+            type: string
+            maxLength: 100
+          description: Replaces the list of hidden tags.
+        hideTagged:
+          type: boolean
     AdultAccessInput:
       type: object
       required: [enabled]
@@ -5043,8 +5363,13 @@ components:
       allOf:
         - $ref: "#/components/schemas/AdultScene"
         - type: object
-          required: [files, providerIds]
+          required: [files, providerIds, galleries]
           properties:
+            galleries:
+              type: array
+              description: Galleries that belong to this scene.
+              items:
+                $ref: "#/components/schemas/AdultGallery"
             description:
               type: string
             url:
@@ -5097,7 +5422,7 @@ components:
           type: integer
     AdultStudio:
       type: object
-      required: [id, name, sceneCount, hasImage]
+      required: [id, name, sceneCount, galleryCount, hasImage]
       properties:
         id:
           type: string
@@ -5105,6 +5430,8 @@ components:
         name:
           type: string
         sceneCount:
+          type: integer
+        galleryCount:
           type: integer
         hasImage:
           type: boolean
@@ -5125,7 +5452,7 @@ components:
           type: integer
     AdultPerformer:
       type: object
-      required: [id, name, sceneCount, hasImage, aliases]
+      required: [id, name, sceneCount, galleryCount, hasImage, aliases, favorite]
       properties:
         id:
           type: string
@@ -5134,6 +5461,11 @@ components:
           type: string
         sceneCount:
           type: integer
+        galleryCount:
+          type: integer
+        favorite:
+          type: boolean
+          description: The viewer marked the performer as a favourite.
         hasImage:
           type: boolean
         aliases:
@@ -5158,6 +5490,152 @@ components:
             $ref: "#/components/schemas/AdultPerformer"
         total:
           type: integer
+    AdultGallery:
+      type: object
+      required: [id, libraryId, title, performers, tags, imageCount, addedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        libraryId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        date:
+          type: string
+          format: date
+        year:
+          type: integer
+        studio:
+          $ref: "#/components/schemas/AdultRef"
+        scene:
+          $ref: "#/components/schemas/AdultRef"
+        performers:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdultRef"
+        tags:
+          type: array
+          items:
+            type: string
+        imageCount:
+          type: integer
+        coverImageId:
+          type: string
+          format: uuid
+          description: Picture shown as the gallery's cover (`/adult/gallery-images/{id}/thumb`).
+        addedAt:
+          type: string
+          format: date-time
+    AdultGalleryDetail:
+      allOf:
+        - $ref: "#/components/schemas/AdultGallery"
+        - type: object
+          required: [images]
+          properties:
+            images:
+              type: array
+              items:
+                $ref: "#/components/schemas/AdultGalleryImage"
+    AdultGalleryImage:
+      type: object
+      required: [id, position, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        position:
+          type: integer
+        name:
+          type: string
+          description: File name (without the folder).
+        width:
+          type: integer
+          description: As shown (EXIF orientation applied).
+        height:
+          type: integer
+    AdultGalleryPage:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdultGallery"
+        total:
+          type: integer
+    AdultTag:
+      type: object
+      required: [name, sceneCount, galleryCount, hidden]
+      properties:
+        name:
+          type: string
+        sceneCount:
+          type: integer
+        galleryCount:
+          type: integer
+        hidden:
+          type: boolean
+    AdultTagPage:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdultTag"
+        total:
+          type: integer
+    AdultHome:
+      type: object
+      required: [continue, recentlyAdded, recentlyReleased, favoritePerformers, recentGalleries]
+      properties:
+        continue:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdultScene"
+        recentlyAdded:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdultScene"
+        recentlyReleased:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdultScene"
+        favoritePerformers:
+          type: array
+          description: Newest scenes of the viewer's favourite performers.
+          items:
+            $ref: "#/components/schemas/AdultScene"
+        recentGalleries:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdultGallery"
+    AdultSearchResult:
+      type: object
+      required: [scenes, galleries, performers, studios, tags]
+      properties:
+        scenes:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdultScene"
+        galleries:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdultGallery"
+        performers:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdultPerformer"
+        studios:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdultStudio"
+        tags:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdultTag"
     Username:
       type: string
       minLength: 1

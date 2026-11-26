@@ -77,7 +77,18 @@ func splitNames(s string) []string {
 //	Studio.YY.MM.DD.Title.1080p                             scene release names
 //	{Title} ({Year}) {Quality}                              movies
 func ParseFile(folder, file string) Parsed {
-	stem := strings.TrimSuffix(file, filepath.Ext(file))
+	return parseStem(folder, strings.TrimSuffix(file, filepath.Ext(file)))
+}
+
+// ParseFolder reads a gallery from the name of its folder (D-058): galleries are
+// named like scenes ("{Studio} - {Date} - {Title} [{Performers}]") and sit next
+// to them, so parent is the studio's folder ("" in the library folder). A plain
+// name ("Holiday") is the title.
+func ParseFolder(parent, name string) Parsed {
+	return parseStem(parent, name)
+}
+
+func parseStem(folder, stem string) Parsed {
 	if releaseStyle(stem) {
 		stem = strings.NewReplacer(".", " ", "_", " ").Replace(stem)
 	}
