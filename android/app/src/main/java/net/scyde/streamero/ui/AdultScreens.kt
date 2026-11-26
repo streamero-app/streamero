@@ -17,6 +17,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
@@ -49,7 +51,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.scyde.streamero.AppState
 import net.scyde.streamero.R
-import net.scyde.streamero.adult.ADULT_KINDS
+import net.scyde.streamero.adult.ADULT_NAMED_SORTS
+import net.scyde.streamero.adult.AdultGalleryFilter
+import net.scyde.streamero.adult.AdultPlace
 import net.scyde.streamero.adult.ADULT_SORTS
 import net.scyde.streamero.adult.ADULT_STATUSES
 import net.scyde.streamero.adult.AdultBlur
@@ -118,7 +122,7 @@ class AdultSession(val status: AdultStatus, val blur: AdultBlur, val relock: () 
  * PIN when it is locked, and keeps the window private.
  */
 @Composable
-private fun AdultFrame(state: AppState, nav: NavHostController, content: @Composable (AdultSession) -> Unit) {
+internal fun AdultFrame(state: AppState, nav: NavHostController, content: @Composable (AdultSession) -> Unit) {
     val api = state.api ?: return
     SecureWindow()
     var tick by remember { mutableIntStateOf(0) }
@@ -186,32 +190,54 @@ fun AdultLibraryTile(modifier: Modifier = Modifier, onClick: () -> Unit) {
 
 private val RoundedCornerShape6 = androidx.compose.foundation.shape.RoundedCornerShape(6.dp)
 
-private enum class AdultTab { Scenes, Studios, Performers }
+private fun placeLabel(p: AdultPlace) = when (p) {
+    AdultPlace.Home -> R.string.adult_home
+    AdultPlace.Scenes -> R.string.adult_scenes
+    AdultPlace.Movies -> R.string.adult_kind_movies
+    AdultPlace.Photos -> R.string.adult_photos
+    AdultPlace.Performers -> R.string.adult_performers
+    AdultPlace.Studios -> R.string.adult_studios
+    AdultPlace.Tags -> R.string.adult_tags
+}
 
-/** The section: scenes, studios and performers of the adult libraries. */
+/**
+ * The section (D-058): Home, Scenes, Movies, Photos, Performers, Studios and Tags in a row of
+ * tabs (D-pad friendly on TV), a search inside the section, and the settings sheet.
+ */
 @Composable
 fun AdultScreen(state: AppState, nav: NavHostController) {
     AdultFrame(state, nav) { session ->
-        var tab by rememberSaveable { mutableStateOf(AdultTab.Scenes) }
+        var place by rememberSaveable { mutableStateOf(AdultPlace.Home) }
         var settings by remember { mutableStateOf(false) }
+        var search by rememberSaveable { mutableStateOf("") }
         val header: @Composable () -> Unit = {
             Column(Modifier.statusBarsPadding().padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.adult_section), style = Display.copy(fontSize = 34.sp), color = Kino.text, modifier = Modifier.weight(1f))
                     GlassButton(null, { settings = true }, Modifier.width(52.dp), icon = Icons.Outlined.Settings)
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    AdultTab.entries.forEach { t ->
-                        GlassButton(stringResource(when (t) { AdultTab.Scenes -> R.string.adult_scenes; AdultTab.Studios -> R.string.adult_studios; AdultTab.Performers -> R.string.adult_performers }),
-                            { tab = t }, Modifier.initialFocus(t == tab), active = t == tab)
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(AdultPlace.entries.toList(), key = { it.name }) { p ->
+                        GlassButton(stringResource(placeLabel(p)), { place = p }, Modifier.initialFocus(p == place), active = p == place)
                     }
                 }
+                OutlinedTextField(search, { search = it.take(200) }, leadingIcon = { Icon(Icons.Outlined.Search, null) },
+                    placeholder = { Text(stringResource(R.string.adult_search_section)) }, singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),
+                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = {
+                        if (search.isNotBlank()) nav.navigate("adult/search/" + android.net.Uri.encode(search.trim()))
+                    }),
+                    modifier = Modifier.fillMaxWidth().dpadExit(), shape = CardShape)
             }
         }
-        when (tab) {
-            AdultTab.Scenes -> AdultSceneGrid(state, nav, session, AdultSceneFilter(), filters = true, header = header)
-            AdultTab.Studios -> AdultStudioGrid(state, nav, session, header)
-            AdultTab.Performers -> AdultPerformerGrid(state, nav, session, header)
+        when (place) {
+            AdultPlace.Home -> AdultHomeList(state, nav, session, header)
+            AdultPlace.Scenes -> AdultSceneGrid(state, nav, session, AdultSceneFilter(kind = "scene"), filters = true, header = header)
+            AdultPlace.Movies -> AdultSceneGrid(state, nav, session, AdultSceneFilter(kind = "movie"), filters = true, header = header)
+            AdultPlace.Photos -> AdultGalleryGrid(state, nav, session, AdultGalleryFilter(), filters = true, header = header)
+            AdultPlace.Performers -> AdultPerformerGrid(state, nav, session, header)
+            AdultPlace.Studios -> AdultStudioGrid(state, nav, session, header)
+            AdultPlace.Tags -> AdultTagList(state, nav, session, header)
         }
         if (settings) AdultSettingsSheet(state, session, onLocked = { settings = false; nav.popBackStack() }) { settings = false }
     }
@@ -219,10 +245,10 @@ fun AdultScreen(state: AppState, nav: NavHostController) {
 
 /** Scenes in a paged grid: the whole section with search and filters, or one studio's or performer's. */
 @Composable
-private fun AdultSceneGrid(state: AppState, nav: NavHostController, session: AdultSession, base: AdultSceneFilter, filters: Boolean, header: @Composable () -> Unit) {
+internal fun AdultSceneGrid(state: AppState, nav: NavHostController, session: AdultSession, base: AdultSceneFilter, filters: Boolean, header: @Composable () -> Unit) {
     val api = state.api ?: return
     var q by rememberSaveable { mutableStateOf("") }
-    var kind by rememberSaveable { mutableStateOf("") }
+    val kind = base.kind
     var status by rememberSaveable { mutableStateOf("all") }
     var sort by rememberSaveable { mutableStateOf("date") }
     val filter = base.copy(q = q, kind = kind, status = status, sort = sort)
@@ -253,10 +279,9 @@ private fun AdultSceneGrid(state: AppState, nav: NavHostController, session: Adu
                     OutlinedTextField(q, { q = it }, leadingIcon = { Icon(Icons.Outlined.Search, null) }, placeholder = { Text(stringResource(R.string.adult_search_hint)) },
                         singleLine = true, modifier = Modifier.fillMaxWidth().dpadExit(), shape = CardShape)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Picker(kind, ADULT_KINDS.map { it to stringResource(adultKindLabel(it)) }, { kind = it }, Modifier.weight(1f))
                         Picker(status, ADULT_STATUSES.map { it to stringResource(adultStatusLabel(it)) }, { status = it }, Modifier.weight(1f))
+                        Picker(sort, ADULT_SORTS.map { it to stringResource(adultSortLabel(it)) }, { sort = it }, Modifier.weight(1f))
                     }
-                    Picker(sort, ADULT_SORTS.map { it to stringResource(adultSortLabel(it)) }, { sort = it })
                 }
                 if (total >= 0) Text(LocalContext.current.resources.getQuantityString(R.plurals.adult_scenes_count, total, total), color = Kino.muted, fontSize = 13.sp)
                 ErrorLine(error)
@@ -275,17 +300,21 @@ private fun AdultSceneGrid(state: AppState, nav: NavHostController, session: Adu
 
 private const val PAGE = 60
 
-private fun adultKindLabel(k: String) = when (k) { "scene" -> R.string.adult_kind_scenes; "movie" -> R.string.adult_kind_movies; else -> R.string.adult_kind_all }
 private fun adultStatusLabel(s: String) = when (s) {
     "unwatched" -> R.string.status_unplayed
     "inProgress" -> R.string.adult_status_in_progress
     "watched" -> R.string.watched
     else -> R.string.adult_status_all
 }
-private fun adultSortLabel(s: String) = when (s) {
+internal fun adultSortLabel(s: String) = when (s) {
     "added" -> R.string.sort_added
     "title" -> R.string.sort_title
     "played" -> R.string.adult_sort_played
+    "oldest" -> R.string.adult_sort_oldest
+    "duration" -> R.string.adult_sort_duration
+    "images" -> R.string.adult_sort_images
+    "count" -> R.string.adult_sort_count
+    "name" -> R.string.adult_sort_name
     else -> R.string.adult_sort_date
 }
 
@@ -297,7 +326,7 @@ private fun sceneCardImage(hasPoster: Boolean, hasBackdrop: Boolean): String? = 
 }
 
 @Composable
-private fun AdultSceneCard(api: Api, s: AdultScene, blur: AdultBlur, portrait: Boolean, modifier: Modifier = Modifier, onOpen: () -> Unit) {
+internal fun AdultSceneCard(api: Api, s: AdultScene, blur: AdultBlur, portrait: Boolean, modifier: Modifier = Modifier, onOpen: () -> Unit) {
     val (src, focused) = rememberFocusSource()
     val key = "scene:" + s.id
     val image = sceneCardImage(s.hasPoster, s.hasBackdrop)
@@ -320,7 +349,8 @@ private fun AdultSceneCard(api: Api, s: AdultScene, blur: AdultBlur, portrait: B
 
 /** A studio or performer: picture (or initials) with the name and scene count. */
 @Composable
-private fun AdultPersonCard(imageUrl: String?, name: String, sceneCount: Int, blur: AdultBlur, key: String, portrait: Boolean, modifier: Modifier = Modifier, onOpen: () -> Unit) {
+internal fun AdultPersonCard(imageUrl: String?, name: String, sceneCount: Int, blur: AdultBlur, key: String, portrait: Boolean, modifier: Modifier = Modifier,
+    galleryCount: Int = 0, favorite: Boolean = false, onOpen: () -> Unit) {
     val (src, focused) = rememberFocusSource()
     Column(modifier.clickable(interactionSource = src, indication = tapIndication()) { if (imageUrl == null || !blur.reveal(key)) onOpen() }) {
         Box(Modifier.fillMaxWidth().focusRing(focused).aspectRatio(if (portrait) 2f / 3f else 16f / 9f).clip(CardShape).background(Kino.surface2)) {
@@ -330,8 +360,14 @@ private fun AdultPersonCard(imageUrl: String?, name: String, sceneCount: Int, bl
                 modifier = Modifier.align(Alignment.BottomStart).padding(10.dp))
         }
         Spacer(Modifier.height(if (focused) 12.dp else 8.dp))
-        Text(name, color = Kino.text, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(LocalContext.current.resources.getQuantityString(R.plurals.adult_scenes_count, sceneCount, sceneCount), color = Kino.faint, fontSize = 13.sp, maxLines = 1)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            if (favorite) Icon(Icons.Filled.Favorite, stringResource(R.string.adult_favorite), tint = Kino.accent, modifier = Modifier.size(14.dp))
+            Text(name, color = Kino.text, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        val res = LocalContext.current.resources
+        Text(listOfNotNull(res.getQuantityString(R.plurals.adult_scenes_count, sceneCount, sceneCount).takeIf { sceneCount > 0 || galleryCount == 0 },
+            res.getQuantityString(R.plurals.adult_galleries_count, galleryCount, galleryCount).takeIf { galleryCount > 0 }).joinToString(" · "),
+            color = Kino.faint, fontSize = 13.sp, maxLines = 1)
     }
 }
 
@@ -339,7 +375,8 @@ private fun AdultPersonCard(imageUrl: String?, name: String, sceneCount: Int, bl
 @Composable
 private fun <T> AdultPagedGrid(
     session: AdultSession, header: @Composable () -> Unit, cell: Dp, searchHint: String,
-    load: suspend (q: String, offset: Int) -> Pair<List<T>, Int>, key: (T) -> String, card: @Composable (T) -> Unit,
+    load: suspend (q: String, offset: Int) -> Pair<List<T>, Int>, key: (T) -> String, reload: Any? = null,
+    controls: @Composable () -> Unit = {}, card: @Composable (T) -> Unit,
 ) {
     var q by rememberSaveable { mutableStateOf("") }
     var items by remember { mutableStateOf<List<T>>(emptyList()) }
@@ -353,7 +390,7 @@ private fun <T> AdultPagedGrid(
             .onFailure { e -> if (Api.isAdultLocked(e)) session.relock() else error = e }
         loading = false
     }
-    LaunchedEffect(q) {
+    LaunchedEffect(q, reload) {
         if (q.isNotBlank()) delay(300)
         fetch(true)
     }
@@ -364,6 +401,7 @@ private fun <T> AdultPagedGrid(
                 header()
                 OutlinedTextField(q, { q = it }, leadingIcon = { Icon(Icons.Outlined.Search, null) }, placeholder = { Text(searchHint) },
                     singleLine = true, modifier = Modifier.fillMaxWidth().dpadExit(), shape = CardShape)
+                controls()
                 ErrorLine(error)
             }
         }
@@ -379,9 +417,12 @@ private fun <T> AdultPagedGrid(
 @Composable
 private fun AdultStudioGrid(state: AppState, nav: NavHostController, session: AdultSession, header: @Composable () -> Unit) {
     val api = state.api ?: return
+    var sort by rememberSaveable { mutableStateOf("count") }
     AdultPagedGrid<AdultStudio>(session, header, 170.dp, stringResource(R.string.adult_search_studios),
-        load = { q, offset -> api.adultStudios(q, offset).let { it.items to it.total } }, key = { it.id }) { s ->
-        AdultPersonCard(if (s.hasImage) api.adultImageUrl("studio", s.id, "image") else null, s.name, s.sceneCount, session.blur, "studio:" + s.id, portrait = false) {
+        load = { q, offset -> api.adultStudios(q, offset, sort = sort).let { it.items to it.total } }, key = { it.id }, reload = sort,
+        controls = { Picker(sort, ADULT_NAMED_SORTS.map { it to stringResource(adultSortLabel(it)) }, { sort = it }) }) { s ->
+        AdultPersonCard(if (s.hasImage) api.adultImageUrl("studio", s.id, "image") else null, s.name, s.sceneCount, session.blur, "studio:" + s.id,
+            portrait = false, galleryCount = s.galleryCount) {
             nav.navigate("adult/studio/${s.id}")
         }
     }
@@ -390,31 +431,62 @@ private fun AdultStudioGrid(state: AppState, nav: NavHostController, session: Ad
 @Composable
 private fun AdultPerformerGrid(state: AppState, nav: NavHostController, session: AdultSession, header: @Composable () -> Unit) {
     val api = state.api ?: return
+    var sort by rememberSaveable { mutableStateOf("count") }
+    var favorites by rememberSaveable { mutableStateOf(false) }
     AdultPagedGrid<AdultPerformer>(session, header, Dims.gridCell, stringResource(R.string.adult_search_performers),
-        load = { q, offset -> api.adultPerformers(q, offset).let { it.items to it.total } }, key = { it.id }) { p ->
-        AdultPersonCard(if (p.hasImage) api.adultImageUrl("performer", p.id, "image") else null, p.name, p.sceneCount, session.blur, "performer:" + p.id, portrait = true) {
+        load = { q, offset -> api.adultPerformers(q, offset, sort = sort, favorites = favorites).let { it.items to it.total } }, key = { it.id },
+        reload = sort to favorites,
+        controls = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Picker(sort, ADULT_NAMED_SORTS.map { it to stringResource(adultSortLabel(it)) }, { sort = it }, Modifier.weight(1f))
+                GlassButton(stringResource(R.string.adult_favorites_only), { favorites = !favorites }, active = favorites,
+                    icon = if (favorites) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder)
+            }
+        }) { p ->
+        AdultPersonCard(if (p.hasImage) api.adultImageUrl("performer", p.id, "image") else null, p.name, p.sceneCount, session.blur, "performer:" + p.id,
+            portrait = true, galleryCount = p.galleryCount, favorite = p.favorite) {
             nav.navigate("adult/performer/${p.id}")
         }
     }
 }
 
 @Composable
-private fun BackRow(nav: NavHostController) {
+internal fun BackRow(nav: NavHostController) {
     IconButton(onClick = { nav.popBackStack() }, modifier = Modifier.statusBarsPadding()) {
         Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back), tint = Kino.text)
     }
 }
 
-/** One studio and its scenes. */
+/** Scenes or galleries of a studio or performer page. */
+@Composable
+private fun AdultDetailBody(state: AppState, nav: NavHostController, session: AdultSession, galleries: Boolean, scenes: AdultSceneFilter,
+    gallery: AdultGalleryFilter, header: @Composable () -> Unit) {
+    if (galleries) AdultGalleryGrid(state, nav, session, gallery, filters = false, header = header)
+    else AdultSceneGrid(state, nav, session, scenes, filters = false, header = header)
+}
+
+/** The Scenes / Galleries switch of a studio or performer page. */
+@Composable
+private fun DetailTabs(sceneCount: Int, galleryCount: Int, galleries: Boolean, onChange: (Boolean) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        GlassButton("${stringResource(R.string.adult_scenes_and_movies)} $sceneCount", { onChange(false) }, active = !galleries)
+        GlassButton("${stringResource(R.string.adult_photos)} $galleryCount", { onChange(true) }, active = galleries)
+    }
+}
+
+/** One studio with its scenes and galleries. */
 @Composable
 fun AdultStudioScreen(state: AppState, nav: NavHostController, id: String) {
     val api = state.api ?: return
     AdultFrame(state, nav) { session ->
         val (studio, _, error) = rememberLoad(id) { api.adultStudio(id) }
         LaunchedEffect(error) { if (Api.isAdultLocked(error)) session.relock() }
-        AdultSceneGrid(state, nav, session, AdultSceneFilter(studioId = id), filters = false) {
+        var galleries by rememberSaveable { mutableStateOf(false) }
+        LaunchedEffect(studio?.id) { if (studio != null && studio.sceneCount == 0 && studio.galleryCount > 0) galleries = true }
+        AdultDetailBody(state, nav, session, galleries, AdultSceneFilter(studioId = id), AdultGalleryFilter(studioId = id)) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 BackRow(nav)
+                AdultTrail(listOf(stringResource(R.string.adult_section), stringResource(R.string.adult_studios), studio?.name.orEmpty()))
                 val key = "studio:$id"
                 if (studio?.hasImage == true) Box(Modifier.height(90.dp).widthIn(max = 240.dp).fillMaxWidth().clip(CardShape).background(Kino.surface2)
                     .clickable { session.blur.reveal(key) }.padding(10.dp)) {
@@ -422,22 +494,29 @@ fun AdultStudioScreen(state: AppState, nav: NavHostController, id: String) {
                 }
                 Text(studio?.name.orEmpty(), style = Display.copy(fontSize = 34.sp), color = Kino.text)
                 studio?.parent?.let { Text(it, color = Kino.muted, fontSize = 14.sp) }
+                studio?.let { DetailTabs(it.sceneCount, it.galleryCount, galleries) { g -> galleries = g } }
                 if (!Api.isAdultLocked(error)) ErrorLine(error)
             }
         }
     }
 }
 
-/** One performer and their scenes. */
+/** One performer with their details, scenes and galleries, and the favourite switch. */
 @Composable
 fun AdultPerformerScreen(state: AppState, nav: NavHostController, id: String) {
     val api = state.api ?: return
     AdultFrame(state, nav) { session ->
         val (p, _, error) = rememberLoad(id) { api.adultPerformer(id) }
         LaunchedEffect(error) { if (Api.isAdultLocked(error)) session.relock() }
-        AdultSceneGrid(state, nav, session, AdultSceneFilter(performerId = id), filters = false) {
+        var galleries by rememberSaveable { mutableStateOf(false) }
+        var favorite by remember(p?.favorite) { mutableStateOf(p?.favorite == true) }
+        var favError by remember { mutableStateOf<Throwable?>(null) }
+        val scope = rememberCoroutineScope()
+        LaunchedEffect(p?.id) { if (p != null && p.sceneCount == 0 && p.galleryCount > 0) galleries = true }
+        AdultDetailBody(state, nav, session, galleries, AdultSceneFilter(performerId = id), AdultGalleryFilter(performerId = id)) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 BackRow(nav)
+                AdultTrail(listOf(stringResource(R.string.adult_section), stringResource(R.string.adult_performers), p?.name.orEmpty()))
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     val key = "performer:$id"
                     if (p?.hasImage == true) Box(Modifier.width(120.dp).aspectRatio(2f / 3f).clip(CardShape).background(Kino.surface2).clickable { session.blur.reveal(key) }) {
@@ -445,18 +524,31 @@ fun AdultPerformerScreen(state: AppState, nav: NavHostController, id: String) {
                     }
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(p?.name.orEmpty(), style = Display.copy(fontSize = 30.sp), color = Kino.text)
+                        if (p != null) GlassButton(stringResource(if (favorite) R.string.adult_favorite else R.string.adult_make_favorite), {
+                            val on = !favorite
+                            scope.launch { runCatching { api.adultFavorite(id, on) }.onSuccess { favorite = on; favError = null }.onFailure { favError = it } }
+                        }, active = favorite, icon = if (favorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder)
                         p?.let { x ->
                             Fact(stringResource(R.string.adult_aliases), x.aliases.joinToString())
+                            Fact(stringResource(R.string.adult_gender), x.gender.orEmpty())
                             Fact(stringResource(R.string.adult_born), x.birthdate.orEmpty())
                             Fact(stringResource(R.string.adult_country), x.country.orEmpty())
                         }
                     }
                 }
                 p?.description?.let { Text(it, color = Kino.text.copy(alpha = 0.85f), fontSize = 15.sp, lineHeight = 22.sp, maxLines = 8, overflow = TextOverflow.Ellipsis) }
+                p?.let { DetailTabs(it.sceneCount, it.galleryCount, galleries) { g -> galleries = g } }
+                ErrorLine(favError)
                 if (!Api.isAdultLocked(error)) ErrorLine(error)
             }
         }
     }
+}
+
+/** Where a page sits in the section ("Adult › Performers › Name"); Back goes up one step. */
+@Composable
+internal fun AdultTrail(steps: List<String>) {
+    Text(steps.filter { it.isNotBlank() }.joinToString("  ›  "), color = Kino.faint, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
 }
 
 /** One scene or movie: artwork, facts, and Play / Resume. */
@@ -514,9 +606,24 @@ fun AdultSceneScreen(state: AppState, nav: NavHostController, id: String) {
             d.description?.takeIf { it.isNotBlank() }?.let { text ->
                 item { Text(text, color = Kino.text.copy(alpha = 0.85f), fontSize = 16.sp, lineHeight = 24.sp, modifier = Modifier.padding(horizontal = Dims.edge)) }
             }
+            if (d.galleries.isNotEmpty()) item {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    SectionTitle(stringResource(R.string.adult_scene_galleries))
+                    LazyRow(contentPadding = Dims.rowPad, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        items(d.galleries, key = { it.id }) { g -> AdultGalleryCard(api, g, session.blur, Modifier.width(150.dp)) { nav.navigate("adult/gallery/${g.id}") } }
+                    }
+                }
+            }
+            if (d.tags.isNotEmpty()) item {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    SectionTitle(stringResource(R.string.adult_tags))
+                    LazyRow(contentPadding = Dims.rowPad, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(d.tags, key = { it }) { t -> GlassButton("#$t", { nav.navigate("adult/tag/" + android.net.Uri.encode(t)) }) }
+                    }
+                }
+            }
             item {
                 Column(Modifier.padding(horizontal = Dims.edge), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Fact(stringResource(R.string.adult_tags), d.tags.joinToString())
                     Fact(stringResource(R.string.released), d.date.orEmpty())
                     d.files.forEach { f ->
                         Text(listOfNotNull(f.height?.let { h -> "${h}p" }, f.videoCodec?.uppercase(), f.container.uppercase().ifBlank { null }).joinToString(" · "),
@@ -557,6 +664,9 @@ private fun AdultSettingsSheet(state: AppState, session: AdultSession, onLocked:
             Text(stringResource(R.string.adult_settings).uppercase(), style = Head, color = Kino.text)
             Toggle(stringResource(R.string.adult_blur), stringResource(R.string.adult_blur_hint), status.blur) { on ->
                 if (!busy) save(AdultPreferencesInput(blur = on), null)
+            }
+            Toggle(stringResource(R.string.adult_hide_tagged), stringResource(R.string.adult_hide_tagged_hint, status.hiddenTags.size), status.hideTagged) { on ->
+                if (!busy) save(AdultPreferencesInput(hideTagged = on), null)
             }
             HorizontalDivider(color = Kino.border)
             Text(stringResource(R.string.adult_pin), color = Kino.text, fontSize = 15.sp, fontWeight = FontWeight.Medium)

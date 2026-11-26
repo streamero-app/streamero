@@ -87,4 +87,31 @@ class AdultApiTest {
     @Test fun imageUrl() {
         assertTrue(api.adultImageUrl("scene", "s1", "poster").endsWith("/api/v1/adult/images/scene/s1/poster"))
     }
+
+    @Test fun galleriesHomeTagsAndFavourites() = runTest {
+        server.enqueue(MockResponse().setBody("""{"items":[{"id":"g1","title":"Set","imageCount":3,"coverImageId":"i1","tags":["Outdoor"]}],"total":1}"""))
+        val page = api.adultGalleries(net.scyde.streamero.adult.AdultGalleryFilter(performerId = "p1").query(0, 60))
+        assertEquals(3, page.items.single().imageCount)
+        assertEquals("/api/v1/adult/galleries?performerId=p1&offset=0&limit=60", server.takeRequest().path)
+
+        server.enqueue(MockResponse().setBody("""{"continue":[{"id":"s1","title":"A"}],"recentlyAdded":[],"recentlyReleased":[],"favoritePerformers":[],"recentGalleries":[{"id":"g1","title":"Set"}]}"""))
+        val home = api.adultHome()
+        assertEquals("s1", home.continueWatching.single().id)
+        assertEquals("g1", home.recentGalleries.single().id)
+        assertEquals("/api/v1/adult/home", server.takeRequest().path)
+
+        server.enqueue(MockResponse().setBody("""{"items":[{"name":"Outdoor","sceneCount":2,"galleryCount":1,"hidden":false}],"total":1}"""))
+        assertEquals("Outdoor", api.adultTags("out", "name").items.single().name)
+        assertEquals("/api/v1/adult/tags?q=out&sort=name&limit=500", server.takeRequest().path)
+
+        server.enqueue(MockResponse().setResponseCode(204))
+        api.adultFavorite("p1", true)
+        val fav = server.takeRequest()
+        assertEquals("PUT", fav.method)
+        assertEquals("/api/v1/adult/performers/p1/favorite", fav.path)
+
+        server.enqueue(MockResponse().setBody("""{"id":"g1","title":"Set","images":[{"id":"i1","position":0,"name":"01.jpg","width":800,"height":600}]}"""))
+        assertEquals("01.jpg", api.adultGallery("g1").images.single().name)
+        assertTrue(api.adultGalleryImageUrl("i1", "thumb").endsWith("/api/v1/adult/gallery-images/i1/thumb"))
+    }
 }

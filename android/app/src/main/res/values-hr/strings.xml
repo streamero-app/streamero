@@ -830,4 +830,39 @@
     <string name="access_admins_all">Administratori vide sve biblioteke</string>
     <string name="access_edit">Promijeni pristup bibliotekama</string>
     <plurals name="access_chosen_count"><item quantity="one">%1$d odabrana biblioteka</item><item quantity="few">%1$d odabrane biblioteke</item><item quantity="other">%1$d odabranih biblioteka</item></plurals>
+    <!-- Adult section navigation, galleries and tags (D-058). -->
+    <string name="adult_home">Početna</string>
+    <string name="adult_photos">Fotografije</string>
+    <string name="adult_search_section">Pretraži odjeljak za odrasle</string>
+    <string name="adult_sort_oldest">Najstarije prvo</string>
+    <string name="adult_sort_duration">Najdulje</string>
+    <string name="adult_sort_images">Najviše slika</string>
+    <string name="adult_sort_count">Najviše sadržaja</string>
+    <string name="adult_sort_name">Ime</string>
+    <string name="adult_favorite">Omiljeni</string>
+    <string name="adult_favorites_only">Omiljeni</string>
+    <string name="adult_make_favorite">Dodaj u omiljene</string>
+    <string name="adult_gender">Spol</string>
+    <string name="adult_scenes_and_movies">Scene i filmovi</string>
+    <string name="adult_scene_galleries">Galerije ove scene</string>
+    <string name="adult_hide_tagged">Sakrij i ono što ima skrivenu oznaku</string>
+    <string name="adult_hide_tagged_hint">Scene i galerije s bilo kojom vašom skrivenom oznakom (%1$d) izostavljaju se svugdje u ovom odjeljku.</string>
+    <string name="adult_search_galleries">Galerije, studiji, izvođači…</string>
+    <string name="adult_view_gallery">Pregledaj</string>
+    <string name="adult_from_scene">Iz scene %1$s</string>
+    <string name="adult_slideshow">Pokreni prezentaciju</string>
+    <string name="adult_slideshow_stop">Zaustavi prezentaciju</string>
+    <string name="adult_continue">Nastavi gledati</string>
+    <string name="adult_recently_added">Nedavno dodano</string>
+    <string name="adult_favorite_scenes">Novo od omiljenih izvođača</string>
+    <string name="adult_recent_galleries">Nove galerije</string>
+    <string name="adult_recently_released">Nedavno objavljeno</string>
+    <string name="adult_search_tags">Pretraži oznake</string>
+    <string name="adult_show_hidden_tags">Skrivene (%1$d)</string>
+    <string name="adult_tags_hint">Oznake dolaze iz ThePornDB-a i StashDB-a. Skrivene oznake nestaju s popisa; u postavkama odjeljka možete sakriti i sve što ih nosi.</string>
+    <string name="adult_show_tag">Ponovno prikaži oznaku</string>
+    <string name="adult_hide_tag">Sakrij oznaku</string>
+    <string name="adult_no_tags">Još nema oznaka. Dolaze iz ThePornDB-a i StashDB-a.</string>
+    <plurals name="adult_galleries_count"><item quantity="one">%1$d galerija</item><item quantity="few">%1$d galerije</item><item quantity="other">%1$d galerija</item></plurals>
+    <plurals name="adult_pictures_count"><item quantity="one">%1$d slika</item><item quantity="few">%1$d slike</item><item quantity="other">%1$d slika</item></plurals>
 </resources>

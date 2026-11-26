@@ -260,14 +260,25 @@ class Api(baseUrl: String, @Volatile var token: String? = null) {
     suspend fun adultScene(id: String): AdultSceneDetail = get("adult/scenes/$id")
     suspend fun adultPlayback(id: String, r: PlaybackRequest): PlaybackInfo = post("adult/scenes/$id/playback", r)
     suspend fun adultProgress(id: String, p: ProgressReport) = send("PUT", "adult/scenes/$id/progress", p)
-    suspend fun adultStudios(q: String?, offset: Int, limit: Int = 100): AdultStudioPage =
-        get("adult/studios", mapOf("q" to q?.ifBlank { null }, "offset" to offset, "limit" to limit))
+    suspend fun adultStudios(q: String?, offset: Int, limit: Int = 100, sort: String? = null): AdultStudioPage =
+        get("adult/studios", mapOf("q" to q?.ifBlank { null }, "sort" to sort, "offset" to offset, "limit" to limit))
     suspend fun adultStudio(id: String): AdultStudio = get("adult/studios/$id")
-    suspend fun adultPerformers(q: String?, offset: Int, limit: Int = 100): AdultPerformerPage =
-        get("adult/performers", mapOf("q" to q?.ifBlank { null }, "offset" to offset, "limit" to limit))
+    suspend fun adultPerformers(q: String?, offset: Int, limit: Int = 100, sort: String? = null, favorites: Boolean = false): AdultPerformerPage =
+        get("adult/performers", mapOf("q" to q?.ifBlank { null }, "sort" to sort, "favorites" to (if (favorites) true else null),
+            "offset" to offset, "limit" to limit))
     suspend fun adultPerformer(id: String): AdultPerformer = get("adult/performers/$id")
+    /** Marks or unmarks a favourite performer (D-058). */
+    suspend fun adultFavorite(id: String, on: Boolean) = send(if (on) "PUT" else "DELETE", "adult/performers/$id/favorite")
+    suspend fun adultHome(): AdultHome = get("adult/home")
+    suspend fun adultGalleries(query: Map<String, Any?>): AdultGalleryPage = get("adult/galleries", query)
+    suspend fun adultGallery(id: String): AdultGalleryDetail = get("adult/galleries/$id")
+    suspend fun adultTags(q: String?, sort: String? = null, includeHidden: Boolean = false): AdultTagPage =
+        get("adult/tags", mapOf("q" to q?.ifBlank { null }, "sort" to sort, "includeHidden" to (if (includeHidden) true else null), "limit" to 500))
+    suspend fun adultSearch(q: String): AdultSearchResult = get("adult/search", mapOf("q" to q, "limit" to 24))
     /** Artwork of a scene, studio or performer; needs the session like other API calls and is never kept on disk. */
     fun adultImageUrl(owner: String, id: String, kind: String) = api("adult/images/$owner/$id/$kind").toString()
+    /** A gallery picture: "thumb" (made by the server) or "full"; loaded with the session, never kept on disk. */
+    fun adultGalleryImageUrl(id: String, variant: String) = api("adult/gallery-images/$id/$variant").toString()
 
     companion object {
         /** The adult section is locked with the viewer's PIN in this session. */

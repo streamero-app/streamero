@@ -48,7 +48,39 @@ data class AdultSceneFilter(
 
 val ADULT_KINDS = listOf("", "scene", "movie")
 val ADULT_STATUSES = listOf("all", "unwatched", "inProgress", "watched")
-val ADULT_SORTS = listOf("date", "added", "title", "played")
+val ADULT_SORTS = listOf("date", "oldest", "added", "title", "duration", "played")
+val ADULT_GALLERY_SORTS = listOf("date", "oldest", "added", "title", "images")
+val ADULT_NAMED_SORTS = listOf("count", "name")
+
+/** The places of the section's navigation, in order (D-058). */
+enum class AdultPlace { Home, Scenes, Movies, Photos, Performers, Studios, Tags }
+
+/** Filters of the galleries grid, as the query of GET /adult/galleries (defaults are left out). */
+data class AdultGalleryFilter(
+    val q: String = "", val sort: String = "date", val studioId: String? = null, val performerId: String? = null,
+    val sceneId: String? = null, val tag: String? = null,
+) {
+    fun query(offset: Int, limit: Int): Map<String, Any?> = mapOf(
+        "q" to q.trim().ifBlank { null },
+        "sort" to sort.takeIf { it.isNotBlank() && it != "date" },
+        "studioId" to studioId,
+        "performerId" to performerId,
+        "sceneId" to sceneId,
+        "tag" to tag?.ifBlank { null },
+        "offset" to offset,
+        "limit" to limit,
+    )
+}
+
+/** The hidden tags after hiding or showing [tag] again (case-insensitive, like the server). */
+fun toggleHiddenTag(hidden: List<String>, tag: String): List<String> =
+    if (hidden.any { it.equals(tag, ignoreCase = true) }) hidden.filterNot { it.equals(tag, ignoreCase = true) } else hidden + tag
+
+/** The next picture of the viewer, wrapping around (arrows, D-pad and the slideshow). */
+fun nextPicture(index: Int, delta: Int, count: Int): Int = if (count <= 0) 0 else ((index + delta) % count + count) % count
+
+/** How long the slideshow shows each picture. */
+const val SLIDESHOW_MS = 4000L
 
 /**
  * Blurred artwork: with blurring on, every image stays blurred until it is tapped. What was
